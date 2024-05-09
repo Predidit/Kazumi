@@ -13,18 +13,13 @@ abstract class _PopularController with Store {
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([BangumiItem()]);
 
-  List<String> _items = [];
-  List<String> get items => _items;
-  List<BangumiItem> get listValue => bangumiList.toList();
-
   double scrollOffset = 0.0;
   bool isLoadingMore = true;
 
-  @action
   Future queryBangumiListFeed() async { 
     var result = await BangumiHTTP.getBangumiList();
+    bangumiList.clear();
     bangumiList.addAll(result);
     isLoadingMore = false;
-    return result;
   }
 }

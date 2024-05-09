@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/pages/popular/popular_controller.dart';
 
 
 class IndexModule extends Module {
@@ -11,7 +12,7 @@ class IndexModule extends Module {
 
   @override
   void binds(i) {
-    // i.addSingleton(PopularController.new);
+    i.addSingleton(PopularController.new);
   }
 
   @override
@@ -22,7 +23,7 @@ class IndexModule extends Module {
           ChildRoute(
             "/error",
             child: (_) => Scaffold(
-              appBar: AppBar (title: const Text("BiliNeo")),
+              appBar: AppBar (title: const Text("Kazumi")),
               body: const Center(child: Text("初始化失败")),
             ),
           ),

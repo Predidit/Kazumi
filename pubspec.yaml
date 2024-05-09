@@ -75,10 +75,10 @@ dependencies:
     git: 
         url: https://github.com/xiaoyaocz/flutter_ns_danmaku.git
         ref: master
-  webview_windows:
-    git:
-      url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: main
+  # webview_windows:
+  #   git:
+  #     url: https://github.com/Predidit/flutter-webview-windows.git
+  #     ref: main
 
 dev_dependencies:
   flutter_test:
@@ -110,6 +110,8 @@ flutter:
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/ 
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

@@ -30,11 +30,55 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
+  flutter_modular: ^6.3.2
+  mobx: ^2.2.1
+  flutter_mobx: ^2.0.6+5
+  dio: ^5.0.0
+  cookie_jar: ^4.0.8
+  dio_cookie_manager: ^3.1.1
+  connectivity_plus: ^4.0.1
+  dio_http2_adapter: ^2.3.1+1
+
+  path_provider: ^2.1.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_smart_dialog: ^4.9.4
+  cached_network_image: ^3.3.0
+
+  media_kit: ^1.1.10                             # Primary package.
+  media_kit_video: ^1.2.4                        # For video rendering.
+  media_kit_libs_video: ^1.0.4                   # Native video dependencies.
+
+  auto_orientation: ^2.3.1
+  flutter_volume_controller: ^1.3.1
+  screen_brightness: ^0.2.2+1
+  wakelock_plus: ^1.1.1
+  audio_video_progress_bar: ^2.0.2
+  adaptive_theme: ^3.6.0
+  flutter_displaymode: ^0.6.0
+
+  universal_platform: ^1.0.0+1
+  webview_cookie_manager: ^2.0.6
+  webview_flutter: ^4.2.2
+  url_launcher: ^6.1.14
+  device_info_plus: ^9.0.2
+  window_manager: ^0.3.8
+  protobuf: ^3.0.0
+  ns_danmaku: 
+    git: 
+        url: https://github.com/xiaoyaocz/flutter_ns_danmaku.git
+        ref: master
+  webview_windows:
+    git:
+      url: https://github.com/Predidit/flutter-webview-windows.git
+      ref: main
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +90,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  build_runner: ^2.4.6
+  mobx_codegen: ^2.3.0
+  hive_generator: ^2.0.0
+  flutter_launcher_icons: "^0.13.1"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

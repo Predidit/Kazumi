@@ -23,6 +23,7 @@ class Request {
   // 设置请求头
   static setOptionsHeaders() {
     dio.options.headers['referer'] = '';
+    dio.options.headers['user-agent'] = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15';
   }
 
   // 设置代理

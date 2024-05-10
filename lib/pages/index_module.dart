@@ -5,6 +5,7 @@ import 'package:kazumi/pages/init_page.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 
 
 class IndexModule extends Module {
@@ -15,6 +16,7 @@ class IndexModule extends Module {
   void binds(i) {
     i.addSingleton(PopularController.new);
     i.addSingleton(InfoController.new);
+    i.addSingleton(PluginsController.new);
   }
 
   @override

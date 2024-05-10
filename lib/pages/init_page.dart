@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 class InitPage extends StatefulWidget {
@@ -9,6 +10,7 @@ class InitPage extends StatefulWidget {
 }
 
 class _InitPageState extends State<InitPage> {
+  final PluginsController pluginsController = Modular.get<PluginsController>();
 
   @override
   void initState() {
@@ -17,6 +19,7 @@ class _InitPageState extends State<InitPage> {
   }
 
   _init() {
+    pluginsController.loadPlugins();
     Modular.to.navigate('/tab/popular/');
   }
 

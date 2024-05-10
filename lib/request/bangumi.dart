@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/modules/plugins/plugins_module.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/modules/bangumi/calendar_module.dart';
 
 class BangumiHTTP {
@@ -20,5 +22,11 @@ class BangumiHTTP {
       debugPrint('当前列表长度 ${bangumiList.length}');
     }
     return bangumiList;
+  }
+
+  static queryBangumi(String keyword, List<Plugin> plugins) async {
+    for (Plugin plugin in plugins) {
+
+    }
   }
 }

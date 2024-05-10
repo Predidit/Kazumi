@@ -4,6 +4,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/calendar_module.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:provider/provider.dart';
 
 // 视频卡片 - 水平布局
@@ -22,6 +24,7 @@ class BangumiInfoCardV extends StatelessWidget {
     String heroTag = Utils.makeHeroTag(bangumiItem.id);
     // final PlayerController playerController = Modular.get<PlayerController>();
     final navigationBarState = Provider.of<NavigationBarState>(context);
+    final InfoController infoController = Modular.get<InfoController>();
     return SizedBox(
       height: 300,
       child: Padding(
@@ -106,9 +109,9 @@ class BangumiInfoCardV extends StatelessWidget {
                     height: 32,
                     child: ElevatedButton(
                       onPressed: () async {
-                        
+                        infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
                       },
-                      child: const Text('追番'),
+                      child: const Text('测试'),
                     ),
                   ),
                 ],

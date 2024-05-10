@@ -4,6 +4,7 @@
     "muliSources": "false",
     "useWebview": "false",
     "userAgent": "",
+    "baseURL": "https://anime.girigirilove.com/",
     "searchURL":"https://anime.girigirilove.com/search/-------------/?wd=@keyword",
     "searchList": "//div[4]/div[1]/div[1]/div[1]",
     "searchName": ".thumb-txt cor4 hide",

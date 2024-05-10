@@ -1,5 +1,6 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
+import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 
 class MenuRouteItem {
@@ -36,6 +37,10 @@ final MenuRoute menu = MenuRoute([
   MenuRouteItem(
     path: "/popular",
     module: PopularModule(),
+  ),
+  MenuRouteItem(
+    path: "/info",
+    module: InfoModule(),
   ),
   MenuRouteItem(
     path: "/my",

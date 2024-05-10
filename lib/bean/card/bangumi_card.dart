@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/calendar_module.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:provider/provider.dart';
 
 // 视频卡片 - 垂直布局
@@ -22,8 +24,9 @@ class BangumiCardV extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String heroTag = Utils.makeHeroTag(bangumiItem.id);
+    final InfoController infoController = Modular.get<InfoController>();
     // final PlayerController playerController = Modular.get<PlayerController>();
-    final navigationBarState = Provider.of<NavigationBarState>(context);
+    // final navigationBarState = Provider.of<NavigationBarState>(context);
     return Card(
       elevation: 0,
       clipBehavior: Clip.hardEdge,
@@ -31,7 +34,8 @@ class BangumiCardV extends StatelessWidget {
       child: GestureDetector(
         child: InkWell(
           onTap: () async {
-            
+            infoController.bangumiItem = bangumiItem;
+            Modular.to.pushNamed('/tab/info/');
           },
           child: Column(
             children: [

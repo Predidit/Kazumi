@@ -1,0 +1,13 @@
+{
+    "name": "GiriGiriLove",
+    "version": "0.0.1",
+    "muliSources": "false",
+    "useWebview": "false",
+    "userAgent": "",
+    "searchURL":"https://anime.girigirilove.com/search/-------------/?wd=@keyword",
+    "searchList": "//div[4]/div[1]/div[1]/div[1]",
+    "searchName": ".thumb-txt cor4 hide",
+    "searchResult": ".a@href",
+    "chapterRoads": "//div[5]/div[2]/div[1]/div[1]",
+    "chapterResult": ".anthology-list-play size"
+}

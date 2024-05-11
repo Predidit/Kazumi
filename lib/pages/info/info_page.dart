@@ -4,6 +4,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/modules/plugins/plugins_module.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -71,7 +72,10 @@ class _InfoPageState extends State<InfoPage>
                     if (searchResponse.pluginName == plugin.name) {
                       for (var searchItem in searchResponse.data) {
                         cardList.add(Card(
-                          child: ListTile(title: Text(searchItem.name)),
+                          child: ListTile(title: Text(searchItem.name),
+                          onTap: () {
+                            infoController.queryRoads(searchItem.src, plugin.name);
+                          },),
                         ));
                       }
                     }

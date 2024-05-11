@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/modules/search/search_module.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
 import 'package:flutter/material.dart' show debugPrint;
@@ -72,14 +73,43 @@ class Plugin {
                 element.queryXPath(searchResult).node!.attributes['href'] ?? '',
           );
           searchItems.add(searchItem);
-          debugPrint('${this.name} 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
           debugPrint(
-              '${this.name} 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+              '${this.name} 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
+          debugPrint(
+              '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
         } catch (_) {}
       });
     } catch (_) {}
     SearchResponse searchResponse =
         SearchResponse(pluginName: name, data: searchItems);
     return searchResponse;
+  }
+
+  querychapterRoads(String url) async {
+    List<Road> roadList = [];
+    String queryURL = baseUrl + url;
+    var httpHeaders = {
+      'referer': baseUrl + '/',
+    };
+    try {
+      var resp =
+          await Request().get(queryURL, options: Options(headers: httpHeaders));
+      var htmlString = resp.data.toString();
+      var htmlElement = parse(htmlString).documentElement!;
+      int count = 1;
+      htmlElement.queryXPath(chapterRoads).nodes.forEach((element) {
+        try {
+          List <String> chapterUrlList = [];
+          element.queryXPath(chapterResult).nodes.forEach((item) {
+            String itemUrl = item.node.attributes['href'] ?? '';
+            chapterUrlList.add(itemUrl);
+           });
+          Road road = Road(name: '播放列表$count', data: chapterUrlList);
+          roadList.add(road);
+          count++;
+        } catch(_) {}
+       });
+    } catch (_) {}
+    return roadList;
   }
 }

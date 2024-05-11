@@ -9,6 +9,6 @@
     "searchList": "//div[2]/div[1]/div[1]/div[1]/div[1]/div[2]/ul/li",
     "searchName": "//div[2]/h3",
     "searchResult": "//div[2]/h3/a",
-    "chapterRoads": "//a",
-    "chapterResult": ".anthology-list-play size"
+    "chapterRoads": "//div[3]/div/div[2]/div/div[2]/ul",
+    "chapterResult": "//li/a"
 }

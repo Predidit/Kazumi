@@ -109,10 +109,10 @@ class BangumiInfoCardV extends StatelessWidget {
                     height: 32,
                     child: ElevatedButton(
                       onPressed: () async {
-                        // infoController.querySource('eva');
-                        infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
+                        infoController.querySource('eva');
+                        // infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
                       },
-                      child: const Text('测试'),
+                      child: const Text('检索测试'),
                     ),
                   ),
                 ],

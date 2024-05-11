@@ -1,0 +1,14 @@
+{
+    "name": "Ant",
+    "version": "0.0.1",
+    "muliSources": "false",
+    "useWebview": "true",
+    "userAgent": "",
+    "baseURL": "https://www.mayiyingshi.tv",
+    "searchURL":"https://www.mayiyingshi.tv/vodsearch/-------------.html?wd=@keyword",
+    "searchList": "//div[4]/div[1]/div[1]/div[1]/div[1]/div[2]/ul/li/div[2]/h3",
+    "searchName": "a@text",
+    "searchResult": "//div[4]/div[1]/div[1]/div[1]/div[1]/div[2]/ul/li/div[2]/h3",
+    "chapterRoads": "//div[5]/div[2]/div[1]/div[1]",
+    "chapterResult": ".anthology-list-play size"
+}

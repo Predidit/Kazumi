@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/search/search_module.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -63,23 +62,22 @@ class _InfoPageState extends State<InfoPage>
             child: Observer(
               builder: (context) => TabBarView(
                 controller: tabController,
-                children: infoController.searchResponseList.map((searchResponse) {
-                  if (searchResponse.data.isNotEmpty) {
-                    return ListView(
-                      children: [
-                        ...searchResponse.data.map((searchItem) => Card(
-                          child: ListTile(
-                            title: Text('${searchItem.name}'),
-                          ),
-                        ))
-                      ],
-                    );
-                  } else {
-                    return const Center(
-                      child: Text('该番剧源获取失败'),
-                    );
+                children: List.generate(pluginsController.pluginList.length,
+                    (pluginIndex) {
+                  var plugin = pluginsController.pluginList[pluginIndex];
+                  var cardList = <Widget>[];
+                  for (var searchResponse
+                      in infoController.searchResponseList) {
+                    if (searchResponse.pluginName == plugin.name) {
+                      for (var searchItem in searchResponse.data) {
+                        cardList.add(Card(
+                          child: ListTile(title: Text(searchItem.name)),
+                        ));
+                      }
+                    }
                   }
-                }).toList(),
+                  return ListView(children: cardList);
+                }),
               ),
             ),
           )

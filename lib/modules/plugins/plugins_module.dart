@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:kazumi/modules/search/search_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
 import 'package:flutter/material.dart' show debugPrint;
@@ -53,12 +54,19 @@ class Plugin {
   queryBangumi(String keyword) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     var httpHeaders = {
-      'referer': baseUrl,
+      'referer': baseUrl + '/',
     };
     var resp = await Request().get(queryURL, options: Options(headers: httpHeaders));
     var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
-    var mid = htmlElement.queryXPath(searchList);
-    debugPrint('${mid.nodes.first.text}');
+    var searchNameXpath = htmlElement.queryXPath(searchList);
+    var searchSRCXpath = htmlElement.queryXPath(searchResult);
+    List<SearchItem> searchItems = [];
+    SearchItem searchItem = SearchItem(name: searchNameXpath.nodes.first.text ?? '', src: searchSRCXpath.nodes.first.attributes['href'] ?? '');
+    searchItems.add(searchItem);
+    SearchResponse searchResponse = SearchResponse(pluginName: name, data: searchItems);
+    // debugPrint('番剧名称 ${searchNameXpath.nodes.first.text}');
+    // debugPrint('番剧链接 $baseUrl${searchSRCXpath.nodes.first.attributes['href']}');
+    return searchResponse;
   }
 }

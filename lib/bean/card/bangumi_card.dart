@@ -35,6 +35,7 @@ class BangumiCardV extends StatelessWidget {
         child: InkWell(
           onTap: () async {
             infoController.bangumiItem = bangumiItem;
+            await infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
             Modular.to.pushNamed('/tab/info/');
           },
           child: Column(

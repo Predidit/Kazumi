@@ -53,20 +53,26 @@ class Plugin {
 
   queryBangumi(String keyword) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
+    List<SearchItem> searchItems = [];
     var httpHeaders = {
       'referer': baseUrl + '/',
     };
-    var resp = await Request().get(queryURL, options: Options(headers: httpHeaders));
-    var htmlString = resp.data.toString();
-    var htmlElement = parse(htmlString).documentElement!;
-    var searchNameXpath = htmlElement.queryXPath(searchList);
-    var searchSRCXpath = htmlElement.queryXPath(searchResult);
-    List<SearchItem> searchItems = [];
-    SearchItem searchItem = SearchItem(name: searchNameXpath.nodes.first.text ?? '', src: searchSRCXpath.nodes.first.attributes['href'] ?? '');
-    searchItems.add(searchItem);
-    SearchResponse searchResponse = SearchResponse(pluginName: name, data: searchItems);
-    // debugPrint('番剧名称 ${searchNameXpath.nodes.first.text}');
-    // debugPrint('番剧链接 $baseUrl${searchSRCXpath.nodes.first.attributes['href']}');
+    try {
+      var resp =
+          await Request().get(queryURL, options: Options(headers: httpHeaders));
+      var htmlString = resp.data.toString();
+      var htmlElement = parse(htmlString).documentElement!;
+      var searchNameXpath = htmlElement.queryXPath(searchList);
+      var searchSRCXpath = htmlElement.queryXPath(searchResult);
+      SearchItem searchItem = SearchItem(
+          name: searchNameXpath.nodes.first.text ?? '',
+          src: searchSRCXpath.nodes.first.attributes['href'] ?? '');
+      searchItems.add(searchItem);
+      debugPrint('番剧名称 ${searchNameXpath.nodes.first.text}');
+      debugPrint('番剧链接 $baseUrl${searchSRCXpath.nodes.first.attributes['href']}');
+    } catch (_) {}
+    SearchResponse searchResponse =
+        SearchResponse(pluginName: name, data: searchItems);
     return searchResponse;
   }
 }

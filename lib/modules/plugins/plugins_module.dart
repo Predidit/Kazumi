@@ -62,14 +62,21 @@ class Plugin {
           await Request().get(queryURL, options: Options(headers: httpHeaders));
       var htmlString = resp.data.toString();
       var htmlElement = parse(htmlString).documentElement!;
-      var searchNameXpath = htmlElement.queryXPath(searchList);
-      var searchSRCXpath = htmlElement.queryXPath(searchResult);
-      SearchItem searchItem = SearchItem(
-          name: searchNameXpath.nodes.first.text ?? '',
-          src: searchSRCXpath.nodes.first.attributes['href'] ?? '');
-      searchItems.add(searchItem);
-      debugPrint('番剧名称 ${searchNameXpath.nodes.first.text}');
-      debugPrint('番剧链接 $baseUrl${searchSRCXpath.nodes.first.attributes['href']}');
+
+      htmlElement.queryXPath(searchList).nodes.forEach((element) {
+        try {
+          // debugPrint('调试输出 ${element.queryXPath(searchName).node!.text}');
+          SearchItem searchItem = SearchItem(
+            name: element.queryXPath(searchName).node!.text ?? '',
+            src:
+                element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+          );
+          searchItems.add(searchItem);
+          debugPrint('${this.name} 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
+          debugPrint(
+              '${this.name} 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+        } catch (_) {}
+      });
     } catch (_) {}
     SearchResponse searchResponse =
         SearchResponse(pluginName: name, data: searchItems);

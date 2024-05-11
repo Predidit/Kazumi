@@ -99,16 +99,16 @@ class Plugin {
       int count = 1;
       htmlElement.queryXPath(chapterRoads).nodes.forEach((element) {
         try {
-          List <String> chapterUrlList = [];
+          List<String> chapterUrlList = [];
           element.queryXPath(chapterResult).nodes.forEach((item) {
             String itemUrl = item.node.attributes['href'] ?? '';
             chapterUrlList.add(itemUrl);
-           });
+          });
           Road road = Road(name: '播放列表$count', data: chapterUrlList);
           roadList.add(road);
           count++;
-        } catch(_) {}
-       });
+        } catch (_) {}
+      });
     } catch (_) {}
     return roadList;
   }

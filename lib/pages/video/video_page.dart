@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/bean/card/bangumi_info_card.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/modules/plugins/plugins_module.dart';
 
-class InfoPage extends StatefulWidget {
-  const InfoPage({super.key});
+class VideoPage extends StatefulWidget {
+  const VideoPage({super.key});
 
   @override
-  State<InfoPage> createState() => _InfoPageState();
+  State<VideoPage> createState() => _VideoPageState();
 }
 
-class _InfoPageState extends State<InfoPage>
+class _VideoPageState extends State<VideoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
-  final PluginsController pluginsController = Modular.get<PluginsController>();
+  final VideoController videoController = Modular.get<VideoController>();
   late TabController tabController;
 
   @override
   void initState() {
     super.initState();
     tabController =
-        TabController(length: pluginsController.pluginList.length, vsync: this);
+        TabController(length: videoController.roadList.length, vsync: this);
   }
 
   @override
@@ -32,18 +31,17 @@ class _InfoPageState extends State<InfoPage>
       appBar: AppBar(),
       body: Column(
         children: [
-          BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.center,
             controller: tabController,
-            tabs: pluginsController.pluginList
-                .map((plugin) => Observer(
+            tabs: videoController.roadList
+                .map((road) => Observer(
                       builder: (context) => Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            plugin.name,
+                            road.name,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(width: 5.0),
@@ -63,21 +61,22 @@ class _InfoPageState extends State<InfoPage>
             child: Observer(
               builder: (context) => TabBarView(
                 controller: tabController,
-                children: List.generate(pluginsController.pluginList.length,
-                    (pluginIndex) {
-                  var plugin = pluginsController.pluginList[pluginIndex];
+                children:
+                    List.generate(videoController.roadList.length, (roadIndex) {
                   var cardList = <Widget>[];
-                  for (var searchResponse
-                      in infoController.searchResponseList) {
-                    if (searchResponse.pluginName == plugin.name) {
-                      for (var searchItem in searchResponse.data) {
+                  for (var road in videoController.roadList) {
+                    if (road.name == '播放列表${roadIndex + 1}') {
+                      int count = 1;
+                      for (var urlItem in road.data) {
                         cardList.add(Card(
-                          child: ListTile(title: Text(searchItem.name),
-                          onTap: () async {
-                            await infoController.queryRoads(searchItem.src, plugin.name);
-                            Modular.to.pushNamed('/tab/video/');
-                          },),
+                          child: ListTile(
+                            title: Text('第${count}话'),
+                            onTap: () {
+                              debugPrint('视频链接为 $urlItem');
+                            },
+                          ),
                         ));
+                        count++;
                       }
                     }
                   }

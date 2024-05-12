@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/material.dart' show debugPrint;
 import 'package:kazumi/modules/plugins/plugins_module.dart';
 
 class PluginsController {
@@ -8,16 +9,18 @@ class PluginsController {
 
   loadPlugins() async {
     pluginList.clear();
-    String directoryPath = 'assets/plugins';
-    Directory directory = Directory(directoryPath);
-    List<FileSystemEntity> entities = directory.listSync(recursive: true);
-    for (var entity in entities) {
-      if (entity is File && entity.path.endsWith('.json')) {
-        String jsonString =
-            await rootBundle.loadString('assets/plugins/${entity.uri.pathSegments.last}');
-        Map<String, dynamic> data = jsonDecode(jsonString);
-        pluginList.add(Plugin.fromJson(data));
-      }
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+
+    final jsonFiles = manifestMap.keys.where((String key) =>
+        key.startsWith('assets/plugins/') && key.endsWith('.json'));
+
+    for (var filePath in jsonFiles) {
+      final jsonString = await rootBundle.loadString(filePath);
+      final data = jsonDecode(jsonString);
+      pluginList.add(Plugin.fromJson(data));
     }
+
+    debugPrint('当前插件数量 ${pluginList.length}');
   }
 }

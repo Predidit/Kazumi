@@ -16,8 +16,10 @@ class VideoPage extends StatefulWidget {
 class _VideoPageState extends State<VideoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
-  final VideoPageController videoPageController = Modular.get<VideoPageController>();
-  final WebviewItemController webviewItemController = Modular.get<WebviewItemController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
+  final WebviewItemController webviewItemController =
+      Modular.get<WebviewItemController>();
   late TabController tabController;
 
   @override
@@ -67,8 +69,8 @@ class _VideoPageState extends State<VideoPage>
             child: Observer(
               builder: (context) => TabBarView(
                 controller: tabController,
-                children:
-                    List.generate(videoPageController.roadList.length, (roadIndex) {
+                children: List.generate(videoPageController.roadList.length,
+                    (roadIndex) {
                   var cardList = <Widget>[];
                   for (var road in videoPageController.roadList) {
                     if (road.name == '播放列表${roadIndex + 1}') {
@@ -79,9 +81,12 @@ class _VideoPageState extends State<VideoPage>
                             title: Text('第${count}话'),
                             onTap: () async {
                               debugPrint('视频链接为 $urlItem');
-                              String videoUrl = await videoPageController.queryVideoUrl(urlItem);
-                              debugPrint('视频真实链接为 $videoUrl');
-                              await webviewItemController.loadUrl(videoPageController.currentPlugin.baseUrl + videoUrl);
+                              String videoUrl = await videoPageController
+                                  .queryVideoUrl(urlItem);
+                              debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
+                              await webviewItemController.loadUrl(
+                                  videoPageController.currentPlugin.baseUrl +
+                                      urlItem);
                             },
                           ),
                         ));
@@ -93,6 +98,16 @@ class _VideoPageState extends State<VideoPage>
                 }),
               ),
             ),
+          ),
+          InkWell(
+            child: const Card(
+              child: ListTile(
+                title: Text('刮削测试'),
+              ),
+            ),
+            onTap: () async {
+              await webviewItemController.parseVideoUrl();
+            },
           )
         ],
       ),

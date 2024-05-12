@@ -14,14 +14,14 @@ class VideoPage extends StatefulWidget {
 class _VideoPageState extends State<VideoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
-  final VideoController videoController = Modular.get<VideoController>();
+  final VideoPageController videoPageController = Modular.get<VideoPageController>();
   late TabController tabController;
 
   @override
   void initState() {
     super.initState();
     tabController =
-        TabController(length: videoController.roadList.length, vsync: this);
+        TabController(length: videoPageController.roadList.length, vsync: this);
   }
 
   @override
@@ -34,7 +34,7 @@ class _VideoPageState extends State<VideoPage>
             isScrollable: true,
             tabAlignment: TabAlignment.center,
             controller: tabController,
-            tabs: videoController.roadList
+            tabs: videoPageController.roadList
                 .map((road) => Observer(
                       builder: (context) => Row(
                         mainAxisSize: MainAxisSize.min,
@@ -61,9 +61,9 @@ class _VideoPageState extends State<VideoPage>
               builder: (context) => TabBarView(
                 controller: tabController,
                 children:
-                    List.generate(videoController.roadList.length, (roadIndex) {
+                    List.generate(videoPageController.roadList.length, (roadIndex) {
                   var cardList = <Widget>[];
-                  for (var road in videoController.roadList) {
+                  for (var road in videoPageController.roadList) {
                     if (road.name == '播放列表${roadIndex + 1}') {
                       int count = 1;
                       for (var urlItem in road.data) {
@@ -72,7 +72,7 @@ class _VideoPageState extends State<VideoPage>
                             title: Text('第${count}话'),
                             onTap: () async {
                               debugPrint('视频链接为 $urlItem');
-                              String videoUrl = await videoController.queryVideoUrl(urlItem);
+                              String videoUrl = await videoPageController.queryVideoUrl(urlItem);
                               debugPrint('视频真实链接为 $videoUrl');
                             },
                           ),

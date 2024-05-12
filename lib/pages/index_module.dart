@@ -18,7 +18,7 @@ class IndexModule extends Module {
     i.addSingleton(PopularController.new);
     i.addSingleton(InfoController.new);
     i.addSingleton(PluginsController.new);
-    i.addSingleton(VideoController.new);
+    i.addSingleton(VideoPageController.new);
   }
 
   @override

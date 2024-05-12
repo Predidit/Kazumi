@@ -6,9 +6,9 @@ import 'package:mobx/mobx.dart';
 
 part 'video_controller.g.dart';
 
-class VideoController = _VideoController with _$VideoController;
+class VideoPageController = _VideoPageController with _$VideoPageController;
 
-abstract class _VideoController with Store {
+abstract class _VideoPageController with Store {
   @observable
   var roadList = ObservableList<Road>();
 

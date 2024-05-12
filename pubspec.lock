@@ -469,6 +469,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  fullscreen_window:
+    dependency: transitive
+    description:
+      name: fullscreen_window
+      sha256: fe3014f91bff16a82d142ba9d834980b8a84b4bb03347a92588d389ad92bd1d3
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   glob:
     dependency: transitive
     description:
@@ -1411,6 +1419,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.13.0"
+  webview_win_floating:
+    dependency: "direct main"
+    description:
+      name: webview_win_floating
+      sha256: "6270ada86e4ea1d8d6267c09827206b6dd46705e975d6b5a5593d797cbce4ec4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.3"
   win32:
     dependency: transitive
     description:

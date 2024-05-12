@@ -29,14 +29,14 @@ abstract class _InfoController with Store {
   queryRoads(String url, String pluginName) async {
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
-    final VideoController videoController = Modular.get<VideoController>();
-    videoController.roadList.clear();
+    final VideoPageController videoPageController = Modular.get<VideoPageController>();
+    videoPageController.roadList.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
-        videoController.roadList.addAll(await plugin.querychapterRoads(url));
+        videoPageController.roadList.addAll(await plugin.querychapterRoads(url));
       }
     }
-    debugPrint('播放列表长度 ${videoController.roadList.length}');
-    debugPrint('第一播放列表选集数 ${videoController.roadList[0].data.length}');
+    debugPrint('播放列表长度 ${videoPageController.roadList.length}');
+    debugPrint('第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
   }
 }

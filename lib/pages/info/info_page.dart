@@ -17,7 +17,7 @@ class InfoPage extends StatefulWidget {
 class _InfoPageState extends State<InfoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
-  final VideoController videoController  = Modular.get<VideoController>();
+  final VideoPageController videoPageController  = Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late TabController tabController;
 
@@ -76,7 +76,7 @@ class _InfoPageState extends State<InfoPage>
                         cardList.add(Card(
                           child: ListTile(title: Text(searchItem.name),
                           onTap: () async {
-                            videoController.currentPluginName = plugin.name;
+                            videoPageController.currentPluginName = plugin.name;
                             await infoController.queryRoads(searchItem.src, plugin.name);
                             Modular.to.pushNamed('/tab/video/');
                           },),

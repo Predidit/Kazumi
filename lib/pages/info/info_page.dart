@@ -26,6 +26,8 @@ class _InfoPageState extends State<InfoPage>
     super.initState();
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
+    // 测试用例
+    infoController.querySource('eva');
   }
 
   @override

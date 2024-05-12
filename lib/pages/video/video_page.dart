@@ -35,9 +35,9 @@ class _VideoPageState extends State<VideoPage>
       appBar: AppBar(),
       body: Column(
         children: [
-          const SizedBox(
-            height: 200,
-            child: WebviewItem(),
+          SizedBox(
+            height: MediaQuery.of(context).size.width * 9 / 16,
+            child: const WebviewItem(),
           ),
           TabBar(
             isScrollable: true,
@@ -106,7 +106,7 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
             onTap: () async {
-              await webviewItemController.parseVideoUrl();
+              await webviewItemController.parseIframeUrl();
             },
           )
         ],

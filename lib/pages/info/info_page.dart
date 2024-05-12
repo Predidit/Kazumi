@@ -76,7 +76,7 @@ class _InfoPageState extends State<InfoPage>
                         cardList.add(Card(
                           child: ListTile(title: Text(searchItem.name),
                           onTap: () async {
-                            videoPageController.currentPluginName = plugin.name;
+                            videoPageController.currentPlugin = plugin;
                             await infoController.queryRoads(searchItem.src, plugin.name);
                             Modular.to.pushNamed('/tab/video/');
                           },),

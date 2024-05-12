@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/webview/webview_item.dart';
+import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
 class VideoPage extends StatefulWidget {
@@ -15,6 +17,7 @@ class _VideoPageState extends State<VideoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController = Modular.get<VideoPageController>();
+  final WebviewItemController webviewItemController = Modular.get<WebviewItemController>();
   late TabController tabController;
 
   @override
@@ -30,6 +33,10 @@ class _VideoPageState extends State<VideoPage>
       appBar: AppBar(),
       body: Column(
         children: [
+          const SizedBox(
+            height: 200,
+            child: WebviewItem(),
+          ),
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.center,
@@ -74,6 +81,7 @@ class _VideoPageState extends State<VideoPage>
                               debugPrint('视频链接为 $urlItem');
                               String videoUrl = await videoPageController.queryVideoUrl(urlItem);
                               debugPrint('视频真实链接为 $videoUrl');
+                              await webviewItemController.loadUrl(videoPageController.currentPlugin.baseUrl + videoUrl);
                             },
                           ),
                         ));

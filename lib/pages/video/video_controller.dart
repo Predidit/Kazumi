@@ -12,14 +12,14 @@ abstract class _VideoPageController with Store {
   @observable
   var roadList = ObservableList<Road>();
 
-  String currentPluginName = '';
+  late Plugin currentPlugin;
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   Future<String> queryVideoUrl(String url) async {
     String videoUrl = '';
     for (Plugin plugin in pluginsController.pluginList) {
-      if (plugin.name == currentPluginName) {
+      if (plugin.name == currentPlugin.name) {
         videoUrl = await plugin.queryVideoUrl(url);
       }
     }

@@ -3,7 +3,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -71,8 +70,10 @@ class _VideoPageState extends State<VideoPage>
                         cardList.add(Card(
                           child: ListTile(
                             title: Text('第${count}话'),
-                            onTap: () {
+                            onTap: () async {
                               debugPrint('视频链接为 $urlItem');
+                              String videoUrl = await videoController.queryVideoUrl(urlItem);
+                              debugPrint('视频真实链接为 $videoUrl');
                             },
                           ),
                         ));

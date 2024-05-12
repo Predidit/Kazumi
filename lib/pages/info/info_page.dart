@@ -4,6 +4,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/modules/plugins/plugins_module.dart';
 
 class InfoPage extends StatefulWidget {
@@ -16,6 +17,7 @@ class InfoPage extends StatefulWidget {
 class _InfoPageState extends State<InfoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
+  final VideoController videoController  = Modular.get<VideoController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late TabController tabController;
 
@@ -74,6 +76,7 @@ class _InfoPageState extends State<InfoPage>
                         cardList.add(Card(
                           child: ListTile(title: Text(searchItem.name),
                           onTap: () async {
+                            videoController.currentPluginName = plugin.name;
                             await infoController.queryRoads(searchItem.src, plugin.name);
                             Modular.to.pushNamed('/tab/video/');
                           },),

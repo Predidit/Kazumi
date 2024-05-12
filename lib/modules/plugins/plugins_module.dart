@@ -5,6 +5,7 @@ import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:xpath_selector/xpath_selector.dart';
+import 'package:kazumi/utils/parser.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 class Plugin {
@@ -112,4 +113,34 @@ class Plugin {
     } catch (_) {}
     return roadList;
   }
+
+  Future<String> queryVideoUrl(String url) async {
+    String queryURL = baseUrl + url;
+    String videoUrl = '';
+    var httpHeaders = {
+      'referer': baseUrl + '/',
+    };
+    if (useWebview == 'false') {
+      videoUrl = await queryVideoUrlWithoutWebview(queryURL, httpHeaders);
+    } else {}
+    return videoUrl;
+  }
+
+  Future<String> queryVideoUrlWithoutWebview(
+      String queryURL, Map<String, String> httpHeaders) async {
+    String videoUrl = '';
+    var resp =
+        await Request().get(queryURL, options: Options(headers: httpHeaders));
+    try {
+      videoUrl = ParserWithoutWebview.extractM3U8Links(resp.data);
+    } catch (_) {}
+    if (videoUrl == '') {
+      try {
+        videoUrl = ParserWithoutWebview.extractMP4Links(resp.data);
+      } catch (_) {}
+    }
+    return videoUrl;
+  }
+
+  queryVideoUrlWithWebview(String url) {}
 }

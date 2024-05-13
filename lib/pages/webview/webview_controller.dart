@@ -24,7 +24,7 @@ class WebviewItemController {
     });
     await webviewController.loadRequest(Uri.parse(url));
 
-    Timer.periodic(Duration(seconds: 1), (timer) {
+    Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
         timer.cancel();
       } else {
@@ -34,7 +34,9 @@ class WebviewItemController {
   }
 
   unloadPage() async {
-    await webviewController.removeJavaScriptChannel('JSBridgeDebug').catchError((_) {});
+    await webviewController
+        .removeJavaScriptChannel('JSBridgeDebug')
+        .catchError((_) {});
     await webviewController.loadRequest(Uri.parse('about:blank'));
     await webviewController.clearCache();
     isIframeLoaded = false;

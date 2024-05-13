@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -36,7 +37,8 @@ class _VideoPageState extends State<VideoPage>
       body: Column(
         children: [
           SizedBox(
-            height: MediaQuery.of(context).size.width * 9 / 16,
+            height: (Platform.isAndroid || Platform.isIOS) ? MediaQuery.of(context).size.width * 9 / 16 : 400,
+            width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
             child: const WebviewItem(),
           ),
           TabBar(

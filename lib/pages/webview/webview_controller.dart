@@ -18,7 +18,7 @@ class WebviewItemController {
       debugPrint('由JS桥收到的消息为 ${message.message}');
       if (message.message.startsWith('https://')) {
         debugPrint('开始加载 iframe');
-        loadIframe(message.message);
+        // loadIframe(message.message);
         isIframeLoaded = true;
       }
     });
@@ -42,10 +42,10 @@ class WebviewItemController {
     isIframeLoaded = false;
   }
 
-  loadIframe(String url) async {
-    await webviewController.loadRequest(Uri.parse(url),
-        headers: {'Referer': videoPageController.currentPlugin.baseUrl + '/'});
-  }
+  // loadIframe(String url) async {
+  //   await webviewController.loadRequest(Uri.parse(url),
+  //       headers: {'Referer': videoPageController.currentPlugin.baseUrl + '/'});
+  // }
 
   parseIframeUrl() async {
     await webviewController.runJavaScript('''
@@ -59,6 +59,7 @@ class WebviewItemController {
 
           if (src && src.trim() !== '' && src.trim().startsWith('https://')) {
               JSBridgeDebug.postMessage(src);
+              window.location.href = src;
               break; 
           }
       }

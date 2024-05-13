@@ -38,7 +38,7 @@ class _VideoPageState extends State<VideoPage>
         children: [
           SizedBox(
             height: (Platform.isAndroid || Platform.isIOS) ? MediaQuery.of(context).size.width * 9 / 16 : 400,
-            width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
+            // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
             child: const WebviewItem(),
           ),
           TabBar(

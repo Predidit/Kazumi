@@ -10,6 +10,8 @@ part 'video_controller.g.dart';
 class VideoPageController = _VideoPageController with _$VideoPageController;
 
 abstract class _VideoPageController with Store {
+  
+  
   @observable
   String status = 'loading';
 

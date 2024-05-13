@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemController {
   bool isIframeLoaded = false;
+  bool isVideoSourceLoaded = false;
   WebViewController webviewController = WebViewController();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
@@ -49,7 +50,6 @@ class WebviewItemController {
 
   parseIframeUrl() async {
     await webviewController.runJavaScript('''
-      JSBridgeDebug.postMessage('开始检索iframe标签');
       var iframes = document.getElementsByTagName('iframe');
       JSBridgeDebug.postMessage('iframe 标签数量为');
       JSBridgeDebug.postMessage(iframes.length);
@@ -57,7 +57,7 @@ class WebviewItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.trim().startsWith('https://')) {
+          if (src && src.trim() !== '' && src.includes('https')) {
               JSBridgeDebug.postMessage(src);
               window.location.href = src;
               break; 

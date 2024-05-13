@@ -31,6 +31,24 @@ class _VideoPageState extends State<VideoPage>
   }
 
   @override
+  void dispose() {
+    // try {
+    //   if (Platform.isWindows) {
+    //     final WebviewDesktopItemController webviewDesktopItemController =
+    //         Modular.get<WebviewDesktopItemController>();
+    //     webviewDesktopItemController.webviewController.loadUrl('about:blank');
+    //     webviewDesktopItemController.webviewController.clearCache();
+    //   } else {
+    //     final WebviewItemController webviewItemController =
+    //         Modular.get<WebviewItemController>();
+    //     webviewItemController.webviewController.loadRequest(Uri.parse('about:blank'));
+    //     webviewItemController.webviewController.clearCache();
+    //   }
+    // } catch (_) {}
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),

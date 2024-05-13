@@ -86,6 +86,10 @@ class _PopularPageState extends State<PopularPage>
           },
           child: Scaffold(
             appBar: AppBar(
+              backgroundColor: Theme.of(context)
+                .colorScheme
+                .primary
+                .withOpacity(0.5),
               title: TextField(
                 focusNode: _focusNode,
                 controller: _controller,
@@ -101,7 +105,6 @@ class _PopularPageState extends State<PopularPage>
                 onTap: () {
                   setState(() {
                     _focusNode.requestFocus();
-                    // 添加动效
                     _controller.clear();
                   });
                 },

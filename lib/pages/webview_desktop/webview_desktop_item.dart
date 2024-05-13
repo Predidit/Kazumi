@@ -24,6 +24,12 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
     initPlatformState();
   }
 
+  @override
+  void dispose() {
+    webviewDesktopItemController.unloadPage();
+    super.dispose();
+  }
+
   Future<void> initPlatformState() async {
     await webviewDesktopItemController.webviewController.initialize();
     // 接受全屏事件

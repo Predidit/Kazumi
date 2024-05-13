@@ -11,8 +11,8 @@ class WebviewItemController {
       Modular.get<VideoPageController>();
 
   loadUrl(String url) async {
+    await unloadPage();
     await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
-    await webviewController.loadRequest(Uri.parse(url));
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('由JS桥收到的消息为 ${message.message}');
@@ -22,6 +22,7 @@ class WebviewItemController {
         isIframeLoaded = true;
       }
     });
+    await webviewController.loadRequest(Uri.parse(url));
 
     Timer.periodic(Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
@@ -32,31 +33,17 @@ class WebviewItemController {
     });
   }
 
+  unloadPage() async {
+    await webviewController.removeJavaScriptChannel('JSBridgeDebug').catchError((_) {});
+    await webviewController.loadRequest(Uri.parse('about:blank'));
+    await webviewController.clearCache();
+    isIframeLoaded = false;
+  }
+
   loadIframe(String url) async {
     await webviewController.loadRequest(Uri.parse(url),
         headers: {'Referer': videoPageController.currentPlugin.baseUrl + '/'});
   }
-
-//  parseIframeUrl() async {
-//     await webviewController.runJavaScript('''
-//       function getAllIframesContent() {
-//         var fullHtml = document.documentElement.outerHTML;
-//         var iframes = document.getElementsByTagName('iframe');
-//         for (var i = 0; i < iframes.length; i++) {
-//           try {
-//             var iframeContent = iframes[i].contentDocument.documentElement.outerHTML;
-//             fullHtml += iframeContent;
-//           } catch (e) {
-//             console.error('无法获取某个 iframe 的内容，可能是由于跨域限制。', e);
-//           }
-//         }
-
-//           return fullHtml;
-//         }
-//       var completeHtml = getAllIframesContent();
-//       JSBridgeDebug.postMessage(completeHtml);
-//   ''');
-//   }
 
   parseIframeUrl() async {
     await webviewController.runJavaScript('''

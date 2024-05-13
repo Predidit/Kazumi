@@ -105,11 +105,11 @@ class _PopularPageState extends State<PopularPage>
                     _controller.clear();
                   });
                 },
-                onChanged: (t) {
+                onChanged: (_) {
                   scrollController.jumpTo(0.0);
-                  popularController.keyword = t;
                 },
-                onSubmitted: (_) {
+                onSubmitted: (t) {
+                  popularController.keyword = t;
                   popularController.queryBangumi(popularController.keyword);
                 },
               ),

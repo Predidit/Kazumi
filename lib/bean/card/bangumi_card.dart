@@ -6,6 +6,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:provider/provider.dart';
 
 // 视频卡片 - 垂直布局
@@ -25,6 +26,7 @@ class BangumiCardV extends StatelessWidget {
   Widget build(BuildContext context) {
     String heroTag = Utils.makeHeroTag(bangumiItem.id);
     final InfoController infoController = Modular.get<InfoController>();
+    final PopularController popularController = Modular.get<PopularController>();
     // final PlayerController playerController = Modular.get<PlayerController>();
     // final navigationBarState = Provider.of<NavigationBarState>(context);
     return Card(
@@ -35,7 +37,9 @@ class BangumiCardV extends StatelessWidget {
         child: InkWell(
           onTap: () async {
             infoController.bangumiItem = bangumiItem;
-            // await infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
+            if (popularController.keyword == '') {
+              popularController.keyword = bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? '');
+            }
             Modular.to.pushNamed('/tab/info/');
           },
           child: Column(

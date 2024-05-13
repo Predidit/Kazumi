@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/modules/bangumi/calendar_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';

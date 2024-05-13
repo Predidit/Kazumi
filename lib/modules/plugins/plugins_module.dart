@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:kazumi/modules/search/search_module.dart';
+import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
@@ -81,9 +81,9 @@ class Plugin {
         } catch (_) {}
       });
     } catch (_) {}
-    SearchResponse searchResponse =
-        SearchResponse(pluginName: name, data: searchItems);
-    return searchResponse;
+    PluginSearchResponse pluginSearchResponse =
+        PluginSearchResponse(pluginName: name, data: searchItems);
+    return pluginSearchResponse;
   }
 
   querychapterRoads(String url) async {

@@ -12,17 +12,17 @@ class SearchItem {
   }
 }
 
-class SearchResponse {
+class PluginSearchResponse {
   String pluginName;
   List<SearchItem> data;
 
-  SearchResponse({
+  PluginSearchResponse({
     required this.pluginName,
     required this.data,
   });
 
-  factory SearchResponse.fromJson(Map<String, dynamic> json) {
-    return SearchResponse(
+  factory PluginSearchResponse.fromJson(Map<String, dynamic> json) {
+    return PluginSearchResponse(
       pluginName: json['pluginName'],
       data: (json['data'] as List)
           .map((itemJson) => SearchItem.fromJson(itemJson))

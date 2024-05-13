@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/modules/bangumi/calendar_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -88,13 +88,14 @@ class BangumiInfoCardV extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text('评分:${bangumiItem.rating?.score.toString() ?? '0.0'}',
+                  // 测试 因为API问题评分功能搁置
+                  Text('评分: 0.0',
                       style: style),
                   Row(
                     children: [
-                      Text(bangumiItem.type == 2 ? '日本' : '国创', style: style),
+                      Text(bangumiItem.type == 2 ? '番剧' : '国创', style: style),
                       const SizedBox(width: 3),
-                      const Text('·'),
+                      const Text(' '),
                       const SizedBox(width: 3),
                       Text(bangumiItem.airDate ?? '', style: style),
                     ],

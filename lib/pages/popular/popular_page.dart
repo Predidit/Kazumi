@@ -22,6 +22,8 @@ class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
   bool timeout = false;
+  final FocusNode _focusNode = FocusNode();
+  final TextEditingController _controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
 
@@ -83,24 +85,56 @@ class _PopularPageState extends State<PopularPage>
             await popularController.queryBangumiListFeed();
           },
           child: Scaffold(
+            appBar: AppBar(
+              title: TextField(
+                focusNode: _focusNode,
+                controller: _controller,
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+                decoration: const InputDecoration(
+                  hintText: '快速搜索',
+                  hintStyle: TextStyle(color: Colors.white, fontSize: 20),
+                  border: InputBorder.none,
+                  prefixIcon: Icon(Icons.search, color: Colors.white),
+                ),
+                autocorrect: false,
+                autofocus: false,
+                onTap: () {
+                  setState(() {
+                    _focusNode.requestFocus();
+                    // 添加动效
+                    _controller.clear();
+                  });
+                },
+                onChanged: (t) {
+                  scrollController.jumpTo(0.0);
+                  popularController.keyword = t;
+                },
+                onSubmitted: (_) {
+                  popularController.queryBangumi(popularController.keyword);
+                },
+              ),
+              // actions: [IconButton(onPressed: () {
+              //   popularController.queryBangumi(popularController.keyword);
+              // }, icon: const Icon(Icons.search))],
+            ),
             body: CustomScrollView(
               controller: scrollController,
               slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.only(top: 10, bottom: 10, left: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '每日放送',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                // SliverToBoxAdapter(
+                //   child: Padding(
+                //     padding:
+                //         const EdgeInsets.only(top: 10, bottom: 10, left: 16),
+                //     child: Row(
+                //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //       children: [
+                //         Text(
+                //           '每日放送',
+                //           style: Theme.of(context).textTheme.titleMedium,
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
                 SliverPadding(
                     padding: const EdgeInsets.fromLTRB(
                         StyleString.safeSpace, 0, StyleString.safeSpace, 0),

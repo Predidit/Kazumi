@@ -5,6 +5,7 @@ import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/modules/plugins/plugins_module.dart';
 
 class InfoPage extends StatefulWidget {
@@ -19,6 +20,7 @@ class _InfoPageState extends State<InfoPage>
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController  = Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final PopularController popularController = Modular.get<PopularController>();
   late TabController tabController;
 
   @override
@@ -27,7 +29,7 @@ class _InfoPageState extends State<InfoPage>
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
-    infoController.querySource('eva');
+    infoController.querySource(popularController.keyword);
   }
 
   @override
@@ -72,7 +74,7 @@ class _InfoPageState extends State<InfoPage>
                   var plugin = pluginsController.pluginList[pluginIndex];
                   var cardList = <Widget>[];
                   for (var searchResponse
-                      in infoController.searchResponseList) {
+                      in infoController.pluginSearchResponseList) {
                     if (searchResponse.pluginName == plugin.name) {
                       for (var searchItem in searchResponse.data) {
                         cardList.add(Card(

@@ -34,6 +34,26 @@ class Utils {
     }
   }
 
+  // 从URL参数中解析 m3u8/mp4
+  static String decodeVideoSource(String iframeUrl) {
+    var decodedUrl = Uri.decodeFull(iframeUrl);
+    RegExp regExp = RegExp(r'(http[s]?://.*?\.m3u8)|(http[s]?://.*?\.mp4)',
+        caseSensitive: false);
+
+    Uri uri = Uri.parse(decodedUrl);
+    Map<String, String> params = uri.queryParameters;
+
+    String matchedUrl = '';
+    params.forEach((key, value) {
+      if (regExp.hasMatch(value)) {
+        matchedUrl = value;
+        return;
+      }
+    });
+
+    return matchedUrl;
+  }
+
   static String timeFormat(dynamic time) {
     // 1小时内
     if (time is String && time.contains(':')) {
@@ -271,8 +291,7 @@ class Utils {
       final startTime = formatTime(entry['from']);
       final endTime = formatTime(entry['to']);
       final content = entry['content'];
-      webvttContent +=
-          '${i.toString()}\n$startTime --> $endTime\n$content\n\n';
+      webvttContent += '${i.toString()}\n$startTime --> $endTime\n$content\n\n';
       i = i + 1;
     }
     return webvttContent;

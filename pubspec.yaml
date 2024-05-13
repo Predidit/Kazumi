@@ -77,10 +77,10 @@ dependencies:
     git: 
         url: https://github.com/xiaoyaocz/flutter_ns_danmaku.git
         ref: master
-  # webview_windows:
-  #   git:
-  #     url: https://github.com/Predidit/flutter-webview-windows.git
-  #     ref: main
+  webview_windows:
+    git:
+      url: https://github.com/Predidit/flutter-webview-windows.git
+      ref: main
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:kazumi/pages/video/video_page.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 
 class VideoModule extends Module {
   @override
@@ -10,6 +12,6 @@ class VideoModule extends Module {
 
   @override
   void binds(i) {
-    i.addSingleton(WebviewItemController.new);
+    i.addSingleton(Platform.isWindows ? WebviewDesktopItemController.new : WebviewItemController.new);
   }
 }

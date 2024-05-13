@@ -4,7 +4,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
+import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
 class VideoPage extends StatefulWidget {
@@ -19,8 +21,6 @@ class _VideoPageState extends State<VideoPage>
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-  final WebviewItemController webviewItemController =
-      Modular.get<WebviewItemController>();
   late TabController tabController;
 
   @override
@@ -37,9 +37,13 @@ class _VideoPageState extends State<VideoPage>
       body: Column(
         children: [
           SizedBox(
-            height: (Platform.isAndroid || Platform.isIOS) ? MediaQuery.of(context).size.width * 9 / 16 : 400,
+            height: (Platform.isAndroid || Platform.isIOS)
+                ? MediaQuery.of(context).size.width * 9 / 16
+                : 400,
             // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
-            child: const WebviewItem(),
+            child: Platform.isWindows
+                ? const WebviewDesktopItem()
+                : const WebviewItem(),
           ),
           TabBar(
             isScrollable: true,
@@ -86,9 +90,21 @@ class _VideoPageState extends State<VideoPage>
                               String videoUrl = await videoPageController
                                   .queryVideoUrl(urlItem);
                               debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
-                              await webviewItemController.loadUrl(
-                                  videoPageController.currentPlugin.baseUrl +
-                                      urlItem);
+                              if (Platform.isWindows) {
+                                final WebviewDesktopItemController
+                                    webviewDesktopItemController =
+                                    Modular.get<WebviewDesktopItemController>();
+                                await webviewDesktopItemController.loadUrl(
+                                    videoPageController.currentPlugin.baseUrl +
+                                        urlItem);
+                              } else {
+                                final WebviewItemController
+                                    webviewItemController =
+                                    Modular.get<WebviewItemController>();
+                                await webviewItemController.loadUrl(
+                                    videoPageController.currentPlugin.baseUrl +
+                                        urlItem);
+                              }
                             },
                           ),
                         ));
@@ -108,7 +124,16 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
             onTap: () async {
-              await webviewItemController.parseIframeUrl();
+              if (Platform.isWindows) {
+                final WebviewDesktopItemController
+                    webviewDesktopItemController =
+                    Modular.get<WebviewDesktopItemController>();
+                await webviewDesktopItemController.parseIframeUrl();
+              } else {
+                final WebviewItemController webviewItemController =
+                    Modular.get<WebviewItemController>();
+                await webviewItemController.parseIframeUrl();
+              }
             },
           )
         ],

@@ -26,7 +26,7 @@ class WebviewDesktopItemController {
   initJSBridge() async {
     webviewController.webMessage.listen((event) async {
       debugPrint('由JS桥收到的消息为 ${event.toString()}');
-      if (event.toString().startsWith('https://')) {
+      if (event.toString().contains('https')) {
         debugPrint('开始加载 iframe');
         isIframeLoaded = true;
       }
@@ -46,7 +46,7 @@ class WebviewDesktopItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.trim().startsWith('https://')) {
+          if (src && src.trim() !== '' && src.includes('https')) {
               window.chrome.webview.postMessage(src);
               window.location.href = src;
               break; 

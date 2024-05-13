@@ -1,7 +1,7 @@
 {
     "name": "Ant",
     "version": "0.0.1",
-    "muliSources": "false",
+    "muliSources": "true",
     "useWebview": "true",
     "userAgent": "",
     "baseURL": "https://www.mayiyingshi.tv",

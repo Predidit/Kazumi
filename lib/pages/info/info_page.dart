@@ -6,6 +6,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:provider/provider.dart';
 import 'package:kazumi/modules/plugins/plugins_module.dart';
 
 class InfoPage extends StatefulWidget {
@@ -21,6 +23,7 @@ class _InfoPageState extends State<InfoPage>
   final VideoPageController videoPageController  = Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
+  late NavigationBarState navigationBarState;
   late TabController tabController;
 
   @override
@@ -30,12 +33,29 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
     infoController.querySource(popularController.keyword);
+    navigationBarState = Provider.of<NavigationBarState>(context, listen: false);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigationBarState.hideNavigate();
+    });
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            navigationBarState.showNavigate();
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Column(
         children: [
           BangumiInfoCardV(bangumiItem: infoController.bangumiItem),

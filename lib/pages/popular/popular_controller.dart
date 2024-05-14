@@ -10,8 +10,8 @@ class PopularController = _PopularController with _$PopularController;
 abstract class _PopularController with Store {
   final ScrollController scrollController = ScrollController();
 
-  @observable
   String keyword = '';
+  String searchKeyword = '';
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([BangumiItem()]);

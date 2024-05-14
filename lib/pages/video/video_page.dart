@@ -55,9 +55,8 @@ class _VideoPageState extends State<VideoPage>
       body: Column(
         children: [
           SizedBox(
-            height: (Platform.isAndroid || Platform.isIOS)
-                ? MediaQuery.of(context).size.width * 9 / 16
-                : 400,
+            height: MediaQuery.of(context).size.width * 9 / 16
+                ,
             // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
             child: Platform.isWindows
                 ? const WebviewDesktopItem()
@@ -76,14 +75,14 @@ class _VideoPageState extends State<VideoPage>
                             road.name,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 5.0),
-                          Container(
-                            width: 8.0,
-                            height: 8.0,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                            ),
-                          ),
+                          // const SizedBox(width: 5.0),
+                          // Container(
+                          //   width: 8.0,
+                          //   height: 8.0,
+                          //   decoration: const BoxDecoration(
+                          //     shape: BoxShape.circle,
+                          //   ),
+                          // ),
                         ],
                       ),
                     ))
@@ -130,30 +129,47 @@ class _VideoPageState extends State<VideoPage>
                       }
                     }
                   }
-                  return ListView(children: cardList);
+                  // return ListView(children: cardList);
+                  return GridView.builder(
+                    scrollDirection: Axis.vertical,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: Platform.isWindows ||
+                              Platform.isLinux ||
+                              Platform.isMacOS
+                          ? 10
+                          : 3,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 5,
+                      childAspectRatio: 1.7,
+                    ),
+                    itemCount: cardList.length,
+                    itemBuilder: (context, index) {
+                      return cardList[index];
+                    },
+                  );
                 }),
               ),
             ),
           ),
-          InkWell(
-            child: const Card(
-              child: ListTile(
-                title: Text('刮削测试'),
-              ),
-            ),
-            onTap: () async {
-              if (Platform.isWindows) {
-                final WebviewDesktopItemController
-                    webviewDesktopItemController =
-                    Modular.get<WebviewDesktopItemController>();
-                await webviewDesktopItemController.parseIframeUrl();
-              } else {
-                final WebviewItemController webviewItemController =
-                    Modular.get<WebviewItemController>();
-                await webviewItemController.parseIframeUrl();
-              }
-            },
-          )
+          // InkWell(
+          //   child: const Card(
+          //     child: ListTile(
+          //       title: Text('刮削测试'),
+          //     ),
+          //   ),
+          //   onTap: () async {
+          //     if (Platform.isWindows) {
+          //       final WebviewDesktopItemController
+          //           webviewDesktopItemController =
+          //           Modular.get<WebviewDesktopItemController>();
+          //       await webviewDesktopItemController.parseIframeUrl();
+          //     } else {
+          //       final WebviewItemController webviewItemController =
+          //           Modular.get<WebviewItemController>();
+          //       await webviewItemController.parseIframeUrl();
+          //     }
+          //   },
+          // )
         ],
       ),
     );

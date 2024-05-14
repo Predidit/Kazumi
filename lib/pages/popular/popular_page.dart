@@ -112,8 +112,8 @@ class _PopularPageState extends State<PopularPage>
                   scrollController.jumpTo(0.0);
                 },
                 onSubmitted: (t) {
-                  popularController.keyword = t;
-                  popularController.queryBangumi(popularController.keyword);
+                  popularController.searchKeyword = t;
+                  popularController.queryBangumi(popularController.searchKeyword);
                 },
               ),
               // actions: [IconButton(onPressed: () {

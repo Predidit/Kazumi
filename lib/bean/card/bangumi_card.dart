@@ -27,7 +27,6 @@ class BangumiCardV extends StatelessWidget {
     String heroTag = Utils.makeHeroTag(bangumiItem.id);
     final InfoController infoController = Modular.get<InfoController>();
     final PopularController popularController = Modular.get<PopularController>();
-    // final PlayerController playerController = Modular.get<PlayerController>();
     // final navigationBarState = Provider.of<NavigationBarState>(context);
     return Card(
       elevation: 0,
@@ -37,8 +36,10 @@ class BangumiCardV extends StatelessWidget {
         child: InkWell(
           onTap: () async {
             infoController.bangumiItem = bangumiItem;
-            if (popularController.keyword == '') {
+            if (popularController.searchKeyword == '') {
               popularController.keyword = bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? '');
+            } else {
+              popularController.keyword = popularController.searchKeyword;
             }
             Modular.to.pushNamed('/tab/info/');
           },

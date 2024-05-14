@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "muliSources": "true",
     "useWebview": "true",
+    "useNativePlayer": "true",
     "userAgent": "",
     "baseURL": "https://anime.girigirilove.com",
     "searchURL":"https://anime.girigirilove.com/search/-------------/?wd=@keyword",

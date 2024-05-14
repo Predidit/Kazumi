@@ -43,7 +43,7 @@ class Utils {
     Uri uri = Uri.parse(decodedUrl);
     Map<String, String> params = uri.queryParameters;
 
-    String matchedUrl = '';
+    String matchedUrl = iframeUrl;
     params.forEach((key, value) {
       if (regExp.hasMatch(value)) {
         matchedUrl = value;

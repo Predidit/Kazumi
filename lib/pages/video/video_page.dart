@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/pages/player/player_item.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
@@ -21,6 +23,7 @@ class _VideoPageState extends State<VideoPage>
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final PlayerController playerController = Modular.get<PlayerController>();
   late TabController tabController;
 
   @override
@@ -45,6 +48,9 @@ class _VideoPageState extends State<VideoPage>
     //     webviewItemController.webviewController.clearCache();
     //   }
     // } catch (_) {}
+    try {
+      playerController.mediaPlayer.dispose();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -54,14 +60,40 @@ class _VideoPageState extends State<VideoPage>
       appBar: AppBar(),
       body: Column(
         children: [
-          SizedBox(
-            height: MediaQuery.of(context).size.width * 9 / 16
-                ,
-            // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
-            child: Platform.isWindows
-                ? const WebviewDesktopItem()
-                : const WebviewItem(),
-          ),
+          Observer(builder: (context) {
+            return SizedBox(
+              height: MediaQuery.of(context).size.width * 9 / 16,
+              // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                      child: Visibility(
+                    visible: videoPageController.loading,
+                    child: (videoPageController.currentPlugin.useNativePlayer !=
+                                'true') ? Container(
+                        color: Colors.black,
+                        child:
+                            const Center(child: CircularProgressIndicator())) : Container(),
+                  )),
+                  Positioned.fill(
+                    child: (videoPageController.currentPlugin.useNativePlayer !=
+                                'true') ? Container() : const PlayerItem(),
+                  ),
+                  Positioned(
+                      child: SizedBox(
+                    height: (videoPageController.loading ||
+                            videoPageController.currentPlugin.useNativePlayer ==
+                                'true')
+                        ? 0
+                        : null,
+                    child: Platform.isWindows
+                        ? const WebviewDesktopItem()
+                        : const WebviewItem(),
+                  ))
+                ],
+              ),
+            );
+          }),
           TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.center,

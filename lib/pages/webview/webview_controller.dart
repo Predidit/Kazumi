@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -11,6 +12,7 @@ class WebviewItemController {
   WebViewController webviewController = WebViewController();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final PlayerController playerController = Modular.get<PlayerController>();
 
   loadUrl(String url) async {
     await unloadPage();
@@ -24,6 +26,12 @@ class WebviewItemController {
             '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
         if (Utils.decodeVideoSource(message.message) != '') {
           isVideoSourceLoaded = true;
+          if (videoPageController.currentPlugin.useNativePlayer == 'true') {
+            unloadPage();
+            playerController.videoUrl = Utils.decodeVideoSource(message.message);
+            playerController.init();
+          }
+          videoPageController.loading = false;
         }
       }
     });
@@ -33,6 +41,12 @@ class WebviewItemController {
       if (message.message.contains('https')) {
         debugPrint('由video标签获取视频源 ${message.message}');
         isVideoSourceLoaded = true;
+        if (videoPageController.currentPlugin.useNativePlayer == 'true') {
+            unloadPage();
+            playerController.videoUrl = message.message;
+            playerController.init();
+          }
+        videoPageController.loading = false;
       }
     });
     await webviewController.loadRequest(Uri.parse(url));
@@ -64,6 +78,7 @@ class WebviewItemController {
     await webviewController.clearCache();
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
+    videoPageController.loading = true;
   }
 
   // loadIframe(String url) async {
@@ -81,8 +96,8 @@ class WebviewItemController {
           var src = iframe.getAttribute('src');
 
           if (src && src.trim() !== '' && src.includes('https')) {
-              JSBridgeDebug.postMessage(src);
               window.location.href = src;
+              JSBridgeDebug.postMessage(src);
               break; 
           }
       }

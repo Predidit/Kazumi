@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "muliSources": "true",
     "useWebview": "true",
+    "useNativePlayer": "true",
     "userAgent": "",
     "baseURL": "https://www.mayiyingshi.tv",
     "searchURL":"https://www.mayiyingshi.tv/vodsearch/-------------.html?wd=@keyword",

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 class WebviewDesktopItemController {
@@ -11,6 +12,7 @@ class WebviewDesktopItemController {
   WebviewController webviewController = WebviewController();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final PlayerController playerController = Modular.get<PlayerController>();
 
   loadUrl(String url) async {
     await unloadPage();
@@ -41,10 +43,15 @@ class WebviewDesktopItemController {
         if (messageItem.contains('https')) {
           debugPrint('成功加载 iframe');
           isIframeLoaded = true;
-          debugPrint(
-            '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
+          debugPrint('由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
           if (Utils.decodeVideoSource(messageItem) != '') {
             isVideoSourceLoaded = true;
+            if (videoPageController.currentPlugin.useNativePlayer == 'true') {
+              unloadPage();
+              playerController.videoUrl = Utils.decodeVideoSource(messageItem);
+              playerController.init();
+            }
+            videoPageController.loading = false;
           }
         }
       }
@@ -54,6 +61,12 @@ class WebviewDesktopItemController {
         if (messageItem.contains('https')) {
           debugPrint('成功获取视频源');
           isVideoSourceLoaded = true;
+          if (videoPageController.currentPlugin.useNativePlayer == 'true') {
+            unloadPage();
+            playerController.videoUrl = messageItem;
+            playerController.init();
+          }
+          videoPageController.loading = false;
         }
       }
     });
@@ -64,6 +77,7 @@ class WebviewDesktopItemController {
     await webviewController.clearCache();
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
+    videoPageController.loading = true;
   }
 
   parseIframeUrl() async {

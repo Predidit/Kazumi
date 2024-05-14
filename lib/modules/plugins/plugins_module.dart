@@ -13,6 +13,7 @@ class Plugin {
   String version;
   String muliSources;
   String useWebview;
+  String useNativePlayer;
   String userAgent;
   String baseUrl;
   String searchURL;
@@ -27,6 +28,7 @@ class Plugin {
     required this.version,
     required this.muliSources,
     required this.useWebview,
+    required this.useNativePlayer,
     required this.userAgent,
     required this.baseUrl,
     required this.searchURL,
@@ -43,6 +45,7 @@ class Plugin {
         version: json['version'],
         muliSources: json['muliSources'],
         useWebview: json['useWebview'],
+        useNativePlayer: json['useNativePlayer'],
         userAgent: json['userAgent'],
         baseUrl: json['baseURL'],
         searchURL: json['searchURL'],

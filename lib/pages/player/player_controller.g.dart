@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'video_controller.dart';
+part of 'player_controller.dart';
 
 // **************************************************************************
 // StoreGenerator
@@ -8,9 +8,9 @@ part of 'video_controller.dart';
 
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
-mixin _$VideoPageController on _VideoPageController, Store {
+mixin _$PlayerController on _PlayerController, Store {
   late final _$loadingAtom =
-      Atom(name: '_VideoPageController.loading', context: context);
+      Atom(name: '_PlayerController.loading', context: context);
 
   @override
   bool get loading {
@@ -25,27 +25,18 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$roadListAtom =
-      Atom(name: '_VideoPageController.roadList', context: context);
+  late final _$initAsyncAction =
+      AsyncAction('_PlayerController.init', context: context);
 
   @override
-  ObservableList<Road> get roadList {
-    _$roadListAtom.reportRead();
-    return super.roadList;
-  }
-
-  @override
-  set roadList(ObservableList<Road> value) {
-    _$roadListAtom.reportWrite(value, super.roadList, () {
-      super.roadList = value;
-    });
+  Future<dynamic> init({int offset = 0}) {
+    return _$initAsyncAction.run(() => super.init(offset: offset));
   }
 
   @override
   String toString() {
     return '''
-loading: ${loading},
-roadList: ${roadList}
+loading: ${loading}
     ''';
   }
 }

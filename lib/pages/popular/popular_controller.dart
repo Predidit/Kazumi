@@ -14,12 +14,12 @@ abstract class _PopularController with Store {
   String searchKeyword = '';
 
   @observable
-  ObservableList<BangumiItem> bangumiList = ObservableList.of([BangumiItem()]);
+  ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
   double scrollOffset = 0.0;
   bool isLoadingMore = true;
 
-  Future queryBangumiListFeed() async { 
+  Future queryBangumiListFeed() async {  
     var result = await BangumiHTTP.getBangumiList();
     bangumiList.clear();
     bangumiList.addAll(result);

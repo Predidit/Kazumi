@@ -26,10 +26,27 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$pluginSearchStatusAtom =
+      Atom(name: '_InfoController.pluginSearchStatus', context: context);
+
+  @override
+  ObservableMap<String, String> get pluginSearchStatus {
+    _$pluginSearchStatusAtom.reportRead();
+    return super.pluginSearchStatus;
+  }
+
+  @override
+  set pluginSearchStatus(ObservableMap<String, String> value) {
+    _$pluginSearchStatusAtom.reportWrite(value, super.pluginSearchStatus, () {
+      super.pluginSearchStatus = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
-pluginSearchResponseList: ${pluginSearchResponseList}
+pluginSearchResponseList: ${pluginSearchResponseList},
+pluginSearchStatus: ${pluginSearchStatus}
     ''';
   }
 }

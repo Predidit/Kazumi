@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/modules/plugins/plugins_module.dart';
+import 'package:kazumi/modules/plugins/plugins.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:mobx/mobx.dart';
@@ -18,16 +18,26 @@ abstract class _InfoController with Store {
   @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
 
+  @observable
+  var pluginSearchStatus = ObservableMap<String, String>();
+
   querySource(String keyword) async {
     // 此异步处理可能存在内存泄漏
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     pluginSearchResponseList.clear();
-    var controller = StreamController();
 
     for (Plugin plugin in pluginsController.pluginList) {
+      pluginSearchStatus[plugin.name] = 'pending';
+    }
+
+    var controller = StreamController();
+    for (Plugin plugin in pluginsController.pluginList) {
       plugin.queryBangumi(keyword).then((result) {
+        pluginSearchStatus[plugin.name] = 'success';
         controller.add(result);
+      }).catchError((error) {
+        pluginSearchStatus[plugin.name] = 'error';
       });
     }
     await for (var result in controller.stream) {

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/plugins/plugins_module.dart';
+import 'package:kazumi/modules/plugins/plugins.dart';
 // import 'package:kazumi/pages/webview/webview_controller.dart';
 // import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:mobx/mobx.dart';
@@ -14,6 +14,9 @@ class VideoPageController = _VideoPageController with _$VideoPageController;
 abstract class _VideoPageController with Store {
   @observable
   bool loading = true;
+
+  @observable
+  int currentEspisode = 1;
 
   @observable
   var roadList = ObservableList<Road>();

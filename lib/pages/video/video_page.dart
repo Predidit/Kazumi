@@ -139,6 +139,7 @@ class _VideoPageState extends State<VideoPage>
                               String videoUrl = await videoPageController
                                   .queryVideoUrl(urlItem);
                               debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
+                              videoPageController.currentEspisode = count;
                               if (Platform.isWindows) {
                                 final WebviewDesktopItemController
                                     webviewDesktopItemController =

@@ -7,8 +7,9 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/modules/plugins/plugins_module.dart';
+import 'package:kazumi/modules/plugins/plugins.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -20,9 +21,11 @@ class InfoPage extends StatefulWidget {
 class _InfoPageState extends State<InfoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
-  final VideoPageController videoPageController  = Modular.get<VideoPageController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
+  // List<String> pluginSearchStatusList = [];
   late NavigationBarState navigationBarState;
   late TabController tabController;
 
@@ -33,7 +36,12 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
     infoController.querySource(popularController.keyword);
-    navigationBarState = Provider.of<NavigationBarState>(context, listen: false);
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
+    // 初始化插件状态监听器
+    // for (int i=0; i< pluginsController.pluginList.length; i++) {
+    //   pluginSearchStatusList.add('pending');
+    // }
   }
 
   @override
@@ -46,6 +54,7 @@ class _InfoPageState extends State<InfoPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigationBarState.hideNavigate();
     });
+    debugPrint('status 数组长度为 ${infoController.pluginSearchStatus.length}');
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -76,7 +85,9 @@ class _InfoPageState extends State<InfoPage>
                           Container(
                             width: 8.0,
                             height: 8.0,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
+                              color: infoController.pluginSearchStatus[plugin.name] == 'success' ? Colors.green : (infoController.pluginSearchStatus[plugin.name] == 'pending') ? Colors.grey : Colors.red,
+                              // color: Colors.green,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -98,12 +109,15 @@ class _InfoPageState extends State<InfoPage>
                     if (searchResponse.pluginName == plugin.name) {
                       for (var searchItem in searchResponse.data) {
                         cardList.add(Card(
-                          child: ListTile(title: Text(searchItem.name),
-                          onTap: () async {
-                            videoPageController.currentPlugin = plugin;
-                            await infoController.queryRoads(searchItem.src, plugin.name);
-                            Modular.to.pushNamed('/tab/video/');
-                          },),
+                          child: ListTile(
+                            title: Text(searchItem.name),
+                            onTap: () async {
+                              videoPageController.currentPlugin = plugin;
+                              await infoController.queryRoads(
+                                  searchItem.src, plugin.name);
+                              Modular.to.pushNamed('/tab/video/');
+                            },
+                          ),
                         ));
                       }
                     }

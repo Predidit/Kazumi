@@ -89,33 +89,30 @@ class BangumiInfoCardV extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // 测试 因为API问题评分功能搁置
-                  Text('评分: 0.0',
+                  Text('排名: ${bangumiItem.rank ?? '0.0'}',
                       style: style),
                   Row(
                     children: [
-                      Text(bangumiItem.type == 2 ? '番剧' : '国创', style: style),
+                      Text(bangumiItem.type == 2 ? '番剧' : '其他', style: style),
                       const SizedBox(width: 3),
                       const Text(' '),
                       const SizedBox(width: 3),
                       Text(bangumiItem.airDate ?? '', style: style),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Text(bangumiItem.summary ?? '', style: style),
-                    ],
-                  ),
                   const SizedBox(height: 18),
-                  SizedBox(
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        // infoController.querySource('eva');
-                        infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
-                      },
-                      child: const Text('检索测试'),
-                    ),
-                  ),
+                  Text(bangumiItem.summary ?? '', style: style, softWrap: true),
+                  const SizedBox(height: 18),
+                  // SizedBox(
+                  //   height: 32,
+                  //   child: ElevatedButton(
+                  //     onPressed: () async {
+                  //       // infoController.querySource('eva');
+                  //       infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
+                  //     },
+                  //     child: const Text('检索测试'),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

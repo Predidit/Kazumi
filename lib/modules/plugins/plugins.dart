@@ -78,12 +78,16 @@ class Plugin {
           );
           searchItems.add(searchItem);
           debugPrint(
-              '${this.name} 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
+              '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
           debugPrint(
               '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
-        } catch (_) {}
+        } catch (_) {
+          throw Exception('An error occurred while querying Bangumi');
+        }
       });
-    } catch (_) {}
+    } catch (_) {
+      throw Exception('An error occurred while querying Bangumi');
+    }
     PluginSearchResponse pluginSearchResponse =
         PluginSearchResponse(pluginName: name, data: searchItems);
     return pluginSearchResponse;

@@ -25,6 +25,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$currentEspisodeAtom =
+      Atom(name: '_VideoPageController.currentEspisode', context: context);
+
+  @override
+  int get currentEspisode {
+    _$currentEspisodeAtom.reportRead();
+    return super.currentEspisode;
+  }
+
+  @override
+  set currentEspisode(int value) {
+    _$currentEspisodeAtom.reportWrite(value, super.currentEspisode, () {
+      super.currentEspisode = value;
+    });
+  }
+
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -45,6 +61,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   String toString() {
     return '''
 loading: ${loading},
+currentEspisode: ${currentEspisode},
 roadList: ${roadList}
     ''';
   }

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart' show debugPrint;
-import 'package:kazumi/modules/plugins/plugins_module.dart';
+import 'package:kazumi/modules/plugins/plugins.dart';
 
 class PluginsController {
   List<Plugin> pluginList = [];

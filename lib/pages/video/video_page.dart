@@ -70,14 +70,18 @@ class _VideoPageState extends State<VideoPage>
                       child: Visibility(
                     visible: videoPageController.loading,
                     child: (videoPageController.currentPlugin.useNativePlayer !=
-                                'true') ? Container(
-                        color: Colors.black,
-                        child:
-                            const Center(child: CircularProgressIndicator())) : Container(),
+                            'true')
+                        ? Container(
+                            color: Colors.black,
+                            child: const Center(
+                                child: CircularProgressIndicator()))
+                        : Container(),
                   )),
                   Positioned.fill(
                     child: (videoPageController.currentPlugin.useNativePlayer !=
-                                'true') ? Container() : const PlayerItem(),
+                            'true')
+                        ? Container()
+                        : const PlayerItem(),
                   ),
                   Positioned(
                       child: SizedBox(
@@ -131,31 +135,83 @@ class _VideoPageState extends State<VideoPage>
                     if (road.name == '播放列表${roadIndex + 1}') {
                       int count = 1;
                       for (var urlItem in road.data) {
-                        cardList.add(Card(
-                          child: ListTile(
-                            title: Text('第${count}话'),
-                            onTap: () async {
-                              debugPrint('视频链接为 $urlItem');
-                              String videoUrl = await videoPageController
-                                  .queryVideoUrl(urlItem);
-                              debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
-                              videoPageController.currentEspisode = count;
-                              if (Platform.isWindows) {
-                                final WebviewDesktopItemController
-                                    webviewDesktopItemController =
-                                    Modular.get<WebviewDesktopItemController>();
-                                await webviewDesktopItemController.loadUrl(
-                                    videoPageController.currentPlugin.baseUrl +
-                                        urlItem);
-                              } else {
-                                final WebviewItemController
-                                    webviewItemController =
-                                    Modular.get<WebviewItemController>();
-                                await webviewItemController.loadUrl(
-                                    videoPageController.currentPlugin.baseUrl +
-                                        urlItem);
-                              }
-                            },
+                        int _count = count;
+                        cardList.add(Container(
+                          margin:
+                              const EdgeInsets.only(bottom: 10), // 改为bottom间距
+                          child: Material(
+                            color:
+                                Theme.of(context).colorScheme.onInverseSurface,
+                            borderRadius: BorderRadius.circular(6),
+                            clipBehavior: Clip.hardEdge,
+                            child: InkWell(
+                              onTap: () async {
+                                debugPrint('视频链接为 $urlItem');
+                                String videoUrl = await videoPageController
+                                    .queryVideoUrl(urlItem);
+                                debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
+                                videoPageController.currentEspisode = _count;
+                                debugPrint('跳转到第$_count集');
+                                if (Platform.isWindows) {
+                                  final WebviewDesktopItemController
+                                      webviewDesktopItemController = Modular
+                                          .get<WebviewDesktopItemController>();
+                                  await webviewDesktopItemController.loadUrl(
+                                      videoPageController
+                                              .currentPlugin.baseUrl +
+                                          urlItem);
+                                } else {
+                                  final WebviewItemController
+                                      webviewItemController =
+                                      Modular.get<WebviewItemController>();
+                                  await webviewItemController.loadUrl(
+                                      videoPageController
+                                              .currentPlugin.baseUrl +
+                                          urlItem);
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Row(
+                                      children: [
+                                        if (_count ==
+                                            (videoPageController
+                                                .currentEspisode)) ...<Widget>[
+                                          Image.asset(
+                                            'assets/images/live.png',
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            height: 12,
+                                          ),
+                                          const SizedBox(width: 6)
+                                        ],
+                                        Text(
+                                          '第$count话',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: _count ==
+                                                      (videoPageController
+                                                          .currentEspisode)
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                  : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface),
+                                        ),
+                                        const SizedBox(width: 2),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ));
                         count++;

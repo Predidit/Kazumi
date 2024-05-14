@@ -55,17 +55,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
         ),
       );
     } else {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        child: Card(
-          clipBehavior: Clip.antiAliasWithSaveLayer,
-          child: Stack(
-            children: [
-              Webview(webviewDesktopItemController.webviewController),
-            ],
-          ),
-        ),
-      );
+      return Webview(webviewDesktopItemController.webviewController);
     }
   }
 

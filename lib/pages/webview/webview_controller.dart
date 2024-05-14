@@ -19,9 +19,9 @@ class WebviewItemController {
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('JS桥收到的消息为 ${message.message}');
       if (message.message.contains('https')) {
+        isIframeLoaded = true;
         debugPrint(
             '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
-        isIframeLoaded = true;
         if (Utils.decodeVideoSource(message.message) != '') {
           isVideoSourceLoaded = true;
         }

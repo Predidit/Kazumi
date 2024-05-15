@@ -6,24 +6,32 @@ import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 class BangumiHTTP {
-  // 弃用 此方法使用当天更新的番剧作为推荐流
-  // static Future getBangumiList({int? page}) async {
-  //   List<BangumiItem> bangumiList = [];
-  //   try {
-  //     var res = await Request().get(Api.bangumiCalendar);
-  //     final jsonData = res.data;
-  //     final jsonList = jsonData[0]['items'];
-  //     for (dynamic jsonItem in jsonList) {
-  //       if (jsonItem is Map<String, dynamic>) {
-  //         bangumiList.add(BangumiItem.fromJson(jsonItem));
-  //       }
-  //     }
-  //   } catch (e) {
-  //     debugPrint('解析推荐列表错误 ${e.toString()}');
-  //     debugPrint('当前列表长度 ${bangumiList.length}');
-  //   }
-  //   return bangumiList;
-  // }
+  static Future getCalendar() async {
+    List<List<BangumiItem>> bangumiCalendar = [];
+    try {
+      var res = await Request().get(Api.bangumiCalendar);
+      final jsonData = res.data;
+      debugPrint('网络源推荐列表长度 ${jsonData.length}');
+      for (dynamic jsonDayList in jsonData) {
+        List<BangumiItem> bangumiList = [];
+        final jsonList = jsonDayList['items'];
+        for (dynamic jsonItem in jsonList) {
+          try {
+            BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem);
+            if (bangumiItem.nameCn != '') {
+              bangumiList.add(bangumiItem);
+            }
+            // bangumiList.add(BangumiItem.fromJson(jsonItem));
+          } catch(_) {}
+        }
+        bangumiCalendar.add(bangumiList);
+      }
+    } catch (e) {
+      debugPrint('解析推荐列表错误 ${e.toString()}');
+      debugPrint('当前列表长度 ${bangumiCalendar.length}');
+    }
+    return bangumiCalendar;
+  }
 
   static Future getBangumiList({int? page}) async {
     List<BangumiItem> bangumiList = [];

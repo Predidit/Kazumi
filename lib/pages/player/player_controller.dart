@@ -47,7 +47,7 @@ abstract class _PlayerController with Store {
     mediaPlayer = Player(
       configuration: const PlayerConfiguration(
         // 默认缓存 5M 大小
-        bufferSize: 5 * 1024 * 1024, //panic
+        bufferSize: 5 * 1024 * 1024, 
       ),
     );
 

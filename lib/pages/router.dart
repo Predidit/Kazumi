@@ -3,6 +3,7 @@ import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
+import 'package:kazumi/pages/timeline/timeline_module.dart';
 
 class MenuRouteItem {
   final String path;
@@ -46,6 +47,10 @@ final MenuRoute menu = MenuRoute([
   MenuRouteItem(
     path: "/video",
     module: VideoModule(),
+  ),
+  MenuRouteItem(
+    path: "/timeline",
+    module: TimelineModule(),
   ),
   MenuRouteItem(
     path: "/my",

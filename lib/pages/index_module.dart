@@ -7,7 +7,7 @@ import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/timeline/timeline_controller.dart';
 
 
 class IndexModule extends Module {
@@ -20,7 +20,7 @@ class IndexModule extends Module {
     i.addSingleton(InfoController.new);
     i.addSingleton(PluginsController.new);
     i.addSingleton(VideoPageController.new);
-    // i.addSingleton(PlayerController.new);
+    i.addSingleton(TimelineController.new);
   }
 
   @override

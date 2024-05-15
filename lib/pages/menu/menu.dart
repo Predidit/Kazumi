@@ -64,6 +64,11 @@ class _BottomMenu extends State<BottomMenu> {
                         label: '推荐',
                       ),
                       NavigationDestination(
+                        selectedIcon: Icon(Icons.calendar_view_week),
+                        icon: Icon(Icons.calendar_view_week_outlined),
+                        label: '时间表',
+                      ),
+                      NavigationDestination(
                         selectedIcon: Icon(Icons.timeline),
                         icon: Icon(Icons.timeline_outlined),
                         label: '我的',
@@ -82,6 +87,11 @@ class _BottomMenu extends State<BottomMenu> {
                           }
                           break;
                         case 1:
+                          {
+                            Modular.to.navigate('/tab/timeline/');
+                          }
+                          break;
+                        case 2:
                           {
                             Modular.to.navigate('/tab/my/');
                           }

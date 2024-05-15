@@ -9,7 +9,7 @@ import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/modules/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});

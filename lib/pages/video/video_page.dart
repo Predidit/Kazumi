@@ -147,9 +147,9 @@ class _VideoPageState extends State<VideoPage>
                             child: InkWell(
                               onTap: () async {
                                 debugPrint('视频链接为 $urlItem');
-                                String videoUrl = await videoPageController
-                                    .queryVideoUrl(urlItem);
-                                debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
+                                // String videoUrl = await videoPageController
+                                //     .queryVideoUrl(urlItem);
+                                // debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
                                 videoPageController.currentEspisode = _count;
                                 debugPrint('跳转到第$_count集');
                                 if (Platform.isWindows) {

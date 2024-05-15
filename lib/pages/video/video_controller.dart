@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/modules/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins.dart';
 // import 'package:kazumi/pages/webview/webview_controller.dart';
 // import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:mobx/mobx.dart';
@@ -37,13 +37,14 @@ abstract class _VideoPageController with Store {
   //   }
   // }
 
-  Future<String> queryVideoUrl(String url) async {
-    String videoUrl = '';
-    for (Plugin plugin in pluginsController.pluginList) {
-      if (plugin.name == currentPlugin.name) {
-        videoUrl = await plugin.queryVideoUrl(url);
-      }
-    }
-    return videoUrl;
-  }
+  // 弃用
+  // Future<String> queryVideoUrl(String url) async {
+  //   String videoUrl = '';
+  //   for (Plugin plugin in pluginsController.pluginList) {
+  //     if (plugin.name == currentPlugin.name) {
+  //       videoUrl = await plugin.queryVideoUrl(url);
+  //     }
+  //   }
+  //   return videoUrl;
+  // }
 }

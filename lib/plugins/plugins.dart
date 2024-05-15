@@ -62,32 +62,23 @@ class Plugin {
     var httpHeaders = {
       'referer': baseUrl + '/',
     };
-    try {
-      var resp =
-          await Request().get(queryURL, options: Options(headers: httpHeaders));
-      var htmlString = resp.data.toString();
-      var htmlElement = parse(htmlString).documentElement!;
+    var resp =
+        await Request().get(queryURL, options: Options(headers: httpHeaders));
+    var htmlString = resp.data.toString();
+    var htmlElement = parse(htmlString).documentElement!;
 
-      htmlElement.queryXPath(searchList).nodes.forEach((element) {
-        try {
-          // debugPrint('调试输出 ${element.queryXPath(searchName).node!.text}');
-          SearchItem searchItem = SearchItem(
-            name: element.queryXPath(searchName).node!.text ?? '',
-            src:
-                element.queryXPath(searchResult).node!.attributes['href'] ?? '',
-          );
-          searchItems.add(searchItem);
-          debugPrint(
-              '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
-          debugPrint(
-              '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
-        } catch (_) {
-          throw Exception('An error occurred while querying Bangumi');
-        }
-      });
-    } catch (_) {
-      throw Exception('An error occurred while querying Bangumi');
-    }
+    htmlElement.queryXPath(searchList).nodes.forEach((element) {
+      // debugPrint('调试输出 ${element.queryXPath(searchName).node!.text}');
+      SearchItem searchItem = SearchItem(
+        name: element.queryXPath(searchName).node!.text ?? '',
+        src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+      );
+      searchItems.add(searchItem);
+      debugPrint(
+          '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
+      debugPrint(
+          '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+    });
     PluginSearchResponse pluginSearchResponse =
         PluginSearchResponse(pluginName: name, data: searchItems);
     return pluginSearchResponse;
@@ -112,9 +103,11 @@ class Plugin {
             String itemUrl = item.node.attributes['href'] ?? '';
             chapterUrlList.add(itemUrl);
           });
-          Road road = Road(name: '播放列表$count', data: chapterUrlList);
-          roadList.add(road);
-          count++;
+          if (chapterUrlList.length != 0) {
+            Road road = Road(name: '播放列表$count', data: chapterUrlList);
+            roadList.add(road);
+            count++;
+          }
         } catch (_) {}
       });
     } catch (_) {}

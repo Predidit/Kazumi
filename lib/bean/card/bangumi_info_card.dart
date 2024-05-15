@@ -6,25 +6,33 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:provider/provider.dart';
 
 // 视频卡片 - 水平布局
-class BangumiInfoCardV extends StatelessWidget {
-  const BangumiInfoCardV({
-    super.key,
-    required this.bangumiItem,
-  });
+class BangumiInfoCardV extends StatefulWidget {
+  const BangumiInfoCardV({super.key, required this.bangumiItem});
 
   final BangumiItem bangumiItem;
+
+  @override
+  State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
+}
+
+class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
+  late bool isFavorite;
 
   @override
   Widget build(BuildContext context) {
     TextStyle style =
         TextStyle(fontSize: Theme.of(context).textTheme.labelMedium!.fontSize);
-    String heroTag = Utils.makeHeroTag(bangumiItem.id);
+    String heroTag = Utils.makeHeroTag(widget.bangumiItem.id);
     // final PlayerController playerController = Modular.get<PlayerController>();
     final navigationBarState = Provider.of<NavigationBarState>(context);
     final InfoController infoController = Modular.get<InfoController>();
+    final FavoriteController favoriteController =
+        Modular.get<FavoriteController>();
+    isFavorite = favoriteController.isFavorite(widget.bangumiItem);
     return SizedBox(
       height: 300,
       child: Padding(
@@ -50,7 +58,7 @@ class BangumiInfoCardV extends StatelessWidget {
                       Hero(
                         tag: heroTag,
                         child: NetworkImgLayer(
-                          src: bangumiItem.images?['large'] ?? '',
+                          src: widget.bangumiItem.images['large'] ?? '',
                           width: maxWidth,
                           height: maxHeight,
                         ),
@@ -74,9 +82,9 @@ class BangumiInfoCardV extends StatelessWidget {
                           color: Theme.of(context).colorScheme.onSurface),
                       children: [
                         TextSpan(
-                          text: bangumiItem.nameCn == ''
-                              ? bangumiItem.name
-                              : (bangumiItem.nameCn ?? 'Placeholder'),
+                          text: widget.bangumiItem.nameCn == ''
+                              ? widget.bangumiItem.name
+                              : (widget.bangumiItem.nameCn),
                           style: TextStyle(
                             fontSize: MediaQuery.textScalerOf(context).scale(
                                 Theme.of(context)
@@ -91,29 +99,38 @@ class BangumiInfoCardV extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // 测试 因为API问题评分功能搁置
-                  Text('排名: ${bangumiItem.rank ?? '0.0'}', style: style),
+                  Text('排名: ${widget.bangumiItem.rank ?? '0.0'}', style: style),
                   Row(
                     children: [
-                      Text(bangumiItem.type == 2 ? '番剧' : '其他', style: style),
+                      Text(widget.bangumiItem.type == 2 ? '番剧' : '其他',
+                          style: style),
                       const SizedBox(width: 3),
                       const Text(' '),
                       const SizedBox(width: 3),
-                      Text(bangumiItem.airDate ?? '', style: style),
+                      Text(widget.bangumiItem.airDate, style: style),
                     ],
                   ),
                   const SizedBox(height: 18),
                   Container(
                       height: 140,
-                      child: Text(bangumiItem.summary ?? '',
+                      child: Text(widget.bangumiItem.summary,
                           style: style, softWrap: true)),
                   const SizedBox(height: 18),
                   SizedBox(
                     height: 32,
-                    child: ElevatedButton(
+                    child: IconButton(
+                      icon: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_outline),
                       onPressed: () async {
-                        // infoController.querySource('eva');
+                        if (isFavorite) {
+                          favoriteController.deleteFavorite(widget.bangumiItem);
+                        } else {
+                          favoriteController.addFavorite(widget.bangumiItem);
+                        }
+                        setState(() {
+                          isFavorite = !isFavorite;
+                        });
                       },
-                      child: const Text('追番'),
                     ),
                   ),
                 ],

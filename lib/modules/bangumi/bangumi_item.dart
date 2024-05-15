@@ -1,31 +1,44 @@
 import 'package:kazumi/modules/bangumi/rating_item.dart';
+import 'package:hive/hive.dart';
 
+part 'bangumi_item.g.dart';
+
+@HiveType(typeId: 0)
 class BangumiItem {
-  int? id;
+  @HiveField(0)
+  int id;
   // String? url;
-  int? type;
-  String? name;
-  String? nameCn;
-  String? summary;
-  String? airDate;
-  int? airWeekday;
+  @HiveField(1)
+  int type;
+  @HiveField(2)
+  String name;
+  @HiveField(3)
+  String nameCn;
+  @HiveField(4)
+  String summary;
+  @HiveField(5)
+  String airDate;
+  @HiveField(6)
+  int airWeekday;
   // Rating? rating;
-  int? rank;
-  Map<String, String>? images;
+  @HiveField(7)
+  int rank;
+  @HiveField(8)
+  Map<String, String> images;
   // Map<String, int>? collection;
 
   BangumiItem({
-    this.id,
+    required this.id,
     // this.url,
-    this.type,
-    this.name,
-    this.nameCn,
-    this.summary,
-    this.airDate,
-    this.airWeekday,
+    required this.type,
+    required this.name,
+    required this.nameCn,
+    required this.summary,
+    required this.airDate,
+    required this.airWeekday,
     // this.rating,
-    this.rank,
-    this.images,
+    required this.rank,
+    required this.images,
     // this.collection,
   });
 

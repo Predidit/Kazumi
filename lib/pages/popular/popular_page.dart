@@ -124,7 +124,7 @@ class _PopularPageState extends State<PopularPage>
             body: CustomScrollView(
               controller: scrollController,
               slivers: [
-                SliverToBoxAdapter(
+                const SliverToBoxAdapter(
                   child: Padding(
                     padding:
                         const EdgeInsets.only(top: 10, bottom: 10, left: 16),

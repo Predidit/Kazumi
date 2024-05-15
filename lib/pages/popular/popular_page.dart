@@ -47,7 +47,8 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   void dispose() {
-    // popularController.scrollOffset = scrollController.offset;
+    popularController.keyword = '';
+    popularController.searchKeyword = '';
     scrollController.removeListener(() {});
     debugPrint('popular 模块已卸载, 监听器移除');
     super.dispose();

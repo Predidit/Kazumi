@@ -74,7 +74,9 @@ class BangumiInfoCardV extends StatelessWidget {
                           color: Theme.of(context).colorScheme.onSurface),
                       children: [
                         TextSpan(
-                          text: bangumiItem.nameCn == '' ? bangumiItem.name : (bangumiItem.nameCn ?? 'Placeholder'),
+                          text: bangumiItem.nameCn == ''
+                              ? bangumiItem.name
+                              : (bangumiItem.nameCn ?? 'Placeholder'),
                           style: TextStyle(
                             fontSize: MediaQuery.textScalerOf(context).scale(
                                 Theme.of(context)
@@ -89,8 +91,7 @@ class BangumiInfoCardV extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // 测试 因为API问题评分功能搁置
-                  Text('排名: ${bangumiItem.rank ?? '0.0'}',
-                      style: style),
+                  Text('排名: ${bangumiItem.rank ?? '0.0'}', style: style),
                   Row(
                     children: [
                       Text(bangumiItem.type == 2 ? '番剧' : '其他', style: style),
@@ -101,18 +102,20 @@ class BangumiInfoCardV extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Text(bangumiItem.summary ?? '', style: style, softWrap: true),
+                  Container(
+                      height: 140,
+                      child: Text(bangumiItem.summary ?? '',
+                          style: style, softWrap: true)),
                   const SizedBox(height: 18),
-                  // SizedBox(
-                  //   height: 32,
-                  //   child: ElevatedButton(
-                  //     onPressed: () async {
-                  //       // infoController.querySource('eva');
-                  //       infoController.querySource(bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? ''));
-                  //     },
-                  //     child: const Text('检索测试'),
-                  //   ),
-                  // ),
+                  SizedBox(
+                    height: 32,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        // infoController.querySource('eva');
+                      },
+                      child: const Text('追番'),
+                    ),
+                  ),
                 ],
               ),
             ),

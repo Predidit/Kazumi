@@ -5,10 +5,9 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
-import 'package:kazumi/pages/player/player_item.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
+import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
 class VideoPage extends StatefulWidget {
@@ -56,14 +55,24 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (Platform.isWindows) {
+        final WebviewDesktopItemController webviewDesktopItemController = Modular.get<WebviewDesktopItemController>();
+        if (!webviewDesktopItemController.webviewController.value.isInitialized) {
+          await webviewDesktopItemController.init();
+        }
+      }
+      videoPageController.changeEpisode(videoPageController.currentEspisode);
+    });
     return Scaffold(
       appBar: AppBar(),
       body: Column(
         children: [
           Observer(builder: (context) {
-            return SizedBox(
+            return Container(
+              color: Colors.black,
               height: MediaQuery.of(context).size.width * 9 / 16,
-              // width: (Platform.isAndroid || Platform.isIOS) ? null : 400,
+              width: MediaQuery.of(context).size.width,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -147,28 +156,7 @@ class _VideoPageState extends State<VideoPage>
                             child: InkWell(
                               onTap: () async {
                                 debugPrint('视频链接为 $urlItem');
-                                // String videoUrl = await videoPageController
-                                //     .queryVideoUrl(urlItem);
-                                // debugPrint('由无Webview刮削器获取的视频真实链接为 $videoUrl');
-                                videoPageController.currentEspisode = _count;
-                                debugPrint('跳转到第$_count集');
-                                if (Platform.isWindows) {
-                                  final WebviewDesktopItemController
-                                      webviewDesktopItemController = Modular
-                                          .get<WebviewDesktopItemController>();
-                                  await webviewDesktopItemController.loadUrl(
-                                      videoPageController
-                                              .currentPlugin.baseUrl +
-                                          urlItem);
-                                } else {
-                                  final WebviewItemController
-                                      webviewItemController =
-                                      Modular.get<WebviewItemController>();
-                                  await webviewItemController.loadUrl(
-                                      videoPageController
-                                              .currentPlugin.baseUrl +
-                                          urlItem);
-                                }
+                                videoPageController.changeEpisode(_count, currentRoad: roadIndex);
                               },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(

@@ -14,6 +14,12 @@ class WebviewDesktopItemController {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
 
+  init() async {
+    await webviewController.initialize();
+    // 初始化JS监听器
+    await initJSBridge();
+  }
+
   loadUrl(String url) async {
     await unloadPage();
     await webviewController.loadUrl(url);

@@ -143,7 +143,7 @@ class _PopularPageState extends State<PopularPage>
                     padding: const EdgeInsets.fromLTRB(
                         StyleString.safeSpace, 0, StyleString.safeSpace, 0),
                     sliver: Observer(builder: (context) {
-                      if (popularController.bangumiList.length < 5 &&
+                      if (popularController.bangumiList.length <= 1 &&
                           timeout == true) {
                         return HttpError(
                           errMsg: '加载推荐流错误',

@@ -20,11 +20,11 @@ class WebviewItemController {
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('JS桥收到的消息为 ${message.message}');
-      if (message.message.contains('https')) {
+      if (message.message.contains('http')) {
         isIframeLoaded = true;
-        debugPrint(
+        if (Utils.decodeVideoSource(message.message) != message.message) {
+          debugPrint(
             '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
-        if (Utils.decodeVideoSource(message.message) != '') {
           isVideoSourceLoaded = true;
           if (videoPageController.currentPlugin.useNativePlayer == 'true') {
             unloadPage();
@@ -38,7 +38,7 @@ class WebviewItemController {
     await webviewController.addJavaScriptChannel('VideoBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('VideoJS桥收到的消息为 ${message.message}');
-      if (message.message.contains('https')) {
+      if (message.message.contains('http')) {
         debugPrint('由video标签获取视频源 ${message.message}');
         isVideoSourceLoaded = true;
         if (videoPageController.currentPlugin.useNativePlayer == 'true') {
@@ -95,7 +95,7 @@ class WebviewItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('https')) {
+          if (src && src.trim() !== '' && src.includes('http')) {
               window.location.href = src;
               JSBridgeDebug.postMessage(src);
               break; 

@@ -46,12 +46,12 @@ class WebviewDesktopItemController {
         String messageItem =
             event.toString().replaceFirst('iframeMessage:', '');
         debugPrint('由JS桥收到的消息为 $messageItem');
-        if (messageItem.contains('https')) {
+        if (messageItem.contains('http')) {
           debugPrint('成功加载 iframe');
           isIframeLoaded = true;
-          debugPrint('由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
-          if (Utils.decodeVideoSource(messageItem) != '') {
+          if (Utils.decodeVideoSource(messageItem) != messageItem) {
             isVideoSourceLoaded = true;
+            debugPrint('由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
             if (videoPageController.currentPlugin.useNativePlayer == 'true') {
               unloadPage();
               playerController.videoUrl = Utils.decodeVideoSource(messageItem);
@@ -64,7 +64,7 @@ class WebviewDesktopItemController {
       if (event.toString().contains('videoMessage:')) {
         String messageItem = event.toString().replaceFirst('videoMessage:', '');
         debugPrint('由VideoJS桥收到的消息为 $messageItem');
-        if (messageItem.contains('https')) {
+        if (messageItem.contains('http')) {
           debugPrint('成功获取视频源');
           isVideoSourceLoaded = true;
           if (videoPageController.currentPlugin.useNativePlayer == 'true') {
@@ -93,7 +93,7 @@ class WebviewDesktopItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('https')) {
+          if (src && src.trim() !== '' && src.includes('http')) {
               window.chrome.webview.postMessage('iframeMessage:' + src);
               window.location.href = src;
               break; 

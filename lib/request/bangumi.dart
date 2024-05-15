@@ -22,7 +22,7 @@ class BangumiHTTP {
               bangumiList.add(bangumiItem);
             }
             // bangumiList.add(BangumiItem.fromJson(jsonItem));
-          } catch(_) {}
+          } catch (_) {}
         }
         bangumiCalendar.add(bangumiList);
       }
@@ -83,8 +83,14 @@ class BangumiHTTP {
       final jsonList = jsonData['list'];
       for (dynamic jsonItem in jsonList) {
         if (jsonItem is Map<String, dynamic>) {
-          debugPrint('尝试添加检索结果');
-          bangumiList.add(BangumiItem.fromJson(jsonItem));
+          try {
+            BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem);
+            if (bangumiItem.nameCn != '') {
+              bangumiList.add(bangumiItem);
+            }
+          } catch (e) {
+            debugPrint('检索结果解析错误 ${e.toString()}');
+          }
         }
       }
     } catch (e) {

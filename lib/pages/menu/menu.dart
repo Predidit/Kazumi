@@ -64,8 +64,8 @@ class _BottomMenu extends State<BottomMenu> {
                         label: '推荐',
                       ),
                       NavigationDestination(
-                        selectedIcon: Icon(Icons.calendar_view_week),
-                        icon: Icon(Icons.calendar_view_week_outlined),
+                        selectedIcon: Icon(Icons.timeline),
+                        icon: Icon(Icons.timeline_outlined),
                         label: '时间表',
                       ),
                       NavigationDestination(
@@ -74,8 +74,8 @@ class _BottomMenu extends State<BottomMenu> {
                         label: '追番',
                       ),
                       NavigationDestination(
-                        selectedIcon: Icon(Icons.timeline),
-                        icon: Icon(Icons.timeline_outlined),
+                        selectedIcon: Icon(Icons.settings),
+                        icon: Icon(Icons.settings),
                         label: '我的',
                       ),
                     ],

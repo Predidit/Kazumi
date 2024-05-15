@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 class MyPage extends StatefulWidget {
-  const MyPage({
-    super.key
-  });
+  const MyPage({super.key});
 
   @override
   State<MyPage> createState() => _MyPageState();
@@ -12,7 +11,26 @@ class MyPage extends StatefulWidget {
 class _MyPageState extends State<MyPage> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(title: const Text('我的')),
+      body: Column(
+        children: [
+          ListTile(
+            onTap: () async {
+              Modular.to.pushNamed('/tab/my/plugin');
+            },
+            dense: false,
+            title: const Text('插件设置'),
+          ),
+          ListTile(
+            onTap: () {
+              Modular.to.pushNamed('/tab/my/about');
+            },
+            dense: false,
+            title: const Text('关于'),
+          ),
+        ],
+      ),
+    );
   }
 }
-

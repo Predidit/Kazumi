@@ -9,6 +9,10 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:ns_danmaku/ns_danmaku.dart';
+import 'package:kazumi/request/damaku.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 part 'player_controller.g.dart';
 
@@ -19,8 +23,12 @@ abstract class _PlayerController with Store {
   bool loading = true;
 
   String videoUrl = '';
+  // 弹幕ID
+  int bangumiID = 0;
   late Player mediaPlayer;
   late VideoController videoController;
+  late DanmakuController danmakuController;
+  final VideoPageController videoPageController = Modular.get<VideoPageController>();
 
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
@@ -87,6 +95,8 @@ abstract class _PlayerController with Store {
       });
     }
     debugPrint('VideoURL初始化完成');
+    // 加载弹幕
+    getDanDanmaku(videoPageController.title, videoPageController.currentEspisode);
     loading = false;
   }
 
@@ -130,23 +140,39 @@ abstract class _PlayerController with Store {
   }
 
   Future playOrPause() async {
-    // mediaPlayer.state.playing ? danmakuController.pause() : danmakuController.resume();
+    mediaPlayer.state.playing ? danmakuController.pause() : danmakuController.resume();
     await mediaPlayer.playOrPause();
   }
 
   Future seek(Duration duration) async {
-    // danmakuController.clear();
+    danmakuController.clear();
     await mediaPlayer.seek(duration);
   }
 
   Future pause() async {
-    // danmakuController.pause();
+    danmakuController.pause();
     await mediaPlayer.pause();
   }
 
   Future play() async {
-    // danmakuController.resume();
+    danmakuController.resume();
     await mediaPlayer.play();
+  }
+
+  Future getDanDanmaku(String title, int episode) async {
+    danDanmakus.clear();
+    bangumiID = await DanmakuRequest.getBangumiID(title);
+    var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+    addDanmakus(res);
+  }
+
+  void addDanmakus(List<Danmaku> danmakus) {
+    for (var element in danmakus) {
+      var danmakuList =
+          danDanmakus[element.p.toInt()] ?? List.empty(growable: true);
+      danmakuList.add(element);
+      danDanmakus[element.p.toInt()] = danmakuList;
+    }
   }
 
   Future<void> enterFullScreen() async {

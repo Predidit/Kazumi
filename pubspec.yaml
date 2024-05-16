@@ -75,7 +75,7 @@ dependencies:
   webview_win_floating: ^2.2.3
   ns_danmaku: 
     git: 
-        url: https://github.com/xiaoyaocz/flutter_ns_danmaku.git
+        url: https://github.com/songbirdzz/flutter_ns_danmaku
         ref: master
   webview_windows:
     git:

@@ -19,6 +19,8 @@ abstract class _VideoPageController with Store {
   @observable
   int currentEspisode = 1;
 
+  String title = '';
+
   @observable
   var roadList = ObservableList<Road>();
 

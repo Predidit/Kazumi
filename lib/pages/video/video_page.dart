@@ -67,7 +67,6 @@ class _VideoPageState extends State<VideoPage>
       videoPageController.changeEpisode(videoPageController.currentEspisode);
     });
     return Scaffold(
-      appBar: AppBar(),
       body: Column(
         children: [
           Observer(builder: (context) {

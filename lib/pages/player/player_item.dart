@@ -11,6 +11,8 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:ns_danmaku/ns_danmaku.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
@@ -27,6 +29,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final FocusNode _focusNode = FocusNode();
+  late DanmakuController danmakuController;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -69,26 +72,26 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       playerController.buffer = playerController.mediaPlayer.state.buffer;
       playerController.duration = playerController.mediaPlayer.state.duration;
       // 弹幕相关
-      // if (playerController.currentPosition.inMicroseconds != 0 &&
-      //     playerController.mediaPlayer.state.playing == true &&
-      //     playerController.danmakuOn == true) {
-      //   // debugPrint('当前播放到 ${videoController.currentPosition.inSeconds}');
-      //   playerController.danDanmakus[playerController.currentPosition.inSeconds]
-      //       ?.asMap()
-      //       .forEach((idx, danmaku) async {
-      //     await Future.delayed(
-      //         Duration(
-      //             milliseconds: idx *
-      //                 1000 ~/
-      //                 playerController
-      //                     .danDanmakus[
-      //                         playerController.currentPosition.inSeconds]!
-      //                     .length),
-      //         () => mounted && playerController.mediaPlayer.state.playing
-      //             ? danmakuController.addItems([DanmakuItem(danmaku.m)])
-      //             : null);
-      //   });
-      // }
+      if (playerController.currentPosition.inMicroseconds != 0 &&
+          playerController.mediaPlayer.state.playing == true &&
+          playerController.danmakuOn == true) {
+        // debugPrint('当前播放到 ${videoController.currentPosition.inSeconds}');
+        playerController.danDanmakus[playerController.currentPosition.inSeconds]
+            ?.asMap()
+            .forEach((idx, danmaku) async {
+          await Future.delayed(
+              Duration(
+                  milliseconds: idx *
+                      1000 ~/
+                      playerController
+                          .danDanmakus[
+                              playerController.currentPosition.inSeconds]!
+                          .length),
+              () => mounted && playerController.mediaPlayer.state.playing
+                  ? danmakuController.addItems([DanmakuItem(danmaku.m)])
+                  : null);
+        });
+      }
       // 自动播放下一集
       // if (playerController.mediaPlayer.state.completed == true &&
       //     videoController.episode < videoController.token.length) {
@@ -143,6 +146,17 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
+    // 弹幕设置
+    // bool _running = true;
+    bool _border = true;
+    double _opacity = 1.0;
+    double _duration = 8;
+    double _fontSize = (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0;
+    double danmakuArea = 1.0;
+    bool _hideTop = false;
+    bool _hideBottom = false;
+    bool _hideScroll = false;
+
     return PopScope(
       // key: _key,
       canPop: false,
@@ -240,7 +254,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                     LogicalKeyboardKey.escape) {
                                   if (playerController.androidFullscreen) {
                                     try {
-                                      // danmakuController.onClear();
+                                      danmakuController.onClear();
                                     } catch (_) {}
                                     playerController.exitFullScreen();
                                     playerController.androidFullscreen =
@@ -489,35 +503,36 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             ],
                                           )
                                         : Container()),
-                                // Positioned(
-                                //   top: 0,
-                                //   left: 0,
-                                //   right: 0,
-                                //   height: playerController.androidFullscreen
-                                //       ? MediaQuery.sizeOf(context).height *
-                                //           danmakuArea
-                                //       : (MediaQuery.sizeOf(context).width *
-                                //           9 /
-                                //           16 *
-                                //           danmakuArea),
-                                //   child: DanmakuView(
-                                //     key: _danmuKey,
-                                //     createdController: (DanmakuController e) {
-                                //       danmakuController = e;
-                                //       playerController.danmakuController = e;
-                                //       debugPrint('弹幕控制器创建成功');
-                                //     },
-                                //     option: DanmakuOption(
-                                //       hideTop: _hideTop,
-                                //       hideScroll: _hideScroll,
-                                //       hideBottom: _hideBottom,
-                                //       opacity: _opacity,
-                                //       fontSize: _fontSize,
-                                //       duration: _duration,
-                                //     ),
-                                //     statusChanged: (e) {},
-                                //   ),
-                                // ),
+                                // 弹幕面板
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height: playerController.androidFullscreen
+                                      ? MediaQuery.sizeOf(context).height *
+                                          danmakuArea
+                                      : (MediaQuery.sizeOf(context).width *
+                                          9 /
+                                          16 *
+                                          danmakuArea),
+                                  child: DanmakuView(
+                                    key: _danmuKey,
+                                    createdController: (DanmakuController e) {
+                                      danmakuController = e;
+                                      playerController.danmakuController = e;
+                                      debugPrint('弹幕控制器创建成功');
+                                    },
+                                    option: DanmakuOption(
+                                      hideTop: _hideTop,
+                                      hideScroll: _hideScroll,
+                                      hideBottom: _hideBottom,
+                                      opacity: _opacity,
+                                      fontSize: _fontSize,
+                                      duration: _duration,
+                                    ),
+                                    statusChanged: (e) {},
+                                  ),
+                                ),
 
                                 // 自定义顶部组件
                                 (playerController.showPositioned ||
@@ -724,29 +739,29 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             //         },
                                             //       )
                                             //     : Container(),
-                                            // IconButton(
-                                            //   color: Colors.white,
-                                            //   icon: Icon(videoController
-                                            //           .danmakuOn
-                                            //       ? Icons.comment
-                                            //       : Icons.comments_disabled),
-                                            //   onPressed: () {
-                                            //     if (videoController
-                                            //             .danDanmakus.length ==
-                                            //         0) {
-                                            //       SmartDialog.showToast(
-                                            //           '当前剧集没有找到弹幕的说',
-                                            //           displayType:
-                                            //               SmartToastType.last);
-                                            //       return;
-                                            //     }
-                                            //     danmakuController.clear();
-                                            //     videoController.danmakuOn =
-                                            //         !videoController.danmakuOn;
-                                            //     debugPrint(
-                                            //         '弹幕开关变更为 ${videoController.danmakuOn}');
-                                            //   },
-                                            // ),
+                                            IconButton(
+                                              color: Colors.white,
+                                              icon: Icon(playerController
+                                                      .danmakuOn
+                                                  ? Icons.comment
+                                                  : Icons.comments_disabled),
+                                              onPressed: () {
+                                                if (playerController
+                                                        .danDanmakus.length ==
+                                                    0) {
+                                                  SmartDialog.showToast(
+                                                      '当前剧集没有找到弹幕的说',
+                                                      displayType:
+                                                          SmartToastType.last);
+                                                  return;
+                                                }
+                                                danmakuController.clear();
+                                                playerController.danmakuOn =
+                                                    !playerController.danmakuOn;
+                                                debugPrint(
+                                                    '弹幕开关变更为 ${playerController.danmakuOn}');
+                                              },
+                                            ),
                                             IconButton(
                                               color: Colors.white,
                                               icon: Icon(playerController

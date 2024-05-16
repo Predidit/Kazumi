@@ -9,4 +9,8 @@ class Api {
   static const String bangumiSearch = 'https://api.bgm.tv/search/subject/';
   // 条目搜索
   static const String bangumiRankSearch = 'https://api.bgm.tv/v0/search/subjects';
+  // 弹弹Play
+  static const String dandanAPI = "https://api.dandanplay.net/api/v2/comment/";
+  static const String dandanSearch = "https://api.dandanplay.net/api/v2/search/anime";
+  static const String dandanInfo = "https://api.dandanplay.net/api/v2/bangumi/";
 }

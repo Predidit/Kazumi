@@ -88,7 +88,7 @@ class _VideoPageState extends State<VideoPage>
                         : Container(),
                   )),
                   Positioned.fill(
-                    child: (!videoPageController.currentPlugin.useNativePlayer)
+                    child: (!videoPageController.currentPlugin.useNativePlayer || playerController.loading)
                         ? Container()
                         : const PlayerItem(),
                   ),

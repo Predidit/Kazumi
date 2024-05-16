@@ -11,6 +11,7 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -57,15 +58,7 @@ class _InfoPageState extends State<InfoPage>
     });
     debugPrint('status 数组长度为 ${infoController.pluginSearchStatus.length}');
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            navigationBarState.showNavigate();
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
+      appBar: const SysAppBar(),
       body: Column(
         children: [
           BangumiInfoCardV(bangumiItem: infoController.bangumiItem),

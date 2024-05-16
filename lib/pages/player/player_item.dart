@@ -16,6 +16,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({super.key});
@@ -117,6 +118,73 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     }
     debugPrint('当前播放器非全屏');
     Navigator.of(context).pop();
+  }
+
+  // 选择倍速
+  void showSetSpeedSheet() {
+    final double currentSpeed = playerController.playerSpeed;
+    final List<double> speedsList = [
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0
+    ];
+    SmartDialog.show(
+        useAnimation: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('播放速度'),
+            content: StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+              return Wrap(
+                spacing: 8,
+                runSpacing: 2,
+                children: [
+                  for (final double i in speedsList) ...<Widget>[
+                    if (i == currentSpeed) ...<Widget>[
+                      FilledButton(
+                        onPressed: () async {
+                          await playerController.setPlaybackSpeed(i);
+                          SmartDialog.dismiss();
+                        },
+                        child: Text(i.toString()),
+                      ),
+                    ] else ...[
+                      FilledButton.tonal(
+                        onPressed: () async {
+                          await playerController.setPlaybackSpeed(i);
+                          SmartDialog.dismiss();
+                        },
+                        child: Text(i.toString()),
+                      ),
+                    ]
+                  ]
+                ],
+              );
+            }),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => SmartDialog.dismiss(),
+                child: Text(
+                  '取消',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await playerController.setPlaybackSpeed(1.0);
+                  SmartDialog.dismiss();
+                },
+                child: const Text('默认速度'),
+              ),
+            ],
+          );
+        });
   }
 
   Future<void> setVolume(double value) async {
@@ -563,10 +631,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               },
                                             ),
                                             // 拖动条
-                                            // const Expanded(
-                                            //   child: dtb.DragToMoveArea(
-                                            //       child: SizedBox(height: 40)),
-                                            // ),
+                                            const Expanded(
+                                              child: dtb.DragToMoveArea(
+                                                  child: SizedBox(height: 40)),
+                                            ),
                                             TextButton(
                                               style: ButtonStyle(
                                                 padding:
@@ -575,7 +643,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               ),
                                               onPressed: () {
                                                 // 倍速播放
-                                                // showSetSpeedSheet();
+                                                showSetSpeedSheet();
                                               },
                                               child: Text(
                                                 '${playerController.playerSpeed}X',

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -67,6 +68,7 @@ class _VideoPageState extends State<VideoPage>
       videoPageController.changeEpisode(videoPageController.currentEspisode);
     });
     return Scaffold(
+      appBar: (videoPageController.currentPlugin.useNativePlayer ? null : SysAppBar()),
       body: Column(
         children: [
           Observer(builder: (context) {

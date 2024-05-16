@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -34,7 +35,7 @@ class _AboutPageState extends State<AboutPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('关于')),
+        appBar: SysAppBar(title: const Text('关于')),
         body: Column(
           children: [
             ListTile(

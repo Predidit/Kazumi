@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -12,7 +13,7 @@ class _MyPageState extends State<MyPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('我的')),
+      appBar: const SysAppBar(title: const Text('我的')),
       body: Column(
         children: [
           ListTile(

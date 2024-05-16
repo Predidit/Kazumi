@@ -10,6 +10,7 @@ import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
@@ -40,7 +41,7 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
+    // navigationBarState.showNavigate();
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }
@@ -79,8 +80,8 @@ class _TimelinePageState extends State<TimelinePage>
           onBackPressed(context);
         },
         child: Scaffold(
-          appBar: AppBar(
-            // toolbarHeight: 104,
+          appBar: SysAppBar(
+            toolbarHeight: 104,
             bottom: TabBar(
               controller: controller,
               tabs: tabs,

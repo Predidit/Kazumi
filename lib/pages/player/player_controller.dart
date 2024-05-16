@@ -82,6 +82,7 @@ abstract class _PlayerController with Store {
     }
     debugPrint('VideoItem开始初始化');
     mediaPlayer = await createVideoController();
+    playerSpeed = 1.0;
     if (offset != 0) {
       var sub = mediaPlayer.stream.buffer.listen(null);
       sub.onData((event) async {
@@ -96,7 +97,11 @@ abstract class _PlayerController with Store {
     }
     debugPrint('VideoURL初始化完成');
     // 加载弹幕
-    getDanDanmaku(videoPageController.title, videoPageController.currentEspisode);
+    try {
+      getDanDanmaku(videoPageController.title, videoPageController.currentEspisode);
+    } catch (e) {
+      debugPrint('弹幕获取失败 ${e.toString()}');
+    }
     loading = false;
   }
 
@@ -137,6 +142,15 @@ abstract class _PlayerController with Store {
       play: true,
     );
     return mediaPlayer;
+  }
+
+  Future setPlaybackSpeed(double playerSpeed) async {
+    try {
+      mediaPlayer.setRate(playerSpeed);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    playerSpeed = playerSpeed;
   }
 
   Future playOrPause() async {

@@ -10,6 +10,9 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -22,6 +25,7 @@ class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
   bool timeout = false;
+  late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
@@ -35,6 +39,8 @@ class _PopularPageState extends State<PopularPage>
     super.initState();
     debugPrint('Popular初始化成功');
     timeout = false;
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
     if (popularController.bangumiList.length < 5) {
       debugPrint('Popular缓存列表为空, 尝试重加载');
       Timer(const Duration(seconds: 3), () {
@@ -70,8 +76,9 @@ class _PopularPageState extends State<PopularPage>
   Widget build(BuildContext context) {
     super.build(context);
     var themedata = Theme.of(context);
-    WidgetsBinding.instance?.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('尝试恢复状态');
+      navigationBarState.showNavigate();
       scrollController.jumpTo(popularController.scrollOffset);
       debugPrint('Popular加载完成');
     });
@@ -86,7 +93,7 @@ class _PopularPageState extends State<PopularPage>
             await popularController.queryBangumiListFeed();
           },
           child: Scaffold(
-            appBar: AppBar(
+            appBar: SysAppBar(
               backgroundColor: Theme.of(context)
                 .colorScheme
                 .primary

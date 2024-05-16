@@ -6,6 +6,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -65,7 +66,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: SysAppBar(
         title: const Text('规则管理'),
       ),
       body: Observer(builder: (context) {

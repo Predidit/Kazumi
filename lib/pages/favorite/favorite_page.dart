@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class FavoritePage extends StatefulWidget {
   const FavoritePage({super.key});
@@ -19,7 +20,7 @@ class _FavoritePageState extends State<FavoritePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('追番')),
+      appBar: SysAppBar(title: const Text('追番')),
       body: favoriteController.favorites.isEmpty ? 
       const Center(
         child: Text('啊咧（⊙.⊙） 没有追番的说'),

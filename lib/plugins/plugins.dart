@@ -9,6 +9,8 @@ import 'package:kazumi/utils/parser.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 class Plugin {
+  String api;
+  String type;
   String name;
   String version;
   bool muliSources;
@@ -24,6 +26,8 @@ class Plugin {
   String chapterResult;
 
   Plugin({
+    required this.api,
+    required this.type,
     required this.name,
     required this.version,
     required this.muliSources,
@@ -41,6 +45,8 @@ class Plugin {
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
     return Plugin(
+        api: json['api'],
+        type: json['type'],
         name: json['name'],
         version: json['version'],
         muliSources: json['muliSources'],
@@ -56,8 +62,29 @@ class Plugin {
         chapterResult: json['chapterResult']);
   }
 
+  factory Plugin.fromTemplate() {
+    return Plugin(
+        api: '1',
+        type: 'anime',
+        name: '',
+        version: '',
+        muliSources: true,
+        useWebview: true,
+        useNativePlayer: false,
+        userAgent: '',
+        baseUrl: '',
+        searchURL: '',
+        searchList: '',
+        searchName: '',
+        searchResult: '',
+        chapterRoads: '',
+        chapterResult: '');
+  }
+
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['api'] = this.api;
+    data['type'] = this.type;
     data['name'] = this.name;
     data['version'] = this.version;
     data['muliSources'] = this.muliSources;

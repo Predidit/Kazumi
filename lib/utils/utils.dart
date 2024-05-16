@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
-import 'package:kazumi/plugins/plugins.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -304,5 +304,23 @@ class Utils {
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toStringAsFixed(3).replaceAll('.', '.')}';
+  }
+
+  static String jsonToKazumiBase64(String jsonStr) {
+    String base64Str = base64Encode(utf8.encode(jsonStr));
+    return 'kazumi://$base64Str';
+  }
+
+  static String kazumiBase64ToJson(String kazumiBase64Str) {
+    if (!kazumiBase64Str.startsWith('kazumi://')) {
+      return '';
+    }
+    String base64Str = kazumiBase64Str.substring(9);
+    String jsonStr = utf8.decode(base64.decode(base64Str));
+    return jsonStr;
+  }
+
+  static void copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
   }
 }

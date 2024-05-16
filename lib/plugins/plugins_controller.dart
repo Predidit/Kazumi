@@ -1,12 +1,18 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:mobx/mobx.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
 
-class PluginsController {
-  List<Plugin> pluginList = [];
+part 'plugins_controller.g.dart';
+
+class PluginsController = _PluginsController with _$PluginsController;
+
+abstract class _PluginsController with Store {
+  @observable
+  ObservableList<Plugin> pluginList = ObservableList.of([]);
 
   Future<void> loadPlugins() async {
     pluginList.clear();
@@ -60,7 +66,6 @@ class PluginsController {
   }
 
   Future<void> savePluginToJsonFile(Plugin plugin) async {
-
     final directory = await getApplicationSupportDirectory();
     final pluginDirectory = Directory('${directory.path}/plugins');
 
@@ -79,5 +84,25 @@ class PluginsController {
     await newFile.writeAsString(jsonData);
 
     debugPrint('已创建插件文件 $fileName');
+  }
+
+  Future<void> deletePluginJsonFile(Plugin plugin) async {
+    final directory = await getApplicationSupportDirectory();
+    final pluginDirectory = Directory('${directory.path}/plugins');
+
+    if (!await pluginDirectory.exists()) {
+      debugPrint('插件目录不存在，无法删除文件');
+      return;
+    }
+
+    final fileName = '${plugin.name}.json';
+    final file = File('${pluginDirectory.path}/$fileName');
+
+    if (await file.exists()) {
+      await file.delete();
+      debugPrint('已删除插件文件 $fileName');
+    } else {
+      debugPrint('插件文件 $fileName 不存在');
+    }
   }
 }

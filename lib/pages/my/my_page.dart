@@ -20,7 +20,7 @@ class _MyPageState extends State<MyPage> {
               Modular.to.pushNamed('/tab/my/plugin');
             },
             dense: false,
-            title: const Text('插件设置'),
+            title: const Text('规则管理'),
           ),
           ListTile(
             onTap: () {

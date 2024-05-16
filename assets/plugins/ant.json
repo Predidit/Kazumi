@@ -1,4 +1,6 @@
 {
+    "api": "1",
+    "type": "anime",
     "name": "ant",
     "version": "0.0.1",
     "muliSources": true,

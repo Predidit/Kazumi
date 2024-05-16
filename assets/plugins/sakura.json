@@ -1,4 +1,6 @@
 {
+    "api": "1",
+    "type": "anime",
     "name": "sakura",
     "version": "0.0.1",
     "muliSources": true,

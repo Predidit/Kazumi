@@ -14,6 +14,8 @@ class PluginEditorPage extends StatefulWidget {
 
 class _PluginEditorPageState extends State<PluginEditorPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final TextEditingController apiController = TextEditingController();
+  final TextEditingController typeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController versionController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
@@ -31,11 +33,9 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final Plugin plugin = Modular.args.data as Plugin;
+    apiController.text = plugin.api;
+    typeController.text = plugin.type;
     nameController.text = plugin.name;
     versionController.text = plugin.version;
     userAgentController.text = plugin.userAgent;
@@ -49,6 +49,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     muliSources = plugin.muliSources;
     useWebview = plugin.useWebview;
     useNativePlayer = plugin.useNativePlayer;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Plugin plugin = Modular.args.data as Plugin;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,6 +63,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
+            SwitchListTile(
+              title: Text('内置播放器'),
+              value: useNativePlayer,
+              onChanged: (bool value) {
+                setState(() {
+                  useNativePlayer = value;
+                });
+              },
+            ),
+            SizedBox(height: 20),
             TextField(
               controller: nameController,
               decoration: InputDecoration(labelText: 'Name'),
@@ -94,22 +109,14 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               controller: chapterResultController,
               decoration: InputDecoration(labelText: 'ChapterResult'),
             ),
-            SizedBox(height: 20),
-            SwitchListTile(
-              title: Text('内置播放器'),
-              value: useNativePlayer,
-              onChanged: (bool value) {
-                setState(() {
-                  useNativePlayer = value;
-                });
-              },
-            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.save),
         onPressed: () async {
+          plugin.api = apiController.text;
+          plugin.type = apiController.text;
           plugin.name = nameController.text;
           plugin.version = versionController.text;
           plugin.userAgent = userAgentController.text;
@@ -125,7 +132,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           plugin.useNativePlayer = useNativePlayer;
           await pluginsController.savePluginToJsonFile(plugin);
           await pluginsController.loadPlugins();
-          Modular.to.navigate('/tab/my');
+          Navigator.of(context).pop();
         },
       ),
     );

@@ -1,9 +1,9 @@
 {
     "name": "Sakura",
     "version": "0.0.1",
-    "muliSources": "true",
-    "useWebview": "true",
-    "useNativePlayer": "true",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
     "userAgent": "",
     "baseURL": "https://www.yhmgo.com/",
     "searchURL":"https://www.yhmgo.com/s_all?ex=1&kw=@keyword",

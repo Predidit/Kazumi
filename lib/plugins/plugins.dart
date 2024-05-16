@@ -11,9 +11,9 @@ import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 class Plugin {
   String name;
   String version;
-  String muliSources;
-  String useWebview;
-  String useNativePlayer;
+  bool muliSources;
+  bool useWebview;
+  bool useNativePlayer;
   String userAgent;
   String baseUrl;
   String searchURL;

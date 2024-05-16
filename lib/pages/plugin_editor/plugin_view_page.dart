@@ -40,7 +40,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       // pluginsController.pluginList.removeAt(index);
                     });
                   } else if (result == 'Edit') {
-                    // 编辑待完成
+                    Modular.to.pushNamed('/tab/my/plugin/editor', arguments: pluginsController.pluginList[index]);
                   }
                 },
                 itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[

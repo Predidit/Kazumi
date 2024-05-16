@@ -56,6 +56,24 @@ class Plugin {
         chapterResult: json['chapterResult']);
   }
 
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['name'] = this.name;
+    data['version'] = this.version;
+    data['muliSources'] = this.muliSources;
+    data['useWebview'] = this.useWebview;
+    data['useNativePlayer'] = this.useNativePlayer;
+    data['userAgent'] = this.userAgent;
+    data['baseURL'] = this.baseUrl;
+    data['searchURL'] = this.searchURL;
+    data['searchList'] = this.searchList;
+    data['searchName'] = this.searchName;
+    data['searchResult'] = this.searchResult;
+    data['chapterRoads'] = this.chapterRoads;
+    data['chapterResult'] = this.chapterResult;
+    return data;
+  }
+
   queryBangumi(String keyword) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     List<SearchItem> searchItems = [];

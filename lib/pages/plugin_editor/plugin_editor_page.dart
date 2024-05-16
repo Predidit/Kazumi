@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 
 class PluginEditorPage extends StatefulWidget {
   const PluginEditorPage({
@@ -12,6 +13,7 @@ class PluginEditorPage extends StatefulWidget {
 }
 
 class _PluginEditorPageState extends State<PluginEditorPage> {
+  final PluginsController pluginsController = Modular.get<PluginsController>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController versionController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
@@ -104,6 +106,27 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.save),
+        onPressed: () async {
+          plugin.name = nameController.text;
+          plugin.version = versionController.text;
+          plugin.userAgent = userAgentController.text;
+          plugin.baseUrl = baseURLController.text;
+          plugin.searchURL = searchURLController.text;
+          plugin.searchList = searchListController.text;
+          plugin.searchName = searchNameController.text;
+          plugin.searchResult = searchResultController.text;
+          plugin.chapterRoads = chapterRoadsController.text;
+          plugin.chapterResult = chapterResultController.text;
+          plugin.muliSources = muliSources;
+          plugin.useWebview = useWebview;
+          plugin.useNativePlayer = useNativePlayer;
+          await pluginsController.savePluginToJsonFile(plugin);
+          await pluginsController.loadPlugins();
+          Modular.to.navigate('/tab/my');
+        },
       ),
     );
   }

@@ -26,12 +26,12 @@ class WebviewItemController {
           debugPrint(
             '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
           isVideoSourceLoaded = true;
+          videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
             playerController.videoUrl = Utils.decodeVideoSource(message.message);
             playerController.init();
           }
-          videoPageController.loading = false;
         }
       }
     });
@@ -41,12 +41,12 @@ class WebviewItemController {
       if (message.message.contains('http')) {
         debugPrint('由video标签获取视频源 ${message.message}');
         isVideoSourceLoaded = true;
+        videoPageController.loading = false;
         if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
             playerController.videoUrl = message.message;
             playerController.init();
           }
-        videoPageController.loading = false;
       }
     });
     await webviewController.loadRequest(Uri.parse(url));

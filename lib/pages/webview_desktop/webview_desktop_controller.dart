@@ -51,13 +51,14 @@ class WebviewDesktopItemController {
           isIframeLoaded = true;
           if (Utils.decodeVideoSource(messageItem) != messageItem) {
             isVideoSourceLoaded = true;
-            debugPrint('由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
+            videoPageController.loading = false;
+            debugPrint(
+                '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
             if (videoPageController.currentPlugin.useNativePlayer) {
               unloadPage();
               playerController.videoUrl = Utils.decodeVideoSource(messageItem);
               playerController.init();
             }
-            videoPageController.loading = false;
           }
         }
       }
@@ -67,12 +68,12 @@ class WebviewDesktopItemController {
         if (messageItem.contains('http')) {
           debugPrint('成功获取视频源');
           isVideoSourceLoaded = true;
+          videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
             playerController.videoUrl = messageItem;
             playerController.init();
           }
-          videoPageController.loading = false;
         }
       }
     });

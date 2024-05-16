@@ -57,8 +57,10 @@ class _VideoPageState extends State<VideoPage>
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (Platform.isWindows) {
-        final WebviewDesktopItemController webviewDesktopItemController = Modular.get<WebviewDesktopItemController>();
-        if (!webviewDesktopItemController.webviewController.value.isInitialized) {
+        final WebviewDesktopItemController webviewDesktopItemController =
+            Modular.get<WebviewDesktopItemController>();
+        if (!webviewDesktopItemController
+            .webviewController.value.isInitialized) {
           await webviewDesktopItemController.init();
         }
       }
@@ -78,8 +80,7 @@ class _VideoPageState extends State<VideoPage>
                   Positioned.fill(
                       child: Visibility(
                     visible: videoPageController.loading,
-                    child: (videoPageController.currentPlugin.useNativePlayer !=
-                            'true')
+                    child: (!videoPageController.currentPlugin.useNativePlayer)
                         ? Container(
                             color: Colors.black,
                             child: const Center(
@@ -87,16 +88,14 @@ class _VideoPageState extends State<VideoPage>
                         : Container(),
                   )),
                   Positioned.fill(
-                    child: (videoPageController.currentPlugin.useNativePlayer !=
-                            'true')
+                    child: (!videoPageController.currentPlugin.useNativePlayer)
                         ? Container()
                         : const PlayerItem(),
                   ),
                   Positioned(
                       child: SizedBox(
                     height: (videoPageController.loading ||
-                            videoPageController.currentPlugin.useNativePlayer ==
-                                'true')
+                            videoPageController.currentPlugin.useNativePlayer)
                         ? 0
                         : null,
                     child: Platform.isWindows
@@ -156,7 +155,8 @@ class _VideoPageState extends State<VideoPage>
                             child: InkWell(
                               onTap: () async {
                                 debugPrint('视频链接为 $urlItem');
-                                videoPageController.changeEpisode(_count, currentRoad: roadIndex);
+                                videoPageController.changeEpisode(_count,
+                                    currentRoad: roadIndex);
                               },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(

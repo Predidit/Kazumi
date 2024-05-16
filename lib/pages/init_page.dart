@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -18,9 +19,47 @@ class _InitPageState extends State<InitPage> {
     super.initState();
   }
 
-  _init() {
-    pluginsController.loadPlugins();
-    Modular.to.navigate('/tab/popular/');
+  _init() async {
+    try {
+      await pluginsController.loadPlugins();
+    } catch (_) {}
+    if (pluginsController.pluginList.isEmpty) {
+      SmartDialog.show(
+        animationType: SmartAnimationType.centerFade_otherSlide,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('插件管理'),
+            content: const Text('当前规则数为0, 是否加载默认规则'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  SmartDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: Text(
+                  '取消',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await pluginsController.copyPluginsToExternalDirectory();
+                    await pluginsController.loadPlugins();
+                  } catch (_) {}
+                  SmartDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: const Text('确认'),
+              ),
+            ],
+          );
+        },
+      );
+    } else {
+      Modular.to.navigate('/tab/popular/');
+    }
   }
 
   @override

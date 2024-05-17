@@ -7,6 +7,8 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:provider/provider.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -16,6 +18,7 @@ class PluginViewPage extends StatefulWidget {
 }
 
 class _PluginViewPageState extends State<PluginViewPage> {
+  late NavigationBarState navigationBarState;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   showInputDialog() {
@@ -46,7 +49,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   onPressed: () async {
                     final String msg = textController.text;
                     try {
-                      await pluginsController.savePluginToJsonFile(Plugin.fromJson(json.decode(Utils.kazumiBase64ToJson(msg))));
+                      await pluginsController.savePluginToJsonFile(
+                          Plugin.fromJson(
+                              json.decode(Utils.kazumiBase64ToJson(msg))));
                       SmartDialog.showToast('导入成功');
                     } catch (e) {
                       SmartDialog.dismiss();
@@ -63,142 +68,165 @@ class _PluginViewPageState extends State<PluginViewPage> {
         });
   }
 
+  void onBackPressed(BuildContext context) {
+    navigationBarState.showNavigate();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: SysAppBar(
-        title: const Text('规则管理'),
-      ),
-      body: Observer(builder: (context) {
-        return pluginsController.pluginList.isEmpty
-            ? const Center(
-                child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
-              )
-            : ListView.builder(
-                itemCount: pluginsController.pluginList.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: const EdgeInsets.all(8.0),
-                    child: ListTile(
-                      title: Text(
-                        pluginsController.pluginList[index].name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        'Version: ${pluginsController.pluginList[index].version}',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (String result) {
-                          if (result == 'Delete') {
-                            setState(() {
-                              pluginsController.deletePluginJsonFile(
-                                  pluginsController.pluginList[index]);
-                              pluginsController.pluginList.removeAt(index);
-                            });
-                          } else if (result == 'Edit') {
-                            Modular.to.pushNamed('/tab/my/plugin/editor',
-                                arguments: pluginsController.pluginList[index]);
-                          } else if (result == 'Share') {
-                            SmartDialog.show(
-                                useAnimation: false,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: const Text('规则链接'),
-                                    content: SelectableText(
-                                      Utils.jsonToKazumiBase64(json.encode(
-                                          pluginsController.pluginList[index]
-                                              .toJson())),
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => SmartDialog.dismiss(),
-                                        child: Text(
-                                          '取消',
-                                          style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigationBarState.hideNavigate();
+    });
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: SysAppBar(
+          title: const Text('规则管理'),
+        ),
+        body: Observer(builder: (context) {
+          return pluginsController.pluginList.isEmpty
+              ? const Center(
+                  child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
+                )
+              : ListView.builder(
+                  itemCount: pluginsController.pluginList.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      child: ListTile(
+                        title: Text(
+                          pluginsController.pluginList[index].name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'Version: ${pluginsController.pluginList[index].version}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (String result) {
+                            if (result == 'Delete') {
+                              setState(() {
+                                pluginsController.deletePluginJsonFile(
+                                    pluginsController.pluginList[index]);
+                                pluginsController.pluginList.removeAt(index);
+                              });
+                            } else if (result == 'Edit') {
+                              Modular.to.pushNamed('/tab/my/plugin/editor',
+                                  arguments:
+                                      pluginsController.pluginList[index]);
+                            } else if (result == 'Share') {
+                              SmartDialog.show(
+                                  useAnimation: false,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text('规则链接'),
+                                      content: SelectableText(
+                                        Utils.jsonToKazumiBase64(json.encode(
+                                            pluginsController.pluginList[index]
+                                                .toJson())),
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              SmartDialog.dismiss(),
+                                          child: Text(
+                                            '取消',
+                                            style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .outline),
+                                          ),
                                         ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Utils.copyToClipboard(
-                                              Utils.jsonToKazumiBase64(
-                                                  json.encode(pluginsController
-                                                      .pluginList[index]
-                                                      .toJson())));
-                                          SmartDialog.dismiss();
-                                        },
-                                        child: const Text('复制到剪贴板'),
-                                      ),
-                                    ],
-                                  );
-                                });
-                          }
-                        },
-                        itemBuilder: (BuildContext context) =>
-                            <PopupMenuEntry<String>>[
-                          const PopupMenuItem<String>(
-                            value: 'Edit',
-                            child: Text('编辑'),
+                                        TextButton(
+                                          onPressed: () {
+                                            Utils.copyToClipboard(
+                                                Utils.jsonToKazumiBase64(json
+                                                    .encode(pluginsController
+                                                        .pluginList[index]
+                                                        .toJson())));
+                                            SmartDialog.dismiss();
+                                          },
+                                          child: const Text('复制到剪贴板'),
+                                        ),
+                                      ],
+                                    );
+                                  });
+                            }
+                          },
+                          itemBuilder: (BuildContext context) =>
+                              <PopupMenuEntry<String>>[
+                            const PopupMenuItem<String>(
+                              value: 'Edit',
+                              child: Text('编辑'),
+                            ),
+                            const PopupMenuItem<String>(
+                              value: 'Share',
+                              child: Text('分享'),
+                            ),
+                            const PopupMenuItem<String>(
+                              value: 'Delete',
+                              child: Text('删除'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+        }),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // Modular.to.pushNamed('/tab/my/plugin/editor',
+            //     arguments: Plugin.fromTemplate());
+            SmartDialog.show(
+                useAnimation: false,
+                builder: (context) {
+                  return AlertDialog(
+                    // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
+                    content: SingleChildScrollView(
+                      // 使用可滚动的SingleChildScrollView包装Column
+                      child: Column(
+                        mainAxisSize:
+                            MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
+                        children: [
+                          ListTile(
+                            title: Text('新建规则'),
+                            onTap: () {
+                              SmartDialog.dismiss();
+                              Modular.to.pushNamed('/tab/my/plugin/editor',
+                                  arguments: Plugin.fromTemplate());
+                            },
                           ),
-                          const PopupMenuItem<String>(
-                            value: 'Share',
-                            child: Text('分享'),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'Delete',
-                            child: Text('删除'),
+                          SizedBox(height: 10),
+                          ListTile(
+                            title: Text('导入规则'),
+                            onTap: () {
+                              SmartDialog.dismiss();
+                              showInputDialog();
+                            },
                           ),
                         ],
                       ),
                     ),
                   );
-                },
-              );
-      }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Modular.to.pushNamed('/tab/my/plugin/editor',
-          //     arguments: Plugin.fromTemplate());
-          SmartDialog.show(
-              useAnimation: false,
-              builder: (context) {
-                return AlertDialog(
-                  // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
-                  content: SingleChildScrollView(
-                    // 使用可滚动的SingleChildScrollView包装Column
-                    child: Column(
-                      mainAxisSize:
-                          MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
-                      children: [
-                        ListTile(
-                          title: Text('新建规则'),
-                          onTap: () {
-                            SmartDialog.dismiss();
-                            Modular.to.pushNamed('/tab/my/plugin/editor',
-                                arguments: Plugin.fromTemplate());
-                          },
-                        ),
-                        SizedBox(height: 10),
-                        ListTile(
-                          title: Text('导入规则'),
-                          onTap: () {
-                            SmartDialog.dismiss();
-                            showInputDialog();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              });
-        },
-        child: const Icon(Icons.add),
+                });
+          },
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

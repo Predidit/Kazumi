@@ -66,6 +66,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           children: [
             SwitchListTile(
               title: Text('内置播放器'),
+              subtitle: Text('调试时保持禁用'),
               value: useNativePlayer,
               onChanged: (bool value) {
                 setState(() {

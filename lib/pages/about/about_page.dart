@@ -5,6 +5,8 @@ import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:provider/provider.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -14,7 +16,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  dynamic navigationBarState;
+  late NavigationBarState navigationBarState;
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -23,14 +25,20 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void initState() {
     super.initState();
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
   }
 
   void onBackPressed(BuildContext context) {
-    Modular.to.navigate('/tab/my/');
+    navigationBarState.showNavigate();
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigationBarState.hideNavigate();
+    });
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) async {

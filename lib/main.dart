@@ -10,6 +10,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
@@ -27,6 +28,15 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
+  }
+  if (Platform.isAndroid || Platform.isIOS) {
+    // 小白条、导航栏沉浸
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      statusBarColor: Colors.transparent,
+    ));
   }
   MediaKit.ensureInitialized();
   await Hive.initFlutter('${(await getApplicationSupportDirectory()).path}/hive');

@@ -25,7 +25,7 @@ class _AppWidgetState extends State<AppWidget> {
         useMaterial3: true,
         brightness: Brightness.dark,
       ),
-      initial: AdaptiveThemeMode.system,
+      initial: AdaptiveThemeMode.light,
       builder: (theme, darkTheme) => MaterialApp.router(
         title: "Kazumi",
         localizationsDelegates: GlobalMaterialLocalizations.delegates,

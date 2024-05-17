@@ -3,6 +3,9 @@ class Api {
   static const String version = '1.0.0';
   // 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
+  // 在线升级
+  static const String latestApp =
+      'https://api.github.com/repos/Predidit/Kazumi/releases/latest'; 
   // 每日放送
   static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
   // 番剧检索

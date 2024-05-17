@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -17,6 +18,7 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
+  final MyController myController = Modular.get<MyController>();
 
   @override
   void initState() {
@@ -56,6 +58,18 @@ class _AboutPageState extends State<AboutPage> {
               dense: false,
               title: const Text('项目主页'),
               trailing: Text('Github',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
+            ListTile(
+              onTap: () {
+                myController.checkUpdata();
+              },
+              dense: false,
+              title: const Text('检查更新'),
+              trailing: Text('当前版本 ${Api.version}',
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium!

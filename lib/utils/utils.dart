@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:kazumi/request/api.dart';
 
 class Utils {
   static final Random random = Random();
@@ -329,5 +331,18 @@ class Utils {
     var minutes = pad(duration.inMinutes % 60);
     var seconds = pad(duration.inSeconds % 60);
     return "$minutes:$seconds";
+  }
+
+  static Future<String> latest() async {
+    try {
+      var resp = await Dio().get<Map<String, dynamic>>(Api.latestApp);
+      if (resp.data?.containsKey("tag_name") ?? false) {
+        return resp.data!["tag_name"];
+      } else {
+        throw resp.data?["message"];
+      }
+    } catch (e) {
+      return Api.version;
+    }
   }
 }

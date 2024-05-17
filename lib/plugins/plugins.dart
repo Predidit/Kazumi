@@ -131,7 +131,14 @@ class Plugin {
 
   querychapterRoads(String url) async {
     List<Road> roadList = [];
-    String queryURL = baseUrl + url;
+    // 预处理
+    url = url.replaceAll('http', 'https');
+    String queryURL = '';
+    if (url.contains(baseUrl)) {
+      queryURL = url;
+    } else {
+      queryURL = baseUrl + url;
+    }
     var httpHeaders = {
       'referer': baseUrl + '/',
     };
@@ -160,7 +167,14 @@ class Plugin {
   }
 
   Future<String> queryVideoUrl(String url) async {
-    String queryURL = baseUrl + url;
+    String queryURL = '';
+    // 预处理
+    url = url.replaceAll('http', 'https');
+    if (url.contains(baseUrl)) {
+      queryURL = url;
+    } else {
+      queryURL = baseUrl + url;
+    }
     String videoUrl = '';
     var httpHeaders = {
       'referer': baseUrl + '/',

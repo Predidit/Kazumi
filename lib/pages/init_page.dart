@@ -29,7 +29,7 @@ class _InitPageState extends State<InitPage> {
         builder: (context) {
           return AlertDialog(
             title: const Text('插件管理'),
-            content: const Text('当前规则数为0, 是否加载默认规则'),
+            content: const Text('当前规则数为0, 是否加载示例规则'),
             actions: [
               TextButton(
                 onPressed: () {

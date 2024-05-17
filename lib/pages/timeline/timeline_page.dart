@@ -106,7 +106,7 @@ class _TimelinePageState extends State<TimelinePage>
       );
     } else {
       return const Center(
-        child: Text('數據還沒有更新 (´;ω;`)'),
+        child: Text('数据还没有更新 (´;ω;`)'),
       );
     }
   }

@@ -160,7 +160,7 @@ class _PopularPageState extends State<PopularPage>
                           },
                         );
                       }
-                      if (popularController.bangumiList.length < 1 &&
+                      if (popularController.bangumiList.length <= 1 &&
                           timeout == false) {
                         return const SliverToBoxAdapter(
                           child: SizedBox(

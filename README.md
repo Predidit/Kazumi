@@ -7,6 +7,20 @@
 - Windows 10 及以上
 - iOS (需要自构建)
 
+## 屏幕截图 
+
+<table>
+  <tr>
+    <td><img alt="" src="static/screenshot/img_1.png"></td>
+    <td><img alt="" src="static/screenshot/img_2.png"></td>
+    <td><img alt="" src="static/screenshot/img_3.png"></td>
+  <tr>
+  <tr>
+    <td><img alt="" src="static/screenshot/img_4.png"></td>
+    <td><img alt="" src="static/screenshot/img_5.png"></td>
+  <tr>
+</table>
+
 ## 功能 / 开发计划
 
 - [x] 规则编辑器

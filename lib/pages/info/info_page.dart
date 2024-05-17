@@ -46,6 +46,11 @@ class _InfoPageState extends State<InfoPage>
     // }
   }
 
+  void onBackPressed(BuildContext context) {
+    navigationBarState.showNavigate();
+    Navigator.of(context).pop();
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -57,74 +62,88 @@ class _InfoPageState extends State<InfoPage>
       navigationBarState.hideNavigate();
     });
     debugPrint('status 数组长度为 ${infoController.pluginSearchStatus.length}');
-    return Scaffold(
-      appBar: const SysAppBar(),
-      body: Column(
-        children: [
-          BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-          TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.center,
-            controller: tabController,
-            tabs: pluginsController.pluginList
-                .map((plugin) => Observer(
-                      builder: (context) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            plugin.name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(width: 5.0),
-                          Container(
-                            width: 8.0,
-                            height: 8.0,
-                            decoration: BoxDecoration(
-                              color: infoController.pluginSearchStatus[plugin.name] == 'success' ? Colors.green : (infoController.pluginSearchStatus[plugin.name] == 'pending') ? Colors.grey : Colors.red,
-                              // color: Colors.green,
-                              shape: BoxShape.circle,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: const SysAppBar(),
+        body: Column(
+          children: [
+            BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+            TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
+              controller: tabController,
+              tabs: pluginsController.pluginList
+                  .map((plugin) => Observer(
+                        builder: (context) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              plugin.name,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
-                    ))
-                .toList(),
-          ),
-          Expanded(
-            child: Observer(
-              builder: (context) => TabBarView(
-                controller: tabController,
-                children: List.generate(pluginsController.pluginList.length,
-                    (pluginIndex) {
-                  var plugin = pluginsController.pluginList[pluginIndex];
-                  var cardList = <Widget>[];
-                  for (var searchResponse
-                      in infoController.pluginSearchResponseList) {
-                    if (searchResponse.pluginName == plugin.name) {
-                      for (var searchItem in searchResponse.data) {
-                        cardList.add(Card(
-                          child: ListTile(
-                            title: Text(searchItem.name),
-                            onTap: () async {
-                              SmartDialog.showLoading(msg: '获取中');
-                              videoPageController.currentPlugin = plugin;
-                              videoPageController.title = searchItem.name;
-                              await infoController.queryRoads(
-                                  searchItem.src, plugin.name);
-                              SmartDialog.dismiss();
-                              Modular.to.pushNamed('/tab/video/');
-                            },
-                          ),
-                        ));
+                            const SizedBox(width: 5.0),
+                            Container(
+                              width: 8.0,
+                              height: 8.0,
+                              decoration: BoxDecoration(
+                                color: infoController
+                                            .pluginSearchStatus[plugin.name] ==
+                                        'success'
+                                    ? Colors.green
+                                    : (infoController.pluginSearchStatus[
+                                                plugin.name] ==
+                                            'pending')
+                                        ? Colors.grey
+                                        : Colors.red,
+                                // color: Colors.green,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+            Expanded(
+              child: Observer(
+                builder: (context) => TabBarView(
+                  controller: tabController,
+                  children: List.generate(pluginsController.pluginList.length,
+                      (pluginIndex) {
+                    var plugin = pluginsController.pluginList[pluginIndex];
+                    var cardList = <Widget>[];
+                    for (var searchResponse
+                        in infoController.pluginSearchResponseList) {
+                      if (searchResponse.pluginName == plugin.name) {
+                        for (var searchItem in searchResponse.data) {
+                          cardList.add(Card(
+                            child: ListTile(
+                              title: Text(searchItem.name),
+                              onTap: () async {
+                                SmartDialog.showLoading(msg: '获取中');
+                                videoPageController.currentPlugin = plugin;
+                                videoPageController.title = searchItem.name;
+                                await infoController.queryRoads(
+                                    searchItem.src, plugin.name);
+                                SmartDialog.dismiss();
+                                Modular.to.pushNamed('/tab/video/');
+                              },
+                            ),
+                          ));
+                        }
                       }
                     }
-                  }
-                  return ListView(children: cardList);
-                }),
+                    return ListView(children: cardList);
+                  }),
+                ),
               ),
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }

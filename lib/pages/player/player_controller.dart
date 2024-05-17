@@ -68,10 +68,6 @@ abstract class _PlayerController with Store {
   @observable
   double playerSpeed = 1.0;
 
-  // 安卓全屏状态
-  @observable
-  bool androidFullscreen = false;
-
   Future init({int offset = 0}) async {
     loading = true;
     try {

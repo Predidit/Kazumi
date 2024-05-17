@@ -78,7 +78,8 @@ class _PopularPageState extends State<PopularPage>
     var themedata = Theme.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('尝试恢复状态');
-      navigationBarState.showNavigate();
+      // 弃用，在这里调用不稳定
+      // navigationBarState.showNavigate();
       scrollController.jumpTo(popularController.scrollOffset);
       debugPrint('Popular加载完成');
     });

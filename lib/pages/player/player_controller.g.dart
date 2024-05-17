@@ -249,22 +249,6 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
-  late final _$androidFullscreenAtom =
-      Atom(name: '_PlayerController.androidFullscreen', context: context);
-
-  @override
-  bool get androidFullscreen {
-    _$androidFullscreenAtom.reportRead();
-    return super.androidFullscreen;
-  }
-
-  @override
-  set androidFullscreen(bool value) {
-    _$androidFullscreenAtom.reportWrite(value, super.androidFullscreen, () {
-      super.androidFullscreen = value;
-    });
-  }
-
   @override
   String toString() {
     return '''
@@ -282,8 +266,7 @@ showBrightness: ${showBrightness},
 showVolume: ${showVolume},
 volume: ${volume},
 brightness: ${brightness},
-playerSpeed: ${playerSpeed},
-androidFullscreen: ${androidFullscreen}
+playerSpeed: ${playerSpeed}
     ''';
   }
 }

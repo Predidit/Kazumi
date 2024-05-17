@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/pages/menu/menu.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -31,6 +33,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       Modular.get<VideoPageController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
+  late NavigationBarState navigationBarState;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -103,14 +106,14 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   }
 
   void onBackPressed(BuildContext context) {
-    if (playerController.androidFullscreen) {
+    if (videoPageController.androidFullscreen) {
       debugPrint('当前播放器全屏');
       try {
         // danmakuController.onClear();
       } catch (_) {}
       try {
         playerController.exitFullScreen();
-        playerController.androidFullscreen = false;
+        videoPageController.androidFullscreen = false;
         return;
       } catch (e) {
         debugPrint(e.toString());
@@ -203,6 +206,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void initState() {
     super.initState();
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
     playerTimer = getPlayerTimer();
   }
 
@@ -320,19 +325,19 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                 // Esc键被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.escape) {
-                                  if (playerController.androidFullscreen) {
+                                  if (videoPageController.androidFullscreen) {
                                     try {
                                       danmakuController.onClear();
                                     } catch (_) {}
                                     playerController.exitFullScreen();
-                                    playerController.androidFullscreen =
-                                        !playerController.androidFullscreen;
+                                    videoPageController.androidFullscreen =
+                                        !videoPageController.androidFullscreen;
                                   }
                                 }
                               }
                             },
                             child: SizedBox(
-                              height: playerController.androidFullscreen
+                              height: videoPageController.androidFullscreen
                                   ? (MediaQuery.of(context).size.height)
                                   : (MediaQuery.of(context).size.width *
                                       9.0 /
@@ -425,7 +430,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 details.delta.dy;
 
                                             /// 非全屏时禁用
-                                            if (!playerController
+                                            if (!videoPageController
                                                 .androidFullscreen) {
                                               return;
                                             }
@@ -576,7 +581,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                   top: 0,
                                   left: 0,
                                   right: 0,
-                                  height: playerController.androidFullscreen
+                                  height: videoPageController.androidFullscreen
                                       ? MediaQuery.sizeOf(context).height *
                                           danmakuArea
                                       : (MediaQuery.sizeOf(context).width *
@@ -617,12 +622,12 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               icon:
                                                   const Icon(Icons.arrow_back),
                                               onPressed: () {
-                                                if (playerController
+                                                if (videoPageController
                                                         .androidFullscreen ==
                                                     true) {
                                                   playerController
                                                       .exitFullScreen();
-                                                  playerController
+                                                  videoPageController
                                                           .androidFullscreen =
                                                       false;
                                                   return;
@@ -755,7 +760,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             ),
                                             ((Platform.isAndroid ||
                                                         Platform.isIOS) &&
-                                                    !playerController
+                                                    !videoPageController
                                                         .androidFullscreen)
                                                 ? Container()
                                                 : Container(
@@ -832,12 +837,12 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             ),
                                             IconButton(
                                               color: Colors.white,
-                                              icon: Icon(playerController
+                                              icon: Icon(videoPageController
                                                       .androidFullscreen
                                                   ? Icons.fullscreen_exit
                                                   : Icons.fullscreen),
                                               onPressed: () {
-                                                if (playerController
+                                                if (videoPageController
                                                     .androidFullscreen) {
                                                   try {
                                                     // 弹幕相关
@@ -848,10 +853,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 } else {
                                                   playerController
                                                       .enterFullScreen();
+                                                  navigationBarState.hideNavigate();
                                                 }
-                                                playerController
+                                                videoPageController
                                                         .androidFullscreen =
-                                                    !playerController
+                                                    !videoPageController
                                                         .androidFullscreen;
                                               },
                                             ),

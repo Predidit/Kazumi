@@ -19,6 +19,10 @@ abstract class _VideoPageController with Store {
   @observable
   int currentEspisode = 1;
 
+  // 安卓全屏状态
+  @observable
+  bool androidFullscreen = false;
+
   String title = '';
 
   @observable

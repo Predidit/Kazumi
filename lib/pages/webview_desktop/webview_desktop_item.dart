@@ -31,13 +31,14 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
   }
 
   Future<void> initPlatformState() async {
-    // 改为在Video页面进行WebView初始化
-    // if (!webviewDesktopItemController.webviewController.value.isInitialized) {
-    //   await webviewDesktopItemController.init();
-    // }
+    // 初始化Webview
+    if (!webviewDesktopItemController.webviewController.value.isInitialized) {
+      await webviewDesktopItemController.init();
+    }
     // 接受全屏事件
-    _subscriptions
-        .add(webviewDesktopItemController.webviewController.containsFullScreenElementChanged.listen((flag) {
+    _subscriptions.add(webviewDesktopItemController
+        .webviewController.containsFullScreenElementChanged
+        .listen((flag) {
       debugPrint('包括可全屏元素: $flag');
       windowManager.setFullScreen(flag);
     }));

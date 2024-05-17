@@ -57,15 +57,19 @@ class _VideoPageState extends State<VideoPage>
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (Platform.isWindows) {
-        final WebviewDesktopItemController webviewDesktopItemController =
-            Modular.get<WebviewDesktopItemController>();
-        if (!webviewDesktopItemController
-            .webviewController.value.isInitialized) {
-          await webviewDesktopItemController.init();
-        }
+      // 此方法弃用，在这里初始化会意外触发一个 webview_windows 库的奇怪bug
+      // if (Platform.isWindows) {
+      //   final WebviewDesktopItemController webviewDesktopItemController =
+      //       Modular.get<WebviewDesktopItemController>();
+      //   if (!webviewDesktopItemController
+      //       .webviewController.value.isInitialized) {
+      //     await webviewDesktopItemController.init();
+      //   }
+      // }
+      // videoPageController.changeEpisode(videoPageController.currentEspisode);
+      if (!Platform.isWindows) {
+        videoPageController.changeEpisode(videoPageController.currentEspisode);
       }
-      videoPageController.changeEpisode(videoPageController.currentEspisode);
     });
     return Scaffold(
       appBar: (videoPageController.currentPlugin.useNativePlayer ? null : SysAppBar()),

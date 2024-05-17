@@ -16,8 +16,8 @@ class WebviewDesktopItemController {
 
   init() async {
     await webviewController.initialize();
-    // 初始化JS监听器
     await initJSBridge();
+    videoPageController.changeEpisode(videoPageController.currentEspisode);
   }
 
   loadUrl(String url) async {

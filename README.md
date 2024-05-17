@@ -18,6 +18,7 @@
   <tr>
     <td><img alt="" src="static/screenshot/img_4.png"></td>
     <td><img alt="" src="static/screenshot/img_5.png"></td>
+    <td><img alt="" src="static/screenshot/img_6.png"></td>
   <tr>
 </table>
 

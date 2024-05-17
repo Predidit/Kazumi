@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_windows/webview_windows.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 
 class WebviewDesktopItem extends StatefulWidget {
@@ -17,6 +18,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
   final List<StreamSubscription> _subscriptions = [];
   final WebviewDesktopItemController webviewDesktopItemController =
       Modular.get<WebviewDesktopItemController>();
+  final VideoPageController videoPageController = Modular.get<VideoPageController>();
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
         .webviewController.containsFullScreenElementChanged
         .listen((flag) {
       debugPrint('包括可全屏元素: $flag');
+      videoPageController.androidFullscreen = flag;
       windowManager.setFullScreen(flag);
     }));
     if (!mounted) return;

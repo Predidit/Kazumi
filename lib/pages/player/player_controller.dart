@@ -141,12 +141,12 @@ abstract class _PlayerController with Store {
   }
 
   Future setPlaybackSpeed(double playerSpeed) async {
+    this.playerSpeed = playerSpeed;
     try {
       mediaPlayer.setRate(playerSpeed);
     } catch (e) {
       debugPrint(e.toString());
     }
-    playerSpeed = playerSpeed;
   }
 
   Future playOrPause() async {

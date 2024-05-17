@@ -1,0 +1,170 @@
+---
+    name: "release"
+    
+    on:
+      push:
+        tags:
+          - "1.*"
+      workflow_dispatch:
+        inputs:
+          logLevel:
+            description: 'Log level'     
+            required: true
+            default: 'warning'
+    
+    jobs:
+      flutter-build-android:
+        name: "Release for android"
+        runs-on: "ubuntu-latest" 
+        permissions: write-all
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - name: Extract tag name
+            run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            shell: bash
+          - name: Echo build progress
+            run: echo "Kazumi_android_${{ env.tag }}.apk build progress"
+            shell: bash
+          - name: Install dependencies
+            run: |
+              sudo apt-get update
+              sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev mpv libmpv-dev libasound2-dev
+            shell: bash
+          - name: Set up JDK 17
+            uses: actions/setup-java@v3
+            with:
+              java-version: '17'
+              distribution: 'temurin'          
+          - name: Set up Flutter
+            uses: subosito/flutter-action@v2
+            with:
+              channel: stable
+              flutter-version-file: pubspec.yaml
+          - name: Get Flutter dependencies
+            run: flutter pub get
+            shell: bash
+          - name: Build Flutter for Android
+            run: flutter build apk --split-per-abi
+            shell: bash
+          - name: Package android build output
+            run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
+            shell: bash
+
+          - name: Upload android outputs
+            uses: actions/upload-artifact@v4
+            with:
+              name: android_outputs
+              path: Kazumi_android_*.apk
+
+      flutter-build-windows:
+        name: "Release for windows"
+        runs-on: "windows-latest"
+        permissions: write-all
+    
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - run: |
+                  $tag = "${{ github.ref }}".Replace('refs/tags/', '')
+                  echo "tag=$(echo $tag)" >> $env:GITHUB_ENV
+          - run: echo "Kazumi_windows_${env:tag}.zip build progress"
+          - run: choco install yq
+          - name: Set up Flutter
+            uses: subosito/flutter-action@v2
+            with:
+              channel: stable
+              flutter-version-file: pubspec.yaml
+              cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
+              cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+              pub-cache-key: "flutter-pub:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+              pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          - name: Set up Java
+            uses: actions/setup-java@v4
+            with:
+              distribution: 'temurin'
+              java-version: '18'
+          - run: flutter pub get
+          - run: flutter build windows   
+          - name: Download OpenCC Assets
+            uses: dsaltares/fetch-gh-release-asset@master
+            with:
+              repo: 'Predidit/open_chinese_convert_bridge'
+              version: 'tags/1.0.0'
+              file: 'opencc_windows.zip'
+              token: ${{ secrets.GITHUB_TOKEN }}
+          - run: Expand-Archive -LiteralPath opencc_windows.zip -DestinationPath build/windows/x64/runner/Release
+          - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
+          - name: Upload windows outputs
+            uses: actions/upload-artifact@v4
+            with:
+              name: windows_outputs
+              path: |
+                Kazumi_windows_*.zip
+
+      release:
+        name: "Release"
+        runs-on: "ubuntu-latest"
+        needs: [flutter-build-windows, flutter-build-android] 
+        permissions: write-all
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - name: Extract tag name
+            run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            shell: bash
+          - name: Set up JDK 17
+            uses: actions/setup-java@v3
+            with:
+              java-version: '17'
+              distribution: 'temurin'          
+          - name: Setup Android SDK
+            uses: android-actions/setup-android@v3
+          - name: Setup Android build tools
+            run: sdkmanager "build-tools;34.0.0"
+          - name: Download windows build file
+            uses: actions/download-artifact@v4
+            with:
+              name: windows_outputs
+              path: windows_outputs  
+          - name: List files in windows_outputs directory
+            run: ls -l windows_outputs   
+          - name: Copy windows build file to root
+            run: cp windows_outputs/* Kazumi_windows_${{ env.tag }}.zip
+
+          - name: Download android build file
+            uses: actions/download-artifact@v4
+            with:
+              name: android_outputs
+              path: android_outputs 
+          - name: List files in android_outputs directory
+            run: ls -l android_outputs   
+          - name: Copy android build file to unsigned floder
+            run: | 
+              mkdir build
+              mkdir build/unsigned
+              mkdir build/signed
+              cp android_outputs/* build/unsigned/Kazumi_android_${{ env.tag }}.apk
+
+          - name: Sign APK
+            id: sign_app
+            uses: r0adkll/sign-android-release@v1
+            with:
+              releaseDirectory: build/unsigned
+              signingKeyBase64: ${{ secrets.SIGNING_KEY_BASE64 }}
+              alias: ${{ secrets.KEY_ALIAS }}
+              keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+            env:
+              BUILD_TOOLS_VERSION: "34.0.0"
+
+          - name: Copy Signed android build file
+            run: cp ${{steps.sign_app.outputs.signedReleaseFile}} build/signed/Kazumi_android_${{ env.tag }}.apk
+
+          - name: Create release
+            uses: "marvinpinto/action-automatic-releases@latest"
+            with:
+              repo_token: "${{ secrets.GITHUB_TOKEN }}"
+              prerelease: false
+              files: |
+                build/signed/*.apk
+                Kazumi_windows_*.zip

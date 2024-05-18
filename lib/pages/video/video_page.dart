@@ -30,10 +30,24 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
+    videoPageController.currentEspisode = 1;
+    videoPageController.currentRoad = 0;
+    var progress = historyController.lastWatching(
+        infoController.bangumiItem, videoPageController.currentPlugin.name);
+    if (progress != null) {
+      debugPrint('尝试恢复观看进度');
+      if (videoPageController.roadList.length > progress.road) {
+        debugPrint('播放列表选择恢复');
+        if (videoPageController.roadList[progress.road].data.length >=
+            progress.episode) {
+          debugPrint('选集进度恢复');
+          videoPageController.currentEspisode = progress.episode;
+          videoPageController.currentRoad = progress.road;
+        }
+      }
+    }
     tabController =
-        TabController(length: videoPageController.roadList.length, vsync: this);
-    var progress = historyController.lastWatching(infoController.bangumiItem, videoPageController.currentPlugin.name);
-    videoPageController.currentEspisode = progress?.episode ?? 1;
+        TabController(length: videoPageController.roadList.length, vsync: this, initialIndex: videoPageController.currentRoad);
   }
 
   @override
@@ -47,18 +61,9 @@ class _VideoPageState extends State<VideoPage>
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 此方法弃用，在这里初始化会意外触发一个 webview_windows 库的奇怪bug
-      // if (Platform.isWindows) {
-      //   final WebviewDesktopItemController webviewDesktopItemController =
-      //       Modular.get<WebviewDesktopItemController>();
-      //   if (!webviewDesktopItemController
-      //       .webviewController.value.isInitialized) {
-      //     await webviewDesktopItemController.init();
-      //   }
-      // }
-      // videoPageController.changeEpisode(videoPageController.currentEspisode);
       if (!Platform.isWindows) {
-        videoPageController.changeEpisode(videoPageController.currentEspisode);
+        videoPageController.changeEpisode(videoPageController.currentEspisode,
+            currentRoad: videoPageController.currentRoad);
       }
     });
     return SafeArea(
@@ -167,8 +172,11 @@ class _VideoPageState extends State<VideoPage>
                                               Row(
                                                 children: [
                                                   if (_count ==
-                                                      (videoPageController
-                                                          .currentEspisode)) ...<Widget>[
+                                                          (videoPageController
+                                                              .currentEspisode) &&
+                                                      roadIndex ==
+                                                          videoPageController
+                                                              .currentRoad) ...<Widget>[
                                                     Image.asset(
                                                       'assets/images/live.png',
                                                       color: Theme.of(context)
@@ -182,9 +190,12 @@ class _VideoPageState extends State<VideoPage>
                                                     '第$count话',
                                                     style: TextStyle(
                                                         fontSize: 13,
-                                                        color: _count ==
-                                                                (videoPageController
-                                                                    .currentEspisode)
+                                                        color: (_count ==
+                                                                    (videoPageController
+                                                                        .currentEspisode) &&
+                                                                roadIndex ==
+                                                                    videoPageController
+                                                                        .currentRoad)
                                                             ? Theme.of(context)
                                                                 .colorScheme
                                                                 .primary

@@ -41,6 +41,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$currentRoadAtom =
+      Atom(name: '_VideoPageController.currentRoad', context: context);
+
+  @override
+  int get currentRoad {
+    _$currentRoadAtom.reportRead();
+    return super.currentRoad;
+  }
+
+  @override
+  set currentRoad(int value) {
+    _$currentRoadAtom.reportWrite(value, super.currentRoad, () {
+      super.currentRoad = value;
+    });
+  }
+
   late final _$androidFullscreenAtom =
       Atom(name: '_VideoPageController.androidFullscreen', context: context);
 
@@ -78,6 +94,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
     return '''
 loading: ${loading},
 currentEspisode: ${currentEspisode},
+currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},
 roadList: ${roadList}
     ''';

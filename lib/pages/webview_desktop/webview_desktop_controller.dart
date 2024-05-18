@@ -17,7 +17,7 @@ class WebviewDesktopItemController {
   init() async {
     await webviewController.initialize();
     await initJSBridge();
-    videoPageController.changeEpisode(videoPageController.currentEspisode);
+    videoPageController.changeEpisode(videoPageController.currentEspisode, currentRoad: videoPageController.currentRoad);
   }
 
   loadUrl(String url) async {

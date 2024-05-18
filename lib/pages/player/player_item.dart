@@ -103,7 +103,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       // 历史记录相关
       if (playerController.mediaPlayer.state.playing) {
         historyController.updateHistory(
-            videoPageController.currentEspisode, videoPageController.currentPlugin.name, infoController.bangumiItem, playerController.mediaPlayer.state.position);
+            videoPageController.currentEspisode, videoPageController.currentRoad, videoPageController.currentPlugin.name, infoController.bangumiItem, playerController.mediaPlayer.state.position);
       }
       // 自动播放下一集
       // if (playerController.mediaPlayer.state.completed == true &&

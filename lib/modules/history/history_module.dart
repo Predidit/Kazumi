@@ -39,13 +39,16 @@ class Progress {
   int episode;
 
   @HiveField(1)
+  int road;
+
+  @HiveField(2)
   int _progressInMilli;
 
   Duration get progress => Duration(milliseconds: _progressInMilli);
 
   set progress(Duration d) => _progressInMilli = d.inMilliseconds;
 
-  Progress(this.episode, this._progressInMilli);
+  Progress(this.episode, this.road, this._progressInMilli);
 
   @override
   String toString() {

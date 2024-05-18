@@ -20,6 +20,9 @@ abstract class _VideoPageController with Store {
   @observable
   int currentEspisode = 1;
 
+  @observable
+  int currentRoad = 0;
+
   // 安卓全屏状态
   @observable
   bool androidFullscreen = false;
@@ -36,6 +39,7 @@ abstract class _VideoPageController with Store {
 
   changeEpisode(int episode, {int currentRoad = 0}) async {
     currentEspisode = episode;
+    this.currentRoad = currentRoad;
     debugPrint('跳转到第$episode话');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (Platform.isWindows) {

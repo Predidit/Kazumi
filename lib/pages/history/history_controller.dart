@@ -16,7 +16,7 @@ class HistoryController {
   }
 
   void updateHistory(
-      int episode, String adapterName, BangumiItem bangumiItem, Duration progress) {
+      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress) {
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
         History(bangumiItem, episode, adapterName, DateTime.now());
     history.lastWatchEpisode = episode;
@@ -25,7 +25,7 @@ class HistoryController {
     var prog = history.progresses[episode];
     if (prog == null) {
       history.progresses[episode] =
-          Progress(episode, progress.inMilliseconds);
+          Progress(episode, road, progress.inMilliseconds);
     } else {
       prog.progress = progress;
     }

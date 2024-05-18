@@ -64,16 +64,19 @@ class ProgressAdapter extends TypeAdapter<Progress> {
     return Progress(
       fields[0] as int,
       fields[1] as int,
+      fields[2] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, Progress obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.episode)
       ..writeByte(1)
+      ..write(obj.road)
+      ..writeByte(2)
       ..write(obj._progressInMilli);
   }
 

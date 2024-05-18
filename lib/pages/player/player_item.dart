@@ -847,7 +847,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                           SmartToastType.last);
                                                   return;
                                                 }
-                                                danmakuController.clear();
+                                                danmakuController.onClear();
                                                 playerController.danmakuOn =
                                                     !playerController.danmakuOn;
                                                 debugPrint(

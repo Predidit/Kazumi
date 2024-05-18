@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/widget/text_display.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -46,8 +47,10 @@ class _VideoPageState extends State<VideoPage>
         }
       }
     }
-    tabController =
-        TabController(length: videoPageController.roadList.length, vsync: this, initialIndex: videoPageController.currentRoad);
+    tabController = TabController(
+        length: videoPageController.roadList.length,
+        vsync: this,
+        initialIndex: videoPageController.currentRoad);
   }
 
   @override
@@ -81,17 +84,60 @@ class _VideoPageState extends State<VideoPage>
                 width: MediaQuery.of(context).size.width,
                 child: Stack(
                   children: [
+                    // 日志组件
                     Positioned.fill(
-                        child: Visibility(
-                      visible: videoPageController.loading,
-                      child:
-                          (!videoPageController.currentPlugin.useNativePlayer)
-                              ? Container(
-                                  color: Colors.black,
-                                  child: const Center(
-                                      child: CircularProgressIndicator()))
-                              : Container(),
-                    )),
+                      child: Stack(
+                        children: [
+                          Visibility(
+                            visible: videoPageController.loading,
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: videoPageController.logLines.length,
+                                itemBuilder: (context, index) {
+                                  return Text(
+                                    videoPageController.logLines[index],
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back,
+                                  color: Colors.white),
+                              onPressed: () {
+                                if (videoPageController.androidFullscreen ==
+                                    true) {
+                                  playerController.exitFullScreen();
+                                  videoPageController.androidFullscreen = false;
+                                  return;
+                                }
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Positioned.fill(
+                    //     child: Visibility(
+                    //   visible: videoPageController.loading,
+                    //   child:
+                    //       (!videoPageController.currentPlugin.useNativePlayer)
+                    //           ? Container(
+                    //               color: Colors.black,
+                    //               child: const Center(
+                    //                   child: CircularProgressIndicator()))
+                    //           : Container(),
+                    // )),
                     Positioned.fill(
                       child:
                           (!videoPageController.currentPlugin.useNativePlayer ||
@@ -119,17 +165,17 @@ class _VideoPageState extends State<VideoPage>
                       tabAlignment: TabAlignment.center,
                       controller: tabController,
                       tabs: videoPageController.roadList
-                          .map((road) => Observer(
-                                builder: (context) => Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      road.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                          .map(
+                            (road) => Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  road.name,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ))
+                              ],
+                            ),
+                          )
                           .toList(),
                     ),
               videoPageController.androidFullscreen

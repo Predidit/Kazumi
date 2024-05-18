@@ -25,6 +25,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$logLinesAtom =
+      Atom(name: '_VideoPageController.logLines', context: context);
+
+  @override
+  ObservableList<String> get logLines {
+    _$logLinesAtom.reportRead();
+    return super.logLines;
+  }
+
+  @override
+  set logLines(ObservableList<String> value) {
+    _$logLinesAtom.reportWrite(value, super.logLines, () {
+      super.logLines = value;
+    });
+  }
+
   late final _$currentEspisodeAtom =
       Atom(name: '_VideoPageController.currentEspisode', context: context);
 
@@ -93,6 +109,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
   String toString() {
     return '''
 loading: ${loading},
+logLines: ${logLines},
 currentEspisode: ${currentEspisode},
 currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},

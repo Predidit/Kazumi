@@ -16,20 +16,28 @@ class WebviewItemController {
 
   loadUrl(String url) async {
     await unloadPage();
+    isIframeLoaded = false;
+    isVideoSourceLoaded = false;
+    videoPageController.loading = true;
     await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('JS桥收到的消息为 ${message.message}');
+      videoPageController.logLines.add('Callback received: ${message.message}');
+      videoPageController.logLines.add(
+          'If there is audio but no video, please report it to the rule developer.');
       if (message.message.contains('http')) {
         isIframeLoaded = true;
         if (Utils.decodeVideoSource(message.message) != message.message) {
           debugPrint(
-            '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
+              '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
+          videoPageController.logLines.add('Loading video source ${Utils.decodeVideoSource(message.message)}');
           isVideoSourceLoaded = true;
           videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
-            playerController.videoUrl = Utils.decodeVideoSource(message.message);
+            playerController.videoUrl =
+                Utils.decodeVideoSource(message.message);
             playerController.init();
           }
         }
@@ -38,15 +46,17 @@ class WebviewItemController {
     await webviewController.addJavaScriptChannel('VideoBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('VideoJS桥收到的消息为 ${message.message}');
+      videoPageController.logLines.add('Callback received: ${message.message}');
       if (message.message.contains('http')) {
         debugPrint('由video标签获取视频源 ${message.message}');
+        videoPageController.logLines.add('Loading video source ${message.message}');
         isVideoSourceLoaded = true;
         videoPageController.loading = false;
         if (videoPageController.currentPlugin.useNativePlayer) {
-            unloadPage();
-            playerController.videoUrl = message.message;
-            playerController.init();
-          }
+          unloadPage();
+          playerController.videoUrl = message.message;
+          playerController.init();
+        }
       }
     });
     await webviewController.loadRequest(Uri.parse(url));
@@ -76,9 +86,6 @@ class WebviewItemController {
         .catchError((_) {});
     await webviewController.loadRequest(Uri.parse('about:blank'));
     await webviewController.clearCache();
-    isIframeLoaded = false;
-    isVideoSourceLoaded = false;
-    videoPageController.loading = true;
   }
 
   // loadIframe(String url) async {
@@ -89,7 +96,7 @@ class WebviewItemController {
   parseIframeUrl() async {
     await webviewController.runJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
-      JSBridgeDebug.postMessage('iframe 标签数量为');
+      JSBridgeDebug.postMessage('The number of iframe tags is');
       JSBridgeDebug.postMessage(iframes.length);
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
@@ -108,12 +115,13 @@ class WebviewItemController {
   parseVideoSource() async {
     await webviewController.runJavaScript('''
       var videos = document.querySelectorAll('video');
-      VideoBridgeDebug.postMessage('video 标签数量为');
+      VideoBridgeDebug.postMessage('The number of video tags is');
       VideoBridgeDebug.postMessage(videos.length);
       for (var i = 0; i < videos.length; i++) {
         var src = videos[i].getAttribute('src');
         if (src && src.trim() !== '' && !src.startsWith('blob:')) {
           VideoBridgeDebug.postMessage(src);
+          break;
         } 
       }
     ''');

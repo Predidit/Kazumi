@@ -18,6 +18,9 @@ abstract class _VideoPageController with Store {
   bool loading = true;
 
   @observable
+  ObservableList<String> logLines = ObservableList.of([]);
+
+  @observable
   int currentEspisode = 1;
 
   @observable
@@ -42,6 +45,7 @@ abstract class _VideoPageController with Store {
   changeEpisode(int episode, {int currentRoad = 0}) async {
     currentEspisode = episode;
     this.currentRoad = currentRoad;
+    logLines.clear();
     debugPrint('跳转到第$episode话');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (Platform.isWindows) {

@@ -22,6 +22,9 @@ class WebviewDesktopItemController {
 
   loadUrl(String url) async {
     await unloadPage();
+    isIframeLoaded = false;
+    isVideoSourceLoaded = false;
+    videoPageController.loading = true;
     await webviewController.loadUrl(url);
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -42,16 +45,20 @@ class WebviewDesktopItemController {
 
   initJSBridge() async {
     webviewController.webMessage.listen((event) async {
-      if (event.toString().contains('iframeMessage:')) {
+      if (event.toString().contains('iframeMessage:')) {  
         String messageItem =
             event.toString().replaceFirst('iframeMessage:', '');
         debugPrint('由JS桥收到的消息为 $messageItem');
+        videoPageController.logLines.add('Callback received: $messageItem');
+        videoPageController.logLines.add('If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http')) {
           debugPrint('成功加载 iframe');
+          videoPageController.logLines.add('Parsing video source $messageItem');
           isIframeLoaded = true;
           if (Utils.decodeVideoSource(messageItem) != messageItem) {
             isVideoSourceLoaded = true;
             videoPageController.loading = false;
+            videoPageController.logLines.add('Loading video source ${Utils.decodeVideoSource(messageItem)}');
             debugPrint(
                 '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
             if (videoPageController.currentPlugin.useNativePlayer) {
@@ -65,8 +72,10 @@ class WebviewDesktopItemController {
       if (event.toString().contains('videoMessage:')) {
         String messageItem = event.toString().replaceFirst('videoMessage:', '');
         debugPrint('由VideoJS桥收到的消息为 $messageItem');
+        videoPageController.logLines.add('Callback received: $messageItem');
         if (messageItem.contains('http')) {
           debugPrint('成功获取视频源');
+          videoPageController.logLines.add('Loading video source $messageItem');
           isVideoSourceLoaded = true;
           videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
@@ -82,9 +91,6 @@ class WebviewDesktopItemController {
   unloadPage() async {
     await webviewController.loadUrl('about:blank');
     await webviewController.clearCache();
-    isIframeLoaded = false;
-    isVideoSourceLoaded = false;
-    videoPageController.loading = true;
   }
 
   parseIframeUrl() async {

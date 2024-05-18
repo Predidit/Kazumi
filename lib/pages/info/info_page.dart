@@ -53,6 +53,8 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   void dispose() {
+    // 测试
+    videoPageController.currentEspisode = 1;
     super.dispose();
   }
 

@@ -101,9 +101,14 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         });
       }
       // 历史记录相关
-      if (playerController.mediaPlayer.state.playing) {
+      if (playerController.mediaPlayer.state.playing && videoPageController.src != '') {
         historyController.updateHistory(
-            videoPageController.currentEspisode, videoPageController.currentRoad, videoPageController.currentPlugin.name, infoController.bangumiItem, playerController.mediaPlayer.state.position);
+            videoPageController.currentEspisode,
+            videoPageController.currentRoad,
+            videoPageController.currentPlugin.name,
+            infoController.bangumiItem,
+            playerController.mediaPlayer.state.position,
+            videoPageController.src);
       }
       // 自动播放下一集
       // if (playerController.mediaPlayer.state.completed == true &&
@@ -893,42 +898,33 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   }
 
   Widget get playerSurface {
-    return Column(
-      children: [
-        // const Text('Video Player Test'),
-        Observer(builder: (context) {
-          return Expanded(
-            child: Video(
-              controller: playerController.videoController,
-              controls: NoVideoControls,
-              subtitleViewConfiguration: SubtitleViewConfiguration(
-                style: TextStyle(
-                  color: Colors.pink, // 深粉色字体
-                  fontSize: 48.0, // 较大的字号
-                  background: Paint()..color = Colors.transparent, // 背景透明
-                  decoration: TextDecoration.none, // 无下划线
-                  fontWeight: FontWeight.bold, // 字体加粗
-                  shadows: const [
-                    // 显眼的包边
-                    Shadow(
-                      offset: Offset(1.0, 1.0),
-                      blurRadius: 3.0,
-                      color: Color.fromARGB(255, 255, 255, 255),
-                    ),
-                    Shadow(
-                      offset: Offset(-1.0, -1.0),
-                      blurRadius: 3.0,
-                      color: Color.fromARGB(125, 255, 255, 255),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-                padding: const EdgeInsets.all(24.0),
-              ),
+    return Video(
+      controller: playerController.videoController,
+      controls: NoVideoControls,
+      subtitleViewConfiguration: SubtitleViewConfiguration(
+        style: TextStyle(
+          color: Colors.pink, // 深粉色字体
+          fontSize: 48.0, // 较大的字号
+          background: Paint()..color = Colors.transparent, // 背景透明
+          decoration: TextDecoration.none, // 无下划线
+          fontWeight: FontWeight.bold, // 字体加粗
+          shadows: const [
+            // 显眼的包边
+            Shadow(
+              offset: Offset(1.0, 1.0),
+              blurRadius: 3.0,
+              color: Color.fromARGB(255, 255, 255, 255),
             ),
-          );
-        }),
-      ],
+            Shadow(
+              offset: Offset(-1.0, -1.0),
+              blurRadius: 3.0,
+              color: Color.fromARGB(125, 255, 255, 255),
+            ),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        padding: const EdgeInsets.all(24.0),
+      ),
     );
   }
 }

@@ -17,6 +17,13 @@ class _MyPageState extends State<MyPage> {
       body: Column(
         children: [
           ListTile(
+            onTap: () {
+              Modular.to.pushNamed('/tab/my/history');
+            },
+            dense: false,
+            title: const Text('历史记录'),
+          ),
+          ListTile(
             onTap: () async {
               Modular.to.pushNamed('/tab/my/plugin');
             },

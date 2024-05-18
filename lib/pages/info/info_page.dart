@@ -130,6 +130,7 @@ class _InfoPageState extends State<InfoPage>
                                   SmartDialog.showLoading(msg: '获取中');
                                   videoPageController.currentPlugin = plugin;
                                   videoPageController.title = searchItem.name;
+                                  videoPageController.src = searchItem.src;
                                   await infoController.queryRoads(
                                       searchItem.src, plugin.name);
                                   SmartDialog.dismiss();

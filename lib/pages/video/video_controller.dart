@@ -29,6 +29,8 @@ abstract class _VideoPageController with Store {
 
   String title = '';
 
+  String src = '';
+
   @observable
   var roadList = ObservableList<Road>();
 

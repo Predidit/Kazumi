@@ -5,6 +5,7 @@ import 'package:kazumi/pages/my/my_module.dart';
 import 'package:kazumi/pages/video/video_module.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/favorite/favorite_module.dart';
+import 'package:kazumi/pages/history/history_module.dart';
 
 class MenuRouteItem {
   final String path;

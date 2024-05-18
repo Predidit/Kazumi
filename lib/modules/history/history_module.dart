@@ -20,10 +20,13 @@ class History {
   @HiveField(4)
   DateTime lastWatchTime;
 
+  @HiveField(5)
+  String lastSrc;
+
   String get key => adapterName + bangumiItem.id.toString();
 
   History(
-      this.bangumiItem, this.lastWatchEpisode, this.adapterName, this.lastWatchTime);
+      this.bangumiItem, this.lastWatchEpisode, this.adapterName, this.lastWatchTime, this.lastSrc);
 
   static String getKey(String n, BangumiItem s) => n + s.id.toString();
 

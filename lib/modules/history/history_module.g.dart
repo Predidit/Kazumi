@@ -21,13 +21,14 @@ class HistoryAdapter extends TypeAdapter<History> {
       fields[1] as int,
       fields[2] as String,
       fields[4] as DateTime,
+      fields[5] as String,
     )..progresses = (fields[0] as Map).cast<int, Progress>();
   }
 
   @override
   void write(BinaryWriter writer, History obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.progresses)
       ..writeByte(1)
@@ -37,7 +38,9 @@ class HistoryAdapter extends TypeAdapter<History> {
       ..writeByte(3)
       ..write(obj.bangumiItem)
       ..writeByte(4)
-      ..write(obj.lastWatchTime);
+      ..write(obj.lastWatchTime)
+      ..writeByte(5)
+      ..write(obj.lastSrc);
   }
 
   @override

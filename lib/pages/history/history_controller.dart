@@ -16,11 +16,14 @@ class HistoryController {
   }
 
   void updateHistory(
-      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress) {
+      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc) {
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
-        History(bangumiItem, episode, adapterName, DateTime.now());
+        History(bangumiItem, episode, adapterName, DateTime.now(), lastSrc);
     history.lastWatchEpisode = episode;
     history.lastWatchTime = DateTime.now();
+    if (lastSrc != '') {
+      history.lastSrc = lastSrc;
+    }
 
     var prog = history.progresses[episode];
     if (prog == null) {

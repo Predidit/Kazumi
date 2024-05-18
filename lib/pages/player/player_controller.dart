@@ -28,7 +28,8 @@ abstract class _PlayerController with Store {
   late Player mediaPlayer;
   late VideoController videoController;
   late DanmakuController danmakuController;
-  final VideoPageController videoPageController = Modular.get<VideoPageController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
 
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
@@ -93,11 +94,8 @@ abstract class _PlayerController with Store {
     }
     debugPrint('VideoURL初始化完成');
     // 加载弹幕
-    try {
-      getDanDanmaku(videoPageController.title, videoPageController.currentEspisode);
-    } catch (e) {
-      debugPrint('弹幕获取失败 ${e.toString()}');
-    }
+    getDanDanmaku(
+        videoPageController.title, videoPageController.currentEspisode);
     loading = false;
   }
 
@@ -150,7 +148,9 @@ abstract class _PlayerController with Store {
   }
 
   Future playOrPause() async {
-    mediaPlayer.state.playing ? danmakuController.pause() : danmakuController.resume();
+    mediaPlayer.state.playing
+        ? danmakuController.pause()
+        : danmakuController.resume();
     await mediaPlayer.playOrPause();
   }
 
@@ -170,10 +170,14 @@ abstract class _PlayerController with Store {
   }
 
   Future getDanDanmaku(String title, int episode) async {
-    danDanmakus.clear();
-    bangumiID = await DanmakuRequest.getBangumiID(title);
-    var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
-    addDanmakus(res);
+    try {
+      danDanmakus.clear();
+      bangumiID = await DanmakuRequest.getBangumiID(title);
+      var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+      addDanmakus(res);
+    } catch (e) {
+      debugPrint('获取弹幕错误 ${e.toString()}');
+    }
   }
 
   void addDanmakus(List<Danmaku> danmakus) {

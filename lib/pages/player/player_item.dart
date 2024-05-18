@@ -101,7 +101,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         });
       }
       // 历史记录相关
-      if (playerController.mediaPlayer.state.playing && videoPageController.src != '') {
+      if (playerController.mediaPlayer.state.playing &&
+          videoPageController.src != '') {
         historyController.updateHistory(
             videoPageController.currentEspisode,
             videoPageController.currentRoad,
@@ -128,6 +129,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       try {
         playerController.exitFullScreen();
         videoPageController.androidFullscreen = false;
+        danmakuController.clear();
         return;
       } catch (e) {
         debugPrint(e.toString());
@@ -639,6 +641,9 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 if (videoPageController
                                                         .androidFullscreen ==
                                                     true) {
+                                                  try {
+                                                    danmakuController.onClear();
+                                                  } catch (_) {}
                                                   playerController
                                                       .exitFullScreen();
                                                   videoPageController
@@ -859,8 +864,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 if (videoPageController
                                                     .androidFullscreen) {
                                                   try {
-                                                    // 弹幕相关
-                                                    // danmakuController.onClear();
+                                                    danmakuController.onClear();
                                                   } catch (_) {}
                                                   playerController
                                                       .exitFullScreen();

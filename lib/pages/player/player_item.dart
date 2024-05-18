@@ -18,6 +18,8 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PlayerItem extends StatefulWidget {
@@ -31,6 +33,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   final PlayerController playerController = Modular.get<PlayerController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final HistoryController historyController = Modular.get<HistoryController>();
+  final InfoController infoController = Modular.get<InfoController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
   late NavigationBarState navigationBarState;
@@ -95,6 +99,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                   ? danmakuController.addItems([DanmakuItem(danmaku.m)])
                   : null);
         });
+      }
+      // 历史记录相关
+      if (playerController.mediaPlayer.state.playing) {
+        historyController.updateHistory(
+            videoPageController.currentEspisode, videoPageController.currentPlugin.name, infoController.bangumiItem, playerController.mediaPlayer.state.position);
       }
       // 自动播放下一集
       // if (playerController.mediaPlayer.state.completed == true &&
@@ -853,7 +862,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 } else {
                                                   playerController
                                                       .enterFullScreen();
-                                                  navigationBarState.hideNavigate();
+                                                  navigationBarState
+                                                      .hideNavigate();
                                                 }
                                                 videoPageController
                                                         .androidFullscreen =

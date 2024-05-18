@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-import 'package:kazumi/modules/history/episode_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 part 'history_module.g.dart';
@@ -37,7 +36,7 @@ class History {
 @HiveType(typeId: 2)
 class Progress {
   @HiveField(0)
-  Episode episode;
+  int episode;
 
   @HiveField(1)
   int _progressInMilli;
@@ -50,6 +49,6 @@ class Progress {
 
   @override
   String toString() {
-    return 'Episode $episode, progress $progress';
+    return 'Episode ${episode.toString()}, progress $progress';
   }
 }

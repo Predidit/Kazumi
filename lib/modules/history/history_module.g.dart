@@ -62,7 +62,7 @@ class ProgressAdapter extends TypeAdapter<Progress> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Progress(
-      fields[0] as Episode,
+      fields[0] as int,
       fields[1] as int,
     );
   }

@@ -6,7 +6,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -24,6 +24,7 @@ class _VideoPageState extends State<VideoPage>
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
+  final HistoryController historyController = Modular.get<HistoryController>();
   late TabController tabController;
 
   @override
@@ -31,23 +32,12 @@ class _VideoPageState extends State<VideoPage>
     super.initState();
     tabController =
         TabController(length: videoPageController.roadList.length, vsync: this);
+    var progress = historyController.lastWatching(infoController.bangumiItem, videoPageController.currentPlugin.name);
+    videoPageController.currentEspisode = progress?.episode ?? 1;
   }
 
   @override
   void dispose() {
-    // try {
-    //   if (Platform.isWindows) {
-    //     final WebviewDesktopItemController webviewDesktopItemController =
-    //         Modular.get<WebviewDesktopItemController>();
-    //     webviewDesktopItemController.webviewController.loadUrl('about:blank');
-    //     webviewDesktopItemController.webviewController.clearCache();
-    //   } else {
-    //     final WebviewItemController webviewItemController =
-    //         Modular.get<WebviewItemController>();
-    //     webviewItemController.webviewController.loadRequest(Uri.parse('about:blank'));
-    //     webviewItemController.webviewController.clearCache();
-    //   }
-    // } catch (_) {}
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}

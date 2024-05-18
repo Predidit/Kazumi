@@ -6,6 +6,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:mobx/mobx.dart';
 
 part 'video_controller.g.dart';
@@ -31,6 +32,7 @@ abstract class _VideoPageController with Store {
   late Plugin currentPlugin;
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final HistoryController historyController = Modular.get<HistoryController>();
 
   changeEpisode(int episode, {int currentRoad = 0}) async {
     currentEspisode = episode;

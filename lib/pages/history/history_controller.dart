@@ -1,4 +1,3 @@
-import 'package:kazumi/modules/history/episode_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -17,15 +16,15 @@ class HistoryController {
   }
 
   void updateHistory(
-      Episode episode, String adapterName, BangumiItem bangumiItem, Duration progress) {
+      int episode, String adapterName, BangumiItem bangumiItem, Duration progress) {
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
-        History(bangumiItem, episode.episode, adapterName, DateTime.now());
-    history.lastWatchEpisode = episode.episode;
+        History(bangumiItem, episode, adapterName, DateTime.now());
+    history.lastWatchEpisode = episode;
     history.lastWatchTime = DateTime.now();
 
-    var prog = history.progresses[episode.episode];
+    var prog = history.progresses[episode];
     if (prog == null) {
-      history.progresses[episode.episode] =
+      history.progresses[episode] =
           Progress(episode, progress.inMilliseconds);
     } else {
       prog.progress = progress;

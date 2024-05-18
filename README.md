@@ -38,16 +38,16 @@
 - [x] 追番列表
 - [x] 番剧弹幕
 - [x] 在线更新
-- [ ] 配色方案
-- [ ] 历史记录 
-- [ ] 倍速播放
+- [x] 历史记录
+- [x] 倍速播放
+- [ ] 配色方案 
 - [ ] 番剧下载
 - [ ] 番剧更新提醒
 - [ ] 还有更多 (/・ω・＼) 
 
 ## 下载
 
-通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载 (第一个构建版本预期于五月底到来)
+通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载
 
 ## Q&A
 

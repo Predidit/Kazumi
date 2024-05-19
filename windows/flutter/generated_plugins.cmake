@@ -5,13 +5,11 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   flutter_volume_controller
-  fullscreen_window
   media_kit_libs_windows_video
   media_kit_video
   screen_brightness_windows
   screen_retriever
   url_launcher_windows
-  webview_win_floating
   webview_windows
   window_manager
 )

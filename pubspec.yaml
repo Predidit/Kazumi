@@ -69,11 +69,10 @@ dependencies:
   webview_cookie_manager: ^2.0.6
   url_launcher: ^6.1.14
   device_info_plus: ^9.0.2
-  window_manager: ^0.3.8
+  window_manager: ^0.3.9
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.7.0
-  webview_win_floating: ^2.2.3
   ns_danmaku: 
     git: 
         url: https://github.com/songbirdzz/flutter_ns_danmaku

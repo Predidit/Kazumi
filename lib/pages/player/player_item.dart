@@ -220,6 +220,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   }
 
   @override
+  void onWindowRestore() {
+    danmakuController.onClear();
+  }
+
+  @override
   void initState() {
     super.initState();
     navigationBarState =

@@ -25,7 +25,8 @@ class BangumiHistoryCardV extends StatefulWidget {
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   late bool isFavorite;
-  final VideoPageController videoPageController = Modular.get<VideoPageController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   @override
@@ -40,142 +41,128 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         Modular.get<FavoriteController>();
     isFavorite = favoriteController.isFavorite(widget.historyItem.bangumiItem);
     return SizedBox(
-      height: 170,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            StyleString.safeSpace, 7, StyleString.safeSpace, 7),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              onTap: () async {
-                SmartDialog.showLoading(msg: '获取中');
-                bool flag = false;
-                for (Plugin plugin in pluginsController.pluginList) {
-                  if (plugin.name == widget.historyItem.adapterName) {
-                    videoPageController.currentPlugin = plugin;
-                    flag = true;
-                  }
-                }
-                if (!flag) {
-                  SmartDialog.dismiss();
-                  SmartDialog.showToast('未找到关联番剧源'); 
-                  return;
-                }
-                infoController.bangumiItem = widget.historyItem.bangumiItem;
-                videoPageController.title = widget.historyItem.bangumiItem.nameCn == '' ? widget.historyItem.bangumiItem.name : widget.historyItem.bangumiItem.nameCn;
-                await infoController.queryRoads(widget.historyItem.lastSrc, videoPageController.currentPlugin.name);
-                SmartDialog.dismiss();
-                Modular.to.pushNamed('/tab/video/');
-              },
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: StyleString.imgRadius,
-                  topRight: StyleString.imgRadius,
-                  bottomLeft: StyleString.imgRadius,
-                  bottomRight: StyleString.imgRadius,
+      height: 150,
+      child: Card(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        child: InkWell(
+          onTap: () async {
+            SmartDialog.showLoading(msg: '获取中');
+            bool flag = false;
+            for (Plugin plugin in pluginsController.pluginList) {
+              if (plugin.name == widget.historyItem.adapterName) {
+                videoPageController.currentPlugin = plugin;
+                flag = true;
+              }
+            }
+            if (!flag) {
+              SmartDialog.dismiss();
+              SmartDialog.showToast('未找到关联番剧源');
+              return;
+            }
+            infoController.bangumiItem = widget.historyItem.bangumiItem;
+            videoPageController.title =
+                widget.historyItem.bangumiItem.nameCn == ''
+                    ? widget.historyItem.bangumiItem.name
+                    : widget.historyItem.bangumiItem.nameCn;
+            await infoController.queryRoads(widget.historyItem.lastSrc,
+                videoPageController.currentPlugin.name);
+            SmartDialog.dismiss();
+            Modular.to.pushNamed('/tab/video/');
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                StyleString.safeSpace, 7, StyleString.safeSpace, 7),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: StyleString.imgRadius,
+                    topRight: StyleString.imgRadius,
+                    bottomLeft: StyleString.imgRadius,
+                    bottomRight: StyleString.imgRadius,
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 0.65,
+                    child: LayoutBuilder(builder: (context, boxConstraints) {
+                      final double maxWidth = boxConstraints.maxWidth;
+                      final double maxHeight = boxConstraints.maxHeight;
+                      return NetworkImgLayer(
+                        src: widget.historyItem.bangumiItem.images['large'] ??
+                            '',
+                        width: maxWidth,
+                        height: maxHeight,
+                      );
+                    }),
+                  ),
                 ),
-                child: AspectRatio(
-                  aspectRatio: 0.65,
-                  child: LayoutBuilder(builder: (context, boxConstraints) {
-                    final double maxWidth = boxConstraints.maxWidth;
-                    final double maxHeight = boxConstraints.maxHeight;
-                    return NetworkImgLayer(
-                      src: widget.historyItem.bangumiItem.images['large'] ?? '',
-                      width: maxWidth,
-                      height: maxHeight,
-                    );
-                  }),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  RichText(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface),
-                      children: [
-                        TextSpan(
-                          text: widget.historyItem.bangumiItem.nameCn == ''
-                              ? widget.historyItem.bangumiItem.name
-                              : (widget.historyItem.bangumiItem.nameCn),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
                           style: TextStyle(
-                            fontSize: MediaQuery.textScalerOf(context).scale(
-                                Theme.of(context)
-                                    .textTheme
-                                    .titleSmall!
-                                    .fontSize!),
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Theme.of(context).colorScheme.onSurface),
+                          children: [
+                            TextSpan(
+                              text: widget.historyItem.bangumiItem.nameCn == ''
+                                  ? widget.historyItem.bangumiItem.name
+                                  : (widget.historyItem.bangumiItem.nameCn),
+                              style: TextStyle(
+                                fontSize: MediaQuery.textScalerOf(context)
+                                    .scale(Theme.of(context)
+                                        .textTheme
+                                        .titleSmall!
+                                        .fontSize!),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      // 测试 因为API问题评分功能搁置
+                      Text('番剧源: ${widget.historyItem.adapterName}',
+                          style: style),
+                      Text('上次看到: 第${widget.historyItem.lastWatchEpisode}话',
+                          style: style),
+                      Text(
+                          '排名: ${widget.historyItem.bangumiItem.rank ?? '0.0'}',
+                          style: style),
+                      Text(
+                          widget.historyItem.bangumiItem.type == 2
+                              ? '番剧'
+                              : '其他',
+                          style: style),
+                      Text(widget.historyItem.bangumiItem.airDate,
+                          style: style),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  // 测试 因为API问题评分功能搁置
-                  Text('番剧源: ${widget.historyItem.adapterName}', style: style),
-                  const SizedBox(height: 18),
-                  Text('上次看到: ', style: style),
-                  Text('第${widget.historyItem.lastWatchEpisode}话',
-                      style: style),
-                  const SizedBox(height: 18),
-                  Text('排名: ${widget.historyItem.bangumiItem.rank ?? '0.0'}',
-                      style: style),
-                  const SizedBox(height: 18),
-                  Text(widget.historyItem.bangumiItem.type == 2 ? '番剧' : '其他',
-                      style: style),
-                  const SizedBox(height: 22),
-                  Text(widget.historyItem.bangumiItem.airDate, style: style),
-                  // Row(
-                  //   children: [
-                  //     Text(
-                  //         widget.historyItem.bangumiItem.type == 2
-                  //             ? '番剧'
-                  //             : '其他',
-                  //         style: style),
-                  //     const SizedBox(width: 3),
-                  //     const Text(' '),
-                  //     const SizedBox(width: 3),
-                  //     Text(widget.historyItem.bangumiItem.airDate,
-                  //         style: style),
-                  //   ],
-                  // ),
-                  const SizedBox(height: 18),
-                  // Container(
-                  //     height: 60,
-                  //     child: Text(widget.historyItem.bangumiItem.summary,
-                  //         style: style, softWrap: true)),
-                  // const SizedBox(height: 18),
-                  SizedBox(
-                    height: 32,
-                    child: IconButton(
-                      icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_outline),
-                      onPressed: () async {
-                        if (isFavorite) {
-                          favoriteController
-                              .deleteFavorite(widget.historyItem.bangumiItem);
-                        } else {
-                          favoriteController
-                              .addFavorite(widget.historyItem.bangumiItem);
-                        }
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_outline),
+                  onPressed: () async {
+                    if (isFavorite) {
+                      favoriteController
+                          .deleteFavorite(widget.historyItem.bangumiItem);
+                    } else {
+                      favoriteController
+                          .addFavorite(widget.historyItem.bangumiItem);
+                    }
+                    setState(() {
+                      isFavorite = !isFavorite;
+                    });
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

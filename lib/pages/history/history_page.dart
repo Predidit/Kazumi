@@ -74,11 +74,10 @@ class _HistoryPageState extends State<HistoryPage>
         SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             mainAxisSpacing: StyleString.cardSpace - 2,
-            crossAxisSpacing: StyleString.cardSpace, 
+            crossAxisSpacing: StyleString.cardSpace,
             crossAxisCount: crossCount,
-            // mainAxisExtent:
-            //     MediaQuery.of(context).size.width / crossCount / 0.65 +
-            //         MediaQuery.textScalerOf(context).scale(32.0),
+            mainAxisExtent: 150
+                
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
@@ -92,4 +91,15 @@ class _HistoryPageState extends State<HistoryPage>
       ],
     );
   }
+
+  // Widget contentGrid(List<History> histories) {
+  //   return ListView.builder(
+  //     itemCount: histories.isNotEmpty ? histories.length : 10,
+  //     itemBuilder: (BuildContext context, int index) {
+  //       return histories.isNotEmpty
+  //           ? BangumiHistoryCardV(historyItem: histories[index])
+  //           : Container(); 
+  //     },
+  //   );
+  // }
 }

@@ -72,7 +72,7 @@ class BangumiHTTP {
           'Predidit/Kazumi/0.0.1 (Android) (https://github.com/Predidit/Kazumi)',
       'referer': '',
     };
-    Map<String, String> keywordMap = {'type': '2', 'responseGroup': 'large'};
+    Map<String, String> keywordMap = {'type': '2', 'responseGroup': 'large', 'max_results': '25'};
 
     try {
       final res = await Request().get(

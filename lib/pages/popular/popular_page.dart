@@ -41,7 +41,7 @@ class _PopularPageState extends State<PopularPage>
     timeout = false;
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    if (popularController.bangumiList.length < 5) {
+    if (popularController.bangumiList.isEmpty) {
       debugPrint('Popular缓存列表为空, 尝试重加载');
       Timer(const Duration(seconds: 3), () {
         timeout = true;
@@ -95,10 +95,8 @@ class _PopularPageState extends State<PopularPage>
           },
           child: Scaffold(
             appBar: SysAppBar(
-              backgroundColor: Theme.of(context)
-                .colorScheme
-                .primary
-                .withOpacity(0.5),
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withOpacity(0.5),
               title: TextField(
                 focusNode: _focusNode,
                 controller: _controller,
@@ -121,8 +119,13 @@ class _PopularPageState extends State<PopularPage>
                   scrollController.jumpTo(0.0);
                 },
                 onSubmitted: (t) {
-                  popularController.searchKeyword = t;
-                  popularController.queryBangumi(popularController.searchKeyword);
+                  if (t != '') {
+                    popularController.searchKeyword = t;
+                    popularController
+                        .queryBangumi(popularController.searchKeyword);
+                  } else {
+                    popularController.queryBangumiListFeed();
+                  }
                 },
               ),
               // actions: [IconButton(onPressed: () {
@@ -151,16 +154,16 @@ class _PopularPageState extends State<PopularPage>
                     padding: const EdgeInsets.fromLTRB(
                         StyleString.safeSpace, 0, StyleString.safeSpace, 0),
                     sliver: Observer(builder: (context) {
-                      if (popularController.bangumiList.length <= 1 &&
+                      if (popularController.bangumiList.isEmpty &&
                           timeout == true) {
                         return HttpError(
-                          errMsg: '加载推荐流错误',
+                          errMsg: '什么都没有找到 (´;ω;`)',
                           fn: () {
                             popularController.queryBangumiListFeed();
                           },
                         );
                       }
-                      if (popularController.bangumiList.length <= 1 &&
+                      if (popularController.bangumiList.isEmpty &&
                           timeout == false) {
                         return const SliverToBoxAdapter(
                           child: SizedBox(

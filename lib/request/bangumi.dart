@@ -69,7 +69,7 @@ class BangumiHTTP {
     // Bangumi API 文档要求的UA格式
     var httpHeaders = {
       'user-agent':
-          'Predidit/Kazumi/0.0.1 (Android) (https://github.com/Predidit/Kazumi)',
+          'Predidit/Kazumi/${Api.version} (Android) (https://github.com/Predidit/Kazumi)',
       'referer': '',
     };
     Map<String, String> keywordMap = {'type': '2', 'responseGroup': 'large', 'max_results': '25'};

@@ -21,6 +21,8 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PlayerItem extends StatefulWidget {
@@ -31,12 +33,14 @@ class PlayerItem extends StatefulWidget {
 }
 
 class _PlayerItemState extends State<PlayerItem> with WindowListener {
+  Box setting = GStorage.setting;
   final PlayerController playerController = Modular.get<PlayerController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
-  final FavoriteController favoriteController = Modular.get<FavoriteController>();
+  final FavoriteController favoriteController =
+      Modular.get<FavoriteController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
   late NavigationBarState navigationBarState;
@@ -244,14 +248,19 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   Widget build(BuildContext context) {
     // 弹幕设置
     // bool _running = true;
-    bool _border = true;
-    double _opacity = 1.0;
+    bool _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
+    double _opacity =
+        setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     double _duration = 8;
-    double _fontSize = (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0;
-    double danmakuArea = 1.0;
-    bool _hideTop = false;
-    bool _hideBottom = false;
-    bool _hideScroll = false;
+    double _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
+        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+    double danmakuArea =
+        setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
+    bool _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
+    bool _hideBottom =
+        !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
+    bool _hideScroll =
+        !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
 
     isFavorite = favoriteController.isFavorite(infoController.bangumiItem);
 
@@ -688,51 +697,32 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             ),
                                             // 追番
                                             IconButton(
-                                              icon: Icon(isFavorite
-                                                  ? Icons.favorite
-                                                  : Icons.favorite_outline, color: Colors.white),
+                                              icon: Icon(
+                                                  isFavorite
+                                                      ? Icons.favorite
+                                                      : Icons.favorite_outline,
+                                                  color: Colors.white),
                                               onPressed: () async {
                                                 if (isFavorite) {
                                                   favoriteController
                                                       .deleteFavorite(
-                                                          infoController.bangumiItem);
-                                                  SmartDialog.showToast('取消追番成功');
+                                                          infoController
+                                                              .bangumiItem);
+                                                  SmartDialog.showToast(
+                                                      '取消追番成功');
                                                 } else {
                                                   favoriteController
                                                       .addFavorite(
-                                                          infoController.bangumiItem);
-                                                  SmartDialog.showToast('自己追的番要好好看完哦');
+                                                          infoController
+                                                              .bangumiItem);
+                                                  SmartDialog.showToast(
+                                                      '自己追的番要好好看完哦');
                                                 }
                                                 setState(() {
                                                   isFavorite = !isFavorite;
                                                 });
                                               },
                                             ),
-                                            // 追番
-                                            // IconButton(
-                                            //   icon: (videoController.follow)
-                                            //       ? Icon(Icons.favorite,
-                                            //           color: Colors.white)
-                                            //       : Icon(Icons.favorite_border,
-                                            //           color: Colors.white),
-                                            //   onPressed: () {
-                                            //     popularController.updateFollow(
-                                            //         videoController.link,
-                                            //         !(videoController.follow));
-                                            //     videoController.follow =
-                                            //         !videoController.follow;
-                                            //     SmartDialog.showToast(
-                                            //         videoController.follow
-                                            //             ? '自己追的番要好好看完哦'
-                                            //             : '取消追番成功',
-                                            //         displayType:
-                                            //             SmartToastType.last);
-                                            //   },
-                                            //   splashColor: Theme.of(context)
-                                            //       .colorScheme
-                                            //       .tertiary
-                                            //       .withOpacity(0.5),
-                                            // ),
                                           ],
                                         ),
                                       )

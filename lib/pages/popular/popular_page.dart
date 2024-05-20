@@ -10,6 +10,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/services.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -97,36 +98,47 @@ class _PopularPageState extends State<PopularPage>
             appBar: SysAppBar(
               backgroundColor:
                   Theme.of(context).colorScheme.primary.withOpacity(0.5),
-              title: TextField(
-                focusNode: _focusNode,
-                controller: _controller,
-                style: const TextStyle(color: Colors.white, fontSize: 20),
-                decoration: const InputDecoration(
-                  hintText: '快速搜索',
-                  hintStyle: TextStyle(color: Colors.white, fontSize: 20),
-                  border: InputBorder.none,
-                  prefixIcon: Icon(Icons.search, color: Colors.white),
-                ),
-                autocorrect: false,
-                autofocus: false,
-                onTap: () {
-                  setState(() {
-                    _focusNode.requestFocus();
-                    _controller.clear();
-                  });
-                },
-                onChanged: (_) {
-                  scrollController.jumpTo(0.0);
-                },
-                onSubmitted: (t) {
-                  if (t != '') {
-                    popularController.searchKeyword = t;
-                    popularController
-                        .queryBangumi(popularController.searchKeyword);
-                  } else {
-                    popularController.queryBangumiListFeed();
-                  }
-                },
+              title: Stack(
+                children: [
+                  TextField(
+                    focusNode: _focusNode,
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                    decoration: const InputDecoration(
+                      hintText: '快速搜索',
+                      hintStyle: TextStyle(color: Colors.white, fontSize: 20),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.search, color: Colors.white),
+                    ),
+                    autocorrect: false,
+                    autofocus: false,
+                    onTap: () {
+                      setState(() {
+                        _focusNode.requestFocus();
+                        _controller.clear();
+                      });
+                    },
+                    onChanged: (_) {
+                      scrollController.jumpTo(0.0);
+                    },
+                    onSubmitted: (t) {
+                      if (t != '') {
+                        popularController.searchKeyword = t;
+                        popularController
+                            .queryBangumi(popularController.searchKeyword);
+                      } else {
+                        popularController.queryBangumiListFeed();
+                      }
+                    },
+                  ),
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onPanStart: (_) => windowManager.startDragging(),
+                      child: Container(),
+                    ),
+                  ),
+                ],
               ),
               // actions: [IconButton(onPressed: () {
               //   popularController.queryBangumi(popularController.keyword);

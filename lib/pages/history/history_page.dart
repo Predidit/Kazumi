@@ -28,6 +28,7 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
+    historyController.init();
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
   }
@@ -51,14 +52,19 @@ class _HistoryPageState extends State<HistoryPage>
         child: Scaffold(
           appBar: const SysAppBar(title: Text('历史记录')),
           body: renderBody,
+          floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.clear_all),
+            onPressed: () {
+            historyController.clearAll();
+          },),
         ),
       );
     });
   }
 
   Widget get renderBody {
-    if (historyController.histories.length > 0) {
-      return contentGrid(historyController.histories);
+    if (historyController.histories.isNotEmpty) {
+      return contentGrid;
     } else {
       return const Center(
         child: Text('没有找到历史记录 (´;ω;`)'),
@@ -66,7 +72,7 @@ class _HistoryPageState extends State<HistoryPage>
     }
   }
 
-  Widget contentGrid(List<History> histories) {
+  Widget get contentGrid {
     // List<Widget> gridViewList = [];
     int crossCount = Platform.isWindows || Platform.isLinux ? 4 : 1;
     return CustomScrollView(
@@ -81,11 +87,11 @@ class _HistoryPageState extends State<HistoryPage>
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return histories.isNotEmpty
-                  ? BangumiHistoryCardV(historyItem: histories[index])
+              return historyController.histories.isNotEmpty
+                  ? BangumiHistoryCardV(historyItem: historyController.histories[index])
                   : null;
             },
-            childCount: histories.isNotEmpty ? histories.length : 10,
+            childCount: historyController.histories.isNotEmpty ? historyController.histories.length : 10,
           ),
         ),
       ],

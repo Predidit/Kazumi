@@ -114,15 +114,17 @@ class Plugin {
 
     htmlElement.queryXPath(searchList).nodes.forEach((element) {
       // debugPrint('调试输出 ${element.queryXPath(searchName).node!.text}');
-      SearchItem searchItem = SearchItem(
-        name: element.queryXPath(searchName).node!.text ?? '',
-        src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
-      );
-      searchItems.add(searchItem);
-      debugPrint(
-          '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
-      debugPrint(
-          '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+      try {
+        SearchItem searchItem = SearchItem(
+          name: element.queryXPath(searchName).node!.text ?? '',
+          src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+        );
+        searchItems.add(searchItem);
+        debugPrint(
+            '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
+        debugPrint(
+            '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+      } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =
         PluginSearchResponse(pluginName: name, data: searchItems);

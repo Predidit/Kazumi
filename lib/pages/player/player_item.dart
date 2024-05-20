@@ -20,6 +20,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PlayerItem extends StatefulWidget {
@@ -35,9 +36,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
+  final FavoriteController favoriteController = Modular.get<FavoriteController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
   late NavigationBarState navigationBarState;
+  late bool isFavorite;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -249,6 +252,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     bool _hideTop = false;
     bool _hideBottom = false;
     bool _hideScroll = false;
+
+    isFavorite = favoriteController.isFavorite(infoController.bangumiItem);
 
     return PopScope(
       // key: _key,
@@ -682,6 +687,28 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               ),
                                             ),
                                             // 追番
+                                            IconButton(
+                                              icon: Icon(isFavorite
+                                                  ? Icons.favorite
+                                                  : Icons.favorite_outline, color: Colors.white),
+                                              onPressed: () async {
+                                                if (isFavorite) {
+                                                  favoriteController
+                                                      .deleteFavorite(
+                                                          infoController.bangumiItem);
+                                                  SmartDialog.showToast('取消追番成功');
+                                                } else {
+                                                  favoriteController
+                                                      .addFavorite(
+                                                          infoController.bangumiItem);
+                                                  SmartDialog.showToast('自己追的番要好好看完哦');
+                                                }
+                                                setState(() {
+                                                  isFavorite = !isFavorite;
+                                                });
+                                              },
+                                            ),
+                                            // 追番
                                             // IconButton(
                                             //   icon: (videoController.follow)
                                             //       ? Icon(Icons.favorite,
@@ -736,35 +763,41 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               },
                                             ),
                                             // 更换选集
-                                            // (playerController
-                                            //             .androidFullscreen ==
-                                            //         true)
-                                            //     ? IconButton(
-                                            //         color: Colors.white,
-                                            //         icon: const Icon(
-                                            //             Icons.skip_next),
-                                            //         onPressed: () {
-                                            //           if (videoController
-                                            //                   .episode ==
-                                            //               videoController
-                                            //                   .token.length) {
-                                            //             SmartDialog.showToast(
-                                            //                 '已经是最新一集',
-                                            //                 displayType:
-                                            //                     SmartToastType
-                                            //                         .last);
-                                            //             return;
-                                            //           }
-                                            //           SmartDialog.showToast(
-                                            //               '第 ${videoController.episode + 1} 话');
-                                            //           videoController
-                                            //               .changeEpisode(
-                                            //                   videoController
-                                            //                           .episode +
-                                            //                       1);
-                                            //         },
-                                            //       )
-                                            //     : Container(),
+                                            (videoPageController
+                                                        .androidFullscreen ==
+                                                    true)
+                                                ? IconButton(
+                                                    color: Colors.white,
+                                                    icon: const Icon(
+                                                        Icons.skip_next),
+                                                    onPressed: () {
+                                                      if (videoPageController
+                                                              .currentEspisode ==
+                                                          videoPageController
+                                                              .roadList[
+                                                                  videoPageController
+                                                                      .currentRoad]
+                                                              .data
+                                                              .length) {
+                                                        SmartDialog.showToast(
+                                                            '已经是最新一集',
+                                                            displayType:
+                                                                SmartToastType
+                                                                    .last);
+                                                        return;
+                                                      }
+                                                      SmartDialog.showToast(
+                                                          '正在加载第 ${videoPageController.currentEspisode + 1} 话');
+                                                      videoPageController.changeEpisode(
+                                                          videoPageController
+                                                                  .currentEspisode +
+                                                              1,
+                                                          currentRoad:
+                                                              videoPageController
+                                                                  .currentRoad);
+                                                    },
+                                                  )
+                                                : Container(),
                                             Expanded(
                                               child: ProgressBar(
                                                 timeLabelLocation:

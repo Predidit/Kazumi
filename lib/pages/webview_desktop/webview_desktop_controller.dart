@@ -89,7 +89,7 @@ class WebviewDesktopItemController {
   }
 
   unloadPage() async {
-    await webviewController.loadUrl('about:blank');
+    await redirect2Blank();
     await webviewController.clearCache();
   }
 
@@ -119,6 +119,15 @@ class WebviewDesktopItemController {
           window.chrome.webview.postMessage('videoMessage:' + src);
         } 
       }
+    ''');
+  }
+
+  // webview_windows本身无此方法，loadurl方法相当于打开新标签页，会造成内存泄漏
+  // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
+  // 故使用此方法
+  redirect2Blank() async {
+    await webviewController.executeScript('''
+      window.location.href = 'about:blank';
     ''');
   }
 }

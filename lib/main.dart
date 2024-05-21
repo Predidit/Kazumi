@@ -29,16 +29,15 @@ void main() async {
       await windowManager.focus();
     });
   }
-  // 暂缓, video_page布局存在问题
-  // if (Platform.isAndroid || Platform.isIOS) {
-  //   // 小白条、导航栏沉浸
-  //   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-  //     systemNavigationBarColor: Colors.transparent,
-  //     systemNavigationBarDividerColor: Colors.transparent,
-  //     statusBarColor: Colors.transparent,
-  //   ));
-  // }
+  if (Platform.isAndroid || Platform.isIOS) {
+    // 小白条、导航栏沉浸
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      statusBarColor: Colors.transparent,
+    ));
+  }
   MediaKit.ensureInitialized();
   await Hive.initFlutter('${(await getApplicationSupportDirectory()).path}/hive');
   await GStorage.init();

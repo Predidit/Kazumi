@@ -21,6 +21,7 @@ class _InitPageState extends State<InitPage> {
 
   _init() async {
     try {
+      pluginsController.queryPluginHTTPList();
       await pluginsController.loadPlugins();
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {

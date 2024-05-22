@@ -25,10 +25,27 @@ mixin _$PluginsController on _PluginsController, Store {
     });
   }
 
+  late final _$pluginHTTPListAtom =
+      Atom(name: '_PluginsController.pluginHTTPList', context: context);
+
+  @override
+  ObservableList<PluginHTTPItem> get pluginHTTPList {
+    _$pluginHTTPListAtom.reportRead();
+    return super.pluginHTTPList;
+  }
+
+  @override
+  set pluginHTTPList(ObservableList<PluginHTTPItem> value) {
+    _$pluginHTTPListAtom.reportWrite(value, super.pluginHTTPList, () {
+      super.pluginHTTPList = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
-pluginList: ${pluginList}
+pluginList: ${pluginList},
+pluginHTTPList: ${pluginHTTPList}
     ''';
   }
 }

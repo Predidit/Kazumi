@@ -3,6 +3,8 @@ class Api {
   static const String version = '1.0.3';
   // 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
+  // 规则仓库
+  static const String pluginShop = 'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
   // 在线升级
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest'; 

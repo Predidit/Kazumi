@@ -5,6 +5,8 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/request/plugin.dart';
+import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -13,6 +15,9 @@ class PluginsController = _PluginsController with _$PluginsController;
 abstract class _PluginsController with Store {
   @observable
   ObservableList<Plugin> pluginList = ObservableList.of([]);
+
+  @observable
+  ObservableList<PluginHTTPItem> pluginHTTPList = ObservableList.of([]);
 
   Future<void> loadPlugins() async {
     pluginList.clear();
@@ -104,5 +109,31 @@ abstract class _PluginsController with Store {
     } else {
       debugPrint('插件文件 $fileName 不存在');
     }
+  }
+
+  Future<void> queryPluginHTTPList() async {
+    var pluginHTTPListRes = await PluginHTTP.getPluginList();
+    pluginHTTPList.addAll(pluginHTTPListRes);
+  } 
+
+  Future<Plugin?> queryPluginHTTP(String name) async {
+    Plugin? plugin;
+    plugin = await PluginHTTP.getPlugin(name);
+    return plugin;
+  } 
+
+  String pluginStatus(PluginHTTPItem pluginHTTPItem) {
+    String pluginStatus = 'install';
+    for (Plugin plugin in pluginList) {
+      if (pluginHTTPItem.name == plugin.name) {
+        if (pluginHTTPItem.version == plugin.version) {
+          pluginStatus = 'installed';
+        } else {
+          pluginStatus = 'update';
+        }
+        break;
+      }
+    } 
+    return pluginStatus;
   }
 }

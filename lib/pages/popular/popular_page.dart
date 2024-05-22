@@ -200,7 +200,7 @@ class _PopularPageState extends State<PopularPage>
               },
               child: const Icon(Icons.arrow_upward),
             ),
-            backgroundColor: themedata.colorScheme.primaryContainer,
+            // backgroundColor: themedata.colorScheme.primaryContainer,
           ),
         ),
       ),

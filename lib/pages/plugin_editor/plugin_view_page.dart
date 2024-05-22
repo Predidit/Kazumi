@@ -211,9 +211,18 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                   arguments: Plugin.fromTemplate());
                             },
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           ListTile(
-                            title: Text('导入规则'),
+                            title: Text('从规则仓库导入'),
+                            onTap: () {
+                              SmartDialog.dismiss();
+                              Modular.to.pushNamed('/tab/my/plugin/shop',
+                                  arguments: Plugin.fromTemplate());
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          ListTile(
+                            title: Text('从剪贴板导入'),
                             onTap: () {
                               SmartDialog.dismiss();
                               showInputDialog();

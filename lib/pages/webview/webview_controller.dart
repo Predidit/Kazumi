@@ -28,7 +28,7 @@ class WebviewItemController {
           'If there is audio but no video, please report it to the rule developer.');
       if (message.message.contains('http')) {
         isIframeLoaded = true;
-        if (Utils.decodeVideoSource(message.message) != message.message) {
+        if (Utils.decodeVideoSource(message.message) != Uri.encodeFull(message.message)) {
           debugPrint(
               '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
           videoPageController.logLines.add('Loading video source ${Utils.decodeVideoSource(message.message)}');

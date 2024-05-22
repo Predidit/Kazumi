@@ -47,7 +47,7 @@ class WebviewDesktopItemController {
     webviewController.webMessage.listen((event) async {
       if (event.toString().contains('iframeMessage:')) {  
         String messageItem =
-            event.toString().replaceFirst('iframeMessage:', '');
+            Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
         debugPrint('由JS桥收到的消息为 $messageItem');
         videoPageController.logLines.add('Callback received: $messageItem');
         videoPageController.logLines.add('If there is audio but no video, please report it to the rule developer.');
@@ -70,7 +70,8 @@ class WebviewDesktopItemController {
         }
       }
       if (event.toString().contains('videoMessage:')) {
-        String messageItem = event.toString().replaceFirst('videoMessage:', '');
+        String messageItem =
+            Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
         debugPrint('由VideoJS桥收到的消息为 $messageItem');
         videoPageController.logLines.add('Callback received: $messageItem');
         if (messageItem.contains('http')) {

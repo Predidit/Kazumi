@@ -55,7 +55,7 @@ class Utils {
       }
     });
 
-    return matchedUrl;
+    return Uri.encodeFull(matchedUrl);
   }
 
   static String timeFormat(dynamic time) {

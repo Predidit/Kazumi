@@ -49,6 +49,10 @@
 
 通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载
 
+## 贡献
+
+欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID
+
 ## Q&A
 
 #### Q: 为什么我的自定义规则无法实现检索。

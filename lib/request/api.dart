@@ -1,6 +1,6 @@
 class Api {
   // 当前版本
-  static const String version = '1.0.3';
+  static const String version = '1.0.4';
   // 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
   // 规则仓库

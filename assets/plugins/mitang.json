@@ -2,16 +2,16 @@
     "api": "1",
     "type": "anime",
     "name": "mitang",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "muliSources": true,
     "useWebview": true,
     "useNativePlayer": true,
     "userAgent": "",
     "baseURL": "https://www.mitang.tv",
     "searchURL":"https://www.mitang.tv/mitang-s/?wd=@keyword",
-    "searchList": "//div[1]/div[2]/div/div/div[3]/div/div",
-    "searchName": "//div[2]/div[1]/a[1]/strong",
-    "searchResult": "//div[2]/div[1]/a[1]",
-    "chapterRoads": "//div/div[2]/div/div[3]/div/div[1]/div[1]",
-    "chapterResult": "//a"
+    "searchList": "//div[1]/div[2]/div/div/div/div[2]/ul/li/div/div",
+    "searchName": "//h4/a",
+    "searchResult": "//h4/a",
+    "chapterRoads": "//div[2]/div[2]/div[1]/div/div[2]/div/ul",
+    "chapterResult": "//li/a"
 }

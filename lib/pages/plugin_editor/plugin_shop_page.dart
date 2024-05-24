@@ -22,7 +22,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void onBackPressed(BuildContext context) {
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   @override
@@ -38,7 +38,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
       navigationBarState.hideNavigate();
     });
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) {
         onBackPressed(context);
       },

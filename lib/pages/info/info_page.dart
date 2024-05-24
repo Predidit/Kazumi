@@ -48,7 +48,7 @@ class _InfoPageState extends State<InfoPage>
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   @override
@@ -65,7 +65,7 @@ class _InfoPageState extends State<InfoPage>
     });
     debugPrint('status 数组长度为 ${infoController.pluginSearchStatus.length}');
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) {
         onBackPressed(context);
       },

@@ -70,7 +70,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   @override
@@ -86,7 +86,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
       navigationBarState.hideNavigate();
     });
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) {
         onBackPressed(context);
       },

@@ -38,7 +38,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   void updateDanmakuArea(double i) async {
@@ -68,7 +68,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
       navigationBarState.hideNavigate();
     });
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) async {
         onBackPressed(context);
       },

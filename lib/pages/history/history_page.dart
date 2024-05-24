@@ -35,7 +35,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   @override
@@ -45,7 +45,7 @@ class _HistoryPageState extends State<HistoryPage>
     });
     return Observer(builder: (context) {
       return PopScope(
-        canPop: false,
+        canPop: true,
         onPopInvoked: (bool didPop) async {
           onBackPressed(context);
         },

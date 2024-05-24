@@ -31,7 +31,7 @@ class _AboutPageState extends State<AboutPage> {
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    Navigator.of(context).pop();
+    // Navigator.of(context).pop();
   }
 
   @override
@@ -40,7 +40,7 @@ class _AboutPageState extends State<AboutPage> {
       navigationBarState.hideNavigate();
     });
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) async {
         onBackPressed(context);
       },

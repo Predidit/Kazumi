@@ -345,4 +345,18 @@ class Utils {
       return Api.version;
     }
   }
+
+    static oledDarkTheme(ThemeData defaultDarkTheme) {
+    return defaultDarkTheme.copyWith(
+      scaffoldBackgroundColor: Colors.black,
+      colorScheme: defaultDarkTheme.colorScheme.copyWith(
+        onPrimary: Colors.black,
+        onSecondary: Colors.black,
+        // background: Colors.black,
+        // onBackground: Colors.black,
+        surface: Colors.black,
+        onSurface: Colors.white,
+      ),
+    );
+  }
 }

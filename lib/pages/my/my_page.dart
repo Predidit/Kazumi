@@ -38,6 +38,14 @@ class _MyPageState extends State<MyPage> {
             title: const Text('弹幕设置'),
           ),
           ListTile(
+            onTap: () async {
+              Modular.to.pushNamed('/tab/my/theme');
+            },
+            dense: false,
+            title: const Text('外观设置'),
+            // trailing: const Icon(Icons.navigate_next),
+          ),
+          ListTile(
             onTap: () {
               Modular.to.pushNamed('/tab/my/about');
             },

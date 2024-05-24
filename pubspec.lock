@@ -778,10 +778,10 @@ packages:
     description:
       path: "."
       ref: master
-      resolved-ref: "3caac264792c10a260272a95fc3ee64cc7a83467"
+      resolved-ref: "513081ee857cb557362d24f1548d53861ee5421d"
       url: "https://github.com/Predidit/flutter_ns_danmaku"
     source: git
-    version: "0.0.6"
+    version: "0.0.7"
   octo_image:
     dependency: transitive
     description:

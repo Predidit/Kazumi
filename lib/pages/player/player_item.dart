@@ -45,6 +45,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   late DanmakuController danmakuController;
   late NavigationBarState navigationBarState;
   late bool isFavorite;
+  bool isPopping = false;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -130,9 +131,6 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     if (videoPageController.androidFullscreen) {
       debugPrint('当前播放器全屏');
       try {
-        // danmakuController.onClear();
-      } catch (_) {}
-      try {
         playerController.exitFullScreen();
         videoPageController.androidFullscreen = false;
         danmakuController.clear();
@@ -142,7 +140,12 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       }
     }
     debugPrint('当前播放器非全屏');
-    Navigator.of(context).pop();
+    // workaround on flutter 3.22.1
+    if (!isPopping) {
+      isPopping = true;
+      Navigator.of(context).pop();
+    }
+    // Navigator.of(context).pop();
   }
 
   // 选择倍速
@@ -656,20 +659,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                               icon:
                                                   const Icon(Icons.arrow_back),
                                               onPressed: () {
-                                                if (videoPageController
-                                                        .androidFullscreen ==
-                                                    true) {
-                                                  try {
-                                                    danmakuController.onClear();
-                                                  } catch (_) {}
-                                                  playerController
-                                                      .exitFullScreen();
-                                                  videoPageController
-                                                          .androidFullscreen =
-                                                      false;
-                                                  return;
-                                                }
-                                                Navigator.of(context).pop();
+                                                onBackPressed(context);
                                               },
                                             ),
                                             // 拖动条

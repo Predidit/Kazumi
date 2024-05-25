@@ -1,0 +1,17 @@
+{
+    "api": "1",
+    "type": "anime",
+    "name": "kimani",
+    "version": "0.0.1",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "baseURL": "https://kimani22.com",
+    "searchURL":"https://kimani22.com/index.php/vod/search.html?wd=@keyword",
+    "searchList": "//div[1]/div[2]/div/div/div[2]/div/div",
+    "searchName": "//div[2]/div[1]/a/strong",
+    "searchResult": "//div[2]/div[1]/a",
+    "chapterRoads": "//div/div[2]/div/div[2]/div[2]/div/div",
+    "chapterResult": "//a"
+}

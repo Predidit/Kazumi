@@ -43,8 +43,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: SysAppBar(
-          title: const Text('规则仓库'),
+        appBar: const SysAppBar(
+          title: Text('规则仓库'),
         ),
         body: Observer(builder: (context) {
           return pluginsController.pluginHTTPList.isEmpty
@@ -57,48 +57,110 @@ class _PluginShopPageState extends State<PluginShopPage> {
                     return Card(
                       margin: const EdgeInsets.all(8.0),
                       child: ListTile(
-                        title: Text(
-                          pluginsController.pluginHTTPList[index].name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          'Version: ${pluginsController.pluginHTTPList[index].version}',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        trailing: 
-                        TextButton(
-                          onPressed: () async {
-                            if (pluginsController.pluginStatus(pluginsController.pluginHTTPList[index]) == 'install') {
-                              try {
-                                SmartDialog.showToast('导入中');
-                                var pluginHTTPItem = await pluginsController.queryPluginHTTP(pluginsController.pluginHTTPList[index].name);
-                                if (pluginHTTPItem != null) {
-                                  await pluginsController.savePluginToJsonFile(pluginHTTPItem);
-                                  pluginsController.loadPlugins();
-                                  SmartDialog.showToast('导入成功');
+                          title: Row(
+                            children: [
+                              Text(
+                                pluginsController.pluginHTTPList[index].name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          subtitle: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 1.0),
+                                decoration: BoxDecoration(
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
+                                  borderRadius: BorderRadius.circular(16.0),
+                                ),
+                                child: Text(
+                                  '${pluginsController.pluginHTTPList[index].version}',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surface),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 5,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 1.0),
+                                decoration: BoxDecoration(
+                                  color:
+                                      Theme.of(context).colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(16.0),
+                                ),
+                                child: Text(
+                                  pluginsController
+                                          .pluginHTTPList[index].useNativePlayer
+                                      ? "native"
+                                      : "webview",
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surface),
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: TextButton(
+                            onPressed: () async {
+                              if (pluginsController.pluginStatus(
+                                      pluginsController
+                                          .pluginHTTPList[index]) ==
+                                  'install') {
+                                try {
+                                  SmartDialog.showToast('导入中');
+                                  var pluginHTTPItem = await pluginsController
+                                      .queryPluginHTTP(pluginsController
+                                          .pluginHTTPList[index].name);
+                                  if (pluginHTTPItem != null) {
+                                    await pluginsController
+                                        .savePluginToJsonFile(pluginHTTPItem);
+                                    pluginsController.loadPlugins();
+                                    SmartDialog.showToast('导入成功');
+                                  }
+                                } catch (e) {
+                                  SmartDialog.showToast('导入规则失败');
                                 }
-                              } catch (e) {
-                                SmartDialog.showToast('导入规则失败');
                               }
-                            }
-                            if (pluginsController.pluginStatus(pluginsController.pluginHTTPList[index]) == 'update') {
-                              try {
-                                SmartDialog.showToast('更新中');
-                                var pluginHTTPItem = await pluginsController.queryPluginHTTP(pluginsController.pluginHTTPList[index].name);
-                                if (pluginHTTPItem != null) {
-                                  await pluginsController.savePluginToJsonFile(pluginHTTPItem);
-                                  pluginsController.loadPlugins();
-                                  SmartDialog.showToast('更新成功');
+                              if (pluginsController.pluginStatus(
+                                      pluginsController
+                                          .pluginHTTPList[index]) ==
+                                  'update') {
+                                try {
+                                  SmartDialog.showToast('更新中');
+                                  var pluginHTTPItem = await pluginsController
+                                      .queryPluginHTTP(pluginsController
+                                          .pluginHTTPList[index].name);
+                                  if (pluginHTTPItem != null) {
+                                    await pluginsController
+                                        .savePluginToJsonFile(pluginHTTPItem);
+                                    pluginsController.loadPlugins();
+                                    SmartDialog.showToast('更新成功');
+                                  }
+                                } catch (e) {
+                                  SmartDialog.showToast('更新规则失败');
                                 }
-                              } catch (e) {
-                                SmartDialog.showToast('更新规则失败');
                               }
-                            }
-                          },
-                          child: Text(
-                            pluginsController.pluginStatus(pluginsController.pluginHTTPList[index]) == 'install' ? '安装' : (pluginsController.pluginStatus(pluginsController.pluginHTTPList[index]) == 'installed') ? '已安装' : '更新'
-                        ),)
-                      ),
+                            },
+                            child: Text(pluginsController.pluginStatus(
+                                        pluginsController
+                                            .pluginHTTPList[index]) ==
+                                    'install'
+                                ? '安装'
+                                : (pluginsController.pluginStatus(
+                                            pluginsController
+                                                .pluginHTTPList[index]) ==
+                                        'installed')
+                                    ? '已安装'
+                                    : '更新'),
+                          )),
                     );
                   },
                 );

@@ -26,7 +26,7 @@ class DanmakuRequest {
     int minAnimeId = 100000;
     for (var anime in animes) {
       int animeId = anime['animeId'];
-      if (animeId < minAnimeId && animeId >= 8692) {
+      if (animeId < minAnimeId && animeId >= 2) {
         minAnimeId = animeId;
       }
     }

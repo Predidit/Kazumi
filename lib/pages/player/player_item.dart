@@ -131,7 +131,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     if (videoPageController.androidFullscreen) {
       debugPrint('当前播放器全屏');
       try {
-        playerController.exitFullScreen();
+        videoPageController.exitFullScreen();
         videoPageController.androidFullscreen = false;
         danmakuController.clear();
         return;
@@ -366,7 +366,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                     try {
                                       danmakuController.onClear();
                                     } catch (_) {}
-                                    playerController.exitFullScreen();
+                                    videoPageController.exitFullScreen();
                                     videoPageController.androidFullscreen =
                                         !videoPageController.androidFullscreen;
                                   }
@@ -883,10 +883,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                   try {
                                                     danmakuController.onClear();
                                                   } catch (_) {}
-                                                  playerController
+                                                  videoPageController
                                                       .exitFullScreen();
                                                 } else {
-                                                  playerController
+                                                  videoPageController
                                                       .enterFullScreen();
                                                   navigationBarState
                                                       .hideNavigate();

@@ -75,7 +75,9 @@ class _VideoPageState extends State<VideoPage>
           appBar: ((videoPageController.currentPlugin.useNativePlayer ||
                   videoPageController.androidFullscreen)
               ? null
-              : SysAppBar()),
+              : SysAppBar(
+                  title: Text(videoPageController.title),
+                )),
           body: Column(
             children: [
               Container(
@@ -107,23 +109,28 @@ class _VideoPageState extends State<VideoPage>
                               ),
                             ),
                           ),
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back,
-                                  color: Colors.white),
-                              onPressed: () {
-                                if (videoPageController.androidFullscreen ==
-                                    true) {
-                                  playerController.exitFullScreen();
-                                  videoPageController.androidFullscreen = false;
-                                  return;
-                                }
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          ),
+                          ((videoPageController.currentPlugin.useNativePlayer ||
+                                  videoPageController.androidFullscreen))
+                              ? Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.arrow_back,
+                                        color: Colors.white),
+                                    onPressed: () {
+                                      if (videoPageController
+                                              .androidFullscreen ==
+                                          true) {
+                                        videoPageController.exitFullScreen();
+                                        videoPageController.androidFullscreen =
+                                            false;
+                                        return;
+                                      }
+                                      Navigator.of(context).pop();
+                                    },
+                                  ),
+                                )
+                              : Container(),
                         ],
                       ),
                     ),
@@ -286,25 +293,6 @@ class _VideoPageState extends State<VideoPage>
                         ),
                       ),
                     ),
-              // InkWell(
-              //   child: const Card(
-              //     child: ListTile(
-              //       title: Text('刮削测试'),
-              //     ),
-              //   ),
-              //   onTap: () async {
-              //     if (Platform.isWindows) {
-              //       final WebviewDesktopItemController
-              //           webviewDesktopItemController =
-              //           Modular.get<WebviewDesktopItemController>();
-              //       await webviewDesktopItemController.parseIframeUrl();
-              //     } else {
-              //       final WebviewItemController webviewItemController =
-              //           Modular.get<WebviewItemController>();
-              //       await webviewItemController.parseIframeUrl();
-              //     }
-              //   },
-              // )
             ],
           ),
         );

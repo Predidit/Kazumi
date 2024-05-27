@@ -4,11 +4,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:mobx/mobx.dart';
-import 'package:auto_orientation/auto_orientation.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:ns_danmaku/ns_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -187,91 +183,5 @@ abstract class _PlayerController with Store {
       danmakuList.add(element);
       danDanmakus[element.p.toInt()] = danmakuList;
     }
-  }
-
-  Future<void> enterFullScreen() async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      await windowManager.setFullScreen(true);
-      return;
-    }
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
-    await landScape();
-    await SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
-    );
-  }
-
-  //退出全屏显示
-  Future<void> exitFullScreen() async {
-    debugPrint('退出全屏模式');
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      await windowManager.setFullScreen(false);
-    }
-    dynamic document;
-    late SystemUiMode mode = SystemUiMode.edgeToEdge;
-    try {
-      if (kIsWeb) {
-        document.exitFullscreen();
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        if (Platform.isAndroid &&
-            (await DeviceInfoPlugin().androidInfo).version.sdkInt < 29) {
-          mode = SystemUiMode.manual;
-        }
-        await SystemChrome.setEnabledSystemUIMode(
-          mode,
-          overlays: SystemUiOverlay.values,
-        );
-        // await SystemChrome.setPreferredOrientations([]);
-        verticalScreen();
-      } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-        await const MethodChannel('com.alexmercerind/media_kit_video')
-            .invokeMethod(
-          'Utils.ExitNativeFullscreen',
-        );
-        // verticalScreen();
-      }
-    } catch (exception, stacktrace) {
-      debugPrint(exception.toString());
-      debugPrint(stacktrace.toString());
-    }
-  }
-
-  //横屏
-  Future<void> landScape() async {
-    dynamic document;
-    try {
-      if (kIsWeb) {
-        await document.documentElement?.requestFullscreen();
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        // await SystemChrome.setEnabledSystemUIMode(
-        //   SystemUiMode.immersiveSticky,
-        //   overlays: [],
-        // );
-        // await SystemChrome.setPreferredOrientations(
-        //   [
-        //     DeviceOrientation.landscapeLeft,
-        //     DeviceOrientation.landscapeRight,
-        //   ],
-        // );
-        await AutoOrientation.landscapeAutoMode(forceSensor: true);
-      } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-        await const MethodChannel('com.alexmercerind/media_kit_video')
-            .invokeMethod(
-          'Utils.EnterNativeFullscreen',
-        );
-      }
-    } catch (exception, stacktrace) {
-      debugPrint(exception.toString());
-      debugPrint(stacktrace.toString());
-    }
-  }
-
-//竖屏
-  Future<void> verticalScreen() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
   }
 }

@@ -9,6 +9,8 @@ import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/bean/settings/settings.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/utils/utils.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
@@ -30,6 +32,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
     defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     defaultThemeColor =
@@ -38,7 +42,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    Modular.to.navigate('/tab/my/');
+    // Modular.to.navigate('/tab/my/');
+    navigationBarState.showNavigate();
   }
 
   void setTheme(Color? color) {
@@ -112,8 +117,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigationBarState.hideNavigate();
+    });
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvoked: (bool didPop) async {
         onBackPressed(context);
       },

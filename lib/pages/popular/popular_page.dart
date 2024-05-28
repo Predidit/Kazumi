@@ -126,6 +126,7 @@ class _PopularPageState extends State<PopularPage>
                       popularController
                           .queryBangumi(popularController.searchKeyword);
                     } else {
+                      popularController.searchKeyword = '';
                       popularController.queryBangumiListFeed();
                     }
                   },
@@ -191,13 +192,22 @@ class _PopularPageState extends State<PopularPage>
                   })),
             ],
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              scrollController.jumpTo(0.0);
-              popularController.scrollOffset = 0.0;
-            },
-            child: const Icon(Icons.arrow_upward),
-          ),
+          floatingActionButton: (Platform.isAndroid || Platform.isIOS)
+              ? FloatingActionButton(
+                  onPressed: () {
+                    scrollController.jumpTo(0.0);
+                    popularController.scrollOffset = 0.0;
+                  },
+                  child: const Icon(Icons.arrow_upward),
+                )
+              : FloatingActionButton(
+                  onPressed: () {
+                    _controller.clear();
+                    popularController.searchKeyword = '';
+                    popularController.queryBangumiListFeed();
+                  },
+                  child: const Icon(Icons.refresh),
+                ),
           // backgroundColor: themedata.colorScheme.primaryContainer,
         ),
       ),

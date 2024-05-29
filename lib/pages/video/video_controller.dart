@@ -48,6 +48,7 @@ abstract class _VideoPageController with Store {
   final HistoryController historyController = Modular.get<HistoryController>();
 
   changeEpisode(int episode, {int currentRoad = 0}) async {
+    loading = true;
     currentEspisode = episode;
     this.currentRoad = currentRoad;
     logLines.clear();

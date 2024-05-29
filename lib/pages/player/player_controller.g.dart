@@ -73,6 +73,22 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$completedAtom =
+      Atom(name: '_PlayerController.completed', context: context);
+
+  @override
+  bool get completed {
+    _$completedAtom.reportRead();
+    return super.completed;
+  }
+
+  @override
+  set completed(bool value) {
+    _$completedAtom.reportWrite(value, super.completed, () {
+      super.completed = value;
+    });
+  }
+
   late final _$currentPositionAtom =
       Atom(name: '_PlayerController.currentPosition', context: context);
 
@@ -256,6 +272,7 @@ loading: ${loading},
 danDanmakus: ${danDanmakus},
 playing: ${playing},
 isBuffering: ${isBuffering},
+completed: ${completed},
 currentPosition: ${currentPosition},
 buffer: ${buffer},
 duration: ${duration},

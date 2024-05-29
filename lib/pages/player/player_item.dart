@@ -87,6 +87,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
           playerController.mediaPlayer.state.position;
       playerController.buffer = playerController.mediaPlayer.state.buffer;
       playerController.duration = playerController.mediaPlayer.state.duration;
+      playerController.completed = playerController.mediaPlayer.state.completed;
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.mediaPlayer.state.playing == true &&
@@ -119,10 +120,19 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
             videoPageController.src);
       }
       // 自动播放下一集
-      // if (playerController.mediaPlayer.state.completed == true &&
-      //     videoController.episode < videoController.token.length) {
-      //   videoController.changeEpisode(videoController.episode + 1);
-      // }
+      if (playerController.completed &&
+          videoPageController.currentEspisode <
+              videoPageController
+                  .roadList[videoPageController.currentRoad].data.length &&
+          !videoPageController.loading) {
+        SmartDialog.showToast(
+            '正在加载第 ${videoPageController.currentEspisode + 1} 话');
+        try {
+          playerTimer!.cancel();
+        } catch (_) {}
+        videoPageController
+            .changeEpisode(videoPageController.currentEspisode + 1);
+      }
       windowManager.addListener(this);
     });
   }

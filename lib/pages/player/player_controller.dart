@@ -35,6 +35,8 @@ abstract class _PlayerController with Store {
   @observable
   bool isBuffering = true;
   @observable
+  bool completed = false;
+  @observable
   Duration currentPosition = Duration.zero;
   @observable
   Duration buffer = Duration.zero;
@@ -66,7 +68,13 @@ abstract class _PlayerController with Store {
   double playerSpeed = 1.0;
 
   Future init({int offset = 0}) async {
+    playing = false;
     loading = true;
+    isBuffering = true;
+    currentPosition = Duration.zero;
+    buffer = Duration.zero;
+    duration = Duration.zero;
+    completed = false;
     try {
       mediaPlayer.dispose();
       debugPrint('找到逃掉的 player');

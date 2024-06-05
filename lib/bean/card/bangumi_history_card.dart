@@ -66,13 +66,13 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     : widget.historyItem.bangumiItem.nameCn;
             try {
               await infoController.queryRoads(widget.historyItem.lastSrc,
-                videoPageController.currentPlugin.name);
+                  videoPageController.currentPlugin.name);
+              SmartDialog.dismiss();
+              Modular.to.pushNamed('/tab/video/');
             } catch (e) {
               debugPrint(e.toString());
               SmartDialog.dismiss();
             }
-            SmartDialog.dismiss();
-            Modular.to.pushNamed('/tab/video/');
           },
           child: Padding(
             padding: const EdgeInsets.fromLTRB(

@@ -93,8 +93,8 @@ class _InfoPageState extends State<InfoPage>
                                 width: 8.0,
                                 height: 8.0,
                                 decoration: BoxDecoration(
-                                  color: infoController
-                                              .pluginSearchStatus[plugin.name] ==
+                                  color: infoController.pluginSearchStatus[
+                                              plugin.name] ==
                                           'success'
                                       ? Colors.green
                                       : (infoController.pluginSearchStatus[
@@ -133,13 +133,13 @@ class _InfoPageState extends State<InfoPage>
                                   videoPageController.src = searchItem.src;
                                   try {
                                     await infoController.queryRoads(
-                                      searchItem.src, plugin.name);
+                                        searchItem.src, plugin.name);
+                                    SmartDialog.dismiss();
+                                    Modular.to.pushNamed('/tab/video/');
                                   } catch (e) {
                                     debugPrint(e.toString());
                                     SmartDialog.dismiss();
                                   }
-                                  SmartDialog.dismiss();
-                                  Modular.to.pushNamed('/tab/video/');
                                 },
                               ),
                             ));

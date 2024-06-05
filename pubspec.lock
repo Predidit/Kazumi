@@ -169,6 +169,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  canvas_danmaku:
+    dependency: "direct main"
+    description:
+      name: canvas_danmaku
+      sha256: "60e7080d3f891b83aec2c304fc890d52faf598a60d6be6a342097b02fdb2fe6b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
   characters:
     dependency: transitive
     description:
@@ -773,15 +781,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.0"
-  ns_danmaku:
-    dependency: "direct main"
-    description:
-      path: "."
-      ref: master
-      resolved-ref: "513081ee857cb557362d24f1548d53861ee5421d"
-      url: "https://github.com/Predidit/flutter_ns_danmaku"
-    source: git
-    version: "0.0.7"
   octo_image:
     dependency: transitive
     description:
@@ -1485,5 +1484,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=3.3.4 <4.0.0"
+  dart: ">=3.4.1 <4.0.0"
   flutter: ">=3.22.1"

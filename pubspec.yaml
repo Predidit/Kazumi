@@ -73,10 +73,7 @@ dependencies:
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.7.0
-  ns_danmaku: 
-    git: 
-      url: https://github.com/Predidit/flutter_ns_danmaku
-      ref: master
+  canvas_danmaku: ^0.1.0
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

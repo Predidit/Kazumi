@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
@@ -13,7 +14,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:ns_danmaku/ns_danmaku.dart';
+import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
@@ -105,7 +106,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                               playerController.currentPosition.inSeconds]!
                           .length),
               () => mounted && playerController.mediaPlayer.state.playing
-                  ? danmakuController.addItems([DanmakuItem(danmaku.m)])
+                  ? danmakuController.addDanmaku(DanmakuContentItem(danmaku.m))
                   : null);
         });
       }
@@ -635,7 +636,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                           9 /
                                           16 *
                                           danmakuArea),
-                                  child: DanmakuView(
+                                  child: DanmakuScreen(
                                     key: _danmuKey,
                                     createdController: (DanmakuController e) {
                                       danmakuController = e;
@@ -648,9 +649,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                       hideBottom: _hideBottom,
                                       opacity: _opacity,
                                       fontSize: _fontSize,
-                                      duration: _duration,
+                                      duration: _duration.toInt(),
                                     ),
-                                    statusChanged: (e) {},
                                   ),
                                 ),
 
@@ -680,7 +680,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                             TextButton(
                                               style: ButtonStyle(
                                                 padding:
-                                                    MaterialStateProperty.all(
+                                                    WidgetStateProperty.all(
                                                         EdgeInsets.zero),
                                               ),
                                               onPressed: () {

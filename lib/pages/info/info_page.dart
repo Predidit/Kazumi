@@ -131,8 +131,13 @@ class _InfoPageState extends State<InfoPage>
                                   videoPageController.currentPlugin = plugin;
                                   videoPageController.title = searchItem.name;
                                   videoPageController.src = searchItem.src;
-                                  await infoController.queryRoads(
+                                  try {
+                                    await infoController.queryRoads(
                                       searchItem.src, plugin.name);
+                                  } catch (e) {
+                                    debugPrint(e.toString());
+                                    SmartDialog.dismiss();
+                                  }
                                   SmartDialog.dismiss();
                                   Modular.to.pushNamed('/tab/video/');
                                 },

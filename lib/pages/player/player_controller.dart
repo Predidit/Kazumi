@@ -5,7 +5,7 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:mobx/mobx.dart';
 import 'package:flutter/foundation.dart';
-import 'package:ns_danmaku/ns_danmaku.dart';
+import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';

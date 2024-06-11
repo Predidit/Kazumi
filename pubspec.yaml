@@ -20,7 +20,7 @@ version: 1.0.8+1
 
 environment:
   sdk: '>=3.3.4 <4.0.0'
-  flutter: 3.22.1
+  flutter: 3.22.2
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,9 +38,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  flutter_modular: ^6.3.2
-  mobx: ^2.2.1
-  flutter_mobx: ^2.0.6+5
+  flutter_modular: ^6.3.4
+  mobx: ^2.3.3
+  flutter_mobx: ^2.2.1
   dio: ^5.0.0
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
@@ -67,13 +67,13 @@ dependencies:
 
   universal_platform: ^1.0.0+1
   webview_cookie_manager: ^2.0.6
-  url_launcher: ^6.1.14
+  url_launcher: ^6.3.0
   device_info_plus: ^9.0.2
   window_manager: ^0.3.9
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.7.0
-  canvas_danmaku: ^0.1.0
+  canvas_danmaku: ^0.1.6
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

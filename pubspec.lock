@@ -173,10 +173,10 @@ packages:
     dependency: "direct main"
     description:
       name: canvas_danmaku
-      sha256: "60e7080d3f891b83aec2c304fc890d52faf598a60d6be6a342097b02fdb2fe6b"
+      sha256: d9335cef90d07fe1d916546c22960a07592dbaee30306b03baefb9e13d35a78b
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.0"
+    version: "0.1.6"
   characters:
     dependency: transitive
     description:
@@ -431,10 +431,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_modular
-      sha256: "86c077c5276e8e4d3ffd1ba17e439a975cb5fdea3847242dbb19aa5eb78ee944"
+      sha256: bc17a1eb1da676b9111e59d27834fb6673bdea01aead12f0803a0847ff9d451c
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.3"
+    version: "6.3.4"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -761,10 +761,10 @@ packages:
     dependency: transitive
     description:
       name: modular_core
-      sha256: "5baaa460ac9d85d457d6864ef41a2194b8115a6bdeb585a684789f2d9004c892"
+      sha256: bd60317c81cff3a510aca19d6ddd661c7c79e3cba97b9f39e9ad199156ff255d
       url: "https://pub.dev"
     source: hosted
-    version: "3.3.2"
+    version: "3.3.3"
   nested:
     dependency: transitive
     description:
@@ -1238,10 +1238,10 @@ packages:
     dependency: "direct main"
     description:
       name: url_launcher
-      sha256: "6ce1e04375be4eed30548f10a315826fd933c1e493206eab82eed01f438c8d2e"
+      sha256: "21b704ce5fa560ea9f3b525b43601c678728ba46725bab9b01187b4831377ed3"
       url: "https://pub.dev"
     source: hosted
-    version: "6.2.6"
+    version: "6.3.0"
   url_launcher_android:
     dependency: transitive
     description:
@@ -1484,5 +1484,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=3.4.1 <4.0.0"
-  flutter: ">=3.22.1"
+  dart: ">=3.3.4 <4.0.0"
+  flutter: ">=3.22.2"

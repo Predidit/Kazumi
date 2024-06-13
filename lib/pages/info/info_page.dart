@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -8,9 +9,8 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class InfoPage extends StatefulWidget {
@@ -40,10 +40,6 @@ class _InfoPageState extends State<InfoPage>
     infoController.querySource(popularController.keyword);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    // 初始化插件状态监听器
-    // for (int i=0; i< pluginsController.pluginList.length; i++) {
-    //   pluginSearchStatusList.add('pending');
-    // }
   }
 
   void onBackPressed(BuildContext context) {
@@ -63,96 +59,116 @@ class _InfoPageState extends State<InfoPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigationBarState.hideNavigate();
     });
-    debugPrint('status 数组长度为 ${infoController.pluginSearchStatus.length}');
     return PopScope(
       canPop: true,
       onPopInvoked: (bool didPop) {
         onBackPressed(context);
       },
       child: SafeArea(
-        child: Scaffold(
-          appBar: const SysAppBar(),
-          body: Column(
-            children: [
-              BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-              TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.center,
-                controller: tabController,
-                tabs: pluginsController.pluginList
-                    .map((plugin) => Observer(
-                          builder: (context) => Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                plugin.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(width: 5.0),
-                              Container(
-                                width: 8.0,
-                                height: 8.0,
-                                decoration: BoxDecoration(
-                                  color: infoController.pluginSearchStatus[
-                                              plugin.name] ==
-                                          'success'
-                                      ? Colors.green
-                                      : (infoController.pluginSearchStatus[
-                                                  plugin.name] ==
-                                              'pending')
-                                          ? Colors.grey
-                                          : Colors.red,
-                                  // color: Colors.green,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ))
-                    .toList(),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.1,
+                child: LayoutBuilder(builder: (context, boxConstraints) {
+                  return NetworkImgLayer(
+                    src: infoController.bangumiItem.images['large'] ?? '',
+                    width: boxConstraints.maxWidth,
+                    height: boxConstraints.maxHeight,
+                  );
+                }),
               ),
-              Expanded(
-                child: Observer(
-                  builder: (context) => TabBarView(
+            ),
+            Scaffold(
+              backgroundColor: Colors.transparent,
+              appBar: const SysAppBar(backgroundColor: Colors.transparent),
+              body: Column(
+                children: [
+                  BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+                  TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.center,
                     controller: tabController,
-                    children: List.generate(pluginsController.pluginList.length,
-                        (pluginIndex) {
-                      var plugin = pluginsController.pluginList[pluginIndex];
-                      var cardList = <Widget>[];
-                      for (var searchResponse
-                          in infoController.pluginSearchResponseList) {
-                        if (searchResponse.pluginName == plugin.name) {
-                          for (var searchItem in searchResponse.data) {
-                            cardList.add(Card(
-                              child: ListTile(
-                                title: Text(searchItem.name),
-                                onTap: () async {
-                                  SmartDialog.showLoading(msg: '获取中');
-                                  videoPageController.currentPlugin = plugin;
-                                  videoPageController.title = searchItem.name;
-                                  videoPageController.src = searchItem.src;
-                                  try {
-                                    await infoController.queryRoads(
-                                        searchItem.src, plugin.name);
-                                    SmartDialog.dismiss();
-                                    Modular.to.pushNamed('/tab/video/');
-                                  } catch (e) {
-                                    debugPrint(e.toString());
-                                    SmartDialog.dismiss();
-                                  }
-                                },
+                    tabs: pluginsController.pluginList
+                        .map((plugin) => Observer(
+                              builder: (context) => Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    plugin.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(width: 5.0),
+                                  Container(
+                                    width: 8.0,
+                                    height: 8.0,
+                                    decoration: BoxDecoration(
+                                      color: infoController.pluginSearchStatus[
+                                                  plugin.name] ==
+                                              'success'
+                                          ? Colors.green
+                                          : (infoController.pluginSearchStatus[
+                                                      plugin.name] ==
+                                                  'pending')
+                                              ? Colors.grey
+                                              : Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ));
-                          }
-                        }
-                      }
-                      return ListView(children: cardList);
-                    }),
+                            ))
+                        .toList(),
                   ),
-                ),
-              )
-            ],
-          ),
+                  Expanded(
+                    child: Observer(
+                      builder: (context) => TabBarView(
+                        controller: tabController,
+                        children: List.generate(
+                            pluginsController.pluginList.length, (pluginIndex) {
+                          var plugin =
+                              pluginsController.pluginList[pluginIndex];
+                          var cardList = <Widget>[];
+                          for (var searchResponse
+                              in infoController.pluginSearchResponseList) {
+                            if (searchResponse.pluginName == plugin.name) {
+                              for (var searchItem in searchResponse.data) {
+                                cardList.add(Card(
+                                  color: Colors.transparent,
+                                  child: ListTile(
+                                    tileColor: Colors.transparent,
+                                    title: Text(searchItem.name),
+                                    onTap: () async {
+                                      SmartDialog.showLoading(msg: '获取中');
+                                      videoPageController.currentPlugin =
+                                          plugin;
+                                      videoPageController.title =
+                                          searchItem.name;
+                                      videoPageController.src = searchItem.src;
+                                      try {
+                                        await infoController.queryRoads(
+                                            searchItem.src, plugin.name);
+                                        SmartDialog.dismiss();
+                                        Modular.to.pushNamed('/tab/video/');
+                                      } catch (e) {
+                                        debugPrint(e.toString());
+                                        SmartDialog.dismiss();
+                                      }
+                                    },
+                                  ),
+                                ));
+                              }
+                            }
+                          }
+                          return ListView(children: cardList);
+                        }),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -47,6 +47,23 @@ class _InfoPageState extends State<InfoPage>
     // Navigator.of(context).pop();
   }
 
+  // 获取当前主题模式
+  bool get isLightTheme {
+    final currentMode = AdaptiveTheme.of(context).mode;
+    if (currentMode == AdaptiveThemeMode.light) {
+      return true;
+    }
+
+    // 检查 AdaptiveThemeMode.system 的情况
+    if (currentMode == AdaptiveThemeMode.system) {
+      final brightness = MediaQuery.of(context).platformBrightness;
+      if (brightness == Brightness.light) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   void dispose() {
     // 测试
@@ -67,20 +84,8 @@ class _InfoPageState extends State<InfoPage>
       child: SafeArea(
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.1,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  return NetworkImgLayer(
-                    src: infoController.bangumiItem.images['large'] ?? '',
-                    width: boxConstraints.maxWidth,
-                    height: boxConstraints.maxHeight,
-                  );
-                }),
-              ),
-            ),
             Scaffold(
-              backgroundColor: Colors.transparent,
+              backgroundColor: isLightTheme ? Colors.white : Colors.black,
               appBar: const SysAppBar(backgroundColor: Colors.transparent),
               body: Column(
                 children: [
@@ -166,6 +171,20 @@ class _InfoPageState extends State<InfoPage>
                     ),
                   )
                 ],
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: 0.1,
+                  child: LayoutBuilder(builder: (context, boxConstraints) {
+                    return NetworkImgLayer(
+                      src: infoController.bangumiItem.images['large'] ?? '',
+                      width: boxConstraints.maxWidth,
+                      height: boxConstraints.maxHeight,
+                    );
+                  }),
+                ),
               ),
             ),
           ],

@@ -346,7 +346,7 @@ class Utils {
     }
   }
 
-    static oledDarkTheme(ThemeData defaultDarkTheme) {
+  static oledDarkTheme(ThemeData defaultDarkTheme) {
     return defaultDarkTheme.copyWith(
       scaffoldBackgroundColor: Colors.black,
       colorScheme: defaultDarkTheme.colorScheme.copyWith(

@@ -144,8 +144,14 @@ class _PopularPageState extends State<PopularPage>
                       });
                     },
                     onClose: () async {
+                      setState(() {
+                        searchLoading = true;
+                      });
                       popularController.searchKeyword = '';
-                       popularController.queryBangumiListFeed();
+                      await popularController.queryBangumiListFeed();
+                      setState(() {
+                        searchLoading = false;
+                      });
                     },
                   ),
                   Positioned.fill(

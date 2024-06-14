@@ -4,6 +4,7 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -44,7 +45,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       Modular.get<FavoriteController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   late bool isFavorite;
   bool isPopping = false;
 
@@ -247,8 +248,13 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+        Provider.of<SideNavigationBarState>(context, listen: false);
+    }    
     playerTimer = getPlayerTimer();
   }
 

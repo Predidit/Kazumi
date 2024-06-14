@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 
 
 class IndexPage extends StatefulWidget {
@@ -25,6 +27,6 @@ class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return const BottomMenu();
+    return (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? const SideMenu() : const BottomMenu();
   }
 }

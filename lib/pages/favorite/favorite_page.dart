@@ -20,7 +20,7 @@ class _FavoritePageState extends State<FavoritePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(title: const Text('追番')),
+      appBar: const SysAppBar(title: Text('追番')),
       body: favoriteController.favorites.isEmpty ? 
       const Center(
         child: Text('啊咧（⊙.⊙） 没有追番的说'),
@@ -28,7 +28,7 @@ class _FavoritePageState extends State<FavoritePage> {
       : CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: EdgeInsets.all(StyleString.cardSpace),
+            padding: const EdgeInsets.all(StyleString.cardSpace),
             sliver: contentGrid(favoriteController.favorites),
           ),
         ],

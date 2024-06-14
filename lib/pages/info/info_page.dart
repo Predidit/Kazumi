@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -9,6 +11,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -27,8 +30,7 @@ class _InfoPageState extends State<InfoPage>
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
-  // List<String> pluginSearchStatusList = [];
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   late TabController tabController;
 
   @override
@@ -38,13 +40,17 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
     infoController.querySource(popularController.keyword);
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
   }
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    // Navigator.of(context).pop();
   }
 
   // 获取当前主题模式

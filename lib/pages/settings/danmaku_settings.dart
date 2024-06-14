@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -18,7 +19,7 @@ class DanmakuSettingsPage extends StatefulWidget {
 }
 
 class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   Box setting = GStorage.setting;
   late dynamic defaultDanmakuArea;
   late dynamic defaultDanmakuOpacity;
@@ -28,12 +29,19 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
     defaultDanmakuArea =
         setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
-    defaultDanmakuOpacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
-    defaultDanmakuFontSize = setting.get(SettingBoxKey.danmakuFontSize, defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+    defaultDanmakuOpacity =
+        setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
+    defaultDanmakuFontSize = setting.get(SettingBoxKey.danmakuFontSize,
+        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
   }
 
   void onBackPressed(BuildContext context) {
@@ -154,7 +162,10 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              updateDanmakuFontSize((Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+                              updateDanmakuFontSize(
+                                  (Platform.isIOS || Platform.isAndroid)
+                                      ? 16.0
+                                      : 25.0);
                               SmartDialog.dismiss();
                             },
                             child: const Text('默认设置'),
@@ -196,7 +207,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             spacing: 8,
                             runSpacing: 2,
                             children: [
-                              for (final double i in danOpacityList) ...<Widget>[
+                              for (final double i
+                                  in danOpacityList) ...<Widget>[
                                 if (i == defaultDanmakuOpacity) ...<Widget>[
                                   FilledButton(
                                     onPressed: () async {

@@ -6,6 +6,7 @@ import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 
 class AboutPage extends StatefulWidget {
@@ -16,7 +17,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -25,13 +26,17 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
   }
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    // Navigator.of(context).pop();
   }
 
   @override
@@ -45,7 +50,7 @@ class _AboutPageState extends State<AboutPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: SysAppBar(title: const Text('关于')),
+        appBar: const SysAppBar(title: const Text('关于')),
         body: Column(
           children: [
             ListTile(

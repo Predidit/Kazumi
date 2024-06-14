@@ -2,14 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class TimelinePage extends StatefulWidget {
@@ -23,7 +22,7 @@ class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
   final TimelineController timelineController =
       Modular.get<TimelineController>();
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   TabController? controller;
 
   @override
@@ -32,16 +31,20 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
-    if (timelineController.bangumiCalendar.length == 0) {
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
+    if (timelineController.bangumiCalendar.isEmpty) {
       debugPrint('时间表缓存为空, 尝试重新加载');
       timelineController.getSchedules();
     }
   }
 
   void onBackPressed(BuildContext context) {
-    // navigationBarState.showNavigate();
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }

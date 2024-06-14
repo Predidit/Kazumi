@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -8,6 +9,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 
 class PluginViewPage extends StatefulWidget {
@@ -18,7 +20,7 @@ class PluginViewPage extends StatefulWidget {
 }
 
 class _PluginViewPageState extends State<PluginViewPage> {
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   showInputDialog() {
@@ -76,8 +78,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
   }
 
   @override

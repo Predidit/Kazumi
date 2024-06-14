@@ -25,7 +25,6 @@ class BangumiCardV extends StatelessWidget {
     String heroTag = Utils.makeHeroTag(bangumiItem.id);
     final InfoController infoController = Modular.get<InfoController>();
     final PopularController popularController = Modular.get<PopularController>();
-    // final navigationBarState = Provider.of<NavigationBarState>(context);
     return Card(
       elevation: 0,
       clipBehavior: Clip.hardEdge,

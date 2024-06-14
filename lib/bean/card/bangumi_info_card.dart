@@ -28,8 +28,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
         TextStyle(fontSize: Theme.of(context).textTheme.labelMedium!.fontSize);
     String heroTag = Utils.makeHeroTag(widget.bangumiItem.id);
     // final PlayerController playerController = Modular.get<PlayerController>();
-    final navigationBarState = Provider.of<NavigationBarState>(context);
-    final InfoController infoController = Modular.get<InfoController>();
     final FavoriteController favoriteController =
         Modular.get<FavoriteController>();
     isFavorite = favoriteController.isFavorite(widget.bangumiItem);

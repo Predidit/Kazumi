@@ -4,9 +4,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/utils/constans.dart';
 
@@ -22,20 +21,24 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   final HistoryController historyController = Modular.get<HistoryController>();
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   TabController? controller;
 
   @override
   void initState() {
     super.initState();
     historyController.init();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
   }
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
-    // Navigator.of(context).pop();
   }
 
   @override
@@ -55,8 +58,9 @@ class _HistoryPageState extends State<HistoryPage>
           floatingActionButton: FloatingActionButton(
             child: const Icon(Icons.clear_all),
             onPressed: () {
-            historyController.clearAll();
-          },),
+              historyController.clearAll();
+            },
+          ),
         ),
       );
     });
@@ -79,19 +83,20 @@ class _HistoryPageState extends State<HistoryPage>
       slivers: [
         SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            mainAxisSpacing: StyleString.cardSpace - 2,
-            crossAxisSpacing: StyleString.cardSpace,
-            crossAxisCount: crossCount,
-            mainAxisExtent: 150
-                
-          ),
+              mainAxisSpacing: StyleString.cardSpace - 2,
+              crossAxisSpacing: StyleString.cardSpace,
+              crossAxisCount: crossCount,
+              mainAxisExtent: 150),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
               return historyController.histories.isNotEmpty
-                  ? BangumiHistoryCardV(historyItem: historyController.histories[index])
+                  ? BangumiHistoryCardV(
+                      historyItem: historyController.histories[index])
                   : null;
             },
-            childCount: historyController.histories.isNotEmpty ? historyController.histories.length : 10,
+            childCount: historyController.histories.isNotEmpty
+                ? historyController.histories.length
+                : 10,
           ),
         ),
       ],
@@ -104,7 +109,7 @@ class _HistoryPageState extends State<HistoryPage>
   //     itemBuilder: (BuildContext context, int index) {
   //       return histories.isNotEmpty
   //           ? BangumiHistoryCardV(historyItem: histories[index])
-  //           : Container(); 
+  //           : Container();
   //     },
   //   );
   // }

@@ -28,7 +28,6 @@ class _PopularPageState extends State<PopularPage>
   DateTime? _lastPressedAt;
   bool timeout = false;
   bool searchLoading = false;
-  late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
@@ -41,8 +40,6 @@ class _PopularPageState extends State<PopularPage>
     super.initState();
     debugPrint('Popular初始化成功');
     timeout = false;
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
     scrollController.addListener(() {
       popularController.scrollOffset = scrollController.offset;
       if (scrollController.position.pixels >=
@@ -103,7 +100,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: Scaffold(
             appBar: SysAppBar(
-              leading: Row(
+              leading: (Platform.isAndroid || Platform.isIOS) ? Row(
                 children: [
                   const SizedBox(
                     width: 10,
@@ -114,7 +111,7 @@ class _PopularPageState extends State<PopularPage>
                     ),
                   ),
                 ],
-              ),
+              ) : null,
               title: Stack(
                 children: [
                   AnimatedSearchBar(

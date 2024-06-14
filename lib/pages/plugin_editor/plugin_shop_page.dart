@@ -1,13 +1,12 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 
 class PluginShopPage extends StatefulWidget {
@@ -18,7 +17,7 @@ class PluginShopPage extends StatefulWidget {
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  late NavigationBarState navigationBarState;
+  dynamic navigationBarState;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void onBackPressed(BuildContext context) {
@@ -28,8 +27,13 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
   }
 
   @override
@@ -91,8 +95,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8.0, vertical: 1.0),
                                 decoration: BoxDecoration(
-                                  color:
-                                      Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(context).colorScheme.primary,
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
                                 child: Text(

@@ -11,6 +11,7 @@ import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/utils.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
@@ -32,8 +33,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
-    navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+    if (Platform.isAndroid || Platform.isIOS) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
     defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     defaultThemeColor =
@@ -42,7 +48,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    // Modular.to.navigate('/tab/my/');
     navigationBarState.showNavigate();
   }
 

@@ -67,7 +67,7 @@ dependencies:
 
   universal_platform: ^1.0.0+1
   webview_cookie_manager: ^2.0.6
-  url_launcher: ^6.3.0
+  url_launcher: ^6.1.14
   device_info_plus: ^9.0.2
   window_manager: ^0.3.9
   xpath_selector: ^3.0.2

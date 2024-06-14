@@ -57,16 +57,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     final Plugin plugin = Modular.args.data as Plugin;
 
     return Scaffold(
-      appBar: SysAppBar(
+      appBar: const SysAppBar(
         title: Text('规则编辑器'),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             SwitchListTile(
-              title: Text('内置播放器'),
-              subtitle: Text('调试时保持禁用'),
+              title: const Text('内置播放器'),
+              subtitle: const Text('调试时保持禁用'),
               value: useNativePlayer,
               onChanged: (bool value) {
                 setState(() {

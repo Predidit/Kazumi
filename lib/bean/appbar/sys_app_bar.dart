@@ -36,6 +36,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       onPanStart: (_) => windowManager.startDragging(),
       child: AppBar(
         toolbarHeight: preferredSize.height,
+        scrolledUnderElevation: 0.0,
         title: title,
         actions: acs,
         leading: leading,

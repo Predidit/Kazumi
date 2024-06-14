@@ -50,7 +50,8 @@ class _AboutPageState extends State<AboutPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: const Text('关于')),
+        appBar: const SysAppBar(title: Text('关于')),
+        backgroundColor: Colors.transparent,
         body: Column(
           children: [
             ListTile(

@@ -112,6 +112,7 @@ class _PopularPageState extends State<PopularPage>
                   ),
                 ],
               ) : null,
+              backgroundColor: Colors.transparent,
               title: Stack(
                 children: [
                   AnimatedSearchBar(

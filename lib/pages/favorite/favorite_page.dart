@@ -20,19 +20,20 @@ class _FavoritePageState extends State<FavoritePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const SysAppBar(title: Text('追番')),
-      body: favoriteController.favorites.isEmpty ? 
-      const Center(
-        child: Text('啊咧（⊙.⊙） 没有追番的说'),
-      )
-      : CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(StyleString.cardSpace),
-            sliver: contentGrid(favoriteController.favorites),
-          ),
-        ],
-      ),
+      appBar: const SysAppBar(
+          title: Text('追番'), backgroundColor: Colors.transparent),
+      body: favoriteController.favorites.isEmpty
+          ? const Center(
+              child: Text('啊咧（⊙.⊙） 没有追番的说'),
+            )
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(StyleString.cardSpace),
+                  sliver: contentGrid(favoriteController.favorites),
+                ),
+              ],
+            ),
     );
   }
 

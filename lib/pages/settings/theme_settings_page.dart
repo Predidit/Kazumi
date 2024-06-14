@@ -69,12 +69,14 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     var defaultDarkTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      colorSchemeSeed: Colors.green,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     AdaptiveTheme.of(context).setTheme(
       light: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
+        colorSchemeSeed: Colors.green,
       ),
       dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );

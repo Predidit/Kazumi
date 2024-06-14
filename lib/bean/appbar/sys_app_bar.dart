@@ -15,9 +15,11 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final List<Widget>? actions;
 
+  final Widget? leading;
+
   final PreferredSizeWidget? bottom;
 
-  const SysAppBar({super.key, this.toolbarHeight, this.title, this.backgroundColor, this.elevation, this.shape, this.actions, this.bottom});
+  const SysAppBar({super.key, this.toolbarHeight, this.title, this.backgroundColor, this.elevation, this.shape, this.actions, this.leading, this.bottom});
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
         toolbarHeight: preferredSize.height,
         title: title,
         actions: acs,
+        leading: leading,
         backgroundColor: backgroundColor,
         elevation: elevation,
         shape: shape,

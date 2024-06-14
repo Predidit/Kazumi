@@ -14,6 +14,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:animated_search_bar/animated_search_bar.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -26,9 +27,9 @@ class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
   bool timeout = false;
+  bool searchLoading = false;
   late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
-  final TextEditingController _controller = TextEditingController();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
 
@@ -102,40 +103,51 @@ class _PopularPageState extends State<PopularPage>
         },
         child: Scaffold(
             appBar: SysAppBar(
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              leading: Row(
+                children: [
+                  const SizedBox(
+                    width: 10,
+                  ),
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo/logo_android.png',
+                    ),
+                  ),
+                ],
+              ),
               title: Stack(
                 children: [
-                  TextField(
-                    focusNode: _focusNode,
-                    controller: _controller,
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                    decoration: const InputDecoration(
-                      hintText: '快速搜索',
-                      hintStyle: TextStyle(color: Colors.white, fontSize: 20),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search, color: Colors.white),
+                  AnimatedSearchBar(
+                    searchDecoration: const InputDecoration(
+                      alignLabelWithHint: true,
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
                     ),
-                    autocorrect: false,
-                    autofocus: false,
-                    onTap: () {
-                      setState(() {
-                        _focusNode.requestFocus();
-                        _controller.clear();
-                      });
-                    },
                     onChanged: (_) {
                       scrollController.jumpTo(0.0);
                     },
-                    onSubmitted: (t) {
+                    onFieldSubmitted: (t) async {
+                      setState(() {
+                        searchLoading = true;
+                      });
                       if (t != '') {
                         popularController.searchKeyword = t;
-                        popularController
+                        await popularController
                             .queryBangumi(popularController.searchKeyword);
                       } else {
                         popularController.searchKeyword = '';
-                        popularController.queryBangumiListFeed();
+                        await popularController.queryBangumiListFeed();
                       }
+                      setState(() {
+                        searchLoading = false;
+                      });
+                    },
+                    onClose: () async {
+                      popularController.searchKeyword = '';
+                       popularController.queryBangumiListFeed();
                     },
                   ),
                   Positioned.fill(
@@ -151,9 +163,9 @@ class _PopularPageState extends State<PopularPage>
             body: CustomScrollView(
               controller: scrollController,
               slivers: [
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(top: 10, bottom: 10, left: 16),
+                    padding: const EdgeInsets.only(top: 0, bottom: 10, left: 0),
                     // child: Row(
                     //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     //   children: [
@@ -163,6 +175,9 @@ class _PopularPageState extends State<PopularPage>
                     //     ),
                     //   ],
                     // ),
+                    child: searchLoading
+                        ? const LinearProgressIndicator()
+                        : Container(),
                   ),
                 ),
                 SliverPadding(

@@ -18,7 +18,7 @@ abstract class _PopularController with Store {
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
   double scrollOffset = 0.0;
-  bool isLoadingMore = true;
+  bool isLoadingMore = false;
 
   Future queryBangumiListFeed({String type = 'init'}) async {
     isLoadingMore = true;

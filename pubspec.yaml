@@ -74,6 +74,7 @@ dependencies:
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.7.0
   canvas_danmaku: ^0.1.6
+  animated_search_bar: ^2.7.1
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

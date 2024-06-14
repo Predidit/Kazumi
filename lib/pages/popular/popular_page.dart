@@ -42,12 +42,21 @@ class _PopularPageState extends State<PopularPage>
     timeout = false;
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
+    scrollController.addListener(() {
+      popularController.scrollOffset = scrollController.offset;
+      if (scrollController.position.pixels >=
+              scrollController.position.maxScrollExtent - 200 &&
+          popularController.isLoadingMore == false &&
+          popularController.searchKeyword == '') {
+        debugPrint('Popular 正在加载更多');
+        popularController.queryBangumiListFeed(type: 'onload');
+      }
+    });
     if (popularController.bangumiList.isEmpty) {
       debugPrint('Popular缓存列表为空, 尝试重加载');
       Timer(const Duration(seconds: 3), () {
         timeout = true;
       });
-      popularController.scrollOffset = 0.0;
       popularController.queryBangumiListFeed();
     }
   }
@@ -56,6 +65,7 @@ class _PopularPageState extends State<PopularPage>
   void dispose() {
     popularController.keyword = '';
     popularController.searchKeyword = '';
+    _focusNode.dispose();
     scrollController.removeListener(() {});
     debugPrint('popular 模块已卸载, 监听器移除');
     super.dispose();
@@ -76,11 +86,8 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    var themedata = Theme.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('尝试恢复状态');
-      // 弃用，在这里调用不稳定
-      // navigationBarState.showNavigate();
       scrollController.jumpTo(popularController.scrollOffset);
       debugPrint('Popular加载完成');
     });
@@ -94,122 +101,110 @@ class _PopularPageState extends State<PopularPage>
           await popularController.queryBangumiListFeed();
         },
         child: Scaffold(
-          appBar: SysAppBar(
-            backgroundColor:
-                Theme.of(context).colorScheme.primary.withOpacity(0.5),
-            title: Stack(
-              children: [
-                TextField(
-                  focusNode: _focusNode,
-                  controller: _controller,
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                  decoration: const InputDecoration(
-                    hintText: '快速搜索',
-                    hintStyle: TextStyle(color: Colors.white, fontSize: 20),
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.search, color: Colors.white),
+            appBar: SysAppBar(
+              backgroundColor:
+                  Theme.of(context).colorScheme.primary.withOpacity(0.5),
+              title: Stack(
+                children: [
+                  TextField(
+                    focusNode: _focusNode,
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                    decoration: const InputDecoration(
+                      hintText: '快速搜索',
+                      hintStyle: TextStyle(color: Colors.white, fontSize: 20),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.search, color: Colors.white),
+                    ),
+                    autocorrect: false,
+                    autofocus: false,
+                    onTap: () {
+                      setState(() {
+                        _focusNode.requestFocus();
+                        _controller.clear();
+                      });
+                    },
+                    onChanged: (_) {
+                      scrollController.jumpTo(0.0);
+                    },
+                    onSubmitted: (t) {
+                      if (t != '') {
+                        popularController.searchKeyword = t;
+                        popularController
+                            .queryBangumi(popularController.searchKeyword);
+                      } else {
+                        popularController.searchKeyword = '';
+                        popularController.queryBangumiListFeed();
+                      }
+                    },
                   ),
-                  autocorrect: false,
-                  autofocus: false,
-                  onTap: () {
-                    setState(() {
-                      _focusNode.requestFocus();
-                      _controller.clear();
-                    });
-                  },
-                  onChanged: (_) {
-                    scrollController.jumpTo(0.0);
-                  },
-                  onSubmitted: (t) {
-                    if (t != '') {
-                      popularController.searchKeyword = t;
-                      popularController
-                          .queryBangumi(popularController.searchKeyword);
-                    } else {
-                      popularController.searchKeyword = '';
-                      popularController.queryBangumiListFeed();
-                    }
-                  },
-                ),
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onPanStart: (_) => windowManager.startDragging(),
-                    child: Container(),
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onPanStart: (_) => windowManager.startDragging(),
+                      child: Container(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            body: CustomScrollView(
+              controller: scrollController,
+              slivers: [
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 10, bottom: 10, left: 16),
+                    // child: Row(
+                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //   children: [
+                    //     Text(
+                    //       '每日放送',
+                    //       style: Theme.of(context).textTheme.titleMedium,
+                    //     ),
+                    //   ],
+                    // ),
                   ),
                 ),
+                SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(
+                        StyleString.safeSpace, 0, StyleString.safeSpace, 0),
+                    sliver: Observer(builder: (context) {
+                      if (popularController.bangumiList.isEmpty &&
+                          timeout == true) {
+                        return HttpError(
+                          errMsg: '什么都没有找到 (´;ω;`)',
+                          fn: () {
+                            popularController.queryBangumiListFeed();
+                          },
+                        );
+                      }
+                      if (popularController.bangumiList.isEmpty &&
+                          timeout == false) {
+                        return const SliverToBoxAdapter(
+                          child: SizedBox(
+                              height: 600,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(),
+                                ],
+                              )),
+                        );
+                      }
+                      return contentGrid(popularController.bangumiList);
+                    })),
               ],
             ),
-            // actions: [IconButton(onPressed: () {
-            //   popularController.queryBangumi(popularController.keyword);
-            // }, icon: const Icon(Icons.search))],
-          ),
-          body: CustomScrollView(
-            controller: scrollController,
-            slivers: [
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10, bottom: 10, left: 16),
-                  // child: Row(
-                  //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  //   children: [
-                  //     Text(
-                  //       '每日放送',
-                  //       style: Theme.of(context).textTheme.titleMedium,
-                  //     ),
-                  //   ],
-                  // ),
-                ),
-              ),
-              SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                      StyleString.safeSpace, 0, StyleString.safeSpace, 0),
-                  sliver: Observer(builder: (context) {
-                    if (popularController.bangumiList.isEmpty &&
-                        timeout == true) {
-                      return HttpError(
-                        errMsg: '什么都没有找到 (´;ω;`)',
-                        fn: () {
-                          popularController.queryBangumiListFeed();
-                        },
-                      );
-                    }
-                    if (popularController.bangumiList.isEmpty &&
-                        timeout == false) {
-                      return const SliverToBoxAdapter(
-                        child: SizedBox(
-                            height: 600,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(),
-                              ],
-                            )),
-                      );
-                    }
-                    return contentGrid(popularController.bangumiList);
-                  })),
-            ],
-          ),
-          floatingActionButton: (Platform.isAndroid || Platform.isIOS)
-              ? FloatingActionButton(
-                  onPressed: () {
-                    scrollController.jumpTo(0.0);
-                    popularController.scrollOffset = 0.0;
-                  },
-                  child: const Icon(Icons.arrow_upward),
-                )
-              : FloatingActionButton(
-                  onPressed: () {
-                    _controller.clear();
-                    popularController.searchKeyword = '';
-                    popularController.queryBangumiListFeed();
-                  },
-                  child: const Icon(Icons.refresh),
-                ),
-          // backgroundColor: themedata.colorScheme.primaryContainer,
-        ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                scrollController.jumpTo(0.0);
+                popularController.scrollOffset = 0.0;
+              },
+              child: const Icon(Icons.arrow_upward),
+            )
+            // backgroundColor: themedata.colorScheme.primaryContainer,
+            ),
       ),
     );
   }

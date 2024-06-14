@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -19,9 +20,14 @@ abstract class _PopularController with Store {
   double scrollOffset = 0.0;
   bool isLoadingMore = true;
 
-  Future queryBangumiListFeed() async {  
-    var result = await BangumiHTTP.getBangumiList();
-    bangumiList.clear();
+  Future queryBangumiListFeed({String type = 'init'}) async {
+    isLoadingMore = true;
+    var random = Random();
+    int randomNumber = random.nextInt(1000) + 1;
+    var result = await BangumiHTTP.getBangumiList(rank: randomNumber);
+    if (type == 'init') {
+      bangumiList.clear();
+    }
     bangumiList.addAll(result);
     isLoadingMore = false;
   }

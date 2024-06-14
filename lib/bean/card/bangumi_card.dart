@@ -4,10 +4,8 @@ import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
-import 'package:provider/provider.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
@@ -62,7 +60,7 @@ class BangumiCardV extends StatelessWidget {
                         Hero(
                           tag: heroTag,
                           child: NetworkImgLayer(
-                            src: bangumiItem.images?['large'] ?? '',
+                            src: bangumiItem.images['large'] ?? '',
                             width: maxWidth,
                             height: maxHeight,
                           ),
@@ -83,7 +81,6 @@ class BangumiCardV extends StatelessWidget {
 
 class BangumiContent extends StatelessWidget {
   const BangumiContent({super.key, required this.bangumiItem});
-  // ignore: prefer_typing_uninitialized_variables
   final BangumiItem bangumiItem;
   @override
   Widget build(BuildContext context) {
@@ -95,13 +92,12 @@ class BangumiContent extends StatelessWidget {
         // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          // mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
                 Expanded(
                     child: Text(
-                  bangumiItem.nameCn ?? '',
+                  bangumiItem.nameCn,
                   textAlign: TextAlign.start,
                   style: const TextStyle(
                     fontWeight: FontWeight.w500,

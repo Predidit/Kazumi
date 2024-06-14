@@ -33,17 +33,15 @@ class BangumiHTTP {
     return bangumiCalendar;
   }
 
-  static Future getBangumiList({int? page}) async {
+  static Future getBangumiList({int rank = 2}) async {
     List<BangumiItem> bangumiList = [];
-    var random = Random();
-    int randomNumber = random.nextInt(1000) + 1;
     var params = <String, dynamic>{
       'keyword': '',
       'sort': 'rank',
       "filter": {
         "type": [2],
         "tag": ["日本"],
-        "rank": [">$randomNumber", "<=1000"],
+        "rank": [">$rank", "<=1000"],
         "nsfw": false
       },
     };

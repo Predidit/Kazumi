@@ -261,6 +261,9 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void dispose() {
     //player.dispose();
+    if (playerTimer != null) {
+      playerTimer!.cancel();
+    }
     super.dispose();
   }
 

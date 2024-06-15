@@ -101,7 +101,7 @@ class WebviewDesktopItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('http')) {
+          if (src && src.trim() !== '' && src.includes('http') && !src.includes('googleads')) {
               window.chrome.webview.postMessage('iframeMessage:' + src);
               window.location.href = src;
               break; 
@@ -116,7 +116,7 @@ class WebviewDesktopItemController {
       var videos = document.querySelectorAll('video');
       for (var i = 0; i < videos.length; i++) {
         var src = videos[i].getAttribute('src');
-        if (src && src.trim() !== '' && !src.startsWith('blob:')) {
+        if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
           window.chrome.webview.postMessage('videoMessage:' + src);
         } 
       }

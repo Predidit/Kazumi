@@ -123,7 +123,7 @@ class WebviewItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('http')) {
+          if (src && src.trim() !== '' && src.includes('http') && !src.includes('googleads')) {
               window.location.href = src;
               JSBridgeDebug.postMessage(src);
               break; 
@@ -139,7 +139,7 @@ class WebviewItemController {
       VideoBridgeDebug.postMessage('The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
         var src = videos[i].getAttribute('src');
-        if (src && src.trim() !== '' && !src.startsWith('blob:')) {
+        if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
           VideoBridgeDebug.postMessage(src);
           break;
         } 

@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
@@ -51,6 +52,16 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   // 弹幕
   final _danmuKey = GlobalKey();
+  late bool _border;
+  late double _opacity;
+  late double _duration;
+  late double _fontSize;
+  late double danmakuArea;
+  late bool _hideTop;
+  late bool _hideBottom;
+  late bool _hideScroll;
+  late bool _massiveMode;
+  late bool _danmakuColor;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -98,6 +109,9 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         playerController.danDanmakus[playerController.currentPosition.inSeconds]
             ?.asMap()
             .forEach((idx, danmaku) async {
+          if (!_danmakuColor) {
+            danmaku.color = Colors.white;
+          }
           await Future.delayed(
               Duration(
                   milliseconds: idx *
@@ -262,6 +276,18 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       navigationBarState =
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
+    _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
+    _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
+    _duration = 8;
+    _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
+        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+    danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
+    _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
+    _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
+    _hideScroll = !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
+    _massiveMode =
+        setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
+    _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
     playerTimer = getPlayerTimer();
   }
 
@@ -276,23 +302,6 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    // 弹幕设置
-    bool _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
-    double _opacity =
-        setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
-    double _duration = 8;
-    double _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
-    double danmakuArea =
-        setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
-    bool _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
-    bool _hideBottom =
-        !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
-    bool _hideScroll =
-        !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
-    bool _massiveMode =
-        setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
-
     isFavorite = favoriteController.isFavorite(infoController.bangumiItem);
 
     return PopScope(

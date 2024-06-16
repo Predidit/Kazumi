@@ -114,6 +114,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             const InkWell(
               child: SetSwitchItem(
+                title: '弹幕颜色',
+                setKey: SettingBoxKey.danmakuColor,
+                defaultVal: true,
+              ),
+            ),
+            const InkWell(
+              child: SetSwitchItem(
                 title: '海量弹幕',
                 subTitle: '弹幕过多时进行叠加绘制',
                 setKey: SettingBoxKey.danmakuMassive,

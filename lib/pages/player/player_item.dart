@@ -107,7 +107,14 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                               playerController.currentPosition.inSeconds]!
                           .length),
               () => mounted && playerController.mediaPlayer.state.playing
-                  ? danmakuController.addDanmaku(DanmakuContentItem(danmaku.m))
+                  ? danmakuController.addDanmaku(DanmakuContentItem(
+                      danmaku.message,
+                      color: danmaku.color,
+                      type: danmaku.type == 4
+                          ? DanmakuItemType.bottom
+                          : (danmaku.type == 5
+                              ? DanmakuItemType.top
+                              : DanmakuItemType.scroll)))
                   : null);
         });
       }
@@ -250,11 +257,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     super.initState();
     if (Platform.isAndroid || Platform.isIOS) {
       navigationBarState =
-        Provider.of<NavigationBarState>(context, listen: false);
+          Provider.of<NavigationBarState>(context, listen: false);
     } else {
       navigationBarState =
-        Provider.of<SideNavigationBarState>(context, listen: false);
-    }    
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
     playerTimer = getPlayerTimer();
   }
 
@@ -270,7 +277,6 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   Widget build(BuildContext context) {
     // 弹幕设置
-    // bool _running = true;
     bool _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     double _opacity =
         setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
@@ -284,6 +290,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
     bool _hideScroll =
         !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
+    bool _massiveMode =
+        setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
 
     isFavorite = favoriteController.isFavorite(infoController.bangumiItem);
 
@@ -659,6 +667,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                       opacity: _opacity,
                                       fontSize: _fontSize,
                                       duration: _duration.toInt(),
+                                      showStroke: _border,
+                                      massiveMode: _massiveMode,
                                     ),
                                   ),
                                 ),

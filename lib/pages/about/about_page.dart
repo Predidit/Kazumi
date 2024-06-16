@@ -51,7 +51,7 @@ class _AboutPageState extends State<AboutPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('关于')),
-        backgroundColor: Colors.transparent,
+        // backgroundColor: Colors.transparent,
         body: Column(
           children: [
             ListTile(

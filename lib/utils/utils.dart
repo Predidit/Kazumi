@@ -359,4 +359,14 @@ class Utils {
       ),
     );
   }
+
+  static generateDanmakuColor(int colorValue) {
+    // 提取颜色分量
+    int red = (colorValue >> 16) & 0xFF;
+    int green = (colorValue >> 8) & 0xFF;
+    int blue = colorValue & 0xFF;
+    // 创建Color对象
+    Color color = Color.fromARGB(255, red, green, blue); 
+    return color;
+  }
 }

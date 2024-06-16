@@ -1,13 +1,24 @@
-class Danmaku {
-  double p;
-  String m;
+import 'package:flutter/material.dart';
+import 'package:kazumi/utils/utils.dart';
 
-  Danmaku({required this.p, required this.m});
+class Danmaku {
+  // 弹幕内容
+  String message;
+  // 弹幕时间
+  double time;
+  // 弹幕类型 (1-普通弹幕，4-底部弹幕，5-顶部弹幕)
+  int type;
+  // 弹幕颜色
+  Color color;
+
+  Danmaku({required this.message, required this.time, required this.type, required this.color});
 
   factory Danmaku.fromJson(Map<String, dynamic> json) {
+    String messageValue = json['m'];
     List<String> parts = json['p'].split(',');
-    double pValue = double.parse(parts[0]);
-    String mValue = json['m'];
-    return Danmaku(p: pValue, m: mValue);
+    double timeValue = double.parse(parts[0]);
+    int typeValue = int.parse(parts[1]);
+    Color color = Utils.generateDanmakuColor(int.parse(parts[2]));
+    return Danmaku(time: timeValue, message: messageValue, type: typeValue, color: color);
   }
 }

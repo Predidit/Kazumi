@@ -91,6 +91,35 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 defaultVal: true,
               ),
             ),
+            const InkWell(
+              child: SetSwitchItem(
+                title: '顶部弹幕',
+                setKey: SettingBoxKey.danmakuTop,
+                defaultVal: true,
+              ),
+            ),
+            const InkWell(
+              child: SetSwitchItem(
+                title: '底部弹幕',
+                setKey: SettingBoxKey.danmakuBottom,
+                defaultVal: true,
+              ),
+            ),
+            const InkWell(
+              child: SetSwitchItem(
+                title: '滚动弹幕',
+                setKey: SettingBoxKey.danmakuScroll,
+                defaultVal: true,
+              ),
+            ),
+            const InkWell(
+              child: SetSwitchItem(
+                title: '海量弹幕',
+                subTitle: '弹幕过多时进行叠加绘制',
+                setKey: SettingBoxKey.danmakuMassive,
+                defaultVal: false,
+              ),
+            ),
             ListTile(
               onTap: () async {
                 final List<double> danFontList = [

@@ -187,9 +187,9 @@ abstract class _PlayerController with Store {
   void addDanmakus(List<Danmaku> danmakus) {
     for (var element in danmakus) {
       var danmakuList =
-          danDanmakus[element.p.toInt()] ?? List.empty(growable: true);
+          danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
       danmakuList.add(element);
-      danDanmakus[element.p.toInt()] = danmakuList;
+      danDanmakus[element.time.toInt()] = danmakuList;
     }
   }
 }

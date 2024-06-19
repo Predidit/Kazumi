@@ -46,6 +46,13 @@ class _MyPageState extends State<MyPage> {
             // trailing: const Icon(Icons.navigate_next),
           ),
           ListTile(
+            onTap: () async {
+              Modular.to.pushNamed('/tab/my/other');
+            },
+            dense: false,
+            title: const Text('其他设置'),
+          ),
+          ListTile(
             onTap: () {
               Modular.to.pushNamed('/tab/my/about');
             },

@@ -42,5 +42,6 @@ class SettingBoxKey {
       playResume = 'playResume',
       oledEnhance = 'oledEnhance',
       displayMode = 'displayMode',
+      enableGitProxy = 'enableGitProxy',
       enableSystemProxy = 'enableSystemProxy';
 }

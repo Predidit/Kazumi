@@ -8,6 +8,8 @@ class Api {
   // 在线升级
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest'; 
+  // Github镜像
+  static const String gitMirror = 'https://mirror.ghproxy.com/';
   // 每日放送
   static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
   // 番剧检索

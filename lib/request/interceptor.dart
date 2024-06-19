@@ -1,11 +1,19 @@
 import 'package:dio/dio.dart';
+import 'package:kazumi/request/api.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ApiInterceptor extends Interceptor {
-  // static Box setting = GStorage.setting;
+  static Box setting = GStorage.setting;
+  bool enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    // Github mirror
+    if (options.path.contains('github') && enableGitProxy) {
+      options.path = Api.gitMirror + options.path;
+    }
     handler.next(options);
   }
 

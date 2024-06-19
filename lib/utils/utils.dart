@@ -245,11 +245,6 @@ class Utils {
     return false;
   }
 
-  // 检查更新
-  static Future<bool> checkUpdata() async {
-    return true;
-  }
-
   // 下载适用于当前系统的安装包
   static Future matchVersion(data) async {}
 

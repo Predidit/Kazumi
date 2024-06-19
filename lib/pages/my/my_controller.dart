@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +41,6 @@ class MyController {
       if (type == 'manual') {
         SmartDialog.showToast('当前是最新版本！');
       }
-      return false;
     });
     return true;
   }

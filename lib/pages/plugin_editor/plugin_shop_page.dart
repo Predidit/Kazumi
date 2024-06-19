@@ -7,6 +7,8 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';
 
 class PluginShopPage extends StatefulWidget {
@@ -18,6 +20,8 @@ class PluginShopPage extends StatefulWidget {
 
 class _PluginShopPageState extends State<PluginShopPage> {
   dynamic navigationBarState;
+  Box setting = GStorage.setting;
+  late bool enableGitProxy;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void onBackPressed(BuildContext context) {
@@ -27,6 +31,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   void initState() {
     super.initState();
+    enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
     if (Platform.isAndroid || Platform.isIOS) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
@@ -52,8 +57,18 @@ class _PluginShopPageState extends State<PluginShopPage> {
         ),
         body: Observer(builder: (context) {
           return pluginsController.pluginHTTPList.isEmpty
-              ? const Center(
-                  child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('啊咧（⊙.⊙） 无法访问远程仓库 ${enableGitProxy ? '镜像已启用' : '镜像已禁用'}'),
+                      TextButton(
+                          onPressed: () {
+                            Modular.to.pushNamed('/tab/my/other');
+                          },
+                          child: Text(enableGitProxy ? '禁用镜像' : '启用镜像'))
+                    ],
+                  ),
                 )
               : ListView.builder(
                   itemCount: pluginsController.pluginHTTPList.length,
@@ -127,6 +142,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                         .savePluginToJsonFile(pluginHTTPItem);
                                     pluginsController.loadPlugins();
                                     SmartDialog.showToast('导入成功');
+                                    setState(() {});
                                   }
                                 } catch (e) {
                                   SmartDialog.showToast('导入规则失败');
@@ -146,6 +162,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                         .savePluginToJsonFile(pluginHTTPItem);
                                     pluginsController.loadPlugins();
                                     SmartDialog.showToast('更新成功');
+                                    setState(() {});
                                   }
                                 } catch (e) {
                                   SmartDialog.showToast('更新规则失败');

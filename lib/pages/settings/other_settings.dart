@@ -58,6 +58,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
                 title: 'Github镜像',
                 subTitle: '使用镜像访问规则托管仓库',
                 setKey: SettingBoxKey.enableGitProxy,
+                needReboot: true,
                 defaultVal: false,
               ),
             ),

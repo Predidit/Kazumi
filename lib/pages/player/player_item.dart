@@ -120,7 +120,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                           .danDanmakus[
                               playerController.currentPosition.inSeconds]!
                           .length),
-              () => mounted && playerController.mediaPlayer.state.playing
+              () => mounted && playerController.mediaPlayer.state.playing && !playerController.mediaPlayer.state.buffering
                   ? danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
                       color: danmaku.color,
@@ -480,10 +480,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                                 .round());
                                           }, onHorizontalDragEnd:
                                                 (DragEndDetails details) {
+                                            playerController.play();
                                             playerController.seek(
                                                 playerController
                                                     .currentPosition);
-                                            playerController.play();
                                             playerTimer = getPlayerTimer();
                                             playerController.showPosition =
                                                 false;

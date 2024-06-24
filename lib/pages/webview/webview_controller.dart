@@ -19,6 +19,7 @@ class WebviewItemController {
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
+    await webviewController.setNavigationDelegate(NavigationDelegate(onUrlChange: (_) => addFullscreenListener()));
     await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
@@ -61,8 +62,6 @@ class WebviewItemController {
           unloadPage();
           playerController.videoUrl = message.message;
           playerController.init();
-        } else {
-          addFullscreenListener();
         }
       }
     });

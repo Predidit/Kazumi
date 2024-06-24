@@ -23,7 +23,50 @@ class _PluginViewPageState extends State<PluginViewPage> {
   dynamic navigationBarState;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
-  showInputDialog() {
+  _handleAdd() {
+    SmartDialog.show(
+        useAnimation: false,
+        builder: (context) {
+          return AlertDialog(
+            // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
+            content: SingleChildScrollView(
+              // 使用可滚动的SingleChildScrollView包装Column
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
+                children: [
+                  ListTile(
+                    title: const Text('新建规则'),
+                    onTap: () {
+                      SmartDialog.dismiss();
+                      Modular.to.pushNamed('/tab/my/plugin/editor',
+                          arguments: Plugin.fromTemplate());
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  ListTile(
+                    title: const Text('从规则仓库导入'),
+                    onTap: () {
+                      SmartDialog.dismiss();
+                      Modular.to.pushNamed('/tab/my/plugin/shop',
+                          arguments: Plugin.fromTemplate());
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  ListTile(
+                    title: const Text('从剪贴板导入'),
+                    onTap: () {
+                      SmartDialog.dismiss();
+                      _showInputDialog();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
+  _showInputDialog() {
     final TextEditingController textController = TextEditingController();
     SmartDialog.show(
         useAnimation: false,
@@ -100,6 +143,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
       child: Scaffold(
         appBar: SysAppBar(
           title: const Text('规则管理'),
+          actions: [
+            (Platform.isAndroid || Platform.isIOS) ? IconButton(
+                onPressed: () {
+                  _handleAdd();
+                },
+                icon: const Icon(Icons.add)) : Container()
+          ],
         ),
         body: Observer(builder: (context) {
           return pluginsController.pluginList.isEmpty
@@ -195,54 +245,12 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   },
                 );
         }),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: (Platform.isWindows || Platform.isMacOS || Platform.isLinux) ? FloatingActionButton(
           onPressed: () {
-            // Modular.to.pushNamed('/tab/my/plugin/editor',
-            //     arguments: Plugin.fromTemplate());
-            SmartDialog.show(
-                useAnimation: false,
-                builder: (context) {
-                  return AlertDialog(
-                    // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
-                    content: SingleChildScrollView(
-                      // 使用可滚动的SingleChildScrollView包装Column
-                      child: Column(
-                        mainAxisSize:
-                            MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
-                        children: [
-                          ListTile(
-                            title: Text('新建规则'),
-                            onTap: () {
-                              SmartDialog.dismiss();
-                              Modular.to.pushNamed('/tab/my/plugin/editor',
-                                  arguments: Plugin.fromTemplate());
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          ListTile(
-                            title: Text('从规则仓库导入'),
-                            onTap: () {
-                              SmartDialog.dismiss();
-                              Modular.to.pushNamed('/tab/my/plugin/shop',
-                                  arguments: Plugin.fromTemplate());
-                            },
-                          ),
-                          const SizedBox(height: 10),
-                          ListTile(
-                            title: Text('从剪贴板导入'),
-                            onTap: () {
-                              SmartDialog.dismiss();
-                              showInputDialog();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                });
+            _handleAdd();
           },
           child: const Icon(Icons.add),
-        ),
+        ) : null,
       ),
     );
   }

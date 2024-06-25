@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -31,9 +32,7 @@ class DragToMoveArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onPanStart: (details) {
-        windowManager.startDragging();
-      },
+      onPanStart: (_) => (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? windowManager.startDragging() : null,
       child: child,
     );
   }

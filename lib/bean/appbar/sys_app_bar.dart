@@ -33,7 +33,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     return GestureDetector(
       // behavior: HitTestBehavior.translucent,
-      onPanStart: (_) => windowManager.startDragging(),
+      onPanStart: (_) => (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? windowManager.startDragging() : null,
       child: AppBar(
         toolbarHeight: preferredSize.height,
         scrolledUnderElevation: 0.0,

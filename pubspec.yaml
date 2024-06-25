@@ -111,10 +111,10 @@ flutter_launcher_icons:
   adaptive_icon_monochrome: assets/images/logo/logo_android.png
   macos:
     generate: true
-    image_path: assets/images/logo/logo_ios.png
+    image_path: assets/images/logo/logo_rounded.png
   windows:
     generate: true
-    image_path: assets/images/logo/logo_android.png
+    image_path: assets/images/logo/logo_rounded.png
     icon_size: 256 # min:48, max:256, default: 48
 
 # The following section is specific to Flutter packages.

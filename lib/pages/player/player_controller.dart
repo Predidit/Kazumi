@@ -138,14 +138,24 @@ abstract class _PlayerController with Store {
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );
+    mediaPlayer.setPlaylistMode(PlaylistMode.none);
     debugPrint('videoController 配置成功 $videoUrl');
 
-    mediaPlayer.setPlaylistMode(PlaylistMode.none);
-    mediaPlayer.open(
-      Media(videoUrl),
-      // 测试 自动播放待补充
-      play: true,
-    );
+    if (videoPageController.currentPlugin.userAgent == '') {
+      mediaPlayer.open(
+        Media(videoUrl),
+        play: true,
+      );
+    } else {
+      debugPrint('media_kit UA: ${videoPageController.currentPlugin.userAgent}');
+      var httpHeaders = {
+        'user-agent': videoPageController.currentPlugin.userAgent,
+      };
+      mediaPlayer.open(
+        Media(videoUrl, httpHeaders: httpHeaders),
+        play: true,
+      );
+    }
     return mediaPlayer;
   }
 

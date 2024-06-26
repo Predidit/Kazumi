@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -361,7 +363,23 @@ class Utils {
     int green = (colorValue >> 8) & 0xFF;
     int blue = colorValue & 0xFF;
     // 创建Color对象
-    Color color = Color.fromARGB(255, red, green, blue); 
+    Color color = Color.fromARGB(255, red, green, blue);
     return color;
+  }
+
+  /// 判断是否为桌面设备
+  static bool isDesktop() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return true;
+    }
+    return false;
+  }
+
+  /// 判断设备是否需要紧凑布局
+  static bool isCompact(BuildContext context) {
+    Box setting = GStorage.setting;
+    bool isWideScreen =
+        setting.get(SettingBoxKey.isWideScreen, defaultValue: false);
+    return !isDesktop() && !isWideScreen;
   }
 }

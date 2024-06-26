@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -32,7 +32,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   void initState() {
     super.initState();
     enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

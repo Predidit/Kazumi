@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/settings.dart';
@@ -29,7 +29,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -41,7 +41,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     defaultDanmakuOpacity =
         setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     defaultDanmakuFontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+        defaultValue: (Utils.isCompact(context)) ? 16.0 : 25.0);
   }
 
   void onBackPressed(BuildContext context) {
@@ -199,7 +199,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontSize(
-                                  (Platform.isIOS || Platform.isAndroid)
+                                  (Utils.isCompact(context))
                                       ? 16.0
                                       : 25.0);
                               SmartDialog.dismiss();

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_view_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_editor_page.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_shop_page.dart';
@@ -17,7 +17,7 @@ class PluginModule extends Module {
         //       plugin: Modular.args.data as Plugin,
         //     ),
         child: (_) => const PluginEditorPage(),
-        transition: Platform.isWindows || Platform.isLinux || Platform.isMacOS
+        transition: Utils.isDesktop()
             ? TransitionType.noTransition
             : TransitionType.leftToRight);
   }

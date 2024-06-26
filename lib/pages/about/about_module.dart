@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/pages/about/about_page.dart';
@@ -19,7 +19,7 @@ class AboutModule extends Module {
               applicationVersion: Api.version,
               applicationLegalese: '开源许可证',
             ),
-        transition: Platform.isWindows || Platform.isLinux || Platform.isMacOS
+        transition: Utils.isDesktop()
             ? TransitionType.noTransition
             : TransitionType.leftToRight);
   }

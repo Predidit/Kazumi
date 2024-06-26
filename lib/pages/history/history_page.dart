@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -28,7 +28,7 @@ class _HistoryPageState extends State<HistoryPage>
   void initState() {
     super.initState();
     historyController.init();
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -78,7 +78,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget get contentGrid {
     // List<Widget> gridViewList = [];
-    int crossCount = Platform.isWindows || Platform.isLinux ? 4 : 1;
+    int crossCount = (!Utils.isCompact(context)) ? 4 : 1;
     return CustomScrollView(
       slivers: [
         SliverGrid(

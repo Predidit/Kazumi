@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:provider/provider.dart';
@@ -23,7 +23,7 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

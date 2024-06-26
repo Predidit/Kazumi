@@ -11,6 +11,7 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -275,9 +276,7 @@ class _VideoPageState extends State<VideoPage>
                               scrollDirection: Axis.vertical,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: Platform.isWindows ||
-                                        Platform.isLinux ||
-                                        Platform.isMacOS
+                                crossAxisCount: !Utils.isCompact(context)
                                     ? 10
                                     : 3,
                                 crossAxisSpacing: 10,

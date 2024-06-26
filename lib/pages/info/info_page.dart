@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:kazumi/utils/utils.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -40,7 +39,7 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
     infoController.querySource(popularController.keyword);
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

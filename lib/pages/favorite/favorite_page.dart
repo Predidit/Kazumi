@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constans.dart';
@@ -38,7 +38,7 @@ class _FavoritePageState extends State<FavoritePage> {
   }
 
   Widget contentGrid(List bangumiList) {
-    int crossCount = Platform.isWindows || Platform.isLinux ? 6 : 3;
+    int crossCount = (!Utils.isCompact(context)) ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: StyleString.cardSpace - 2,

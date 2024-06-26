@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -7,6 +6,7 @@ import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -31,7 +31,7 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -116,7 +116,7 @@ class _TimelinePageState extends State<TimelinePage>
 
   List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {
     List<Widget> gridViewList = [];
-    int crossCount = Platform.isWindows || Platform.isLinux ? 6 : 3;
+    int crossCount = !Utils.isCompact(context) ? 6 : 3;
     for (dynamic bangumiList in bangumiCalendar) {
       gridViewList.add(
         CustomScrollView(

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
@@ -14,8 +14,6 @@ class IndexPage extends StatefulWidget {
 
 class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
 
-  final PageController _page = PageController();
-
   /// 统一处理前后台改变
   void appListener(bool state) {
     if (state) {
@@ -27,6 +25,6 @@ class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ? const SideMenu() : const BottomMenu();
+    return (!Utils.isCompact(context)) ? const SideMenu() : const BottomMenu();
   }
 }

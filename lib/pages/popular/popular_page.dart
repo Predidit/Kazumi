@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/pages/error/http_error.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -11,8 +11,6 @@ import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:provider/provider.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:animated_search_bar/animated_search_bar.dart';
 
@@ -100,7 +98,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: Scaffold(
             appBar: SysAppBar(
-              leading: (Platform.isAndroid || Platform.isIOS) ? Row(
+              leading: (Utils.isCompact(context)) ? Row(
                 children: [
                   const SizedBox(
                     width: 10,
@@ -229,7 +227,7 @@ class _PopularPageState extends State<PopularPage>
   }
 
   Widget contentGrid(bangumiList) {
-    int crossCount = Platform.isWindows || Platform.isLinux ? 6 : 3;
+    int crossCount = !Utils.isCompact(context) ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         // 行间距

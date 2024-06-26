@@ -43,5 +43,6 @@ class SettingBoxKey {
       oledEnhance = 'oledEnhance',
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
-      enableSystemProxy = 'enableSystemProxy';
+      enableSystemProxy = 'enableSystemProxy',
+      isWideScreen = 'isWideScreen';
 }

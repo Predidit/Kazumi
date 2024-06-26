@@ -1,6 +1,5 @@
-import 'dart:ffi';
-import 'dart:io';
 import 'dart:async';
+import 'package:kazumi/utils/utils.dart';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -269,7 +267,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -280,7 +278,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;
     _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Platform.isIOS || Platform.isAndroid) ? 16.0 : 25.0);
+        defaultValue: (Utils.isCompact(context)) ? 16.0 : 25.0);
     danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
     _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
@@ -452,9 +450,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                     top: 25,
                                     right: 15,
                                     bottom: 15,
-                                    child: Platform.isWindows ||
-                                            Platform.isLinux ||
-                                            Platform.isMacOS
+                                    child: Utils.isDesktop()
                                         ? Container()
                                         : GestureDetector(
                                             onHorizontalDragUpdate:
@@ -832,8 +828,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 },
                                               ),
                                             ),
-                                            ((Platform.isAndroid ||
-                                                        Platform.isIOS) &&
+                                            ((Utils.isCompact(context)) &&
                                                     !videoPageController
                                                         .androidFullscreen)
                                                 ? Container()
@@ -851,11 +846,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                                   .duration),
                                                       style: TextStyle(
                                                         color: Colors.white,
-                                                        fontSize: Platform
-                                                                    .isWindows ||
-                                                                Platform
-                                                                    .isLinux ||
-                                                                Platform.isMacOS
+                                                        fontSize: !Utils.isCompact(context)
                                                             ? 16.0
                                                             : 12.0,
                                                       ),

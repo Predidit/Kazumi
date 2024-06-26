@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -121,7 +120,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Utils.isCompact(context)) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -144,7 +143,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         appBar: SysAppBar(
           title: const Text('规则管理'),
           actions: [
-            (Platform.isAndroid || Platform.isIOS) ? IconButton(
+            (Utils.isCompact(context)) ? IconButton(
                 onPressed: () {
                   _handleAdd();
                 },
@@ -245,7 +244,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   },
                 );
         }),
-        floatingActionButton: (Platform.isWindows || Platform.isMacOS || Platform.isLinux) ? FloatingActionButton(
+        floatingActionButton: (!Utils.isCompact(context)) ? FloatingActionButton(
           onPressed: () {
             _handleAdd();
           },

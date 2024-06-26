@@ -9,6 +9,8 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 
 part 'player_controller.g.dart';
 
@@ -67,6 +69,9 @@ abstract class _PlayerController with Store {
   @observable
   double playerSpeed = 1.0;
 
+  Box setting = GStorage.setting;
+  late bool hAenable;
+
   Future init({int offset = 0}) async {
     playing = false;
     loading = true;
@@ -124,10 +129,12 @@ abstract class _PlayerController with Store {
       AudioTrack.auto(),
     );
 
+    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+
     videoController = VideoController(
       mediaPlayer,
-      configuration: const VideoControllerConfiguration(
-        enableHardwareAcceleration: true,
+      configuration: VideoControllerConfiguration(
+        enableHardwareAcceleration: hAenable,
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );

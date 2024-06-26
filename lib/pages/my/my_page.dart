@@ -32,6 +32,13 @@ class _MyPageState extends State<MyPage> {
           ),
           ListTile(
             onTap: () async {
+              Modular.to.pushNamed('/tab/my/player');
+            },
+            dense: false,
+            title: const Text('播放设置'),
+          ),
+          ListTile(
+            onTap: () async {
               Modular.to.pushNamed('/tab/my/danmaku');
             },
             dense: false,

@@ -375,11 +375,21 @@ class Utils {
     return false;
   }
 
-  /// 判断设备是否需要紧凑布局
-  static bool isCompact() {
+  /// 判断设备是否为宽屏
+  static bool isWideScreen() {
     Box setting = GStorage.setting;
     bool isWideScreen =
         setting.get(SettingBoxKey.isWideScreen, defaultValue: false);
-    return !isDesktop() && !isWideScreen;
+    return isWideScreen;
+  }
+
+  /// 判断设备是否为平板
+  static bool isTablet() {
+    return isWideScreen() && !isDesktop();
+  }
+
+  /// 判断设备是否需要紧凑布局
+  static bool isCompact() {
+    return !isDesktop() && !isWideScreen();
   }
 }

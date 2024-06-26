@@ -83,9 +83,8 @@ class _PopularPageState extends State<PopularPage>
   Widget build(BuildContext context) {
     super.build(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('尝试恢复状态');
-      scrollController.jumpTo(popularController.scrollOffset);
-      debugPrint('Popular加载完成');
+      // 暂时移除，某些情况下可能 crash
+      // scrollController.jumpTo(popularController.scrollOffset);
     });
     return PopScope(
       canPop: false,

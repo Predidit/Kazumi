@@ -1,0 +1,17 @@
+{
+    "api": "1",
+    "type": "anime",
+    "name": "LMM",
+    "version": "1.0",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "baseURL": "https://m.lmm52.com/",
+    "searchURL":"https://m.lmm52.com/vod/search.html?wd=@keyword",
+    "searchList": "//div[1]/div/div/section/div//div",
+    "searchName": "//div/div[2]/h6/a",
+    "searchResult": "//div/div[2]/h6/a",
+    "chapterRoads": "//div[1]/div[2]/div/div[1]/section[2]/div//div",
+    "chapterResult": "//div[2]/div/a"
+}

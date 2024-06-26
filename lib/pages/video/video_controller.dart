@@ -8,6 +8,7 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:auto_orientation/auto_orientation.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -101,7 +102,9 @@ abstract class _VideoPageController with Store {
           overlays: SystemUiOverlay.values,
         );
         // await SystemChrome.setPreferredOrientations([]);
-        verticalScreen();
+        if (Utils.isCompact()) {
+          verticalScreen();
+        }
       } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
         await const MethodChannel('com.alexmercerind/media_kit_video')
             .invokeMethod(

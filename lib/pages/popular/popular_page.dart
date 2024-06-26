@@ -98,7 +98,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: Scaffold(
             appBar: SysAppBar(
-              leading: (Utils.isCompact(context)) ? Row(
+              leading: (Utils.isCompact()) ? Row(
                 children: [
                   const SizedBox(
                     width: 10,
@@ -227,7 +227,7 @@ class _PopularPageState extends State<PopularPage>
   }
 
   Widget contentGrid(bangumiList) {
-    int crossCount = !Utils.isCompact(context) ? 6 : 3;
+    int crossCount = !Utils.isCompact() ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         // 行间距

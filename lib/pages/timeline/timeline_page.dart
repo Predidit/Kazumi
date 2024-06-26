@@ -31,7 +31,7 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -116,7 +116,7 @@ class _TimelinePageState extends State<TimelinePage>
 
   List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {
     List<Widget> gridViewList = [];
-    int crossCount = !Utils.isCompact(context) ? 6 : 3;
+    int crossCount = !Utils.isCompact() ? 6 : 3;
     for (dynamic bangumiList in bangumiCalendar) {
       gridViewList.add(
         CustomScrollView(

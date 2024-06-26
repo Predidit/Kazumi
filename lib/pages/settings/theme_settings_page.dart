@@ -33,7 +33,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

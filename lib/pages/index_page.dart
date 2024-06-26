@@ -25,6 +25,6 @@ class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return (!Utils.isCompact(context)) ? const SideMenu() : const BottomMenu();
+    return (!Utils.isCompact()) ? const SideMenu() : const BottomMenu();
   }
 }

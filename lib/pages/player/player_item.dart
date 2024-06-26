@@ -267,7 +267,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -278,7 +278,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;
     _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Utils.isCompact(context)) ? 16.0 : 25.0);
+        defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
     danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
     _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
@@ -828,7 +828,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                 },
                                               ),
                                             ),
-                                            ((Utils.isCompact(context)) &&
+                                            ((Utils.isCompact()) &&
                                                     !videoPageController
                                                         .androidFullscreen)
                                                 ? Container()
@@ -846,7 +846,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                                   .duration),
                                                       style: TextStyle(
                                                         color: Colors.white,
-                                                        fontSize: !Utils.isCompact(context)
+                                                        fontSize: !Utils.isCompact()
                                                             ? 16.0
                                                             : 12.0,
                                                       ),

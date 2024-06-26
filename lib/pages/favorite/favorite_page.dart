@@ -38,7 +38,7 @@ class _FavoritePageState extends State<FavoritePage> {
   }
 
   Widget contentGrid(List bangumiList) {
-    int crossCount = (!Utils.isCompact(context)) ? 6 : 3;
+    int crossCount = (!Utils.isCompact()) ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: StyleString.cardSpace - 2,

@@ -376,7 +376,7 @@ class Utils {
   }
 
   /// 判断设备是否需要紧凑布局
-  static bool isCompact(BuildContext context) {
+  static bool isCompact() {
     Box setting = GStorage.setting;
     bool isWideScreen =
         setting.get(SettingBoxKey.isWideScreen, defaultValue: false);

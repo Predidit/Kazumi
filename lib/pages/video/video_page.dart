@@ -276,7 +276,7 @@ class _VideoPageState extends State<VideoPage>
                               scrollDirection: Axis.vertical,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: !Utils.isCompact(context)
+                                crossAxisCount: !Utils.isCompact()
                                     ? 10
                                     : 3,
                                 crossAxisSpacing: 10,

@@ -39,7 +39,7 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     // 测试用例
     infoController.querySource(popularController.keyword);
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

@@ -32,7 +32,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   void initState() {
     super.initState();
     enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {

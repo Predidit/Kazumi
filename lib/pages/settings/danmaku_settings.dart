@@ -29,7 +29,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -41,7 +41,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     defaultDanmakuOpacity =
         setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     defaultDanmakuFontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Utils.isCompact(context)) ? 16.0 : 25.0);
+        defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
   }
 
   void onBackPressed(BuildContext context) {
@@ -199,7 +199,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontSize(
-                                  (Utils.isCompact(context))
+                                  (Utils.isCompact())
                                       ? 16.0
                                       : 25.0);
                               SmartDialog.dismiss();

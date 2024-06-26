@@ -120,7 +120,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -143,7 +143,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         appBar: SysAppBar(
           title: const Text('规则管理'),
           actions: [
-            (Utils.isCompact(context)) ? IconButton(
+            (Utils.isCompact()) ? IconButton(
                 onPressed: () {
                   _handleAdd();
                 },
@@ -244,7 +244,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   },
                 );
         }),
-        floatingActionButton: (!Utils.isCompact(context)) ? FloatingActionButton(
+        floatingActionButton: (!Utils.isCompact()) ? FloatingActionButton(
           onPressed: () {
             _handleAdd();
           },

@@ -28,7 +28,7 @@ class _HistoryPageState extends State<HistoryPage>
   void initState() {
     super.initState();
     historyController.init();
-    if (Utils.isCompact(context)) {
+    if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
     } else {
@@ -78,7 +78,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget get contentGrid {
     // List<Widget> gridViewList = [];
-    int crossCount = (!Utils.isCompact(context)) ? 4 : 1;
+    int crossCount = (!Utils.isCompact()) ? 4 : 1;
     return CustomScrollView(
       slivers: [
         SliverGrid(

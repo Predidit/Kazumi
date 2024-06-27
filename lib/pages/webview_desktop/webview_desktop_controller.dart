@@ -7,6 +7,7 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 class WebviewDesktopItemController {
+  int count = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
   WebviewController webviewController = WebviewController();
@@ -17,11 +18,13 @@ class WebviewDesktopItemController {
   init() async {
     await webviewController.initialize();
     await initJSBridge();
-    videoPageController.changeEpisode(videoPageController.currentEspisode, currentRoad: videoPageController.currentRoad);
+    videoPageController.changeEpisode(videoPageController.currentEspisode,
+        currentRoad: videoPageController.currentRoad);
   }
 
   loadUrl(String url) async {
     await unloadPage();
+    count = 0;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
@@ -38,27 +41,36 @@ class WebviewDesktopItemController {
       if (isVideoSourceLoaded) {
         timer.cancel();
       } else {
-        parseVideoSource();
+        if (count >= 15) {
+          timer.cancel();
+          videoPageController.logLines.clear();
+          videoPageController.logLines.add('解析视频资源超时');
+          videoPageController.logLines.add('请切换到其他播放列表或视频源');
+        } else {
+          parseVideoSource();
+        }
       }
     });
   }
 
   initJSBridge() async {
     webviewController.webMessage.listen((event) async {
-      if (event.toString().contains('iframeMessage:')) {  
+      if (event.toString().contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
         debugPrint('由JS桥收到的消息为 $messageItem');
-        videoPageController.logLines.add('Callback received: $messageItem');
-        videoPageController.logLines.add('If there is audio but no video, please report it to the rule developer.');
+        videoPageController.logLines.add('Callback received: ${Uri.decodeFull(messageItem)}');
+        videoPageController.logLines.add(
+            'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http')) {
           debugPrint('成功加载 iframe');
           videoPageController.logLines.add('Parsing video source $messageItem');
           isIframeLoaded = true;
-          if (Utils.decodeVideoSource(messageItem) != messageItem) {
+          if (Utils.decodeVideoSource(messageItem) != Uri.encodeFull(messageItem)) {
             isVideoSourceLoaded = true;
             videoPageController.loading = false;
-            videoPageController.logLines.add('Loading video source ${Utils.decodeVideoSource(messageItem)}');
+            videoPageController.logLines.add(
+                'Loading video source ${Utils.decodeVideoSource(messageItem)}');
             debugPrint(
                 '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
             if (videoPageController.currentPlugin.useNativePlayer) {
@@ -74,9 +86,10 @@ class WebviewDesktopItemController {
             Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
         debugPrint('由VideoJS桥收到的消息为 $messageItem');
         videoPageController.logLines.add('Callback received: $messageItem');
+        count++;
         if (messageItem.contains('http')) {
           debugPrint('成功获取视频源');
-          videoPageController.logLines.add('Loading video source $messageItem');
+          videoPageController.logLines.add('Loading video source ${Uri.decodeFull(messageItem)}');
           isVideoSourceLoaded = true;
           videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
@@ -97,6 +110,7 @@ class WebviewDesktopItemController {
   parseIframeUrl() async {
     await webviewController.executeScript('''
       var iframes = document.getElementsByTagName('iframe');
+      window.chrome.webview.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
@@ -114,6 +128,7 @@ class WebviewDesktopItemController {
   parseVideoSource() async {
     await webviewController.executeScript('''
       var videos = document.querySelectorAll('video');
+      window.chrome.webview.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
         var src = videos[i].getAttribute('src');
         if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {

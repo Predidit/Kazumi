@@ -7,6 +7,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemController {
+  int count = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
   WebViewController webviewController = WebViewController();
@@ -16,10 +17,12 @@ class WebviewItemController {
 
   loadUrl(String url) async {
     await unloadPage();
+    count = 0;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    await webviewController.setNavigationDelegate(NavigationDelegate(onUrlChange: (_) => addFullscreenListener()));
+    await webviewController.setNavigationDelegate(
+        NavigationDelegate(onUrlChange: (_) => addFullscreenListener()));
     await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
@@ -52,6 +55,7 @@ class WebviewItemController {
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('VideoJS桥收到的消息为 ${message.message}');
       videoPageController.logLines.add('Callback received: ${message.message}');
+      count++;
       if (message.message.contains('http')) {
         debugPrint('由video标签获取视频源 ${message.message}');
         videoPageController.logLines
@@ -90,7 +94,14 @@ class WebviewItemController {
       if (isVideoSourceLoaded) {
         timer.cancel();
       } else {
-        parseVideoSource();
+        if (count >= 15) {
+          timer.cancel();
+          videoPageController.logLines.clear();
+          videoPageController.logLines.add('解析视频资源超时');
+          videoPageController.logLines.add('请切换到其他播放列表或视频源');
+        } else {
+          parseVideoSource();
+        }
       }
     });
   }

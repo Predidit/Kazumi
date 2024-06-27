@@ -140,7 +140,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                   if (pluginHTTPItem != null) {
                                     await pluginsController
                                         .savePluginToJsonFile(pluginHTTPItem);
-                                    pluginsController.loadPlugins();
+                                    await pluginsController.loadPlugins();
                                     SmartDialog.showToast('导入成功');
                                     setState(() {});
                                   }
@@ -160,7 +160,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                   if (pluginHTTPItem != null) {
                                     await pluginsController
                                         .savePluginToJsonFile(pluginHTTPItem);
-                                    pluginsController.loadPlugins();
+                                    await pluginsController.loadPlugins();
                                     SmartDialog.showToast('更新成功');
                                     setState(() {});
                                   }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -21,29 +20,29 @@ abstract class _InfoController with Store {
   @observable
   var pluginSearchStatus = ObservableMap<String, String>();
 
-  querySource(String keyword) async {
-    // 此异步处理可能存在内存泄漏
-    final PluginsController pluginsController =
-        Modular.get<PluginsController>();
-    pluginSearchResponseList.clear();
+  /// 移动到 query_manager.dart 以解决可能的内存泄漏
+  // querySource(String keyword) async {
+  //   final PluginsController pluginsController =
+  //       Modular.get<PluginsController>();
+  //   pluginSearchResponseList.clear();
 
-    for (Plugin plugin in pluginsController.pluginList) {
-      pluginSearchStatus[plugin.name] = 'pending';
-    }
+  //   for (Plugin plugin in pluginsController.pluginList) {
+  //     pluginSearchStatus[plugin.name] = 'pending';
+  //   }
 
-    var controller = StreamController();
-    for (Plugin plugin in pluginsController.pluginList) {
-      plugin.queryBangumi(keyword).then((result) {
-        pluginSearchStatus[plugin.name] = 'success';
-        controller.add(result);
-      }).catchError((error) {
-        pluginSearchStatus[plugin.name] = 'error';
-      });
-    }
-    await for (var result in controller.stream) {
-      pluginSearchResponseList.add(result);
-    }
-  }
+  //   var controller = StreamController();
+  //   for (Plugin plugin in pluginsController.pluginList) {
+  //     plugin.queryBangumi(keyword).then((result) {
+  //       pluginSearchStatus[plugin.name] = 'success';
+  //       controller.add(result);
+  //     }).catchError((error) {
+  //       pluginSearchStatus[plugin.name] = 'error';
+  //     });
+  //   }
+  //   await for (var result in controller.stream) {
+  //     pluginSearchResponseList.add(result);
+  //   }
+  // }
 
   queryRoads(String url, String pluginName) async {
     final PluginsController pluginsController =

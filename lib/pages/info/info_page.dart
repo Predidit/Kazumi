@@ -14,6 +14,7 @@ import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/request/query_manager.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -32,13 +33,16 @@ class _InfoPageState extends State<InfoPage>
   dynamic navigationBarState;
   late TabController tabController;
 
+  /// 用于并发查询
+  late QueryManager queryManager;
+
   @override
   void initState() {
     super.initState();
+    queryManager = QueryManager();
+    queryManager.querySource(popularController.keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
-    // 测试用例
-    infoController.querySource(popularController.keyword);
     if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
@@ -50,6 +54,13 @@ class _InfoPageState extends State<InfoPage>
 
   void onBackPressed(BuildContext context) {
     navigationBarState.showNavigate();
+  }
+
+  @override
+  void dispose() {
+    queryManager.cancel();
+    videoPageController.currentEspisode = 1;
+    super.dispose();
   }
 
   // 获取当前主题模式
@@ -67,13 +78,6 @@ class _InfoPageState extends State<InfoPage>
       }
     }
     return false;
-  }
-
-  @override
-  void dispose() {
-    // 测试
-    videoPageController.currentEspisode = 1;
-    super.dispose();
   }
 
   @override

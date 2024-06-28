@@ -55,15 +55,20 @@ abstract class _VideoPageController with Store {
     logLines.clear();
     debugPrint('跳转到第$episode话');
     String urlItem = roadList[currentRoad].data[episode - 1];
+    if (urlItem.contains(currentPlugin.baseUrl) || urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
+      urlItem = urlItem;
+    } else {
+      urlItem = currentPlugin.baseUrl + urlItem;
+    }
     if (Platform.isWindows) {
       final WebviewDesktopItemController webviewDesktopItemController =
           Modular.get<WebviewDesktopItemController>();
       await webviewDesktopItemController
-          .loadUrl(currentPlugin.baseUrl + urlItem);
+          .loadUrl(urlItem);
     } else {
       final WebviewItemController webviewItemController =
           Modular.get<WebviewItemController>();
-      await webviewItemController.loadUrl(currentPlugin.baseUrl + urlItem);
+      await webviewItemController.loadUrl(urlItem);
     }
   }
 

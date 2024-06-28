@@ -9,6 +9,7 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/request/api.dart';
 import 'package:provider/provider.dart';
 
 class PluginShopPage extends StatefulWidget {
@@ -138,6 +139,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                       .queryPluginHTTP(pluginsController
                                           .pluginHTTPList[index].name);
                                   if (pluginHTTPItem != null) {
+                                    if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
+                                      SmartDialog.showToast('kazumi版本过低, 此规则不兼容当前版本');
+                                      return;
+                                    }
                                     await pluginsController
                                         .savePluginToJsonFile(pluginHTTPItem);
                                     await pluginsController.loadPlugins();

@@ -250,6 +250,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   // 弹幕查询
   void showDanmakuSwitch() {
+    DanmakuSearchResponse danmakuSearchResponse;
     SmartDialog.show(
       useAnimation: false,
       builder: (context) {
@@ -260,56 +261,44 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
               decoration: const InputDecoration(
                 hintText: '搜索弹幕源',
               ),
-              onSubmitted: (keyword) {
+              onSubmitted: (keyword) async {
+                SmartDialog.dismiss();
+                SmartDialog.showLoading(msg: '弹幕检索中');
+                try {
+                  danmakuSearchResponse =
+                      await DanmakuRequest.getDanmakuSearchResponse(keyword);
+                } catch (e) {
+                  SmartDialog.dismiss();
+                  SmartDialog.showToast('检索弹幕失败 ${e.toString()}');
+                  return;
+                }
                 SmartDialog.dismiss();
                 SmartDialog.show(
-                  useAnimation: false,
-                  builder: (context) {
-                    return Dialog(
-                      child: FutureBuilder<DanmakuSearchResponse>(
-                        future:
-                            DanmakuRequest.getDanmakuSearchResponse(keyword),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          } else if (snapshot.hasError) {
-                            SmartDialog.showToast('检索弹幕失败');
-                            return Container();
-                          } else if (!snapshot.hasData ||
-                              snapshot.data!.animes.isEmpty) {
-                            return const Text('没有找到相关弹幕源');
-                          } else {
-                            return Expanded(
-                              child: ListView(
-                                shrinkWrap: true,
-                                children:
-                                    snapshot.data!.animes.map((danmakuInfo) {
-                                  return ListTile(
-                                    title: Text(danmakuInfo.animeTitle),
-                                    onTap: () async {
-                                      SmartDialog.showToast('弹幕切换中');
-                                      try {
-                                        await playerController.getDanDanmaku(
-                                            danmakuInfo.animeTitle,
-                                            videoPageController
-                                                .currentEspisode);
-                                      } catch (e) {
-                                        SmartDialog.showToast('弹幕切换失败');
-                                      }
-                                      SmartDialog.dismiss();
-                                    },
-                                  );
-                                }).toList(),
-                              ),
+                    useAnimation: false,
+                    builder: (context) {
+                      return Dialog(
+                        child: danmakuSearchResponse.animes.isEmpty ? const Text('未找到匹配结果') : ListView(
+                          shrinkWrap: true,
+                          children:
+                              danmakuSearchResponse.animes.map((danmakuInfo) {
+                            return ListTile(
+                              title: Text(danmakuInfo.animeTitle),
+                              onTap: () async {
+                                SmartDialog.showToast('弹幕切换中');
+                                try {
+                                  await playerController.getDanDanmaku(
+                                      danmakuInfo.animeTitle,
+                                      videoPageController.currentEspisode);
+                                } catch (e) {
+                                  SmartDialog.showToast('弹幕切换失败');
+                                }
+                                SmartDialog.dismiss();
+                              },
                             );
-                          }
-                        },
-                      ),
-                    );
-                  },
-                );
+                          }).toList(),
+                        ),
+                      );
+                    });
               },
             ),
           ),

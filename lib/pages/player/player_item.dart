@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:kazumi/utils/utils.dart';
-import 'package:canvas_danmaku/models/danmaku_content_item.dart';
-import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
@@ -24,6 +22,8 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/request/damaku.dart';
+import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PlayerItem extends StatefulWidget {
@@ -118,7 +118,9 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                           .danDanmakus[
                               playerController.currentPosition.inSeconds]!
                           .length),
-              () => mounted && playerController.mediaPlayer.state.playing && !playerController.mediaPlayer.state.buffering
+              () => mounted &&
+                      playerController.mediaPlayer.state.playing &&
+                      !playerController.mediaPlayer.state.buffering
                   ? danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
                       color: danmaku.color,
@@ -246,6 +248,76 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         });
   }
 
+  // 弹幕查询
+  void showDanmakuSwitch() {
+    SmartDialog.show(
+      useAnimation: false,
+      builder: (context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: const InputDecoration(
+                hintText: '搜索弹幕源',
+              ),
+              onSubmitted: (keyword) {
+                SmartDialog.dismiss();
+                SmartDialog.show(
+                  useAnimation: false,
+                  builder: (context) {
+                    return Dialog(
+                      child: FutureBuilder<DanmakuSearchResponse>(
+                        future:
+                            DanmakuRequest.getDanmakuSearchResponse(keyword),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          } else if (snapshot.hasError) {
+                            SmartDialog.showToast('检索弹幕失败');
+                            return Container();
+                          } else if (!snapshot.hasData ||
+                              snapshot.data!.animes.isEmpty) {
+                            return const Text('没有找到相关弹幕源');
+                          } else {
+                            return Expanded(
+                              child: ListView(
+                                shrinkWrap: true,
+                                children:
+                                    snapshot.data!.animes.map((danmakuInfo) {
+                                  return ListTile(
+                                    title: Text(danmakuInfo.animeTitle),
+                                    onTap: () async {
+                                      SmartDialog.showToast('弹幕切换中');
+                                      try {
+                                        await playerController.getDanDanmaku(
+                                            danmakuInfo.animeTitle,
+                                            videoPageController
+                                                .currentEspisode);
+                                      } catch (e) {
+                                        SmartDialog.showToast('弹幕切换失败');
+                                      }
+                                      SmartDialog.dismiss();
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> setVolume(double value) async {
     try {
       FlutterVolumeController.updateShowSystemUI(false);
@@ -316,7 +388,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                 Container(
                   color: Colors.black,
                   child: MouseRegion(
-                    cursor: (videoPageController.androidFullscreen && !playerController.showPositioned) ? SystemMouseCursors.none : SystemMouseCursors.basic,
+                    cursor: (videoPageController.androidFullscreen &&
+                            !playerController.showPositioned)
+                        ? SystemMouseCursors.none
+                        : SystemMouseCursors.basic,
                     onHover: (_) {
                       _handleTap();
                     },
@@ -847,9 +922,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                                   .duration),
                                                       style: TextStyle(
                                                         color: Colors.white,
-                                                        fontSize: !Utils.isCompact()
-                                                            ? 16.0
-                                                            : 12.0,
+                                                        fontSize:
+                                                            !Utils.isCompact()
+                                                                ? 16.0
+                                                                : 12.0,
                                                       ),
                                                     ),
                                                   ),
@@ -889,9 +965,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                         .danDanmakus.length ==
                                                     0) {
                                                   SmartDialog.showToast(
-                                                      '当前剧集没有找到弹幕的说',
+                                                      '当前剧集没有找到弹幕的说 尝试手动检索',
                                                       displayType:
                                                           SmartToastType.last);
+                                                  showDanmakuSwitch();
                                                   return;
                                                 }
                                                 danmakuController.onClear();

@@ -1,4 +1,3 @@
-import 'package:kazumi/modules/bangumi/rating_item.dart';
 import 'package:hive/hive.dart';
 
 part 'bangumi_item.g.dart';

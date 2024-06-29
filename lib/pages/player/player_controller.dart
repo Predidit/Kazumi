@@ -191,6 +191,7 @@ abstract class _PlayerController with Store {
   }
 
   Future getDanDanmaku(String title, int episode) async {
+    debugPrint('尝试获取弹幕 $title');
     try {
       danDanmakus.clear();
       bangumiID = await DanmakuRequest.getBangumiID(title);

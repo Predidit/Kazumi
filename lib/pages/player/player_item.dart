@@ -316,6 +316,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                 Container(
                   color: Colors.black,
                   child: MouseRegion(
+                    cursor: (videoPageController.androidFullscreen && !playerController.showPositioned) ? SystemMouseCursors.none : SystemMouseCursors.basic,
                     onHover: (_) {
                       _handleTap();
                     },

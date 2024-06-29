@@ -85,7 +85,7 @@ class WebviewDesktopItemController {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
         debugPrint('由VideoJS桥收到的消息为 $messageItem');
-        videoPageController.logLines.add('Callback received: $messageItem');
+        videoPageController.logLines.add('Callback received: ${Uri.decodeFull(messageItem)}');
         count++;
         if (messageItem.contains('http')) {
           debugPrint('成功获取视频源');

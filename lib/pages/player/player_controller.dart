@@ -183,11 +183,13 @@ abstract class _PlayerController with Store {
   Future pause() async {
     danmakuController.pause();
     await mediaPlayer.pause();
+    playing = false;
   }
 
   Future play() async {
     danmakuController.resume();
     await mediaPlayer.play();
+    playing = true;
   }
 
   Future getDanDanmaku(String title, int episode) async {

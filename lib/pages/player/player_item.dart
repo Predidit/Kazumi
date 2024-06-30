@@ -181,6 +181,32 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     // Navigator.of(context).pop();
   }
 
+  void _handleFullscreen() {
+    if (videoPageController.androidFullscreen) {
+      try {
+        danmakuController.onClear();
+      } catch (_) {}
+      videoPageController.exitFullScreen();
+    } else {
+      videoPageController.enterFullScreen();
+      navigationBarState.hideNavigate();
+    }
+    videoPageController.androidFullscreen =
+        !videoPageController.androidFullscreen;
+  }
+
+  void _handleDanmaku() {
+    if (playerController.danDanmakus.isEmpty) {
+      SmartDialog.showToast('当前剧集没有找到弹幕的说 尝试手动检索',
+          displayType: SmartToastType.last);
+      showDanmakuSwitch();
+      return;
+    }
+    danmakuController.onClear();
+    playerController.danmakuOn = !playerController.danmakuOn;
+    debugPrint('弹幕开关变更为 ${playerController.danmakuOn}');
+  }
+
   // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playerSpeed;
@@ -277,26 +303,29 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                     useAnimation: false,
                     builder: (context) {
                       return Dialog(
-                        child: danmakuSearchResponse.animes.isEmpty ? const Text('未找到匹配结果') : ListView(
-                          shrinkWrap: true,
-                          children:
-                              danmakuSearchResponse.animes.map((danmakuInfo) {
-                            return ListTile(
-                              title: Text(danmakuInfo.animeTitle),
-                              onTap: () async {
-                                SmartDialog.showToast('弹幕切换中');
-                                try {
-                                  await playerController.getDanDanmaku(
-                                      danmakuInfo.animeTitle,
-                                      videoPageController.currentEspisode);
-                                } catch (e) {
-                                  SmartDialog.showToast('弹幕切换失败');
-                                }
-                                SmartDialog.dismiss();
-                              },
-                            );
-                          }).toList(),
-                        ),
+                        child: danmakuSearchResponse.animes.isEmpty
+                            ? const Text('未找到匹配结果')
+                            : ListView(
+                                shrinkWrap: true,
+                                children: danmakuSearchResponse.animes
+                                    .map((danmakuInfo) {
+                                  return ListTile(
+                                    title: Text(danmakuInfo.animeTitle),
+                                    onTap: () async {
+                                      SmartDialog.showToast('弹幕切换中');
+                                      try {
+                                        await playerController.getDanDanmaku(
+                                            danmakuInfo.animeTitle,
+                                            videoPageController
+                                                .currentEspisode);
+                                      } catch (e) {
+                                        SmartDialog.showToast('弹幕切换失败');
+                                      }
+                                      SmartDialog.dismiss();
+                                    },
+                                  );
+                                }).toList(),
+                              ),
                       );
                     });
               },
@@ -470,6 +499,16 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                     videoPageController.androidFullscreen =
                                         !videoPageController.androidFullscreen;
                                   }
+                                }
+                                // F键被按下
+                                if (event.logicalKey ==
+                                    LogicalKeyboardKey.keyF) {
+                                  _handleFullscreen();
+                                }
+                                // D键盘被按下
+                                if (event.logicalKey ==
+                                    LogicalKeyboardKey.keyD) {
+                                  _handleDanmaku();
                                 }
                               }
                             },
@@ -950,21 +989,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                   ? Icons.comment
                                                   : Icons.comments_disabled),
                                               onPressed: () {
-                                                if (playerController
-                                                        .danDanmakus.length ==
-                                                    0) {
-                                                  SmartDialog.showToast(
-                                                      '当前剧集没有找到弹幕的说 尝试手动检索',
-                                                      displayType:
-                                                          SmartToastType.last);
-                                                  showDanmakuSwitch();
-                                                  return;
-                                                }
-                                                danmakuController.onClear();
-                                                playerController.danmakuOn =
-                                                    !playerController.danmakuOn;
-                                                debugPrint(
-                                                    '弹幕开关变更为 ${playerController.danmakuOn}');
+                                                _handleDanmaku();
                                               },
                                             ),
                                             IconButton(
@@ -974,23 +999,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                   ? Icons.fullscreen_exit
                                                   : Icons.fullscreen),
                                               onPressed: () {
-                                                if (videoPageController
-                                                    .androidFullscreen) {
-                                                  try {
-                                                    danmakuController.onClear();
-                                                  } catch (_) {}
-                                                  videoPageController
-                                                      .exitFullScreen();
-                                                } else {
-                                                  videoPageController
-                                                      .enterFullScreen();
-                                                  navigationBarState
-                                                      .hideNavigate();
-                                                }
-                                                videoPageController
-                                                        .androidFullscreen =
-                                                    !videoPageController
-                                                        .androidFullscreen;
+                                                _handleFullscreen();
                                               },
                                             ),
                                           ],

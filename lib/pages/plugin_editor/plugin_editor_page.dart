@@ -74,42 +74,52 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 });
               },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(labelText: 'Name'),
             ),
             TextField(
               controller: versionController,
-              decoration: InputDecoration(labelText: 'Version'),
+              decoration: const InputDecoration(labelText: 'Version'),
             ),
             TextField(
               controller: baseURLController,
-              decoration: InputDecoration(labelText: 'BaseURL'),
+              decoration: const InputDecoration(labelText: 'BaseURL'),
             ),
             TextField(
               controller: searchURLController,
-              decoration: InputDecoration(labelText: 'SearchURL'),
+              decoration: const InputDecoration(labelText: 'SearchURL'),
             ),
             TextField(
               controller: searchListController,
-              decoration: InputDecoration(labelText: 'SearchList'),
+              decoration: const InputDecoration(labelText: 'SearchList'),
             ),
             TextField(
               controller: searchNameController,
-              decoration: InputDecoration(labelText: 'SearchName'),
+              decoration: const InputDecoration(labelText: 'SearchName'),
             ),
             TextField(
               controller: searchResultController,
-              decoration: InputDecoration(labelText: 'SearchResult'),
+              decoration: const InputDecoration(labelText: 'SearchResult'),
             ),
             TextField(
               controller: chapterRoadsController,
-              decoration: InputDecoration(labelText: 'ChapterRoads'),
+              decoration: const InputDecoration(labelText: 'ChapterRoads'),
             ),
             TextField(
               controller: chapterResultController,
-              decoration: InputDecoration(labelText: 'ChapterResult'),
+              decoration: const InputDecoration(labelText: 'ChapterResult'),
+            ),
+            const SizedBox(height: 20),
+            ExpansionTile(
+              title: const Text('高级选项'),
+              children: [
+                TextField(
+                  controller: userAgentController,
+                  decoration: const InputDecoration(labelText: 'UserAgent'),
+                ),
+              ],
             ),
           ],
         ),

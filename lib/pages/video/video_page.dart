@@ -295,19 +295,22 @@ class _VideoPageState extends State<VideoPage>
               }
             }
             // return ListView(children: cardList);
-            return GridView.builder(
-              scrollDirection: Axis.vertical,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount:
-                    (!Utils.isCompact() && !Utils.isTablet()) ? 10 : 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 5,
-                childAspectRatio: 1.7,
+            return Padding(
+              padding: const EdgeInsets.only(top: 0, right: 5, left: 5),
+              child: GridView.builder(
+                scrollDirection: Axis.vertical,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount:
+                      (!Utils.isCompact() && !Utils.isTablet()) ? 10 : 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 5,
+                  childAspectRatio: 1.7,
+                ),
+                itemCount: cardList.length,
+                itemBuilder: (context, index) {
+                  return cardList[index];
+                },
               ),
-              itemCount: cardList.length,
-              itemBuilder: (context, index) {
-                return cardList[index];
-              },
             );
           }),
         ),

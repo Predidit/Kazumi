@@ -7,7 +7,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:flutter/services.dart';

@@ -10,6 +10,8 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 
 class VideoPage extends StatefulWidget {
@@ -21,12 +23,14 @@ class VideoPage extends StatefulWidget {
 
 class _VideoPageState extends State<VideoPage>
     with SingleTickerProviderStateMixin {
+  Box setting = GStorage.setting;
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   late TabController tabController;
+  late bool playResume;
 
   @override
   void initState() {
@@ -34,6 +38,7 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
+    playResume = setting.get(SettingBoxKey.playResume, defaultValue: false);
     var progress = historyController.lastWatching(
         infoController.bangumiItem, videoPageController.currentPlugin.name);
     if (progress != null) {
@@ -45,8 +50,10 @@ class _VideoPageState extends State<VideoPage>
           debugPrint('选集进度恢复');
           videoPageController.currentEspisode = progress.episode;
           videoPageController.currentRoad = progress.road;
-          videoPageController.historyOffset = progress.progress.inSeconds;
-          debugPrint('上次观看位置 ${videoPageController.historyOffset}');
+          if (playResume) {
+            videoPageController.historyOffset = progress.progress.inSeconds;
+            debugPrint('上次观看位置 ${videoPageController.historyOffset}');
+          }
         }
       }
     }
@@ -69,7 +76,8 @@ class _VideoPageState extends State<VideoPage>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!Platform.isWindows) {
         videoPageController.changeEpisode(videoPageController.currentEspisode,
-            currentRoad: videoPageController.currentRoad, offset: videoPageController.historyOffset);
+            currentRoad: videoPageController.currentRoad,
+            offset: videoPageController.historyOffset);
       }
     });
     return SafeArea(

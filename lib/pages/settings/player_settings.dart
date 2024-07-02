@@ -5,7 +5,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -17,8 +16,6 @@ class PlayerSettingsPage extends StatefulWidget {
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
  dynamic navigationBarState;
-  Box setting = GStorage.setting;
-  late dynamic enableGitProxy;
 
   @override
   void initState() {
@@ -30,8 +27,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
       navigationBarState =
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
-    enableGitProxy =
-        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -58,6 +53,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 title: '硬件解码',
                 setKey: SettingBoxKey.hAenable,
                 defaultVal: true,
+              ),
+            ),
+            InkWell(
+              child: SetSwitchItem(
+                title: '自动跳转',
+                subTitle: '跳转到上次播放位置',
+                setKey: SettingBoxKey.playResume,
+                defaultVal: false,
               ),
             ),
           ],

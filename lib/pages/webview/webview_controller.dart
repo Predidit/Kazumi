@@ -7,7 +7,10 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemController {
+  // 重试次数
   int count = 0;
+  // 上次观看位置
+  int offset = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
   WebViewController webviewController = WebViewController();
@@ -15,9 +18,10 @@ class WebviewItemController {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
 
-  loadUrl(String url) async {
+  loadUrl(String url, {int offset = 0}) async {
     await unloadPage();
     count = 0;
+    this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
@@ -44,7 +48,7 @@ class WebviewItemController {
             unloadPage();
             playerController.videoUrl =
                 Utils.decodeVideoSource(message.message);
-            playerController.init();
+            playerController.init(offset: offset);
           } else {
             addFullscreenListener();
           }
@@ -65,7 +69,7 @@ class WebviewItemController {
         if (videoPageController.currentPlugin.useNativePlayer) {
           unloadPage();
           playerController.videoUrl = message.message;
-          playerController.init();
+          playerController.init(offset: offset);
         }
       }
     });

@@ -89,6 +89,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$historyOffsetAtom =
+      Atom(name: '_VideoPageController.historyOffset', context: context);
+
+  @override
+  int get historyOffset {
+    _$historyOffsetAtom.reportRead();
+    return super.historyOffset;
+  }
+
+  @override
+  set historyOffset(int value) {
+    _$historyOffsetAtom.reportWrite(value, super.historyOffset, () {
+      super.historyOffset = value;
+    });
+  }
+
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -113,6 +129,7 @@ logLines: ${logLines},
 currentEspisode: ${currentEspisode},
 currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},
+historyOffset: ${historyOffset},
 roadList: ${roadList}
     ''';
   }

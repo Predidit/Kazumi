@@ -33,6 +33,7 @@ class _VideoPageState extends State<VideoPage>
     super.initState();
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
+    videoPageController.historyOffset = 0;
     var progress = historyController.lastWatching(
         infoController.bangumiItem, videoPageController.currentPlugin.name);
     if (progress != null) {
@@ -44,6 +45,8 @@ class _VideoPageState extends State<VideoPage>
           debugPrint('选集进度恢复');
           videoPageController.currentEspisode = progress.episode;
           videoPageController.currentRoad = progress.road;
+          videoPageController.historyOffset = progress.progress.inSeconds;
+          debugPrint('上次观看位置 ${videoPageController.historyOffset}');
         }
       }
     }
@@ -66,7 +69,7 @@ class _VideoPageState extends State<VideoPage>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!Platform.isWindows) {
         videoPageController.changeEpisode(videoPageController.currentEspisode,
-            currentRoad: videoPageController.currentRoad);
+            currentRoad: videoPageController.currentRoad, offset: videoPageController.historyOffset);
       }
     });
     return SafeArea(

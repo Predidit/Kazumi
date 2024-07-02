@@ -36,6 +36,10 @@ abstract class _VideoPageController with Store {
   @observable
   bool androidFullscreen = false;
 
+  // 上次观看位置
+  @observable
+  int historyOffset = 0;
+
   String title = '';
 
   String src = '';
@@ -48,7 +52,7 @@ abstract class _VideoPageController with Store {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
 
-  changeEpisode(int episode, {int currentRoad = 0}) async {
+  changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
     loading = true;
     currentEspisode = episode;
     this.currentRoad = currentRoad;
@@ -64,11 +68,11 @@ abstract class _VideoPageController with Store {
       final WebviewDesktopItemController webviewDesktopItemController =
           Modular.get<WebviewDesktopItemController>();
       await webviewDesktopItemController
-          .loadUrl(urlItem);
+          .loadUrl(urlItem, offset: offset);
     } else {
       final WebviewItemController webviewItemController =
           Modular.get<WebviewItemController>();
-      await webviewItemController.loadUrl(urlItem);
+      await webviewItemController.loadUrl(urlItem, offset: offset);
     }
   }
 

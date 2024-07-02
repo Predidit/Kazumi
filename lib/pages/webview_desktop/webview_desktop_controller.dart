@@ -7,7 +7,10 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 class WebviewDesktopItemController {
+  // 重试次数
   int count = 0;
+  // 上次观看位置
+  int offset = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
   WebviewController webviewController = WebviewController();
@@ -15,16 +18,20 @@ class WebviewDesktopItemController {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
 
+  /// Why is this implementation so outrageous?
+  /// To take care of the quirks of webview_windows, this component must have been initialized before entering the component tree.
+  /// If this component enters the component tree during initialization, it will never be initialized.
   init() async {
     await webviewController.initialize();
     await initJSBridge();
     videoPageController.changeEpisode(videoPageController.currentEspisode,
-        currentRoad: videoPageController.currentRoad);
+        currentRoad: videoPageController.currentRoad, offset: videoPageController.historyOffset);
   }
 
-  loadUrl(String url) async {
+  loadUrl(String url, {int offset = 0}) async {
     await unloadPage();
     count = 0;
+    this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
@@ -76,7 +83,7 @@ class WebviewDesktopItemController {
             if (videoPageController.currentPlugin.useNativePlayer) {
               unloadPage();
               playerController.videoUrl = Utils.decodeVideoSource(messageItem);
-              playerController.init();
+              playerController.init(offset: offset);
             }
           }
         }
@@ -95,7 +102,7 @@ class WebviewDesktopItemController {
           if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
             playerController.videoUrl = messageItem;
-            playerController.init();
+            playerController.init(offset: offset);
           }
         }
       }

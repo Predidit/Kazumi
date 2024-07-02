@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/utils/constans.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:provider/provider.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {

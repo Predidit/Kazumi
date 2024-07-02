@@ -102,7 +102,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               child: SetSwitchItem(
                 title: '底部弹幕',
                 setKey: SettingBoxKey.danmakuBottom,
-                defaultVal: true,
+                defaultVal: false,
               ),
             ),
             const InkWell(

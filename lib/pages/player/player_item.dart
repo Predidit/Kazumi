@@ -371,7 +371,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
     danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
-    _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: true);
+    _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: false);
     _hideScroll = !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);

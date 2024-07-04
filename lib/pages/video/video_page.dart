@@ -116,7 +116,7 @@ class _VideoPageState extends State<VideoPage>
                   children: [
                     Container(
                         color: Colors.black,
-                        height: MediaQuery.of(context).size.width * 9 / 16,
+                        height: videoPageController.androidFullscreen ? MediaQuery.of(context).size.height : MediaQuery.of(context).size.width * 9 / 16,
                         width: MediaQuery.of(context).size.width,
                         child: playerBody),
                     videoPageController.androidFullscreen

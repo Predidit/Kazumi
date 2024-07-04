@@ -16,6 +16,12 @@ class _WebviewItemState extends State<WebviewItem> {
   final WebviewItemController webviewItemController = Modular.get<WebviewItemController>();
 
   @override
+  void dispose() {
+    webviewItemController.unloadPage();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WebViewWidget(controller: webviewItemController.webviewController);
   }

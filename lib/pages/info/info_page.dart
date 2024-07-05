@@ -90,114 +90,109 @@ class _InfoPageState extends State<InfoPage>
       onPopInvoked: (bool didPop) {
         onBackPressed(context);
       },
-      child: SafeArea(
-        child: Stack(
-          children: [
-            Scaffold(
-              backgroundColor: isLightTheme ? Colors.white : Colors.black,
-              appBar: const SysAppBar(backgroundColor: Colors.transparent),
-              body: Column(
-                children: [
-                  BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-                  TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    controller: tabController,
-                    tabs: pluginsController.pluginList
-                        .map((plugin) => Observer(
-                              builder: (context) => Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    plugin.name,
-                                    overflow: TextOverflow.ellipsis,
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: isLightTheme ? Colors.white : Colors.black,
+            appBar: const SysAppBar(backgroundColor: Colors.transparent),
+            body: Column(
+              children: [
+                BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+                TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  controller: tabController,
+                  tabs: pluginsController.pluginList
+                      .map((plugin) => Observer(
+                            builder: (context) => Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  plugin.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(width: 5.0),
+                                Container(
+                                  width: 8.0,
+                                  height: 8.0,
+                                  decoration: BoxDecoration(
+                                    color: infoController.pluginSearchStatus[
+                                                plugin.name] ==
+                                            'success'
+                                        ? Colors.green
+                                        : (infoController.pluginSearchStatus[
+                                                    plugin.name] ==
+                                                'pending')
+                                            ? Colors.grey
+                                            : Colors.red,
+                                    shape: BoxShape.circle,
                                   ),
-                                  const SizedBox(width: 5.0),
-                                  Container(
-                                    width: 8.0,
-                                    height: 8.0,
-                                    decoration: BoxDecoration(
-                                      color: infoController.pluginSearchStatus[
-                                                  plugin.name] ==
-                                              'success'
-                                          ? Colors.green
-                                          : (infoController.pluginSearchStatus[
-                                                      plugin.name] ==
-                                                  'pending')
-                                              ? Colors.grey
-                                              : Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  Expanded(
-                    child: Observer(
-                      builder: (context) => TabBarView(
-                        controller: tabController,
-                        children: List.generate(
-                            pluginsController.pluginList.length, (pluginIndex) {
-                          var plugin =
-                              pluginsController.pluginList[pluginIndex];
-                          var cardList = <Widget>[];
-                          for (var searchResponse
-                              in infoController.pluginSearchResponseList) {
-                            if (searchResponse.pluginName == plugin.name) {
-                              for (var searchItem in searchResponse.data) {
-                                cardList.add(Card(
-                                  color: Colors.transparent,
-                                  child: ListTile(
-                                    tileColor: Colors.transparent,
-                                    title: Text(searchItem.name),
-                                    onTap: () async {
-                                      SmartDialog.showLoading(msg: '获取中');
-                                      videoPageController.currentPlugin =
-                                          plugin;
-                                      videoPageController.title =
-                                          searchItem.name;
-                                      videoPageController.src = searchItem.src;
-                                      try {
-                                        await infoController.queryRoads(
-                                            searchItem.src, plugin.name);
-                                        SmartDialog.dismiss();
-                                        Modular.to.pushNamed('/tab/video/');
-                                      } catch (e) {
-                                        debugPrint(e.toString());
-                                        SmartDialog.dismiss();
-                                      }
-                                    },
-                                  ),
-                                ));
-                              }
+                                ),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+                Expanded(
+                  child: Observer(
+                    builder: (context) => TabBarView(
+                      controller: tabController,
+                      children: List.generate(
+                          pluginsController.pluginList.length, (pluginIndex) {
+                        var plugin = pluginsController.pluginList[pluginIndex];
+                        var cardList = <Widget>[];
+                        for (var searchResponse
+                            in infoController.pluginSearchResponseList) {
+                          if (searchResponse.pluginName == plugin.name) {
+                            for (var searchItem in searchResponse.data) {
+                              cardList.add(Card(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  tileColor: Colors.transparent,
+                                  title: Text(searchItem.name),
+                                  onTap: () async {
+                                    SmartDialog.showLoading(msg: '获取中');
+                                    videoPageController.currentPlugin = plugin;
+                                    videoPageController.title = searchItem.name;
+                                    videoPageController.src = searchItem.src;
+                                    try {
+                                      await infoController.queryRoads(
+                                          searchItem.src, plugin.name);
+                                      SmartDialog.dismiss();
+                                      Modular.to.pushNamed('/tab/video/');
+                                    } catch (e) {
+                                      debugPrint(e.toString());
+                                      SmartDialog.dismiss();
+                                    }
+                                  },
+                                ),
+                              ));
                             }
                           }
-                          return ListView(children: cardList);
-                        }),
-                      ),
+                        }
+                        return ListView(children: cardList);
+                      }),
                     ),
-                  )
-                ],
+                  ),
+                )
+              ],
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.1,
+                child: LayoutBuilder(builder: (context, boxConstraints) {
+                  return NetworkImgLayer(
+                    src: infoController.bangumiItem.images['large'] ?? '',
+                    width: boxConstraints.maxWidth,
+                    height: boxConstraints.maxHeight,
+                  );
+                }),
               ),
             ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.1,
-                  child: LayoutBuilder(builder: (context, boxConstraints) {
-                    return NetworkImgLayer(
-                      src: infoController.bangumiItem.images['large'] ?? '',
-                      width: boxConstraints.maxWidth,
-                      height: boxConstraints.maxHeight,
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

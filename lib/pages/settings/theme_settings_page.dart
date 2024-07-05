@@ -109,7 +109,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     dynamic color;
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
     if (defaultThemeColor == 'default') {
-      color = null;
+      color = Colors.green;
     } else {
       color = Color(int.parse(defaultThemeColor, radix: 16));
     }

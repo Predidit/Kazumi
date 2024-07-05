@@ -112,6 +112,13 @@ class _PopularPageState extends State<PopularPage>
               backgroundColor: Colors.transparent,
               title: Stack(
                 children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onPanStart: (_) => windowManager.startDragging(),
+                      child: Container(),
+                    ),
+                  ),
                   AnimatedSearchBar(
                     searchDecoration: const InputDecoration(
                       alignLabelWithHint: true,
@@ -150,13 +157,6 @@ class _PopularPageState extends State<PopularPage>
                         searchLoading = false;
                       });
                     },
-                  ),
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onPanStart: (_) => windowManager.startDragging(),
-                      child: Container(),
-                    ),
                   ),
                 ],
               ),

@@ -82,6 +82,7 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final isLight = Theme.of(context).brightness == Brightness.light;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 暂时移除，某些情况下可能 crash
       // scrollController.jumpTo(popularController.scrollOffset);
@@ -97,18 +98,20 @@ class _PopularPageState extends State<PopularPage>
         },
         child: Scaffold(
             appBar: SysAppBar(
-              leading: (Utils.isCompact()) ? Row(
-                children: [
-                  const SizedBox(
-                    width: 10,
-                  ),
-                  ClipOval(
-                    child: Image.asset(
-                      'assets/images/logo/logo_android.png',
-                    ),
-                  ),
-                ],
-              ) : null,
+              leading: (Utils.isCompact())
+                  ? Row(
+                      children: [
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo/logo_android.png',
+                          ),
+                        ),
+                      ],
+                    )
+                  : null,
               backgroundColor: Colors.transparent,
               title: Stack(
                 children: [
@@ -128,6 +131,8 @@ class _PopularPageState extends State<PopularPage>
                         borderRadius: BorderRadius.all(Radius.circular(8)),
                       ),
                     ),
+                    searchStyle: TextStyle(
+                        color: isLight ? Colors.black87 : Colors.white70),
                     onChanged: (_) {
                       scrollController.jumpTo(0.0);
                     },

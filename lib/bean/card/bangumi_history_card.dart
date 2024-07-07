@@ -37,7 +37,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     return SizedBox(
       height: 150,
       child: Card(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: Theme.of(context).colorScheme.secondaryContainer,
         child: InkWell(
           onTap: () async {
             SmartDialog.showLoading(msg: '获取中');

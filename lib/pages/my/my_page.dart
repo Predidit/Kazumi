@@ -54,6 +54,13 @@ class _MyPageState extends State<MyPage> {
           ),
           ListTile(
             onTap: () async {
+              Modular.to.pushNamed('/tab/my/webdav');
+            },
+            dense: false,
+            title: const Text('同步设置'),
+          ),
+          ListTile(
+            onTap: () async {
               Modular.to.pushNamed('/tab/my/other');
             },
             dense: false,

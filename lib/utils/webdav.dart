@@ -82,4 +82,8 @@ class WebDav {
     });
     await GStorage.restoreHistory(existingFile.path);
   }
+
+  Future ping() async {
+    await client.ping();
+  }
 }

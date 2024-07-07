@@ -20,7 +20,7 @@ class WebDav {
   Future init() async {
     fileName = 'histories.tmp';
     var directory = await getApplicationSupportDirectory();
-    webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp');
+    webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp'); 
     Box setting = GStorage.setting;
     webDavURL = setting.get(SettingBoxKey.webDavURL, defaultValue: '');
     webDavUsername =
@@ -53,14 +53,14 @@ class WebDav {
     }
     await GStorage.backupBox('histories', existingFile.path);
     try {
-      client.remove('/kazumiSync/$fileName.cache');
+      await client.remove('/kazumiSync/$fileName.cache');
     } catch (_) {}
     await client.writeFromFile(existingFile.path, '/kazumiSync/$fileName.cache',
         onProgress: (c, t) {
       print(c / t);
     });
     try {
-      client.remove('/kazumiSync/$fileName');
+      await client.remove('/kazumiSync/$fileName');
     } catch (_) {
       debugPrint('webDav former backup file not exist');
     }
@@ -80,7 +80,7 @@ class WebDav {
         onProgress: (c, t) {
       print(c / t);
     });
-    await GStorage.restoreHistory(existingFile.path);
+    await GStorage.patchHistory(existingFile.path);
   }
 
   Future ping() async {

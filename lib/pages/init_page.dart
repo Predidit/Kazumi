@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -14,14 +15,31 @@ class InitPage extends StatefulWidget {
 
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  Box setting = GStorage.setting;
 
   @override
   void initState() {
-    _init();
+    _pluginInit();
+    _webDavInit();
     super.initState();
   }
 
-  _init() async {
+  _webDavInit() async {
+    bool webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    if (webDavEnable) {
+      var webDav = WebDav();
+      debugPrint('开始从WEBDAV同步观看记录');
+      try {
+        await webDav.init();
+        await webDav.download();
+        debugPrint('同步完成');
+      } catch (e) {
+        debugPrint('同步失败 ${e.toString()}');
+      } 
+    }
+  }
+
+  _pluginInit() async {
     try {
       pluginsController.queryPluginHTTPList();
       await pluginsController.loadPlugins();

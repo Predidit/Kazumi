@@ -57,7 +57,7 @@ abstract class _PluginsController with Store {
     final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
     final jsonFiles = manifestMap.keys.where((String key) =>
-        key.startsWith('assets/plugins/') && key.endsWith('.json'));
+        key.startsWith('assets/plugins/') && key.endsWith('.json')); 
 
     for (var filePath in jsonFiles) {
       final jsonString = await rootBundle.loadString(filePath);

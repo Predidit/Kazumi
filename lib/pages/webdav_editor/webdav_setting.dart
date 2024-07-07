@@ -3,6 +3,7 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/webdav.dart';
 import 'package:provider/provider.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -38,11 +39,21 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     navigationBarState.showNavigate();
   }
 
-  checkWebDav() {
-    var webDavURL = setting.get(SettingBoxKey.webDavURL, defaultValue: '');
+  checkWebDav() async {
+    var webDavURL = await setting.get(SettingBoxKey.webDavURL, defaultValue: '');
     if (webDavURL == '') {
-      setting.put(SettingBoxKey.webDavEnable, false);
+      await setting.put(SettingBoxKey.webDavEnable, false);
       SmartDialog.showToast('未找到有效的webdav配置');
+      return;
+    }
+    try {
+      SmartDialog.showToast('尝试从WebDav同步');
+      var webDav = WebDav();
+      webDav.init();
+      await webDav.download();
+      SmartDialog.showToast('同步成功');
+    } catch (e) {
+      SmartDialog.showToast('同步失败 ${e.toString()}');
     }
   }
 

@@ -80,6 +80,7 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
           SmartDialog.showToast('配置成功, 开始测试');
           try {
             await webDav.ping();
+            SmartDialog.showToast('测试成功');
           } catch (e) {
             SmartDialog.showToast('测试失败 ${e.toString()}');
             await setting.put(SettingBoxKey.webDavEnable, false);

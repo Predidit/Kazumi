@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -20,7 +19,7 @@ class GStorage {
   }
 
   static Future<void> backupBox(String boxName, String backupFilePath) async {
-    final appDocumentDir = await getApplicationDocumentsDirectory();
+    final appDocumentDir = await getApplicationSupportDirectory();
     final hiveBoxFile = File('${appDocumentDir.path}/hive/$boxName.hive');
     if (await hiveBoxFile.exists()) {
       await hiveBoxFile.copy(backupFilePath);
@@ -30,12 +29,13 @@ class GStorage {
     }
   }
 
+  /// 弃用
   static Future<void> restoreHistory(String backupFilePath) async {
-    final appDocumentDir = await getApplicationDocumentsDirectory();
+    final appDocumentDir = await getApplicationSupportDirectory();
     final backupFile = File(backupFilePath);
     final hiveBoxFile = File('${appDocumentDir.path}/hive/histories.hive');
     final hiveBoxLockFile = File('${appDocumentDir.path}/hive/histories.lock');
-    histories.close();
+    await histories.close();
     try {
       await hiveBoxFile.delete();
       try {

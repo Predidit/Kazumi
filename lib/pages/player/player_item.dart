@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/webdav.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
@@ -46,6 +47,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   late DanmakuController danmakuController;
   dynamic navigationBarState;
   late bool isFavorite;
+  late bool webDavEnable;
   bool isPopping = false;
 
   // 弹幕
@@ -160,11 +162,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     });
   }
 
-  void onBackPressed(BuildContext context) {
+  void onBackPressed(BuildContext context) async {
     if (videoPageController.androidFullscreen) {
       debugPrint('当前播放器全屏');
       try {
-        videoPageController.exitFullScreen();
+        await videoPageController.exitFullScreen();
         videoPageController.androidFullscreen = false;
         danmakuController.clear();
         return;
@@ -176,6 +178,14 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
     // workaround on flutter 3.22.1
     if (!isPopping) {
       isPopping = true;
+      if (webDavEnable) {
+        try {
+          var webDav = WebDav();
+          webDav.update();
+        } catch (e) {
+          SmartDialog.showToast('同步记录失败 ${e.toString()}');
+        }
+      }
       Navigator.of(context).pop();
     }
     // Navigator.of(context).pop();
@@ -364,6 +374,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       navigationBarState =
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
+    webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;
@@ -371,7 +382,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
     danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
-    _hideBottom = !setting.get(SettingBoxKey.danmakuBottom, defaultValue: false);
+    _hideBottom =
+        !setting.get(SettingBoxKey.danmakuBottom, defaultValue: false);
     _hideScroll = !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);

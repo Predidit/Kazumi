@@ -75,6 +75,7 @@ dependencies:
   webview_flutter: ^4.7.0
   canvas_danmaku: ^0.1.6
   animated_search_bar: ^2.7.1
+  webdav_client: ^1.2.2
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

@@ -73,6 +73,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
             InkWell(
               child: SetSwitchItem(
                 title: 'WEBDAV同步',
+                subTitle: '使用WEBDAV同步观看记录',
                 setKey: SettingBoxKey.webDavEnable,
                 callFn: (val) {
                   if (val) {

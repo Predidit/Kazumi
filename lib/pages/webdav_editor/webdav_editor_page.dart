@@ -55,11 +55,11 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
               controller: webDavPasswordController,
               decoration: const InputDecoration(labelText: 'Password'),
             ),
-            const SizedBox(height: 20),
-            ExpansionTile(
-              title: const Text('高级选项'),
-              children: [],
-            ),
+            // const SizedBox(height: 20),
+            // ExpansionTile(
+            //   title: const Text('高级选项'),
+            //   children: [],
+            // ),
           ],
         ),
       ),

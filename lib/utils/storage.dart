@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -51,18 +52,35 @@ class GStorage {
   static Future<void> patchHistory(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
-    final tempBox = await Hive.openBox('tempBox', bytes: backupContent);
+    final tempBox = await Hive.openBox('tempHistoryBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
 
     for (var tempBoxItem in tempBoxItems) {
       if (histories.get(tempBoxItem.key) != null) {
-        if (histories.get(tempBoxItem.key)!.lastWatchTime.isBefore(tempBoxItem.value.lastWatchTime)) {
-          histories.delete(tempBoxItem.key);
-          histories.put(tempBoxItem.key, tempBoxItem.value);
+        if (histories
+            .get(tempBoxItem.key)!
+            .lastWatchTime
+            .isBefore(tempBoxItem.value.lastWatchTime)) {
+          await histories.delete(tempBoxItem.key);
+          await histories.put(tempBoxItem.key, tempBoxItem.value);
         }
       } else {
-        histories.put(tempBoxItem.key, tempBoxItem.value);
+        await histories.put(tempBoxItem.key, tempBoxItem.value);
       }
+    }
+    await tempBox.close();
+  }
+
+  static Future<void> patchFavorites(String backupFilePath) async {
+    final backupFile = File(backupFilePath);
+    final backupContent = await backupFile.readAsBytes();
+    final tempBox = await Hive.openBox('tempFavoritesBox', bytes: backupContent);
+    final tempBoxItems = tempBox.toMap().entries;
+    debugPrint('webDav追番列表长度 ${tempBoxItems.length}');
+
+    await favorites.clear();
+    for (var tempBoxItem in tempBoxItems) {
+      await favorites.put(tempBoxItem.key, tempBoxItem.value);
     }
     await tempBox.close();
   }
@@ -97,6 +115,7 @@ class SettingBoxKey {
       enableSystemProxy = 'enableSystemProxy',
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
+      webDavEnableFavorite = 'webDavEnableFavorite',
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd';

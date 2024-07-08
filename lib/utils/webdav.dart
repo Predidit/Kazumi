@@ -9,7 +9,6 @@ class WebDav {
   late String webDavURL;
   late String webDavUsername;
   late String webDavPassword;
-  late String fileName;
   late Directory webDavLocalTempDirectory;
   late webdav.Client client;
 
@@ -18,7 +17,6 @@ class WebDav {
   factory WebDav() => _instance;
 
   Future init() async {
-    fileName = 'histories.tmp';
     var directory = await getApplicationSupportDirectory();
     webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp'); 
     Box setting = GStorage.setting;
@@ -43,32 +41,34 @@ class WebDav {
     }
   }
 
-  Future update() async {
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
-    }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await GStorage.backupBox('histories', existingFile.path);
+  Future update(String boxName) async {
+    var directory = await getApplicationSupportDirectory();
     try {
-      await client.remove('/kazumiSync/$fileName.cache');
+      await client.remove('/kazumiSync/$boxName.tmp.cache');
     } catch (_) {}
-    await client.writeFromFile(existingFile.path, '/kazumiSync/$fileName.cache',
+    await client.writeFromFile('${directory.path}/hive/$boxName.hive', '/kazumiSync/$boxName.tmp.cache',
         onProgress: (c, t) {
       print(c / t);
     });
     try {
-      await client.remove('/kazumiSync/$fileName');
+      await client.remove('/kazumiSync/$boxName.tmp');
     } catch (_) {
       debugPrint('webDav former backup file not exist');
     }
     await client.rename(
-        '/kazumiSync/$fileName.cache', '/kazumiSync/$fileName', true);
+        '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
   }
 
-  Future download() async {
+  Future updateHistory() async {
+    await update('histories');
+  }
+
+  Future updateFavorite() async {
+    await update('favorites');
+  }
+
+  Future downloadHistory() async {
+    String fileName = 'histories.tmp';
     if (!await webDavLocalTempDirectory.exists()) {
       await webDavLocalTempDirectory.create(recursive: true);
     }
@@ -80,7 +80,23 @@ class WebDav {
         onProgress: (c, t) {
       print(c / t);
     });
-    await GStorage.patchHistory(existingFile.path);
+    await GStorage.patchHistory(existingFile.path); 
+  }
+  
+  Future downloadFavorite() async {
+    String fileName = 'favorites.tmp';
+    if (!await webDavLocalTempDirectory.exists()) {
+      await webDavLocalTempDirectory.create(recursive: true);
+    }
+    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
+    if (await existingFile.exists()) {
+      await existingFile.delete();
+    }
+    await client.read2File('/kazumiSync/$fileName', existingFile.path,
+        onProgress: (c, t) {
+      print(c / t);
+    });
+    await GStorage.patchFavorites(existingFile.path); 
   }
 
   Future ping() async {

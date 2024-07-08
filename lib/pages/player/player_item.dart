@@ -181,7 +181,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
       if (webDavEnable) {
         try {
           var webDav = WebDav();
-          webDav.update();
+          webDav.updateHistory();
         } catch (e) {
           SmartDialog.showToast('同步记录失败 ${e.toString()}');
         }

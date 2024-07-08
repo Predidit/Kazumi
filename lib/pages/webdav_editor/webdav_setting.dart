@@ -6,7 +6,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:provider/provider.dart';
 import 'package:hive/hive.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -50,7 +49,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       SmartDialog.showToast('尝试从WebDav同步');
       var webDav = WebDav();
       webDav.init();
-      await webDav.download();
+      await webDav.downloadHistory();
       SmartDialog.showToast('同步成功');
     } catch (e) {
       SmartDialog.showToast('同步失败 ${e.toString()}');

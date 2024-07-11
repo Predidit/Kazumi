@@ -163,6 +163,18 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
+                launchUrl(Uri.parse(Api.iconUrl));
+              },
+              dense: false,
+              title: const Text('图标创作者'),
+              trailing: Text('Pixiv',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
+            ListTile(
+              onTap: () {
                 _showCacheDialog();
               },
               dense: false,

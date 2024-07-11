@@ -5,6 +5,8 @@ class Api {
   static const int apiLevel = 1;
   // 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
+  // 图标作者
+  static const String iconUrl = "https://www.pixiv.net/users/66219277";
   // 规则仓库
   static const String pluginShop = 'https://raw.githubusercontent.com/Predidit/KazumiRules/main/';
   // 在线升级

@@ -92,8 +92,25 @@ class _InfoPageState extends State<InfoPage>
       },
       child: Stack(
         children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                color: isLightTheme ? Colors.white : Colors.black,
+                child: Opacity(
+                  opacity: 0.2,
+                  child: LayoutBuilder(builder: (context, boxConstraints) {
+                    return NetworkImgLayer(
+                      src: infoController.bangumiItem.images['large'] ?? '',
+                      width: boxConstraints.maxWidth,
+                      height: boxConstraints.maxHeight,
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
           Scaffold(
-            backgroundColor: isLightTheme ? Colors.white : Colors.black,
+            backgroundColor: Colors.transparent,
             appBar: const SysAppBar(backgroundColor: Colors.transparent),
             body: Column(
               children: [
@@ -176,20 +193,6 @@ class _InfoPageState extends State<InfoPage>
                   ),
                 )
               ],
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.1,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  return NetworkImgLayer(
-                    src: infoController.bangumiItem.images['large'] ?? '',
-                    width: boxConstraints.maxWidth,
-                    height: boxConstraints.maxHeight,
-                  );
-                }),
-              ),
             ),
           ),
         ],

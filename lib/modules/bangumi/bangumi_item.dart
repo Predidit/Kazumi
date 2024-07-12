@@ -44,7 +44,6 @@ class BangumiItem {
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     return BangumiItem(
       id: json['id'],
-      // url: json['url'],
       type: json['type'] ?? 2,
       name: json['name'] ?? '',
       nameCn: (json['name_cn'] ?? '') == '' ? (json['name'] ?? '') : json['name_cn'],

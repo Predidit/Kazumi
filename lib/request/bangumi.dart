@@ -70,15 +70,32 @@ class BangumiHTTP {
           'Predidit/Kazumi/${Api.version} (Android) (https://github.com/Predidit/Kazumi)',
       'referer': '',
     };
-    Map<String, String> keywordMap = {'type': '2', 'responseGroup': 'large', 'max_results': '25'};
+    // Map<String, String> keywordMap = {
+    //   'type': '2',
+    //   'responseGroup': 'large',
+    //   'max_results': '25'
+    // };
+
+    var params = <String, dynamic>{
+      'keyword': keyword,
+      'sort': 'rank',
+      "filter": {
+        "type": [2],
+        "tag": [],
+        "rank": [">0", "<=99999"],
+        "nsfw": false
+      },
+    };
 
     try {
-      final res = await Request().get(
-          Api.bangumiSearch + Uri.encodeComponent(keyword),
-          data: keywordMap,
-          options: Options(headers: httpHeaders));
+      // final res = await Request().get(
+      //     Api.bangumiSearch + Uri.encodeComponent(keyword),
+      //     data: keywordMap,
+      //     options: Options(headers: httpHeaders));
+      final res = await Request().post(Api.bangumiRankSearch,
+          data: params, options: Options(headers: httpHeaders, contentType: 'application/json'));
       final jsonData = res.data;
-      final jsonList = jsonData['list'];
+      final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
         if (jsonItem is Map<String, dynamic>) {
           try {

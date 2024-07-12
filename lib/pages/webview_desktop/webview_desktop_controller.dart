@@ -24,8 +24,12 @@ class WebviewDesktopItemController {
   init() async {
     await webviewController.initialize();
     await initJSBridge();
+    if (videoPageController.currentPlugin.useNativePlayer) {
+      await initBlobParser();
+    }
     videoPageController.changeEpisode(videoPageController.currentEspisode,
-        currentRoad: videoPageController.currentRoad, offset: videoPageController.historyOffset);
+        currentRoad: videoPageController.currentRoad,
+        offset: videoPageController.historyOffset);
   }
 
   loadUrl(String url, {int offset = 0}) async {
@@ -65,38 +69,45 @@ class WebviewDesktopItemController {
       if (event.toString().contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
-        debugPrint('由JS桥收到的消息为 $messageItem');
-        videoPageController.logLines.add('Callback received: ${Uri.decodeFull(messageItem)}');
+        debugPrint('JS Bridge: $messageItem');
+        videoPageController.logLines
+            .add('Callback received: ${Uri.decodeFull(messageItem)}');
         videoPageController.logLines.add(
             'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http')) {
           debugPrint('成功加载 iframe');
           videoPageController.logLines.add('Parsing video source $messageItem');
+          playerController.videoReferer = Utils.getBaseUrl(Uri.decodeFull(messageItem));
           isIframeLoaded = true;
-          if (Utils.decodeVideoSource(messageItem) != Uri.encodeFull(messageItem)) {
-            isVideoSourceLoaded = true;
-            videoPageController.loading = false;
-            videoPageController.logLines.add(
-                'Loading video source ${Utils.decodeVideoSource(messageItem)}');
-            debugPrint(
-                '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
-            if (videoPageController.currentPlugin.useNativePlayer) {
-              unloadPage();
-              playerController.videoUrl = Utils.decodeVideoSource(messageItem);
-              playerController.init(offset: offset);
-            }
-          }
+          // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
+          // if (Utils.decodeVideoSource(messageItem) !=
+          //         Uri.encodeFull(messageItem) &&
+          //     !isVideoSourceLoaded) {
+          //   isVideoSourceLoaded = true;
+          //   videoPageController.loading = false;
+          //   videoPageController.logLines.add(
+          //       'Loading video source ${Utils.decodeVideoSource(messageItem)}');
+          //   debugPrint(
+          //       '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
+          //   if (videoPageController.currentPlugin.useNativePlayer) {
+          //     unloadPage();
+          //     playerController.videoUrl = Utils.decodeVideoSource(messageItem);
+          //     playerController.init(offset: offset);
+          //   }
+          // }
         }
       }
       if (event.toString().contains('videoMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
-        debugPrint('由VideoJS桥收到的消息为 $messageItem');
-        videoPageController.logLines.add('Callback received: ${Uri.decodeFull(messageItem)}');
+        debugPrint('VideoJS Bridge: $messageItem');
+        videoPageController.logLines
+            .add('Callback received: ${Uri.decodeFull(messageItem)}');
         count++;
-        if (messageItem.contains('http')) {
+        if (messageItem.contains('http') && !isVideoSourceLoaded) {
           debugPrint('成功获取视频源');
-          videoPageController.logLines.add('Loading video source ${Uri.decodeFull(messageItem)}');
+          videoPageController.logLines
+              .add('Loading video source ${Uri.decodeFull(messageItem)}');
           isVideoSourceLoaded = true;
           videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
@@ -131,7 +142,7 @@ class WebviewDesktopItemController {
   ''');
   }
 
-  // blob解码问题无法解决
+  // 非blob资源
   parseVideoSource() async {
     await webviewController.executeScript('''
       var videos = document.querySelectorAll('video');
@@ -142,6 +153,36 @@ class WebviewDesktopItemController {
           window.chrome.webview.postMessage('videoMessage:' + src);
         } 
       }
+    ''');
+  }
+
+  // blob资源
+  initBlobParser() async {
+    await webviewController.addScriptToExecuteOnDocumentCreated('''
+      const _r_text = window.Response.prototype.text;
+      window.Response.prototype.text = function () {
+          return new Promise((resolve, reject) => {
+              _r_text.call(this).then((text) => {
+                  resolve(text);
+                  if (text.trim().startsWith("#EXTM3U")) {
+                      window.chrome.webview.postMessage('videoMessage:' + this.url);
+                  }
+              }).catch(reject);
+          });
+      }
+
+      const _open = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function (...args) {
+          this.addEventListener("load", () => {
+              try {
+                  let content = this.responseText;
+                  if (content.trim().startsWith("#EXTM3U")) {
+                      window.chrome.webview.postMessage('videoMessage:' + args[1]);
+                  };
+              } catch { }
+          });
+          return _open.apply(this, args);
+      }     
     ''');
   }
 

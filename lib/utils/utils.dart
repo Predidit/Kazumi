@@ -357,6 +357,11 @@ class Utils {
     );
   }
 
+  static String getBaseUrl(String url) {
+    Uri uri = Uri.parse(url);
+    return '${uri.scheme}://${uri.host}';
+  }
+
   static generateDanmakuColor(int colorValue) {
     // 提取颜色分量
     int red = (colorValue >> 16) & 0xFF;

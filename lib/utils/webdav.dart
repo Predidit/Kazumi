@@ -29,7 +29,7 @@ class WebDav {
       webDavURL,
       user: webDavUsername,
       password: webDavPassword,
-      debug: true,
+      debug: false,
     );
     client.setHeaders({'accept-charset': 'utf-8'});
     try {

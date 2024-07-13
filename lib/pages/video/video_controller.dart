@@ -64,6 +64,9 @@ abstract class _VideoPageController with Store {
     } else {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
+    if (urlItem.startsWith('http://')) {
+      urlItem = urlItem.replaceFirst('http', 'https');
+    }
     if (Platform.isWindows) {
       final WebviewDesktopItemController webviewDesktopItemController =
           Modular.get<WebviewDesktopItemController>();

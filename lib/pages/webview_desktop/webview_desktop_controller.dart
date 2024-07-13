@@ -75,9 +75,7 @@ class WebviewDesktopItemController {
         videoPageController.logLines.add(
             'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http')) {
-          debugPrint('成功加载 iframe');
           videoPageController.logLines.add('Parsing video source $messageItem');
-          playerController.videoReferer = Utils.getBaseUrl(Uri.decodeFull(messageItem));
           isIframeLoaded = true;
           // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
           // if (Utils.decodeVideoSource(messageItem) !=
@@ -105,7 +103,7 @@ class WebviewDesktopItemController {
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         count++;
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
-          debugPrint('成功获取视频源');
+          debugPrint('Loading video source ${Uri.decodeFull(messageItem)}');
           videoPageController.logLines
               .add('Loading video source ${Uri.decodeFull(messageItem)}');
           isVideoSourceLoaded = true;

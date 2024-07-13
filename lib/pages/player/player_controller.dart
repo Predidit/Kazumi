@@ -21,7 +21,6 @@ abstract class _PlayerController with Store {
   bool loading = true;
 
   String videoUrl = '';
-  String videoReferer = '';
   // 弹幕ID
   int bangumiID = 0;
   late Player mediaPlayer;
@@ -143,18 +142,14 @@ abstract class _PlayerController with Store {
     debugPrint('videoController 配置成功 $videoUrl');
 
     if (videoPageController.currentPlugin.userAgent == '') {
-      var httpHeaders = {
-        'referer': videoReferer
-      };
       mediaPlayer.open(
-        Media(videoUrl, httpHeaders: httpHeaders),
+        Media(videoUrl),
         play: true,
       );
     } else {
       debugPrint('media_kit UA: ${videoPageController.currentPlugin.userAgent}');
       var httpHeaders = {
         'user-agent': videoPageController.currentPlugin.userAgent,
-        'referer': videoReferer
       };
       mediaPlayer.open(
         Media(videoUrl, httpHeaders: httpHeaders),

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemController {
@@ -20,50 +19,60 @@ class WebviewItemController {
 
   loadUrl(String url, {int offset = 0}) async {
     await unloadPage();
+    await setDesktopUserAgent();
     count = 0;
     this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    await webviewController.setNavigationDelegate(
-        NavigationDelegate(onUrlChange: (_) => addFullscreenListener()));
+    await webviewController
+        .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
+      debugPrint('Current URL: ${currentUrl.url}');
+      if (videoPageController.currentPlugin.useNativePlayer) {
+        addBlobParser();
+      }
+      addFullscreenListener();
+    }));
     await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     await webviewController.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
-      debugPrint('JS桥收到的消息为 ${message.message}');
+      debugPrint('JS Bridge: ${message.message}');
       videoPageController.logLines.add('Callback received: ${message.message}');
       videoPageController.logLines.add(
           'If there is audio but no video, please report it to the rule developer.');
       if (message.message.contains('http')) {
+        videoPageController.logLines
+            .add('Parsing video source ${message.message}');
         isIframeLoaded = true;
-        if (Utils.decodeVideoSource(message.message) !=
-            Uri.encodeFull(message.message)) {
-          debugPrint(
-              '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
-          videoPageController.logLines.add(
-              'Loading video source ${Utils.decodeVideoSource(message.message)}');
-          isVideoSourceLoaded = true;
-          videoPageController.loading = false;
-          if (videoPageController.currentPlugin.useNativePlayer) {
-            unloadPage();
-            playerController.videoUrl =
-                Utils.decodeVideoSource(message.message);
-            playerController.init(offset: offset);
-          } else {
-            addFullscreenListener();
-          }
-        }
+        // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
+        // if (Utils.decodeVideoSource(message.message) !=
+        //     Uri.encodeFull(message.message)) {
+        //   debugPrint(
+        //       '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
+        //   videoPageController.logLines.add(
+        //       'Loading video source ${Utils.decodeVideoSource(message.message)}');
+        //   isVideoSourceLoaded = true;
+        //   videoPageController.loading = false;
+        //   if (videoPageController.currentPlugin.useNativePlayer) {
+        //     unloadPage();
+        //     playerController.videoUrl =
+        //         Utils.decodeVideoSource(message.message);
+        //     playerController.init(offset: offset);
+        //   } else {
+        //     addFullscreenListener();
+        //   }
+        // }
       }
     });
     await webviewController.addJavaScriptChannel('VideoBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
-      debugPrint('VideoJS桥收到的消息为 ${message.message}');
+      debugPrint('VideoJS Bridge: ${message.message}');
       videoPageController.logLines.add('Callback received: ${message.message}');
       count++;
-      if (message.message.contains('http')) {
-        debugPrint('由video标签获取视频源 ${message.message}');
+      if (message.message.contains('http') && !isVideoSourceLoaded) {
+        debugPrint('Loading video source: ${message.message}');
         videoPageController.logLines
-            .add('Loading video source ${message.message}');
+            .add('Loading video source: ${message.message}');
         isVideoSourceLoaded = true;
         videoPageController.loading = false;
         if (videoPageController.currentPlugin.useNativePlayer) {
@@ -124,11 +133,6 @@ class WebviewItemController {
     await webviewController.clearCache();
   }
 
-  // loadIframe(String url) async {
-  //   await webviewController.loadRequest(Uri.parse(url),
-  //       headers: {'Referer': videoPageController.currentPlugin.baseUrl + '/'});
-  // }
-
   parseIframeUrl() async {
     await webviewController.runJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
@@ -146,7 +150,7 @@ class WebviewItemController {
   ''');
   }
 
-  // blob解码问题无法解决
+  // 非blob资源
   parseVideoSource() async {
     await webviewController.runJavaScript('''
       var videos = document.querySelectorAll('video');
@@ -159,6 +163,43 @@ class WebviewItemController {
         } 
       }
     ''');
+  }
+
+  // blob资源
+  addBlobParser() async {
+    await webviewController.runJavaScript('''
+      const _r_text = window.Response.prototype.text;
+      window.Response.prototype.text = function () {
+          return new Promise((resolve, reject) => {
+              _r_text.call(this).then((text) => {
+                  resolve(text);
+                  if (text.trim().startsWith("#EXTM3U")) {
+                      VideoBridgeDebug.postMessage(this.url);
+                  }
+              }).catch(reject);
+          });
+      }
+
+      const _open = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function (...args) {
+          this.addEventListener("load", () => {
+              try {
+                  let content = this.responseText;
+                  if (content.trim().startsWith("#EXTM3U")) {
+                      VideoBridgeDebug.postMessage(args[1]);
+                  };
+              } catch { }
+          });
+          return _open.apply(this, args);
+      }     
+    ''');
+  }
+
+  // 使用桌面视图
+  setDesktopUserAgent() async {
+    const desktopUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+    await webviewController.setUserAgent(desktopUserAgent);
   }
 
   // 全屏监听

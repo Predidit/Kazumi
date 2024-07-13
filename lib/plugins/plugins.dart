@@ -170,42 +170,43 @@ class Plugin {
     return roadList;
   }
 
-  Future<String> queryVideoUrl(String url) async {
-    String queryURL = '';
-    // 预处理
-    if (!url.contains('https')) {
-      url = url.replaceAll('http', 'https');
-    }
-    if (url.contains(baseUrl)) {
-      queryURL = url;
-    } else {
-      queryURL = baseUrl + url;
-    }
-    String videoUrl = '';
-    var httpHeaders = {
-      'referer': baseUrl + '/',
-    };
-    if (useWebview == 'false') {
-      videoUrl = await queryVideoUrlWithoutWebview(queryURL, httpHeaders);
-    } else {}
-    return videoUrl;
-  }
+  // 弃用
+  // Future<String> queryVideoUrl(String url) async {
+  //   String queryURL = '';
+  //   // 预处理
+  //   if (!url.contains('https')) {
+  //     url = url.replaceAll('http', 'https');
+  //   }
+  //   if (url.contains(baseUrl)) {
+  //     queryURL = url;
+  //   } else {
+  //     queryURL = baseUrl + url;
+  //   }
+  //   String videoUrl = '';
+  //   var httpHeaders = {
+  //     'referer': baseUrl + '/',
+  //   };
+  //   if (useWebview == 'false') {
+  //     videoUrl = await queryVideoUrlWithoutWebview(queryURL, httpHeaders);
+  //   } else {}
+  //   return videoUrl;
+  // }
 
-  Future<String> queryVideoUrlWithoutWebview(
-      String queryURL, Map<String, String> httpHeaders) async {
-    String videoUrl = '';
-    var resp =
-        await Request().get(queryURL, options: Options(headers: httpHeaders));
-    try {
-      videoUrl = ParserWithoutWebview.extractM3U8Links(resp.data);
-    } catch (_) {}
-    if (videoUrl == '') {
-      try {
-        videoUrl = ParserWithoutWebview.extractMP4Links(resp.data);
-      } catch (_) {}
-    }
-    return videoUrl;
-  }
+  // Future<String> queryVideoUrlWithoutWebview(
+  //     String queryURL, Map<String, String> httpHeaders) async {
+  //   String videoUrl = '';
+  //   var resp =
+  //       await Request().get(queryURL, options: Options(headers: httpHeaders));
+  //   try {
+  //     videoUrl = ParserWithoutWebview.extractM3U8Links(resp.data);
+  //   } catch (_) {}
+  //   if (videoUrl == '') {
+  //     try {
+  //       videoUrl = ParserWithoutWebview.extractMP4Links(resp.data);
+  //     } catch (_) {}
+  //   }
+  //   return videoUrl;
+  // }
 
-  queryVideoUrlWithWebview(String url) {}
+  // queryVideoUrlWithWebview(String url) {}
 }

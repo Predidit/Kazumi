@@ -53,9 +53,8 @@ dependencies:
   flutter_smart_dialog: ^4.9.4
   cached_network_image: ^3.3.0
 
-  media_kit: ^1.1.10                             # Primary package.
-  media_kit_video: ^1.2.4                        # For video rendering.
-  media_kit_libs_video: ^1.0.4                   # Native video dependencies.
+  fvp: ^0.21.0
+  video_player: ^2.9.1
 
   auto_orientation: ^2.3.1
   flutter_volume_controller: ^1.3.1

@@ -9,7 +9,7 @@ import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:window_manager/window_manager.dart';
@@ -34,7 +34,8 @@ class PlayerItem extends StatefulWidget {
   State<PlayerItem> createState() => _PlayerItemState();
 }
 
-class _PlayerItemState extends State<PlayerItem> with WindowListener {
+class _PlayerItemState extends State<PlayerItem>
+    with WindowListener, WidgetsBindingObserver {
   Box setting = GStorage.setting;
   final PlayerController playerController = Modular.get<PlayerController>();
   final VideoPageController videoPageController =
@@ -67,6 +68,14 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
 
+  /// 处理 Android/iOS 应用后台或熄屏
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      playerController.pause();
+    }
+  }
+
   void _handleTap() {
     playerController.showPositioned = true;
     if (hideTimer != null) {
@@ -93,17 +102,21 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
-      playerController.playing = playerController.mediaPlayer.state.playing;
+      playerController.playing = playerController.mediaPlayer.value.isPlaying;
       playerController.isBuffering =
-          playerController.mediaPlayer.state.buffering;
+          playerController.mediaPlayer.value.isBuffering;
       playerController.currentPosition =
-          playerController.mediaPlayer.state.position;
-      playerController.buffer = playerController.mediaPlayer.state.buffer;
-      playerController.duration = playerController.mediaPlayer.state.duration;
-      playerController.completed = playerController.mediaPlayer.state.completed;
+          playerController.mediaPlayer.value.position;
+      playerController.buffer =
+          playerController.mediaPlayer.value.buffered.isEmpty
+              ? Duration.zero
+              : playerController.mediaPlayer.value.buffered[0].end;
+      playerController.duration = playerController.mediaPlayer.value.duration;
+      playerController.completed =
+          playerController.mediaPlayer.value.isCompleted;
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
-          playerController.mediaPlayer.state.playing == true &&
+          playerController.mediaPlayer.value.isPlaying == true &&
           playerController.danmakuOn == true) {
         // debugPrint('当前播放到 ${videoController.currentPosition.inSeconds}');
         playerController.danDanmakus[playerController.currentPosition.inSeconds]
@@ -121,8 +134,8 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                               playerController.currentPosition.inSeconds]!
                           .length),
               () => mounted &&
-                      playerController.mediaPlayer.state.playing &&
-                      !playerController.mediaPlayer.state.buffering
+                      playerController.mediaPlayer.value.isPlaying &&
+                      !playerController.mediaPlayer.value.isBuffering
                   ? danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
                       color: danmaku.color,
@@ -135,13 +148,13 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
         });
       }
       // 历史记录相关
-      if (playerController.mediaPlayer.state.playing) {
+      if (playerController.mediaPlayer.value.isPlaying) {
         historyController.updateHistory(
             videoPageController.currentEspisode,
             videoPageController.currentRoad,
             videoPageController.currentPlugin.name,
             infoController.bangumiItem,
-            playerController.mediaPlayer.state.position,
+            playerController.mediaPlayer.value.position,
             videoPageController.src);
       }
       // 自动播放下一集
@@ -367,6 +380,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
@@ -393,7 +407,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
 
   @override
   void dispose() {
-    //player.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     if (playerTimer != null) {
       playerTimer!.cancel();
     }
@@ -534,7 +548,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                               child:
                                   Stack(alignment: Alignment.center, children: [
                                 Center(child: playerSurface),
-                                playerController.isBuffering
+                                (playerController.isBuffering || playerController.loading)
                                     ? const Positioned.fill(
                                         child: Center(
                                           child: CircularProgressIndicator(),
@@ -683,11 +697,11 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                                               .compareTo(
                                                                   playerController
                                                                       .mediaPlayer
-                                                                      .state
+                                                                      .value
                                                                       .position) >
                                                           0
-                                                      ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.state.position.inSeconds} 秒'
-                                                      : '快退 ${playerController.mediaPlayer.state.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
+                                                      ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.value.position.inSeconds} 秒'
+                                                      : '快退 ${playerController.mediaPlayer.value.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                   ),
@@ -797,7 +811,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                 // 自定义顶部组件
                                 (playerController.showPositioned ||
                                         !playerController
-                                            .mediaPlayer.state.playing)
+                                            .mediaPlayer.value.isPlaying)
                                     ? Positioned(
                                         top: 0,
                                         left: 0,
@@ -871,7 +885,7 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
                                 // 自定义播放器底部组件
                                 (playerController.showPositioned ||
                                         !playerController
-                                            .mediaPlayer.state.playing)
+                                            .mediaPlayer.value.isPlaying)
                                     ? Positioned(
                                         bottom: 0,
                                         left: 0,
@@ -1036,33 +1050,10 @@ class _PlayerItemState extends State<PlayerItem> with WindowListener {
   }
 
   Widget get playerSurface {
-    return Video(
-      controller: playerController.videoController,
-      controls: NoVideoControls,
-      subtitleViewConfiguration: SubtitleViewConfiguration(
-        style: TextStyle(
-          color: Colors.pink, // 深粉色字体
-          fontSize: 48.0, // 较大的字号
-          background: Paint()..color = Colors.transparent, // 背景透明
-          decoration: TextDecoration.none, // 无下划线
-          fontWeight: FontWeight.bold, // 字体加粗
-          shadows: const [
-            // 显眼的包边
-            Shadow(
-              offset: Offset(1.0, 1.0),
-              blurRadius: 3.0,
-              color: Color.fromARGB(255, 255, 255, 255),
-            ),
-            Shadow(
-              offset: Offset(-1.0, -1.0),
-              blurRadius: 3.0,
-              color: Color.fromARGB(125, 255, 255, 255),
-            ),
-          ],
-        ),
-        textAlign: TextAlign.center,
-        padding: const EdgeInsets.all(24.0),
-      ),
-    );
+    return AspectRatio(
+        aspectRatio: playerController.mediaPlayer.value.aspectRatio,
+        child: VideoPlayer(
+          playerController.mediaPlayer,
+        ));
   }
 }

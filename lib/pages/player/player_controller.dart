@@ -1,6 +1,4 @@
-import 'dart:io';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:mobx/mobx.dart';
@@ -23,8 +21,7 @@ abstract class _PlayerController with Store {
   String videoUrl = '';
   // 弹幕ID
   int bangumiID = 0;
-  late Player mediaPlayer;
-  late VideoController videoController;
+  late VideoPlayerController mediaPlayer;
   late DanmakuController danmakuController;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
@@ -88,18 +85,13 @@ abstract class _PlayerController with Store {
     }
     debugPrint('VideoItem开始初始化');
     mediaPlayer = await createVideoController();
+    bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     playerSpeed = 1.0;
     if (offset != 0) {
-      var sub = mediaPlayer.stream.buffer.listen(null);
-      sub.onData((event) async {
-        if (event.inSeconds > 0) {
-          // This is a workaround for unable to await for `mediaPlayer.stream.buffer.first`
-          // It seems that when the `buffer.first` is fired, the media is not fully loaded
-          // and the player will not seek properlly.
-          await sub.cancel();
-          await mediaPlayer.seek(Duration(seconds: offset));
-        }
-      });
+      await mediaPlayer.seekTo(Duration(seconds: offset));
+    }
+    if (aotoPlay) {
+      await mediaPlayer.play();
     }
     debugPrint('VideoURL初始化完成');
     // 加载弹幕
@@ -108,76 +100,46 @@ abstract class _PlayerController with Store {
     loading = false;
   }
 
-  Future<Player> createVideoController() async {
-    mediaPlayer = Player(
-      configuration: const PlayerConfiguration(
-        // 默认缓存 5M 大小
-        bufferSize: 5 * 1024 * 1024,
-      ),
-    );
-
-    var pp = mediaPlayer.platform as NativePlayer;
-    // 解除倍速限制
-    await pp.setProperty("af", "scaletempo2=max-speed=8");
-    //  音量不一致
-    if (Platform.isAndroid) {
-      await pp.setProperty("volume-max", "100");
-      await pp.setProperty("ao", "audiotrack,opensles");
-    }
-
-    await mediaPlayer.setAudioTrack(
-      AudioTrack.auto(),
-    );
-
-    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
-
-    videoController = VideoController(
-      mediaPlayer,
-      configuration: VideoControllerConfiguration(
-        enableHardwareAcceleration: hAenable,
-        androidAttachSurfaceAfterVideoParameters: false,
-      ),
-    );
-    mediaPlayer.setPlaylistMode(PlaylistMode.none);
-    debugPrint('videoController 配置成功 $videoUrl');
-
+  Future<VideoPlayerController> createVideoController() async {
+    String userAgent = '';
     if (videoPageController.currentPlugin.userAgent == '') {
-      mediaPlayer.open(
-        Media(videoUrl),
-        play: true,
-      );
+      userAgent =
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15';
     } else {
-      debugPrint('media_kit UA: ${videoPageController.currentPlugin.userAgent}');
-      var httpHeaders = {
-        'user-agent': videoPageController.currentPlugin.userAgent,
-      };
-      mediaPlayer.open(
-        Media(videoUrl, httpHeaders: httpHeaders),
-        play: true,
-      );
+      debugPrint(
+          'media_kit UA: ${videoPageController.currentPlugin.userAgent}');
+      userAgent = videoPageController.currentPlugin.userAgent;
     }
+    var httpHeaders = {
+      'user-agent': userAgent,
+    };
+    mediaPlayer = VideoPlayerController.networkUrl(Uri.parse(videoUrl),
+        httpHeaders: httpHeaders);
+    await mediaPlayer.initialize();
+    debugPrint('videoController 配置成功 $videoUrl');
     return mediaPlayer;
   }
 
   Future setPlaybackSpeed(double playerSpeed) async {
     this.playerSpeed = playerSpeed;
     try {
-      mediaPlayer.setRate(playerSpeed);
+      mediaPlayer.setPlaybackSpeed(playerSpeed);
     } catch (e) {
       debugPrint(e.toString());
     }
   }
 
   Future playOrPause() async {
-    mediaPlayer.state.playing
-        ? danmakuController.pause()
-        : danmakuController.resume();
-    await mediaPlayer.playOrPause();
+    if (mediaPlayer.value.isPlaying) {
+      await pause();
+    } else {
+      await play();
+    }
   }
 
   Future seek(Duration duration) async {
     danmakuController.clear();
-    await mediaPlayer.seek(duration);
+    await mediaPlayer.seekTo(duration);
   }
 
   Future pause() async {

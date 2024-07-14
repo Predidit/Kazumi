@@ -13,6 +13,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -35,6 +36,7 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -68,6 +70,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}
+    WakelockPlus.disable();
     super.dispose();
   }
 

@@ -71,9 +71,11 @@ class _PlayerItemState extends State<PlayerItem>
   /// 处理 Android/iOS 应用后台或熄屏
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      playerController.pause();
-    }
+    try {
+      if (playerController.mediaPlayer.value.isPlaying) {
+        danmakuController.resume();
+      }
+    } catch (_) {}
   }
 
   void _handleTap() {

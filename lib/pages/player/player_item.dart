@@ -137,7 +137,8 @@ class _PlayerItemState extends State<PlayerItem>
                           .length),
               () => mounted &&
                       playerController.mediaPlayer.value.isPlaying &&
-                      !playerController.mediaPlayer.value.isBuffering
+                      !playerController.mediaPlayer.value.isBuffering &&
+                      playerController.danmakuOn
                   ? danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
                       color: danmaku.color,

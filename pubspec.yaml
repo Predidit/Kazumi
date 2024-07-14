@@ -72,7 +72,7 @@ dependencies:
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.7.0
-  canvas_danmaku: ^0.1.6
+  canvas_danmaku: ^0.1.7
   animated_search_bar: ^2.7.1
   webdav_client: ^1.2.2
   webview_windows:

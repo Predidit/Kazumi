@@ -116,7 +116,9 @@ class _VideoPageState extends State<VideoPage>
                   children: [
                     Container(
                         color: Colors.black,
-                        height: videoPageController.androidFullscreen ? MediaQuery.of(context).size.height : MediaQuery.of(context).size.width * 9 / 16,
+                        height: videoPageController.androidFullscreen
+                            ? MediaQuery.of(context).size.height
+                            : MediaQuery.of(context).size.width * 9 / 16,
                         width: MediaQuery.of(context).size.width,
                         child: playerBody),
                     videoPageController.androidFullscreen
@@ -146,22 +148,32 @@ class _VideoPageState extends State<VideoPage>
         Positioned.fill(
           child: Stack(
             children: [
+              Positioned.fill(
+                child: (videoPageController.currentPlugin.useNativePlayer && playerController.loading)
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : Container(),
+              ),
               Visibility(
                 visible: videoPageController.loading,
-                child: Align(
-                  alignment: Alignment.center,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: videoPageController.logLines.length,
-                    itemBuilder: (context, index) {
-                      return Text(
-                        videoPageController.logLines[index],
-                        style: const TextStyle(
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      );
-                    },
+                child: Container(
+                  color: Colors.black,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: videoPageController.logLines.length,
+                      itemBuilder: (context, index) {
+                        return Text(
+                          videoPageController.logLines[index],
+                          style: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

@@ -551,7 +551,7 @@ class _PlayerItemState extends State<PlayerItem>
                               child:
                                   Stack(alignment: Alignment.center, children: [
                                 Center(child: playerSurface),
-                                (playerController.isBuffering || playerController.loading)
+                                (playerController.isBuffering || videoPageController.loading)
                                     ? const Positioned.fill(
                                         child: Center(
                                           child: CircularProgressIndicator(),

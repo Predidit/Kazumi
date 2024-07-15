@@ -208,24 +208,32 @@ class _VideoPageState extends State<VideoPage>
               ? Container()
               : const PlayerItem(),
         ),
+
         /// workaround for webview_windows
-        /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized. 
+        /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
         /// The height of the webview_windows component cannot be set to 0; otherwise, it will intercept click events across the entire screen.
-        Positioned(
-            child: Opacity(
-                opacity: (videoPageController.loading ||
-                        videoPageController.currentPlugin.useNativePlayer)
-                    ? 0.0
-                    : 1.0,
+        Platform.isWindows
+            ? Positioned(
+                child: Opacity(
+                    opacity: (videoPageController.loading ||
+                            videoPageController.currentPlugin.useNativePlayer)
+                        ? 0.0
+                        : 1.0,
+                    child: SizedBox(
+                        height: (videoPageController.loading ||
+                                videoPageController
+                                    .currentPlugin.useNativePlayer)
+                            ? 1
+                            : null,
+                        child: const WebviewDesktopItem())))
+            : Positioned(
                 child: SizedBox(
-                  height: (videoPageController.loading ||
-                          videoPageController.currentPlugin.useNativePlayer)
-                      ? 1
-                      : null,
-                  child: Platform.isWindows
-                      ? const WebviewDesktopItem()
-                      : const WebviewItem(),
-                )))
+                height: (videoPageController.loading ||
+                        videoPageController.currentPlugin.useNativePlayer)
+                    ? 0
+                    : null,
+                child: const WebviewItem(),
+              ))
       ],
     );
   }

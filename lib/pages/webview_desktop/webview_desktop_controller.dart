@@ -23,6 +23,7 @@ class WebviewDesktopItemController {
   /// If this component enters the component tree during initialization, it will never be initialized.
   init() async {
     await webviewController.initialize();
+    await webviewController.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer) {
       await initBlobParser();

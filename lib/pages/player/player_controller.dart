@@ -46,16 +46,6 @@ abstract class _PlayerController with Store {
   @observable
   bool danmakuOn = false;
 
-  // 界面管理
-  @observable
-  bool showPositioned = false;
-  @observable
-  bool showPosition = false;
-  @observable
-  bool showBrightness = false;
-  @observable
-  bool showVolume = false;
-
   // 视频音量/亮度
   @observable
   double volume = 0;

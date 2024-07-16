@@ -51,6 +51,12 @@ class _PlayerItemState extends State<PlayerItem>
   late bool webDavEnable;
   bool isPopping = false;
 
+  // 界面管理
+  bool showPositioned = false;
+  bool showPosition = false;
+  bool showBrightness = false;
+  bool showVolume = false;
+
   // 弹幕
   final _danmuKey = GlobalKey();
   late bool _border;
@@ -79,25 +85,33 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
-    playerController.showPositioned = true;
+    setState(() {
+      showPositioned = true;
+    });
     if (hideTimer != null) {
       hideTimer!.cancel();
     }
 
     hideTimer = Timer(const Duration(seconds: 4), () {
-      playerController.showPositioned = false;
+      setState(() {
+        showPositioned = false;
+      });
       hideTimer = null;
     });
   }
 
   void _handleMouseScroller() {
-    playerController.showVolume = true;
+    setState(() {
+      showVolume = true;
+    });
     if (mouseScrollerTimer != null) {
       mouseScrollerTimer!.cancel();
     }
 
     mouseScrollerTimer = Timer(const Duration(seconds: 2), () {
-      playerController.showVolume = false;
+      setState(() {
+        showVolume = false;
+      });
       mouseScrollerTimer = null;
     });
   }
@@ -436,7 +450,7 @@ class _PlayerItemState extends State<PlayerItem>
                   color: Colors.black,
                   child: MouseRegion(
                     cursor: (videoPageController.androidFullscreen &&
-                            !playerController.showPositioned)
+                            !showPositioned)
                         ? SystemMouseCursors.none
                         : SystemMouseCursors.basic,
                     onHover: (_) {
@@ -551,7 +565,8 @@ class _PlayerItemState extends State<PlayerItem>
                               child:
                                   Stack(alignment: Alignment.center, children: [
                                 Center(child: playerSurface),
-                                (playerController.isBuffering || videoPageController.loading)
+                                (playerController.isBuffering ||
+                                        videoPageController.loading)
                                     ? const Positioned.fill(
                                         child: Center(
                                           child: CircularProgressIndicator(),
@@ -560,7 +575,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     : Container(),
                                 GestureDetector(
                                   onTap: () async {
-                                    _handleTap;
+                                    _handleTap();
                                     try {
                                       playerController.volume =
                                           await FlutterVolumeController
@@ -588,8 +603,9 @@ class _PlayerItemState extends State<PlayerItem>
                                         : GestureDetector(
                                             onHorizontalDragUpdate:
                                                 (DragUpdateDetails details) {
-                                            playerController.showPosition =
-                                                true;
+                                            setState(() {
+                                              showPosition = true;
+                                            });
                                             if (playerTimer != null) {
                                               // debugPrint('检测到拖动, 定时器取消');
                                               playerTimer!.cancel();
@@ -614,8 +630,9 @@ class _PlayerItemState extends State<PlayerItem>
                                                 playerController
                                                     .currentPosition);
                                             playerTimer = getPlayerTimer();
-                                            playerController.showPosition =
-                                                false;
+                                            setState(() {
+                                              showPosition = false;
+                                            });
                                           }, onVerticalDragUpdate:
                                                 (DragUpdateDetails
                                                     details) async {
@@ -639,8 +656,9 @@ class _PlayerItemState extends State<PlayerItem>
                                             }
                                             if (tapPosition < sectionWidth) {
                                               // 左边区域
-                                              playerController.showBrightness =
-                                                  true;
+                                              setState(() {
+                                                showBrightness = true;
+                                              });
                                               try {
                                                 playerController.brightness =
                                                     await ScreenBrightness()
@@ -658,8 +676,9 @@ class _PlayerItemState extends State<PlayerItem>
                                               setBrightness(result);
                                             } else {
                                               // 右边区域
-                                              playerController.showVolume =
-                                                  true;
+                                              setState(() {
+                                                showVolume = true;
+                                              });
                                               final double level =
                                                   (totalHeight) * 3;
                                               final double volume =
@@ -672,15 +691,16 @@ class _PlayerItemState extends State<PlayerItem>
                                             }
                                           }, onVerticalDragEnd:
                                                 (DragEndDetails details) {
-                                            playerController.showBrightness =
-                                                false;
-                                            playerController.showVolume = false;
+                                            setState(() {
+                                              showVolume = false;
+                                              showBrightness = false;
+                                            });
                                           })),
                                 // 顶部进度条
                                 Positioned(
                                     top: 25,
                                     width: 200,
-                                    child: playerController.showPosition
+                                    child: showPosition
                                         ? Wrap(
                                             alignment: WrapAlignment.center,
                                             children: <Widget>[
@@ -716,7 +736,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 // 亮度条
                                 Positioned(
                                     top: 25,
-                                    child: playerController.showBrightness
+                                    child: showBrightness
                                         ? Wrap(
                                             alignment: WrapAlignment.center,
                                             children: <Widget>[
@@ -749,7 +769,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 // 音量条
                                 Positioned(
                                     top: 25,
-                                    child: playerController.showVolume
+                                    child: showVolume
                                         ? Wrap(
                                             alignment: WrapAlignment.center,
                                             children: <Widget>[
@@ -812,7 +832,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 ),
 
                                 // 自定义顶部组件
-                                (playerController.showPositioned ||
+                                (showPositioned ||
                                         !playerController
                                             .mediaPlayer.value.isPlaying)
                                     ? Positioned(
@@ -886,7 +906,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     : Container(),
 
                                 // 自定义播放器底部组件
-                                (playerController.showPositioned ||
+                                (showPositioned ||
                                         !playerController
                                             .mediaPlayer.value.isPlaying)
                                     ? Positioned(

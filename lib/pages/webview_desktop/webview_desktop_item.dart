@@ -29,7 +29,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
   @override
   void dispose() {
     _subscriptions.forEach((s) => s.cancel());
-    webviewDesktopItemController.unloadPage();
+    webviewDesktopItemController.dispose();
     super.dispose();
   }
 

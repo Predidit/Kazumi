@@ -193,4 +193,8 @@ class WebviewDesktopItemController {
       window.location.href = 'about:blank';
     ''');
   }
+
+  dispose() {
+    webviewController.dispose();
+  }
 }

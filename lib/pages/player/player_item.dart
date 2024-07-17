@@ -93,9 +93,11 @@ class _PlayerItemState extends State<PlayerItem>
     }
 
     hideTimer = Timer(const Duration(seconds: 4), () {
-      setState(() {
-        showPositioned = false;
-      });
+      if (mounted) {
+        setState(() {
+          showPositioned = false;
+        });
+      }
       hideTimer = null;
     });
   }
@@ -109,9 +111,11 @@ class _PlayerItemState extends State<PlayerItem>
     }
 
     mouseScrollerTimer = Timer(const Duration(seconds: 2), () {
-      setState(() {
-        showVolume = false;
-      });
+      if (mounted) {
+        setState(() {
+          showVolume = false;
+        });
+      }
       mouseScrollerTimer = null;
     });
   }

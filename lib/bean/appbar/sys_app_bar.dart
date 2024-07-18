@@ -27,12 +27,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     SmartDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('关闭确认'),
-          content: const Text('您想要关闭 Kazumi 吗？'),
+          title: const Text('退出确认'),
+          content: const Text('您想要退出 Kazumi 吗？'),
           actions: [
             TextButton(
-                onPressed: () => exit,
-                child: const Text('关闭 Kazumi')),
+                onPressed: () => exit(0),
+                child: const Text('退出 Kazumi')),
             TextButton(
                 onPressed: () {
                   SmartDialog.dismiss();

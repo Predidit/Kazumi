@@ -8,6 +8,8 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:tray_manager/tray_manager.dart';
+import 'package:window_manager/window_manager.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -16,11 +18,71 @@ class AppWidget extends StatefulWidget {
   State<AppWidget> createState() => _AppWidgetState();
 }
 
-class _AppWidgetState extends State<AppWidget> {
+class _AppWidgetState extends State<AppWidget> with TrayListener {
   Box setting = GStorage.setting;
+
+  final TrayManager trayManager = TrayManager.instance;
+
+  @override
+  void initState() {
+    trayManager.addListener(this);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    trayManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onTrayIconMouseDown(){
+    windowManager.show();
+  }
+
+  @override
+  void onTrayIconRightMouseDown(){
+    trayManager.popUpContextMenu();
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) {
+    switch (menuItem.key){
+      case 'show_window':
+        windowManager.show();
+      case 'exit':
+        exit(0);
+    }
+  }
+
+  Future<void> _handleTray() async {
+    await trayManager.setIcon(
+      Platform.isWindows
+          ? 'assets/images/logo/logo_windows.ico'
+          : 'assets/images/logo/logo_rounded.png'
+    );
+    await trayManager.setToolTip('Kazumi');
+    Menu trayMenu = Menu(
+        items: [
+          MenuItem(
+              key: 'show_window',
+              label: '显示窗口'
+          ),
+          MenuItem.separator(),
+          MenuItem(
+              key: 'exit',
+              label: '退出 Kazumi'
+          )
+        ]
+    );
+    await trayManager.setContextMenu(trayMenu);
+  }
 
   @override
   Widget build(BuildContext context) {
+    if(Utils.isDesktop()) {
+      _handleTray();
+    }
     dynamic color;
     dynamic defaultThemeColor =
         setting.get(SettingBoxKey.themeColor, defaultValue: 'default');

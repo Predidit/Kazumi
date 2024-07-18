@@ -51,11 +51,11 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
       case 'show_window':
         windowManager.show();
       case 'exit':
-        windowManager.destroy();
+        exit(0);
     }
   }
 
-  Future<void> handleTray() async {
+  Future<void> _handleTray() async {
     await trayManager.setIcon(
       Platform.isWindows
           ? 'assets/images/logo/logo_windows.ico'
@@ -81,7 +81,7 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
   @override
   Widget build(BuildContext context) {
     if(Utils.isDesktop()) {
-      handleTray();
+      _handleTray();
     }
     dynamic color;
     dynamic defaultThemeColor =

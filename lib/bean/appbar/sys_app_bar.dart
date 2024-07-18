@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           content: const Text('您想要关闭 Kazumi 吗？'),
           actions: [
             TextButton(
-                onPressed: windowManager.destroy,
+                onPressed: () => exit,
                 child: const Text('关闭 Kazumi')),
             TextButton(
                 onPressed: () {

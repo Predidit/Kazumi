@@ -37,7 +37,6 @@ class SideNavigationBarState extends ChangeNotifier {
 
 class _SideMenu extends State<SideMenu> {
   final PageController _page = PageController();
-  final _mineController = Modular.get<MyController>();
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +109,7 @@ class _SideMenu extends State<SideMenu> {
               child: Container(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 child: PageView.builder(
-                  controller: _page,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: menu.size,
                   onPageChanged: (i) =>
                       Modular.to.navigate("/tab${menu.getPath(i)}/"),

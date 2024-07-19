@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/pages/my/my_controller.dart';
 
 class SideMenu extends StatefulWidget {
   //const SideMenu({Key? key}) : super(key: key);

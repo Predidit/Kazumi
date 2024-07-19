@@ -60,7 +60,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 title: '自动跳转',
                 subTitle: '跳转到上次播放位置',
                 setKey: SettingBoxKey.playResume,
-                defaultVal: false,
+                defaultVal: true,
               ),
             ),
           ],

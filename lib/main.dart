@@ -12,6 +12,7 @@ import 'package:kazumi/request/request.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/pages/error/storage_error_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +42,18 @@ void main() async {
   fvp.registerWith(options: {
     'platforms': ['windows', 'linux']
   });
-  await Hive.initFlutter('${(await getApplicationSupportDirectory()).path}/hive');
-  await GStorage.init();
+  try {
+    await Hive.initFlutter(
+        '${(await getApplicationSupportDirectory()).path}/hive');
+    await GStorage.init();
+  } catch (_) {
+    runApp(MaterialApp(
+        title: '初始化失败',
+        builder: (context, child) {
+          return const StorageErrorPage();
+        }));
+    return;
+  }
   Request();
   await Request.setCookie();
   runApp(ModularApp(

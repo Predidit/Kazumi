@@ -25,6 +25,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handleCloseEvent() {
     SmartDialog.show(
+      useAnimation: false,
       builder: (context) {
         return AlertDialog(
           title: const Text('退出确认'),

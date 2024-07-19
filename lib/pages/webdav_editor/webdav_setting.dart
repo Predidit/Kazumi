@@ -52,7 +52,11 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       await webDav.downloadHistory();
       SmartDialog.showToast('同步成功');
     } catch (e) {
-      SmartDialog.showToast('同步失败 ${e.toString()}');
+      if (e.toString().contains('Error: Not Found')) {
+        SmartDialog.showToast('配置成功, 这是一个不存在已有同步文件的全新WebDav');
+      } else {
+        SmartDialog.showToast('同步失败 ${e.toString()}');
+      }
     }
   }
 

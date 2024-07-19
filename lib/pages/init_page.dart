@@ -61,7 +61,7 @@ class _InitPageState extends State<InitPage> {
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(
-        animationType: SmartAnimationType.centerFade_otherSlide,
+        useAnimation: false,
         builder: (context) {
           return AlertDialog(
             title: const Text('插件管理'),

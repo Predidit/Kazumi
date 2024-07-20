@@ -78,6 +78,9 @@ class WebviewDesktopItemController {
         if (messageItem.contains('http')) {
           videoPageController.logLines.add('Parsing video source $messageItem');
           isIframeLoaded = true;
+          if (!videoPageController.currentPlugin.useNativePlayer) {
+            videoPageController.loading = false;
+          }
           // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
           // if (Utils.decodeVideoSource(messageItem) !=
           //         Uri.encodeFull(messageItem) &&

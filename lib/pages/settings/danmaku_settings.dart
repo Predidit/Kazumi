@@ -82,7 +82,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('弹幕设置')),
-        body: Column(
+        body: ListView(
           children: [
             const InkWell(
               child: SetSwitchItem(

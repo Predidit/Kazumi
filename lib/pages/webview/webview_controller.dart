@@ -43,8 +43,8 @@ class WebviewItemController {
       if (message.message.contains('http')) {
         videoPageController.logLines
             .add('Parsing video source ${message.message}');
-        isIframeLoaded = true;
         if (!videoPageController.currentPlugin.useNativePlayer) {
+          isIframeLoaded = true;
           videoPageController.loading = false;
         }
         // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
@@ -76,6 +76,7 @@ class WebviewItemController {
         debugPrint('Loading video source: ${message.message}');
         videoPageController.logLines
             .add('Loading video source: ${message.message}');
+        isIframeLoaded = true;
         isVideoSourceLoaded = true;
         videoPageController.loading = false;
         if (videoPageController.currentPlugin.useNativePlayer) {
@@ -112,6 +113,7 @@ class WebviewItemController {
       } else {
         if (count >= 15) {
           timer.cancel();
+          isIframeLoaded = true;
           videoPageController.logLines.clear();
           videoPageController.logLines.add('解析视频资源超时');
           videoPageController.logLines.add('请切换到其他播放列表或视频源');

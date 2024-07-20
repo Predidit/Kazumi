@@ -50,21 +50,23 @@ class WebviewDesktopItemController {
       }
       // parseIframeUrl();
     });
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (isVideoSourceLoaded) {
-        timer.cancel();
-      } else {
-        if (count >= 15) {
+    if (videoPageController.currentPlugin.useNativePlayer) {
+      Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (isVideoSourceLoaded) {
           timer.cancel();
-          isIframeLoaded = true;
-          videoPageController.logLines.clear();
-          videoPageController.logLines.add('解析视频资源超时');
-          videoPageController.logLines.add('请切换到其他播放列表或视频源');
         } else {
-          parseVideoSource();
+          if (count >= 15) {
+            timer.cancel();
+            isIframeLoaded = true;
+            videoPageController.logLines.clear();
+            videoPageController.logLines.add('解析视频资源超时');
+            videoPageController.logLines.add('请切换到其他播放列表或视频源');
+          } else {
+            parseVideoSource();
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   initJSBridge() async {
@@ -80,8 +82,10 @@ class WebviewDesktopItemController {
         if (messageItem.contains('http')) {
           videoPageController.logLines.add('Parsing video source $messageItem');
           if (!videoPageController.currentPlugin.useNativePlayer) {
-            isIframeLoaded = true;
-            videoPageController.loading = false;
+            Future.delayed(const Duration(seconds: 2), () {
+              isIframeLoaded = true;
+              videoPageController.loading = false;
+            });
           }
           // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
           // if (Utils.decodeVideoSource(messageItem) !=

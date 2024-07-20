@@ -545,6 +545,8 @@ class _PlayerItemState extends State<PlayerItem>
                                     videoPageController.exitFullScreen();
                                     videoPageController.androidFullscreen =
                                         !videoPageController.androidFullscreen;
+                                  } else {
+                                    windowManager.hide();
                                   }
                                 }
                                 // F键被按下

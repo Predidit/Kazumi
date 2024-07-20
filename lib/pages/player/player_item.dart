@@ -589,6 +589,14 @@ class _PlayerItemState extends State<PlayerItem>
                                       debugPrint(e.toString());
                                     }
                                   },
+                                  onDoubleTap: () {
+                                    _handleTap();
+                                    if (playerController.playing) {
+                                      playerController.pause();
+                                    } else {
+                                      playerController.play();
+                                    }
+                                  },
                                   child: Container(
                                     color: Colors.transparent,
                                     width: double.infinity,

@@ -56,6 +56,7 @@ class _PlayerItemState extends State<PlayerItem>
   bool showPosition = false;
   bool showBrightness = false;
   bool showVolume = false;
+  bool showPlaySpeed = false;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -599,6 +600,20 @@ class _PlayerItemState extends State<PlayerItem>
                                       playerController.play();
                                     }
                                   },
+                                  onLongPressStart: (_) {
+                                    setState(() {
+                                      showPlaySpeed = true;
+                                    });
+                                    playerController.setPlaybackSpeed(
+                                        playerController.playerSpeed * 2.5);
+                                  },
+                                  onLongPressEnd: (_) {
+                                    setState(() {
+                                      showPlaySpeed = false;
+                                    });
+                                    playerController.setPlaybackSpeed(
+                                        playerController.playerSpeed / 2.5);
+                                  },
                                   child: Container(
                                     color: Colors.transparent,
                                     width: double.infinity,
@@ -742,6 +757,40 @@ class _PlayerItemState extends State<PlayerItem>
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                   ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Container()),
+                                // 顶部播放速度条
+                                Positioned(
+                                    top: 25,
+                                    child: showPlaySpeed
+                                        ? Wrap(
+                                            alignment: WrapAlignment.center,
+                                            children: <Widget>[
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withOpacity(0.5),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          8.0), // 圆角
+                                                ),
+                                                child: const Row(
+                                                  children: <Widget>[
+                                                    Icon(
+                                                        Icons.fast_forward,
+                                                        color: Colors.white),
+                                                    Text(
+                                                      ' 倍速播放',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ],

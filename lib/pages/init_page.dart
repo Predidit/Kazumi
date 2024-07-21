@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -21,6 +22,7 @@ class _InitPageState extends State<InitPage> {
   void initState() {
     _pluginInit();
     _webDavInit();
+    _update();
     super.initState();
   }
 
@@ -95,6 +97,13 @@ class _InitPageState extends State<InitPage> {
       );
     } else {
       Modular.to.navigate('/tab/popular/');
+    }
+  }
+
+  _update() {
+    bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    if (autoUpdate) {
+      Modular.get<MyController>().checkUpdata(type: 'auto');
     }
   }
 

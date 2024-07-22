@@ -1,4 +1,3 @@
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:flutter/material.dart' show debugPrint;
@@ -61,7 +60,6 @@ abstract class _PlayerController with Store {
   late bool hAenable;
 
   Future init({int offset = 0}) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
     playing = false;
     loading = true;
     isBuffering = true;
@@ -86,7 +84,6 @@ abstract class _PlayerController with Store {
       await mediaPlayer.play();
     }
     debugPrint('VideoURL初始化完成');
-    prefs.setString('video', videoUrl);
     // 加载弹幕
     getDanDanmaku(
         videoPageController.title, videoPageController.currentEspisode);

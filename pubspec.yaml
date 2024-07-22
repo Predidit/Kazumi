@@ -76,7 +76,6 @@ dependencies:
   webdav_client: ^1.2.2
   tray_manager: ^0.2.3
   dlna_dart: ^0.0.8
-  shared_preferences: ^2.2.3
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

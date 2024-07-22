@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_windows/webview_windows.dart';
 
 class WebviewDesktopItemController {
@@ -70,7 +69,6 @@ class WebviewDesktopItemController {
   }
 
   initJSBridge() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
     webviewController.webMessage.listen((event) async {
       if (event.toString().contains('iframeMessage:')) {
         String messageItem =
@@ -115,7 +113,6 @@ class WebviewDesktopItemController {
         count++;
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
           debugPrint('Loading video source ${Uri.decodeFull(messageItem)}');
-          prefs.setString('video', Uri.decodeFull(messageItem));
           videoPageController.logLines
               .add('Loading video source ${Uri.decodeFull(messageItem)}');
           isIframeLoaded = true;

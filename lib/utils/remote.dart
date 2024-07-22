@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:dlna_dart/dlna.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+
+import '../pages/player/player_controller.dart';
 
 class RemotePlay {
 
@@ -22,8 +24,7 @@ class RemotePlay {
   castVideo(BuildContext context) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? video = prefs.getString('video');
+    final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
     SmartDialog.show(builder: (context) {
       return StatefulBuilder(builder: (context, setState) {
@@ -39,7 +40,7 @@ class RemotePlay {
               onPressed: () async {
                 searcher.stop();
                 if (Platform.isAndroid) {
-                  if (await _launchURLWithMIME(video!, 'video/mp4')) {
+                  if (await _launchURLWithMIME(video, 'video/mp4')) {
                     SmartDialog.dismiss();
                     SmartDialog.showToast(
                         '尝试唤起外部播放器',displayType: SmartToastType.onlyRefresh);
@@ -52,7 +53,7 @@ class RemotePlay {
                 }
                 else if (Platform.isWindows) {
                   SmartDialog.dismiss();
-                  if (await canLaunchUrlString(video!) == true) {
+                  if (await canLaunchUrlString(video) == true) {
                     launchUrlString(video);
                     SmartDialog.showToast(
                         '尝试唤起外部播放器',displayType: SmartToastType.onlyRefresh);
@@ -106,7 +107,7 @@ class RemotePlay {
                                   SmartDialog.showToast(
                                       '尝试投屏至 ${value.info.friendlyName}',
                                       displayType: SmartToastType.onlyRefresh);
-                                  DLNADevice(value.info).setUrl(video!);
+                                  DLNADevice(value.info).setUrl(video);
                                   DLNADevice(value.info).play();
                                 }
                                 catch (e) {

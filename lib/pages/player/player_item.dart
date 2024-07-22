@@ -917,13 +917,6 @@ class _PlayerItemState extends State<PlayerItem>
                                               child: dtb.DragToMoveArea(
                                                   child: SizedBox(height: 40)),
                                             ),
-                                            IconButton(
-                                              color: Colors.white,
-                                              icon: const Icon(Icons.cast),
-                                              onPressed: () {
-                                                RemotePlay().castVideo(context);
-                                              },
-                                            ),
                                             TextButton(
                                               style: ButtonStyle(
                                                 padding:
@@ -941,6 +934,13 @@ class _PlayerItemState extends State<PlayerItem>
                                                   fontSize: 12,
                                                 ),
                                               ),
+                                            ),
+                                            IconButton(
+                                              color: Colors.white,
+                                              icon: const Icon(Icons.cast),
+                                              onPressed: () {
+                                                RemotePlay().castVideo(context);
+                                              },
                                             ),
                                             // 追番
                                             IconButton(

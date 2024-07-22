@@ -26,7 +26,9 @@ class RemotePlay {
     final dlna = await searcher.start();
     final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
-    SmartDialog.show(builder: (context) {
+    SmartDialog.show(
+      useAnimation: false,
+      builder: (context) {
       return StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
           title: const Text('远程播放'),

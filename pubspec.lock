@@ -337,6 +337,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.2"
+  dlna_dart:
+    dependency: "direct main"
+    description:
+      name: dlna_dart
+      sha256: ae07c1c53077bbf58756fa589f936968719b0085441981d33e74f82f89d1d281
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.8"
   expressions:
     dependency: transitive
     description:
@@ -950,7 +958,7 @@ packages:
     source: hosted
     version: "0.1.9"
   shared_preferences:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: shared_preferences
       sha256: d3bbe5553a986e83980916ded2f0b435ef2e1893dfaa29d5a7a790d0eca12180

@@ -7,7 +7,6 @@ import 'package:flutter/material.dart' show debugPrint;
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:auto_orientation/auto_orientation.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -141,13 +140,13 @@ abstract class _VideoPageController with Store {
         //   SystemUiMode.immersiveSticky,
         //   overlays: [],
         // );
-        // await SystemChrome.setPreferredOrientations(
-        //   [
-        //     DeviceOrientation.landscapeLeft,
-        //     DeviceOrientation.landscapeRight,
-        //   ],
-        // );
-        await AutoOrientation.landscapeAutoMode(forceSensor: true);
+        await SystemChrome.setPreferredOrientations(
+          [
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ],
+        );
+        // await AutoOrientation.landscapeAutoMode(forceSensor: true);
       } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
         await const MethodChannel('com.alexmercerind/media_kit_video')
             .invokeMethod(

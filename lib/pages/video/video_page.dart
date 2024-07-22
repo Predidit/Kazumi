@@ -14,6 +14,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 class VideoPage extends StatefulWidget {
@@ -38,6 +39,13 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     WakelockPlus.enable();
+    if (Platform.isAndroid || Platform.isIOS) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarDividerColor: Colors.black,
+        statusBarColor: Colors.black,
+      ));
+    }
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -68,6 +76,13 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    if (Platform.isAndroid || Platform.isIOS) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarColor: Colors.transparent,
+      ));
+    }
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}

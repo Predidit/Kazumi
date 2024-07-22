@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:provider/provider.dart';
@@ -781,8 +782,7 @@ class _PlayerItemState extends State<PlayerItem>
                                                 ),
                                                 child: const Row(
                                                   children: <Widget>[
-                                                    Icon(
-                                                        Icons.fast_forward,
+                                                    Icon(Icons.fast_forward,
                                                         color: Colors.white),
                                                     Text(
                                                       ' 倍速播放',
@@ -916,6 +916,13 @@ class _PlayerItemState extends State<PlayerItem>
                                             const Expanded(
                                               child: dtb.DragToMoveArea(
                                                   child: SizedBox(height: 40)),
+                                            ),
+                                            IconButton(
+                                              color: Colors.white,
+                                              icon: const Icon(Icons.cast),
+                                              onPressed: () {
+                                                RemotePlay().castVideo(context);
+                                              },
                                             ),
                                             TextButton(
                                               style: ButtonStyle(

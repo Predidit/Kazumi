@@ -337,6 +337,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.2"
+  dlna_dart:
+    dependency: "direct main"
+    description:
+      name: dlna_dart
+      sha256: ae07c1c53077bbf58756fa589f936968719b0085441981d33e74f82f89d1d281
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.8"
   expressions:
     dependency: transitive
     description:

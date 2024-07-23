@@ -55,14 +55,14 @@ class _AboutPageState extends State<AboutPage> {
 
       if (mounted) {
         setState(() {
-        _cacheSizeMB = totalSizeMB;
-      });
+          _cacheSizeMB = totalSizeMB;
+        });
       }
     } else {
       if (mounted) {
         setState(() {
-        _cacheSizeMB = 0.0;
-      });
+          _cacheSizeMB = 0.0;
+        });
       }
     }
   }
@@ -92,35 +92,34 @@ class _AboutPageState extends State<AboutPage> {
 
   void _showCacheDialog() {
     SmartDialog.show(
-        useAnimation: false,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('缓存管理'),
-            content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  SmartDialog.dismiss();
-                },
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
+      useAnimation: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('缓存管理'),
+          content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                SmartDialog.dismiss();
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              TextButton(
-                onPressed: () async {
-                  try {
-                    _clearCache();
-                  } catch (_) {}
-                  SmartDialog.dismiss();
-                },
-                child: const Text('确认'),
-              ),
-            ],
-          );
-        },
-      );
+            ),
+            TextButton(
+              onPressed: () async {
+                try {
+                  _clearCache();
+                } catch (_) {}
+                SmartDialog.dismiss();
+              },
+              child: const Text('确认'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -175,15 +174,22 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
+                Modular.to.pushNamed('/tab/my/about/logs');
+              },
+              dense: false,
+              title: const Text('错误日志'),
+            ),
+            ListTile(
+              onTap: () {
                 _showCacheDialog();
               },
               dense: false,
               title: const Text('清除缓存'),
-              trailing: _cacheSizeMB == -1 ? const Text('统计中...') :Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium!
-                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+              trailing: _cacheSizeMB == -1
+                  ? const Text('统计中...')
+                  : Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                          color: Theme.of(context).colorScheme.outline)),
             ),
             ListTile(
               onTap: () {

@@ -10,9 +10,29 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/request/api.dart';
+import 'package:screen_pixel/screen_pixel.dart';
 
 class Utils {
   static final Random random = Random();
+
+  static Future<Map<String, double>?> getScreenInfo(BuildContext context) async {
+    final screenPixelPlugin = ScreenPixel();
+    Map<String, double>? screenResolution;
+    final screenRatio = MediaQuery.of(context).devicePixelRatio;
+    Map<String, double>? screenInfo = {};
+
+    try {
+      screenResolution = await screenPixelPlugin.getResolution();
+      screenInfo = {
+        'width': screenResolution['width']!,
+        'height': screenResolution['height']!,
+        'ratio': screenRatio
+      };
+    } on PlatformException {
+      screenInfo = null;
+    }
+    return screenInfo;
+  }
 
   static Future<String> getCookiePath() async {
     final Directory tempDir = await getApplicationSupportDirectory();

@@ -21,8 +21,6 @@ class AboutModule extends Module {
               applicationVersion: Api.version,
               applicationLegalese: '开源许可证',
             ),
-        transition: Utils.isDesktop()
-            ? TransitionType.noTransition
-            : TransitionType.leftToRight);
+        transition: TransitionType.noTransition);
   }
 }

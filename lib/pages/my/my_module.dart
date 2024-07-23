@@ -17,7 +17,7 @@ class MyModule extends Module {
     r.child("/theme", child: (_) => const ThemeSettingsPage());
     r.child("/theme/display",
         child: (_) => const SetDiaplayMode(),
-        transition: TransitionType.leftToRight);
+        transition: TransitionType.noTransition);
     r.child(
       "/danmaku",
       child: (_) => const DanmakuSettingsPage(),

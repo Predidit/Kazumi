@@ -17,8 +17,6 @@ class PluginModule extends Module {
         //       plugin: Modular.args.data as Plugin,
         //     ),
         child: (_) => const PluginEditorPage(),
-        transition: Utils.isDesktop()
-            ? TransitionType.noTransition
-            : TransitionType.leftToRight);
+        transition: TransitionType.noTransition);
   }
 }

@@ -15,10 +15,11 @@ import 'package:screen_pixel/screen_pixel.dart';
 class Utils {
   static final Random random = Random();
 
-  static Future<Map<String, double>?> getScreenInfo(BuildContext context) async {
+  static Future<Map<String, double>?> getScreenInfo() async {
     final screenPixelPlugin = ScreenPixel();
     Map<String, double>? screenResolution;
-    final screenRatio = MediaQuery.of(context).devicePixelRatio;
+    final MediaQueryData mediaQuery = MediaQueryData.fromView(WidgetsBinding.instance.platformDispatcher.views.first);
+    final double screenRatio = mediaQuery.devicePixelRatio;
     Map<String, double>? screenInfo = {};
 
     try {

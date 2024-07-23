@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
+import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
@@ -200,17 +202,15 @@ class _PlayerItemState extends State<PlayerItem>
 
   void onBackPressed(BuildContext context) async {
     if (videoPageController.androidFullscreen) {
-      debugPrint('当前播放器全屏');
       try {
         await videoPageController.exitFullScreen();
         videoPageController.androidFullscreen = false;
         danmakuController.clear();
         return;
       } catch (e) {
-        debugPrint(e.toString());
+        KazumiLogger().log(Level.error, e.toString());
       }
     }
-    debugPrint('当前播放器非全屏');
     // workaround on flutter 3.22.1
     if (!isPopping) {
       isPopping = true;
@@ -250,7 +250,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
     danmakuController.onClear();
     playerController.danmakuOn = !playerController.danmakuOn;
-    debugPrint('弹幕开关变更为 ${playerController.danmakuOn}');
+    // debugPrint('弹幕开关变更为 ${playerController.danmakuOn}');
   }
 
   // 选择倍速
@@ -470,7 +470,7 @@ class _PlayerItemState extends State<PlayerItem>
                             if (pointerSignal is PointerScrollEvent) {
                               _handleMouseScroller();
                               final scrollDelta = pointerSignal.scrollDelta;
-                              debugPrint('滚轮滑动距离: ${scrollDelta.dy}');
+                              // debugPrint('滚轮滑动距离: ${scrollDelta.dy}');
                               final double volume = playerController.volume -
                                   scrollDelta.dy / 6000;
                               final double result = volume.clamp(0.0, 1.0);
@@ -487,17 +487,17 @@ class _PlayerItemState extends State<PlayerItem>
                                 _handleTap();
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.space) {
-                                  debugPrint('空格键被按下');
+                                  // debugPrint('空格键被按下');
                                   try {
                                     playerController.playOrPause();
                                   } catch (e) {
-                                    debugPrint(e.toString());
+                                    KazumiLogger().log(Level.error, e.toString());
                                   }
                                 }
                                 // 右方向键被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.arrowRight) {
-                                  debugPrint('右方向键被按下');
+                                  // debugPrint('右方向键被按下');
                                   try {
                                     if (playerTimer != null) {
                                       playerTimer!.cancel();
@@ -510,7 +510,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         .seek(playerController.currentPosition);
                                     playerTimer = getPlayerTimer();
                                   } catch (e) {
-                                    debugPrint(e.toString());
+                                    KazumiLogger().log(Level.error, e.toString());
                                   }
                                 }
                                 // 左方向键被按下
@@ -533,7 +533,7 @@ class _PlayerItemState extends State<PlayerItem>
                                           playerController.currentPosition);
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
-                                      debugPrint(e.toString());
+                                      KazumiLogger().log(Level.error, e.toString());
                                     }
                                   }
                                 }
@@ -590,7 +590,7 @@ class _PlayerItemState extends State<PlayerItem>
                                                   .getVolume() ??
                                               playerController.volume;
                                     } catch (e) {
-                                      debugPrint(e.toString());
+                                      KazumiLogger().log(Level.error, e.toString());
                                     }
                                   },
                                   onDoubleTap: () {
@@ -694,7 +694,7 @@ class _PlayerItemState extends State<PlayerItem>
                                                     await ScreenBrightness()
                                                         .current;
                                               } catch (e) {
-                                                debugPrint(e.toString());
+                                                KazumiLogger().log(Level.error, e.toString());
                                               }
                                               final double level =
                                                   (totalHeight) * 3;
@@ -879,7 +879,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     createdController: (DanmakuController e) {
                                       danmakuController = e;
                                       playerController.danmakuController = e;
-                                      debugPrint('弹幕控制器创建成功');
+                                      // debugPrint('弹幕控制器创建成功');
                                     },
                                     option: DanmakuOption(
                                       hideTop: _hideTop,

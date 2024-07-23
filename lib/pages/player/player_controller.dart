@@ -1,14 +1,14 @@
 import 'package:video_player/video_player.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:flutter/material.dart' show debugPrint;
 import 'package:mobx/mobx.dart';
-import 'package:flutter/foundation.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 part 'player_controller.g.dart';
 
@@ -69,11 +69,8 @@ abstract class _PlayerController with Store {
     completed = false;
     try {
       mediaPlayer.dispose();
-      debugPrint('找到逃掉的 player');
-    } catch (e) {
-      debugPrint('未找到已经存在的 player');
-    }
-    debugPrint('VideoItem开始初始化');
+    } catch (_) {}
+    KazumiLogger().log(Level.info, 'VideoItem开始初始化');
     mediaPlayer = await createVideoController();
     bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     playerSpeed = 1.0;
@@ -83,7 +80,7 @@ abstract class _PlayerController with Store {
     if (aotoPlay) {
       await mediaPlayer.play();
     }
-    debugPrint('VideoURL初始化完成');
+    KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     // 加载弹幕
     getDanDanmaku(
         videoPageController.title, videoPageController.currentEspisode);
@@ -96,7 +93,7 @@ abstract class _PlayerController with Store {
       userAgent =
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15';
     } else {
-      debugPrint(
+      KazumiLogger().log(Level.info,
           'media_kit UA: ${videoPageController.currentPlugin.userAgent}');
       userAgent = videoPageController.currentPlugin.userAgent;
     }
@@ -106,7 +103,7 @@ abstract class _PlayerController with Store {
     mediaPlayer = VideoPlayerController.networkUrl(Uri.parse(videoUrl),
         httpHeaders: httpHeaders);
     await mediaPlayer.initialize();
-    debugPrint('videoController 配置成功 $videoUrl');
+    KazumiLogger().log(Level.info, 'videoController 配置成功 $videoUrl');
     return mediaPlayer;
   }
 
@@ -115,7 +112,7 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer.setPlaybackSpeed(playerSpeed);
     } catch (e) {
-      debugPrint(e.toString());
+      KazumiLogger().log(Level.error, e.toString());
     }
   }
 
@@ -145,14 +142,14 @@ abstract class _PlayerController with Store {
   }
 
   Future getDanDanmaku(String title, int episode) async {
-    debugPrint('尝试获取弹幕 $title');
+    KazumiLogger().log(Level.info, '尝试获取弹幕 $title');
     try {
       danDanmakus.clear();
       bangumiID = await DanmakuRequest.getBangumiID(title);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {
-      debugPrint('获取弹幕错误 ${e.toString()}');
+      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
     }
   }
 

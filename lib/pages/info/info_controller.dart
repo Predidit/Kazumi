@@ -6,6 +6,8 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:mobx/mobx.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 part 'info_controller.g.dart';
 
@@ -56,7 +58,7 @@ abstract class _InfoController with Store {
             .addAll(await plugin.querychapterRoads(url));
       }
     }
-    debugPrint('播放列表长度 ${videoPageController.roadList.length}');
-    debugPrint('第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
+    KazumiLogger().log(Level.info, '播放列表长度 ${videoPageController.roadList.length}');
+    KazumiLogger().log(Level.info, '第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
   }
 }

@@ -13,6 +13,8 @@ import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:animated_search_bar/animated_search_bar.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -36,7 +38,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   void initState() {
     super.initState();
-    debugPrint('Popular初始化成功');
     timeout = false;
     scrollController.addListener(() {
       popularController.scrollOffset = scrollController.offset;
@@ -44,12 +45,12 @@ class _PopularPageState extends State<PopularPage>
               scrollController.position.maxScrollExtent - 200 &&
           popularController.isLoadingMore == false &&
           popularController.searchKeyword == '') {
-        debugPrint('Popular 正在加载更多');
+        KazumiLogger().log(Level.info, 'Popular 正在加载更多');
         popularController.queryBangumiListFeed(type: 'onload');
       }
     });
     if (popularController.bangumiList.isEmpty) {
-      debugPrint('Popular缓存列表为空, 尝试重加载');
+      // KazumiLogger().log(Level.info, 'Popular缓存列表为空, 尝试重加载');
       Timer(const Duration(seconds: 3), () {
         timeout = true;
       });
@@ -63,7 +64,6 @@ class _PopularPageState extends State<PopularPage>
     popularController.searchKeyword = '';
     _focusNode.dispose();
     scrollController.removeListener(() {});
-    debugPrint('popular 模块已卸载, 监听器移除');
     super.dispose();
   }
 

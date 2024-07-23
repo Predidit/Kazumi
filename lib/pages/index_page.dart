@@ -2,6 +2,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 
 class IndexPage extends StatefulWidget {
@@ -17,9 +19,9 @@ class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
   /// 统一处理前后台改变
   void appListener(bool state) {
     if (state) {
-      debugPrint("应用前台");
+      KazumiLogger().log(Level.info ,"应用前台");
     } else {
-      debugPrint("应用后台");
+      KazumiLogger().log(Level.info ,"应用后台");
     }
   }
 

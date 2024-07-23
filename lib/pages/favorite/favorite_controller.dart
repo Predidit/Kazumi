@@ -5,6 +5,8 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:hive/hive.dart';
 import 'package:mobx/mobx.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 part 'favorite_controller.g.dart';
 
@@ -49,7 +51,7 @@ abstract class _FavoriteController with Store {
   }
 
   Future updateFavorite() async{
-    debugPrint('提交到WebDav的追番列表长度 ${GStorage.favorites.length}');
+    KazumiLogger().log(Level.debug, '提交到WebDav的追番列表长度 ${GStorage.favorites.length}');
     await WebDav().updateFavorite();
   }
 }

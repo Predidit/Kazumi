@@ -3,7 +3,6 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
-import 'package:flutter/material.dart' show debugPrint;
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -13,6 +12,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:mobx/mobx.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 part 'video_controller.g.dart';
 
@@ -56,7 +57,7 @@ abstract class _VideoPageController with Store {
     currentEspisode = episode;
     this.currentRoad = currentRoad;
     logLines.clear();
-    debugPrint('跳转到第$episode话');
+    KazumiLogger().log(Level.info, '跳转到第$episode话');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (urlItem.contains(currentPlugin.baseUrl) || urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
       urlItem = urlItem;
@@ -94,7 +95,7 @@ abstract class _VideoPageController with Store {
 
   //退出全屏显示
   Future<void> exitFullScreen() async {
-    debugPrint('退出全屏模式');
+    // debugPrint('退出全屏模式');
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(false);
     }
@@ -124,8 +125,9 @@ abstract class _VideoPageController with Store {
         // verticalScreen();
       }
     } catch (exception, stacktrace) {
-      debugPrint(exception.toString());
-      debugPrint(stacktrace.toString());
+      // debugPrint(exception.toString());
+      // debugPrint(stacktrace.toString());
+      KazumiLogger().log(Level.error, exception.toString(), stackTrace: stacktrace);
     }
   }
 
@@ -154,8 +156,9 @@ abstract class _VideoPageController with Store {
         );
       }
     } catch (exception, stacktrace) {
-      debugPrint(exception.toString());
-      debugPrint(stacktrace.toString());
+      // debugPrint(exception.toString());
+      // debugPrint(stacktrace.toString());
+      KazumiLogger().log(Level.error, exception.toString(), stackTrace: stacktrace);
     }
   }
 

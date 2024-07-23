@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:hive/hive.dart';
-import 'package:flutter/material.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class WebDav {
   late String webDavURL;
@@ -33,11 +34,11 @@ class WebDav {
     );
     client.setHeaders({'accept-charset': 'utf-8'});
     try {
-      debugPrint('webDav backup diretory not exists, creating');
+      // KazumiLogger().log(Level.warning, 'webDav backup diretory not exists, creating');
       await client.mkdir('/kazumiSync');
-      debugPrint('webDav backup diretory create success');
+      KazumiLogger().log(Level.info, 'webDav backup diretory create success');
     } catch (_) {
-      debugPrint('webDav backup diretory create failed');
+      KazumiLogger().log(Level.error, 'webDav backup diretory create failed');
     }
   }
 
@@ -48,12 +49,12 @@ class WebDav {
     } catch (_) {}
     await client.writeFromFile('${directory.path}/hive/$boxName.hive', '/kazumiSync/$boxName.tmp.cache',
         onProgress: (c, t) {
-      print(c / t);
+      // print(c / t);
     });
     try {
       await client.remove('/kazumiSync/$boxName.tmp');
     } catch (_) {
-      debugPrint('webDav former backup file not exist');
+      KazumiLogger().log(Level.warning, 'webDav former backup file not exist');
     }
     await client.rename(
         '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
@@ -78,7 +79,7 @@ class WebDav {
     }
     await client.read2File('/kazumiSync/$fileName', existingFile.path,
         onProgress: (c, t) {
-      print(c / t);
+      // print(c / t);
     });
     await GStorage.patchHistory(existingFile.path); 
   }
@@ -94,7 +95,7 @@ class WebDav {
     }
     await client.read2File('/kazumiSync/$fileName', existingFile.path,
         onProgress: (c, t) {
-      print(c / t);
+      // print(c / t);
     });
     await GStorage.patchFavorites(existingFile.path); 
   }

@@ -8,7 +8,8 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive/hive.dart';
@@ -53,17 +54,17 @@ class _VideoPageState extends State<VideoPage>
     var progress = historyController.lastWatching(
         infoController.bangumiItem, videoPageController.currentPlugin.name);
     if (progress != null) {
-      debugPrint('尝试恢复观看进度');
+      // debugPrint('尝试恢复观看进度');
       if (videoPageController.roadList.length > progress.road) {
-        debugPrint('播放列表选择恢复');
+        // debugPrint('播放列表选择恢复');
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
-          debugPrint('选集进度恢复');
+          // debugPrint('选集进度恢复');
           videoPageController.currentEspisode = progress.episode;
           videoPageController.currentRoad = progress.road;
           if (playResume) {
             videoPageController.historyOffset = progress.progress.inSeconds;
-            debugPrint('上次观看位置 ${videoPageController.historyOffset}');
+            // debugPrint('上次观看位置 ${videoPageController.historyOffset}');
           }
         }
       }
@@ -283,7 +284,7 @@ class _VideoPageState extends State<VideoPage>
                       clipBehavior: Clip.hardEdge,
                       child: InkWell(
                         onTap: () async {
-                          debugPrint('视频链接为 $urlItem');
+                          KazumiLogger().log(Level.info, '视频链接为 $urlItem');
                           videoPageController.changeEpisode(_count,
                               currentRoad: roadIndex);
                         },

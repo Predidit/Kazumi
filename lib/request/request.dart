@@ -76,7 +76,7 @@ class Request {
     //     defaultValue: false) as bool;
 
     dio = Dio(options);
-    debugPrint('Dio 初始化完成');
+    // debugPrint('Dio 初始化完成');
     
     // if (enableSystemProxy) {
     //   setProxy();

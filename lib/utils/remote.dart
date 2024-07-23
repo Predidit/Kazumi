@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 import '../pages/player/player_controller.dart';
 
@@ -113,7 +115,7 @@ class RemotePlay {
                                   DLNADevice(value.info).play();
                                 }
                                 catch (e) {
-                                  debugPrint('DLNA Error: $e');
+                                  KazumiLogger().log(Level.error, 'DLNA Error: $e');
                                   SmartDialog.showNotify(msg: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备', notifyType: NotifyType.alert);
                                 }
                               }));
@@ -173,7 +175,7 @@ class RemotePlay {
       });
       return true;
     } on PlatformException catch (e) {
-      debugPrint("Failed to open with mime: '${e.message}'.");
+      KazumiLogger().log(Level.error, "Failed to open with mime: '${e.message}'.");
       return false;
     }
   }

@@ -1,5 +1,5 @@
-import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -11,7 +11,7 @@ class BangumiHTTP {
     try {
       var res = await Request().get(Api.bangumiCalendar);
       final jsonData = res.data;
-      debugPrint('网络源推荐列表长度 ${jsonData.length}');
+      KazumiLogger().log(Level.info, '网络源推荐列表长度 ${jsonData.length}');
       for (dynamic jsonDayList in jsonData) {
         List<BangumiItem> bangumiList = [];
         final jsonList = jsonDayList['items'];
@@ -27,8 +27,8 @@ class BangumiHTTP {
         bangumiCalendar.add(bangumiList);
       }
     } catch (e) {
-      debugPrint('解析推荐列表错误 ${e.toString()}');
-      debugPrint('当前列表长度 ${bangumiCalendar.length}');
+      KazumiLogger().log(Level.error, '解析推荐列表错误 ${e.toString()}');
+      // debugPrint('当前列表长度 ${bangumiCalendar.length}');
     }
     return bangumiCalendar;
   }
@@ -56,8 +56,8 @@ class BangumiHTTP {
         }
       }
     } catch (e) {
-      debugPrint('解析推荐列表错误 ${e.toString()}');
-      debugPrint('当前列表长度 ${bangumiList.length}');
+      KazumiLogger().log(Level.error, '解析推荐列表错误 ${e.toString()}');
+      // debugPrint('当前列表长度 ${bangumiList.length}');
     }
     return bangumiList;
   }
@@ -104,14 +104,14 @@ class BangumiHTTP {
               bangumiList.add(bangumiItem);
             }
           } catch (e) {
-            debugPrint('检索结果解析错误 ${e.toString()}');
+            KazumiLogger().log(Level.error, '检索结果解析错误 ${e.toString()}');
           }
         }
       }
     } catch (e) {
-      debugPrint('检索错误 ${e.toString()}');
+      KazumiLogger().log(Level.error, '检索错误 ${e.toString()}');
     }
-    debugPrint('检索结果长度 ${bangumiList.length}');
+    // debugPrint('检索结果长度 ${bangumiList.length}');
     return bangumiList;
   }
 }

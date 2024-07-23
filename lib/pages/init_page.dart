@@ -6,6 +6,8 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -33,25 +35,25 @@ class _InitPageState extends State<InitPage> {
         setting.get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
-      debugPrint('开始从WEBDAV同步记录');
+      KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
       try {
         await webDav.init();
         try {
           await webDav.downloadHistory();
-          debugPrint('同步观看记录完成');
+          KazumiLogger().log(Level.info, '同步观看记录完成');
         } catch (e) {
-          debugPrint('同步观看记录失败 ${e.toString()}');
+          KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
         }
         if (webDavEnableFavorite) {
           try {
             await webDav.downloadFavorite();
-            debugPrint('同步追番列表完成');
+            KazumiLogger().log(Level.info, '同步追番列表完成');
           } catch (e) {
-            debugPrint('同步追番列表失败 ${e.toString()}');
+            KazumiLogger().log(Level.error, '同步追番列表失败 ${e.toString()}');
           }
         }
       } catch (e) {
-        debugPrint('初始化WebDav失败 ${e.toString()}');
+        KazumiLogger().log(Level.error, '初始化WebDav失败 ${e.toString()}');
       }
     }
   }
@@ -116,9 +118,9 @@ class _InitPageState extends State<InitPage> {
                 MediaQuery.of(context).size.longestSide >=
             9 / 16);
     if (isWideScreen) {
-      debugPrint('当前设备宽屏');
+      KazumiLogger().log(Level.info, '当前设备宽屏');
     } else {
-      debugPrint('当前设备非宽屏');
+      KazumiLogger().log(Level.info, '当前设备非宽屏');
     }
     setting.put(SettingBoxKey.isWideScreen, isWideScreen);
     return const RouterOutlet();

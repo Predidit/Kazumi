@@ -23,7 +23,6 @@ class SideNavigationBarState extends ChangeNotifier {
   }
 
   void hideNavigate() {
-    debugPrint('尝试隐藏侧边栏');
     _isRailVisible = false;
     notifyListeners();
   }

@@ -3,6 +3,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class MyController {
   Future<bool> checkUpdata({String type = 'manual'}) async {
@@ -37,7 +39,7 @@ class MyController {
         );
       }
     }).catchError((err) {
-      debugPrint(err.toString());
+      KazumiLogger().log(Level.error, err.toString());
       if (type == 'manual') {
         SmartDialog.showToast('当前是最新版本！');
       }

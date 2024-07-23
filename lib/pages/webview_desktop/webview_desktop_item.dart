@@ -42,7 +42,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
     _subscriptions.add(webviewDesktopItemController
         .webviewController.containsFullScreenElementChanged
         .listen((flag) {
-      debugPrint('包括可全屏元素: $flag');
+      // debugPrint('包括可全屏元素: $flag');
       videoPageController.androidFullscreen = flag;
       windowManager.setFullScreen(flag);
     }));

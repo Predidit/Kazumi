@@ -9,6 +9,8 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppWidget extends StatefulWidget {
@@ -137,7 +139,7 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
           FlutterDisplayMode.setPreferredMode(preferred);
         });
       } catch (e) {
-        debugPrint('高帧率设置失败 ${e.toString()}');
+        KazumiLogger().log(Level.error ,'高帧率设置失败 ${e.toString()}');
       }
     }
 

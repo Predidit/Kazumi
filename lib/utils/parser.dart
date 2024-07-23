@@ -2,6 +2,7 @@ import 'package:html/parser.dart' show parse;
 import 'package:flutter/material.dart' show debugPrint;
 import 'dart:core';
 
+// 弃用
 class ParserWithoutWebview {
   static String extractM3U8Links(dynamic htmlContent) {
     debugPrint('开始解析 m3u8');

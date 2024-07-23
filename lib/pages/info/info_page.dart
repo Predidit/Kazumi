@@ -15,6 +15,8 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/request/query_manager.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -178,7 +180,7 @@ class _InfoPageState extends State<InfoPage>
                                       SmartDialog.dismiss();
                                       Modular.to.pushNamed('/tab/video/');
                                     } catch (e) {
-                                      debugPrint(e.toString());
+                                      KazumiLogger().log(Level.error, e.toString());
                                       SmartDialog.dismiss();
                                     }
                                   },

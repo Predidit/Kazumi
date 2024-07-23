@@ -3,9 +3,8 @@ import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
-import 'package:flutter/material.dart' show debugPrint;
-import 'package:xpath_selector/xpath_selector.dart';
-import 'package:kazumi/utils/parser.dart';
+import 'package:logger/logger.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 class Plugin {
@@ -120,10 +119,8 @@ class Plugin {
           src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
         );
         searchItems.add(searchItem);
-        debugPrint(
-            '$name 番剧名称 ${element.queryXPath(searchName).node!.text ?? ''}');
-        debugPrint(
-            '$name 番剧链接 $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+        KazumiLogger().log(Level.info,
+            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =

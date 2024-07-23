@@ -39,7 +39,7 @@ class _TimelinePageState extends State<TimelinePage>
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
     if (timelineController.bangumiCalendar.isEmpty) {
-      debugPrint('时间表缓存为空, 尝试重新加载');
+      // debugPrint('时间表缓存为空, 尝试重新加载');
       timelineController.getSchedules();
     }
   }

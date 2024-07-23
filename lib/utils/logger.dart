@@ -17,19 +17,33 @@ class KazumiLogger extends Logger {
       {Object? error, StackTrace? stackTrace, DateTime? time}) async {
     if (level == Level.error) {
       String dir = (await getApplicationSupportDirectory()).path;
-      final String filename = p.join(dir, "logs/kazumi_logs");
+      final String logDir = p.join(dir, "logs");
+      final String filename = p.join(logDir, "kazumi_logs.log");
+
+      final directory = Directory(logDir);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
       await File(filename).writeAsString(
         "**${DateTime.now()}** \n $message \n $stackTrace",
         mode: FileMode.writeOnlyAppend,
       );
     }
-    super.log(level, "$message", error: error, stackTrace: stackTrace);
+    super.log(level, "$message", error: error, stackTrace: level == Level.error ? stackTrace : null);
   }
 }
 
 Future<File> getLogsPath() async {
   String dir = (await getApplicationSupportDirectory()).path;
-  final String filename = p.join(dir, "logs/kazumi_logs");
+  final String logDir = p.join(dir, "logs");
+  final String filename = p.join(logDir, "kazumi_logs.log");
+
+  final directory = Directory(logDir);
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+
   final file = File(filename);
   if (!await file.exists()) {
     await file.create();
@@ -39,7 +53,15 @@ Future<File> getLogsPath() async {
 
 Future<bool> clearLogs() async {
   String dir = (await getApplicationSupportDirectory()).path;
-  final String filename = p.join(dir, "logs/kazumi_logs");
+  final String logDir = p.join(dir, "logs");
+  final String filename = p.join(logDir, "kazumi_logs.log");
+
+  // 确保日志文件夹存在
+  final directory = Directory(logDir);
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+
   final file = File(filename);
   try {
     await file.writeAsString('');

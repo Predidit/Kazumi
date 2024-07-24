@@ -15,6 +15,20 @@ import 'package:screen_pixel/screen_pixel.dart';
 class Utils {
   static final Random random = Random();
 
+  static Future<bool> isLowResolution() async {
+    try {
+      Map<String, double>? screenInfo = await getScreenInfo();
+      if (screenInfo != null) {
+        if (screenInfo['height']! / screenInfo['ratio']! < 900) {
+          return true;
+        }
+      } 
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<Map<String, double>?> getScreenInfo() async {
     final screenPixelPlugin = ScreenPixel();
     Map<String, double>? screenResolution;

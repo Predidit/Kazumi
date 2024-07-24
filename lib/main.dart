@@ -18,8 +18,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(1280, 860),
+    bool isLowResolution = await Utils.isLowResolution();
+    WindowOptions windowOptions = WindowOptions(
+      size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
       center: true,
       // backgroundColor: Colors.white,
       skipTaskbar: false,

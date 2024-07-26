@@ -13,6 +13,12 @@ class _WebviewItemState extends State<WebviewLinuxItem> {
   final WebviewLinuxItemController webviewLinuxItemController = Modular.get<WebviewLinuxItemController>();
 
   @override
+  void initState() {
+    super.initState();
+    webviewLinuxItemController.init();
+  }
+
+  @override
   void dispose() {
     webviewLinuxItemController.dispose();
     super.dispose();

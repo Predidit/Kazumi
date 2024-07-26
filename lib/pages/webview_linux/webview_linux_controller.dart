@@ -150,8 +150,11 @@ class WebviewLinuxItemController {
 
   // blob资源
   initBlobParser() async {
-    webview.setOnUrlRequestCallback((_) {
-      webview.evaluateJavaScript('''
+    webview.setOnUrlRequestCallback((url) {
+      debugPrint('Current URL: $url');
+    return true;
+    });
+    webview.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
           return new Promise((resolve, reject) => {
@@ -177,8 +180,6 @@ class WebviewLinuxItemController {
           return _open.apply(this, args);
       }     
     ''');
-    return true;
-    });
   }
 
   // webview_windows本身无此方法，loadurl方法相当于打开新标签页，会造成内存泄漏

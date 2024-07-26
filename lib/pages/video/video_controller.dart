@@ -5,6 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/webview_linux/webview_linux_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
@@ -72,7 +73,12 @@ abstract class _VideoPageController with Store {
           Modular.get<WebviewDesktopItemController>();
       await webviewDesktopItemController
           .loadUrl(urlItem, offset: offset);
-    } else {
+    } 
+    if (Platform.isLinux) {
+      final WebviewLinuxItemController webviewLinuxItemController = Modular.get<WebviewLinuxItemController>();
+      await webviewLinuxItemController.loadUrl(urlItem, offset:  offset);
+    }
+    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
       final WebviewItemController webviewItemController =
           Modular.get<WebviewItemController>();
       await webviewItemController.loadUrl(urlItem, offset: offset);

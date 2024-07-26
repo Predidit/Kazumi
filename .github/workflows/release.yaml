@@ -154,7 +154,6 @@
                        gir1.2-ayatanaappindicator3-0.1,
                        libmpv2,
                        libwebkit2gtk-4.1-0
-
               EOF
 
               cp ../assets/linux/io.github.predidit.kazumi.desktop usr/share/applications

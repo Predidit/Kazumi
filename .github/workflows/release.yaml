@@ -124,14 +124,51 @@
             run: flutter build linux
             shell: bash
           - name: Package linux build output
-            run: tar -zcvf Kazumi_linux_${{ env.tag }}.tar.gz -C build/linux/x64/release/bundle .
+            run: |
+              # Tarball package
+              tar -zcvf Kazumi_linux_${{ env.tag }}_amd64.tar.gz -C build/linux/x64/release/bundle .
+
+              # Debian package
+              mkdir Kazumi_linux_${{ env.tag }}_amd64
+              cd Kazumi_linux_${{ env.tag }}_amd64
+              mkdir -p opt/Kazumi
+              mkdir -p usr/share/applications
+              mkdir -p usr/share/icons/hicolor/512x512/apps
+              cp -r ../build/linux/x64/release/bundle/* opt/Kazumi
+              cp -r ../assets/linux/DEBIAN .
+              chmod 0755 DEBIAN/postinst
+              chmod 0755 DEBIAN/postrm
+
+              cat>DEBIAN/control<<EOF
+              Maintainer: madoka773 <valigarmanda55@gmail.com>
+              Package: Kazumi
+              Version: ${{ env.tag }}
+              Section: x11
+              Priority: optional
+              Architecture: amd64
+              Essential: no
+              Installed-Size: 34648
+              Description: Watch Animes online with danmaku support.
+              Homepage: https://github.com/Predidit/Kazumi
+              Depends: libayatana-appindicator3-1,
+                       gir1.2-ayatanaappindicator3-0.1,
+                       libwebkit2gtk-4.1-0
+              EOF
+
+              cp ../assets/linux/io.github.predidit.kazumi.desktop usr/share/applications
+              cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.predidit.kazumi.png
+
+              cd ..
+              dpkg-deb --build Kazumi_linux_${{ env.tag }}_amd64
             shell: bash
 
           - name: Upload linux outputs
             uses: actions/upload-artifact@v4
             with:
               name: linux_outputs
-              path: Kazumi_linux_*.tar.gz
+              path: |
+                Kazumi_linux_*.tar.gz
+                Kazumi_linux_*.deb
 
       flutter-build-ios:
         name: "Release for iOS"
@@ -228,7 +265,7 @@
           - name: List files in linux_outputs directory
             run: ls -l linux_outputs   
           - name: Copy linux build file to root
-            run: cp linux_outputs/* Kazumi_linux_${{ env.tag }}.tar.gz    
+            run: cp linux_outputs/* .
 
           - name: Sign APK
             id: sign_app
@@ -254,3 +291,4 @@
                 Kazumi_windows_*.zip
                 Kazumi_ios_*.ipa
                 Kazumi_linux_*.tar.gz
+                Kazumi_linux_*.deb

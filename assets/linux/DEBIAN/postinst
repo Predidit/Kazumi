@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+ln -sf /opt/Kazumi/kazumi /usr/bin/kazumi
+chmod +x /usr/bin/kazumi
+update-mime-database /usr/share/mime || true
+update-desktop-database /usr/share/applications || true
+exit 0

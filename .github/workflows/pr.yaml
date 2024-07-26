@@ -157,7 +157,6 @@
               Homepage: https://github.com/Predidit/Kazumi
               Depends: libayatana-appindicator3-1,
                        gir1.2-ayatanaappindicator3-0.1,
-                       libmpv2,
                        libwebkit2gtk-4.1-0
               EOF
 

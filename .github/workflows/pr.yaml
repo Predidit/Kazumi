@@ -131,11 +131,11 @@
           - name: Package linux build output
             run: |
               # Tarball package
-              tar -zcvf Kazumi_linux_${{ env.tag }}.tar.gz -C build/linux/x64/release/bundle .
+              tar -zcvf Kazumi_linux_canary.tar.gz -C build/linux/x64/release/bundle .
 
               # Debian package
-              mkdir Kazumi_linux_${{ env.tag }}_amd64
-              cd Kazumi_linux_${{ env.tag }}_amd64
+              mkdir Kazumi_linux_canary_amd64
+              cd Kazumi_linux_canary_amd64
               mkdir -p opt/Kazumi
               mkdir -p usr/share/applications
               mkdir -p usr/share/icons/hicolor/512x512/apps
@@ -147,7 +147,7 @@
               cat>DEBIAN/control<<EOF
               Maintainer: madoka773 <valigarmanda55@gmail.com>
               Package: Kazumi
-              Version: ${{ env.tag }}
+              Version: canary
               Section: x11
               Priority: optional
               Architecture: amd64
@@ -164,7 +164,7 @@
               cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.predidit.kazumi.png
 
               cd ..
-              dpkg-deb --build Kazumi_linux_${{ env.tag }}_amd64
+              dpkg-deb --build Kazumi_linux_canary_amd64
             shell: bash
 
           - name: Upload linux outputs

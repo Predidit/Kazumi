@@ -3,6 +3,7 @@ import 'package:kazumi/pages/video/video_page.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/webview_linux/webview_linux_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 
 class VideoModule extends Module {
@@ -14,6 +15,6 @@ class VideoModule extends Module {
   @override
   void binds(i) {
     i.addSingleton(PlayerController.new);
-    i.addSingleton(Platform.isWindows ? WebviewDesktopItemController.new : WebviewItemController.new);
+    i.addSingleton(Platform.isWindows ? WebviewDesktopItemController.new : (Platform.isLinux ? WebviewLinuxItemController.new : WebviewItemController.new));
   }
 }

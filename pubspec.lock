@@ -297,6 +297,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.10"
+  desktop_webview_window:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: "58a2f2f13a0e515457e8b6400cd569e8ec2c1697"
+      url: "https://github.com/Predidit/linux_webview_window.git"
+    source: git
+    version: "0.2.4"
   device_info_plus:
     dependency: "direct main"
     description:

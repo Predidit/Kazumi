@@ -126,7 +126,7 @@
           - name: Package linux build output
             run: |
               # Tarball package
-              tar -zcvf Kazumi_linux_${{ env.tag }}.tar.gz -C build/linux/x64/release/bundle .
+              tar -zcvf Kazumi_linux_${{ env.tag }}_amd64.tar.gz -C build/linux/x64/release/bundle .
 
               # Debian package
               mkdir Kazumi_linux_${{ env.tag }}_amd64
@@ -262,7 +262,7 @@
           - name: List files in linux_outputs directory
             run: ls -l linux_outputs   
           - name: Copy linux build file to root
-            run: cp linux_outputs/* Kazumi_linux_${{ env.tag }}.tar.gz    
+            run: cp linux_outputs/* .
 
           - name: Sign APK
             id: sign_app
@@ -288,3 +288,4 @@
                 Kazumi_windows_*.zip
                 Kazumi_ios_*.ipa
                 Kazumi_linux_*.tar.gz
+                Kazumi_linux_*.deb

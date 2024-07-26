@@ -147,7 +147,7 @@
               cat>DEBIAN/control<<EOF
               Maintainer: madoka773 <valigarmanda55@gmail.com>
               Package: Kazumi
-              Version: canary
+              Version: 0.0.1
               Section: x11
               Priority: optional
               Architecture: amd64

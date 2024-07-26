@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+rm /usr/bin/jhentai
+update-mime-database /usr/share/mime || true
+update-desktop-database /usr/share/applications || true
+exit 0

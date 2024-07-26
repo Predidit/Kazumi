@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+ln -sf /opt/jhentai/jhentai /usr/bin/jhentai
+chmod +x /usr/bin/jhentai
+update-mime-database /usr/share/mime || true
+update-desktop-database /usr/share/applications || true
+exit 0

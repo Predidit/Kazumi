@@ -6,11 +6,12 @@ class WebviewLinuxItem extends StatefulWidget {
   const WebviewLinuxItem({super.key});
 
   @override
-  State<WebviewLinuxItem> createState() => _WebviewItemState();
+  State<WebviewLinuxItem> createState() => _WebviewLinuxItemState();
 }
 
-class _WebviewItemState extends State<WebviewLinuxItem> {
-  final WebviewLinuxItemController webviewLinuxItemController = Modular.get<WebviewLinuxItemController>();
+class _WebviewLinuxItemState extends State<WebviewLinuxItem> {
+  final WebviewLinuxItemController webviewLinuxItemController =
+      Modular.get<WebviewLinuxItemController>();
 
   @override
   void initState() {
@@ -26,6 +27,10 @@ class _WebviewItemState extends State<WebviewLinuxItem> {
 
   @override
   Widget build(BuildContext context) {
-    return const Expanded(child: Center(child: Text('此平台不支持Webview规则')));
+    return Container(
+        height: MediaQuery.of(context).size.width * 9.0 / (16.0),
+        width: MediaQuery.of(context).size.width,
+        color: Colors.black,
+        child: const Center(child: Text('此平台不支持Webview规则')));
   }
 }

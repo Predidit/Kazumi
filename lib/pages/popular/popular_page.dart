@@ -253,4 +253,87 @@ class _PopularPageState extends State<PopularPage>
       ),
     );
   }
+
+  // Block on unexpected pixel gap between the AppBar and the SliverAppBar (only happen on android)
+  Widget tagFilter() {
+    List<String> tags = [
+      '日常',
+      '原创',
+      '校园',
+      '搞笑',
+      '奇幻',
+      '百合',
+      '异世界',
+      '恋爱',
+      '悬疑',
+      '热血',
+      '后宫',
+      '机战'
+    ];
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: tags.length,
+            itemBuilder: (context, index) {
+              final filter = tags[index];
+              return Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
+                child: filter == popularController.currentTag
+                    ? FilledButton(
+                        child: Text(filter),
+                        onPressed: () async {
+                          setState(() {
+                            popularController.currentTag = '';
+                            searchLoading = true;
+                          });
+                          await popularController.queryBangumiListFeed(
+                            tag: popularController.currentTag,
+                          );
+                          setState(() {
+                            searchLoading = false;
+                          });
+                        },
+                      )
+                    : FilledButton.tonal(
+                        child: Text(filter),
+                        onPressed: () async {
+                          setState(() {
+                            popularController.currentTag = filter;
+                            searchLoading = true;
+                          });
+                          await popularController.queryBangumiListFeed(
+                            tag: popularController.currentTag,
+                          );
+                          setState(() {
+                            searchLoading = false;
+                          });
+                        },
+                      ),
+              );
+            },
+          ),
+        ),
+        Tooltip(
+          message: '重设列表',
+          child: IconButton(
+            icon: const Icon(Icons.clear_all),
+            onPressed: () async {
+              setState(() {
+                popularController.currentTag = '';
+                searchLoading = true;
+              });
+              await popularController.queryBangumiListFeed(
+                tag: popularController.currentTag,
+              );
+              setState(() {
+                searchLoading = false;
+              });
+            },
+          ),
+        )
+      ],
+    );
+  }
 }

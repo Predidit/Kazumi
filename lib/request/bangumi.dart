@@ -33,18 +33,32 @@ class BangumiHTTP {
     return bangumiCalendar;
   }
 
-  static Future getBangumiList({int rank = 2}) async {
+  static Future getBangumiList({int rank = 2, String tag = ''}) async {
     List<BangumiItem> bangumiList = [];
-    var params = <String, dynamic>{
-      'keyword': '',
-      'sort': 'rank',
-      "filter": {
-        "type": [2],
-        "tag": ["日本"],
-        "rank": [">$rank", "<=1000"],
-        "nsfw": false
-      },
-    };
+    late Map<String, dynamic> params;
+    if (tag == '') {
+      params = <String, dynamic>{
+        'keyword': '',
+        'sort': 'rank',
+        "filter": {
+          "type": [2],
+          "tag": ["日本"],
+          "rank": [">$rank", "<=1000"],
+          "nsfw": false
+        },
+      };
+    } else {
+      params = <String, dynamic>{
+        'keyword': '',
+        'sort': 'rank',
+        "filter": {
+          "type": [2],
+          "tag": [tag],
+          "rank": [">${rank * 2}", "<=99999"],
+          "nsfw": false
+        },
+      };
+    }
     try {
       final res = await Request().post(Api.bangumiRankSearch,
           data: params, options: Options(contentType: 'application/json'));
@@ -93,7 +107,9 @@ class BangumiHTTP {
       //     data: keywordMap,
       //     options: Options(headers: httpHeaders));
       final res = await Request().post(Api.bangumiRankSearch,
-          data: params, options: Options(headers: httpHeaders, contentType: 'application/json'));
+          data: params,
+          options:
+              Options(headers: httpHeaders, contentType: 'application/json'));
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {

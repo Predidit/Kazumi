@@ -13,6 +13,7 @@ abstract class _PopularController with Store {
 
   String keyword = '';
   String searchKeyword = '';
+  String currentTag = '';
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
@@ -20,11 +21,11 @@ abstract class _PopularController with Store {
   double scrollOffset = 0.0;
   bool isLoadingMore = false;
 
-  Future queryBangumiListFeed({String type = 'init'}) async {
+  Future queryBangumiListFeed({String type = 'init', String tag = ''}) async {
     isLoadingMore = true;
     var random = Random();
     int randomNumber = random.nextInt(1000) + 1;
-    var result = await BangumiHTTP.getBangumiList(rank: randomNumber);
+    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
     if (type == 'init') {
       bangumiList.clear();
     }

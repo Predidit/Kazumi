@@ -86,6 +86,14 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           children: [
             const InkWell(
               child: SetSwitchItem(
+                title: '默认开启',
+                subTitle: '默认是否随视频播放弹幕',
+                setKey: SettingBoxKey.danmakuEnabledByDefault,
+                defaultVal: false,
+              ),
+            ),
+            const InkWell(
+              child: SetSwitchItem(
                 title: '弹幕描边',
                 setKey: SettingBoxKey.danmakuBorder,
                 defaultVal: true,

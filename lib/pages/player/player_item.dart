@@ -412,6 +412,7 @@ class _PlayerItemState extends State<PlayerItem>
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    playerController.danmakuOn = setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;

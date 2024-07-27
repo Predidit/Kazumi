@@ -104,6 +104,7 @@ class SettingBoxKey {
       danmakuMassive = 'danmakuMassive',
       danmakuArea = 'danmakuArea',
       danmakuColor = 'danmakuColor',
+      danmakuEnabledByDefault = 'danmakuEnabledByDefault',
       themeMode = 'themeMode',
       themeColor = 'themeColor',
       privateMode = 'privateMode',

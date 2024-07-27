@@ -78,7 +78,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget get contentGrid {
     // List<Widget> gridViewList = [];
-    int crossCount = (!Utils.isCompact()) ? 4 : 1;
+    int crossCount = (!Utils.isCompact()) ? 3 : 1;
     return CustomScrollView(
       slivers: [
         SliverGrid(

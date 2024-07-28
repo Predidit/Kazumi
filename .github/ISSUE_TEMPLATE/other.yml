@@ -1,0 +1,22 @@
+name: 其他 issue
+description: 新功能需求、问题询问等
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请详细填写以下内容~
+  - type: textarea
+    id: buginfo
+    attributes:
+      label: issue 内容
+      description: 请填写您的 issue 内容。要添加附件，请点击输入框后，直接将附件拖进输入框。
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 提交前确认
+      description: 在提交前，请确认以下内容
+      options:
+        - label: issue 列表中，没有我的新功能需求 / 问题
+          required: true

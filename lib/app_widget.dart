@@ -63,7 +63,9 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
           ? 'assets/images/logo/logo_windows.ico'
           : 'assets/images/logo/logo_rounded.png'
     );
-    await trayManager.setToolTip('Kazumi');
+    if (!Platform.isLinux) {
+      await trayManager.setToolTip('Kazumi');
+    }
     Menu trayMenu = Menu(
         items: [
           MenuItem(

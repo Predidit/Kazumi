@@ -58,14 +58,18 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
   }
 
   Future<void> _handleTray() async {
-    await trayManager.setIcon(
-      Platform.isWindows
-          ? 'assets/images/logo/logo_windows.ico'
-          : 'assets/images/logo/logo_rounded.png'
-    );
+    if (Platform.isWindows) {
+      await trayManager.setIcon('assets/tray_icon/icon.ico');
+    } else if (Platform.environment.containsKey('FLATPAK_ID') || Platform.environment.containsKey('SNAP')) {
+      await trayManager.setIcon('io.github.predidit.kazumi');
+    } else {
+      await trayManager.setIcon('assets/images/logo/logo_rounded.png');
+    }
+
     if (!Platform.isLinux) {
       await trayManager.setToolTip('Kazumi');
     }
+
     Menu trayMenu = Menu(
         items: [
           MenuItem(

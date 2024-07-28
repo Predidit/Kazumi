@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:fvp/fvp.dart' as fvp;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -40,9 +39,6 @@ void main() async {
       statusBarColor: Colors.transparent,
     ));
   }
-  fvp.registerWith(options: {
-    'platforms': ['windows', 'linux']
-  });
   try {
     await Hive.initFlutter(
         '${(await getApplicationSupportDirectory()).path}/hive');

@@ -52,6 +52,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
               child: SetSwitchItem(
                 title: '硬件解码',
                 setKey: SettingBoxKey.hAenable,
+                needReboot: true,
                 defaultVal: true,
               ),
             ),

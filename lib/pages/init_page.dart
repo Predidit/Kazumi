@@ -7,6 +7,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
+import 'package:fvp/fvp.dart' as fvp;
 import 'package:kazumi/utils/logger.dart';
 
 class InitPage extends StatefulWidget {
@@ -22,10 +23,24 @@ class _InitPageState extends State<InitPage> {
 
   @override
   void initState() {
+    _fvpInit();
     _pluginInit();
     _webDavInit();
     _update();
     super.initState();
+  }
+
+  _fvpInit() async {
+    bool hAenable = await setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    if (hAenable) {
+      fvp.registerWith(options: {
+        'platforms': ['windows', 'linux']
+      });
+    } else {
+      fvp.registerWith(options: {
+        'video.decoders': ['FFmpeg'],
+      });
+    }
   }
 
   _webDavInit() async {

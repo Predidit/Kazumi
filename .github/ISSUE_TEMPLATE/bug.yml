@@ -24,8 +24,8 @@ body:
         - Windows
         - macOS / iOS
         - Linux
-      validations:
-        required: true
+    validations:
+      required: true
   - type: textarea
     id: osver
     attributes:

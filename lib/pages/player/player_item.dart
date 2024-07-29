@@ -4,9 +4,6 @@ import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -49,7 +46,6 @@ class _PlayerItemState extends State<PlayerItem>
       Modular.get<FavoriteController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
-  dynamic navigationBarState;
   late bool isFavorite;
   late bool webDavEnable;
   bool isPopping = false;
@@ -235,7 +231,6 @@ class _PlayerItemState extends State<PlayerItem>
       videoPageController.exitFullScreen();
     } else {
       videoPageController.enterFullScreen();
-      navigationBarState.hideNavigate();
     }
     videoPageController.androidFullscreen =
         !videoPageController.androidFullscreen;
@@ -404,13 +399,6 @@ class _PlayerItemState extends State<PlayerItem>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     playerController.danmakuOn = setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);

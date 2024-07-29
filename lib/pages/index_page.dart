@@ -16,15 +16,6 @@ class IndexPage extends StatefulWidget {
 
 class _IndexPageState extends State<IndexPage> with  WidgetsBindingObserver {
 
-  /// 统一处理前后台改变
-  void appListener(bool state) {
-    if (state) {
-      KazumiLogger().log(Level.info ,"应用前台");
-    } else {
-      KazumiLogger().log(Level.info ,"应用后台");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return (!Utils.isCompact()) ? const SideMenu() : const BottomMenu();

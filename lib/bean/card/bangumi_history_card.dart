@@ -64,7 +64,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
               await infoController.queryRoads(widget.historyItem.lastSrc,
                   videoPageController.currentPlugin.name);
               SmartDialog.dismiss();
-              Modular.to.pushNamed('/tab/video/');
+              Modular.to.pushNamed('/video/');
             } catch (e) {
               KazumiLogger().log(Level.warning, e.toString());
               SmartDialog.dismiss();

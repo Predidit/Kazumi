@@ -1,4 +1,3 @@
-import 'package:kazumi/utils/utils.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -9,9 +8,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/request/query_manager.dart';
@@ -33,7 +29,6 @@ class _InfoPageState extends State<InfoPage>
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
-  dynamic navigationBarState;
   late TabController tabController;
 
   /// 用于并发查询
@@ -46,17 +41,6 @@ class _InfoPageState extends State<InfoPage>
     queryManager.querySource(popularController.keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
-  }
-
-  void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
   }
 
   @override
@@ -85,14 +69,8 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
     return PopScope(
       canPop: true,
-      onPopInvoked: (bool didPop) {
-        onBackPressed(context);
-      },
       child: Stack(
         children: [
           Positioned.fill(
@@ -182,7 +160,7 @@ class _InfoPageState extends State<InfoPage>
                                         await infoController.queryRoads(
                                             searchItem.src, plugin.name);
                                         SmartDialog.dismiss();
-                                        Modular.to.pushNamed('/tab/video/');
+                                        Modular.to.pushNamed('/video/');
                                       } catch (e) {
                                         KazumiLogger()
                                             .log(Level.error, e.toString());

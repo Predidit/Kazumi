@@ -38,7 +38,7 @@ class BangumiCardV extends StatelessWidget {
             } else {
               popularController.keyword = popularController.searchKeyword;
             }
-            Modular.to.pushNamed('/tab/info/');
+            Modular.to.pushNamed('/info/');
           },
           child: Column(
             children: [

@@ -14,20 +14,20 @@ class MyModule extends Module {
   @override
   void routes(r) {
     r.child("/", child: (_) => const MyPage());
-    r.child("/theme", child: (_) => const ThemeSettingsPage(), transition: TransitionType.defaultTransition);
+    r.child("/theme", child: (_) => const ThemeSettingsPage(), transition: TransitionType.noTransition);
     r.child("/theme/display",
         child: (_) => const SetDiaplayMode(),
-        transition: TransitionType.defaultTransition);
+        transition: TransitionType.noTransition);
     r.child(
       "/danmaku",
       child: (_) => const DanmakuSettingsPage(),
-      transition: TransitionType.defaultTransition
+      transition: TransitionType.noTransition
     );
-    r.child("/player", child: (_) => const PlayerSettingsPage(), transition: TransitionType.defaultTransition);
-    r.child("/other", child: (_) => const OtherSettingsPage(), transition: TransitionType.defaultTransition);
-    r.module("/webdav", module: WebDavModule(), transition: TransitionType.defaultTransition);
-    r.module("/about", module: AboutModule(), transition: TransitionType.defaultTransition);
-    r.module("/plugin", module: PluginModule(), transition: TransitionType.defaultTransition);
+    r.child("/player", child: (_) => const PlayerSettingsPage(), transition: TransitionType.noTransition);
+    r.child("/other", child: (_) => const OtherSettingsPage(), transition: TransitionType.noTransition);
+    r.module("/webdav", module: WebDavModule(), transition: TransitionType.noTransition);
+    r.module("/about", module: AboutModule(), transition: TransitionType.noTransition);
+    r.module("/plugin", module: PluginModule(), transition: TransitionType.noTransition);
     r.module("/history", module: HistoryModule(), transition: TransitionType.noTransition);
   }
 }

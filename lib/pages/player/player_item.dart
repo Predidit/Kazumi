@@ -400,7 +400,8 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    playerController.danmakuOn = setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
+    playerController.danmakuOn =
+        setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;
@@ -480,7 +481,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   try {
                                     playerController.playOrPause();
                                   } catch (e) {
-                                    KazumiLogger().log(Level.error, e.toString());
+                                    KazumiLogger()
+                                        .log(Level.error, e.toString());
                                   }
                                 }
                                 // 右方向键被按下
@@ -499,7 +501,8 @@ class _PlayerItemState extends State<PlayerItem>
                                         .seek(playerController.currentPosition);
                                     playerTimer = getPlayerTimer();
                                   } catch (e) {
-                                    KazumiLogger().log(Level.error, e.toString());
+                                    KazumiLogger()
+                                        .log(Level.error, e.toString());
                                   }
                                 }
                                 // 左方向键被按下
@@ -522,7 +525,8 @@ class _PlayerItemState extends State<PlayerItem>
                                           playerController.currentPosition);
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
-                                      KazumiLogger().log(Level.error, e.toString());
+                                      KazumiLogger()
+                                          .log(Level.error, e.toString());
                                     }
                                   }
                                 }
@@ -579,7 +583,8 @@ class _PlayerItemState extends State<PlayerItem>
                                                   .getVolume() ??
                                               playerController.volume;
                                     } catch (e) {
-                                      KazumiLogger().log(Level.error, e.toString());
+                                      KazumiLogger()
+                                          .log(Level.error, e.toString());
                                     }
                                   },
                                   onDoubleTap: () {
@@ -683,7 +688,8 @@ class _PlayerItemState extends State<PlayerItem>
                                                     await ScreenBrightness()
                                                         .current;
                                               } catch (e) {
-                                                KazumiLogger().log(Level.error, e.toString());
+                                                KazumiLogger().log(
+                                                    Level.error, e.toString());
                                               }
                                               final double level =
                                                   (totalHeight) * 3;
@@ -1035,8 +1041,13 @@ class _PlayerItemState extends State<PlayerItem>
                                                 total:
                                                     playerController.duration,
                                                 onSeek: (duration) {
+                                                  if (playerTimer != null) {
+                                                    playerTimer!.cancel();
+                                                  }
+                                                  playerController.currentPosition = duration;
                                                   playerController
                                                       .seek(duration);
+                                                  playerTimer = getPlayerTimer();
                                                 },
                                               ),
                                             ),

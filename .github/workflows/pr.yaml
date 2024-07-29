@@ -164,7 +164,7 @@
               cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.predidit.kazumi.png
 
               cd ..
-              dpkg-deb --build Kazumi_linux_canary_amd64
+              dpkg-deb --build --root-owner-group Kazumi_linux_canary_amd64
             shell: bash
 
           - name: Upload linux outputs

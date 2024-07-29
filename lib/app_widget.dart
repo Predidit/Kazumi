@@ -59,7 +59,7 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
 
   Future<void> _handleTray() async {
     if (Platform.isWindows) {
-      await trayManager.setIcon('assets/tray_icon/icon.ico');
+      await trayManager.setIcon('assets/images/logo/logo_windows.ico');
     } else if (Platform.environment.containsKey('FLATPAK_ID') || Platform.environment.containsKey('SNAP')) {
       await trayManager.setIcon('io.github.predidit.kazumi');
     } else {

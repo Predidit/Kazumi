@@ -123,12 +123,6 @@ abstract class _VideoPageController with Store {
         if (Utils.isCompact()) {
           verticalScreen();
         }
-      } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-        await const MethodChannel('com.alexmercerind/media_kit_video')
-            .invokeMethod(
-          'Utils.ExitNativeFullscreen',
-        );
-        // verticalScreen();
       }
     } catch (exception, stacktrace) {
       // debugPrint(exception.toString());
@@ -155,11 +149,6 @@ abstract class _VideoPageController with Store {
           ],
         );
         // await AutoOrientation.landscapeAutoMode(forceSensor: true);
-      } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-        await const MethodChannel('com.alexmercerind/media_kit_video')
-            .invokeMethod(
-          'Utils.EnterNativeFullscreen',
-        );
       }
     } catch (exception, stacktrace) {
       // debugPrint(exception.toString());

@@ -534,11 +534,10 @@ class _PlayerItemState extends State<PlayerItem>
                           focusNode: _focusNode,
                           onKeyEvent: (KeyEvent event) {
                             if (event is KeyDownEvent) {
+                              _handleHove();
                               // 当空格键被按下时
-                              _handleTap();
                               if (event.logicalKey ==
                                   LogicalKeyboardKey.space) {
-                                // debugPrint('空格键被按下');
                                 try {
                                   playerController.playOrPause();
                                 } catch (e) {
@@ -548,7 +547,6 @@ class _PlayerItemState extends State<PlayerItem>
                               // 右方向键被按下
                               if (event.logicalKey ==
                                   LogicalKeyboardKey.arrowRight) {
-                                // debugPrint('右方向键被按下');
                                 try {
                                   if (playerTimer != null) {
                                     playerTimer!.cancel();

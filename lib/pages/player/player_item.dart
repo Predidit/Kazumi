@@ -507,7 +507,11 @@ class _PlayerItemState extends State<PlayerItem>
                           ? SystemMouseCursors.none
                           : SystemMouseCursors.basic,
                   onHover: (_) {
-                    _handleHove();
+                    // workaround for android.
+                    // I don't konw why, but android tap event will trigger onHover event.
+                    if (Utils.isDesktop()) {
+                      _handleHove();
+                    }
                   },
                   child: FocusTraversalGroup(
                     child: FocusScope(

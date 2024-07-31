@@ -16,6 +16,8 @@ class Api {
   static const String gitMirror = 'https://mirror.ghproxy.com/';
   // 每日放送
   static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
+  // Bangumi 主页
+  static const String bangumiIndex = 'https://bangumi.tv/';
   // 番剧检索 (弃用)
   static const String bangumiSearch = 'https://api.bgm.tv/search/subject/';
   // 条目搜索

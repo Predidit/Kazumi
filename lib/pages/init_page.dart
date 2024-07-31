@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
 import 'package:fvp/fvp.dart' as fvp;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
 
 class InitPage extends StatefulWidget {
@@ -74,25 +76,27 @@ class _InitPageState extends State<InitPage> {
   }
 
   _pluginInit() async {
+    String statementsText = '';
     try {
       pluginsController.queryPluginHTTPList();
       await pluginsController.loadPlugins();
+      statementsText = await rootBundle.loadString("assets/statements/statements.txt");
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(
         useAnimation: false,
         builder: (context) {
           return AlertDialog(
-            title: const Text('插件管理'),
-            content: const Text('当前规则数为0, 是否加载示例规则'),
+            title: const Text('免责声明'),
+            scrollable: true,
+            content: Text(statementsText),
             actions: [
               TextButton(
                 onPressed: () {
-                  SmartDialog.dismiss();
-                  Modular.to.navigate('/tab/popular/');
+                  exit(0);
                 },
                 child: Text(
-                  '取消',
+                  '退出',
                   style:
                       TextStyle(color: Theme.of(context).colorScheme.outline),
                 ),
@@ -106,7 +110,7 @@ class _InitPageState extends State<InitPage> {
                   SmartDialog.dismiss();
                   Modular.to.navigate('/tab/popular/');
                 },
-                child: const Text('确认'),
+                child: const Text('已阅读并同意'),
               ),
             ],
           );

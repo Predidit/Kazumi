@@ -33,14 +33,27 @@ class _InitPageState extends State<InitPage> {
   }
 
   _fvpInit() async {
-    bool hAenable = await setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    bool hAenable =
+        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
     if (hAenable) {
       fvp.registerWith(options: {
-        'platforms': ['windows', 'linux']
+        'platforms': ['windows', 'linux'],
+        'player': {
+          'avio.reconnect': '1',
+          'avio.reconnect_delay_max': '7',
+          'buffer': '2000+150000',
+          'demux.buffer.ranges': '8',
+        }
       });
     } else {
       fvp.registerWith(options: {
         'video.decoders': ['FFmpeg'],
+        'player': {
+          'avio.reconnect': '1',
+          'avio.reconnect_delay_max': '7',
+          'buffer': '2000+150000',
+          'demux.buffer.ranges': '8',
+        }
       });
     }
   }
@@ -80,7 +93,8 @@ class _InitPageState extends State<InitPage> {
     try {
       pluginsController.queryPluginHTTPList();
       await pluginsController.loadPlugins();
-      statementsText = await rootBundle.loadString("assets/statements/statements.txt");
+      statementsText =
+          await rootBundle.loadString("assets/statements/statements.txt");
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(

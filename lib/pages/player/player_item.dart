@@ -242,7 +242,7 @@ class _PlayerItemState extends State<PlayerItem>
         danmakuController.clear();
         return;
       } catch (e) {
-        KazumiLogger().log(Level.error, e.toString());
+        KazumiLogger().log(Level.error, '卸载播放器错误 ${e.toString()}');
       }
     }
     // workaround on flutter 3.22.1
@@ -541,7 +541,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 try {
                                   playerController.playOrPause();
                                 } catch (e) {
-                                  KazumiLogger().log(Level.error, e.toString());
+                                  KazumiLogger().log(Level.error, '播放器内部错误 ${e.toString()}');
                                 }
                               }
                               // 右方向键被按下
@@ -559,7 +559,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       .seek(playerController.currentPosition);
                                   playerTimer = getPlayerTimer();
                                 } catch (e) {
-                                  KazumiLogger().log(Level.error, e.toString());
+                                  KazumiLogger().log(Level.error, '播放器内部错误 ${e.toString()}');
                                 }
                               }
                               // 左方向键被按下

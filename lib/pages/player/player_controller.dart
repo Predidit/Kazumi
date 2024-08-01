@@ -112,7 +112,7 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer.setPlaybackSpeed(playerSpeed);
     } catch (e) {
-      KazumiLogger().log(Level.error, e.toString());
+      KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
   }
 

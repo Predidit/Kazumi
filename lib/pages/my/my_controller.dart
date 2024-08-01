@@ -39,7 +39,7 @@ class MyController {
         );
       }
     }).catchError((err) {
-      KazumiLogger().log(Level.error, err.toString());
+      KazumiLogger().log(Level.error, '检查更新失败 ${err.toString()}');
       if (type == 'manual') {
         SmartDialog.showToast('当前是最新版本！');
       }

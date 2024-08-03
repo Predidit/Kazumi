@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
+
   final double? toolbarHeight;
 
   final Widget? title;
@@ -23,7 +24,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const SysAppBar({super.key, this.toolbarHeight, this.title, this.backgroundColor, this.elevation, this.shape, this.actions, this.leading, this.bottom});
 
-  void _handleCloseEvent() {
+  static void handleCloseEvent() {
     SmartDialog.show(
       useAnimation: false,
       builder: (context) {
@@ -57,7 +58,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      acs.add(CloseButton(onPressed: () => _handleCloseEvent()));
+      acs.add(CloseButton(onPressed: () => handleCloseEvent()));
     }
     return GestureDetector(
       // behavior: HitTestBehavior.translucent,

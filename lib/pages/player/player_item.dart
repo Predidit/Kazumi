@@ -1005,7 +1005,6 @@ class _PlayerItemState extends State<PlayerItem>
                                   ),
                                 ),
                               ),
-
                               // 自定义播放器底部组件
                               Positioned(
                                 bottom: 0,
@@ -1076,7 +1075,7 @@ class _PlayerItemState extends State<PlayerItem>
                                             playerController.currentPosition =
                                                 duration;
                                             playerController.seek(duration);
-                                            playerTimer = getPlayerTimer();
+                                            playerTimer = getPlayerTimer(); //Bug_time
                                           },
                                         ),
                                       ),
@@ -1088,13 +1087,9 @@ class _PlayerItemState extends State<PlayerItem>
                                               padding: const EdgeInsets.only(
                                                   left: 10.0),
                                               child: Text(
-                                                Utils.durationToString(
-                                                        playerController
-                                                            .currentPosition) +
-                                                    " / " +
-                                                    Utils.durationToString(
-                                                        playerController
-                                                            .duration),
+                                                Utils.durationToString(playerController.currentPosition)+
+                                                " / "+
+                                                Utils.durationToString(playerController.duration),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: !Utils.isCompact()

@@ -26,7 +26,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({super.key});
@@ -1002,12 +1001,6 @@ class _PlayerItemState extends State<PlayerItem>
                                           });
                                         },
                                       ),
-                                      /*IconButton(
-                                        icon: const Icon(Icons.close),
-                                        color: Colors.white,
-                                        onPressed: (){SysAppBar.handleCloseEvent();},
-                                        ),*/
-
                                     ],
                                   ),
                                 ),

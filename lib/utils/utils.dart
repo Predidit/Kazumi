@@ -363,7 +363,13 @@ class Utils {
     var hours = pad(duration.inHours % 24);
     var minutes = pad(duration.inMinutes % 60);
     var seconds = pad(duration.inSeconds % 60);
-    return "$hours:$minutes:$seconds";
+    if(hours == "00"){
+      return "$minutes:$seconds";
+    }
+    else{
+      return "$hours:$minutes:$seconds";
+    }
+
   }
 
   static Future<String> latest() async {

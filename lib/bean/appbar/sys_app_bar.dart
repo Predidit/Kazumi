@@ -24,7 +24,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   const SysAppBar({super.key, this.toolbarHeight, this.title, this.backgroundColor, this.elevation, this.shape, this.actions, this.leading, this.bottom});
 
-  static void handleCloseEvent() {
+  void _handleCloseEvent() {
     SmartDialog.show(
       useAnimation: false,
       builder: (context) {
@@ -58,7 +58,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      acs.add(CloseButton(onPressed: () => handleCloseEvent()));
+      acs.add(CloseButton(onPressed: () => _handleCloseEvent()));
     }
     return GestureDetector(
       // behavior: HitTestBehavior.translucent,

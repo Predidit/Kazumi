@@ -1002,11 +1002,11 @@ class _PlayerItemState extends State<PlayerItem>
                                           });
                                         },
                                       ),
-                                      IconButton(
+                                      /*IconButton(
                                         icon: const Icon(Icons.close),
                                         color: Colors.white,
                                         onPressed: (){SysAppBar.handleCloseEvent();},
-                                        ),
+                                        ),*/
 
                                     ],
                                   ),

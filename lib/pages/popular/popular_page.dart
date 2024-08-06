@@ -239,10 +239,10 @@ class _PopularPageState extends State<PopularPage>
                             }
                             if (popularController.bangumiList.isEmpty &&
                                 timeout == false) {
-                              return const SliverToBoxAdapter(
+                              return SliverToBoxAdapter(
                                 child: SizedBox(
-                                    height: 600,
-                                    child: Column(
+                                    height: (MediaQuery.of(context).size.height / 2),
+                                    child: const Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,
                                       mainAxisAlignment:

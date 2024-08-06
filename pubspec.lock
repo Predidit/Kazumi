@@ -25,14 +25,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.4.1"
-  animated_search_bar:
-    dependency: "direct main"
-    description:
-      name: animated_search_bar
-      sha256: "33157a7463c80387202f8a5ba5091656db820005b5869272d671b6dffcc2949a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.7.1"
   archive:
     dependency: transitive
     description:

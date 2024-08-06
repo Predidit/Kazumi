@@ -12,7 +12,6 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:animated_search_bar/animated_search_bar.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 
@@ -28,8 +27,11 @@ class _PopularPageState extends State<PopularPage>
   DateTime? _lastPressedAt;
   bool timeout = false;
   bool searchLoading = false;
+  bool showTagFilter = true;
+  bool showSearchBar = false;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
+  final TextEditingController keywordController = TextEditingController();
   final PopularController popularController = Modular.get<PopularController>();
 
   @override
@@ -60,7 +62,6 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   void dispose() {
-    popularController.keyword = '';
     popularController.searchKeyword = '';
     _focusNode.dispose();
     scrollController.removeListener(() {});
@@ -122,99 +123,152 @@ class _PopularPageState extends State<PopularPage>
                       child: Container(),
                     ),
                   ),
-                  AnimatedSearchBar(
-                    searchDecoration: const InputDecoration(
-                      alignLabelWithHint: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Visibility(
+                          visible: showSearchBar,
+                          child: TextFormField(
+                            focusNode: _focusNode,
+                            cursorColor: Theme.of(context).colorScheme.primary,
+                            decoration: const InputDecoration(
+                              alignLabelWithHint: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 8),
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(8)),
+                              ),
+                            ),
+                            style: TextStyle(
+                                color:
+                                    isLight ? Colors.black87 : Colors.white70),
+                            onChanged: (_) {
+                              scrollController.jumpTo(0.0);
+                            },
+                            controller: keywordController,
+                            onFieldSubmitted: (t) async {
+                              setState(() {
+                                searchLoading = true;
+                                popularController.currentTag = '';
+                              });
+                              if (t != '') {
+                                popularController.searchKeyword = t;
+                                await popularController.queryBangumi(
+                                    popularController.searchKeyword);
+                              } else {
+                                popularController.searchKeyword = '';
+                                await popularController.queryBangumiListFeed();
+                              }
+                              setState(() {
+                                searchLoading = false;
+                              });
+                            },
+                            // onClose: () async {
+                            //   setState(() {
+                            //     searchLoading = true;
+                            //     popularController.currentTag = '';
+                            //   });
+                            //   popularController.searchKeyword = '';
+                            //   await popularController.queryBangumiListFeed();
+                            //   setState(() {
+                            //     searchLoading = false;
+                            //   });
+                            // },
+                          ),
+                        ),
                       ),
-                    ),
-                    searchStyle: TextStyle(
-                        color: isLight ? Colors.black87 : Colors.white70),
-                    onChanged: (_) {
-                      scrollController.jumpTo(0.0);
-                    },
-                    onFieldSubmitted: (t) async {
-                      setState(() {
-                        searchLoading = true;
-                      });
-                      if (t != '') {
-                        popularController.searchKeyword = t;
-                        await popularController
-                            .queryBangumi(popularController.searchKeyword);
-                      } else {
-                        popularController.searchKeyword = '';
-                        await popularController.queryBangumiListFeed();
-                      }
-                      setState(() {
-                        searchLoading = false;
-                      });
-                    },
-                    onClose: () async {
-                      setState(() {
-                        searchLoading = true;
-                      });
-                      popularController.searchKeyword = '';
-                      await popularController.queryBangumiListFeed();
-                      setState(() {
-                        searchLoading = false;
-                      });
-                    },
+                      IconButton(
+                          onPressed: () async {
+                            if (!showSearchBar) {
+                              setState(() {
+                                showSearchBar = true;
+                              });
+                              _focusNode.requestFocus();
+                            } else {
+                              if (keywordController.text == '') {
+                                _focusNode.unfocus();
+                                setState(() {
+                                  showSearchBar = false;
+                                  searchLoading = true;
+                                  popularController.currentTag = '';
+                                });
+                                popularController.searchKeyword == '';
+                                await popularController.queryBangumiListFeed();
+                                setState(() {
+                                  searchLoading = false;
+                                });
+                              } else {
+                                keywordController.text = '';
+                                popularController.searchKeyword = '';
+                                _focusNode.requestFocus();
+                              }
+                            }
+                          },
+                          icon: showSearchBar
+                              ? const Icon(Icons.close)
+                              : const Icon(Icons.search))
+                    ],
                   ),
                 ],
               ),
             ),
-            body: CustomScrollView(
-              controller: scrollController,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 0, bottom: 10, left: 0),
-                    // child: Row(
-                    //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //   children: [
-                    //     Text(
-                    //       '每日放送',
-                    //       style: Theme.of(context).textTheme.titleMedium,
-                    //     ),
-                    //   ],
-                    // ),
-                    child: searchLoading
-                        ? const LinearProgressIndicator()
-                        : Container(),
+            body: Column(
+              children: [
+                SizedBox(
+                  height: showTagFilter ? 50 : 0,
+                  child: tagFilter(),
+                ),
+                Expanded(
+                  child: CustomScrollView(
+                    controller: scrollController,
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                              top: 0, bottom: 10, left: 0),
+                          child: searchLoading
+                              ? const LinearProgressIndicator()
+                              : Container(),
+                        ),
+                      ),
+                      SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(
+                              StyleString.safeSpace,
+                              0,
+                              StyleString.safeSpace,
+                              0),
+                          sliver: Observer(builder: (context) {
+                            if (popularController.bangumiList.isEmpty &&
+                                timeout == true) {
+                              return HttpError(
+                                errMsg: '什么都没有找到 (´;ω;`)',
+                                fn: () {
+                                  popularController.queryBangumiListFeed();
+                                },
+                              );
+                            }
+                            if (popularController.bangumiList.isEmpty &&
+                                timeout == false) {
+                              return const SliverToBoxAdapter(
+                                child: SizedBox(
+                                    height: 600,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(),
+                                      ],
+                                    )),
+                              );
+                            }
+                            return contentGrid(popularController.bangumiList);
+                          })),
+                    ],
                   ),
                 ),
-                SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                        StyleString.safeSpace, 0, StyleString.safeSpace, 0),
-                    sliver: Observer(builder: (context) {
-                      if (popularController.bangumiList.isEmpty &&
-                          timeout == true) {
-                        return HttpError(
-                          errMsg: '什么都没有找到 (´;ω;`)',
-                          fn: () {
-                            popularController.queryBangumiListFeed();
-                          },
-                        );
-                      }
-                      if (popularController.bangumiList.isEmpty &&
-                          timeout == false) {
-                        return const SliverToBoxAdapter(
-                          child: SizedBox(
-                              height: 600,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(),
-                                ],
-                              )),
-                        );
-                      }
-                      return contentGrid(popularController.bangumiList);
-                    })),
               ],
             ),
             floatingActionButton: FloatingActionButton(
@@ -254,7 +308,6 @@ class _PopularPageState extends State<PopularPage>
     );
   }
 
-  // Block on unexpected pixel gap between the AppBar and the SliverAppBar (only happen on android)
   Widget tagFilter() {
     List<String> tags = [
       '日常',
@@ -299,8 +352,11 @@ class _PopularPageState extends State<PopularPage>
                     : FilledButton.tonal(
                         child: Text(filter),
                         onPressed: () async {
+                          _focusNode.unfocus();
                           setState(() {
                             popularController.currentTag = filter;
+                            keywordController.text = '';
+                            showSearchBar = false;
                             searchLoading = true;
                           });
                           await popularController.queryBangumiListFeed(

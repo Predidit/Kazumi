@@ -95,7 +95,8 @@ class _PopularPageState extends State<PopularPage>
       },
       child: RefreshIndicator(
         onRefresh: () async {
-          await popularController.queryBangumiListFeed();
+          await popularController.queryBangumiListFeed(
+              tag: popularController.currentTag);
         },
         child: Scaffold(
             appBar: SysAppBar(
@@ -241,7 +242,9 @@ class _PopularPageState extends State<PopularPage>
                                 timeout == false) {
                               return SliverToBoxAdapter(
                                 child: SizedBox(
-                                    height: (MediaQuery.of(context).size.height / 2),
+                                    height:
+                                        (MediaQuery.of(context).size.height /
+                                            2),
                                     child: const Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.center,

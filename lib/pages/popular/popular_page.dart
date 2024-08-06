@@ -164,17 +164,6 @@ class _PopularPageState extends State<PopularPage>
                                 searchLoading = false;
                               });
                             },
-                            // onClose: () async {
-                            //   setState(() {
-                            //     searchLoading = true;
-                            //     popularController.currentTag = '';
-                            //   });
-                            //   popularController.searchKeyword = '';
-                            //   await popularController.queryBangumiListFeed();
-                            //   setState(() {
-                            //     searchLoading = false;
-                            //   });
-                            // },
                           ),
                         ),
                       ),
@@ -376,16 +365,18 @@ class _PopularPageState extends State<PopularPage>
           child: IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: () async {
-              setState(() {
-                popularController.currentTag = '';
-                searchLoading = true;
-              });
-              await popularController.queryBangumiListFeed(
-                tag: popularController.currentTag,
-              );
-              setState(() {
-                searchLoading = false;
-              });
+              if (popularController.currentTag != '') {
+                setState(() {
+                  popularController.currentTag = '';
+                  searchLoading = true;
+                });
+                await popularController.queryBangumiListFeed(
+                  tag: popularController.currentTag,
+                );
+                setState(() {
+                  searchLoading = false;
+                });
+              }
             },
           ),
         )

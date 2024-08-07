@@ -20,7 +20,7 @@ version: 1.2.5+1
 
 environment:
   sdk: '>=3.3.4 <4.0.0'
-  flutter: 3.22.3
+  flutter: 3.24.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -64,7 +64,6 @@ dependencies:
   flutter_displaymode: ^0.6.0
 
   universal_platform: ^1.0.0+1
-  webview_cookie_manager: ^2.0.6
   url_launcher: ^6.1.14
   device_info_plus: ^9.0.2
   window_manager: ^0.3.9

@@ -207,7 +207,10 @@ class _PopularPageState extends State<PopularPage>
               children: [
                 SizedBox(
                   height: showTagFilter ? 50 : 0,
-                  child: tagFilter(),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
+                    child: tagFilter(),
+                  ),
                 ),
                 Expanded(
                   child: CustomScrollView(
@@ -266,7 +269,6 @@ class _PopularPageState extends State<PopularPage>
             floatingActionButton: FloatingActionButton(
               onPressed: () {
                 scrollController.jumpTo(0.0);
-                popularController.scrollOffset = 0.0;
               },
               child: const Icon(Icons.arrow_upward),
             )
@@ -329,6 +331,7 @@ class _PopularPageState extends State<PopularPage>
                     ? FilledButton(
                         child: Text(filter),
                         onPressed: () async {
+                          scrollController.jumpTo(0.0);
                           setState(() {
                             popularController.currentTag = '';
                             searchLoading = true;
@@ -345,6 +348,7 @@ class _PopularPageState extends State<PopularPage>
                         child: Text(filter),
                         onPressed: () async {
                           _focusNode.unfocus();
+                          scrollController.jumpTo(0.0);
                           setState(() {
                             popularController.currentTag = filter;
                             keywordController.text = '';
@@ -363,26 +367,26 @@ class _PopularPageState extends State<PopularPage>
             },
           ),
         ),
-        Tooltip(
-          message: '重设列表',
-          child: IconButton(
-            icon: const Icon(Icons.clear_all),
-            onPressed: () async {
-              if (popularController.currentTag != '') {
-                setState(() {
-                  popularController.currentTag = '';
-                  searchLoading = true;
-                });
-                await popularController.queryBangumiListFeed(
-                  tag: popularController.currentTag,
-                );
-                setState(() {
-                  searchLoading = false;
-                });
-              }
-            },
-          ),
-        )
+        // Tooltip(
+        //   message: '重设列表',
+        //   child: IconButton(
+        //     icon: const Icon(Icons.clear_all),
+        //     onPressed: () async {
+        //       if (popularController.currentTag != '') {
+        //         setState(() {
+        //           popularController.currentTag = '';
+        //           searchLoading = true;
+        //         });
+        //         await popularController.queryBangumiListFeed(
+        //           tag: popularController.currentTag,
+        //         );
+        //         setState(() {
+        //           searchLoading = false;
+        //         });
+        //       }
+        //     },
+        //   ),
+        // )
       ],
     );
   }

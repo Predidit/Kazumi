@@ -105,6 +105,33 @@
               name: ios_outputs
               path: Kazumi_ios_*.ipa
 
+      flutter-build-macos:
+        name: "Release for Macos"
+        runs-on: "macos-latest"
+        permissions: write-all
+
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - name: Extract tag name
+            run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          - name: Echo build progress
+            run: echo "Kazumi_macos_${{ env.tag }}.dmg build progress"
+          - name: Set up Flutter
+            uses: subosito/flutter-action@v2
+            with:
+              channel: stable
+              flutter-version-file: pubspec.yaml
+          - run: flutter pub get
+          - run: flutter build macos --release
+          - name: Create DMG
+            run: hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/kazumi.app -volname kazumi Kazumi_macos_${{ env.tag }}.dmg
+          - name: Upload MacOS build
+            uses: actions/upload-artifact@v4
+            with:
+              name: macos_outputs
+              path: Kazumi_macos_*.dmg
+
       flutter-build-linux:
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 

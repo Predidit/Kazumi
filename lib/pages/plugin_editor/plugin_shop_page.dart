@@ -49,7 +49,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
     });
     return PopScope(
       canPop: true,
-      onPopInvoked: (bool didPop) {
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         onBackPressed(context);
       },
       child: Scaffold(

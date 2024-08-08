@@ -51,7 +51,6 @@ class _PlayerItemState extends State<PlayerItem>
   late DanmakuController danmakuController;
   late bool isFavorite;
   late bool webDavEnable;
-  bool isPopping = false;
 
   // 界面管理
   bool showPositioned = false;
@@ -106,7 +105,7 @@ class _PlayerItemState extends State<PlayerItem>
           _animationController.reverse();
         }
         hideTimer = null;
-      });      
+      });
     } else {
       _animationController.reverse();
       if (hideTimer != null) {
@@ -245,17 +244,16 @@ class _PlayerItemState extends State<PlayerItem>
         KazumiLogger().log(Level.error, '卸载播放器错误 ${e.toString()}');
       }
     }
-    // workaround on flutter 3.22.1
-    if (!isPopping) {
-      isPopping = true;
-      if (webDavEnable) {
-        try {
-          var webDav = WebDav();
-          webDav.updateHistory();
-        } catch (e) {
-          SmartDialog.showToast('同步记录失败 ${e.toString()}');
-        }
+
+    if (webDavEnable) {
+      try {
+        var webDav = WebDav();
+        webDav.updateHistory();
+      } catch (e) {
+        SmartDialog.showToast('同步记录失败 ${e.toString()}');
       }
+    }
+    if (mounted) {
       Navigator.of(context).pop();
     }
     // Navigator.of(context).pop();
@@ -492,7 +490,10 @@ class _PlayerItemState extends State<PlayerItem>
     return PopScope(
       // key: _key,
       canPop: false,
-      onPopInvoked: (bool didPop) async {
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         onBackPressed(context);
       },
       child: SafeArea(
@@ -541,7 +542,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 try {
                                   playerController.playOrPause();
                                 } catch (e) {
-                                  KazumiLogger().log(Level.error, '播放器内部错误 ${e.toString()}');
+                                  KazumiLogger().log(
+                                      Level.error, '播放器内部错误 ${e.toString()}');
                                 }
                               }
                               // 右方向键被按下
@@ -559,7 +561,8 @@ class _PlayerItemState extends State<PlayerItem>
                                       .seek(playerController.currentPosition);
                                   playerTimer = getPlayerTimer();
                                 } catch (e) {
-                                  KazumiLogger().log(Level.error, '播放器内部错误 ${e.toString()}');
+                                  KazumiLogger().log(
+                                      Level.error, '播放器内部错误 ${e.toString()}');
                                 }
                               }
                               // 左方向键被按下
@@ -1075,7 +1078,8 @@ class _PlayerItemState extends State<PlayerItem>
                                             playerController.currentPosition =
                                                 duration;
                                             playerController.seek(duration);
-                                            playerTimer = getPlayerTimer(); //Bug_time
+                                            playerTimer =
+                                                getPlayerTimer(); //Bug_time
                                           },
                                         ),
                                       ),
@@ -1087,9 +1091,13 @@ class _PlayerItemState extends State<PlayerItem>
                                               padding: const EdgeInsets.only(
                                                   left: 10.0),
                                               child: Text(
-                                                Utils.durationToString(playerController.currentPosition)+
-                                                " / "+
-                                                Utils.durationToString(playerController.duration),
+                                                Utils.durationToString(
+                                                        playerController
+                                                            .currentPosition) +
+                                                    " / " +
+                                                    Utils.durationToString(
+                                                        playerController
+                                                            .duration),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: !Utils.isCompact()

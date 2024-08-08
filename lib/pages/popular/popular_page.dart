@@ -90,7 +90,10 @@ class _PopularPageState extends State<PopularPage>
     });
     return PopScope(
       canPop: false,
-      onPopInvoked: (bool didPop) async {
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         onBackPressed(context);
       },
       child: RefreshIndicator(
@@ -315,7 +318,10 @@ class _PopularPageState extends State<PopularPage>
       '悬疑',
       '热血',
       '后宫',
-      '机战'
+      '机战',
+      '轻改',
+      '偶像',
+      '治愈',
     ];
     return Row(
       children: <Widget>[

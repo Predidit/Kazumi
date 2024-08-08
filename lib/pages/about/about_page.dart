@@ -129,7 +129,10 @@ class _AboutPageState extends State<AboutPage> {
     });
     return PopScope(
       canPop: true,
-      onPopInvoked: (bool didPop) async {
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) {
+          return;
+        }
         onBackPressed(context);
       },
       child: Scaffold(

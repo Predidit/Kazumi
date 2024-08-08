@@ -123,7 +123,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     });
     return PopScope(
       canPop: true,
-      onPopInvoked: (bool didPop) async {
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
         onBackPressed(context);
       },
       child: Scaffold(

@@ -50,9 +50,6 @@ class _HistoryPageState extends State<HistoryPage>
       return PopScope(
         canPop: true,
         onPopInvokedWithResult: (bool didPop, Object? result) async {
-          if (didPop) {
-            return;
-          }
           onBackPressed(context);
         },
         child: Scaffold(

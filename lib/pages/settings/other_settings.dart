@@ -47,9 +47,6 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
         onBackPressed(context);
       },
       child: const Scaffold(

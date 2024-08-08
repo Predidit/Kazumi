@@ -42,9 +42,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
         onBackPressed(context);
       },
       child: const Scaffold(

@@ -68,9 +68,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
         onBackPressed(context);
       },
       child: Scaffold(

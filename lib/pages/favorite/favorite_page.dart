@@ -2,9 +2,12 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:provider/provider.dart';
 
 class FavoritePage extends StatefulWidget {
   const FavoritePage({super.key});
@@ -16,24 +19,51 @@ class FavoritePage extends StatefulWidget {
 class _FavoritePageState extends State<FavoritePage> {
   final FavoriteController favoriteController =
       Modular.get<FavoriteController>();
+  dynamic navigationBarState;
+
+  void onBackPressed(BuildContext context) {
+    navigationBarState.updateSelectedIndex(0);
+    Modular.to.navigate('/tab/popular/');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (Utils.isCompact()) {
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+    } else {
+      navigationBarState =
+          Provider.of<SideNavigationBarState>(context, listen: false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const SysAppBar(
-          title: Text('追番'), backgroundColor: Colors.transparent),
-      body: favoriteController.favorites.isEmpty
-          ? const Center(
-              child: Text('啊咧（⊙.⊙） 没有追番的说'),
-            )
-          : CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.all(StyleString.cardSpace),
-                  sliver: contentGrid(favoriteController.favorites),
-                ),
-              ],
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: const SysAppBar(
+            title: Text('追番'), backgroundColor: Colors.transparent),
+        body: favoriteController.favorites.isEmpty
+            ? const Center(
+                child: Text('啊咧（⊙.⊙） 没有追番的说'),
+              )
+            : CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.all(StyleString.cardSpace),
+                    sliver: contentGrid(favoriteController.favorites),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 

@@ -1433,13 +1433,14 @@ packages:
     source: hosted
     version: "2.10.0"
   webview_flutter_wkwebview:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: webview_flutter_wkwebview
-      sha256: "9c62cc46fa4f2d41e10ab81014c1de470a6c6f26051a2de32111b2ee55287feb"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.14.0"
+      path: "packages/webview_flutter/webview_flutter_wkwebview"
+      ref: webview-macos
+      resolved-ref: ad794b4c234bbe7d15e6c3d09ff17513bc6f9301
+      url: "https://github.com/stuartmorgan/packages"
+    source: git
+    version: "3.15.0"
   webview_windows:
     dependency: "direct main"
     description:

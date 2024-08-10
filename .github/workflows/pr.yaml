@@ -122,7 +122,7 @@
           - name: Extract tag name
             run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           - name: Echo build progress
-            run: echo "Kazumi_macos_${{ env.tag }}.dmg build progress"
+            run: echo "Kazumi_macos_canary.dmg build progress"
           - name: Set up Flutter
             uses: subosito/flutter-action@v2
             with:
@@ -131,7 +131,7 @@
           - run: flutter pub get
           - run: flutter build macos --release
           - name: Create DMG
-            run: hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/kazumi.app -volname kazumi Kazumi_macos_${{ env.tag }}.dmg
+            run: hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/kazumi.app -volname kazumi Kazumi_macos_canary.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:

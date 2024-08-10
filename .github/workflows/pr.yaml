@@ -4,6 +4,12 @@
     on:
       pull_request:
         types: [opened, synchronize, reopened]
+      workflow_dispatch:
+        inputs:
+          logLevel:
+            description: 'Log level'     
+            required: true
+            default: 'warning'
     
     jobs:
       flutter-build-android:

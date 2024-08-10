@@ -59,6 +59,8 @@
           - name: Clone repository
             uses: actions/checkout@v4
           - run: choco install yq
+          - name: Enable Git longpaths
+            run: git config --system core.longpaths true
           - name: Set up Flutter
             uses: subosito/flutter-action@v2
             with:
@@ -119,10 +121,6 @@
         steps:
           - name: Clone repository
             uses: actions/checkout@v4
-          - name: Extract tag name
-            run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          - name: Echo build progress
-            run: echo "Kazumi_macos_canary.dmg build progress"
           - name: Set up Flutter
             uses: subosito/flutter-action@v2
             with:

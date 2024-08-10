@@ -70,6 +70,8 @@
                   echo "tag=$(echo $tag)" >> $env:GITHUB_ENV
           - run: echo "Kazumi_windows_${env:tag}.zip build progress"
           - run: choco install yq
+          - name: Enable Git longpaths
+            run: git config --system core.longpaths true
           - name: Set up Flutter
             uses: subosito/flutter-action@v2
             with:

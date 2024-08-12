@@ -84,6 +84,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         appBar: const SysAppBar(title: Text('弹幕设置')),
         body: ListView(
           children: [
+            ListTile(
+              onTap: () {
+                Modular.to.pushNamed('/tab/my/danmaku/source');
+              },
+              dense: false,
+              title: const Text('弹幕来源'),
+            ),
             const InkWell(
               child: SetSwitchItem(
                 title: '默认开启',

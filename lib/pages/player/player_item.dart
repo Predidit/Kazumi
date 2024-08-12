@@ -71,6 +71,9 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _hideScroll;
   late bool _massiveMode;
   late bool _danmakuColor;
+  late bool _danmakuBiliBiliSource;
+  late bool _danmakuGamerSource;
+  late bool _danmakuDanDanSource;
 
   // 过渡动画
   late AnimationController _animationController;
@@ -181,6 +184,15 @@ class _PlayerItemState extends State<PlayerItem>
             .forEach((idx, danmaku) async {
           if (!_danmakuColor) {
             danmaku.color = Colors.white;
+          }
+          if (!_danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
+            return;
+          }
+          if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
+            return;
+          }
+          if (!_danmakuDanDanSource && !(danmaku.source.contains('BiliBili') || danmaku.source.contains('Gamer'))) {
+            return;
           }
           await Future.delayed(
               Duration(
@@ -469,6 +481,10 @@ class _PlayerItemState extends State<PlayerItem>
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
+    _danmakuBiliBiliSource =
+        setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
+    _danmakuGamerSource = setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
+    _danmakuDanDanSource = setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     playerTimer = getPlayerTimer();
     _handleTap();
   }

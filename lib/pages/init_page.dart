@@ -91,10 +91,10 @@ class _InitPageState extends State<InitPage> {
   _pluginInit() async {
     String statementsText = '';
     try {
-      pluginsController.queryPluginHTTPList();
       await pluginsController.loadPlugins();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
+      _pluginUpdate();
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(
@@ -139,6 +139,24 @@ class _InitPageState extends State<InitPage> {
     bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
     if (autoUpdate) {
       Modular.get<MyController>().checkUpdata(type: 'auto');
+    }
+  }
+
+  _pluginUpdate() async {
+    await pluginsController.queryPluginHTTPList();
+    int count = 0;
+    for (var plugin in pluginsController.pluginList) {
+      for(var pluginHTTP in pluginsController.pluginHTTPList) {
+        if (plugin.name == pluginHTTP.name) {
+          if (plugin.version != pluginHTTP.version) {
+              count++;
+              break;
+          }
+        }
+      }
+    }
+    if (count != 0) {
+      SmartDialog.showToast('检测到 $count 条规则可以更新');
     }
   }
 

@@ -150,7 +150,8 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
-                launchUrl(Uri.parse(Api.sourceUrl), mode: LaunchMode.externalApplication);
+                launchUrl(Uri.parse(Api.sourceUrl),
+                    mode: LaunchMode.externalApplication);
               },
               dense: false,
               title: const Text('项目主页'),
@@ -162,10 +163,11 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
-                launchUrl(Uri.parse(Api.iconUrl), mode: LaunchMode.externalApplication);
+                launchUrl(Uri.parse(Api.iconUrl),
+                    mode: LaunchMode.externalApplication);
               },
               dense: false,
-              title: const Text('图标创作者'),
+              title: const Text('图标创作'),
               trailing: Text('Pixiv',
                   style: Theme.of(context)
                       .textTheme
@@ -174,11 +176,25 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
-                launchUrl(Uri.parse(Api.bangumiIndex), mode: LaunchMode.externalApplication);
+                launchUrl(Uri.parse(Api.bangumiIndex),
+                    mode: LaunchMode.externalApplication);
               },
               dense: false,
               title: const Text('番剧索引'),
               trailing: Text('Bangumi',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
+            ListTile(
+              onTap: () {
+                launchUrl(Uri.parse(Api.dandanIndex),
+                    mode: LaunchMode.externalApplication);
+              },
+              dense: false,
+              title: const Text('弹幕来源'),
+              trailing: Text('DanDanPlay',
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium!

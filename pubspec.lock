@@ -298,7 +298,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: no_texture
       resolved-ref: "1674f1730d1113989844eca0d54788d8c19bf642"
       url: "https://github.com/Predidit/linux_webview_window.git"
     source: git

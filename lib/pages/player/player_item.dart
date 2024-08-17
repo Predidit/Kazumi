@@ -411,6 +411,9 @@ class _PlayerItemState extends State<PlayerItem>
                                         SmartDialog.showToast('弹幕切换失败');
                                       }
                                       SmartDialog.dismiss();
+                                      try {
+                                        _focusNode.requestFocus();
+                                      } catch (_) {}
                                     },
                                   );
                                 }).toList(),

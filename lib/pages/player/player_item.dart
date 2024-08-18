@@ -26,6 +26,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({super.key});
@@ -376,7 +377,7 @@ class _PlayerItemState extends State<PlayerItem>
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               decoration: const InputDecoration(
-                hintText: '搜索弹幕源',
+                hintText: '输入番剧名以检索弹幕',
               ),
               onSubmitted: (keyword) async {
                 SmartDialog.dismiss();
@@ -1096,7 +1097,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         },
                                       ),
                                       PopupMenuButton(
-                                        tooltip: null,
+                                        tooltip: '',
                                         icon: const Icon(
                                           Icons.more_vert,
                                           color: Colors.white,
@@ -1120,7 +1121,15 @@ class _PlayerItemState extends State<PlayerItem>
                                           ];
                                         },
                                         onSelected: (value) {
-                                          if (value == 0) {}
+                                          if (value == 0) {
+                                            SmartDialog.show(
+                                              useAnimation: false,
+                                              builder: (context) {
+                                              return SizedBox(
+                                                height: 440,
+                                                child: DanmakuSettingsWindow(danmakuController: danmakuController));
+                                            });
+                                          }
                                           if (value == 1) {
                                             showDanmakuSwitch(type: 'manual');
                                           }

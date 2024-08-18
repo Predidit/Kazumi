@@ -55,17 +55,13 @@ class _VideoPageState extends State<VideoPage>
     var progress = historyController.lastWatching(
         infoController.bangumiItem, videoPageController.currentPlugin.name);
     if (progress != null) {
-      // debugPrint('尝试恢复观看进度');
       if (videoPageController.roadList.length > progress.road) {
-        // debugPrint('播放列表选择恢复');
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
-          // debugPrint('选集进度恢复');
           videoPageController.currentEspisode = progress.episode;
           videoPageController.currentRoad = progress.road;
           if (playResume) {
             videoPageController.historyOffset = progress.progress.inSeconds;
-            // debugPrint('上次观看位置 ${videoPageController.historyOffset}');
           }
         }
       }
@@ -156,10 +152,6 @@ class _VideoPageState extends State<VideoPage>
         );
       }),
     );
-  }
-
-  List<Widget> renderWidgets() {
-    return [];
   }
 
   Widget get playerBody {
@@ -342,7 +334,6 @@ class _VideoPageState extends State<VideoPage>
                 }
               }
             }
-            // return ListView(children: cardList);
             return Padding(
               padding: const EdgeInsets.only(top: 0, right: 5, left: 5),
               child: GridView.builder(

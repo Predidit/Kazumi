@@ -191,7 +191,9 @@ class _PlayerItemState extends State<PlayerItem>
           if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
             return;
           }
-          if (!_danmakuDanDanSource && !(danmaku.source.contains('BiliBili') || danmaku.source.contains('Gamer'))) {
+          if (!_danmakuDanDanSource &&
+              !(danmaku.source.contains('BiliBili') ||
+                  danmaku.source.contains('Gamer'))) {
             return;
           }
           await Future.delayed(
@@ -364,7 +366,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   // 弹幕查询
-  void showDanmakuSwitch() {
+  void showDanmakuSwitch({String type = 'auto'}) {
     DanmakuSearchResponse danmakuSearchResponse;
     SmartDialog.show(
       useAnimation: false,
@@ -388,7 +390,7 @@ class _PlayerItemState extends State<PlayerItem>
                   return;
                 }
                 SmartDialog.dismiss();
-                SmartDialog.show(
+                await SmartDialog.show(
                     useAnimation: false,
                     builder: (context) {
                       return Dialog(
@@ -400,20 +402,88 @@ class _PlayerItemState extends State<PlayerItem>
                                     .map((danmakuInfo) {
                                   return ListTile(
                                     title: Text(danmakuInfo.animeTitle),
-                                    onTap: () async {
-                                      SmartDialog.showToast('弹幕切换中');
-                                      try {
-                                        await playerController.getDanDanmaku(
-                                            danmakuInfo.animeTitle,
-                                            videoPageController
-                                                .currentEspisode);
-                                      } catch (e) {
-                                        SmartDialog.showToast('弹幕切换失败');
-                                      }
+                                    onTap: () {
                                       SmartDialog.dismiss();
-                                      try {
-                                        _focusNode.requestFocus();
-                                      } catch (_) {}
+                                      int danmakuEpisode =
+                                          videoPageController.currentEspisode;
+                                      if (type == 'manual') {
+                                        SmartDialog.show(
+                                            useAnimation: false,
+                                            builder: (context) {
+                                              return AlertDialog(
+                                                title: const Text('弹幕选集'),
+                                                content: StatefulBuilder(
+                                                    builder: (BuildContext
+                                                            context,
+                                                        StateSetter setState) {
+                                                  return Wrap(
+                                                    spacing: 8,
+                                                    runSpacing: 4,
+                                                    children: [
+                                                      for (int i = 1;
+                                                          i <=
+                                                              videoPageController
+                                                                  .roadList[
+                                                                      videoPageController
+                                                                          .currentRoad]
+                                                                  .data
+                                                                  .length;
+                                                          i++) ...<Widget>[
+                                                        FilledButton.tonal(
+                                                          onPressed: () {
+                                                            danmakuEpisode = i;
+                                                            SmartDialog
+                                                                .dismiss();
+                                                            try {
+                                                              _focusNode
+                                                                  .requestFocus();
+                                                            } catch (_) {}
+                                                            SmartDialog
+                                                                .showToast(
+                                                                    '弹幕切换中');
+                                                            try {
+                                                              playerController
+                                                                  .getDanDanmaku(
+                                                                      danmakuInfo
+                                                                          .animeTitle,
+                                                                      danmakuEpisode);
+                                                              if (!playerController
+                                                                  .danmakuOn) {
+                                                                playerController
+                                                                        .danmakuOn =
+                                                                    true;
+                                                              }
+                                                            } catch (e) {
+                                                              SmartDialog
+                                                                  .showToast(
+                                                                      '弹幕切换失败');
+                                                            }
+                                                          },
+                                                          child: Text(
+                                                              '第${i.toString()}话'),
+                                                        ),
+                                                      ]
+                                                    ],
+                                                  );
+                                                }),
+                                              );
+                                            });
+                                      } else {
+                                        try {
+                                          _focusNode.requestFocus();
+                                        } catch (_) {}
+                                        SmartDialog.showToast('弹幕切换中');
+                                        try {
+                                          playerController.getDanDanmaku(
+                                              danmakuInfo.animeTitle,
+                                              danmakuEpisode);
+                                          if (!playerController.danmakuOn) {
+                                            playerController.danmakuOn = true;
+                                          }
+                                        } catch (e) {
+                                          SmartDialog.showToast('弹幕切换失败');
+                                        }
+                                      }
                                     },
                                   );
                                 }).toList(),
@@ -486,8 +556,10 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
     _danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
-    _danmakuGamerSource = setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
-    _danmakuDanDanSource = setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+    _danmakuGamerSource =
+        setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
+    _danmakuDanDanSource =
+        setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     playerTimer = getPlayerTimer();
     _handleTap();
   }
@@ -1023,6 +1095,37 @@ class _PlayerItemState extends State<PlayerItem>
                                           });
                                         },
                                       ),
+                                      PopupMenuButton(
+                                        tooltip: null,
+                                        icon: const Icon(
+                                          Icons.more_vert,
+                                          color: Colors.white,
+                                        ),
+                                        itemBuilder: (context) {
+                                          return const [
+                                            PopupMenuItem(
+                                              value: 0,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [Text("弹幕设置")],
+                                              ),
+                                            ),
+                                            PopupMenuItem(
+                                              value: 1,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [Text("弹幕切换")],
+                                              ),
+                                            ),
+                                          ];
+                                        },
+                                        onSelected: (value) {
+                                          if (value == 0) {}
+                                          if (value == 1) {
+                                            showDanmakuSwitch(type: 'manual');
+                                          }
+                                        },
+                                      )
                                     ],
                                   ),
                                 ),

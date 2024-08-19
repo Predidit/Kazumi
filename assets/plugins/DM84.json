@@ -1,0 +1,17 @@
+{
+    "api": "1",
+    "type": "anime",
+    "name": "DM84",
+    "version": "1.0",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "baseURL": "https://dm84.org/",
+    "searchURL":"https://dm84.org/s----------.html?wd=@keyword",
+    "searchList": "//div/div[3]/ul/li",
+    "searchName": "//div/a[2]",
+    "searchResult": "//div/a[2]",
+    "chapterRoads": "//div/div[4]/div/ul",
+    "chapterResult": "//li/a"
+}

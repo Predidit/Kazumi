@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemController {
@@ -204,10 +205,9 @@ class WebviewItemController {
     ''');
   }
 
-  // 使用桌面视图
+  // 设定UA
   setDesktopUserAgent() async {
-    const desktopUserAgent =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+    String desktopUserAgent = Utils.getRandomUA();
     await webviewController.setUserAgent(desktopUserAgent);
   }
 

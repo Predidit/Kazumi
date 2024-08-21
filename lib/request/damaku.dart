@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/request/api.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -27,7 +28,7 @@ class DanmakuRequest {
   static Future<DanmakuSearchResponse> getDanmakuSearchResponse(String title) async {
     var httpHeaders = {
       'user-agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
+          Utils.getRandomUA(),
       'referer': '',
     };
     Map<String, String> keywordMap = {
@@ -48,7 +49,7 @@ class DanmakuRequest {
     }
     var httpHeaders = {
       'user-agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
+          Utils.getRandomUA(),
       'referer': '',
     };
     Map<String, String> withRelated = {

@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 
 part 'player_controller.g.dart';
 
@@ -90,13 +91,12 @@ abstract class _PlayerController with Store {
   Future<VideoPlayerController> createVideoController() async {
     String userAgent = '';
     if (videoPageController.currentPlugin.userAgent == '') {
-      userAgent =
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15';
+      userAgent = Utils.getRandomUA();
     } else {
-      KazumiLogger().log(Level.info,
-          'media_kit UA: ${videoPageController.currentPlugin.userAgent}');
       userAgent = videoPageController.currentPlugin.userAgent;
     }
+    KazumiLogger().log(Level.info,
+        'media_kit UA: $userAgent');
     var httpHeaders = {
       'user-agent': userAgent,
     };

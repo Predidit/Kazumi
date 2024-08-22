@@ -12,6 +12,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/utils/webdav.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -20,7 +21,8 @@ class AppWidget extends StatefulWidget {
   State<AppWidget> createState() => _AppWidgetState();
 }
 
-class _AppWidgetState extends State<AppWidget> with TrayListener {
+class _AppWidgetState extends State<AppWidget>
+    with TrayListener, WidgetsBindingObserver {
   Box setting = GStorage.setting;
 
   final TrayManager trayManager = TrayManager.instance;
@@ -28,28 +30,30 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
   @override
   void initState() {
     trayManager.addListener(this);
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
   }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
-  void onTrayIconMouseDown(){
+  void onTrayIconMouseDown() {
     windowManager.show();
   }
 
   @override
-  void onTrayIconRightMouseDown(){
+  void onTrayIconRightMouseDown() {
     trayManager.popUpContextMenu();
   }
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
-    switch (menuItem.key){
+    switch (menuItem.key) {
       case 'show_window':
         windowManager.show();
       case 'exit':
@@ -57,10 +61,59 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
     }
   }
 
+  // 处理前后台变更
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      debugPrint("应用进入后台");
+      if (!Platform.isWindows && !Platform.isLinux) {
+        bool webDavEnable =
+            await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+        if (webDavEnable) {
+          try {
+            var webDav = WebDav();
+            webDav.updateHistory();
+          } catch (e) {
+            KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
+          }
+        }
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      debugPrint("应用回到前台");
+      bool webDavEnable =
+          await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+      if (webDavEnable) {
+        try {
+          var webDav = WebDav();
+          await webDav.downloadHistory();
+          KazumiLogger().log(Level.info, '同步观看记录完成');
+        } catch (e) {
+          KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
+        }
+      }
+    } else if (state == AppLifecycleState.inactive) {
+      debugPrint("应用处于非活动状态");
+      if (Platform.isWindows || Platform.isLinux) {
+        bool webDavEnable =
+            await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+        if (webDavEnable) {
+          try {
+            var webDav = WebDav();
+            webDav.updateHistory();
+          } catch (e) {
+            KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
+          }
+        }
+      }
+    }
+  }
+
   Future<void> _handleTray() async {
     if (Platform.isWindows) {
       await trayManager.setIcon('assets/images/logo/logo_windows.ico');
-    } else if (Platform.environment.containsKey('FLATPAK_ID') || Platform.environment.containsKey('SNAP')) {
+    } else if (Platform.environment.containsKey('FLATPAK_ID') ||
+        Platform.environment.containsKey('SNAP')) {
       await trayManager.setIcon('io.github.predidit.kazumi');
     } else {
       await trayManager.setIcon('assets/images/logo/logo_rounded.png');
@@ -70,25 +123,17 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
       await trayManager.setToolTip('Kazumi');
     }
 
-    Menu trayMenu = Menu(
-        items: [
-          MenuItem(
-              key: 'show_window',
-              label: '显示窗口'
-          ),
-          MenuItem.separator(),
-          MenuItem(
-              key: 'exit',
-              label: '退出 Kazumi'
-          )
-        ]
-    );
+    Menu trayMenu = Menu(items: [
+      MenuItem(key: 'show_window', label: '显示窗口'),
+      MenuItem.separator(),
+      MenuItem(key: 'exit', label: '退出 Kazumi')
+    ]);
     await trayManager.setContextMenu(trayMenu);
   }
 
   @override
   Widget build(BuildContext context) {
-    if(Utils.isDesktop()) {
+    if (Utils.isDesktop()) {
       _handleTray();
     }
     dynamic color;
@@ -145,7 +190,7 @@ class _AppWidgetState extends State<AppWidget> with TrayListener {
           FlutterDisplayMode.setPreferredMode(preferred);
         });
       } catch (e) {
-        KazumiLogger().log(Level.error ,'高帧率设置失败 ${e.toString()}');
+        KazumiLogger().log(Level.error, '高帧率设置失败 ${e.toString()}');
       }
     }
 

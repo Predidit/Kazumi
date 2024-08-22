@@ -60,9 +60,9 @@ class _InitPageState extends State<InitPage> {
 
   _webDavInit() async {
     bool webDavEnable =
-        setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     bool webDavEnableFavorite =
-        setting.get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
+        await setting.get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');

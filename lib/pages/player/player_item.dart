@@ -88,6 +88,7 @@ class _PlayerItemState extends State<PlayerItem>
   /// 处理 Android/iOS 应用后台或熄屏
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
     try {
       if (playerController.mediaPlayer.value.isPlaying) {
         danmakuController.resume();
@@ -266,6 +267,7 @@ class _PlayerItemState extends State<PlayerItem>
         webDav.updateHistory();
       } catch (e) {
         SmartDialog.showToast('同步记录失败 ${e.toString()}');
+        KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
       }
     }
     if (mounted) {

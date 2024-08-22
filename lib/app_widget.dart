@@ -86,8 +86,7 @@ class _AppWidgetState extends State<AppWidget>
       if (webDavEnable) {
         try {
           var webDav = WebDav();
-          await webDav.downloadHistory();
-          KazumiLogger().log(Level.info, '同步观看记录完成');
+          webDav.downloadHistory();
         } catch (e) {
           KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
         }

@@ -67,16 +67,14 @@ class _AppWidgetState extends State<AppWidget>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
       debugPrint("应用进入后台");
-      if (!Platform.isWindows && !Platform.isLinux) {
-        bool webDavEnable =
-            await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-        if (webDavEnable) {
-          try {
-            var webDav = WebDav();
-            webDav.updateHistory();
-          } catch (e) {
-            KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-          }
+      bool webDavEnable =
+          await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+      if (webDavEnable) {
+        try {
+          var webDav = WebDav();
+          webDav.updateHistory();
+        } catch (e) {
+          KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
         }
       }
     } else if (state == AppLifecycleState.resumed) {

@@ -39,7 +39,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   }
 
   checkWebDav() async {
-    var webDavURL = await setting.get(SettingBoxKey.webDavURL, defaultValue: '');
+    var webDavURL =
+        await setting.get(SettingBoxKey.webDavURL, defaultValue: '');
     if (webDavURL == '') {
       await setting.put(SettingBoxKey.webDavEnable, false);
       SmartDialog.showToast('未找到有效的webdav配置');
@@ -48,7 +49,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     try {
       SmartDialog.showToast('尝试从WebDav同步');
       var webDav = WebDav();
-      webDav.init();
       await webDav.downloadHistory();
       SmartDialog.showToast('同步成功');
     } catch (e) {
@@ -57,6 +57,40 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       } else {
         SmartDialog.showToast('同步失败 ${e.toString()}');
       }
+    }
+  }
+
+  updateWebdav() async {
+    var webDavEnable =
+        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    if (webDavEnable) {
+      try {
+        SmartDialog.showToast('尝试上传到WebDav');
+        var webDav = WebDav();
+        await webDav.updateHistory();
+        SmartDialog.showToast('同步成功');
+      } catch (e) {
+        SmartDialog.showToast('同步失败 ${e.toString()}');
+      }
+    } else {
+      SmartDialog.showToast('未开启WebDav同步或配置无效');
+    }
+  }
+
+  downloadWebdav() async {
+    var webDavEnable =
+        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    if (webDavEnable) {
+      try {
+        SmartDialog.showToast('尝试从WebDav同步');
+        var webDav = WebDav();
+        await webDav.downloadHistory();
+        SmartDialog.showToast('同步成功');
+      } catch (e) {
+        SmartDialog.showToast('同步失败 ${e.toString()}');
+      }
+    } else {
+      SmartDialog.showToast('未开启WebDav同步或配置无效');
     }
   }
 
@@ -77,7 +111,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
             InkWell(
               child: SetSwitchItem(
                 title: 'WEBDAV同步',
-                subTitle: '使用WEBDAV同步观看记录',
+                subTitle: '使用WEBDAV自动同步观看记录',
                 setKey: SettingBoxKey.webDavEnable,
                 callFn: (val) {
                   if (val) {
@@ -92,8 +126,35 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                 Modular.to.pushNamed('/tab/my/webdav/editor');
               },
               dense: false,
-              title: Text('WEBDAV配置', style: Theme.of(context).textTheme.titleMedium!,),
-            )
+              title: Text(
+                'WEBDAV配置',
+                style: Theme.of(context).textTheme.titleMedium!,
+              ),
+            ),
+            ListTile(
+              onTap: () {
+                updateWebdav();
+              },
+              dense: false,
+              title: const Text('手动上传'),
+              subtitle: Text('立即上传观看记录到WEBDAV',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
+            ListTile(
+              onTap: () {
+                downloadWebdav();
+              },
+              dense: false,
+              title: const Text('手动下载'),
+              subtitle: Text('立即下载观看记录到本地',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
           ],
         ),
       ),

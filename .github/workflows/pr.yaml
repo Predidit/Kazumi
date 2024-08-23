@@ -76,7 +76,16 @@
               distribution: 'temurin'
               java-version: '18'
           - run: flutter pub get
-          - run: flutter build windows   
+          - run: flutter build windows
+          - name: Download FFmpeg Assets
+            uses: dsaltares/fetch-gh-release-asset@master
+            with:
+              repo: 'Predidit/avbuild'
+              version: 'tags/1.0.0'
+              file: 'ffmpeg_windows_x64.zip'
+              token: ${{ secrets.GITHUB_TOKEN }}
+          - run: Remove-Item -Path build/windows/x64/runner/Release/ffmpeg-7.dll -Force
+          - run: Expand-Archive -LiteralPath ffmpeg_windows_x64.zip -DestinationPath build/windows/x64/runner/Release   
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
             uses: actions/upload-artifact@v4
@@ -159,6 +168,15 @@
           - name: Build Flutter for Linux
             run: flutter build linux
             shell: bash
+          - name: Download FFmpeg Assets
+            uses: dsaltares/fetch-gh-release-asset@master
+            with:
+              repo: 'Predidit/avbuild'
+              version: 'tags/1.0.0'
+              file: 'ffmpeg_linux_amd64.zip'
+              token: ${{ secrets.GITHUB_TOKEN }}
+          - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
+          - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
           - name: Package linux build output
             run: |
               # Tarball package

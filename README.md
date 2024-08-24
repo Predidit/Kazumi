@@ -112,7 +112,7 @@ A: 部分视频源带有被伪装的文件头, 为了解决这一问题, 我们�
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive
 
-感谢 [avbuild](https://github.com/Predidit/avbuild) 本项目使用 avbuild 构建自定义 ffmpeg 二进制文件
+感谢 [avbuild](https://github.com/wang-bin/avbuild) 本项目使用 avbuild 构建自定义 ffmpeg 二进制文件
 
 
 

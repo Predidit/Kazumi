@@ -245,7 +245,6 @@ class _PlayerItemState extends State<PlayerItem>
         videoPageController
             .changeEpisode(videoPageController.currentEspisode + 1);
       }
-      windowManager.addListener(this);
     });
   }
 
@@ -568,12 +567,14 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuDanDanSource =
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     playerTimer = getPlayerTimer();
+    windowManager.addListener(this);
     _handleTap();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    windowManager.removeListener(this);
     if (playerTimer != null) {
       playerTimer!.cancel();
     }

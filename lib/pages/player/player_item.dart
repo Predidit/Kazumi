@@ -221,6 +221,10 @@ class _PlayerItemState extends State<PlayerItem>
                   : null);
         });
       }
+      // 音量相关
+      FlutterVolumeController.getVolume().then((value) {
+        playerController.volume = value ?? 0.0;
+      });
       // 历史记录相关
       if (playerController.mediaPlayer.value.isPlaying) {
         historyController.updateHistory(
@@ -729,17 +733,8 @@ class _PlayerItemState extends State<PlayerItem>
                                     )
                                   : Container(),
                               GestureDetector(
-                                onTap: () async {
+                                onTap: () {
                                   _handleTap();
-                                  try {
-                                    playerController.volume =
-                                        await FlutterVolumeController
-                                                .getVolume() ??
-                                            playerController.volume;
-                                  } catch (e) {
-                                    KazumiLogger()
-                                        .log(Level.error, e.toString());
-                                  }
                                 },
                                 onDoubleTap: () {
                                   if (!showPositioned) {

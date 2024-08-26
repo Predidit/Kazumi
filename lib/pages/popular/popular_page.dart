@@ -48,7 +48,7 @@ class _PopularPageState extends State<PopularPage>
           popularController.isLoadingMore == false &&
           popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular 正在加载更多');
-        popularController.queryBangumiListFeed(type: 'onload');
+        popularController.queryBangumiListFeed(type: 'onload', tag: popularController.currentTag);
       }
     });
     if (popularController.bangumiList.isEmpty) {

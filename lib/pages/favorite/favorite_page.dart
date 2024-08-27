@@ -49,8 +49,7 @@ class _FavoritePageState extends State<FavoritePage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(
-            title: Text('追番'), backgroundColor: Colors.transparent),
+        appBar: const SysAppBar(title: Text('追番')),
         body: favoriteController.favorites.isEmpty
             ? const Center(
                 child: Text('啊咧（⊙.⊙） 没有追番的说'),

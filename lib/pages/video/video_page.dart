@@ -41,14 +41,13 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     WakelockPlus.enable();
-    // without that, color blocks will appear on the left and right sides of the screen when the video is fullscreen
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.black,
-        systemNavigationBarDividerColor: Colors.black,
-        statusBarColor: Colors.black,
-      ));
-    }
+    // if (Platform.isAndroid || Platform.isIOS) {
+    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    //     systemNavigationBarColor: Colors.black,
+    //     systemNavigationBarDividerColor: Colors.black,
+    //     statusBarColor: Colors.black,
+    //   ));
+    // }
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -75,13 +74,13 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-        statusBarColor: Colors.transparent,
-      ));
-    }
+    // if (Platform.isAndroid || Platform.isIOS) {
+    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    //     systemNavigationBarColor: Colors.transparent,
+    //     systemNavigationBarDividerColor: Colors.transparent,
+    //     statusBarColor: Colors.transparent,
+    //   ));
+    // }
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}
@@ -98,16 +97,16 @@ class _VideoPageState extends State<VideoPage>
             offset: videoPageController.historyOffset);
       }
     });
-    return SafeArea(
-      child: Observer(builder: (context) {
-        return Scaffold(
-          appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                  videoPageController.androidFullscreen)
-              ? null
-              : SysAppBar(
-                  title: Text(videoPageController.title),
-                )),
-          body: (Utils.isTablet() &&
+    return Observer(builder: (context) {
+      return Scaffold(
+        appBar: ((videoPageController.currentPlugin.useNativePlayer ||
+                videoPageController.androidFullscreen)
+            ? null
+            : SysAppBar(
+                title: Text(videoPageController.title),
+              )),
+        body: SafeArea(
+          child: (Utils.isTablet() &&
                   MediaQuery.of(context).size.height <
                       MediaQuery.of(context).size.width)
               ? Row(
@@ -150,9 +149,9 @@ class _VideoPageState extends State<VideoPage>
                           ))
                   ],
                 ),
-        );
-      }),
-    );
+        ),
+      );
+    });
   }
 
   Widget get playerBody {
@@ -230,7 +229,9 @@ class _VideoPageState extends State<VideoPage>
               : null,
           child: Platform.isWindows
               ? const WebviewDesktopItem()
-              : (Platform.isLinux ? const WebviewLinuxItem() : const WebviewItem()),
+              : (Platform.isLinux
+                  ? const WebviewLinuxItem()
+                  : const WebviewItem()),
         ))
       ],
     );

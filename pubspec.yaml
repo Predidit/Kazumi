@@ -38,34 +38,32 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
-  flutter_modular: ^6.3.2
-  mobx: ^2.2.1
-  flutter_mobx: ^2.0.6+5
+  flutter_modular: ^6.3.4
+  mobx: ^2.3.3
+  flutter_mobx: ^2.2.1
   dio: ^5.0.0
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
-  connectivity_plus: ^4.0.1
-  dio_http2_adapter: ^2.3.1+1
+  connectivity_plus: ^6.0.5
 
   path_provider: ^2.1.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_smart_dialog: ^4.9.4
+  flutter_smart_dialog: ^4.9.8
   cached_network_image: ^3.4.1
 
-  fvp: ^0.22.0
+  fvp: ^0.25.0
   video_player: ^2.9.1
 
-  flutter_volume_controller: ^1.3.1
-  screen_brightness: ^0.2.2+1
+  flutter_volume_controller: ^1.3.2
+  screen_brightness: ^1.0.1
   wakelock_plus: ^1.2.7
   audio_video_progress_bar: ^2.0.2
   adaptive_theme: ^3.6.0
   flutter_displaymode: ^0.6.0
 
-  universal_platform: ^1.0.0+1
-  url_launcher: ^6.1.14
-  device_info_plus: ^9.0.2
+  url_launcher: ^6.3.0
+  device_info_plus: ^10.1.2
   window_manager: ^0.4.2
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1

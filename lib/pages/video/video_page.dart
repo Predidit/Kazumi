@@ -41,7 +41,8 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     WakelockPlus.enable();
-    if (Platform.isAndroid || Platform.isIOS) {
+    // without that, color blocks will appear on the left and right sides of the screen when the video is fullscreen
+    if (Platform.isIOS) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.black,
         systemNavigationBarDividerColor: Colors.black,
@@ -74,7 +75,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Platform.isIOS) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,

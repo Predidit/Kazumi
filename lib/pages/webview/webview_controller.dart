@@ -151,7 +151,7 @@ class WebviewItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('http') && !src.includes('googleads')) {
+          if (src && src.trim() !== '' && src.includes('http') && !src.includes('googleads') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               window.location.href = src;
               JSBridgeDebug.postMessage(src);
               break; 

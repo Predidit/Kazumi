@@ -11,6 +11,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
@@ -60,7 +61,8 @@ abstract class _VideoPageController with Store {
     logLines.clear();
     KazumiLogger().log(Level.info, '跳转到第$episode话');
     String urlItem = roadList[currentRoad].data[episode - 1];
-    if (urlItem.contains(currentPlugin.baseUrl) || urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
+    if (urlItem.contains(currentPlugin.baseUrl) ||
+        urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
       urlItem = urlItem;
     } else {
       urlItem = currentPlugin.baseUrl + urlItem;
@@ -71,12 +73,12 @@ abstract class _VideoPageController with Store {
     if (Platform.isWindows) {
       final WebviewDesktopItemController webviewDesktopItemController =
           Modular.get<WebviewDesktopItemController>();
-      await webviewDesktopItemController
-          .loadUrl(urlItem, offset: offset);
-    } 
+      await webviewDesktopItemController.loadUrl(urlItem, offset: offset);
+    }
     if (Platform.isLinux) {
-      final WebviewLinuxItemController webviewLinuxItemController = Modular.get<WebviewLinuxItemController>();
-      await webviewLinuxItemController.loadUrl(urlItem, offset:  offset);
+      final WebviewLinuxItemController webviewLinuxItemController =
+          Modular.get<WebviewLinuxItemController>();
+      await webviewLinuxItemController.loadUrl(urlItem, offset: offset);
     }
     if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
       final WebviewItemController webviewItemController =
@@ -86,13 +88,17 @@ abstract class _VideoPageController with Store {
   }
 
   Future<void> enterFullScreen() async {
+    if (Platform.isIOS) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarDividerColor: Colors.black,
+        statusBarColor: Colors.black,
+      ));
+    }
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(true);
       return;
     }
-    // await SystemChrome.setPreferredOrientations([
-    //   DeviceOrientation.portraitUp,
-    // ]);
     await landScape();
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.immersiveSticky,
@@ -101,7 +107,13 @@ abstract class _VideoPageController with Store {
 
   //退出全屏显示
   Future<void> exitFullScreen() async {
-    // debugPrint('退出全屏模式');
+    if (Platform.isIOS) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        statusBarColor: Colors.transparent,
+      ));
+    }
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(false);
     }
@@ -119,15 +131,13 @@ abstract class _VideoPageController with Store {
           mode,
           overlays: SystemUiOverlay.values,
         );
-        // await SystemChrome.setPreferredOrientations([]);
         if (Utils.isCompact()) {
           verticalScreen();
         }
       }
     } catch (exception, stacktrace) {
-      // debugPrint(exception.toString());
-      // debugPrint(stacktrace.toString());
-      KazumiLogger().log(Level.error, exception.toString(), stackTrace: stacktrace);
+      KazumiLogger()
+          .log(Level.error, exception.toString(), stackTrace: stacktrace);
     }
   }
 
@@ -153,7 +163,8 @@ abstract class _VideoPageController with Store {
     } catch (exception, stacktrace) {
       // debugPrint(exception.toString());
       // debugPrint(stacktrace.toString());
-      KazumiLogger().log(Level.error, exception.toString(), stackTrace: stacktrace);
+      KazumiLogger()
+          .log(Level.error, exception.toString(), stackTrace: stacktrace);
     }
   }
 

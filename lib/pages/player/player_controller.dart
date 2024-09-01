@@ -72,6 +72,8 @@ abstract class _PlayerController with Store {
       mediaPlayer.dispose();
     } catch (_) {}
     KazumiLogger().log(Level.info, 'VideoItem开始初始化');
+    getDanDanmaku(
+        videoPageController.title, videoPageController.currentEspisode);
     mediaPlayer = await createVideoController();
     bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     playerSpeed = 1.0;
@@ -83,8 +85,6 @@ abstract class _PlayerController with Store {
     }
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     // 加载弹幕
-    getDanDanmaku(
-        videoPageController.title, videoPageController.currentEspisode);
     loading = false;
   }
 
@@ -95,8 +95,7 @@ abstract class _PlayerController with Store {
     } else {
       userAgent = videoPageController.currentPlugin.userAgent;
     }
-    KazumiLogger().log(Level.info,
-        'media_kit UA: $userAgent');
+    KazumiLogger().log(Level.info, 'media_kit UA: $userAgent');
     var httpHeaders = {
       'user-agent': userAgent,
     };

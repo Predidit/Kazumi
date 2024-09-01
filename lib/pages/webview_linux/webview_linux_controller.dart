@@ -17,9 +17,6 @@ class WebviewLinuxItemController {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
 
-  /// Why is this implementation so outrageous?
-  /// To take care of the quirks of webview_windows, this component must have been initialized before entering the component tree.
-  /// If this component enters the component tree during initialization, it will never be initialized.
   init() async {
     webview = await WebviewWindow.create(
       configuration: const CreateConfiguration(),

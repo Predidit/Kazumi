@@ -1,0 +1,18 @@
+{
+    "api": "2",
+    "type": "anime",
+    "name": "mandao",
+    "version": "1.0",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "usePost": true,
+    "userAgent": "",
+    "baseURL": "https://www.imandao.org/",
+    "searchURL":"https://www.imandao.org/search.php?searchword=@keyword",
+    "searchList": "//div[2]/div[3]/ul/li",
+    "searchName": "//a/div[2]/p",
+    "searchResult": "//a",
+    "chapterRoads": "//div[2]/div[5]/div[2]/div[2]/ul/div/ul",
+    "chapterResult": "//li/a"
+}

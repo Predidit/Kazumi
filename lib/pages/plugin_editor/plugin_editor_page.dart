@@ -30,6 +30,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool muliSources = true;
   bool useWebview = true;
   bool useNativePlayer = false;
+  bool usePost = false;
 
   @override
   void initState() {
@@ -50,6 +51,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     muliSources = plugin.muliSources;
     useWebview = plugin.useWebview;
     useNativePlayer = plugin.useNativePlayer;
+    usePost = plugin.usePost;
   }
 
   @override
@@ -115,6 +117,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
             ExpansionTile(
               title: const Text('高级选项'),
               children: [
+                SwitchListTile(
+                  title: const Text('POST'),
+                  subtitle: const Text('使用POST而不是GET进行检索'),
+                  value: usePost,
+                  onChanged: (bool value) {
+                    setState(() {
+                      usePost = value;
+                    });
+                  },
+                ),
                 TextField(
                   controller: userAgentController,
                   decoration: const InputDecoration(labelText: 'UserAgent'),
@@ -142,6 +154,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           plugin.muliSources = muliSources;
           plugin.useWebview = useWebview;
           plugin.useNativePlayer = useNativePlayer;
+          plugin.usePost = usePost;
           await pluginsController.savePluginToJsonFile(plugin);
           await pluginsController.loadPlugins();
           Navigator.of(context).pop();

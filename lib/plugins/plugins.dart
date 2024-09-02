@@ -15,6 +15,7 @@ class Plugin {
   bool muliSources;
   bool useWebview;
   bool useNativePlayer;
+  bool usePost;
   String userAgent;
   String baseUrl;
   String searchURL;
@@ -32,6 +33,7 @@ class Plugin {
     required this.muliSources,
     required this.useWebview,
     required this.useNativePlayer,
+    required this.usePost,
     required this.userAgent,
     required this.baseUrl,
     required this.searchURL,
@@ -51,6 +53,7 @@ class Plugin {
         muliSources: json['muliSources'],
         useWebview: json['useWebview'],
         useNativePlayer: json['useNativePlayer'],
+        usePost: json['usePost'] ?? false,
         userAgent: json['userAgent'],
         baseUrl: json['baseURL'],
         searchURL: json['searchURL'],
@@ -70,6 +73,7 @@ class Plugin {
         muliSources: true,
         useWebview: true,
         useNativePlayer: false,
+        usePost: false,
         userAgent: '',
         baseUrl: '',
         searchURL: '',
@@ -89,6 +93,7 @@ class Plugin {
     data['muliSources'] = this.muliSources;
     data['useWebview'] = this.useWebview;
     data['useNativePlayer'] = this.useNativePlayer;
+    data['usePost'] = this.usePost;
     data['userAgent'] = this.userAgent;
     data['baseURL'] = this.baseUrl;
     data['searchURL'] = this.searchURL;
@@ -102,12 +107,30 @@ class Plugin {
 
   queryBangumi(String keyword) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
+    dynamic resp; 
     List<SearchItem> searchItems = [];
-    var httpHeaders = {
-      'referer': baseUrl + '/',
-    };
-    var resp =
-        await Request().get(queryURL, options: Options(headers: httpHeaders));
+    if (usePost) {
+      Uri uri = Uri.parse(queryURL);
+      Map<String, String> queryParams = uri.queryParameters;
+      Uri postUri = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        path: uri.path,
+      );
+      var httpHeaders = {
+        'referer': baseUrl + '/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      resp = await Request().post(postUri.toString(),
+          options: Options(headers: httpHeaders), data: queryParams);
+    } else {
+      var httpHeaders = {
+        'referer': baseUrl + '/',
+      };
+      resp =
+          await Request().get(queryURL, options: Options(headers: httpHeaders));
+    }
+
     var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
 
@@ -166,44 +189,4 @@ class Plugin {
     } catch (_) {}
     return roadList;
   }
-
-  // 弃用
-  // Future<String> queryVideoUrl(String url) async {
-  //   String queryURL = '';
-  //   // 预处理
-  //   if (!url.contains('https')) {
-  //     url = url.replaceAll('http', 'https');
-  //   }
-  //   if (url.contains(baseUrl)) {
-  //     queryURL = url;
-  //   } else {
-  //     queryURL = baseUrl + url;
-  //   }
-  //   String videoUrl = '';
-  //   var httpHeaders = {
-  //     'referer': baseUrl + '/',
-  //   };
-  //   if (useWebview == 'false') {
-  //     videoUrl = await queryVideoUrlWithoutWebview(queryURL, httpHeaders);
-  //   } else {}
-  //   return videoUrl;
-  // }
-
-  // Future<String> queryVideoUrlWithoutWebview(
-  //     String queryURL, Map<String, String> httpHeaders) async {
-  //   String videoUrl = '';
-  //   var resp =
-  //       await Request().get(queryURL, options: Options(headers: httpHeaders));
-  //   try {
-  //     videoUrl = ParserWithoutWebview.extractM3U8Links(resp.data);
-  //   } catch (_) {}
-  //   if (videoUrl == '') {
-  //     try {
-  //       videoUrl = ParserWithoutWebview.extractMP4Links(resp.data);
-  //     } catch (_) {}
-  //   }
-  //   return videoUrl;
-  // }
-
-  // queryVideoUrlWithWebview(String url) {}
 }

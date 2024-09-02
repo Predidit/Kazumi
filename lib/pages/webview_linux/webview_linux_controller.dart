@@ -23,7 +23,7 @@ class WebviewLinuxItemController {
     );
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer) {
-      await initBlobParser();
+      await initBlobParserAndiframeBridge();
     }
     videoPageController.changeEpisode(videoPageController.currentEspisode,
         currentRoad: videoPageController.currentRoad,
@@ -142,11 +142,26 @@ class WebviewLinuxItemController {
           window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
         } 
       }
+
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        try {
+          iframe.contentWindow.eval(`
+            var videos = document.querySelectorAll('video');
+            window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
+            for (var i = 0; i < videos.length; i++) {
+              var src = videos[i].getAttribute('src');
+              if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+                window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
+              } 
+            }
+                  `);
+        } catch { }
+      });
     ''');
   }
 
-  // blob资源
-  initBlobParser() async {
+  // blob资源/iframe桥
+  initBlobParserAndiframeBridge() async {
     webview.setOnUrlRequestCallback((url) {
       debugPrint('Current URL: $url');
     return true;
@@ -175,7 +190,15 @@ class WebviewLinuxItemController {
               } catch { }
           });
           return _open.apply(this, args);
-      }     
+      } 
+
+      window.addEventListener("message", function(event) {
+        if (event.data) {
+          if (event.data.message && event.data.message.startsWith('videoMessage:')) {
+            window.webkit.messageHandlers.msgToNative.postMessage(event.data.message);
+          }
+        }
+      });    
     ''');
   }
 

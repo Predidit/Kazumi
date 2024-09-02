@@ -26,6 +26,7 @@ class WebviewDesktopItemController {
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer) {
       await initBlobParser();
+      await initInviewIframeBridge();
     }
     videoPageController.changeEpisode(videoPageController.currentEspisode,
         currentRoad: videoPageController.currentRoad,
@@ -86,22 +87,6 @@ class WebviewDesktopItemController {
               videoPageController.loading = false;
             });
           }
-          // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
-          // if (Utils.decodeVideoSource(messageItem) !=
-          //         Uri.encodeFull(messageItem) &&
-          //     !isVideoSourceLoaded) {
-          //   isVideoSourceLoaded = true;
-          //   videoPageController.loading = false;
-          //   videoPageController.logLines.add(
-          //       'Loading video source ${Utils.decodeVideoSource(messageItem)}');
-          //   debugPrint(
-          //       '由iframe参数获取视频源 ${Utils.decodeVideoSource(messageItem)}');
-          //   if (videoPageController.currentPlugin.useNativePlayer) {
-          //     unloadPage();
-          //     playerController.videoUrl = Utils.decodeVideoSource(messageItem);
-          //     playerController.init(offset: offset);
-          //   }
-          // }
         }
       }
       if (event.toString().contains('videoMessage:')) {
@@ -141,7 +126,7 @@ class WebviewDesktopItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && src.includes('http') && !src.includes('googleads') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
+          if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               window.chrome.webview.postMessage('iframeMessage:' + src);
               window.location.href = src;
               break; 
@@ -161,6 +146,20 @@ class WebviewDesktopItemController {
           window.chrome.webview.postMessage('videoMessage:' + src);
         } 
       }
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        try {
+          iframe.contentWindow.eval(`
+            var videos = document.querySelectorAll('video');
+            window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
+            for (var i = 0; i < videos.length; i++) {
+              var src = videos[i].getAttribute('src');
+              if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+                window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
+              } 
+            }
+                  `);
+        } catch { }
+      });
     ''');
   }
 
@@ -190,7 +189,19 @@ class WebviewDesktopItemController {
               } catch { }
           });
           return _open.apply(this, args);
-      }     
+      } 
+    ''');
+  }
+
+  initInviewIframeBridge() async {
+    await webviewController.addScriptToExecuteOnDocumentCreated('''
+      window.addEventListener("message", function(event) {
+        if (event.data) {
+          if (event.data.message && event.data.message.startsWith('videoMessage:')) {
+            window.chrome.webview.postMessage(event.data.message);
+          }
+        }
+      });
     ''');
   }
 

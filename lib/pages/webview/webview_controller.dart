@@ -31,6 +31,7 @@ class WebviewItemController {
       debugPrint('Current URL: ${currentUrl.url}');
       if (videoPageController.currentPlugin.useNativePlayer) {
         addBlobParser();
+        addInviewIframeBridge();
       }
       addFullscreenListener();
     }));
@@ -50,24 +51,6 @@ class WebviewItemController {
             videoPageController.loading = false;
           });
         }
-        // 基于iframe参数刮削的方案由于不稳定而弃用，改用Hook关键函数的方案
-        // if (Utils.decodeVideoSource(message.message) !=
-        //     Uri.encodeFull(message.message)) {
-        //   debugPrint(
-        //       '由iframe参数获取视频源 ${Utils.decodeVideoSource(message.message)}');
-        //   videoPageController.logLines.add(
-        //       'Loading video source ${Utils.decodeVideoSource(message.message)}');
-        //   isVideoSourceLoaded = true;
-        //   videoPageController.loading = false;
-        //   if (videoPageController.currentPlugin.useNativePlayer) {
-        //     unloadPage();
-        //     playerController.videoUrl =
-        //         Utils.decodeVideoSource(message.message);
-        //     playerController.init(offset: offset);
-        //   } else {
-        //     addFullscreenListener();
-        //   }
-        // }
       }
     });
     await webviewController.addJavaScriptChannel('VideoBridgeDebug',
@@ -172,6 +155,20 @@ class WebviewItemController {
           break;
         } 
       }
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        try {
+          iframe.contentWindow.eval(`
+            var videos = document.querySelectorAll('video');
+            window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
+            for (var i = 0; i < videos.length; i++) {
+              var src = videos[i].getAttribute('src');
+              if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+                window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
+              } 
+            }
+                  `);
+        } catch { }
+      });
     ''');
   }
 
@@ -202,6 +199,18 @@ class WebviewItemController {
           });
           return _open.apply(this, args);
       }     
+    ''');
+  }
+
+  addInviewIframeBridge() async {
+    await webviewController.runJavaScript('''
+      window.addEventListener("message", function(event) {
+        if (event.data) {
+          if (event.data.message && event.data.message.startsWith('videoMessage:')) {
+            VideoBridgeDebug.postMessage(event.data.message.replace(/^videoMessage:/, ''));
+          }
+        }
+      });
     ''');
   }
 

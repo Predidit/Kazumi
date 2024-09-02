@@ -84,6 +84,8 @@ class _InfoPageState extends State<InfoPage>
                       src: infoController.bangumiItem.images['large'] ?? '',
                       width: boxConstraints.maxWidth,
                       height: boxConstraints.maxHeight,
+                      fadeInDuration: const Duration(milliseconds: 0),
+                      fadeOutDuration: const Duration(milliseconds: 0),
                     );
                   }),
                 ),

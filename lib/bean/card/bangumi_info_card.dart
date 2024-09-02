@@ -3,11 +3,8 @@ import 'package:kazumi/utils/constans.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/favorite/favorite_controller.dart';
-import 'package:provider/provider.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
@@ -59,6 +56,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                           src: widget.bangumiItem.images['large'] ?? '',
                           width: maxWidth,
                           height: maxHeight,
+                          fadeInDuration: const Duration(milliseconds: 0),
+                          fadeOutDuration: const Duration(milliseconds: 0),
                         ),
                       ),
                     ],
@@ -97,7 +96,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                   ),
                   const SizedBox(height: 12),
                   // 测试 因为API问题评分功能搁置
-                  Text('排名: ${widget.bangumiItem.rank ?? '0.0'}', style: style),
+                  Text('排名: ${widget.bangumiItem.rank}', style: style),
                   Row(
                     children: [
                       Text(widget.bangumiItem.type == 2 ? '番剧' : '其他',

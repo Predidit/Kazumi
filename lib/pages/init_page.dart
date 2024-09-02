@@ -35,34 +35,58 @@ class _InitPageState extends State<InitPage> {
   _fvpInit() async {
     bool hAenable =
         await setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    bool lowMemoryMode =
+        await setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     if (hAenable) {
-      fvp.registerWith(options: {
-        'platforms': ['windows', 'linux'],
-        'player': {
-          'avio.reconnect': '1',
-          'avio.reconnect_delay_max': '7',
-          'buffer': '2000+150000',
-          'demux.buffer.ranges': '8',
-        }
-      });
+      if (lowMemoryMode) {
+        fvp.registerWith(options: {
+          'platforms': ['windows', 'linux'],
+          'player': {
+            'avio.reconnect': '1',
+            'avio.reconnect_delay_max': '7',
+            'buffer': '2000+10000',
+          }
+        });
+      } else {
+        fvp.registerWith(options: {
+          'platforms': ['windows', 'linux'],
+          'player': {
+            'avio.reconnect': '1',
+            'avio.reconnect_delay_max': '7',
+            'buffer': '2000+1500000',
+            'demux.buffer.ranges': '8',
+          }
+        });
+      }
     } else {
-      fvp.registerWith(options: {
-        'video.decoders': ['FFmpeg'],
-        'player': {
-          'avio.reconnect': '1',
-          'avio.reconnect_delay_max': '7',
-          'buffer': '2000+150000',
-          'demux.buffer.ranges': '8',
-        }
-      });
+      if (lowMemoryMode) {
+        fvp.registerWith(options: {
+          'video.decoders': ['FFmpeg'],
+          'player': {
+            'avio.reconnect': '1',
+            'avio.reconnect_delay_max': '7',
+            'buffer': '2000+10000',
+          }
+        });
+      } else {
+        fvp.registerWith(options: {
+          'video.decoders': ['FFmpeg'],
+          'player': {
+            'avio.reconnect': '1',
+            'avio.reconnect_delay_max': '7',
+            'buffer': '2000+1500000',
+            'demux.buffer.ranges': '8',
+          }
+        });
+      }
     }
   }
 
   _webDavInit() async {
     bool webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    bool webDavEnableFavorite =
-        await setting.get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
+    bool webDavEnableFavorite = await setting
+        .get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
@@ -146,11 +170,11 @@ class _InitPageState extends State<InitPage> {
     await pluginsController.queryPluginHTTPList();
     int count = 0;
     for (var plugin in pluginsController.pluginList) {
-      for(var pluginHTTP in pluginsController.pluginHTTPList) {
+      for (var pluginHTTP in pluginsController.pluginHTTPList) {
         if (plugin.name == pluginHTTP.name) {
           if (plugin.version != pluginHTTP.version) {
-              count++;
-              break;
+            count++;
+            break;
           }
         }
       }

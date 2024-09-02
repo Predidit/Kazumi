@@ -15,7 +15,7 @@ class PlayerSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
- dynamic navigationBarState;
+  dynamic navigationBarState;
 
   @override
   void initState() {
@@ -54,6 +54,15 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 setKey: SettingBoxKey.hAenable,
                 needReboot: true,
                 defaultVal: true,
+              ),
+            ),
+            InkWell(
+              child: SetSwitchItem(
+                title: '低内存模式',
+                subTitle: '禁用高级缓存以减少内存占用',
+                setKey: SettingBoxKey.lowMemoryMode,
+                needReboot: true,
+                defaultVal: false,
               ),
             ),
             InkWell(

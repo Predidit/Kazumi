@@ -122,5 +122,6 @@ class SettingBoxKey {
       webDavEnableFavorite = 'webDavEnableFavorite',
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
-      webDavPassword = 'webDavPasswd';
+      webDavPassword = 'webDavPasswd',
+      lowMemoryMode = 'lowMemoryMode';
 }

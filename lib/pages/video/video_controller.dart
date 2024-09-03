@@ -88,13 +88,6 @@ abstract class _VideoPageController with Store {
   }
 
   Future<void> enterFullScreen() async {
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.black,
-        systemNavigationBarDividerColor: Colors.black,
-        statusBarColor: Colors.black,
-      ));
-    }
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(true);
       return;
@@ -107,13 +100,6 @@ abstract class _VideoPageController with Store {
 
   //退出全屏显示
   Future<void> exitFullScreen() async {
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-        statusBarColor: Colors.transparent,
-      ));
-    }
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(false);
     }

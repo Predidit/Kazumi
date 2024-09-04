@@ -7,8 +7,6 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_item.dart';
-import 'package:kazumi/pages/webview_linux/webview_linux_item.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -221,11 +219,7 @@ class _VideoPageState extends State<VideoPage>
                   videoPageController.currentPlugin.useNativePlayer)
               ? 0
               : null,
-          child: Platform.isWindows
-              ? const WebviewDesktopItem()
-              : (Platform.isLinux
-                  ? const WebviewLinuxItem()
-                  : const WebviewItem()),
+          child: const WebviewItem()
         ))
       ],
     );

@@ -1,35 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:desktop_webview_window/desktop_webview_window.dart';
+import 'package:webview_windows/webview_windows.dart';
+import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewLinuxItemController {
-  // 重试次数
-  int count = 0;
-  // 上次观看位置
-  int offset = 0;
-  bool isIframeLoaded = false;
-  bool isVideoSourceLoaded = false;
-  late Webview webview;
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
-  final PlayerController playerController = Modular.get<PlayerController>();
-
+class WebviewWindowsItemControllerImpel extends WebviewItemController {
+  @override
   init() async {
-    webview = await WebviewWindow.create(
-      configuration: const CreateConfiguration(),
-    );
+    webviewController ??= WebviewController();
+    await webviewController.initialize();
+    await webviewController.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer) {
-      await initBlobParserAndiframeBridge();
+      await initBlobParser();
+      await initInviewIframeBridge();
     }
     videoPageController.changeEpisode(videoPageController.currentEspisode,
         currentRoad: videoPageController.currentRoad,
         offset: videoPageController.historyOffset);
   }
 
+  @override
   loadUrl(String url, {int offset = 0}) async {
     await unloadPage();
     count = 0;
@@ -37,7 +27,7 @@ class WebviewLinuxItemController {
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    webview.launch(url);
+    await webviewController.loadUrl(url);
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
@@ -66,11 +56,22 @@ class WebviewLinuxItemController {
     }
   }
 
+  @override
+  unloadPage() async {
+    await redirect2Blank();
+    await webviewController.clearCache();
+  }
+
+  @override
+  dispose() {
+    webviewController.dispose();
+  }
+
   initJSBridge() async {
-    webview.addOnWebMessageReceivedCallback((message) async {
-      if (message.contains('iframeMessage:')) {
+    webviewController.webMessage.listen((event) async {
+      if (event.toString().contains('iframeMessage:')) {
         String messageItem =
-            Uri.encodeFull(message.replaceFirst('iframeMessage:', ''));
+            Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
         debugPrint('JS Bridge: $messageItem');
         videoPageController.logLines
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
@@ -86,9 +87,9 @@ class WebviewLinuxItemController {
           }
         }
       }
-      if (message.contains('videoMessage:')) {
+      if (event.toString().contains('videoMessage:')) {
         String messageItem =
-            Uri.encodeFull(message.replaceFirst('videoMessage:', ''));
+            Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
         debugPrint('VideoJS Bridge: $messageItem');
         videoPageController.logLines
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
@@ -110,20 +111,16 @@ class WebviewLinuxItemController {
     });
   }
 
-  unloadPage() async {
-    await redirect2Blank();
-  }
-
   parseIframeUrl() async {
-    await webview.evaluateJavaScript('''
+    await webviewController.executeScript('''
       var iframes = document.getElementsByTagName('iframe');
-      window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
+      window.chrome.webview.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-              window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
+              window.chrome.webview.postMessage('iframeMessage:' + src);
               window.location.href = src;
               break; 
           }
@@ -133,16 +130,15 @@ class WebviewLinuxItemController {
 
   // 非blob资源
   parseVideoSource() async {
-    await webview.evaluateJavaScript('''
+    await webviewController.executeScript('''
       var videos = document.querySelectorAll('video');
-      window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
+      window.chrome.webview.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
         var src = videos[i].getAttribute('src');
         if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
-          window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
+          window.chrome.webview.postMessage('videoMessage:' + src);
         } 
       }
-
       document.querySelectorAll('iframe').forEach((iframe) => {
         try {
           iframe.contentWindow.eval(`
@@ -160,20 +156,16 @@ class WebviewLinuxItemController {
     ''');
   }
 
-  // blob资源/iframe桥
-  initBlobParserAndiframeBridge() async {
-    webview.setOnUrlRequestCallback((url) {
-      debugPrint('Current URL: $url');
-    return true;
-    });
-    webview.addScriptToExecuteOnDocumentCreated('''
+  // blob资源
+  initBlobParser() async {
+    await webviewController.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
           return new Promise((resolve, reject) => {
               _r_text.call(this).then((text) => {
                   resolve(text);
                   if (text.trim().startsWith("#EXTM3U")) {
-                      window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + this.url);
+                      window.chrome.webview.postMessage('videoMessage:' + this.url);
                   }
               }).catch(reject);
           });
@@ -185,20 +177,24 @@ class WebviewLinuxItemController {
               try {
                   let content = this.responseText;
                   if (content.trim().startsWith("#EXTM3U")) {
-                      window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + args[1]);
+                      window.chrome.webview.postMessage('videoMessage:' + args[1]);
                   };
               } catch { }
           });
           return _open.apply(this, args);
       } 
+    ''');
+  }
 
+  initInviewIframeBridge() async {
+    await webviewController.addScriptToExecuteOnDocumentCreated('''
       window.addEventListener("message", function(event) {
         if (event.data) {
           if (event.data.message && event.data.message.startsWith('videoMessage:')) {
-            window.webkit.messageHandlers.msgToNative.postMessage(event.data.message);
+            window.chrome.webview.postMessage(event.data.message);
           }
         }
-      });    
+      });
     ''');
   }
 
@@ -206,12 +202,8 @@ class WebviewLinuxItemController {
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
   redirect2Blank() async {
-    await webview.evaluateJavaScript('''
+    await webviewController.executeScript('''
       window.location.href = 'about:blank';
     ''');
-  }
-
-  dispose() {
-    webview.close();
   }
 }

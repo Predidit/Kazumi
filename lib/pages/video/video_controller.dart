@@ -4,14 +4,11 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
-import 'package:kazumi/pages/webview_linux/webview_linux_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
@@ -70,21 +67,8 @@ abstract class _VideoPageController with Store {
     if (urlItem.startsWith('http://')) {
       urlItem = urlItem.replaceFirst('http', 'https');
     }
-    if (Platform.isWindows) {
-      final WebviewDesktopItemController webviewDesktopItemController =
-          Modular.get<WebviewDesktopItemController>();
-      await webviewDesktopItemController.loadUrl(urlItem, offset: offset);
-    }
-    if (Platform.isLinux) {
-      final WebviewLinuxItemController webviewLinuxItemController =
-          Modular.get<WebviewLinuxItemController>();
-      await webviewLinuxItemController.loadUrl(urlItem, offset: offset);
-    }
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      final WebviewItemController webviewItemController =
-          Modular.get<WebviewItemController>();
-      await webviewItemController.loadUrl(urlItem, offset: offset);
-    }
+    final webviewItemController = Modular.get<WebviewItemController>();
+    await webviewItemController.loadUrl(urlItem, offset: offset);
   }
 
   Future<void> enterFullScreen() async {

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/webview_linux/webview_linux_controller.dart';
+import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewLinuxItem extends StatefulWidget {
-  const WebviewLinuxItem({super.key});
+class WebviewLinuxItemImpel extends StatefulWidget {
+  const WebviewLinuxItemImpel({super.key});
 
   @override
-  State<WebviewLinuxItem> createState() => _WebviewLinuxItemState();
+  State<WebviewLinuxItemImpel> createState() => _WebviewLinuxItemImpelState();
 }
 
-class _WebviewLinuxItemState extends State<WebviewLinuxItem> {
-  final WebviewLinuxItemController webviewLinuxItemController =
-      Modular.get<WebviewLinuxItemController>();
+class _WebviewLinuxItemImpelState extends State<WebviewLinuxItemImpel> {
+  final webviewLinuxItemController = Modular.get<WebviewItemController>();
 
   @override
   void initState() {

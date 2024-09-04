@@ -4,21 +4,21 @@ import 'package:webview_windows/webview_windows.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/webview_desktop/webview_desktop_controller.dart';
+import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewDesktopItem extends StatefulWidget {
-  const WebviewDesktopItem({super.key});
+class WebviewWindowsItemImpel extends StatefulWidget {
+  const WebviewWindowsItemImpel({super.key});
 
   @override
-  State<WebviewDesktopItem> createState() => _WebviewDesktopItemState();
+  State<WebviewWindowsItemImpel> createState() =>
+      _WebviewWindowsItemImpelState();
 }
 
-class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
-  // final _controller = WebviewController();
+class _WebviewWindowsItemImpelState extends State<WebviewWindowsItemImpel> {
   final List<StreamSubscription> _subscriptions = [];
-  final WebviewDesktopItemController webviewDesktopItemController =
-      Modular.get<WebviewDesktopItemController>();
-  final VideoPageController videoPageController = Modular.get<VideoPageController>();
+  final webviewDesktopItemController = Modular.get<WebviewItemController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
 
   @override
   void initState() {
@@ -35,14 +35,13 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
 
   Future<void> initPlatformState() async {
     // 初始化Webview
-    if (!webviewDesktopItemController.webviewController.value.isInitialized) {
+    if (webviewDesktopItemController.webviewController == null) {
       await webviewDesktopItemController.init();
     }
     // 接受全屏事件
     _subscriptions.add(webviewDesktopItemController
         .webviewController.containsFullScreenElementChanged
         .listen((flag) {
-      // debugPrint('包括可全屏元素: $flag');
       videoPageController.androidFullscreen = flag;
       windowManager.setFullScreen(flag);
     }));
@@ -52,7 +51,7 @@ class _WebviewDesktopItemState extends State<WebviewDesktopItem> {
   }
 
   Widget get compositeView {
-    if (!webviewDesktopItemController.webviewController.value.isInitialized) {
+    if (webviewDesktopItemController.webviewController == null) {
       return const Text(
         'Not Initialized',
         style: TextStyle(

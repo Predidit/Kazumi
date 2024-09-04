@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/pages/webview/webview_item_impel/webview_item_impel.dart';
+import 'package:kazumi/pages/webview/webview_item_impel/webview_windows_item_impel.dart';
+import 'package:kazumi/pages/webview/webview_item_impel/webview_linux_item_impel.dart';
 
 class WebviewItem extends StatefulWidget {
   const WebviewItem({
@@ -13,23 +14,19 @@ class WebviewItem extends StatefulWidget {
 }
 
 class _WebviewItemState extends State<WebviewItem> {
-  final WebviewItemController webviewItemController = Modular.get<WebviewItemController>();
-
-  @override
-  void initState() {
-    super.initState();
-    webviewItemController.init();
-  }
-
-  @override
-  void dispose() {
-    webviewItemController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WebViewWidget(controller: webviewItemController.webviewController);
+    return webviewUniversal;
   }
+}
+
+Widget get webviewUniversal {
+  if (Platform.isWindows) {
+    return const WebviewWindowsItemImpel();
+  }
+  if (Platform.isLinux) {
+    return const WebviewLinuxItemImpel();
+  }
+  return const WebviewItemImpel();
 }
 

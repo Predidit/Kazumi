@@ -90,13 +90,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!Platform.isWindows) {
-        videoPageController.changeEpisode(videoPageController.currentEspisode,
-            currentRoad: videoPageController.currentRoad,
-            offset: videoPageController.historyOffset);
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return Observer(builder: (context) {
       return Scaffold(
         appBar: ((videoPageController.currentPlugin.useNativePlayer ||

@@ -18,6 +18,12 @@ class WebviewItemController {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
 
+  init() async {
+    videoPageController.changeEpisode(videoPageController.currentEspisode,
+        currentRoad: videoPageController.currentRoad,
+        offset: videoPageController.historyOffset);
+  }
+
   loadUrl(String url, {int offset = 0}) async {
     await unloadPage();
     await setDesktopUserAgent();
@@ -231,5 +237,9 @@ class WebviewItemController {
             }
         });
     ''');
+  }
+
+  dispose() {
+    unloadPage();
   }
 }

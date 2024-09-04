@@ -16,8 +16,14 @@ class _WebviewItemState extends State<WebviewItem> {
   final WebviewItemController webviewItemController = Modular.get<WebviewItemController>();
 
   @override
+  void initState() {
+    super.initState();
+    webviewItemController.init();
+  }
+
+  @override
   void dispose() {
-    webviewItemController.unloadPage();
+    webviewItemController.dispose();
     super.dispose();
   }
 

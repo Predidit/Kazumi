@@ -1153,6 +1153,9 @@ class _PlayerItemState extends State<PlayerItem>
                                           color: Colors.white,
                                           icon: const Icon(Icons.skip_next),
                                           onPressed: () {
+                                            if (videoPageController.loading) {
+                                              return;
+                                            }
                                             if (videoPageController
                                                     .currentEspisode ==
                                                 videoPageController

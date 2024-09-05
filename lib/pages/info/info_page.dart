@@ -110,6 +110,14 @@ class _InfoPageState extends State<InfoPage>
                                   Text(
                                     plugin.name,
                                     overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium!
+                                            .fontSize,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface),
                                   ),
                                   const SizedBox(width: 5.0),
                                   Container(
@@ -194,7 +202,8 @@ class _InfoPageState extends State<InfoPage>
                             TextButton(
                                 onPressed: () {
                                   SmartDialog.dismiss();
-                                  launchUrl(Uri.parse(pluginsController.pluginList[currentIndex].baseUrl));
+                                  launchUrl(Uri.parse(pluginsController
+                                      .pluginList[currentIndex].baseUrl));
                                 },
                                 child: const Text('确认')),
                             const TextButton(

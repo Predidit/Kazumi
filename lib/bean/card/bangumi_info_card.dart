@@ -22,14 +22,13 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   @override
   Widget build(BuildContext context) {
     TextStyle style =
-        TextStyle(fontSize: Theme.of(context).textTheme.labelMedium!.fontSize);
+        TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
     String heroTag = Utils.makeHeroTag(widget.bangumiItem.id);
-    // final PlayerController playerController = Modular.get<PlayerController>();
     final FavoriteController favoriteController =
         Modular.get<FavoriteController>();
     isFavorite = favoriteController.isFavorite(widget.bangumiItem);
     return SizedBox(
-      height: 300,
+      height: Utils.isCompact() ? 240 : 300,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
             StyleString.safeSpace, 7, StyleString.safeSpace, 7),
@@ -60,6 +59,27 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                           fadeOutDuration: const Duration(milliseconds: 0),
                         ),
                       ),
+                      Positioned(
+                        right: 5,
+                        bottom: 5,
+                        child: IconButton.filledTonal(
+                          icon: Icon(isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_outline),
+                          onPressed: () async {
+                            if (isFavorite) {
+                              favoriteController
+                                  .deleteFavorite(widget.bangumiItem);
+                            } else {
+                              favoriteController
+                                  .addFavorite(widget.bangumiItem);
+                            }
+                            setState(() {
+                              isFavorite = !isFavorite;
+                            });
+                          },
+                        ),
+                      ),
                     ],
                   );
                 }),
@@ -70,7 +90,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
                   RichText(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -86,7 +105,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             fontSize: MediaQuery.textScalerOf(context).scale(
                                 Theme.of(context)
                                     .textTheme
-                                    .titleSmall!
+                                    .titleLarge!
                                     .fontSize!),
                             fontWeight: FontWeight.bold,
                           ),
@@ -94,42 +113,60 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  // 测试 因为API问题评分功能搁置
-                  Text('排名: ${widget.bangumiItem.rank}', style: style),
+                  Utils.isCompact() ? Container() : const SizedBox(height: 10),
                   Row(
                     children: [
-                      Text(widget.bangumiItem.type == 2 ? '番剧' : '其他',
-                          style: style),
-                      const SizedBox(width: 3),
-                      const Text(' '),
-                      const SizedBox(width: 3),
-                      Text(widget.bangumiItem.airDate, style: style),
+                      FilledButton.tonal(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          side: const BorderSide(
+                              // width: 2,
+                              ),
+                          backgroundColor: Colors.transparent,
+                        ),
+                        child: Text(widget.bangumiItem.type == 2 ? '番剧' : '其他',
+                            style: style),
+                      ),
+                      const SizedBox(width: 7),
+                      FilledButton.tonal(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          side: const BorderSide(
+                              // width: 2,
+                              ),
+                          backgroundColor: Colors.transparent,
+                        ),
+                        child:
+                            Text('#${widget.bangumiItem.rank}', style: style),
+                      ),
+                      Utils.isCompact() ? Container() : const SizedBox(width: 7),
+                      Utils.isCompact() ? Container() : FilledButton.tonal(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          side: const BorderSide(
+                              // width: 2,
+                              ),
+                          backgroundColor: Colors.transparent,
+                        ),
+                        child: Text(widget.bangumiItem.airDate, style: style),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  Container(
-                      height: 140,
-                      child: Text(widget.bangumiItem.summary,
-                          style: style, softWrap: true)),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    height: 32,
-                    child: IconButton(
-                      icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_outline),
-                      onPressed: () async {
-                        if (isFavorite) {
-                          favoriteController.deleteFavorite(widget.bangumiItem);
-                        } else {
-                          favoriteController.addFavorite(widget.bangumiItem);
-                        }
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
-                    ),
-                  ),
+                  Utils.isCompact() ? Container() : const SizedBox(height: 10),
+                  Expanded(
+                      child: SingleChildScrollView(
+                    child: Text(widget.bangumiItem.summary,
+                        style: style, softWrap: true),
+                  )),
                 ],
               ),
             ),

@@ -323,10 +323,10 @@ packages:
     dependency: "direct main"
     description:
       name: dio
-      sha256: "0dfb6b6a1979dac1c1245e17cef824d7b452ea29bd33d3467269f9bef3715fb0"
+      sha256: "5598aa796bbf4699afd5c67c0f5f6e2ed542afc956884b9cd58c306966efc260"
       url: "https://pub.dev"
     source: hosted
-    version: "5.6.0"
+    version: "5.7.0"
   dio_cookie_manager:
     dependency: "direct main"
     description:
@@ -461,10 +461,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_smart_dialog
-      sha256: "3d376ba47f64391cc657f706815b32dd6ff2e0f80553a5c9f33b812ba7c59462"
+      sha256: "6b5fd32cd2900745df30c1d95ef597ea0ee1ee8cfa557eab62010e3db1d3d717"
       url: "https://pub.dev"
     source: hosted
-    version: "4.9.8"
+    version: "4.9.8+1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -1292,10 +1292,10 @@ packages:
     dependency: transitive
     description:
       name: video_player_android
-      sha256: "101028b643a3b43ced72107aacdbc4d30d55365487751de001a36cf0d86038d1"
+      sha256: "38d8fe136c427abdce68b5e8c3c08ea29d7a794b453c7a51b12ecfad4aad9437"
       url: "https://pub.dev"
     source: hosted
-    version: "2.7.2"
+    version: "2.7.3"
   video_player_avfoundation:
     dependency: transitive
     description:
@@ -1491,4 +1491,4 @@ packages:
     version: "3.1.2"
 sdks:
   dart: ">=3.5.0 <4.0.0"
-  flutter: ">=3.24.1"
+  flutter: ">=3.24.2"

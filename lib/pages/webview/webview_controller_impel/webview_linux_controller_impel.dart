@@ -187,6 +187,35 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
           return _open.apply(this, args);
       } 
 
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        try {
+            const _r_text = iframe.contentWindow.Response.prototype.text;
+            iframe.contentWindow.Response.prototype.text = function () {
+                return new Promise((resolve, reject) => {
+                    _r_text.call(this).then((text) => {
+                        resolve(text);
+                        if (text.trim().startsWith("#EXTM3U")) {
+                            iframe.contentWindow.parent.postMessage({ message: 'videoMessage:' + this.url }, "*");
+                        }
+                    }).catch(reject);
+                });
+            }
+      
+            const _open = iframe.contentWindow.XMLHttpRequest.prototype.open;
+            iframe.contentWindow.XMLHttpRequest.prototype.open = function (...args) {
+                this.addEventListener("load", () => {
+                    try {
+                        let content = this.responseText;
+                        if (content.trim().startsWith("#EXTM3U")) {
+                            iframe.contentWindow.parent.postMessage({ message: 'videoMessage:' + args[1] }, "*");
+                        };
+                    } catch { }
+                });
+                return _open.apply(this, args);
+            } 
+        } catch { }
+      });
+
       window.addEventListener("message", function(event) {
         if (event.data) {
           if (event.data.message && event.data.message.startsWith('videoMessage:')) {

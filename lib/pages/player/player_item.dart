@@ -226,7 +226,7 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.volume = value ?? 0.0;
       });
       // 历史记录相关
-      if (playerController.mediaPlayer.value.isPlaying) {
+      if (playerController.mediaPlayer.value.isPlaying && !videoPageController.loading) {
         historyController.updateHistory(
             videoPageController.currentEspisode,
             videoPageController.currentRoad,

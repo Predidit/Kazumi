@@ -32,7 +32,7 @@
               sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev libasound2-dev
             shell: bash
           - name: Set up JDK 17
-            uses: actions/setup-java@v3
+            uses: actions/setup-java@v4
             with:
               java-version: '17'
               distribution: 'temurin'          
@@ -261,7 +261,7 @@
             run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             shell: bash
           - name: Set up JDK 17
-            uses: actions/setup-java@v3
+            uses: actions/setup-java@v4
             with:
               java-version: '17'
               distribution: 'temurin'          
@@ -326,7 +326,7 @@
 
           - name: Sign APK
             id: sign_app
-            uses: r0adkll/sign-android-release@v1
+            uses: filippoLeporati93/android-release-signer@v1
             with:
               releaseDirectory: build/unsigned
               signingKeyBase64: ${{ secrets.SIGNING_KEY_BASE64 }}
@@ -339,10 +339,8 @@
             run: cp ${{steps.sign_app.outputs.signedReleaseFile}} build/signed/Kazumi_android_${{ env.tag }}.apk
 
           - name: Create release
-            uses: "marvinpinto/action-automatic-releases@latest"
+            uses: softprops/action-gh-release@v2
             with:
-              repo_token: "${{ secrets.GITHUB_TOKEN }}"
-              prerelease: false
               files: |
                 build/signed/*.apk
                 Kazumi_windows_*.zip

@@ -986,12 +986,10 @@ class _PlayerItemState extends State<PlayerItem>
                             left: 0,
                             right: 0,
                             height: videoPageController.androidFullscreen
-                                ? MediaQuery.sizeOf(context).height *
-                                    danmakuArea
+                                ? MediaQuery.sizeOf(context).height
                                 : (MediaQuery.sizeOf(context).width *
                                     9 /
-                                    16 *
-                                    danmakuArea),
+                                    16),
                             child: DanmakuScreen(
                               key: _danmuKey,
                               createdController: (DanmakuController e) {
@@ -1003,6 +1001,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 hideTop: _hideTop,
                                 hideScroll: _hideScroll,
                                 hideBottom: _hideBottom,
+                                area: danmakuArea,
                                 opacity: _opacity,
                                 fontSize: _fontSize,
                                 duration: _duration.toInt(),

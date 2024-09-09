@@ -170,10 +170,10 @@ packages:
     dependency: "direct main"
     description:
       name: canvas_danmaku
-      sha256: e220268151c24733f7e0ee429ab23edae5465b0cc797151384442c5a91c9ad78
+      sha256: "128644574b5454c9290d9896a2560a751960109f902a8b943bf4b420fa09699d"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.8"
+    version: "0.1.9"
   characters:
     dependency: transitive
     description:

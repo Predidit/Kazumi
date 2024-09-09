@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -226,7 +227,8 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.volume = value ?? 0.0;
       });
       // 历史记录相关
-      if (playerController.mediaPlayer.value.isPlaying && !videoPageController.loading) {
+      if (playerController.mediaPlayer.value.isPlaying &&
+          !videoPageController.loading) {
         historyController.updateHistory(
             videoPageController.currentEspisode,
             videoPageController.currentRoad,
@@ -529,6 +531,11 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void initState() {
     super.initState();
+    // workaround for #214
+    if (Platform.isIOS) {
+      FlutterVolumeController.setIOSAudioSessionCategory(
+          category: AudioSessionCategory.playback);
+    }
     WidgetsBinding.instance.addObserver(this);
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -987,9 +994,7 @@ class _PlayerItemState extends State<PlayerItem>
                             right: 0,
                             height: videoPageController.androidFullscreen
                                 ? MediaQuery.sizeOf(context).height
-                                : (MediaQuery.sizeOf(context).width *
-                                    9 /
-                                    16),
+                                : (MediaQuery.sizeOf(context).width * 9 / 16),
                             child: DanmakuScreen(
                               key: _danmuKey,
                               createdController: (DanmakuController e) {

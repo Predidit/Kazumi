@@ -60,6 +60,8 @@ class _PlayerItemState extends State<PlayerItem>
   bool showBrightness = false;
   bool showVolume = false;
   bool showPlaySpeed = false;
+  bool brightnessSeeking = false;
+  bool volumeSeeking = false;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -223,11 +225,13 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 音量相关
-      FlutterVolumeController.getVolume().then((value) {
-        playerController.volume = value ?? 0.0;
-      });
+      if (!volumeSeeking) {
+        FlutterVolumeController.getVolume().then((value) {
+          playerController.volume = value ?? 0.0;
+        });
+      }
       // 亮度相关
-      if (!Platform.isLinux) {
+      if (!Platform.isLinux && !brightnessSeeking) {
         ScreenBrightness().current.then((value) {
           playerController.brightness = value;
         });
@@ -828,6 +832,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       }
                                       if (tapPosition < sectionWidth) {
                                         // 左边区域
+                                        brightnessSeeking = true;
                                         setState(() {
                                           showBrightness = true;
                                         });
@@ -841,6 +846,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         playerController.brightness = result;
                                       } else {
                                         // 右边区域
+                                        volumeSeeking = true;
                                         setState(() {
                                           showVolume = true;
                                         });
@@ -855,6 +861,12 @@ class _PlayerItemState extends State<PlayerItem>
                                       }
                                     }, onVerticalDragEnd:
                                       (DragEndDetails details) {
+                                      if (volumeSeeking) {
+                                        volumeSeeking = false;
+                                      }
+                                      if (brightnessSeeking) {
+                                        brightnessSeeking = false;
+                                      }
                                       setState(() {
                                         showVolume = false;
                                         showBrightness = false;

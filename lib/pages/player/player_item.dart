@@ -226,6 +226,12 @@ class _PlayerItemState extends State<PlayerItem>
       FlutterVolumeController.getVolume().then((value) {
         playerController.volume = value ?? 0.0;
       });
+      // 亮度相关
+      if (!Platform.isLinux) {
+        ScreenBrightness().current.then((value) {
+          playerController.brightness = value;
+        });
+      }
       // 历史记录相关
       if (playerController.mediaPlayer.value.isPlaying &&
           !videoPageController.loading) {
@@ -825,13 +831,6 @@ class _PlayerItemState extends State<PlayerItem>
                                         setState(() {
                                           showBrightness = true;
                                         });
-                                        try {
-                                          playerController.brightness =
-                                              await ScreenBrightness().current;
-                                        } catch (e) {
-                                          KazumiLogger()
-                                              .log(Level.error, e.toString());
-                                        }
                                         final double level = (totalHeight) * 2;
                                         final double brightness =
                                             playerController.brightness -
@@ -839,6 +838,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         final double result =
                                             brightness.clamp(0.0, 1.0);
                                         setBrightness(result);
+                                        playerController.brightness = result;
                                       } else {
                                         // 右边区域
                                         setState(() {

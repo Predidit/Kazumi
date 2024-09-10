@@ -832,7 +832,7 @@ class _PlayerItemState extends State<PlayerItem>
                                           KazumiLogger()
                                               .log(Level.error, e.toString());
                                         }
-                                        final double level = (totalHeight) * 3;
+                                        final double level = (totalHeight) * 2;
                                         final double brightness =
                                             playerController.brightness -
                                                 delta / level;

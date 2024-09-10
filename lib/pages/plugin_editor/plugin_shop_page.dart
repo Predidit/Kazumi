@@ -32,7 +32,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   void initState() {
     super.initState();
-    enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    enableGitProxy =
+        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
     if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
@@ -65,7 +66,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('啊咧（⊙.⊙） 无法访问远程仓库 ${enableGitProxy ? '镜像已启用' : '镜像已禁用'}'),
+                      Text(
+                          '啊咧（⊙.⊙） 无法访问远程仓库 ${enableGitProxy ? '镜像已启用' : '镜像已禁用'}'),
                       TextButton(
                           onPressed: () {
                             Modular.to.pushNamed('/tab/my/other');
@@ -142,8 +144,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                       .queryPluginHTTP(pluginsController
                                           .pluginHTTPList[index].name);
                                   if (pluginHTTPItem != null) {
-                                    if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-                                      SmartDialog.showToast('kazumi版本过低, 此规则不兼容当前版本');
+                                    if (int.parse(pluginHTTPItem.api) >
+                                        Api.apiLevel) {
+                                      SmartDialog.showToast(
+                                          'kazumi版本过低, 此规则不兼容当前版本');
                                       return;
                                     }
                                     await pluginsController
@@ -166,6 +170,12 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                       .queryPluginHTTP(pluginsController
                                           .pluginHTTPList[index].name);
                                   if (pluginHTTPItem != null) {
+                                    if (int.parse(pluginHTTPItem.api) >
+                                        Api.apiLevel) {
+                                      SmartDialog.showToast(
+                                          'kazumi版本过低, 此规则不兼容当前版本');
+                                      return;
+                                    }
                                     await pluginsController
                                         .savePluginToJsonFile(pluginHTTPItem);
                                     await pluginsController.loadPlugins();

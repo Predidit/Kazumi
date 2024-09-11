@@ -105,7 +105,7 @@ class Plugin {
     return data;
   }
 
-  queryBangumi(String keyword) async {
+  queryBangumi(String keyword, {bool shouldRethrow = false}) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     dynamic resp; 
     List<SearchItem> searchItems = [];
@@ -122,20 +122,19 @@ class Plugin {
         'Content-Type': 'application/x-www-form-urlencoded',
       };
       resp = await Request().post(postUri.toString(),
-          options: Options(headers: httpHeaders), data: queryParams);
+          options: Options(headers: httpHeaders), data: queryParams, shouldRethrow: shouldRethrow);
     } else {
       var httpHeaders = {
         'referer': baseUrl + '/',
       };
       resp =
-          await Request().get(queryURL, options: Options(headers: httpHeaders));
+          await Request().get(queryURL, options: Options(headers: httpHeaders), shouldRethrow: shouldRethrow);
     }
 
     var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
 
     htmlElement.queryXPath(searchList).nodes.forEach((element) {
-      // debugPrint('调试输出 ${element.queryXPath(searchName).node!.text}');
       try {
         SearchItem searchItem = SearchItem(
           name: element.queryXPath(searchName).node!.text ?? '',

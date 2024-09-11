@@ -21,7 +21,7 @@ class QueryManager {
     for (Plugin plugin in pluginsController.pluginList) {
       if (_isCancelled) return; 
 
-      plugin.queryBangumi(keyword).then((result) {
+      plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
         if (_isCancelled) return; 
 
         infoController.pluginSearchStatus[plugin.name] = 'success';

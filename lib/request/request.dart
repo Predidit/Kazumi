@@ -100,7 +100,7 @@ class Request {
     };
   }
 
-  get(url, {data, options, cancelToken, extra}) async {
+  get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
     Response response;
     final Options options = Options();
     ResponseType resType = ResponseType.json;
@@ -121,6 +121,9 @@ class Request {
       );
       return response;
     } on DioException catch (e) {
+      if (shouldRethrow) {
+        rethrow;
+      }
       Response errResponse = Response(
         data: {
           'message': await ApiInterceptor.dioError(e)
@@ -132,7 +135,7 @@ class Request {
     }
   }
 
-  post(url, {data, queryParameters, options, cancelToken, extra}) async {
+  post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
     // print('post-data: $data');
     Response response;
     try {
@@ -146,6 +149,9 @@ class Request {
       // print('post success: ${response.data}');
       return response;
     } on DioException catch (e) {
+      if (shouldRethrow) {
+        rethrow;
+      }
       Response errResponse = Response(
         data: {
           'message': await ApiInterceptor.dioError(e)

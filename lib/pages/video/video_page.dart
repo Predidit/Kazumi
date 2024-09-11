@@ -172,7 +172,7 @@ class _VideoPageState extends State<VideoPage>
                       itemCount: videoPageController.logLines.length,
                       itemBuilder: (context, index) {
                         return Text(
-                          videoPageController.logLines[index],
+                          videoPageController.logLines.isEmpty ? '' : videoPageController.logLines[index],
                           style: const TextStyle(
                             color: Colors.white,
                           ),

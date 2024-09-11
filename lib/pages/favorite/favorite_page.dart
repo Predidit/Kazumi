@@ -40,34 +40,38 @@ class _FavoritePageState extends State<FavoritePage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        onBackPressed(context);
-      },
-      child: Scaffold(
-        appBar: const SysAppBar(title: Text('追番')),
-        body: favoriteController.favorites.isEmpty
-            ? const Center(
-                child: Text('啊咧（⊙.⊙） 没有追番的说'),
-              )
-            : CustomScrollView(
-                slivers: [
-                  SliverPadding(
-                    padding: const EdgeInsets.all(StyleString.cardSpace),
-                    sliver: contentGrid(favoriteController.favorites),
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (bool didPop, Object? result) {
+            if (didPop) {
+              return;
+            }
+            onBackPressed(context);
+          },
+          child: Scaffold(
+            appBar: const SysAppBar(title: Text('追番')),
+            body: favoriteController.favorites.isEmpty
+                ? const Center(
+                    child: Text('啊咧（⊙.⊙） 没有追番的说'),
+                  )
+                : CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.all(StyleString.cardSpace),
+                        sliver: contentGrid(favoriteController.favorites, orientation),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-      ),
+          ),
+        );
+      }
     );
   }
 
-  Widget contentGrid(List bangumiList) {
-    int crossCount = (!Utils.isCompact()) ? 6 : 3;
+  Widget contentGrid(List bangumiList, Orientation orientation) {
+    int crossCount = orientation != Orientation.portrait ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         mainAxisSpacing: StyleString.cardSpace - 2,

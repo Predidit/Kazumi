@@ -48,7 +48,8 @@ class _PopularPageState extends State<PopularPage>
           popularController.isLoadingMore == false &&
           popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular 正在加载更多');
-        popularController.queryBangumiListFeed(type: 'onload', tag: popularController.currentTag);
+        popularController.queryBangumiListFeed(
+            type: 'onload', tag: popularController.currentTag);
       }
     });
     if (popularController.bangumiList.isEmpty) {
@@ -88,201 +89,207 @@ class _PopularPageState extends State<PopularPage>
       // 暂时移除，某些情况下可能 crash
       // scrollController.jumpTo(popularController.scrollOffset);
     });
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
-        if (didPop) {
-          return;
-        }
-        onBackPressed(context);
-      },
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await popularController.queryBangumiListFeed(
-              tag: popularController.currentTag);
+    return OrientationBuilder(builder: (context, orientation) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          onBackPressed(context);
         },
-        child: Scaffold(
-            appBar: SysAppBar(
-              leading: (Utils.isCompact())
-                  ? Row(
-                      children: [
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/images/logo/logo_android.png',
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await popularController.queryBangumiListFeed(
+                tag: popularController.currentTag);
+          },
+          child: Scaffold(
+              appBar: SysAppBar(
+                leading: (Utils.isCompact())
+                    ? Row(
+                        children: [
+                          const SizedBox(
+                            width: 10,
                           ),
-                        ),
-                      ],
-                    )
-                  : null,
-              backgroundColor: Colors.transparent,
-              title: Stack(
-                children: [
-                  Positioned.fill(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onPanStart: (_) => windowManager.startDragging(),
-                      child: Container(),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Visibility(
-                          visible: showSearchBar,
-                          child: TextFormField(
-                            focusNode: _focusNode,
-                            cursorColor: Theme.of(context).colorScheme.primary,
-                            decoration: const InputDecoration(
-                              alignLabelWithHint: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  vertical: 8, horizontal: 8),
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(8)),
-                              ),
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/images/logo/logo_android.png',
                             ),
-                            style: TextStyle(
-                                color:
-                                    isLight ? Colors.black87 : Colors.white70),
-                            onChanged: (_) {
-                              scrollController.jumpTo(0.0);
-                            },
-                            controller: keywordController,
-                            onFieldSubmitted: (t) async {
-                              setState(() {
-                                searchLoading = true;
-                                popularController.currentTag = '';
-                              });
-                              if (t != '') {
-                                popularController.searchKeyword = t;
-                                await popularController.queryBangumi(
-                                    popularController.searchKeyword);
-                              } else {
-                                popularController.searchKeyword = '';
-                                await popularController.queryBangumiListFeed();
-                              }
-                              setState(() {
-                                searchLoading = false;
-                              });
-                            },
                           ),
-                        ),
+                        ],
+                      )
+                    : null,
+                backgroundColor: Colors.transparent,
+                title: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onPanStart: (_) => windowManager.startDragging(),
+                        child: Container(),
                       ),
-                      IconButton(
-                          onPressed: () async {
-                            if (!showSearchBar) {
-                              setState(() {
-                                showSearchBar = true;
-                              });
-                              _focusNode.requestFocus();
-                            } else {
-                              if (keywordController.text == '') {
-                                _focusNode.unfocus();
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Visibility(
+                            visible: showSearchBar,
+                            child: TextFormField(
+                              focusNode: _focusNode,
+                              cursorColor:
+                                  Theme.of(context).colorScheme.primary,
+                              decoration: const InputDecoration(
+                                alignLabelWithHint: true,
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(8)),
+                                ),
+                              ),
+                              style: TextStyle(
+                                  color: isLight
+                                      ? Colors.black87
+                                      : Colors.white70),
+                              onChanged: (_) {
+                                scrollController.jumpTo(0.0);
+                              },
+                              controller: keywordController,
+                              onFieldSubmitted: (t) async {
                                 setState(() {
-                                  showSearchBar = false;
                                   searchLoading = true;
                                   popularController.currentTag = '';
                                 });
-                                popularController.searchKeyword == '';
-                                await popularController.queryBangumiListFeed();
+                                if (t != '') {
+                                  popularController.searchKeyword = t;
+                                  await popularController.queryBangumi(
+                                      popularController.searchKeyword);
+                                } else {
+                                  popularController.searchKeyword = '';
+                                  await popularController
+                                      .queryBangumiListFeed();
+                                }
                                 setState(() {
                                   searchLoading = false;
                                 });
-                              } else {
-                                keywordController.text = '';
-                                popularController.searchKeyword = '';
+                              },
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                            onPressed: () async {
+                              if (!showSearchBar) {
+                                setState(() {
+                                  showSearchBar = true;
+                                });
                                 _focusNode.requestFocus();
+                              } else {
+                                if (keywordController.text == '') {
+                                  _focusNode.unfocus();
+                                  setState(() {
+                                    showSearchBar = false;
+                                    searchLoading = true;
+                                    popularController.currentTag = '';
+                                  });
+                                  popularController.searchKeyword == '';
+                                  await popularController
+                                      .queryBangumiListFeed();
+                                  setState(() {
+                                    searchLoading = false;
+                                  });
+                                } else {
+                                  keywordController.text = '';
+                                  popularController.searchKeyword = '';
+                                  _focusNode.requestFocus();
+                                }
                               }
-                            }
-                          },
-                          icon: showSearchBar
-                              ? const Icon(Icons.close)
-                              : const Icon(Icons.search))
-                    ],
+                            },
+                            icon: showSearchBar
+                                ? const Icon(Icons.close)
+                                : const Icon(Icons.search))
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              body: Column(
+                children: [
+                  SizedBox(
+                    height: showTagFilter ? 50 : 0,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
+                      child: tagFilter(),
+                    ),
+                  ),
+                  Expanded(
+                    child: CustomScrollView(
+                      controller: scrollController,
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                top: 0, bottom: 10, left: 0),
+                            child: searchLoading
+                                ? const LinearProgressIndicator()
+                                : Container(),
+                          ),
+                        ),
+                        SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(
+                                StyleString.safeSpace,
+                                0,
+                                StyleString.safeSpace,
+                                0),
+                            sliver: Observer(builder: (context) {
+                              if (popularController.bangumiList.isEmpty &&
+                                  timeout == true) {
+                                return HttpError(
+                                  errMsg: '什么都没有找到 (´;ω;`)',
+                                  fn: () {
+                                    popularController.queryBangumiListFeed();
+                                  },
+                                );
+                              }
+                              if (popularController.bangumiList.isEmpty &&
+                                  timeout == false) {
+                                return SliverToBoxAdapter(
+                                  child: SizedBox(
+                                      height:
+                                          (MediaQuery.of(context).size.height /
+                                              2),
+                                      child: const Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          CircularProgressIndicator(),
+                                        ],
+                                      )),
+                                );
+                              }
+                              return contentGrid(popularController.bangumiList, orientation);
+                            })),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-            body: Column(
-              children: [
-                SizedBox(
-                  height: showTagFilter ? 50 : 0,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
-                    child: tagFilter(),
-                  ),
-                ),
-                Expanded(
-                  child: CustomScrollView(
-                    controller: scrollController,
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                              top: 0, bottom: 10, left: 0),
-                          child: searchLoading
-                              ? const LinearProgressIndicator()
-                              : Container(),
-                        ),
-                      ),
-                      SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(
-                              StyleString.safeSpace,
-                              0,
-                              StyleString.safeSpace,
-                              0),
-                          sliver: Observer(builder: (context) {
-                            if (popularController.bangumiList.isEmpty &&
-                                timeout == true) {
-                              return HttpError(
-                                errMsg: '什么都没有找到 (´;ω;`)',
-                                fn: () {
-                                  popularController.queryBangumiListFeed();
-                                },
-                              );
-                            }
-                            if (popularController.bangumiList.isEmpty &&
-                                timeout == false) {
-                              return SliverToBoxAdapter(
-                                child: SizedBox(
-                                    height:
-                                        (MediaQuery.of(context).size.height /
-                                            2),
-                                    child: const Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        CircularProgressIndicator(),
-                                      ],
-                                    )),
-                              );
-                            }
-                            return contentGrid(popularController.bangumiList);
-                          })),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                scrollController.jumpTo(0.0);
-              },
-              child: const Icon(Icons.arrow_upward),
-            )
-            // backgroundColor: themedata.colorScheme.primaryContainer,
-            ),
-      ),
-    );
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  scrollController.jumpTo(0.0);
+                },
+                child: const Icon(Icons.arrow_upward),
+              )
+              // backgroundColor: themedata.colorScheme.primaryContainer,
+              ),
+        ),
+      );
+    });
   }
 
-  Widget contentGrid(bangumiList) {
-    int crossCount = !Utils.isCompact() ? 6 : 3;
+  Widget contentGrid(bangumiList, Orientation orientation) {
+    int crossCount = orientation != Orientation.portrait ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         // 行间距

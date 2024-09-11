@@ -76,42 +76,46 @@ class _TimelinePageState extends State<TimelinePage>
 
   @override
   Widget build(BuildContext context) {
-    return Observer(builder: (context) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-          onBackPressed(context);
-        },
-        child: Scaffold(
-          appBar: SysAppBar(
-            toolbarHeight: 104,
-            bottom: TabBar(
-              controller: controller,
-              tabs: tabs,
-              indicatorColor: Theme.of(context).colorScheme.primary,
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        return Observer(builder: (context) {
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (bool didPop, Object? result) {
+              if (didPop) {
+                return;
+              }
+              onBackPressed(context);
+            },
+            child: Scaffold(
+              appBar: SysAppBar(
+                toolbarHeight: 104,
+                bottom: TabBar(
+                  controller: controller,
+                  tabs: tabs,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                ),
+                title: InkWell(
+                  child: const Text('新番时间表'),
+                  onTap: () {},
+                ),
+              ),
+              body: Padding(
+                padding: const EdgeInsets.only(left: 5, right: 5, top: 10),
+                child: renderBody(orientation)
+                ),
             ),
-            title: InkWell(
-              child: const Text('新番时间表'),
-              onTap: () {},
-            ),
-          ),
-          body: Padding(
-            padding: const EdgeInsets.only(left: 5, right: 5, top: 10),
-            child: renderBody
-            ),
-        ),
-      );
-    });
+          );
+        });
+      }
+    );
   }
 
-  Widget get renderBody {
+  Widget renderBody(Orientation orientation) {
     if (timelineController.bangumiCalendar.length > 0) {
       return TabBarView(
         controller: controller,
-        children: contentGrid(timelineController.bangumiCalendar),
+        children: contentGrid(timelineController.bangumiCalendar, orientation),
       );
     } else {
       return const Center(
@@ -120,9 +124,9 @@ class _TimelinePageState extends State<TimelinePage>
     }
   }
 
-  List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {
+  List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar, Orientation orientation) {
     List<Widget> gridViewList = [];
-    int crossCount = !Utils.isCompact() ? 6 : 3;
+    int crossCount = orientation != Orientation.portrait ? 6 : 3;
     for (dynamic bangumiList in bangumiCalendar) {
       gridViewList.add(
         CustomScrollView(

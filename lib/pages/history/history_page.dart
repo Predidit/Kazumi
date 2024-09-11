@@ -46,29 +46,33 @@ class _HistoryPageState extends State<HistoryPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigationBarState.hideNavigate();
     });
-    return Observer(builder: (context) {
-      return PopScope(
-        canPop: true,
-        onPopInvokedWithResult: (bool didPop, Object? result) async {
-          onBackPressed(context);
-        },
-        child: Scaffold(
-          appBar: const SysAppBar(title: Text('历史记录')),
-          body: renderBody,
-          floatingActionButton: FloatingActionButton(
-            child: const Icon(Icons.clear_all),
-            onPressed: () {
-              historyController.clearAll();
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        return Observer(builder: (context) {
+          return PopScope(
+            canPop: true,
+            onPopInvokedWithResult: (bool didPop, Object? result) async {
+              onBackPressed(context);
             },
-          ),
-        ),
-      );
-    });
+            child: Scaffold(
+              appBar: const SysAppBar(title: Text('历史记录')),
+              body: renderBody(orientation),
+              floatingActionButton: FloatingActionButton(
+                child: const Icon(Icons.clear_all),
+                onPressed: () {
+                  historyController.clearAll();
+                },
+              ),
+            ),
+          );
+        });
+      }
+    );
   }
 
-  Widget get renderBody {
+  Widget renderBody(Orientation orientation) {
     if (historyController.histories.isNotEmpty) {
-      return contentGrid;
+      return contentGrid(orientation);
     } else {
       return const Center(
         child: Text('没有找到历史记录 (´;ω;`)'),
@@ -76,9 +80,8 @@ class _HistoryPageState extends State<HistoryPage>
     }
   }
 
-  Widget get contentGrid {
-    // List<Widget> gridViewList = [];
-    int crossCount = (!Utils.isCompact()) ? 3 : 1;
+  Widget contentGrid(Orientation orientation) {
+    int crossCount = orientation != Orientation.portrait ? 3 : 1;
     return CustomScrollView(
       slivers: [
         SliverGrid(

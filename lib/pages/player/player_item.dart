@@ -231,7 +231,7 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 亮度相关
-      if (!Platform.isLinux && !brightnessSeeking) {
+      if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux && !brightnessSeeking) {
         ScreenBrightness().current.then((value) {
           playerController.brightness = value;
         });

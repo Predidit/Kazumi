@@ -33,6 +33,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
       if (isIframeLoaded) {
         timer.cancel();
       } else {
+        count++;
         parseIframeUrl();
       }
       // parseIframeUrl();
@@ -93,7 +94,6 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
         debugPrint('VideoJS Bridge: $messageItem');
         videoPageController.logLines
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
-        count++;
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
           debugPrint('Loading video source ${Uri.decodeFull(messageItem)}');
           videoPageController.logLines
@@ -119,7 +119,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
 
-          if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
+          if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               window.chrome.webview.postMessage('iframeMessage:' + src);
               window.location.href = src;
               break; 

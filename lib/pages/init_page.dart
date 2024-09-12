@@ -123,6 +123,8 @@ class _InitPageState extends State<InitPage> {
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(
         useAnimation: false,
+        backDismiss: false,
+        clickMaskDismiss: false,
         builder: (context) {
           return AlertDialog(
             title: const Text('免责声明'),

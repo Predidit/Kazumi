@@ -231,7 +231,10 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 亮度相关
-      if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux && !brightnessSeeking) {
+      if (!Platform.isWindows &&
+          !Platform.isMacOS &&
+          !Platform.isLinux &&
+          !brightnessSeeking) {
         ScreenBrightness().current.then((value) {
           playerController.brightness = value;
         });
@@ -875,7 +878,6 @@ class _PlayerItemState extends State<PlayerItem>
                           // 顶部进度条
                           Positioned(
                               top: 25,
-                              width: 200,
                               child: showPosition
                                   ? Wrap(
                                       alignment: WrapAlignment.center,
@@ -888,20 +890,26 @@ class _PlayerItemState extends State<PlayerItem>
                                             borderRadius: BorderRadius.circular(
                                                 8.0), // 圆角
                                           ),
-                                          child: Text(
-                                            playerController.currentPosition
+                                          child: Row(children: [
+                                            (playerController.currentPosition
                                                         .compareTo(
                                                             playerController
                                                                 .mediaPlayer
                                                                 .value
                                                                 .position) >
                                                     0
-                                                ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.value.position.inSeconds} 秒'
-                                                : '快退 ${playerController.mediaPlayer.value.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
+                                                ? const Icon(Icons.fast_forward,
+                                                    color: Colors.white)
+                                                : const Icon(
+                                                    Icons.fast_rewind,
+                                                    color: Colors.white,
+                                                  )),
+                                            Text(
+                                                ' ${Utils.formatTime(playerController.currentPosition.inSeconds.toDouble())} / ${Utils.formatTime(playerController.mediaPlayer.value.duration.inSeconds.toDouble())}',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                )),
+                                          ]),
                                         ),
                                       ],
                                     )

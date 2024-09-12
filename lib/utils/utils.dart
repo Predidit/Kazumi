@@ -343,10 +343,16 @@ class Utils {
   }
 
   static String formatTime(double seconds) {
+    if (seconds <= 0) {
+      return '00:00';
+    }
     final hours = seconds ~/ 3600;
     final minutes = (seconds % 3600) ~/ 60;
     final secs = seconds % 60;
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toStringAsFixed(3).replaceAll('.', '.')}';
+    if (hours == 0) {
+      return '${minutes.toString().padLeft(2, '0')}:${secs.floor().toString().padLeft(2, '0')}';
+    }
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.floor().toString().padLeft(2, '0')}';
   }
 
   static String jsonToKazumiBase64(String jsonStr) {

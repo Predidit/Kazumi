@@ -76,10 +76,16 @@ abstract class _VideoPageController with Store {
       await windowManager.setFullScreen(true);
       return;
     }
-    await landScape();
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.immersiveSticky,
     );
+    if (Platform.isAndroid) {
+      bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
+      if (isInMultiWindowMode) {
+        return;
+      }
+    }
+    await landScape();
   }
 
   //退出全屏显示
@@ -87,12 +93,9 @@ abstract class _VideoPageController with Store {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(false);
     }
-    dynamic document;
     late SystemUiMode mode = SystemUiMode.edgeToEdge;
     try {
-      if (kIsWeb) {
-        document.exitFullscreen();
-      } else if (Platform.isAndroid || Platform.isIOS) {
+      if (Platform.isAndroid || Platform.isIOS) {
         if (Platform.isAndroid &&
             (await DeviceInfoPlugin().androidInfo).version.sdkInt < 29) {
           mode = SystemUiMode.manual;
@@ -102,6 +105,12 @@ abstract class _VideoPageController with Store {
           overlays: SystemUiOverlay.values,
         );
         if (Utils.isCompact()) {
+          if (Platform.isAndroid) {
+            bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
+            if (isInMultiWindowMode) {
+              return;
+            }
+          }
           verticalScreen();
         }
       }
@@ -118,21 +127,14 @@ abstract class _VideoPageController with Store {
       if (kIsWeb) {
         await document.documentElement?.requestFullscreen();
       } else if (Platform.isAndroid || Platform.isIOS) {
-        // await SystemChrome.setEnabledSystemUIMode(
-        //   SystemUiMode.immersiveSticky,
-        //   overlays: [],
-        // );
         await SystemChrome.setPreferredOrientations(
           [
             DeviceOrientation.landscapeLeft,
             DeviceOrientation.landscapeRight,
           ],
         );
-        // await AutoOrientation.landscapeAutoMode(forceSensor: true);
       }
     } catch (exception, stacktrace) {
-      // debugPrint(exception.toString());
-      // debugPrint(stacktrace.toString());
       KazumiLogger()
           .log(Level.error, exception.toString(), stackTrace: stacktrace);
     }

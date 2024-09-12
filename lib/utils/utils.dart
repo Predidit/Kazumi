@@ -32,7 +32,8 @@ class Utils {
 
   static String getRandomUA() {
     final random = Random();
-    String randomElement = userAgentsList[random.nextInt(userAgentsList.length)];
+    String randomElement =
+        userAgentsList[random.nextInt(userAgentsList.length)];
     return randomElement;
   }
 
@@ -444,5 +445,20 @@ class Utils {
   /// 判断设备是否需要紧凑布局
   static bool isCompact() {
     return !isDesktop() && !isWideScreen();
+  }
+
+  /// 判断是否分屏模式 (android only)
+  static Future<bool> isInMultiWindowMode() async {
+    if (Platform.isAndroid) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      try {
+        final bool result = await platform.invokeMethod('checkIfInMultiWindowMode');
+        return result;
+      } on PlatformException catch (e) {
+        print("Failed to check multi window mode: '${e.message}'.");
+        return false;
+      }
+    }
+    return false;
   }
 }

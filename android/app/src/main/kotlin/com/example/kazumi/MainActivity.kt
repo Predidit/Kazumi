@@ -1,6 +1,7 @@
 package com.example.kazumi
 
 import android.content.Intent
+import android.os.Build;
 import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.NonNull
@@ -23,9 +24,12 @@ class MainActivity: FlutterActivity() {
                 } else {
                     result.error("INVALID_ARGUMENT", "URL and MIME type required", null)
                 }
-            } else {
-                result.notImplemented()
             }
+            if (call.method == "checkIfInMultiWindowMode") {
+                val isInMultiWindow = checkIfInMultiWindowMode()
+                result.success(isInMultiWindow)
+            }
+            result.notImplemented()
         }
     }
 
@@ -34,5 +38,13 @@ class MainActivity: FlutterActivity() {
         intent.action = Intent.ACTION_VIEW
         intent.setDataAndType(Uri.parse(url), mimeType)
         startActivity(intent)
+    }
+
+    private fun checkIfInMultiWindowMode(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            this.isInMultiWindowMode 
+        } else {
+            false 
+        }
     }
 }

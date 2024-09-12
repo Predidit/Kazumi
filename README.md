@@ -56,7 +56,7 @@
 
 对于 GNU/Linux 用户，可以从 Flathub 安装：
 
-[![Get it on Flathub](https://flathub.org/api/badge?locale=zh-Hans)](https://flathub.org/apps/io.github.Predidit.Kazumi)
+[![Get it on Flathub](https://flathub.org/api/badge?locale=en)](https://flathub.org/apps/io.github.Predidit.Kazumi)
 
 ## 贡献
 

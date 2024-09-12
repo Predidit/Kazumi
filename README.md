@@ -54,9 +54,16 @@
 
 通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载。
 
+<a href="https://github.com/Predidit/Kazumi/releases">
+  <img src="static/svg/get_it_on_github.svg" alt="Get it on Github" width="200"/>
+</a>
+
 对于 GNU/Linux 用户，可以从 Flathub 安装：
 
-[![Get it on Flathub](https://flathub.org/api/badge?locale=en)](https://flathub.org/apps/io.github.Predidit.Kazumi)
+<span style="display:inline-block; width:5px;"></span>
+<a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
+  <img src="https://flathub.org/api/badge?locale=en" alt="Get it on Flathub" width="180"/>
+</a>
 
 ## 贡献
 

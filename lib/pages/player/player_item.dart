@@ -1052,6 +1052,13 @@ class _PlayerItemState extends State<PlayerItem>
                                       onBackPressed(context);
                                     },
                                   ),
+                                  (Utils.isDesktop() || videoPageController.androidFullscreen) ? Text(
+                                    ' ${videoPageController.title} [${videoPageController.currentEspisode}]',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: Theme.of(context).textTheme.titleMedium!.fontSize
+                                    ),
+                                  ) : Container(),
                                   // 拖动条
                                   const Expanded(
                                     child: dtb.DragToMoveArea(

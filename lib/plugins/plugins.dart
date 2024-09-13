@@ -85,23 +85,23 @@ class Plugin {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
-    data['api'] = this.api;
-    data['type'] = this.type;
-    data['name'] = this.name;
-    data['version'] = this.version;
-    data['muliSources'] = this.muliSources;
-    data['useWebview'] = this.useWebview;
-    data['useNativePlayer'] = this.useNativePlayer;
-    data['usePost'] = this.usePost;
-    data['userAgent'] = this.userAgent;
-    data['baseURL'] = this.baseUrl;
-    data['searchURL'] = this.searchURL;
-    data['searchList'] = this.searchList;
-    data['searchName'] = this.searchName;
-    data['searchResult'] = this.searchResult;
-    data['chapterRoads'] = this.chapterRoads;
-    data['chapterResult'] = this.chapterResult;
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['api'] = api;
+    data['type'] = type;
+    data['name'] = name;
+    data['version'] = version;
+    data['muliSources'] = muliSources;
+    data['useWebview'] = useWebview;
+    data['useNativePlayer'] = useNativePlayer;
+    data['usePost'] = usePost;
+    data['userAgent'] = userAgent;
+    data['baseURL'] = baseUrl;
+    data['searchURL'] = searchURL;
+    data['searchList'] = searchList;
+    data['searchName'] = searchName;
+    data['searchResult'] = searchResult;
+    data['chapterRoads'] = chapterRoads;
+    data['chapterResult'] = chapterResult;
     return data;
   }
 
@@ -118,14 +118,14 @@ class Plugin {
         path: uri.path,
       );
       var httpHeaders = {
-        'referer': baseUrl + '/',
+        'referer': '$baseUrl/',
         'Content-Type': 'application/x-www-form-urlencoded',
       };
       resp = await Request().post(postUri.toString(),
           options: Options(headers: httpHeaders), data: queryParams, shouldRethrow: shouldRethrow);
     } else {
       var httpHeaders = {
-        'referer': baseUrl + '/',
+        'referer': '$baseUrl/',
       };
       resp =
           await Request().get(queryURL, options: Options(headers: httpHeaders), shouldRethrow: shouldRethrow);
@@ -163,7 +163,7 @@ class Plugin {
       queryURL = baseUrl + url;
     }
     var httpHeaders = {
-      'referer': baseUrl + '/',
+      'referer': '$baseUrl/',
     };
     try {
       var resp =
@@ -178,7 +178,7 @@ class Plugin {
             String itemUrl = item.node.attributes['href'] ?? '';
             chapterUrlList.add(itemUrl);
           });
-          if (chapterUrlList.length != 0) {
+          if (chapterUrlList.isNotEmpty) {
             Road road = Road(name: '播放列表$count', data: chapterUrlList);
             roadList.add(road);
             count++;

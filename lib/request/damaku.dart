@@ -57,9 +57,9 @@ class DanmakuRequest {
     };
     // 这里猜测了弹弹Play的分集命名规则，例如上面的番剧ID为1758，第一集弹幕库ID大概率为17580001，但是此命名规则并没有体现在官方API文档里，保险的做法是请求 Api.dandanInfo
     KazumiLogger().log(Level.info,
-        "弹幕请求最终URL ${Api.dandanAPI + "$bangumiID" + episode.toString().padLeft(4, '0')}");
+        "弹幕请求最终URL ${"${Api.dandanAPI}$bangumiID${episode.toString().padLeft(4, '0')}"}");
     final res = await Request().get(
-        (Api.dandanAPI + "$bangumiID" + episode.toString().padLeft(4, '0')),
+        ("${Api.dandanAPI}$bangumiID${episode.toString().padLeft(4, '0')}"),
         data: withRelated,
         options: Options(headers: httpHeaders));
     

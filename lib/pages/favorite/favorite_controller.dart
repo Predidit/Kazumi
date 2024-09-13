@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -10,7 +9,7 @@ import 'package:kazumi/utils/logger.dart';
 
 part 'favorite_controller.g.dart';
 
-class FavoriteController = _FavoriteController with _$FavoriteController;
+class FavoriteController = _FavoriteController with _$FavoriteController; 
 
 abstract class _FavoriteController with Store {
   // late var storedFavorites = GStorage.favorites;

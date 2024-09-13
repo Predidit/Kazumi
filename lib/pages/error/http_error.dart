@@ -29,7 +29,7 @@ class HttpError extends StatelessWidget {
                 fn!();
               },
               style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith((states) {
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
                   return Theme.of(context).colorScheme.primary.withAlpha(20);
                 }),
               ),

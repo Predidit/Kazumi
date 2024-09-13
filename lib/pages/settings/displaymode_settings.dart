@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:logger/logger.dart';
-import 'package:kazumi/utils/logger.dart';
 
 class SetDiaplayMode extends StatefulWidget {
   const SetDiaplayMode({super.key});

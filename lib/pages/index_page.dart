@@ -2,13 +2,11 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:logger/logger.dart';
-import 'package:kazumi/utils/logger.dart';
 
 
 class IndexPage extends StatefulWidget {
   //const IndexPage({super.key});
-  const IndexPage({Key? key}) : super(key: key);
+  const IndexPage({super.key});
 
   @override
   State<IndexPage> createState() => _IndexPageState();

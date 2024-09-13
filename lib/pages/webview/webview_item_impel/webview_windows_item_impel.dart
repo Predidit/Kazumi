@@ -28,7 +28,9 @@ class _WebviewWindowsItemImpelState extends State<WebviewWindowsItemImpel> {
 
   @override
   void dispose() {
-    _subscriptions.forEach((s) => s.cancel());
+    for (var s in _subscriptions) {
+      s.cancel();
+    }
     webviewDesktopItemController.dispose();
     super.dispose();
   }

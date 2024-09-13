@@ -112,7 +112,7 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget renderBody(Orientation orientation) {
-    if (timelineController.bangumiCalendar.length > 0) {
+    if (timelineController.bangumiCalendar.isNotEmpty) {
       return TabBarView(
         controller: controller,
         children: contentGrid(timelineController.bangumiCalendar, orientation),

@@ -1238,12 +1238,10 @@ class _PlayerItemState extends State<PlayerItem>
                                           padding:
                                               const EdgeInsets.only(left: 10.0),
                                           child: Text(
-                                            Utils.durationToString(
+                                            "${Utils.durationToString(
                                                     playerController
-                                                        .currentPosition) +
-                                                " / " +
-                                                Utils.durationToString(
-                                                    playerController.duration),
+                                                        .currentPosition)} / ${Utils.durationToString(
+                                                    playerController.duration)}",
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: !Utils.isCompact()

@@ -104,7 +104,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     pluginsController.loadPlugins();
                     SmartDialog.dismiss();
                   },
-                  child: Text('导入'),
+                  child: const Text('导入'),
                 );
               })
             ],
@@ -191,7 +191,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                         Utils.jsonToKazumiBase64(json.encode(
                                             pluginsController.pluginList[index]
                                                 .toJson())),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                             fontWeight: FontWeight.bold),
                                         textAlign: TextAlign.center,
                                       ),

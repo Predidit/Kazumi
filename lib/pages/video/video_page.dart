@@ -258,7 +258,7 @@ class _VideoPageState extends State<VideoPage>
               if (road.name == '播放列表${roadIndex + 1}') {
                 int count = 1;
                 for (var urlItem in road.data) {
-                  int _count = count;
+                  int count0 = count;
                   cardList.add(Container(
                     margin: const EdgeInsets.only(bottom: 10), // 改为bottom间距
                     child: Material(
@@ -267,12 +267,12 @@ class _VideoPageState extends State<VideoPage>
                       clipBehavior: Clip.hardEdge,
                       child: InkWell(
                         onTap: () async {
-                          if (_count == videoPageController.currentEspisode &&
+                          if (count0 == videoPageController.currentEspisode &&
                               roadIndex == videoPageController.currentRoad) {
                             return;
                           }
                           KazumiLogger().log(Level.info, '视频链接为 $urlItem');
-                          videoPageController.changeEpisode(_count,
+                          videoPageController.changeEpisode(count0,
                               currentRoad: roadIndex);
                         },
                         child: Padding(
@@ -283,7 +283,7 @@ class _VideoPageState extends State<VideoPage>
                             children: <Widget>[
                               Row(
                                 children: [
-                                  if (_count ==
+                                  if (count0 ==
                                           (videoPageController
                                               .currentEspisode) &&
                                       roadIndex ==
@@ -301,7 +301,7 @@ class _VideoPageState extends State<VideoPage>
                                     '第$count话',
                                     style: TextStyle(
                                         fontSize: 13,
-                                        color: (_count ==
+                                        color: (count0 ==
                                                     (videoPageController
                                                         .currentEspisode) &&
                                                 roadIndex ==

@@ -1,4 +1,3 @@
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/pages/about/about_page.dart';

@@ -34,8 +34,6 @@ class SideNavigationBarState extends ChangeNotifier {
 }
 
 class _SideMenu extends State<SideMenu> {
-  final PageController _page = PageController();
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(

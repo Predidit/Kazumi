@@ -22,9 +22,9 @@ import 'package:window_manager/window_manager.dart';
 /// {@end-tool}
 class DragToMoveArea extends StatelessWidget {
   const DragToMoveArea({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   final Widget child;
 

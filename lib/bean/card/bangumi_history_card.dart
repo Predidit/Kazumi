@@ -133,7 +133,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                       Text('上次看到: 第${widget.historyItem.lastWatchEpisode}话',
                           style: style),
                       Text(
-                          '排名: ${widget.historyItem.bangumiItem.rank ?? '0.0'}',
+                          '排名: ${widget.historyItem.bangumiItem.rank}',
                           style: style),
                       Text(
                           widget.historyItem.bangumiItem.type == 2

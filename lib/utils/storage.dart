@@ -24,7 +24,7 @@ class GStorage {
     final hiveBoxFile = File('${appDocumentDir.path}/hive/$boxName.hive');
     if (await hiveBoxFile.exists()) {
       await hiveBoxFile.copy(backupFilePath);
-      print('Backup success: ${backupFilePath}');
+      print('Backup success: $backupFilePath');
     } else {
       print('Hive box not exists');
     }

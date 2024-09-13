@@ -18,8 +18,8 @@ class SetSwitchItem extends StatefulWidget {
     this.defaultVal,
     this.callFn,
     this.needReboot,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<SetSwitchItem> createState() => _SetSwitchItemState();
@@ -85,7 +85,7 @@ class SelectDialog<T> extends StatefulWidget {
       required this.title});
 
   @override
-  _SelectDialogState<T> createState() => _SelectDialogState<T>();
+  State<SelectDialog<T>> createState() => _SelectDialogState<T>();
 }
 
 class _SelectDialogState<T> extends State<SelectDialog<T>> {

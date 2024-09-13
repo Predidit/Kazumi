@@ -3,8 +3,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart'; 
 
 class TextDisplayWidget extends StatefulWidget {
+  const TextDisplayWidget({super.key});
+
   @override
-  _TextDisplayWidgetState createState() => _TextDisplayWidgetState();
+  State<TextDisplayWidget> createState() => _TextDisplayWidgetState(); 
 }
 
 class _TextDisplayWidgetState extends State<TextDisplayWidget> {

@@ -34,7 +34,7 @@ class BangumiCardV extends StatelessWidget {
           onTap: () async {
             infoController.bangumiItem = bangumiItem;
             if (popularController.searchKeyword == '') {
-              popularController.keyword = bangumiItem.nameCn == '' ? bangumiItem.name ?? '' : (bangumiItem.nameCn ?? '');
+              popularController.keyword = bangumiItem.nameCn == '' ? bangumiItem.name : (bangumiItem.nameCn);
             } else {
               popularController.keyword = popularController.searchKeyword;
             }

@@ -102,7 +102,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                   borderRadius: BorderRadius.circular(16.0),
                                 ),
                                 child: Text(
-                                  '${pluginsController.pluginHTTPList[index].version}',
+                                  pluginsController.pluginHTTPList[index].version,
                                   style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme

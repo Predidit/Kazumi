@@ -1,5 +1,6 @@
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/constans.dart';
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -9,9 +10,11 @@ class BangumiHTTP {
   static Future getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
-      var res = await Request().get(Api.bangumiCalendar);
+      var res = await Request().get(Api.bangumiCalendar,
+          options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
-      KazumiLogger().log(Level.info, '网络源推荐列表长度 ${jsonData.length}');
+      KazumiLogger()
+          .log(Level.info, 'The length of clendar is ${jsonData.length}');
       for (dynamic jsonDayList in jsonData) {
         List<BangumiItem> bangumiList = [];
         final jsonList = jsonDayList['items'];
@@ -21,14 +24,13 @@ class BangumiHTTP {
             if (bangumiItem.nameCn != '') {
               bangumiList.add(bangumiItem);
             }
-            // bangumiList.add(BangumiItem.fromJson(jsonItem));
           } catch (_) {}
         }
         bangumiCalendar.add(bangumiList);
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, '解析推荐列表错误 ${e.toString()}');
-      // debugPrint('当前列表长度 ${bangumiCalendar.length}');
+      KazumiLogger()
+          .log(Level.error, 'Resolve calendar failed ${e.toString()}');
     }
     return bangumiCalendar;
   }
@@ -61,7 +63,7 @@ class BangumiHTTP {
     }
     try {
       final res = await Request().post(Api.bangumiRankSearch,
-          data: params, options: Options(contentType: 'application/json'));
+          data: params, options: Options(headers: bangumiHTTPHeader, contentType: 'application/json'));
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -70,25 +72,14 @@ class BangumiHTTP {
         }
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, '解析推荐列表错误 ${e.toString()}');
-      // debugPrint('当前列表长度 ${bangumiList.length}');
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi list failed ${e.toString()}');
     }
     return bangumiList;
   }
 
   static Future bangumiSearch(String keyword) async {
     List<BangumiItem> bangumiList = [];
-    // Bangumi API 文档要求的UA格式
-    var httpHeaders = {
-      'user-agent':
-          'Predidit/Kazumi/${Api.version} (Android) (https://github.com/Predidit/Kazumi)',
-      'referer': '',
-    };
-    // Map<String, String> keywordMap = {
-    //   'type': '2',
-    //   'responseGroup': 'large',
-    //   'max_results': '25'
-    // };
 
     var params = <String, dynamic>{
       'keyword': keyword,
@@ -102,14 +93,8 @@ class BangumiHTTP {
     };
 
     try {
-      // final res = await Request().get(
-      //     Api.bangumiSearch + Uri.encodeComponent(keyword),
-      //     data: keywordMap,
-      //     options: Options(headers: httpHeaders));
       final res = await Request().post(Api.bangumiRankSearch,
-          data: params,
-          options:
-              Options(headers: httpHeaders, contentType: 'application/json'));
+          data: params, options: Options(headers: bangumiHTTPHeader, contentType: 'application/json'));
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -120,14 +105,26 @@ class BangumiHTTP {
               bangumiList.add(bangumiItem);
             }
           } catch (e) {
-            KazumiLogger().log(Level.error, '检索结果解析错误 ${e.toString()}');
+            KazumiLogger().log(
+                Level.error, 'Resolve search results failed ${e.toString()}');
           }
         }
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, '检索错误 ${e.toString()}');
+      KazumiLogger().log(Level.error, 'Unknown search problem ${e.toString()}');
     }
-    // debugPrint('检索结果长度 ${bangumiList.length}');
     return bangumiList;
+  }
+
+  static getBangumiSummaryByID(int id) async {
+    try {
+      final res = await Request().get(Api.bangumiInfoByID + id.toString(),
+          options: Options(headers: bangumiHTTPHeader));
+      return res.data['summary'];
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi summary failed ${e.toString()}');
+      return '';
+    }
   }
 }

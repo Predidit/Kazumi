@@ -31,12 +31,15 @@ class _InfoPageState extends State<InfoPage>
   final PopularController popularController = Modular.get<PopularController>();
   late TabController tabController;
 
-  /// 用于并发查询
+  /// Concurrent query manager
   late QueryManager queryManager;
 
   @override
   void initState() {
     super.initState();
+    if (infoController.bangumiItem.summary == '') {
+      queryBangumiSummaryByID(infoController.bangumiItem.id);
+    }
     queryManager = QueryManager();
     queryManager.querySource(popularController.keyword);
     tabController =
@@ -50,14 +53,23 @@ class _InfoPageState extends State<InfoPage>
     super.dispose();
   }
 
-  // 获取当前主题模式
+  /// workaround for bangumi calendar api
+  /// bangumi calendar api always return empty summary
+  queryBangumiSummaryByID(int id) async {
+    try {
+      await infoController.queryBangumiSummaryByID(id);
+      setState(() {});
+    } catch (e) {
+      KazumiLogger().log(Level.error, e.toString());
+    }
+  }
+
   bool get isLightTheme {
     final currentMode = AdaptiveTheme.of(context).mode;
     if (currentMode == AdaptiveThemeMode.light) {
       return true;
     }
 
-    // 检查 AdaptiveThemeMode.system 的情况
     if (currentMode == AdaptiveThemeMode.system) {
       final brightness = MediaQuery.of(context).platformBrightness;
       if (brightness == Brightness.light) {

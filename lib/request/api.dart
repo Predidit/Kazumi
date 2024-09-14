@@ -22,6 +22,8 @@ class Api {
   static const String bangumiSearch = 'https://api.bgm.tv/search/subject/';
   // 条目搜索
   static const String bangumiRankSearch = 'https://api.bgm.tv/v0/search/subjects';
+  // 从条目ID获取详细信息
+  static const String bangumiInfoByID = 'https://api.bgm.tv/v0/subjects/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
   static const String dandanAPI = "https://api.dandanplay.net/api/v2/comment/";

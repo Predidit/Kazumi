@@ -24,6 +24,9 @@ class _HistoryPageState extends State<HistoryPage>
   dynamic navigationBarState;
   TabController? controller;
 
+  /// show delete button
+  bool showDelete = false;
+
   @override
   void initState() {
     super.initState();
@@ -46,28 +49,35 @@ class _HistoryPageState extends State<HistoryPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigationBarState.hideNavigate();
     });
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        return Observer(builder: (context) {
-          return PopScope(
-            canPop: true,
-            onPopInvokedWithResult: (bool didPop, Object? result) async {
-              onBackPressed(context);
-            },
-            child: Scaffold(
-              appBar: const SysAppBar(title: Text('历史记录')),
-              body: renderBody(orientation),
-              floatingActionButton: FloatingActionButton(
-                child: const Icon(Icons.clear_all),
-                onPressed: () {
-                  historyController.clearAll();
-                },
-              ),
+    return OrientationBuilder(builder: (context, orientation) {
+      return Observer(builder: (context) {
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (bool didPop, Object? result) async {
+            onBackPressed(context);
+          },
+          child: Scaffold(
+            appBar: SysAppBar(
+              title: const Text('历史记录'),
+              actions: [
+                IconButton(onPressed: () {
+                  setState(() {
+                    showDelete = !showDelete;
+                  });
+                }, icon: showDelete ? const Icon(Icons.edit_outlined) : const Icon(Icons.edit))
+              ],
             ),
-          );
-        });
-      }
-    );
+            body: renderBody(orientation),
+            floatingActionButton: FloatingActionButton(
+              child: const Icon(Icons.clear_all),
+              onPressed: () {
+                historyController.clearAll();
+              },
+            ),
+          ),
+        );
+      });
+    });
   }
 
   Widget renderBody(Orientation orientation) {
@@ -94,6 +104,7 @@ class _HistoryPageState extends State<HistoryPage>
             (BuildContext context, int index) {
               return historyController.histories.isNotEmpty
                   ? BangumiHistoryCardV(
+                      showDelete: showDelete,
                       historyItem: historyController.histories[index])
                   : null;
             },

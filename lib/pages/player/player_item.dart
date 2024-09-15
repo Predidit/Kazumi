@@ -28,6 +28,7 @@ import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
+import 'package:kazumi/utils/constans.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({super.key});
@@ -322,20 +323,6 @@ class _PlayerItemState extends State<PlayerItem>
   // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playerSpeed;
-    final List<double> speedsList = [
-      0.25,
-      0.5,
-      0.75,
-      1.0,
-      1.25,
-      1.5,
-      1.75,
-      2.0,
-      2.25,
-      2.5,
-      2.75,
-      3.0
-    ];
     SmartDialog.show(
         useAnimation: false,
         builder: (context) {
@@ -347,7 +334,7 @@ class _PlayerItemState extends State<PlayerItem>
                 spacing: 8,
                 runSpacing: 2,
                 children: [
-                  for (final double i in speedsList) ...<Widget>[
+                  for (final double i in playSpeedList) ...<Widget>[
                     if (i == currentSpeed) ...<Widget>[
                       FilledButton(
                         onPressed: () async {

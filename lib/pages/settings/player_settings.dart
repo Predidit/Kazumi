@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/constans.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -15,11 +18,15 @@ class PlayerSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
+  Box setting = GStorage.setting;
   dynamic navigationBarState;
+  late double defaultPlaySpeed;
 
   @override
   void initState() {
     super.initState();
+    defaultPlaySpeed =
+        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     if (Utils.isCompact()) {
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
@@ -34,6 +41,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     // Navigator.of(context).pop();
   }
 
+  void updateDefaultPlaySpeed(double speed) {
+    setting.put(SettingBoxKey.defaultPlaySpeed, speed);
+    setState(() {
+      defaultPlaySpeed = speed;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,11 +58,11 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
       onPopInvokedWithResult: (bool didPop, Object? result) {
         onBackPressed(context);
       },
-      child: const Scaffold(
-        appBar: SysAppBar(title: Text('播放设置')),
+      child: Scaffold(
+        appBar: const SysAppBar(title: Text('播放设置')),
         body: Column(
           children: [
-            InkWell(
+            const InkWell(
               child: SetSwitchItem(
                 title: '硬件解码',
                 setKey: SettingBoxKey.hAenable,
@@ -56,7 +70,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 defaultVal: true,
               ),
             ),
-            InkWell(
+            const InkWell(
               child: SetSwitchItem(
                 title: '低内存模式',
                 subTitle: '禁用高级缓存以减少内存占用',
@@ -65,13 +79,76 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 defaultVal: false,
               ),
             ),
-            InkWell(
+            const InkWell(
               child: SetSwitchItem(
                 title: '自动跳转',
                 subTitle: '跳转到上次播放位置',
                 setKey: SettingBoxKey.playResume,
                 defaultVal: true,
               ),
+            ),
+            ListTile(
+              onTap: () async {
+                SmartDialog.show(
+                    useAnimation: false,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('默认倍速'),
+                        content: StatefulBuilder(builder:
+                            (BuildContext context, StateSetter setState) {
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 2,
+                            children: [
+                              for (final double i in playSpeedList) ...<Widget>[
+                                if (i == defaultPlaySpeed) ...<Widget>[
+                                  FilledButton(
+                                    onPressed: () async {
+                                      updateDefaultPlaySpeed(i);
+                                      SmartDialog.dismiss();
+                                    },
+                                    child: Text(i.toString()),
+                                  ),
+                                ] else ...[
+                                  FilledButton.tonal(
+                                    onPressed: () async {
+                                      updateDefaultPlaySpeed(i);
+                                      SmartDialog.dismiss();
+                                    },
+                                    child: Text(i.toString()),
+                                  ),
+                                ]
+                              ]
+                            ],
+                          );
+                        }),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => SmartDialog.dismiss(),
+                            child: Text(
+                              '取消',
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              updateDefaultPlaySpeed(1.0);
+                              SmartDialog.dismiss();
+                            },
+                            child: const Text('默认设置'),
+                          ),
+                        ],
+                      );
+                    });
+              },
+              dense: false,
+              title: const Text('默认倍速'),
+              subtitle: Text('$defaultPlaySpeed',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
             ),
           ],
         ),

@@ -76,13 +76,14 @@ abstract class _PlayerController with Store {
         videoPageController.title, videoPageController.currentEspisode);
     mediaPlayer = await createVideoController();
     bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
-    playerSpeed = 1.0;
+    playerSpeed = setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     if (offset != 0) {
       await mediaPlayer.seekTo(Duration(seconds: offset));
     }
     if (aotoPlay) {
       await mediaPlayer.play();
     }
+    setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     // 加载弹幕
     loading = false;

@@ -94,6 +94,7 @@ class SettingBoxKey {
       searchEnhanceEnable = 'searchEnhanceEnable',
       autoUpdate = 'autoUpdate',
       alwaysOntop = 'alwaysOntop',
+      defaultPlaySpeed = 'defaultPlaySpeed',
       danmakuEnhance = 'danmakuEnhance',
       danmakuBorder = 'danmakuBorder',
       danmakuOpacity = 'danmakuOpacity',

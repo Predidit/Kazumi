@@ -83,66 +83,80 @@ class _VideoPageState extends State<VideoPage>
       playerController.mediaPlayer.dispose();
     } catch (_) {}
     WakelockPlus.disable();
+    videoPageController.unlockScreenRotation();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
-    return Observer(builder: (context) {
-      return Scaffold(
-        appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                videoPageController.androidFullscreen)
-            ? null
-            : SysAppBar(
-                title: Text(videoPageController.title),
-              )),
-        body: SafeArea(
-          child: (Utils.isTablet() &&
-                  MediaQuery.of(context).size.height <
-                      MediaQuery.of(context).size.width)
-              ? Row(
-                  children: [
-                    Container(
-                        color: Colors.black,
-                        height: MediaQuery.of(context).size.height,
-                        width: (!videoPageController.androidFullscreen)
-                            ? MediaQuery.of(context).size.height
-                            : MediaQuery.of(context).size.width,
-                        child: playerBody),
-                    videoPageController.androidFullscreen
-                        ? Container()
-                        : Expanded(
-                            child: Column(
-                            children: [
-                              tabBar,
-                              tabBody,
-                            ],
-                          ))
-                  ],
-                )
-              : Column(
-                  children: [
-                    Container(
-                        color: Colors.black,
-                        height: videoPageController.androidFullscreen
-                            ? MediaQuery.of(context).size.height
-                            : MediaQuery.of(context).size.width * 9 / 16,
-                        width: MediaQuery.of(context).size.width,
-                        child: playerBody),
-                    videoPageController.androidFullscreen
-                        ? Container()
-                        : Expanded(
-                            child: Column(
-                            children: [
-                              tabBar,
-                              tabBody,
-                            ],
-                          ))
-                  ],
-                ),
-        ),
-      );
+    return OrientationBuilder(builder: (context, orientation) {
+      if (!Utils.isTablet() && !Utils.isDesktop()) {
+        if (orientation == Orientation.landscape &&
+            !videoPageController.androidFullscreen) {
+          videoPageController.enterFullScreen(lockOrientation: false);
+          videoPageController.androidFullscreen = true;
+        } else if (orientation == Orientation.portrait &&
+            videoPageController.androidFullscreen) {
+          videoPageController.exitFullScreen(lockOrientation: false);
+          videoPageController.androidFullscreen = false;
+        }
+      }
+      return Observer(builder: (context) {
+        return Scaffold(
+          appBar: ((videoPageController.currentPlugin.useNativePlayer ||
+                  videoPageController.androidFullscreen)
+              ? null
+              : SysAppBar(
+                  title: Text(videoPageController.title),
+                )),
+          body: SafeArea(
+            child: (Utils.isTablet() &&
+                    MediaQuery.of(context).size.height <
+                        MediaQuery.of(context).size.width)
+                ? Row(
+                    children: [
+                      Container(
+                          color: Colors.black,
+                          height: MediaQuery.of(context).size.height,
+                          width: (!videoPageController.androidFullscreen)
+                              ? MediaQuery.of(context).size.height
+                              : MediaQuery.of(context).size.width,
+                          child: playerBody),
+                      videoPageController.androidFullscreen
+                          ? Container()
+                          : Expanded(
+                              child: Column(
+                              children: [
+                                tabBar,
+                                tabBody,
+                              ],
+                            ))
+                    ],
+                  )
+                : Column(
+                    children: [
+                      Container(
+                          color: Colors.black,
+                          height: videoPageController.androidFullscreen
+                              ? MediaQuery.of(context).size.height
+                              : MediaQuery.of(context).size.width * 9 / 16,
+                          width: MediaQuery.of(context).size.width,
+                          child: playerBody),
+                      videoPageController.androidFullscreen
+                          ? Container()
+                          : Expanded(
+                              child: Column(
+                              children: [
+                                tabBar,
+                                tabBody,
+                              ],
+                            ))
+                    ],
+                  ),
+          ),
+        );
+      });
     });
   }
 
@@ -172,7 +186,9 @@ class _VideoPageState extends State<VideoPage>
                       itemCount: videoPageController.logLines.length,
                       itemBuilder: (context, index) {
                         return Text(
-                          videoPageController.logLines.isEmpty ? '' : videoPageController.logLines[index],
+                          videoPageController.logLines.isEmpty
+                              ? ''
+                              : videoPageController.logLines[index],
                           style: const TextStyle(
                             color: Colors.white,
                           ),
@@ -215,12 +231,11 @@ class _VideoPageState extends State<VideoPage>
         /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
         Positioned(
             child: SizedBox(
-          height: (videoPageController.loading ||
-                  videoPageController.currentPlugin.useNativePlayer)
-              ? 0
-              : null,
-          child: const WebviewItem()
-        ))
+                height: (videoPageController.loading ||
+                        videoPageController.currentPlugin.useNativePlayer)
+                    ? 0
+                    : null,
+                child: const WebviewItem()))
       ],
     );
   }

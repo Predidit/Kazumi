@@ -71,7 +71,7 @@ abstract class _VideoPageController with Store {
     await webviewItemController.loadUrl(urlItem, offset: offset);
   }
 
-  Future<void> enterFullScreen() async {
+  Future<void> enterFullScreen({bool lockOrientation = true}) async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(true);
       return;
@@ -79,6 +79,9 @@ abstract class _VideoPageController with Store {
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.immersiveSticky,
     );
+    if (!lockOrientation) {
+      return;
+    }
     if (Platform.isAndroid) {
       bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
       if (isInMultiWindowMode) {
@@ -89,7 +92,7 @@ abstract class _VideoPageController with Store {
   }
 
   //退出全屏显示
-  Future<void> exitFullScreen() async {
+  Future<void> exitFullScreen({bool lockOrientation = true}) async {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       await windowManager.setFullScreen(false);
     }
@@ -104,7 +107,7 @@ abstract class _VideoPageController with Store {
           mode,
           overlays: SystemUiOverlay.values,
         );
-        if (Utils.isCompact()) {
+        if (Utils.isCompact() && lockOrientation) {
           if (Platform.isAndroid) {
             bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
             if (isInMultiWindowMode) {
@@ -140,10 +143,16 @@ abstract class _VideoPageController with Store {
     }
   }
 
-//竖屏
+  //竖屏
   Future<void> verticalScreen() async {
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
   }
+
+  // 解除屏幕旋转限制
+  Future<void> unlockScreenRotation() async {
+    await SystemChrome.setPreferredOrientations([]);
+  }
 }
+

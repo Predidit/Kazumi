@@ -45,7 +45,7 @@ class BangumiHTTP {
         "filter": {
           "type": [2],
           "tag": ["日本"],
-          "rank": [">$rank", "<=1000"],
+          "rank": [">$rank", "<=1050"],
           "nsfw": false
         },
       };

@@ -16,7 +16,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'package:kazumi/utils/utils.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});

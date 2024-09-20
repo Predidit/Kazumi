@@ -1,6 +1,11 @@
 #include "flutter_window.h"
+#include "fullscreen_utils.h"
 
 #include <optional>
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+#include <flutter/plugin_registrar_windows.h>
+#include <windows.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -36,6 +41,9 @@ bool FlutterWindow::OnCreate() {
   // window is shown. It is a no-op if the first frame hasn't completed yet.
   flutter_controller_->ForceRedraw();
 
+  // Register Intent MethodChannel
+  RegisterIntentChannel();
+
   return true;
 }
 
@@ -68,4 +76,24 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
+}
+
+// Intent MethodChannel setup
+void FlutterWindow::RegisterIntentChannel() {
+  auto window_channel =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "com.predidit.kazumi/intent",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  window_channel->SetMethodCallHandler([this](const auto& call, auto result) {
+    if (call.method_name().compare("enterFullscreen") == 0) {
+      FullscreenUtils::EnterNativeFullscreen(GetHandle());
+      result->Success();
+    } else if (call.method_name().compare("exitFullscreen") == 0) {
+      FullscreenUtils::ExitNativeFullscreen(GetHandle());
+      result->Success();
+    } else {
+      result->NotImplemented();
+    }
+  });
 }

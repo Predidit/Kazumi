@@ -271,7 +271,7 @@ class _PlayerItemState extends State<PlayerItem>
   void onBackPressed(BuildContext context) async {
     if (videoPageController.androidFullscreen) {
       try {
-        await videoPageController.exitFullScreen();
+        await Utils.exitFullScreen();
         videoPageController.androidFullscreen = false;
         danmakuController.clear();
         return;
@@ -300,9 +300,9 @@ class _PlayerItemState extends State<PlayerItem>
       try {
         danmakuController.onClear();
       } catch (_) {}
-      videoPageController.exitFullScreen();
+      Utils.exitFullScreen();
     } else {
-      videoPageController.enterFullScreen();
+      Utils.enterFullScreen();
     }
     videoPageController.androidFullscreen =
         !videoPageController.androidFullscreen;
@@ -698,7 +698,7 @@ class _PlayerItemState extends State<PlayerItem>
                               try {
                                 danmakuController.onClear();
                               } catch (_) {}
-                              videoPageController.exitFullScreen();
+                              Utils.exitFullScreen();
                               videoPageController.androidFullscreen =
                                   !videoPageController.androidFullscreen;
                             } else {

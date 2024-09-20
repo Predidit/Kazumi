@@ -72,11 +72,11 @@ class WebviewItemControllerImpel extends WebviewItemController {
       debugPrint('FullscreenJS桥收到的消息为 ${message.message}');
       if (message.message == 'enteredFullscreen') {
         videoPageController.androidFullscreen = true;
-        videoPageController.enterFullScreen();
+        Utils.enterFullScreen();
       }
       if (message.message == 'exitedFullscreen') {
         videoPageController.androidFullscreen = false;
-        videoPageController.exitFullScreen();
+        Utils.exitFullScreen();
       }
     });
     await webviewController.loadRequest(Uri.parse(url));

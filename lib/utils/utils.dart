@@ -12,6 +12,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:screen_pixel/screen_pixel.dart';
 import 'package:kazumi/utils/constans.dart';
+import 'package:logger/logger.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:kazumi/utils/logger.dart';
+import 'package:flutter/foundation.dart';
+import 'package:window_manager/window_manager.dart';
 
 class Utils {
   static final Random random = Random();
@@ -458,7 +463,8 @@ class Utils {
     if (Platform.isAndroid) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
       try {
-        final bool result = await platform.invokeMethod('checkIfInMultiWindowMode');
+        final bool result =
+            await platform.invokeMethod('checkIfInMultiWindowMode');
         return result;
       } on PlatformException catch (e) {
         print("Failed to check multi window mode: '${e.message}'.");
@@ -466,5 +472,119 @@ class Utils {
       }
     }
     return false;
+  }
+
+  static enterWindowsFullscreen() async {
+    if (Platform.isWindows) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      try {
+        await platform.invokeMethod('enterFullscreen');
+      } on PlatformException catch (e) {
+        print("Failed to enter native window mode: '${e.message}'.");
+      }
+    }
+  }
+
+  static exitWindowsFullscreen() async {
+    if (Platform.isWindows) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      try {
+        await platform.invokeMethod('exitFullscreen');
+      } on PlatformException catch (e) {
+        print("Failed to exit native window mode: '${e.message}'.");
+      }
+    }
+  }
+
+  // 进入全屏显示
+  static enterFullScreen({bool lockOrientation = true}) async {
+    if (Platform.isWindows) {
+      await enterWindowsFullscreen();
+      return;
+    }
+    if (Platform.isLinux || Platform.isMacOS) {
+      await windowManager.setFullScreen(true);
+      return;
+    }
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersiveSticky,
+    );
+    if (!lockOrientation) {
+      return;
+    }
+    if (Platform.isAndroid) {
+      bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
+      if (isInMultiWindowMode) {
+        return;
+      }
+    }
+    await landScape();
+  }
+
+  //退出全屏显示
+  static Future<void> exitFullScreen({bool lockOrientation = true}) async {
+    if (Platform.isWindows) {
+      await exitWindowsFullscreen();
+    }
+    if (Platform.isLinux || Platform.isMacOS) {
+      await windowManager.setFullScreen(false);
+    }
+    late SystemUiMode mode = SystemUiMode.edgeToEdge;
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        if (Platform.isAndroid &&
+            (await DeviceInfoPlugin().androidInfo).version.sdkInt < 29) {
+          mode = SystemUiMode.manual;
+        }
+        await SystemChrome.setEnabledSystemUIMode(
+          mode,
+          overlays: SystemUiOverlay.values,
+        );
+        if (Utils.isCompact() && lockOrientation) {
+          if (Platform.isAndroid) {
+            bool isInMultiWindowMode = await Utils.isInMultiWindowMode();
+            if (isInMultiWindowMode) {
+              return;
+            }
+          }
+          verticalScreen();
+        }
+      }
+    } catch (exception, stacktrace) {
+      KazumiLogger()
+          .log(Level.error, exception.toString(), stackTrace: stacktrace);
+    }
+  }
+
+  //横屏
+  static Future<void> landScape() async {
+    dynamic document;
+    try {
+      if (kIsWeb) {
+        await document.documentElement?.requestFullscreen();
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        await SystemChrome.setPreferredOrientations(
+          [
+            DeviceOrientation.landscapeLeft,
+            DeviceOrientation.landscapeRight,
+          ],
+        );
+      }
+    } catch (exception, stacktrace) {
+      KazumiLogger()
+          .log(Level.error, exception.toString(), stackTrace: stacktrace);
+    }
+  }
+
+  //竖屏
+  static Future<void> verticalScreen() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
+  // 解除屏幕旋转限制
+  static Future<void> unlockScreenRotation() async {
+    await SystemChrome.setPreferredOrientations([]);
   }
 }

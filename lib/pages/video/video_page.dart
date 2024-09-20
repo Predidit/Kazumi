@@ -16,6 +16,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -83,7 +84,7 @@ class _VideoPageState extends State<VideoPage>
       playerController.mediaPlayer.dispose();
     } catch (_) {}
     WakelockPlus.disable();
-    videoPageController.unlockScreenRotation();
+    Utils.unlockScreenRotation();
     super.dispose();
   }
 
@@ -94,11 +95,11 @@ class _VideoPageState extends State<VideoPage>
       if (!Utils.isTablet() && !Utils.isDesktop()) {
         if (orientation == Orientation.landscape &&
             !videoPageController.androidFullscreen) {
-          videoPageController.enterFullScreen(lockOrientation: false);
+          Utils.enterFullScreen(lockOrientation: false);
           videoPageController.androidFullscreen = true;
         } else if (orientation == Orientation.portrait &&
             videoPageController.androidFullscreen) {
-          videoPageController.exitFullScreen(lockOrientation: false);
+          Utils.exitFullScreen(lockOrientation: false);
           videoPageController.androidFullscreen = false;
         }
       }
@@ -208,7 +209,7 @@ class _VideoPageState extends State<VideoPage>
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () {
                           if (videoPageController.androidFullscreen == true) {
-                            videoPageController.exitFullScreen();
+                            Utils.exitFullScreen();
                             videoPageController.androidFullscreen = false;
                             return;
                           }

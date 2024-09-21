@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -39,13 +38,13 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     WakelockPlus.enable();
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.black,
-        systemNavigationBarDividerColor: Colors.black,
-        statusBarColor: Colors.black,
-      ));
-    }
+    // if (Platform.isIOS) {
+    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    //     systemNavigationBarColor: Colors.black,
+    //     systemNavigationBarDividerColor: Colors.black,
+    //     statusBarColor: Colors.black,
+    //   ));
+    // }
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -72,13 +71,13 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
-    if (Platform.isIOS) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-        statusBarColor: Colors.transparent,
-      ));
-    }
+    // if (Platform.isIOS) {
+    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    //     systemNavigationBarColor: Colors.transparent,
+    //     systemNavigationBarDividerColor: Colors.transparent,
+    //     statusBarColor: Colors.transparent,
+    //   ));
+    // }
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}
@@ -111,6 +110,10 @@ class _VideoPageState extends State<VideoPage>
                   title: Text(videoPageController.title),
                 )),
           body: SafeArea(
+            top: !videoPageController.androidFullscreen,
+            bottom: !videoPageController.androidFullscreen,
+            left: !videoPageController.androidFullscreen,
+            right: !videoPageController.androidFullscreen,
             child: (Utils.isTablet() &&
                     MediaQuery.of(context).size.height <
                         MediaQuery.of(context).size.width)

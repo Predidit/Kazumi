@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:kazumi/utils/utils.dart';
 
 part 'bangumi_item.g.dart';
 
@@ -49,7 +50,7 @@ class BangumiItem {
       nameCn: (json['name_cn'] ?? '') == '' ? (json['name'] ?? '') : json['name_cn'],
       summary: json['summary'] ?? '',
       airDate: json['air_date'] ?? json ['date'],
-      airWeekday: json['air_weekday'] ?? 1,
+      airWeekday: json['air_weekday'] ?? Utils.dateStringToWeekday(json ['date']) ?? 1,
       // rating: Rating.fromJson(json['rating']),
       rank: json['rank'] ?? 0,
       images: Map<String, String>.from(json['images'] ?? {

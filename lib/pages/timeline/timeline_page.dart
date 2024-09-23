@@ -10,6 +10,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constans.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/anime_season.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
@@ -22,12 +24,14 @@ class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
   final TimelineController timelineController =
       Modular.get<TimelineController>();
+  late String seasonString;
   dynamic navigationBarState;
   TabController? controller;
 
   @override
   void initState() {
     super.initState();
+    seasonString = AnimeSeason(timelineController.selectedDate).toString();
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
@@ -39,7 +43,6 @@ class _TimelinePageState extends State<TimelinePage>
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
     if (timelineController.bangumiCalendar.isEmpty) {
-      // debugPrint('时间表缓存为空, 尝试重新加载');
       timelineController.getSchedules();
     }
   }
@@ -76,39 +79,147 @@ class _TimelinePageState extends State<TimelinePage>
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        return Observer(builder: (context) {
-          return PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (bool didPop, Object? result) {
-              if (didPop) {
-                return;
-              }
-              onBackPressed(context);
-            },
-            child: Scaffold(
-              appBar: SysAppBar(
-                toolbarHeight: 104,
-                bottom: TabBar(
-                  controller: controller,
-                  tabs: tabs,
-                  indicatorColor: Theme.of(context).colorScheme.primary,
-                ),
-                title: InkWell(
-                  child: const Text('新番时间表'),
-                  onTap: () {},
-                ),
+    return OrientationBuilder(builder: (context, orientation) {
+      return Observer(builder: (context) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (bool didPop, Object? result) {
+            if (didPop) {
+              return;
+            }
+            onBackPressed(context);
+          },
+          child: Scaffold(
+            appBar: SysAppBar(
+              toolbarHeight: 104,
+              bottom: TabBar(
+                controller: controller,
+                tabs: tabs,
+                indicatorColor: Theme.of(context).colorScheme.primary,
               ),
-              body: Padding(
-                padding: const EdgeInsets.only(left: 5, right: 5, top: 10),
-                child: renderBody(orientation)
-                ),
+              title: InkWell(
+                child: Text(seasonString),
+                onTap: () {
+                  SmartDialog.show(
+                      useAnimation: false,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: const Text("时间机器"),
+                          content: StatefulBuilder(builder:
+                              (BuildContext context, StateSetter setState) {
+                            return SingleChildScrollView(
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: Utils.isCompact() ? 2 : 8,
+                                children: [
+                                  for (final int i in List.generate(20,
+                                      (index) => DateTime.now().year - index))
+                                    for (final String selectedSeason in [
+                                      '秋',
+                                      '夏',
+                                      '春',
+                                      '冬'
+                                    ])
+                                      DateTime.now().isAfter(generateDateTime(
+                                              i, selectedSeason))
+                                          ? timelineController.selectedDate ==
+                                                  generateDateTime(
+                                                      i, selectedSeason)
+                                              ? FilledButton(
+                                                  onPressed: () {
+                                                    if (timelineController
+                                                            .selectedDate !=
+                                                        generateDateTime(i,
+                                                            selectedSeason)) {
+                                                      SmartDialog.dismiss();
+                                                      timelineController
+                                                              .selectedDate =
+                                                          generateDateTime(i,
+                                                              selectedSeason);
+                                                      setState(() {
+                                                        seasonString =
+                                                            "加载中 ٩(◦`꒳´◦)۶";
+                                                      });
+                                                      if (AnimeSeason(timelineController
+                                                                  .selectedDate)
+                                                              .toString() ==
+                                                          AnimeSeason(DateTime
+                                                                  .now())
+                                                              .toString()) {
+                                                        timelineController
+                                                            .getSchedules();
+                                                      } else {
+                                                        timelineController
+                                                            .getSchedulesBySeason();
+                                                      }
+                                                      setState(() {
+                                                        seasonString = AnimeSeason(
+                                                                timelineController
+                                                                    .selectedDate)
+                                                            .toString();
+                                                      });
+                                                    }
+                                                  },
+                                                  child: Text(i.toString() +
+                                                      selectedSeason
+                                                          .toString()),
+                                                )
+                                              : FilledButton.tonal(
+                                                  onPressed: () {
+                                                    if (timelineController
+                                                            .selectedDate !=
+                                                        generateDateTime(i,
+                                                            selectedSeason)) {
+                                                      SmartDialog.dismiss();
+                                                      timelineController
+                                                              .selectedDate =
+                                                          generateDateTime(i,
+                                                              selectedSeason);
+                                                      setState(() {
+                                                        seasonString =
+                                                            "加载中 ٩(◦`꒳´◦)۶";
+                                                      });
+                                                      if (AnimeSeason(timelineController
+                                                                  .selectedDate)
+                                                              .toString() ==
+                                                          AnimeSeason(DateTime
+                                                                  .now())
+                                                              .toString()) {
+                                                        timelineController
+                                                            .getSchedules();
+                                                      } else {
+                                                        timelineController
+                                                            .getSchedulesBySeason();
+                                                      }
+                                                      setState(() {
+                                                        seasonString = AnimeSeason(
+                                                                timelineController
+                                                                    .selectedDate)
+                                                            .toString();
+                                                      });
+                                                    }
+                                                  },
+                                                  child: Text(i.toString() +
+                                                      selectedSeason
+                                                          .toString()),
+                                                )
+                                          : Container(),
+                                ],
+                              ),
+                            );
+                          }),
+                        );
+                      });
+                },
+              ),
             ),
-          );
-        });
-      }
-    );
+            body: Padding(
+                padding: const EdgeInsets.only(left: 5, right: 5, top: 10),
+                child: renderBody(orientation)),
+          ),
+        );
+      });
+    });
   }
 
   Widget renderBody(Orientation orientation) {
@@ -124,7 +235,8 @@ class _TimelinePageState extends State<TimelinePage>
     }
   }
 
-  List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar, Orientation orientation) {
+  List<Widget> contentGrid(
+      List<List<BangumiItem>> bangumiCalendar, Orientation orientation) {
     List<Widget> gridViewList = [];
     int crossCount = orientation != Orientation.portrait ? 6 : 3;
     for (dynamic bangumiList in bangumiCalendar) {

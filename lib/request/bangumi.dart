@@ -7,6 +7,8 @@ import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 class BangumiHTTP {
+  // why the api havn't been replaced by getCalendarBySearch?
+  // Beacause getCalendarBySearch is not stable, it will miss some bangumi items.
   static Future getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
@@ -31,6 +33,55 @@ class BangumiHTTP {
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'Resolve calendar failed ${e.toString()}');
+    }
+    return bangumiCalendar;
+  }
+
+  // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
+  // because the air date is the launch date of the anime, it is usually a few days before the start of the season
+  // So we usually use the start of the season month -1 and the end of the season month -1
+  static Future getCalendarBySearch(List<String> dateRange) async {
+    List<BangumiItem> bangumiList = [];
+    List<List<BangumiItem>> bangumiCalendar = [];
+    var params = <String, dynamic>{
+      "keyword": "",
+      "filter": {
+        "type": [2],
+        "tag": ["日本"],
+        "air_date": [">=${dateRange[0]}", "<${dateRange[1]}"],
+        "rank": [">0", "<=99999"],
+        "nsfw": true
+      }
+    };
+    try {
+      final res = await Request().post(Api.bangumiRankSearch,
+          data: params,
+          options: Options(
+              headers: bangumiHTTPHeader, contentType: 'application/json'));
+      final jsonData = res.data;
+      final jsonList = jsonData['data'];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          bangumiList.add(BangumiItem.fromJson(jsonItem));
+        }
+      }
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi list failed ${e.toString()}');
+    }
+    try {
+      for (int weekday = 1; weekday <= 7; weekday++) {
+        List<BangumiItem> bangumiDayList = [];
+        for (BangumiItem bangumiItem in bangumiList) {
+          if (bangumiItem.airWeekday == weekday) {
+            bangumiDayList.add(bangumiItem);
+          }
+        }
+        bangumiCalendar.add(bangumiDayList);
+      }
+    } catch (e) {
+      KazumiLogger().log(
+          Level.error, 'Fetch bangumi item to calendar failed ${e.toString()}');
     }
     return bangumiCalendar;
   }
@@ -63,7 +114,9 @@ class BangumiHTTP {
     }
     try {
       final res = await Request().post(Api.bangumiRankSearch,
-          data: params, options: Options(headers: bangumiHTTPHeader, contentType: 'application/json'));
+          data: params,
+          options: Options(
+              headers: bangumiHTTPHeader, contentType: 'application/json'));
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -94,7 +147,9 @@ class BangumiHTTP {
 
     try {
       final res = await Request().post(Api.bangumiRankSearch,
-          data: params, options: Options(headers: bangumiHTTPHeader, contentType: 'application/json'));
+          data: params,
+          options: Options(
+              headers: bangumiHTTPHeader, contentType: 'application/json'));
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {

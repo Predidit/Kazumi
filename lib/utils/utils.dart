@@ -310,6 +310,16 @@ class Utils {
     return '$formattedHours:$formattedMinutes';
   }
 
+  // 日期字符串转换为 weekday (eg: 2024-09-23 -> 1 (星期一))
+  static int dateStringToWeekday(String dateString) {
+    try {
+      DateTime date = DateTime.parse(dateString);
+      return date.weekday;
+    } catch (_) {
+      return 1;
+    }
+  }
+
   static String appSign(
       Map<String, dynamic> params, String appkey, String appsec) {
     params['appkey'] = appkey;

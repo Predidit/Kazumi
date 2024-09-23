@@ -11,6 +11,9 @@ abstract class _TimelineController with Store {
   @observable
   List<List<BangumiItem>> bangumiCalendar = [];
 
+  @observable
+  String seasonString = '';
+
   DateTime selectedDate = DateTime.now();
 
   Future getSchedules() async {

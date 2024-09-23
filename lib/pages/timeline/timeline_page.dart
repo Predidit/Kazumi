@@ -24,14 +24,12 @@ class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
   final TimelineController timelineController =
       Modular.get<TimelineController>();
-  late String seasonString;
   dynamic navigationBarState;
   TabController? controller;
 
   @override
   void initState() {
     super.initState();
-    seasonString = AnimeSeason(timelineController.selectedDate).toString();
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
@@ -43,6 +41,8 @@ class _TimelinePageState extends State<TimelinePage>
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
     if (timelineController.bangumiCalendar.isEmpty) {
+      timelineController.seasonString =
+          AnimeSeason(timelineController.selectedDate).toString();
       timelineController.getSchedules();
     }
   }
@@ -98,7 +98,7 @@ class _TimelinePageState extends State<TimelinePage>
                 indicatorColor: Theme.of(context).colorScheme.primary,
               ),
               title: InkWell(
-                child: Text(seasonString),
+                child: Text(timelineController.seasonString),
                 onTap: () {
                   SmartDialog.show(
                       useAnimation: false,
@@ -126,7 +126,7 @@ class _TimelinePageState extends State<TimelinePage>
                                                   generateDateTime(
                                                       i, selectedSeason)
                                               ? FilledButton(
-                                                  onPressed: () {
+                                                  onPressed: () async {
                                                     if (timelineController
                                                             .selectedDate !=
                                                         generateDateTime(i,
@@ -136,28 +136,26 @@ class _TimelinePageState extends State<TimelinePage>
                                                               .selectedDate =
                                                           generateDateTime(i,
                                                               selectedSeason);
-                                                      setState(() {
-                                                        seasonString =
-                                                            "加载中 ٩(◦`꒳´◦)۶";
-                                                      });
+                                                      timelineController
+                                                              .seasonString =
+                                                          "加载中 ٩(◦`꒳´◦)۶";
                                                       if (AnimeSeason(timelineController
                                                                   .selectedDate)
                                                               .toString() ==
                                                           AnimeSeason(DateTime
                                                                   .now())
                                                               .toString()) {
-                                                        timelineController
+                                                        await timelineController
                                                             .getSchedules();
                                                       } else {
-                                                        timelineController
+                                                        await timelineController
                                                             .getSchedulesBySeason();
                                                       }
-                                                      setState(() {
-                                                        seasonString = AnimeSeason(
-                                                                timelineController
-                                                                    .selectedDate)
-                                                            .toString();
-                                                      });
+                                                      timelineController
+                                                          .seasonString = AnimeSeason(
+                                                              timelineController
+                                                                  .selectedDate)
+                                                          .toString();
                                                     }
                                                   },
                                                   child: Text(i.toString() +
@@ -165,7 +163,7 @@ class _TimelinePageState extends State<TimelinePage>
                                                           .toString()),
                                                 )
                                               : FilledButton.tonal(
-                                                  onPressed: () {
+                                                  onPressed: () async {
                                                     if (timelineController
                                                             .selectedDate !=
                                                         generateDateTime(i,
@@ -175,28 +173,26 @@ class _TimelinePageState extends State<TimelinePage>
                                                               .selectedDate =
                                                           generateDateTime(i,
                                                               selectedSeason);
-                                                      setState(() {
-                                                        seasonString =
-                                                            "加载中 ٩(◦`꒳´◦)۶";
-                                                      });
+                                                      timelineController
+                                                              .seasonString =
+                                                          "加载中 ٩(◦`꒳´◦)۶";
                                                       if (AnimeSeason(timelineController
                                                                   .selectedDate)
                                                               .toString() ==
                                                           AnimeSeason(DateTime
                                                                   .now())
                                                               .toString()) {
-                                                        timelineController
+                                                        await timelineController
                                                             .getSchedules();
                                                       } else {
-                                                        timelineController
+                                                        await timelineController
                                                             .getSchedulesBySeason();
                                                       }
-                                                      setState(() {
-                                                        seasonString = AnimeSeason(
-                                                                timelineController
-                                                                    .selectedDate)
-                                                            .toString();
-                                                      });
+                                                      timelineController
+                                                          .seasonString = AnimeSeason(
+                                                              timelineController
+                                                                  .selectedDate)
+                                                          .toString();
                                                     }
                                                   },
                                                   child: Text(i.toString() +

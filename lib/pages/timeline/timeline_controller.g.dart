@@ -25,10 +25,27 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$seasonStringAtom =
+      Atom(name: '_TimelineController.seasonString', context: context);
+
+  @override
+  String get seasonString {
+    _$seasonStringAtom.reportRead();
+    return super.seasonString;
+  }
+
+  @override
+  set seasonString(String value) {
+    _$seasonStringAtom.reportWrite(value, super.seasonString, () {
+      super.seasonString = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
-bangumiCalendar: ${bangumiCalendar}
+bangumiCalendar: ${bangumiCalendar},
+seasonString: ${seasonString}
     ''';
   }
 }

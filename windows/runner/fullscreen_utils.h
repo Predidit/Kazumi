@@ -6,8 +6,8 @@
 // Use of this source code is governed by MIT license that can be found in the
 // LICENSE file.
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef FULLSCREEN_UTILS_H_
+#define FULLSCREEN_UTILS_H_
 
 #include <cstdint>
 
@@ -26,4 +26,4 @@ class FullscreenUtils {
   static RECT rect_before_fullscreen_;
 };
 
-#endif  // UTILS_H_
+#endif  // FULLSCREEN_UTILS_H_

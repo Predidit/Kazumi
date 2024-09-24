@@ -54,6 +54,7 @@ class _PlayerItemState extends State<PlayerItem>
   late DanmakuController danmakuController;
   late bool isFavorite;
   late bool webDavEnable;
+  late bool haEnable;
 
   // 界面管理
   bool showPositioned = false;
@@ -164,6 +165,34 @@ class _PlayerItemState extends State<PlayerItem>
       }
       mouseScrollerTimer = null;
     });
+  }
+
+  void showVideoInfo() async {
+    String currentDemux = await Utils.getCurrentDemux();
+    SmartDialog.show(
+        useAnimation: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('视频详情'),
+            content: SelectableText.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
+                  TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
+                  TextSpan(text: '解复用器: $currentDemux\n'),
+                  const TextSpan(text: '资源地址: '),
+                  TextSpan(
+                    text: '${playerController.videoUrl}',
+                  ),
+                ],
+              ),
+              style: Theme.of(context).textTheme.bodyLarge!,
+            ),
+            actions: const [
+              TextButton(onPressed: SmartDialog.dismiss, child: Text('取消')),
+            ],
+          );
+        });
   }
 
   getPlayerTimer() {
@@ -577,6 +606,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
     _danmakuDanDanSource =
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+    haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     _handleTap();
@@ -1039,13 +1069,18 @@ class _PlayerItemState extends State<PlayerItem>
                                       onBackPressed(context);
                                     },
                                   ),
-                                  (Utils.isDesktop() || videoPageController.androidFullscreen) ? Text(
-                                    ' ${videoPageController.title} [${videoPageController.currentEspisode}]',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: Theme.of(context).textTheme.titleMedium!.fontSize
-                                    ),
-                                  ) : Container(),
+                                  (Utils.isDesktop() ||
+                                          videoPageController.androidFullscreen)
+                                      ? Text(
+                                          ' ${videoPageController.title} [${videoPageController.currentEspisode}]',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium!
+                                                  .fontSize),
+                                        )
+                                      : Container(),
                                   // 拖动条
                                   const Expanded(
                                     child: dtb.DragToMoveArea(
@@ -1119,6 +1154,13 @@ class _PlayerItemState extends State<PlayerItem>
                                             children: [Text("弹幕切换")],
                                           ),
                                         ),
+                                        PopupMenuItem(
+                                          value: 2,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [Text("视频详情")],
+                                          ),
+                                        ),
                                       ];
                                     },
                                     onSelected: (value) {
@@ -1135,6 +1177,9 @@ class _PlayerItemState extends State<PlayerItem>
                                       }
                                       if (value == 1) {
                                         showDanmakuSwitch(type: 'manual');
+                                      }
+                                      if (value == 2) {
+                                        showVideoInfo();
                                       }
                                     },
                                   )
@@ -1225,10 +1270,7 @@ class _PlayerItemState extends State<PlayerItem>
                                           padding:
                                               const EdgeInsets.only(left: 10.0),
                                           child: Text(
-                                            "${Utils.durationToString(
-                                                    playerController
-                                                        .currentPosition)} / ${Utils.durationToString(
-                                                    playerController.duration)}",
+                                            "${Utils.durationToString(playerController.currentPosition)} / ${Utils.durationToString(playerController.duration)}",
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: !Utils.isCompact()

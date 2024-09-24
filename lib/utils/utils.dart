@@ -597,4 +597,17 @@ class Utils {
   static Future<void> unlockScreenRotation() async {
     await SystemChrome.setPreferredOrientations([]);
   }
+
+  // 获取当前解复用器
+  static Future<String> getCurrentDemux() async {
+    Box setting = GStorage.setting;
+    bool haEnable = await setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    if ((Platform.isIOS || Platform.isMacOS) && haEnable) {
+      return 'AVPlayer';
+    }
+    if (Platform.isAndroid && haEnable) {
+      return 'ExoPlayer';
+    }
+    return 'FFmpeg';
+  }
 }

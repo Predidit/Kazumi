@@ -1,5 +1,6 @@
 #include "flutter_window.h"
 #include "fullscreen_utils.h"
+#include "external_player_utils.h"
 
 #include <optional>
 #include <flutter/method_channel.h>
@@ -92,6 +93,20 @@ void FlutterWindow::RegisterIntentChannel() {
     } else if (call.method_name().compare("exitFullscreen") == 0) {
       FullscreenUtils::ExitNativeFullscreen(GetHandle());
       result->Success();
+    } else if (call.method_name().compare("openWithMime") == 0) {
+      const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
+      if (arguments) {
+        auto url_it = arguments->find(flutter::EncodableValue("url"));
+        if (url_it != arguments->end()) {
+          const std::string& url = std::get<std::string>(url_it->second);
+          ExternalPlayerUtils::OpenWithPlayer(url.c_str());
+          result->Success();
+        } else {
+          result->Error("InvalidArguments", "Missing 'url' argument");
+        }
+      } else {
+        result->Error("InvalidArguments", "Arguments are not a map");
+      }
     } else {
       result->NotImplemented();
     }

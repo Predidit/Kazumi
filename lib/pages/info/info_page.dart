@@ -64,21 +64,6 @@ class _InfoPageState extends State<InfoPage>
     }
   }
 
-  bool get isLightTheme {
-    final currentMode = AdaptiveTheme.of(context).mode;
-    if (currentMode == AdaptiveThemeMode.light) {
-      return true;
-    }
-
-    if (currentMode == AdaptiveThemeMode.system) {
-      final brightness = MediaQuery.of(context).platformBrightness;
-      if (brightness == Brightness.light) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -88,7 +73,9 @@ class _InfoPageState extends State<InfoPage>
           Positioned.fill(
             child: IgnorePointer(
               child: Container(
-                color: isLightTheme ? Colors.white : Colors.black,
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.white
+                    : Colors.black,
                 child: Opacity(
                   opacity: 0.2,
                   child: LayoutBuilder(builder: (context, boxConstraints) {

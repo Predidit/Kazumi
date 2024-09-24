@@ -3,9 +3,9 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter/services.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
-
   final double? toolbarHeight;
 
   final Widget? title;
@@ -13,7 +13,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color? backgroundColor;
 
   final double? elevation;
-  
+
   final ShapeBorder? shape;
 
   final List<Widget>? actions;
@@ -22,32 +22,38 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final PreferredSizeWidget? bottom;
 
-  const SysAppBar({super.key, this.toolbarHeight, this.title, this.backgroundColor, this.elevation, this.shape, this.actions, this.leading, this.bottom});
+  const SysAppBar(
+      {super.key,
+      this.toolbarHeight,
+      this.title,
+      this.backgroundColor,
+      this.elevation,
+      this.shape,
+      this.actions,
+      this.leading,
+      this.bottom});
 
   void _handleCloseEvent() {
     SmartDialog.show(
-      useAnimation: false,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('退出确认'),
-          content: const Text('您想要退出 Kazumi 吗？'),
-          actions: [
-            TextButton(
-                onPressed: () => exit(0),
-                child: const Text('退出 Kazumi')),
-            TextButton(
-                onPressed: () {
-                  SmartDialog.dismiss();
-                  windowManager.hide();
-                },
-                child: const Text('最小化至托盘')),
-            const TextButton(
-                onPressed: SmartDialog.dismiss,
-                child: Text('取消')),
-          ],
-        );
-      }
-    );
+        useAnimation: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('退出确认'),
+            content: const Text('您想要退出 Kazumi 吗？'),
+            actions: [
+              TextButton(
+                  onPressed: () => exit(0), child: const Text('退出 Kazumi')),
+              TextButton(
+                  onPressed: () {
+                    SmartDialog.dismiss();
+                    windowManager.hide();
+                  },
+                  child: const Text('最小化至托盘')),
+              const TextButton(
+                  onPressed: SmartDialog.dismiss, child: Text('取消')),
+            ],
+          );
+        });
   }
 
   @override
@@ -62,18 +68,28 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     return GestureDetector(
       // behavior: HitTestBehavior.translucent,
-      onPanStart: (_) => (Utils.isDesktop()) ? windowManager.startDragging() : null,
+      onPanStart: (_) =>
+          (Utils.isDesktop()) ? windowManager.startDragging() : null,
       child: AppBar(
-        toolbarHeight: preferredSize.height,
-        scrolledUnderElevation: 0.0,
-        title: title,
-        actions: acs,
-        leading: leading,
-        backgroundColor: backgroundColor,
-        elevation: elevation,
-        shape: shape,
-        bottom: bottom,
-      ),
+          toolbarHeight: preferredSize.height,
+          scrolledUnderElevation: 0.0,
+          title: title,
+          actions: acs,
+          leading: leading,
+          backgroundColor: backgroundColor,
+          elevation: elevation,
+          shape: shape,
+          bottom: bottom,
+          systemOverlayStyle: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Theme.of(context).brightness ==
+                    Brightness.light
+                ? Brightness.dark
+                : Brightness.light,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+          )
+          ),
     );
   }
 

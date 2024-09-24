@@ -10,23 +10,46 @@
 #include <cstdio>
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <random>
 #include "external_player_utils.h"
 
 void ExternalPlayerUtils::OpenWithPlayer(const char* url) {
-    // Convert the URL from char* to wchar_t*
-    int urlLength = MultiByteToWideChar(CP_ACP, 0, url, -1, NULL, 0);
-    wchar_t* wideUrl = new wchar_t[urlLength];
-    MultiByteToWideChar(CP_ACP, 0, url, -1, wideUrl, urlLength);
+    // temp file path
+    wchar_t tempPath[MAX_PATH];
+    GetTempPathW(MAX_PATH, tempPath);
+
+    // Generate a random file name
+    std::wstring randomFileName = L"kazumi_stream_";
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distr(10000000, 99999999);
+
+    randomFileName += std::to_wstring(distr(eng)) + L".m3u8";
+
+    wchar_t tempFile[MAX_PATH];
+    wcscpy_s(tempFile, tempPath);
+    wcscat_s(tempFile, randomFileName.c_str());
+
+    // write the URL to the temp file
+    std::wofstream outFile(tempFile);
+    if (outFile.is_open()) {
+        outFile << L"#EXTM3U\n";
+        outFile << std::wstring(url, url + strlen(url));
+        outFile.close();
+    } else {
+        return;
+    }
 
     SHELLEXECUTEINFO execInfo = {0};
     execInfo.cbSize = sizeof(SHELLEXECUTEINFO);
     execInfo.fMask = SEE_MASK_CLASSNAME;
     execInfo.lpVerb = L"open";
-    execInfo.lpFile = wideUrl;
+    execInfo.lpFile = tempFile;
     execInfo.lpClass = L".m3u8"; 
     execInfo.nShow = SW_SHOWNORMAL;
 
     ShellExecuteEx(&execInfo);
 
-    delete[] wideUrl;
+    // DeleteFileW(tempFile);
 }

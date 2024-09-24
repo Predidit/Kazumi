@@ -17,11 +17,6 @@ class RemotePlay {
   // 而对于 iOS / Mac 设备，由于没有设备，无法进行开发与验证。
   // 可行的 iOS / Mac 处理代码，请参见 ios/Runner/AppDelegate.swift 的注释部分。
 
-  // 2024/09/28
-  // Windows 外部播放器调用方法更新。
-  // 主要问题在于 win32 API 中 shellExecuteEx 需要在网络资源全部缓存到本地后才能进行操作。这导致及其缓慢的启动时间。
-  // 这已经是我目前可以找到的最通用的方法，基于 cli 的方法缺乏通用性，不是我们想要的。
-
   static const platform = MethodChannel('com.predidit.kazumi/intent');
 
   castVideo(BuildContext context) async {

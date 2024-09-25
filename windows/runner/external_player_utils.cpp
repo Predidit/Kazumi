@@ -43,10 +43,9 @@ void ExternalPlayerUtils::OpenWithPlayer(const char* url) {
 
     SHELLEXECUTEINFO execInfo = {0};
     execInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-    execInfo.fMask = SEE_MASK_CLASSNAME;
-    execInfo.lpVerb = L"open";
+    execInfo.fMask = SEE_MASK_INVOKEIDLIST;
+    execInfo.lpVerb = L"openas";
     execInfo.lpFile = tempFile;
-    execInfo.lpClass = L".m3u8"; 
     execInfo.nShow = SW_SHOWNORMAL;
 
     ShellExecuteEx(&execInfo);

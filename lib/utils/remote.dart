@@ -56,7 +56,7 @@ class RemotePlay {
                             return AlertDialog(
                               title: const Text('实验性功能'),
                               content: const Text(
-                                  '调用系统当前m3u8默认打开方式进行播放。外部播放器调用在windows上仍处于实验阶段, 存在缺陷。包括但不限于无法调用播放器、无法播放等。此外还需要一定的缓存时间进行播放器初始化。'),
+                                  '调用系统当前m3u8默认打开方式进行播放。外部播放器调用在windows上仍处于实验阶段, 存在缺陷。包括但不限于无法调用播放器、无法播放等。'),
                               actions: [
                                 TextButton(
                                   onPressed: () => SmartDialog.dismiss(),
@@ -72,7 +72,7 @@ class RemotePlay {
                                   onPressed: () {
                                     SmartDialog.dismiss();
                                     SmartDialog.showToast(
-                                        '尝试唤起外部播放器, 这可能需要一些时间',
+                                        '尝试唤起外部播放器',
                                         displayType:
                                             SmartToastType.onlyRefresh);
                                     _launchURLWithMIME(video, 'video/mp4')

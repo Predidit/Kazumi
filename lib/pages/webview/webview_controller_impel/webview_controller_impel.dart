@@ -5,6 +5,12 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemControllerImpel extends WebviewItemController {
+  // workaround for webview_flutter lib.
+  // webview_flutter lib won't change currentUrl after redirect using window.location.href.
+  // which causes multiple redirects to the same url.
+  // so we need to store the currentUrl manually
+  String currentUrl = '';
+
   @override
   init() async {
     webviewController ??= WebViewController();
@@ -18,6 +24,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
     await unloadPage();
     await setDesktopUserAgent();
     count = 0;
+    currentUrl = '';
     this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
@@ -38,9 +45,11 @@ class WebviewItemControllerImpel extends WebviewItemController {
       videoPageController.logLines.add('Callback received: ${message.message}');
       videoPageController.logLines.add(
           'If there is audio but no video, please report it to the rule developer.');
-      if (message.message.contains('http')) {
+      if (message.message.contains('http') && currentUrl != message.message) {
         videoPageController.logLines
             .add('Parsing video source ${message.message}');
+        currentUrl = message.message;
+        redirctWithReferer(message.message);
         if (!videoPageController.currentPlugin.useNativePlayer) {
           Future.delayed(const Duration(seconds: 2), () {
             isIframeLoaded = true;
@@ -137,12 +146,15 @@ class WebviewItemControllerImpel extends WebviewItemController {
           var src = iframe.getAttribute('src');
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-              window.location.href = src;
               JSBridgeDebug.postMessage(src);
               break; 
           }
       }
   ''');
+  }
+
+  redirctWithReferer(String src) async {
+    await webviewController.runJavaScript('window.location.href = "$src";');
   }
 
   // 非blob资源

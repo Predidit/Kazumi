@@ -177,7 +177,8 @@ class _PlayerItemState extends State<PlayerItem>
             content: SelectableText.rich(
               TextSpan(
                 children: [
-                  TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
+                  TextSpan(
+                      text: '规则: ${videoPageController.currentPlugin.name}\n'),
                   TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
                   TextSpan(text: '解复用器: $currentDemux\n'),
                   const TextSpan(text: '资源地址: '),
@@ -907,26 +908,20 @@ class _PlayerItemState extends State<PlayerItem>
                                             borderRadius: BorderRadius.circular(
                                                 8.0), // 圆角
                                           ),
-                                          child: Row(children: [
-                                            (playerController.currentPosition
+                                          child: Text(
+                                            playerController.currentPosition
                                                         .compareTo(
                                                             playerController
                                                                 .mediaPlayer
                                                                 .value
                                                                 .position) >
                                                     0
-                                                ? const Icon(Icons.fast_forward,
-                                                    color: Colors.white)
-                                                : const Icon(
-                                                    Icons.fast_rewind,
-                                                    color: Colors.white,
-                                                  )),
-                                            Text(
-                                                ' ${Utils.formatTime(playerController.currentPosition.inSeconds.toDouble())} / ${Utils.formatTime(playerController.mediaPlayer.value.duration.inSeconds.toDouble())}',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                )),
-                                          ]),
+                                                ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.value.position.inSeconds} 秒'
+                                                : '快退 ${playerController.mediaPlayer.value.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     )

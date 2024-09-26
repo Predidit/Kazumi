@@ -76,7 +76,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         videoPageController.logLines.add(
             'If there is audio but no video, please report it to the rule developer.');
-        if (messageItem.contains('http')) {
+        if (messageItem.contains('http') || messageItem.startsWith('//')) {
           videoPageController.logLines.add('Parsing video source $messageItem');
           if (!videoPageController.currentPlugin.useNativePlayer) {
             Future.delayed(const Duration(seconds: 2), () {

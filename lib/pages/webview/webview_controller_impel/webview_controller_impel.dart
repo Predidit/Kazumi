@@ -45,7 +45,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
       videoPageController.logLines.add('Callback received: ${message.message}');
       videoPageController.logLines.add(
           'If there is audio but no video, please report it to the rule developer.');
-      if (message.message.contains('http') && currentUrl != message.message) {
+      if ((message.message.contains('http') || message.message.startsWith('//')) && currentUrl != message.message) {
         videoPageController.logLines
             .add('Parsing video source ${message.message}');
         currentUrl = message.message;

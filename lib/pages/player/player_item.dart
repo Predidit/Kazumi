@@ -347,7 +347,66 @@ class _PlayerItemState extends State<PlayerItem>
     }
     danmakuController.onClear();
     playerController.danmakuOn = !playerController.danmakuOn;
-    // debugPrint('弹幕开关变更为 ${playerController.danmakuOn}');
+  }
+
+  /// 发送弹幕 由于接口限制, 暂时未提交云端
+  void showShootDanmakuSheet() {
+    final TextEditingController textController = TextEditingController();
+    bool isSending = false; // 追踪是否正在发送
+    SmartDialog.show(
+        useAnimation: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('发送弹幕'),
+            content: StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+              return TextField(
+                controller: textController,
+              );
+            }),
+            actions: [
+              TextButton(
+                onPressed: () => SmartDialog.dismiss(),
+                child: Text(
+                  '取消',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setState) {
+                return TextButton(
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          final String msg = textController.text;
+                          if (msg.isEmpty) {
+                            SmartDialog.showToast('弹幕内容为空');
+                            return;
+                          } else if (msg.length > 100) {
+                            SmartDialog.showToast('弹幕内容过长');
+                            return;
+                          }
+                          setState(() {
+                            isSending = true; // 开始发送，更新状态
+                          });
+                          // Todo 接口方限制
+
+                          setState(() {
+                            isSending = false; // 发送结束，更新状态
+                          });
+                          SmartDialog.showToast('发送成功');
+                          danmakuController.addDanmaku(DanmakuContentItem(msg, selfSend: true));
+                          SmartDialog.dismiss();
+                        },
+                  child: Text(isSending
+                      ? '发送中'
+                      : '发送'),
+                );
+              })
+            ],
+          );
+        });
   }
 
   // 选择倍速
@@ -1275,30 +1334,24 @@ class _PlayerItemState extends State<PlayerItem>
                                           ),
                                         ),
                                   // 弹幕相关
-                                  // (playerController.androidFullscreen ==
-                                  //             true &&
-                                  //         playerController.danmakuOn ==
-                                  //             true)
-                                  //     ? IconButton(
-                                  //         color: Colors.white,
-                                  //         icon:
-                                  //             const Icon(Icons.notes),
-                                  //         onPressed: () {
-                                  //           if (playerController
-                                  //                   .danDanmakus
-                                  //                   .length ==
-                                  //               0) {
-                                  //             SmartDialog.showToast(
-                                  //                 '当前剧集不支持弹幕发送的说',
-                                  //                 displayType:
-                                  //                     SmartToastType
-                                  //                         .last);
-                                  //             return;
-                                  //           }
-                                  //           showShootDanmakuSheet();
-                                  //         },
-                                  //       )
-                                  //     : Container(),
+                                  (videoPageController.androidFullscreen &&
+                                          playerController.danmakuOn)
+                                      ? IconButton(
+                                          color: Colors.white,
+                                          icon: const Icon(Icons.notes),
+                                          onPressed: () {
+                                            if (playerController
+                                                .danDanmakus.isEmpty) {
+                                              SmartDialog.showToast(
+                                                  '当前剧集不支持弹幕发送的说',
+                                                  displayType:
+                                                      SmartToastType.last);
+                                              return;
+                                            }
+                                            showShootDanmakuSheet();
+                                          },
+                                        )
+                                      : Container(),
                                   IconButton(
                                     color: Colors.white,
                                     icon: Icon(playerController.danmakuOn

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -15,6 +16,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -31,20 +33,15 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  late TabController tabController;
   late bool playResume;
+
+  // 当前播放列表
+  late int currentRoad;
 
   @override
   void initState() {
     super.initState();
     WakelockPlus.enable();
-    // if (Platform.isIOS) {
-    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    //     systemNavigationBarColor: Colors.black,
-    //     systemNavigationBarDividerColor: Colors.black,
-    //     statusBarColor: Colors.black,
-    //   ));
-    // }
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -63,21 +60,11 @@ class _VideoPageState extends State<VideoPage>
         }
       }
     }
-    tabController = TabController(
-        length: videoPageController.roadList.length,
-        vsync: this,
-        initialIndex: videoPageController.currentRoad);
+    currentRoad = videoPageController.currentRoad;
   }
 
   @override
   void dispose() {
-    // if (Platform.isIOS) {
-    //   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    //     systemNavigationBarColor: Colors.transparent,
-    //     systemNavigationBarDividerColor: Colors.transparent,
-    //     statusBarColor: Colors.transparent,
-    //   ));
-    // }
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}
@@ -114,19 +101,22 @@ class _VideoPageState extends State<VideoPage>
             bottom: !videoPageController.androidFullscreen,
             left: !videoPageController.androidFullscreen,
             right: !videoPageController.androidFullscreen,
-            child: (Utils.isTablet() &&
-                    MediaQuery.of(context).size.height <
-                        MediaQuery.of(context).size.width)
+            child: (Utils.isDesktop()) ||
+                    ((Utils.isTablet()) &&
+                        MediaQuery.of(context).size.height <
+                            MediaQuery.of(context).size.width)
                 ? Row(
                     children: [
                       Container(
                           color: Colors.black,
                           height: MediaQuery.of(context).size.height,
-                          width: (!videoPageController.androidFullscreen)
+                          width: (!videoPageController.androidFullscreen &&
+                                  videoPageController.showTabBody)
                               ? MediaQuery.of(context).size.height
                               : MediaQuery.of(context).size.width,
                           child: playerBody),
-                      videoPageController.androidFullscreen
+                      (videoPageController.androidFullscreen ||
+                              !videoPageController.showTabBody)
                           ? Container()
                           : Expanded(
                               child: Column(
@@ -244,126 +234,166 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get tabBar {
-    return TabBar(
-      isScrollable: true,
-      tabAlignment: TabAlignment.center,
-      controller: tabController,
-      tabs: videoPageController.roadList
-          .map(
-            (road) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  road.name,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(' 合集 '),
+          Expanded(
+            child: Text(
+              videoPageController.title,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
-          )
-          .toList(),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            height: 34,
+            child: TextButton(
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(EdgeInsets.zero),
+              ),
+              onPressed: () {
+                SmartDialog.show(
+                    useAnimation: false,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('播放列表'),
+                        content: StatefulBuilder(builder:
+                            (BuildContext context, StateSetter innerSetState) {
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 2,
+                            children: [
+                              for (int i = 1;
+                                  i <= videoPageController.roadList.length;
+                                  i++) ...<Widget>[
+                                if (i == currentRoad + 1) ...<Widget>[
+                                  FilledButton(
+                                    onPressed: () {
+                                      SmartDialog.dismiss();
+                                      setState(() {
+                                        currentRoad = i - 1;
+                                      });
+                                    },
+                                    child: Text('播放列表$i'),
+                                  ),
+                                ] else ...[
+                                  FilledButton.tonal(
+                                    onPressed: () {
+                                      SmartDialog.dismiss();
+                                      setState(() {
+                                        currentRoad = i - 1;
+                                      });
+                                    },
+                                    child: Text('播放列表$i'),
+                                  ),
+                                ]
+                              ]
+                            ],
+                          );
+                        }),
+                      );
+                    });
+              },
+              child: Text(
+                '播放列表${currentRoad + 1} ',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget get tabBody {
-    return Expanded(
-      child: Observer(
-        builder: (context) => TabBarView(
-          controller: tabController,
-          children:
-              List.generate(videoPageController.roadList.length, (roadIndex) {
-            var cardList = <Widget>[];
-            for (var road in videoPageController.roadList) {
-              if (road.name == '播放列表${roadIndex + 1}') {
-                int count = 1;
-                for (var urlItem in road.data) {
-                  int count0 = count;
-                  cardList.add(Container(
-                    margin: const EdgeInsets.only(bottom: 10), // 改为bottom间距
-                    child: Material(
-                      color: Theme.of(context).colorScheme.onInverseSurface,
-                      borderRadius: BorderRadius.circular(6),
-                      clipBehavior: Clip.hardEdge,
-                      child: InkWell(
-                        onTap: () async {
-                          if (count0 == videoPageController.currentEspisode &&
-                              roadIndex == videoPageController.currentRoad) {
-                            return;
-                          }
-                          KazumiLogger().log(Level.info, '视频链接为 $urlItem');
-                          videoPageController.changeEpisode(count0,
-                              currentRoad: roadIndex);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                children: [
-                                  if (count0 ==
-                                          (videoPageController
-                                              .currentEspisode) &&
-                                      roadIndex ==
-                                          videoPageController
-                                              .currentRoad) ...<Widget>[
-                                    Image.asset(
-                                      'assets/images/live.png',
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                      height: 12,
-                                    ),
-                                    const SizedBox(width: 6)
-                                  ],
-                                  Text(
-                                    '第$count话',
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: (count0 ==
-                                                    (videoPageController
-                                                        .currentEspisode) &&
-                                                roadIndex ==
-                                                    videoPageController
-                                                        .currentRoad)
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .onSurface),
-                                  ),
-                                  const SizedBox(width: 2),
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ));
-                  count++;
-                }
-              }
-            }
-            return Padding(
-              padding: const EdgeInsets.only(top: 0, right: 5, left: 5),
-              child: GridView.builder(
-                scrollDirection: Axis.vertical,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount:
-                      (!Utils.isCompact() && !Utils.isTablet()) ? 10 : 3,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 5,
-                  childAspectRatio: 1.7,
-                ),
-                itemCount: cardList.length,
-                itemBuilder: (context, index) {
-                  return cardList[index];
+    var cardList = <Widget>[];
+    for (var road in videoPageController.roadList) {
+      if (road.name == '播放列表${currentRoad + 1}') {
+        int count = 1;
+        for (var urlItem in road.data) {
+          int count0 = count;
+          cardList.add(Container(
+            margin: const EdgeInsets.only(bottom: 10), // 改为bottom间距
+            child: Material(
+              color: Theme.of(context).colorScheme.onInverseSurface,
+              borderRadius: BorderRadius.circular(6),
+              clipBehavior: Clip.hardEdge,
+              child: InkWell(
+                onTap: () async {
+                  if (count0 == videoPageController.currentEspisode) {
+                    return;
+                  }
+                  KazumiLogger().log(Level.info, '视频链接为 $urlItem');
+                  videoPageController.currentRoad = currentRoad;
+                  videoPageController.changeEpisode(count0,
+                      currentRoad: videoPageController.currentRoad);
                 },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        children: [
+                          if (count0 == (videoPageController.currentEspisode) &&
+                              currentRoad ==
+                                  videoPageController.currentRoad) ...<Widget>[
+                            Image.asset(
+                              'assets/images/live.png',
+                              color: Theme.of(context).colorScheme.primary,
+                              height: 12,
+                            ),
+                            const SizedBox(width: 6)
+                          ],
+                          Text(
+                            '第$count话',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: (count0 ==
+                                            videoPageController
+                                                .currentEspisode &&
+                                        currentRoad ==
+                                            videoPageController.currentRoad)
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurface),
+                          ),
+                          const SizedBox(width: 2),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                    ],
+                  ),
+                ),
               ),
-            );
-          }),
+            ),
+          ));
+          count++;
+        }
+      }
+    }
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 0, right: 5, left: 5),
+        child: GridView.builder(
+          scrollDirection: Axis.vertical,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount:
+                (Utils.isDesktop() && !Utils.isWideScreen()) ? 2 : 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 5,
+            childAspectRatio: 1.7,
+          ),
+          itemCount: cardList.length,
+          itemBuilder: (context, index) {
+            return cardList[index];
+          },
         ),
       ),
     );

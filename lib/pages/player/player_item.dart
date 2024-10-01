@@ -569,7 +569,8 @@ class _PlayerItemState extends State<PlayerItem>
     SmartDialog.show(
       useAnimation: false,
       builder: (context) {
-        final TextEditingController searchTextController = TextEditingController();
+        final TextEditingController searchTextController =
+            TextEditingController();
         return AlertDialog(
           title: const Text('弹幕检索'),
           content: TextField(
@@ -1127,8 +1128,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       onBackPressed(context);
                                     },
                                   ),
-                                  (Utils.isDesktop() ||
-                                          videoPageController.androidFullscreen)
+                                  (videoPageController.androidFullscreen)
                                       ? Text(
                                           ' ${videoPageController.title} [${videoPageController.currentEspisode}]',
                                           style: TextStyle(
@@ -1365,6 +1365,21 @@ class _PlayerItemState extends State<PlayerItem>
                                       _handleDanmaku();
                                     },
                                   ),
+                                  (videoPageController.androidFullscreen ||
+                                          !Utils.isDesktop())
+                                      ? Container()
+                                      : IconButton(
+                                          color: Colors.white,
+                                          icon: Icon(
+                                              videoPageController.showTabBody
+                                                  ? Icons.menu_open
+                                                  : Icons.menu_open_outlined),
+                                          onPressed: () {
+                                            videoPageController.showTabBody =
+                                                !videoPageController
+                                                    .showTabBody;
+                                          },
+                                        ),
                                   IconButton(
                                     color: Colors.white,
                                     icon: Icon(

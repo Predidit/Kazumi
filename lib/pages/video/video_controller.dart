@@ -29,6 +29,10 @@ abstract class _VideoPageController with Store {
   @observable
   bool androidFullscreen = false;
 
+  // 播放列表显示状态
+  @observable
+  bool showTabBody = true;
+
   // 上次观看位置
   @observable
   int historyOffset = 0;

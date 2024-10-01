@@ -89,6 +89,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$showTabBodyAtom =
+      Atom(name: '_VideoPageController.showTabBody', context: context);
+
+  @override
+  bool get showTabBody {
+    _$showTabBodyAtom.reportRead();
+    return super.showTabBody;
+  }
+
+  @override
+  set showTabBody(bool value) {
+    _$showTabBodyAtom.reportWrite(value, super.showTabBody, () {
+      super.showTabBody = value;
+    });
+  }
+
   late final _$historyOffsetAtom =
       Atom(name: '_VideoPageController.historyOffset', context: context);
 
@@ -129,6 +145,7 @@ logLines: ${logLines},
 currentEspisode: ${currentEspisode},
 currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},
+showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
 roadList: ${roadList}
     ''';

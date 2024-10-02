@@ -1268,8 +1268,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     },
                                   ),
                                   // 更换选集
-                                  (videoPageController.androidFullscreen ==
-                                          true)
+                                  (videoPageController.androidFullscreen || !videoPageController.showTabBody)
                                       ? IconButton(
                                           color: Colors.white,
                                           icon: const Icon(Icons.skip_next),
@@ -1338,7 +1337,7 @@ class _PlayerItemState extends State<PlayerItem>
                                           ),
                                         ),
                                   // 弹幕相关
-                                  (videoPageController.androidFullscreen &&
+                                  ((videoPageController.androidFullscreen || !videoPageController.showTabBody) &&
                                           playerController.danmakuOn)
                                       ? IconButton(
                                           color: Colors.white,

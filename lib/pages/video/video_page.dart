@@ -44,6 +44,7 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.currentEspisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
+    videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     var progress = historyController.lastWatching(
         infoController.bangumiItem, videoPageController.currentPlugin.name);

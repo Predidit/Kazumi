@@ -108,10 +108,6 @@ A: 尝试关闭自定义规则的使用内置播放器选项, 这将尝试使用
 
 A: 本项目编译需要良好的网络环境, 除了由Google托管的Flutter相关依赖外, 本项目同样依赖托管在 MavenCentral/Github/SourceForge 上的资源。如果您位于中国大陆, 可能需要设置恰当的镜像地址。
 
-#### Q: 为什么我自行编译的 Windows/Linux 版本部分番剧无法播放。
-
-A: 部分视频源带有被伪装的文件头, 为了解决这一问题, 我们的发布版本使用了自定义的 ffmpeg 构建, 对应实现在[这里](https://github.com/Predidit/avbuild)
-
 </details>
 
 ## 美术资源

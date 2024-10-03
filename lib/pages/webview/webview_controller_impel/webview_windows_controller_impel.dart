@@ -49,6 +49,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
             videoPageController.logLines.clear();
             videoPageController.logLines.add('解析视频资源超时');
             videoPageController.logLines.add('请切换到其他播放列表或视频源');
+            videoPageController.showDebugLog = true;
           } else {
             parseVideoSource();
           }

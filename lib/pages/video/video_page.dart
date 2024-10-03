@@ -73,6 +73,10 @@ class _VideoPageState extends State<VideoPage>
     super.dispose();
   }
 
+  void showDebugConsole() {
+    videoPageController.showDebugLog = !videoPageController.showDebugLog;
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
@@ -163,13 +167,53 @@ class _VideoPageState extends State<VideoPage>
               Positioned.fill(
                 child: (videoPageController.currentPlugin.useNativePlayer &&
                         playerController.loading)
-                    ? const Center(
-                        child: CircularProgressIndicator(),
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .tertiaryContainer),
+                            const SizedBox(height: 10),
+                            const Text('视频资源解析成功, 播放器加载中',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                )),
+                          ],
+                        ),
                       )
                     : Container(),
               ),
               Visibility(
                 visible: videoPageController.loading,
+                child: Container(
+                  color: Colors.black,
+                  child: Align(
+                      alignment: Alignment.center,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .tertiaryContainer),
+                            const SizedBox(height: 10),
+                            const Text('视频资源解析中',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                )),
+                          ],
+                        ),
+                      )),
+                ),
+              ),
+              Visibility(
+                visible: (videoPageController.loading ||
+                        (videoPageController.currentPlugin.useNativePlayer &&
+                            playerController.loading)) &&
+                    videoPageController.showDebugLog,
                 child: Container(
                   color: Colors.black,
                   child: Align(
@@ -194,20 +238,37 @@ class _VideoPageState extends State<VideoPage>
               ),
               ((videoPageController.currentPlugin.useNativePlayer ||
                       videoPageController.androidFullscreen))
-                  ? Positioned(
-                      top: 0,
-                      left: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () {
-                          if (videoPageController.androidFullscreen == true) {
-                            Utils.exitFullScreen();
-                            videoPageController.androidFullscreen = false;
-                            return;
-                          }
-                          Navigator.of(context).pop();
-                        },
-                      ),
+                  ? Stack(
+                      children: [
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                            onPressed: () {
+                              if (videoPageController.androidFullscreen ==
+                                  true) {
+                                Utils.exitFullScreen();
+                                videoPageController.androidFullscreen = false;
+                                return;
+                              }
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            icon: const Icon(Icons.bug_report,
+                                color: Colors.white),
+                            onPressed: () {
+                              showDebugConsole();
+                            },
+                          ),
+                        ),
+                      ],
                     )
                   : Container(),
             ],

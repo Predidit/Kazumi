@@ -121,6 +121,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$showDebugLogAtom =
+      Atom(name: '_VideoPageController.showDebugLog', context: context);
+
+  @override
+  bool get showDebugLog {
+    _$showDebugLogAtom.reportRead();
+    return super.showDebugLog;
+  }
+
+  @override
+  set showDebugLog(bool value) {
+    _$showDebugLogAtom.reportWrite(value, super.showDebugLog, () {
+      super.showDebugLog = value;
+    });
+  }
+
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -147,6 +163,7 @@ currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
+showDebugLog: ${showDebugLog},
 roadList: ${roadList}
     ''';
   }

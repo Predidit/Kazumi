@@ -37,6 +37,10 @@ abstract class _VideoPageController with Store {
   @observable
   int historyOffset = 0;
 
+  // 显示调试日志
+  @observable
+  bool showDebugLog = false;
+
   String title = '';
 
   String src = '';
@@ -50,6 +54,7 @@ abstract class _VideoPageController with Store {
   final HistoryController historyController = Modular.get<HistoryController>();
 
   changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
+    showDebugLog = false;
     loading = true;
     currentEspisode = episode;
     this.currentRoad = currentRoad;

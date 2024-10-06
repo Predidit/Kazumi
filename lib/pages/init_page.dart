@@ -9,8 +9,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
 import 'package:fvp/fvp.dart' as fvp;
+// import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
+// import 'package:path_provider/path_provider.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -22,6 +24,16 @@ class InitPage extends StatefulWidget {
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   Box setting = GStorage.setting;
+
+  // Future<File> _getLogFile() async {
+  //   final directory = await getApplicationDocumentsDirectory();
+  //   return File('${directory.path}/app_log.txt');
+  // }
+
+  // Future<void> writeLog(String message) async {
+  //   final logFile = await _getLogFile();
+  //   await logFile.writeAsString('$message\n', mode: FileMode.append);
+  // }
 
   @override
   void initState() {
@@ -57,6 +69,10 @@ class _InitPageState extends State<InitPage> {
             'demux.buffer.ranges': '8',
           }
         });
+        // mdk.setLogHandler((p0, p1) {
+        //   print(p1);
+        //   writeLog(p1);
+        // });
       }
     } else {
       if (lowMemoryMode) {

@@ -387,7 +387,7 @@ class _VideoPageState extends State<VideoPage>
               clipBehavior: Clip.hardEdge,
               child: InkWell(
                 onTap: () async {
-                  if (count0 == videoPageController.currentEspisode) {
+                  if (count0 == videoPageController.currentEspisode && videoPageController.currentRoad == currentRoad) {
                     return;
                   }
                   KazumiLogger().log(Level.info, '视频链接为 $urlItem');

@@ -142,12 +142,12 @@ class BangumiHTTP {
       //  "tag": [],
       //  "rank": [">0", "<=99999"],
        // "nsfw": false
-      }//,
+      };//,
     //};
 
     try {
-      final res = await Request().get(Api.bangumiSearch,
-          params: params,
+      final res = await Request().get(Api.bangumiSearch+keyword,
+          //params: params,
           options: Options(
               headers: bangumiHTTPHeader));
       final jsonData = res.data;

@@ -135,23 +135,23 @@ class BangumiHTTP {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
-      'keyword': keyword,
-      'sort': 'rank',
-      "filter": {
-        "type": [2],
-        "tag": [],
-        "rank": [">0", "<=99999"],
-        "nsfw": false
+      'keyword': keyword//,
+      //'sort': 'rank',
+      //"filter": {
+       // "type": [2],
+      //  "tag": [],
+      //  "rank": [">0", "<=99999"],
+       // "nsfw": false
       },
     };
 
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
-          data: params,
+      final res = await Request().get(Api.bangumiSearch,
+          params: params,
           options: Options(
-              headers: bangumiHTTPHeader, contentType: 'application/json'));
+              headers: bangumiHTTPHeader));
       final jsonData = res.data;
-      final jsonList = jsonData['data'];
+      final jsonList = jsonData['list'];
       for (dynamic jsonItem in jsonList) {
         if (jsonItem is Map<String, dynamic>) {
           try {

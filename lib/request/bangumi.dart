@@ -142,8 +142,8 @@ class BangumiHTTP {
       //  "tag": [],
       //  "rank": [">0", "<=99999"],
        // "nsfw": false
-      },
-    };
+      }//,
+    //};
 
     try {
       final res = await Request().get(Api.bangumiSearch,

@@ -91,7 +91,7 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget contentGrid(Orientation orientation) {
-    int crossCount = orientation != Orientation.portrait ? 3 : 1;
+    int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
     return CustomScrollView(
       slivers: [
         SliverGrid(

@@ -34,7 +34,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   @override
   Widget build(BuildContext context) {
     TextStyle style =
-        TextStyle(fontSize: Theme.of(context).textTheme.labelMedium!.fontSize);
+        TextStyle(fontSize: Theme.of(context).textTheme.labelMedium!.fontSize, overflow: TextOverflow.ellipsis);
     final InfoController infoController = Modular.get<InfoController>();
     final FavoriteController favoriteController =
         Modular.get<FavoriteController>();

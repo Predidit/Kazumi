@@ -8,6 +8,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../pages/player/player_controller.dart';
 
@@ -39,7 +40,7 @@ class RemotePlay {
                 TextButton(
                   onPressed: () async {
                     searcher.stop();
-                    if (Platform.isAndroid) {
+                    if (Platform.isAndroid || Platform.isWindows) {
                       if (await _launchURLWithMIME(video, 'video/mp4')) {
                         SmartDialog.dismiss();
                         SmartDialog.showToast('尝试唤起外部播放器',
@@ -48,47 +49,16 @@ class RemotePlay {
                         SmartDialog.showToast('唤起外部播放器失败',
                             displayType: SmartToastType.onlyRefresh);
                       }
-                    } else if (Platform.isWindows) {
+                    } else if (Platform.isLinux) {
                       SmartDialog.dismiss();
-                      SmartDialog.show(
-                          useAnimation: false,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('实验性功能'),
-                              content: const Text(
-                                  '调用系统当前m3u8默认打开方式进行播放。外部播放器调用在windows上仍处于实验阶段, 存在缺陷。包括但不限于无法调用播放器、无法播放等。'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => SmartDialog.dismiss(),
-                                  child: Text(
-                                    '取消',
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    SmartDialog.dismiss();
-                                    SmartDialog.showToast(
-                                        '尝试唤起外部播放器',
-                                        displayType:
-                                            SmartToastType.onlyRefresh);
-                                    _launchURLWithMIME(video, 'video/mp4')
-                                        .then((value) {
-                                      if (!value) {
-                                        SmartDialog.showToast('唤起外部播放器失败',
-                                            displayType:
-                                                SmartToastType.onlyRefresh);
-                                      }
-                                    });
-                                  },
-                                  child: const Text('继续'),
-                                )
-                              ],
-                            );
-                          });
+                      if (await canLaunchUrlString(video)) {
+                        launchUrlString(video);
+                        SmartDialog.showToast('尝试唤起外部播放器',
+                            displayType: SmartToastType.onlyRefresh);
+                      } else {
+                        SmartDialog.showToast('无法使用外部播放器',
+                            displayType: SmartToastType.onlyRefresh);
+                      }
                     } else {
                       SmartDialog.showToast('暂不支持该设备',
                           displayType: SmartToastType.onlyRefresh);

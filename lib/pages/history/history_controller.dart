@@ -1,6 +1,7 @@
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:hive/hive.dart';
 import 'package:mobx/mobx.dart';
 
 part 'history_controller.g.dart';
@@ -8,6 +9,7 @@ part 'history_controller.g.dart';
 class HistoryController = _HistoryController with _$HistoryController;
 
 abstract class _HistoryController with Store {
+  Box setting = GStorage.setting;
   var storedHistories = GStorage.histories;
 
   @observable
@@ -26,6 +28,10 @@ abstract class _HistoryController with Store {
 
   void updateHistory(
       int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc) {
+    bool privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
+    if (privateMode) {
+      return;
+    }
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
         History(bangumiItem, episode, adapterName, DateTime.now(), lastSrc);
     history.lastWatchEpisode = episode;

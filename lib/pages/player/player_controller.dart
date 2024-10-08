@@ -97,8 +97,10 @@ abstract class _PlayerController with Store {
       userAgent = videoPageController.currentPlugin.userAgent;
     }
     KazumiLogger().log(Level.info, 'media_kit UA: $userAgent');
+    String referer = videoPageController.currentPlugin.referer;
     var httpHeaders = {
       'user-agent': userAgent,
+      if (referer.isNotEmpty) 'referer': referer,
     };
     mediaPlayer = VideoPlayerController.networkUrl(Uri.parse(videoUrl),
         httpHeaders: httpHeaders);

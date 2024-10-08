@@ -64,6 +64,14 @@ class _OtherSettingsPageState extends State<OtherSettingsPage> {
             ),
             InkWell(
               child: SetSwitchItem(
+                title: '隐身模式',
+                subTitle: '不保留观看记录',
+                setKey: SettingBoxKey.privateMode,
+                defaultVal: false,
+              ),
+            ),
+            InkWell(
+              child: SetSwitchItem(
                 title: '自动更新',
                 setKey: SettingBoxKey.autoUpdate,
                 defaultVal: true,

@@ -11,7 +11,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/webdav.dart';
 
@@ -30,15 +29,6 @@ class _AppWidgetState extends State<AppWidget>
 
   @override
   void initState() {
-    if (Platform.isAndroid || Platform.isIOS) {
-      // 小白条、导航栏沉浸
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
-        statusBarColor: Colors.transparent,
-      ));
-    }
     trayManager.addListener(this);
     WidgetsBinding.instance.addObserver(this);
     super.initState();

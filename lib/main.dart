@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
@@ -30,15 +28,6 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
-  }
-  if (Platform.isAndroid || Platform.isIOS) {
-    // 小白条、导航栏沉浸
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      statusBarColor: Colors.transparent,
-    ));
   }
   try {
     await Hive.initFlutter(

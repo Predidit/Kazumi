@@ -32,6 +32,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useWebview = true;
   bool useNativePlayer = false;
   bool usePost = false;
+  bool useLegacyParser = false;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     useWebview = plugin.useWebview;
     useNativePlayer = plugin.useNativePlayer;
     usePost = plugin.usePost;
+    useLegacyParser = plugin.useLegacyParser;
   }
 
   @override
@@ -120,6 +122,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               title: const Text('高级选项'),
               children: [
                 SwitchListTile(
+                  title: const Text('简易解析'),
+                  subtitle: const Text('使用简易解析器而不是现代解析器'),
+                  value: useLegacyParser,
+                  onChanged: (bool value) {
+                    setState(() {
+                      useLegacyParser = value;
+                    });
+                  },
+                ),
+                SwitchListTile(
                   title: const Text('POST'),
                   subtitle: const Text('使用POST而不是GET进行检索'),
                   value: usePost,
@@ -161,6 +173,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           plugin.useWebview = useWebview;
           plugin.useNativePlayer = useNativePlayer;
           plugin.usePost = usePost;
+          plugin.useLegacyParser = useLegacyParser;
           plugin.referer = refererController.text;
           await pluginsController.savePluginToJsonFile(plugin);
           await pluginsController.loadPlugins();

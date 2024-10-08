@@ -16,6 +16,7 @@ class Plugin {
   bool useWebview;
   bool useNativePlayer;
   bool usePost;
+  bool useLegacyParser;
   String userAgent;
   String baseUrl;
   String searchURL;
@@ -35,6 +36,7 @@ class Plugin {
     required this.useWebview,
     required this.useNativePlayer,
     required this.usePost,
+    required this.useLegacyParser,
     required this.userAgent,
     required this.baseUrl,
     required this.searchURL,
@@ -56,6 +58,7 @@ class Plugin {
         useWebview: json['useWebview'],
         useNativePlayer: json['useNativePlayer'],
         usePost: json['usePost'] ?? false,
+        useLegacyParser: json['useLegacyParser'] ?? false,
         userAgent: json['userAgent'],
         baseUrl: json['baseURL'],
         searchURL: json['searchURL'],
@@ -77,6 +80,7 @@ class Plugin {
         useWebview: true,
         useNativePlayer: false,
         usePost: false,
+        useLegacyParser: false,
         userAgent: '',
         baseUrl: '',
         searchURL: '',
@@ -98,6 +102,7 @@ class Plugin {
     data['useWebview'] = useWebview;
     data['useNativePlayer'] = useNativePlayer;
     data['usePost'] = usePost;
+    data['useLegacyParser'] = useLegacyParser;
     data['userAgent'] = userAgent;
     data['baseURL'] = baseUrl;
     data['searchURL'] = searchURL;

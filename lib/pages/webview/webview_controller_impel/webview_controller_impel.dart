@@ -32,7 +32,8 @@ class WebviewItemControllerImpel extends WebviewItemController {
     await webviewController
         .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
       debugPrint('Current URL: ${currentUrl.url}');
-      if (videoPageController.currentPlugin.useNativePlayer) {
+      if (videoPageController.currentPlugin.useNativePlayer &&
+          !videoPageController.currentPlugin.useLegacyParser) {
         addBlobParser();
         addInviewIframeBridge();
       }
@@ -45,11 +46,27 @@ class WebviewItemControllerImpel extends WebviewItemController {
       videoPageController.logLines.add('Callback received: ${message.message}');
       videoPageController.logLines.add(
           'If there is audio but no video, please report it to the rule developer.');
-      if ((message.message.contains('http') || message.message.startsWith('//')) && currentUrl != message.message) {
+      if ((message.message.contains('http') ||
+              message.message.startsWith('//')) &&
+          currentUrl != message.message) {
         videoPageController.logLines
             .add('Parsing video source ${message.message}');
         currentUrl = message.message;
         redirctWithReferer(message.message);
+        if (Utils.decodeVideoSource(currentUrl) != Uri.encodeFull(currentUrl) &&
+            videoPageController.currentPlugin.useNativePlayer &&
+            videoPageController.currentPlugin.useLegacyParser) {
+          isIframeLoaded = true;
+          isVideoSourceLoaded = true;
+          videoPageController.loading = false;
+          videoPageController.logLines.add(
+              'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
+          debugPrint(
+              'Loading video source from ifame src ${Utils.decodeVideoSource(currentUrl)}');
+          unloadPage();
+          playerController.videoUrl = Utils.decodeVideoSource(currentUrl);
+          playerController.init(offset: offset);
+        }
         if (!videoPageController.currentPlugin.useNativePlayer) {
           Future.delayed(const Duration(seconds: 2), () {
             isIframeLoaded = true;
@@ -58,24 +75,27 @@ class WebviewItemControllerImpel extends WebviewItemController {
         }
       }
     });
-    await webviewController.addJavaScriptChannel('VideoBridgeDebug',
-        onMessageReceived: (JavaScriptMessage message) {
-      debugPrint('VideoJS Bridge: ${message.message}');
-      videoPageController.logLines.add('Callback received: ${message.message}');
-      if (message.message.contains('http') && !isVideoSourceLoaded) {
-        debugPrint('Loading video source: ${message.message}');
+    if (!videoPageController.currentPlugin.useLegacyParser) {
+      await webviewController.addJavaScriptChannel('VideoBridgeDebug',
+          onMessageReceived: (JavaScriptMessage message) {
+        debugPrint('VideoJS Bridge: ${message.message}');
         videoPageController.logLines
-            .add('Loading video source: ${message.message}');
-        isIframeLoaded = true;
-        isVideoSourceLoaded = true;
-        videoPageController.loading = false;
-        if (videoPageController.currentPlugin.useNativePlayer) {
-          unloadPage();
-          playerController.videoUrl = message.message;
-          playerController.init(offset: offset);
+            .add('Callback received: ${message.message}');
+        if (message.message.contains('http') && !isVideoSourceLoaded) {
+          debugPrint('Loading video source: ${message.message}');
+          videoPageController.logLines
+              .add('Loading video source: ${message.message}');
+          isIframeLoaded = true;
+          isVideoSourceLoaded = true;
+          videoPageController.loading = false;
+          if (videoPageController.currentPlugin.useNativePlayer) {
+            unloadPage();
+            playerController.videoUrl = message.message;
+            playerController.init(offset: offset);
+          }
         }
-      }
-    });
+      });
+    }
     await webviewController.addJavaScriptChannel('FullscreenBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('FullscreenJS桥收到的消息为 ${message.message}');
@@ -111,7 +131,9 @@ class WebviewItemControllerImpel extends WebviewItemController {
             videoPageController.logLines.add('请切换到其他播放列表或视频源');
             videoPageController.showDebugLog = true;
           } else {
-            parseVideoSource();
+            if (!videoPageController.currentPlugin.useLegacyParser) {
+              parseVideoSource();
+            }
           }
         }
       });

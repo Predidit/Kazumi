@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
 class WebviewLinuxItemControllerImpel extends WebviewItemController {
@@ -10,7 +11,8 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
       configuration: const CreateConfiguration(),
     );
     await initJSBridge();
-    if (videoPageController.currentPlugin.useNativePlayer) {
+    if (videoPageController.currentPlugin.useNativePlayer &&
+        !videoPageController.currentPlugin.useLegacyParser) {
       await initBlobParserAndiframeBridge();
     }
     videoPageController.changeEpisode(videoPageController.currentEspisode,
@@ -50,7 +52,9 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
             videoPageController.logLines.add('请切换到其他播放列表或视频源');
             videoPageController.showDebugLog = true;
           } else {
-            parseVideoSource();
+            if (!videoPageController.currentPlugin.useLegacyParser) {
+              parseVideoSource();
+            }
           }
         }
       });
@@ -79,6 +83,20 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
             'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http') || messageItem.startsWith('//')) {
           videoPageController.logLines.add('Parsing video source $messageItem');
+          if (Utils.decodeVideoSource(messageItem) !=
+                  Uri.encodeFull(messageItem) &&
+              videoPageController.currentPlugin.useNativePlayer && videoPageController.currentPlugin.useLegacyParser) {
+            isIframeLoaded = true;
+            isVideoSourceLoaded = true;
+            videoPageController.loading = false;
+            videoPageController.logLines.add(
+                'Loading video source ${Utils.decodeVideoSource(messageItem)}');
+            debugPrint(
+                'Loading video source from ifame src ${Utils.decodeVideoSource(messageItem)}');
+            unloadPage();
+            playerController.videoUrl = Utils.decodeVideoSource(messageItem);
+            playerController.init(offset: offset);
+          }
           if (!videoPageController.currentPlugin.useNativePlayer) {
             Future.delayed(const Duration(seconds: 2), () {
               isIframeLoaded = true;

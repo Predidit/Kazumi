@@ -1,0 +1,18 @@
+{
+    "api": "3",
+    "type": "anime",
+    "name": "xfdm",
+    "version": "1.1",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "useLegacyParser": true,
+    "userAgent": "",
+    "baseURL": "https://dm1.xfdm.pro/",
+    "searchURL":"https://dm1.xfdm.pro/search/wd/@keyword.html",
+    "searchList": "//div[4]/div/div[1]/div//div",
+    "searchName": "//div[3]/div[1]/div[1]",
+    "searchResult": "//div[3]/div[2]/a[1]",
+    "chapterRoads": "//div[6]/div[2]/div[2]//div",
+    "chapterResult": "//li/a"
+}

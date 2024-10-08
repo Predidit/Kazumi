@@ -27,6 +27,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController searchResultController = TextEditingController();
   final TextEditingController chapterRoadsController = TextEditingController();
   final TextEditingController chapterResultController = TextEditingController();
+  final TextEditingController refererController = TextEditingController();
   bool muliSources = true;
   bool useWebview = true;
   bool useNativePlayer = false;
@@ -48,6 +49,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchResultController.text = plugin.searchResult;
     chapterRoadsController.text = plugin.chapterRoads;
     chapterResultController.text = plugin.chapterResult;
+    refererController.text = plugin.referer;
     muliSources = plugin.muliSources;
     useWebview = plugin.useWebview;
     useNativePlayer = plugin.useNativePlayer;
@@ -131,6 +133,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   controller: userAgentController,
                   decoration: const InputDecoration(labelText: 'UserAgent'),
                 ),
+                TextField(
+                  controller: refererController,
+                  decoration: const InputDecoration(labelText: 'Referer'),
+                ),
               ],
             ),
           ],
@@ -155,6 +161,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           plugin.useWebview = useWebview;
           plugin.useNativePlayer = useNativePlayer;
           plugin.usePost = usePost;
+          plugin.referer = refererController.text;
           await pluginsController.savePluginToJsonFile(plugin);
           await pluginsController.loadPlugins();
           Navigator.of(context).pop();

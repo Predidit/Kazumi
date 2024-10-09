@@ -112,15 +112,16 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
         videoPageController.logLines
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
-          debugPrint('Loading video source ${Uri.decodeFull(messageItem)}');
+          String videoUrl = Uri.decodeFull(messageItem);
+          debugPrint('Loading video source $videoUrl');
           videoPageController.logLines
-              .add('Loading video source ${Uri.decodeFull(messageItem)}');
+              .add('Loading video source $videoUrl');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
           videoPageController.loading = false;
           if (videoPageController.currentPlugin.useNativePlayer) {
             unloadPage();
-            playerController.videoUrl = messageItem;
+            playerController.videoUrl = videoUrl;
             playerController.init(offset: offset);
           }
         }

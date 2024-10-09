@@ -15,6 +15,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class VideoPage extends StatefulWidget {
@@ -243,29 +244,34 @@ class _VideoPageState extends State<VideoPage>
                         Positioned(
                           top: 0,
                           left: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
-                            onPressed: () {
-                              if (videoPageController.androidFullscreen ==
-                                  true) {
-                                Utils.exitFullScreen();
-                                videoPageController.androidFullscreen = false;
-                                return;
-                              }
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
                           right: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.bug_report,
-                                color: Colors.white),
-                            onPressed: () {
-                              showDebugConsole();
-                            },
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  if (videoPageController.androidFullscreen ==
+                                      true) {
+                                    Utils.exitFullScreen();
+                                    videoPageController.androidFullscreen =
+                                        false;
+                                    return;
+                                  }
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              const Expanded(
+                                  child: dtb.DragToMoveArea(
+                                      child: SizedBox(height: 40))),
+                              IconButton(
+                                icon: const Icon(Icons.bug_report,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  showDebugConsole();
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -387,7 +393,8 @@ class _VideoPageState extends State<VideoPage>
               clipBehavior: Clip.hardEdge,
               child: InkWell(
                 onTap: () async {
-                  if (count0 == videoPageController.currentEspisode && videoPageController.currentRoad == currentRoad) {
+                  if (count0 == videoPageController.currentEspisode &&
+                      videoPageController.currentRoad == currentRoad) {
                     return;
                   }
                   KazumiLogger().log(Level.info, '视频链接为 $urlItem');

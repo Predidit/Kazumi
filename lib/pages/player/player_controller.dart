@@ -98,6 +98,7 @@ abstract class _PlayerController with Store {
     }
     KazumiLogger().log(Level.info, 'media_kit UA: $userAgent');
     String referer = videoPageController.currentPlugin.referer;
+    KazumiLogger().log(Level.info, 'media_kit Referer: $referer');
     var httpHeaders = {
       'user-agent': userAgent,
       if (referer.isNotEmpty) 'referer': referer,

@@ -8,6 +8,7 @@
     "useNativePlayer": true,
     "useLegacyParser": true,
     "userAgent": "",
+    "referer": "",
     "baseURL": "https://dm1.xfdm.pro/",
     "searchURL":"https://dm1.xfdm.pro/search/wd/@keyword.html",
     "searchList": "//div[4]/div/div[1]/div//div",

@@ -175,8 +175,8 @@
                        libwebkit2gtk-4.1-0
               EOF
 
-              cp ../assets/linux/io.github.predidit.kazumi.desktop usr/share/applications
-              cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.predidit.kazumi.png
+              cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications
+              cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.Predidit.Kazumi.png
 
               cd ..
               dpkg-deb --build --root-owner-group Kazumi_linux_${{ env.tag }}_amd64

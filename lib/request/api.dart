@@ -1,8 +1,8 @@
 class Api {
   // 当前版本
-  static const String version = '1.3.5';
+  static const String version = '1.3.6';
   // 规则API级别
-  static const int apiLevel = 2;
+  static const int apiLevel = 3;
   // 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
   // 图标作者

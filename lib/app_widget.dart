@@ -61,7 +61,7 @@ class _AppWidgetState extends State<AppWidget>
     }
   }
 
-  /// 处理前后台变更 
+  /// 处理前后台变更
   /// windows/linux 在程序后台或失去焦点时只会触发 inactive 不会触发 paused
   /// android/ios/macos 在程序后台时会先触发 inactive 再触发 paused, 回到前台时会先触发 inactive 再触发 resumed
   @override

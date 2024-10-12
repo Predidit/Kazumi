@@ -16,6 +16,7 @@ class Plugin {
   bool useWebview;
   bool useNativePlayer;
   bool usePost;
+  bool useLegacyParser;
   String userAgent;
   String baseUrl;
   String searchURL;
@@ -24,6 +25,7 @@ class Plugin {
   String searchResult;
   String chapterRoads;
   String chapterResult;
+  String referer;
 
   Plugin({
     required this.api,
@@ -34,6 +36,7 @@ class Plugin {
     required this.useWebview,
     required this.useNativePlayer,
     required this.usePost,
+    required this.useLegacyParser,
     required this.userAgent,
     required this.baseUrl,
     required this.searchURL,
@@ -42,6 +45,7 @@ class Plugin {
     required this.searchResult,
     required this.chapterRoads,
     required this.chapterResult,
+    required this.referer,
   });
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
@@ -54,6 +58,7 @@ class Plugin {
         useWebview: json['useWebview'],
         useNativePlayer: json['useNativePlayer'],
         usePost: json['usePost'] ?? false,
+        useLegacyParser: json['useLegacyParser'] ?? false,
         userAgent: json['userAgent'],
         baseUrl: json['baseURL'],
         searchURL: json['searchURL'],
@@ -61,7 +66,8 @@ class Plugin {
         searchName: json['searchName'],
         searchResult: json['searchResult'],
         chapterRoads: json['chapterRoads'],
-        chapterResult: json['chapterResult']);
+        chapterResult: json['chapterResult'],
+        referer: json['referer'] ?? '');
   }
 
   factory Plugin.fromTemplate() {
@@ -74,6 +80,7 @@ class Plugin {
         useWebview: true,
         useNativePlayer: false,
         usePost: false,
+        useLegacyParser: false,
         userAgent: '',
         baseUrl: '',
         searchURL: '',
@@ -81,7 +88,8 @@ class Plugin {
         searchName: '',
         searchResult: '',
         chapterRoads: '',
-        chapterResult: '');
+        chapterResult: '',
+        referer: '');
   }
 
   Map<String, dynamic> toJson() {
@@ -94,6 +102,7 @@ class Plugin {
     data['useWebview'] = useWebview;
     data['useNativePlayer'] = useNativePlayer;
     data['usePost'] = usePost;
+    data['useLegacyParser'] = useLegacyParser;
     data['userAgent'] = userAgent;
     data['baseURL'] = baseUrl;
     data['searchURL'] = searchURL;
@@ -102,12 +111,13 @@ class Plugin {
     data['searchResult'] = searchResult;
     data['chapterRoads'] = chapterRoads;
     data['chapterResult'] = chapterResult;
+    data['referer'] = referer;
     return data;
   }
 
   queryBangumi(String keyword, {bool shouldRethrow = false}) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
-    dynamic resp; 
+    dynamic resp;
     List<SearchItem> searchItems = [];
     if (usePost) {
       Uri uri = Uri.parse(queryURL);
@@ -122,13 +132,15 @@ class Plugin {
         'Content-Type': 'application/x-www-form-urlencoded',
       };
       resp = await Request().post(postUri.toString(),
-          options: Options(headers: httpHeaders), data: queryParams, shouldRethrow: shouldRethrow);
+          options: Options(headers: httpHeaders),
+          data: queryParams,
+          shouldRethrow: shouldRethrow);
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
       };
-      resp =
-          await Request().get(queryURL, options: Options(headers: httpHeaders), shouldRethrow: shouldRethrow);
+      resp = await Request().get(queryURL,
+          options: Options(headers: httpHeaders), shouldRethrow: shouldRethrow);
     }
 
     var htmlString = resp.data.toString();

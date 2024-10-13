@@ -4,7 +4,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebviewItemControllerImpel extends WebviewItemController {
+class WebviewItemControllerImpel extends WebviewItemController<WebViewController> {
   // workaround for webview_flutter lib.
   // webview_flutter lib won't change currentUrl after redirect using window.location.href.
   // which causes multiple redirects to the same url.
@@ -29,7 +29,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    await webviewController
+    await webviewController!
         .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
       debugPrint('Current URL: ${currentUrl.url}');
       if (videoPageController.currentPlugin.useNativePlayer &&
@@ -39,8 +39,8 @@ class WebviewItemControllerImpel extends WebviewItemController {
       }
       addFullscreenListener();
     }));
-    await webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
-    await webviewController.addJavaScriptChannel('JSBridgeDebug',
+    await webviewController!.setJavaScriptMode(JavaScriptMode.unrestricted);
+    await webviewController!.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('JS Bridge: ${message.message}');
       videoPageController.logLines.add('Callback received: ${message.message}');
@@ -76,7 +76,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
       }
     });
     if (!videoPageController.currentPlugin.useLegacyParser) {
-      await webviewController.addJavaScriptChannel('VideoBridgeDebug',
+      await webviewController!.addJavaScriptChannel('VideoBridgeDebug',
           onMessageReceived: (JavaScriptMessage message) {
         debugPrint('VideoJS Bridge: ${message.message}');
         videoPageController.logLines
@@ -96,7 +96,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
         }
       });
     }
-    await webviewController.addJavaScriptChannel('FullscreenBridgeDebug',
+    await webviewController!.addJavaScriptChannel('FullscreenBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
       debugPrint('FullscreenJS桥收到的消息为 ${message.message}');
       if (message.message == 'enteredFullscreen') {
@@ -108,7 +108,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
         Utils.exitFullScreen();
       }
     });
-    await webviewController.loadRequest(Uri.parse(url));
+    await webviewController!.loadRequest(Uri.parse(url));
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
@@ -143,16 +143,16 @@ class WebviewItemControllerImpel extends WebviewItemController {
   @override
   unloadPage() async {
     await webviewController
-        .removeJavaScriptChannel('JSBridgeDebug')
+        !.removeJavaScriptChannel('JSBridgeDebug')
         .catchError((_) {});
     await webviewController
-        .removeJavaScriptChannel('VideoBridgeDebug')
+        !.removeJavaScriptChannel('VideoBridgeDebug')
         .catchError((_) {});
     await webviewController
-        .removeJavaScriptChannel('FullscreenBridgeDebug')
+        !.removeJavaScriptChannel('FullscreenBridgeDebug')
         .catchError((_) {});
-    await webviewController.loadRequest(Uri.parse('about:blank'));
-    await webviewController.clearCache();
+    await webviewController!.loadRequest(Uri.parse('about:blank'));
+    await webviewController!.clearCache();
   }
 
   @override
@@ -161,7 +161,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
   }
 
   parseIframeUrl() async {
-    await webviewController.runJavaScript('''
+    await webviewController!.runJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
       JSBridgeDebug.postMessage('The number of iframe tags is' + iframes.length);
       for (var i = 0; i < iframes.length; i++) {
@@ -177,12 +177,12 @@ class WebviewItemControllerImpel extends WebviewItemController {
   }
 
   redirctWithReferer(String src) async {
-    await webviewController.runJavaScript('window.location.href = "$src";');
+    await webviewController!.runJavaScript('window.location.href = "$src";');
   }
 
   // 非blob资源
   parseVideoSource() async {
-    await webviewController.runJavaScript('''
+    await webviewController!.runJavaScript('''
       var videos = document.querySelectorAll('video');
       VideoBridgeDebug.postMessage('The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
@@ -211,7 +211,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
 
   // blob资源
   addBlobParser() async {
-    await webviewController.runJavaScript('''
+    await webviewController!.runJavaScript('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
           return new Promise((resolve, reject) => {
@@ -269,7 +269,7 @@ class WebviewItemControllerImpel extends WebviewItemController {
   }
 
   addInviewIframeBridge() async {
-    await webviewController.runJavaScript('''
+    await webviewController!.runJavaScript('''
       window.addEventListener("message", function(event) {
         if (event.data) {
           if (event.data.message && event.data.message.startsWith('videoMessage:')) {
@@ -283,12 +283,12 @@ class WebviewItemControllerImpel extends WebviewItemController {
   // 设定UA
   setDesktopUserAgent() async {
     String desktopUserAgent = Utils.getRandomUA();
-    await webviewController.setUserAgent(desktopUserAgent);
+    await webviewController!.setUserAgent(desktopUserAgent);
   }
 
   // 全屏监听
   addFullscreenListener() async {
-    await webviewController.runJavaScript('''
+    await webviewController!.runJavaScript('''
       document.addEventListener('fullscreenchange', () => {
             if (document.fullscreenElement) {
                 FullscreenBridgeDebug.postMessage('enteredFullscreen');

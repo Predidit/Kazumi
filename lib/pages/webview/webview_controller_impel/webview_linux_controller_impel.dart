@@ -4,7 +4,7 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
-class WebviewLinuxItemControllerImpel extends WebviewItemController {
+class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   @override
   init() async {
     webviewController ??= await WebviewWindow.create(
@@ -28,7 +28,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    webviewController.launch(url);
+    webviewController!.launch(url);
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
@@ -68,11 +68,11 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
 
   @override
   dispose() {
-    webviewController.close();
+    webviewController!.close();
   }
 
   initJSBridge() async {
-    webviewController.addOnWebMessageReceivedCallback((message) async {
+    webviewController!.addOnWebMessageReceivedCallback((message) async {
       if (message.contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(message.replaceFirst('iframeMessage:', ''));
@@ -130,7 +130,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
   }
 
   parseIframeUrl() async {
-    await webviewController.evaluateJavaScript('''
+    await webviewController!.evaluateJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
       window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
       for (var i = 0; i < iframes.length; i++) {
@@ -148,7 +148,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
 
   // 非blob资源
   parseVideoSource() async {
-    await webviewController.evaluateJavaScript('''
+    await webviewController!.evaluateJavaScript('''
       var videos = document.querySelectorAll('video');
       window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
@@ -177,11 +177,11 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
 
   // blob资源/iframe桥
   initBlobParserAndiframeBridge() async {
-    webviewController.setOnUrlRequestCallback((url) {
+    webviewController!.setOnUrlRequestCallback((url) {
       debugPrint('Current URL: $url');
       return true;
     });
-    webviewController.addScriptToExecuteOnDocumentCreated('''
+    webviewController!.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
           return new Promise((resolve, reject) => {
@@ -250,7 +250,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController {
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
   redirect2Blank() async {
-    await webviewController.evaluateJavaScript('''
+    await webviewController!.evaluateJavaScript('''
       window.location.href = 'about:blank';
     ''');
   }

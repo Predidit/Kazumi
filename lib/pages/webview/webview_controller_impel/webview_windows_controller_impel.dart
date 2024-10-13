@@ -4,12 +4,12 @@ import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewWindowsItemControllerImpel extends WebviewItemController {
+class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewController> {
   @override
   init() async {
     webviewController ??= WebviewController();
-    await webviewController.initialize();
-    await webviewController.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    await webviewController!.initialize();
+    await webviewController!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer &&
         !videoPageController.currentPlugin.useLegacyParser) {
@@ -29,7 +29,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
-    await webviewController.loadUrl(url);
+    await webviewController!.loadUrl(url);
 
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
@@ -65,16 +65,16 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
   @override
   unloadPage() async {
     await redirect2Blank();
-    await webviewController.clearCache();
+    await webviewController!.clearCache();
   }
 
   @override
   dispose() {
-    webviewController.dispose();
+    webviewController!.dispose();
   }
 
   initJSBridge() async {
-    webviewController.webMessage.listen((event) async {
+    webviewController!.webMessage.listen((event) async {
       if (event.toString().contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
@@ -132,7 +132,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
   }
 
   parseIframeUrl() async {
-    await webviewController.executeScript('''
+    await webviewController!.executeScript('''
       var iframes = document.getElementsByTagName('iframe');
       window.chrome.webview.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
       for (var i = 0; i < iframes.length; i++) {
@@ -150,7 +150,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
 
   // 非blob资源
   parseVideoSource() async {
-    await webviewController.executeScript('''
+    await webviewController!.executeScript('''
       var videos = document.querySelectorAll('video');
       window.chrome.webview.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
       for (var i = 0; i < videos.length; i++) {
@@ -178,7 +178,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
 
   // blob资源
   initBlobParser() async {
-    await webviewController.addScriptToExecuteOnDocumentCreated('''
+    await webviewController!.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
           return new Promise((resolve, reject) => {
@@ -235,7 +235,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
   }
 
   initInviewIframeBridge() async {
-    await webviewController.addScriptToExecuteOnDocumentCreated('''
+    await webviewController!.addScriptToExecuteOnDocumentCreated('''
       window.addEventListener("message", function(event) {
         if (event.data) {
           if (event.data.message && event.data.message.startsWith('videoMessage:')) {
@@ -250,7 +250,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController {
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
   redirect2Blank() async {
-    await webviewController.executeScript('''
+    await webviewController!.executeScript('''
       window.location.href = 'about:blank';
     ''');
   }

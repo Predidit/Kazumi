@@ -7,14 +7,16 @@ import 'package:kazumi/pages/webview/webview_controller_impel/webview_controller
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_windows_controller_impel.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_linux_controller_impel.dart';
 
-abstract class WebviewItemController {
+abstract class WebviewItemController<T> {
+  // Webview controller
+  T? webviewController;
+
   // Retry count
   int count = 0;
   // Last watched position
   int offset = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
-  dynamic webviewController;
   VideoPageController videoPageController = Modular.get<VideoPageController>();
   PlayerController playerController = Modular.get<PlayerController>();
 

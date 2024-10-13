@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
@@ -47,17 +45,19 @@ class _PopularPageState extends State<PopularPage>
               scrollController.position.maxScrollExtent - 200 &&
           popularController.isLoadingMore == false &&
           popularController.searchKeyword == '') {
-        KazumiLogger().log(Level.info, 'Popular 正在加载更多');
+        KazumiLogger().log(Level.info, 'Popular is loading more');
         popularController.queryBangumiListFeed(
             type: 'onload', tag: popularController.currentTag);
       }
     });
     if (popularController.bangumiList.isEmpty) {
-      // KazumiLogger().log(Level.info, 'Popular缓存列表为空, 尝试重加载');
-      Timer(const Duration(seconds: 3), () {
-        timeout = true;
+      popularController.queryBangumiListFeed().then((_) {
+        if (popularController.bangumiList.isEmpty && mounted) {
+          setState(() {
+            timeout = true;
+          });
+        }
       });
-      popularController.queryBangumiListFeed();
     }
   }
 
@@ -100,8 +100,20 @@ class _PopularPageState extends State<PopularPage>
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            await popularController.queryBangumiListFeed(
-                tag: popularController.currentTag);
+            if (mounted) {
+              setState(() {
+                timeout = false;
+              });
+            }
+            await popularController
+                .queryBangumiListFeed(tag: popularController.currentTag)
+                .then((_) {
+              if (popularController.bangumiList.isEmpty && mounted) {
+                setState(() {
+                  timeout = true;
+                });
+              }
+            });
           },
           child: Scaffold(
               appBar: SysAppBar(
@@ -157,17 +169,35 @@ class _PopularPageState extends State<PopularPage>
                               controller: keywordController,
                               onFieldSubmitted: (t) async {
                                 setState(() {
+                                  timeout = false;
                                   searchLoading = true;
                                   popularController.currentTag = '';
                                 });
                                 if (t != '') {
                                   popularController.searchKeyword = t;
-                                  await popularController.queryBangumi(
-                                      popularController.searchKeyword);
+                                  await popularController
+                                      .queryBangumi(
+                                          popularController.searchKeyword)
+                                      .then((_) {
+                                    if (popularController.bangumiList.isEmpty &&
+                                        mounted) {
+                                      setState(() {
+                                        timeout = true;
+                                      });
+                                    }
+                                  });
                                 } else {
                                   popularController.searchKeyword = '';
                                   await popularController
-                                      .queryBangumiListFeed();
+                                      .queryBangumiListFeed()
+                                      .then((_) {
+                                    if (popularController.bangumiList.isEmpty &&
+                                        mounted) {
+                                      setState(() {
+                                        timeout = true;
+                                      });
+                                    }
+                                  });
                                 }
                                 setState(() {
                                   searchLoading = false;
@@ -242,16 +272,29 @@ class _PopularPageState extends State<PopularPage>
                                 0),
                             sliver: Observer(builder: (context) {
                               if (popularController.bangumiList.isEmpty &&
-                                  timeout == true) {
+                                  timeout) {
                                 return HttpError(
                                   errMsg: '什么都没有找到 (´;ω;`)',
                                   fn: () {
-                                    popularController.queryBangumiListFeed();
+                                    setState(() {
+                                      timeout = false;
+                                    });
+                                    popularController
+                                        .queryBangumiListFeed()
+                                        .then((_) {
+                                      if (popularController
+                                              .bangumiList.isEmpty &&
+                                          mounted) {
+                                        setState(() {
+                                          timeout = true;
+                                        });
+                                      }
+                                    });
                                   },
                                 );
                               }
                               if (popularController.bangumiList.isEmpty &&
-                                  timeout == false) {
+                                  !timeout) {
                                 return SliverToBoxAdapter(
                                   child: SizedBox(
                                       height:
@@ -268,7 +311,8 @@ class _PopularPageState extends State<PopularPage>
                                       )),
                                 );
                               }
-                              return contentGrid(popularController.bangumiList, orientation);
+                              return contentGrid(
+                                  popularController.bangumiList, orientation);
                             })),
                       ],
                     ),
@@ -346,12 +390,22 @@ class _PopularPageState extends State<PopularPage>
                         onPressed: () async {
                           scrollController.jumpTo(0.0);
                           setState(() {
+                            timeout = false;
                             popularController.currentTag = '';
                             searchLoading = true;
                           });
-                          await popularController.queryBangumiListFeed(
+                          await popularController
+                              .queryBangumiListFeed(
                             tag: popularController.currentTag,
-                          );
+                          )
+                              .then((_) {
+                            if (popularController.bangumiList.isEmpty &&
+                                mounted) {
+                              setState(() {
+                                timeout = true;
+                              });
+                            }
+                          });
                           setState(() {
                             searchLoading = false;
                           });
@@ -363,14 +417,24 @@ class _PopularPageState extends State<PopularPage>
                           _focusNode.unfocus();
                           scrollController.jumpTo(0.0);
                           setState(() {
+                            timeout = false;
                             popularController.currentTag = filter;
                             keywordController.text = '';
                             showSearchBar = false;
                             searchLoading = true;
                           });
-                          await popularController.queryBangumiListFeed(
+                          await popularController
+                              .queryBangumiListFeed(
                             tag: popularController.currentTag,
-                          );
+                          )
+                              .then((_) {
+                            if (popularController.bangumiList.isEmpty &&
+                                mounted) {
+                              setState(() {
+                                timeout = true;
+                              });
+                            }
+                          });
                           setState(() {
                             searchLoading = false;
                           });

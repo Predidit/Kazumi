@@ -113,7 +113,7 @@ class _AppWidgetState extends State<AppWidget>
       await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');
     } else if (Platform.environment.containsKey('FLATPAK_ID') ||
         Platform.environment.containsKey('SNAP')) {
-      await trayManager.setIcon('io.github.predidit.kazumi');
+      await trayManager.setIcon('io.github.Predidit.Kazumi');
     } else {
       await trayManager.setIcon('assets/images/logo/logo_rounded.png');
     }

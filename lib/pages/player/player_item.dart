@@ -739,7 +739,6 @@ class _PlayerItemState extends State<PlayerItem>
                       if (pointerSignal is PointerScrollEvent) {
                         _handleMouseScroller();
                         final scrollDelta = pointerSignal.scrollDelta;
-                        // debugPrint('滚轮滑动距离: ${scrollDelta.dy}');
                         final double volume =
                             playerController.volume - scrollDelta.dy / 6000;
                         final double result = volume.clamp(0.0, 1.0);
@@ -784,23 +783,22 @@ class _PlayerItemState extends State<PlayerItem>
                           // 左方向键被按下
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowLeft) {
-                            if (playerController.currentPosition.inSeconds >
-                                10) {
+                              int targetPosition = playerController.currentPosition.inSeconds - 10;
+                              if (targetPosition < 0) {
+                                targetPosition = 0;
+                              }
                               try {
                                 if (playerTimer != null) {
                                   playerTimer!.cancel();
                                 }
                                 playerController.currentPosition = Duration(
-                                    seconds: playerController
-                                            .currentPosition.inSeconds -
-                                        10);
+                                    seconds: targetPosition);
                                 playerController
                                     .seek(playerController.currentPosition);
                                 playerTimer = getPlayerTimer();
                               } catch (e) {
                                 KazumiLogger().log(Level.error, e.toString());
                               }
-                            }
                           }
                           // Esc键被按下
                           if (event.logicalKey == LogicalKeyboardKey.escape) {

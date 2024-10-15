@@ -26,7 +26,7 @@ class KazumiLogger extends Logger {
       }
 
       await File(filename).writeAsString(
-        "**${DateTime.now()}** \n $message \n $stackTrace",
+        "**${DateTime.now()}** \n$message \n${stackTrace == null ? '' : stackTrace.toString()} \n",
         mode: FileMode.writeOnlyAppend,
       );
     }

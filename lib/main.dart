@@ -17,18 +17,33 @@ void main() async {
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
     bool isLowResolution = await Utils.isLowResolution();
-    WindowOptions windowOptions = WindowOptions(
-      size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
-      center: true,
-      // backgroundColor: Colors.white,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+    if (Platform.isMacOS) {
+      WindowOptions windowOptions = const WindowOptions(
+        size: Size(1400, 900),
+        center: true,
+        // backgroundColor: Colors.white,
+        skipTaskbar: false,
+        titleBarStyle: TitleBarStyle.hidden,
+        windowButtonVisibility: false,
+      );
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    } else {
+      WindowOptions windowOptions = WindowOptions(
+        size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
+        center: true,
+        // backgroundColor: Colors.white,
+        skipTaskbar: false,
+        titleBarStyle: TitleBarStyle.hidden,
+        windowButtonVisibility: false,
+      );
+      windowManager.waitUntilReadyToShow(windowOptions, () async {
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    }
   }
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

@@ -1,0 +1,132 @@
+PODS:
+  - connectivity_plus (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - device_info_plus (0.0.1):
+    - FlutterMacOS
+  - flutter_volume_controller (0.0.1):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+  - fvp (0.27.0):
+    - Flutter
+    - FlutterMacOS
+    - mdk (~> 0.29.1)
+  - mdk (0.29.1)
+  - package_info_plus (0.0.1):
+    - FlutterMacOS
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - screen_brightness_macos (0.1.0):
+    - FlutterMacOS
+  - screen_pixel (0.0.3):
+    - FlutterMacOS
+  - screen_retriever (0.0.1):
+    - FlutterMacOS
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - sqflite (0.0.3):
+    - Flutter
+    - FlutterMacOS
+  - tray_manager (0.0.1):
+    - FlutterMacOS
+  - url_launcher_macos (0.0.1):
+    - FlutterMacOS
+  - video_player_avfoundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - wakelock_plus (0.0.1):
+    - FlutterMacOS
+  - webview_flutter_wkwebview (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - window_manager (0.2.0):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/darwin`)
+  - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
+  - flutter_volume_controller (from `Flutter/ephemeral/.symlinks/plugins/flutter_volume_controller/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - fvp (from `Flutter/ephemeral/.symlinks/plugins/fvp/darwin`)
+  - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
+  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
+  - screen_brightness_macos (from `Flutter/ephemeral/.symlinks/plugins/screen_brightness_macos/macos`)
+  - screen_pixel (from `Flutter/ephemeral/.symlinks/plugins/screen_pixel/macos`)
+  - screen_retriever (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever/macos`)
+  - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - sqflite (from `Flutter/ephemeral/.symlinks/plugins/sqflite/darwin`)
+  - tray_manager (from `Flutter/ephemeral/.symlinks/plugins/tray_manager/macos`)
+  - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
+  - video_player_avfoundation (from `Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin`)
+  - wakelock_plus (from `Flutter/ephemeral/.symlinks/plugins/wakelock_plus/macos`)
+  - webview_flutter_wkwebview (from `Flutter/ephemeral/.symlinks/plugins/webview_flutter_wkwebview/darwin`)
+  - window_manager (from `Flutter/ephemeral/.symlinks/plugins/window_manager/macos`)
+
+SPEC REPOS:
+  trunk:
+    - mdk
+
+EXTERNAL SOURCES:
+  connectivity_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/darwin
+  device_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
+  flutter_volume_controller:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_volume_controller/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  fvp:
+    :path: Flutter/ephemeral/.symlinks/plugins/fvp/darwin
+  package_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
+  path_provider_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
+  screen_brightness_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/screen_brightness_macos/macos
+  screen_pixel:
+    :path: Flutter/ephemeral/.symlinks/plugins/screen_pixel/macos
+  screen_retriever:
+    :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever/macos
+  shared_preferences_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
+  sqflite:
+    :path: Flutter/ephemeral/.symlinks/plugins/sqflite/darwin
+  tray_manager:
+    :path: Flutter/ephemeral/.symlinks/plugins/tray_manager/macos
+  url_launcher_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
+  video_player_avfoundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin
+  wakelock_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/wakelock_plus/macos
+  webview_flutter_wkwebview:
+    :path: Flutter/ephemeral/.symlinks/plugins/webview_flutter_wkwebview/darwin
+  window_manager:
+    :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
+
+SPEC CHECKSUMS:
+  connectivity_plus: ddd7f30999e1faaef5967c23d5b6d503d10434db
+  device_info_plus: ce1b7762849d3ec103d0e0517299f2db7ad60720
+  flutter_volume_controller: 25d09126b0d695560f11c80b1311d5063fed882f
+  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  fvp: b843e46165476a3702ec3c80f781488ef5089964
+  mdk: 3c49affb38303cf86fd9f8ea1e05fe029c4dc194
+  package_info_plus: fa739dd842b393193c5ca93c26798dff6e3d0e0c
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  screen_brightness_macos: 2d6d3af2165592d9a55ffcd95b7550970e41ebda
+  screen_pixel: 29576a1f6694cdb539c3bb0d27faab62de2e8e76
+  screen_retriever: 59634572a57080243dd1bf715e55b6c54f241a38
+  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
+  sqflite: 673a0e54cc04b7d6dba8d24fb8095b31c3a99eec
+  tray_manager: 9064e219c56d75c476e46b9a21182087930baf90
+  url_launcher_macos: c82c93949963e55b228a30115bd219499a6fe404
+  video_player_avfoundation: 7c6c11d8470e1675df7397027218274b6d2360b3
+  wakelock_plus: 4783562c9a43d209c458cb9b30692134af456269
+  webview_flutter_wkwebview: 0982481e3d9c78fd5c6f62a002fcd24fc791f1e4
+  window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8
+
+PODFILE CHECKSUM: 236401fc2c932af29a9fcf0e97baeeb2d750d367
+
+COCOAPODS: 1.15.2

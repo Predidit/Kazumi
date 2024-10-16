@@ -8,6 +8,7 @@ import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/utils/constans.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -44,6 +45,38 @@ class _HistoryPageState extends State<HistoryPage>
     navigationBarState.showNavigate();
   }
 
+  void showHistoryClearDialog() {
+    SmartDialog.show(
+      useAnimation: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('记录管理'),
+          content: const Text('确认要清除所有历史记录吗?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                SmartDialog.dismiss();
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                SmartDialog.dismiss();
+                try {
+                  historyController.clearAll();
+                } catch (_) {}
+              },
+              child: const Text('确认'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,18 +93,22 @@ class _HistoryPageState extends State<HistoryPage>
             appBar: SysAppBar(
               title: const Text('历史记录'),
               actions: [
-                IconButton(onPressed: () {
-                  setState(() {
-                    showDelete = !showDelete;
-                  });
-                }, icon: showDelete ? const Icon(Icons.edit_outlined) : const Icon(Icons.edit))
+                IconButton(
+                    onPressed: () {
+                      setState(() {
+                        showDelete = !showDelete;
+                      });
+                    },
+                    icon: showDelete
+                        ? const Icon(Icons.edit_outlined)
+                        : const Icon(Icons.edit))
               ],
             ),
             body: renderBody(orientation),
             floatingActionButton: FloatingActionButton(
               child: const Icon(Icons.clear_all),
               onPressed: () {
-                historyController.clearAll();
+                showHistoryClearDialog();
               },
             ),
           ),

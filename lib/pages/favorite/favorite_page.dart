@@ -20,6 +20,7 @@ class _FavoritePageState extends State<FavoritePage> {
   final FavoriteController favoriteController =
       Modular.get<FavoriteController>();
   dynamic navigationBarState;
+  bool showDelete = false;
 
   void onBackPressed(BuildContext context) {
     navigationBarState.updateSelectedIndex(0);
@@ -40,34 +41,46 @@ class _FavoritePageState extends State<FavoritePage> {
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (bool didPop, Object? result) {
-            if (didPop) {
-              return;
-            }
-            onBackPressed(context);
-          },
-          child: Scaffold(
-            appBar: const SysAppBar(title: Text('追番')),
-            body: favoriteController.favorites.isEmpty
-                ? const Center(
-                    child: Text('啊咧（⊙.⊙） 没有追番的说'),
-                  )
-                : CustomScrollView(
-                    slivers: [
-                      SliverPadding(
-                        padding: const EdgeInsets.all(StyleString.cardSpace),
-                        sliver: contentGrid(favoriteController.favorites, orientation),
-                      ),
-                    ],
-                  ),
+    return OrientationBuilder(builder: (context, orientation) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          onBackPressed(context);
+        },
+        child: Scaffold(
+          appBar: SysAppBar(
+            title: const Text('追番'),
+            actions: [
+              IconButton(
+                  onPressed: () {
+                    setState(() {
+                      showDelete = !showDelete;
+                    });
+                  },
+                  icon: showDelete
+                      ? const Icon(Icons.edit_outlined)
+                      : const Icon(Icons.edit))
+            ],
           ),
-        );
-      }
-    );
+          body: favoriteController.favorites.isEmpty
+              ? const Center(
+                  child: Text('啊咧（⊙.⊙） 没有追番的说'),
+                )
+              : CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(StyleString.cardSpace),
+                      sliver: contentGrid(
+                          favoriteController.favorites, orientation),
+                    ),
+                  ],
+                ),
+        ),
+      );
+    });
   }
 
   Widget contentGrid(List bangumiList, Orientation orientation) {
@@ -83,7 +96,25 @@ class _FavoritePageState extends State<FavoritePage> {
       delegate: SliverChildBuilderDelegate(
         (BuildContext context, int index) {
           if (bangumiList.isNotEmpty) {
-            return BangumiCardV(bangumiItem: bangumiList[index]);
+            return Stack(
+              children: [
+                BangumiCardV(bangumiItem: bangumiList[index], canTap: !showDelete,),
+                Positioned(
+                  right: 5,
+                  bottom: 5,
+                  child: showDelete ? IconButton.filledTonal(
+                    icon: const Icon(Icons.favorite),
+                    onPressed: () async {
+                      await favoriteController
+                          .deleteFavorite(bangumiList[index]);
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                  ) : Container(),
+                ),
+              ],
+            );
           } else {
             return Container(); // 返回一个空容器以避免返回 null
           }

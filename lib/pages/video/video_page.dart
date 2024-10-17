@@ -421,7 +421,7 @@ class _VideoPageState extends State<VideoPage>
                             const SizedBox(width: 6)
                           ],
                           Text(
-                            '第$count话',
+                            road.identifier[count0 - 1],
                             style: TextStyle(
                                 fontSize: 13,
                                 color: (count0 ==

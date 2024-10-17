@@ -15,7 +15,7 @@ import screen_brightness_macos
 import screen_pixel
 import screen_retriever
 import shared_preferences_foundation
-import sqflite
+import sqflite_darwin
 import tray_manager
 import url_launcher_macos
 import video_player_avfoundation

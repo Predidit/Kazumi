@@ -186,12 +186,15 @@ class Plugin {
       htmlElement.queryXPath(chapterRoads).nodes.forEach((element) {
         try {
           List<String> chapterUrlList = [];
+          List<String> chapterNameList = [];
           element.queryXPath(chapterResult).nodes.forEach((item) {
             String itemUrl = item.node.attributes['href'] ?? '';
+            String itemName = item.node.text ?? '';
             chapterUrlList.add(itemUrl);
+            chapterNameList.add(itemName);
           });
-          if (chapterUrlList.isNotEmpty) {
-            Road road = Road(name: '播放列表$count', data: chapterUrlList);
+          if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
+            Road road = Road(name: '播放列表$count', data: chapterUrlList, identifier: chapterNameList);
             roadList.add(road);
             count++;
           }

@@ -59,7 +59,8 @@ abstract class _VideoPageController with Store {
     currentEspisode = episode;
     this.currentRoad = currentRoad;
     logLines.clear();
-    KazumiLogger().log(Level.info, '跳转到第$episode话');
+    String chapterName = roadList[currentRoad].identifier[episode - 1];
+    KazumiLogger().log(Level.info, '跳转到$chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (urlItem.contains(currentPlugin.baseUrl) ||
         urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {

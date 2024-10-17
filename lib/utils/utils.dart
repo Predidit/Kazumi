@@ -22,6 +22,10 @@ class Utils {
   static final Random random = Random();
 
   static Future<bool> isLowResolution() async {
+    if (Platform.isMacOS) {
+      return false;
+    }
+
     try {
       Map<String, double>? screenInfo = await getScreenInfo();
       if (screenInfo != null) {

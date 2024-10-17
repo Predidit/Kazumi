@@ -442,6 +442,17 @@ class Utils {
     return color;
   }
 
+  static int extractEpisodeNumber(String input) {
+    RegExp regExp = RegExp(r'第?(\d+)[话集]?');
+    Match? match = regExp.firstMatch(input);
+
+    if (match != null && match.group(1) != null) {
+      return int.tryParse(match.group(1)!) ?? 0;
+    }
+
+    return 0; 
+  }
+
   /// 判断是否为桌面设备
   static bool isDesktop() {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -601,7 +612,8 @@ class Utils {
   // 获取当前解复用器
   static Future<String> getCurrentDemux() async {
     Box setting = GStorage.setting;
-    bool haEnable = await setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    bool haEnable =
+        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
     if ((Platform.isIOS || Platform.isMacOS) && haEnable) {
       return 'AVPlayer';
     }

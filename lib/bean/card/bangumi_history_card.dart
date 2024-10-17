@@ -70,6 +70,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 widget.historyItem.bangumiItem.nameCn == ''
                     ? widget.historyItem.bangumiItem.name
                     : widget.historyItem.bangumiItem.nameCn;
+            videoPageController.src = widget.historyItem.lastSrc;
             try {
               await infoController.queryRoads(widget.historyItem.lastSrc,
                   videoPageController.currentPlugin.name);

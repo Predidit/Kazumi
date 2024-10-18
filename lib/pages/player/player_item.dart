@@ -290,7 +290,7 @@ class _PlayerItemState extends State<PlayerItem>
                   .roadList[videoPageController.currentRoad].data.length &&
           !videoPageController.loading) {
         SmartDialog.showToast(
-            '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode]}');
+            '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]}');
         try {
           playerTimer!.cancel();
         } catch (_) {}

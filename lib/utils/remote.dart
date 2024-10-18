@@ -27,6 +27,7 @@ class RemotePlay {
     List<Widget> dlnaDevice = [];
     SmartDialog.show(
         useAnimation: false,
+        clickMaskDismiss: false,
         builder: (context) {
           return StatefulBuilder(builder: (context, setState) {
             return AlertDialog(

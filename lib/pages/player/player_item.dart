@@ -794,7 +794,7 @@ class _PlayerItemState extends State<PlayerItem>
                               Utils.exitFullScreen();
                               videoPageController.androidFullscreen =
                                   !videoPageController.androidFullscreen;
-                            } else {
+                            } else if (!Platform.isMacOS) {
                               windowManager.hide();
                             }
                           }
@@ -1199,7 +1199,14 @@ class _PlayerItemState extends State<PlayerItem>
                                       color: Colors.white,
                                       icon: const Icon(Icons.cast),
                                       onPressed: () {
-                                        RemotePlay().castVideo(context);
+                                        if (videoPageController.currentPlugin.referer == '') {
+                                          playerController.pause();
+                                          RemotePlay().castVideo(context);
+                                        } else {
+                                          SmartDialog.showToast('暂不支持该播放源',
+                                              displayType:
+                                                  SmartToastType.onlyRefresh);
+                                        }
                                       },
                                     ),
                                     // 追番

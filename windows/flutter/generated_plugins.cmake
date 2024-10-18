@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   flutter_volume_controller
   fvp
+  hotkey_manager_windows
   screen_brightness_windows
   screen_pixel
   screen_retriever

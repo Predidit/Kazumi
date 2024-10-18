@@ -794,9 +794,7 @@ class _PlayerItemState extends State<PlayerItem>
                               Utils.exitFullScreen();
                               videoPageController.androidFullscreen =
                                   !videoPageController.androidFullscreen;
-                            } else if (Platform.isMacOS) {
-                              windowManager.unmaximize();
-                            } else {
+                            } else if (!Platform.isMacOS) {
                               windowManager.hide();
                             }
                           }

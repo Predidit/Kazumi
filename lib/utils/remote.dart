@@ -40,7 +40,7 @@ class RemotePlay {
                 TextButton(
                   onPressed: () async {
                     searcher.stop();
-                    if (Platform.isAndroid || Platform.isWindows) {
+                    if (Platform.isAndroid || Platform.isWindows || Platform.isMacOS || Platform.isIOS) {
                       if (await _launchURLWithMIME(video, 'video/mp4')) {
                         SmartDialog.dismiss();
                         SmartDialog.showToast('尝试唤起外部播放器',

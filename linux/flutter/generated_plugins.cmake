@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_webview_window
   flutter_volume_controller
   fvp
+  hotkey_manager_linux
   screen_retriever
   tray_manager
   url_launcher_linux

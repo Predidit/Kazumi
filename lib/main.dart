@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/utils/hotkey.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -16,6 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
+    await hotKeyManager.unregisterAll();
     bool isLowResolution = await Utils.isLowResolution();
     WindowOptions windowOptions = WindowOptions(
       size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
@@ -29,6 +32,7 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
+    await hotKeyManager.register(KazumiHotKey.appMinimize,keyDownHandler: (hotKey) => windowManager.minimize());
   }
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

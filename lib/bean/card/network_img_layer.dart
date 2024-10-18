@@ -32,32 +32,32 @@ class NetworkImgLayer extends StatelessWidget {
   Widget build(BuildContext context) {
     final String imageUrl = src ?? '';
 
-    //// Deprecated due to the flickering issue in the first frame of info page
-    // int? memCacheWidth, memCacheHeight;
-    // double aspectRatio = (width / height).toDouble();
+    //// We need this to shink memory usage
+    int? memCacheWidth, memCacheHeight;
+    double aspectRatio = (width / height).toDouble();
 
-    // void setMemCacheSizes() {
-    //   if (aspectRatio > 1) {
-    //     memCacheHeight = height.cacheSize(context);
-    //   } else if (aspectRatio < 1) {
-    //     memCacheWidth = width.cacheSize(context);
-    //   } else {
-    //     if (origAspectRatio != null && origAspectRatio! > 1) {
-    //       memCacheWidth = width.cacheSize(context);
-    //     } else if (origAspectRatio != null && origAspectRatio! < 1) {
-    //       memCacheHeight = height.cacheSize(context);
-    //     } else {
-    //       memCacheWidth = width.cacheSize(context);
-    //       memCacheHeight = height.cacheSize(context);
-    //     }
-    //   }
-    // }
+    void setMemCacheSizes() {
+      if (aspectRatio > 1) {
+        memCacheHeight = height.cacheSize(context);
+      } else if (aspectRatio < 1) {
+        memCacheWidth = width.cacheSize(context);
+      } else {
+        if (origAspectRatio != null && origAspectRatio! > 1) {
+          memCacheWidth = width.cacheSize(context);
+        } else if (origAspectRatio != null && origAspectRatio! < 1) {
+          memCacheHeight = height.cacheSize(context);
+        } else {
+          memCacheWidth = width.cacheSize(context);
+          memCacheHeight = height.cacheSize(context);
+        }
+      }
+    }
 
-    // setMemCacheSizes();
+    setMemCacheSizes();
 
-    // if (memCacheWidth == null && memCacheHeight == null) {
-    //   memCacheWidth = width.toInt();
-    // }
+    if (memCacheWidth == null && memCacheHeight == null) {
+      memCacheWidth = width.toInt();
+    }
 
     return src != '' && src != null
         ? ClipRRect(
@@ -73,8 +73,8 @@ class NetworkImgLayer extends StatelessWidget {
               imageUrl: imageUrl,
               width: width,
               height: height,
-              // memCacheWidth: memCacheWidth,
-              // memCacheHeight: memCacheHeight,
+              memCacheWidth: memCacheWidth,
+              memCacheHeight: memCacheHeight,
               fit: BoxFit.cover,
               fadeOutDuration:
                   fadeOutDuration ?? const Duration(milliseconds: 120),

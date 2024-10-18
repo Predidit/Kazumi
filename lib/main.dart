@@ -32,7 +32,11 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
-    await hotKeyManager.register(KazumiHotKey.appMinimize,keyDownHandler: (hotKey) => windowManager.minimize());
+    await hotKeyManager.register(KazumiHotKey.appMinimize,
+        keyDownHandler: (hotKey) =>
+            Future.delayed(const Duration(milliseconds: 100), () {
+              windowManager.hide();
+            })); // prevent inapp hotkeys issue
   }
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

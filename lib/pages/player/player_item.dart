@@ -290,7 +290,7 @@ class _PlayerItemState extends State<PlayerItem>
                   .roadList[videoPageController.currentRoad].data.length &&
           !videoPageController.loading) {
         SmartDialog.showToast(
-            '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]}');
+            '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode]}');
         try {
           playerTimer!.cancel();
         } catch (_) {}
@@ -1164,7 +1164,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ),
                                     (videoPageController.androidFullscreen)
                                         ? Text(
-                                            ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode]}]',
+                                            ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]}]',
                                             style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: Theme.of(context)
@@ -1328,7 +1328,7 @@ class _PlayerItemState extends State<PlayerItem>
                                                 return;
                                               }
                                               SmartDialog.showToast(
-                                                  '正在加载第 ${videoPageController.currentEspisode + 1} 话');
+                                                  '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode]}');
                                               videoPageController.changeEpisode(
                                                   videoPageController
                                                           .currentEspisode +

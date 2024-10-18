@@ -73,8 +73,17 @@ abstract class _PlayerController with Store {
       mediaPlayer.dispose();
     } catch (_) {}
     KazumiLogger().log(Level.info, 'VideoItem开始初始化');
+    int episodeFromTitle = 0;
+    try {
+      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]);
+    } catch (e) {
+      KazumiLogger().log(Level.error, '从标题解析集数错误 ${e.toString()}');
+    }
+    if (episodeFromTitle == 0) {
+      episodeFromTitle = videoPageController.currentEspisode;
+    }
     getDanDanmaku(
-        videoPageController.title, videoPageController.currentEspisode);
+        videoPageController.title, episodeFromTitle);
     mediaPlayer = await createVideoController();
     bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     playerSpeed = setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);

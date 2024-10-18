@@ -1176,7 +1176,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ),
                                     (videoPageController.androidFullscreen)
                                         ? Text(
-                                            ' ${videoPageController.title} [${videoPageController.currentEspisode}]',
+                                            ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode]}]',
                                             style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: Theme.of(context)

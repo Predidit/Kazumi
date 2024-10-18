@@ -191,7 +191,7 @@ class Plugin {
             String itemUrl = item.node.attributes['href'] ?? '';
             String itemName = item.node.text ?? '';
             chapterUrlList.add(itemUrl);
-            chapterNameList.add(itemName);
+            chapterNameList.add(itemName.replaceAll(RegExp(r'\s+'), ''));
           });
           if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
             Road road = Road(name: '播放列表$count', data: chapterUrlList, identifier: chapterNameList);

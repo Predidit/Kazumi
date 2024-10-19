@@ -117,6 +117,7 @@ class _PopularPageState extends State<PopularPage>
           },
           child: Scaffold(
               appBar: SysAppBar(
+                leadingWidth: 66, // default 56 + 10
                 leading: (Utils.isCompact())
                     ? Row(
                         children: [

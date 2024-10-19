@@ -20,6 +20,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final Widget? leading;
 
+  final double? leadingWidth;
+
   final PreferredSizeWidget? bottom;
 
   const SysAppBar(
@@ -31,6 +33,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.shape,
       this.actions,
       this.leading,
+      this.leadingWidth,
       this.bottom});
 
   void _handleCloseEvent() {
@@ -76,6 +79,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           title: title,
           actions: acs,
           leading: leading,
+          leadingWidth: leadingWidth,
           backgroundColor: backgroundColor,
           elevation: elevation,
           shape: shape,

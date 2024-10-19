@@ -16,19 +16,24 @@ class HistoryAdapter extends TypeAdapter<History> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
+    // 保留对旧版本历史数据兼容
+    if (fields[6] == null) {
+      fields[6] = '';
+    }
     return History(
       fields[3] as BangumiItem,
       fields[1] as int,
       fields[2] as String,
       fields[4] as DateTime,
       fields[5] as String,
+      fields[6] as String,
     )..progresses = (fields[0] as Map).cast<int, Progress>();
   }
 
   @override
   void write(BinaryWriter writer, History obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.progresses)
       ..writeByte(1)
@@ -40,7 +45,9 @@ class HistoryAdapter extends TypeAdapter<History> {
       ..writeByte(4)
       ..write(obj.lastWatchTime)
       ..writeByte(5)
-      ..write(obj.lastSrc);
+      ..write(obj.lastSrc)
+      ..writeByte(6)
+      ..write(obj.lastWatchEpisodeName);
   }
 
   @override

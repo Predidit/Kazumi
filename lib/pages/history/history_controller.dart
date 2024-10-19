@@ -27,17 +27,20 @@ abstract class _HistoryController with Store {
   }
 
   void updateHistory(
-      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc) {
+      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc, String lastWatchEpisodeName) {
     bool privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
     if (privateMode) {
       return;
     }
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
-        History(bangumiItem, episode, adapterName, DateTime.now(), lastSrc);
+        History(bangumiItem, episode, adapterName, DateTime.now(), lastSrc, lastWatchEpisodeName);
     history.lastWatchEpisode = episode;
     history.lastWatchTime = DateTime.now();
     if (lastSrc != '') {
       history.lastSrc = lastSrc;
+    }
+    if (lastWatchEpisodeName != '') {
+      history.lastWatchEpisodeName = lastWatchEpisodeName;
     }
 
     var prog = history.progresses[episode];

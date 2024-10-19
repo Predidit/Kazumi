@@ -281,7 +281,8 @@ class _PlayerItemState extends State<PlayerItem>
             videoPageController.currentPlugin.name,
             infoController.bangumiItem,
             playerController.mediaPlayer.value.position,
-            videoPageController.src);
+            videoPageController.src,
+            videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]);
       }
       // 自动播放下一集
       if (playerController.completed &&

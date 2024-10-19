@@ -45,9 +45,13 @@ class _AboutPageState extends State<AboutPage> {
     navigationBarState.showNavigate();
   }
 
-  Future<void> _getCacheSize() async {
+  Future<Directory> _getCacheDir() async {
     Directory tempDir = await getTemporaryDirectory();
-    Directory cacheDir = Directory('${tempDir.path}/libCachedImageData');
+    return Directory('${tempDir.path}/libCachedImageData');
+  }
+
+  Future<void> _getCacheSize() async {
+    Directory cacheDir = await _getCacheDir();
 
     if (await cacheDir.exists()) {
       int totalSizeBytes = await _getTotalSizeOfFilesInDir(cacheDir);
@@ -85,8 +89,8 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Future<void> _clearCache() async {
-    final cacheManager = DefaultCacheManager();
-    await cacheManager.emptyCache();
+    final Directory libCacheDir = await _getCacheDir();
+    await libCacheDir.delete(recursive: true);
     _getCacheSize();
   }
 

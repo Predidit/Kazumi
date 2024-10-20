@@ -103,7 +103,7 @@ class _VideoPageState extends State<VideoPage>
                 )),
           body: SafeArea(
             top: !videoPageController.androidFullscreen,
-            bottom: !videoPageController.androidFullscreen,
+            bottom: false, // set iOS and Android navigation bar to immersive
             left: !videoPageController.androidFullscreen,
             right: !videoPageController.androidFullscreen,
             child: (Utils.isDesktop()) ||
@@ -125,11 +125,12 @@ class _VideoPageState extends State<VideoPage>
                           ? Container()
                           : Expanded(
                               child: Column(
-                              children: [
-                                tabBar,
-                                tabBody,
-                              ],
-                            ))
+                                children: [
+                                  tabBar,
+                                  tabBody,
+                                ],
+                              ),
+                            )
                     ],
                   )
                 : Column(
@@ -145,11 +146,12 @@ class _VideoPageState extends State<VideoPage>
                           ? Container()
                           : Expanded(
                               child: Column(
-                              children: [
-                                tabBar,
-                                tabBody,
-                              ],
-                            ))
+                                children: [
+                                  tabBar,
+                                  tabBody,
+                                ],
+                              ),
+                            )
                     ],
                   ),
           ),
@@ -302,7 +304,7 @@ class _VideoPageState extends State<VideoPage>
 
   Widget get tabBar {
     return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 6),
+      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -386,7 +388,7 @@ class _VideoPageState extends State<VideoPage>
         for (var urlItem in road.data) {
           int count0 = count;
           cardList.add(Container(
-            margin: const EdgeInsets.only(bottom: 10), // 改为bottom间距
+            margin: const EdgeInsets.only(bottom: 4), // 改为bottom间距
             child: Material(
               color: Theme.of(context).colorScheme.onInverseSurface,
               borderRadius: BorderRadius.circular(6),
@@ -448,7 +450,7 @@ class _VideoPageState extends State<VideoPage>
     }
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.only(top: 0, right: 5, left: 5),
+        padding: const EdgeInsets.only(top: 0, right: 8, left: 8),
         child: GridView.builder(
           scrollDirection: Axis.vertical,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

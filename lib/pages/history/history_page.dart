@@ -131,25 +131,30 @@ class _HistoryPageState extends State<HistoryPage>
     int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
     return CustomScrollView(
       slivers: [
-        SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: StyleString.cardSpace - 2,
-              crossAxisSpacing: StyleString.cardSpace,
-              crossAxisCount: crossCount,
-              mainAxisExtent: 150),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return historyController.histories.isNotEmpty
-                  ? BangumiHistoryCardV(
-                      showDelete: showDelete,
-                      historyItem: historyController.histories[index])
-                  : null;
-            },
-            childCount: historyController.histories.isNotEmpty
-                ? historyController.histories.length
-                : 10,
+        SliverPadding(
+          padding: const EdgeInsets.only(
+              left: StyleString.cardSpace + 2,
+              right: StyleString.cardSpace + 2),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                mainAxisSpacing: StyleString.cardSpace - 2,
+                crossAxisSpacing: StyleString.cardSpace - 2,
+                crossAxisCount: crossCount,
+                mainAxisExtent: 150),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return historyController.histories.isNotEmpty
+                    ? BangumiHistoryCardV(
+                        showDelete: showDelete,
+                        historyItem: historyController.histories[index])
+                    : null;
+              },
+              childCount: historyController.histories.isNotEmpty
+                  ? historyController.histories.length
+                  : 10,
+            ),
           ),
-        ),
+        )
       ],
     );
   }

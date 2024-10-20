@@ -21,7 +21,7 @@ abstract class _PlayerController with Store {
   bool loading = true;
 
   String videoUrl = '';
-  // 弹幕ID
+  // dandanPlay弹幕ID
   int bangumiID = 0;
   late VideoPlayerController mediaPlayer;
   late DanmakuController danmakuController;
@@ -166,6 +166,17 @@ abstract class _PlayerController with Store {
       danDanmakus.clear();
       bangumiID = await DanmakuRequest.getBangumiID(title);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+      addDanmakus(res);
+    } catch (e) {
+      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+    }
+  }
+
+  Future getDanDanmakuByEpisodeID(int episodeID) async {
+    KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
+    try {
+      danDanmakus.clear();
+      var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');

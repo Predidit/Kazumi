@@ -329,11 +329,14 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
           ),
-          IconButton(
-              onPressed: () {
-                observerController.jumpTo(index: videoPageController.currentEspisode - 3);
-              },
-              icon: const Icon(Icons.my_location)),
+          // IconButton(
+          //     onPressed: () {
+          //       observerController.jumpTo(
+          //           index: videoPageController.currentEspisode > 3
+          //               ? videoPageController.currentEspisode - 3
+          //               : videoPageController.currentEspisode);
+          //     },
+          //     icon: const Icon(Icons.my_location)),
           const SizedBox(width: 10),
           SizedBox(
             height: 34,

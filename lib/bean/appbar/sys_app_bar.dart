@@ -67,7 +67,9 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      acs.add(CloseButton(onPressed: () => _handleCloseEvent()));
+      acs.add(Padding(
+          padding: const EdgeInsets.only(right: 13),
+          child: CloseButton(onPressed: () => _handleCloseEvent())));
     }
     return GestureDetector(
       // behavior: HitTestBehavior.translucent,

@@ -82,8 +82,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             }
           },
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-                StyleString.safeSpace, 7, StyleString.safeSpace, 7),
+            padding: const EdgeInsets.all(7),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -11,7 +11,6 @@ import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});

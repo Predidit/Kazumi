@@ -6,6 +6,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 
 
 class DanmakuRequest {
@@ -23,6 +24,20 @@ class DanmakuRequest {
       }
     }
     return minAnimeId;
+  }
+
+  //从BangumiID获取分集ID
+  static getDanDanEpisodesByBangumiID(int bangumiID) async {
+    var httpHeaders = {
+      'user-agent':
+          Utils.getRandomUA(),
+      'referer': '',
+    };
+    final res = await Request().get(Api.dandanInfo + bangumiID.toString(),
+        options: Options(headers: httpHeaders));
+    Map<String, dynamic> jsonData = res.data;
+    DanmakuEpisodeResponse danmakuEpisodeResponse = DanmakuEpisodeResponse.fromJson(jsonData);
+    return danmakuEpisodeResponse;
   }
 
   static Future<DanmakuSearchResponse> getDanmakuSearchResponse(String title) async {
@@ -63,6 +78,28 @@ class DanmakuRequest {
         data: withRelated,
         options: Options(headers: httpHeaders));
     
+    Map<String, dynamic> jsonData = res.data;
+    List<dynamic> comments = jsonData['comments'];
+
+    for (var comment in comments) {
+      Danmaku danmaku = Danmaku.fromJson(comment);
+      danmakus.add(danmaku);
+    }
+    return danmakus;
+  }
+
+  static getDanDanmakuByEpisodeID(int episodeID) async {
+    List<Danmaku> danmakus = [];
+    var httpHeaders = {
+      'user-agent':
+          Utils.getRandomUA(),
+      'referer': '',
+    };
+    Map<String, String> withRelated = {
+      'withRelated': 'true',
+    };
+    final res = await Request().get("${Api.dandanAPI}$episodeID",
+        data: withRelated, options: Options(headers: httpHeaders));
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];
 

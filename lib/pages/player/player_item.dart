@@ -26,6 +26,7 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
+import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constans.dart';
@@ -185,7 +186,7 @@ class _PlayerItemState extends State<PlayerItem>
                   TextSpan(text: '解复用器: $currentDemux\n'),
                   const TextSpan(text: '资源地址: '),
                   TextSpan(
-                    text: '${playerController.videoUrl}',
+                    text: playerController.videoUrl,
                   ),
                 ],
               ),
@@ -216,7 +217,6 @@ class _PlayerItemState extends State<PlayerItem>
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.mediaPlayer.value.isPlaying == true &&
           playerController.danmakuOn == true) {
-        // debugPrint('当前播放到 ${videoController.currentPosition.inSeconds}');
         playerController.danDanmakus[playerController.currentPosition.inSeconds]
             ?.asMap()
             .forEach((idx, danmaku) async {
@@ -282,7 +282,8 @@ class _PlayerItemState extends State<PlayerItem>
             infoController.bangumiItem,
             playerController.mediaPlayer.value.position,
             videoPageController.src,
-            videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]);
+            videoPageController.roadList[videoPageController.currentRoad]
+                .identifier[videoPageController.currentEspisode - 1]);
       }
       // 自动播放下一集
       if (playerController.completed &&
@@ -478,6 +479,7 @@ class _PlayerItemState extends State<PlayerItem>
     SmartDialog.dismiss();
     SmartDialog.showLoading(msg: '弹幕检索中');
     DanmakuSearchResponse danmakuSearchResponse;
+    DanmakuEpisodeResponse danmakuEpisodeResponse;
     try {
       danmakuSearchResponse =
           await DanmakuRequest.getDanmakuSearchResponse(keyword);
@@ -500,53 +502,42 @@ class _PlayerItemState extends State<PlayerItem>
               children: danmakuSearchResponse.animes.map((danmakuInfo) {
                 return ListTile(
                   title: Text(danmakuInfo.animeTitle),
-                  onTap: () {
+                  onTap: () async {
                     SmartDialog.dismiss();
-                    int danmakuEpisode = videoPageController.currentEspisode;
+                    SmartDialog.showLoading(msg: '弹幕检索中');
+                    try {
+                      danmakuEpisodeResponse =
+                          await DanmakuRequest.getDanDanEpisodesByBangumiID(
+                              danmakuInfo.animeId);
+                    } catch (e) {
+                      SmartDialog.dismiss();
+                      SmartDialog.showToast('检索弹幕失败 ${e.toString()}');
+                      return;
+                    }
+                    SmartDialog.dismiss();
+                    if (danmakuEpisodeResponse.episodes.isEmpty) {
+                      SmartDialog.showToast('未找到匹配结果');
+                      return;
+                    }
                     SmartDialog.show(
                         useAnimation: false,
                         builder: (context) {
-                          return AlertDialog(
-                            title: const Text('弹幕选集'),
-                            content: StatefulBuilder(builder:
-                                (BuildContext context, StateSetter setState) {
-                              return Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: [
-                                  for (int i = 1;
-                                      i <=
-                                          videoPageController
-                                              .roadList[videoPageController
-                                                  .currentRoad]
-                                              .data
-                                              .length;
-                                      i++) ...<Widget>[
-                                    FilledButton.tonal(
-                                      onPressed: () {
-                                        danmakuEpisode = i;
-                                        SmartDialog.dismiss();
-                                        try {
-                                          _focusNode.requestFocus();
-                                        } catch (_) {}
-                                        SmartDialog.showToast('弹幕切换中');
-                                        try {
-                                          playerController.getDanDanmaku(
-                                              danmakuInfo.animeTitle,
-                                              danmakuEpisode);
-                                          if (!playerController.danmakuOn) {
-                                            playerController.danmakuOn = true;
-                                          }
-                                        } catch (e) {
-                                          SmartDialog.showToast('弹幕切换失败');
-                                        }
-                                      },
-                                      child: Text('第${i.toString()}话'),
-                                    ),
-                                  ]
-                                ],
-                              );
-                            }),
+                          return Dialog(
+                            child: ListView(
+                              shrinkWrap: true,
+                              children: danmakuEpisodeResponse.episodes
+                                  .map((episode) {
+                                return ListTile(
+                                  title: Text(episode.episodeTitle),
+                                  onTap: () {
+                                    SmartDialog.dismiss();
+                                    SmartDialog.showToast('弹幕切换中');
+                                    playerController.getDanDanmakuByEpisodeID(
+                                        episode.episodeId);
+                                  },
+                                );
+                              }).toList(),
+                            ),
                           );
                         });
                   },
@@ -1200,7 +1191,9 @@ class _PlayerItemState extends State<PlayerItem>
                                       color: Colors.white,
                                       icon: const Icon(Icons.cast),
                                       onPressed: () {
-                                        if (videoPageController.currentPlugin.referer == '') {
+                                        if (videoPageController
+                                                .currentPlugin.referer ==
+                                            '') {
                                           playerController.pause();
                                           RemotePlay().castVideo(context);
                                         } else {

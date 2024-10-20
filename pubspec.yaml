@@ -82,7 +82,6 @@ dependencies:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
       ref: no_texture
-  scrollview_observer: ^1.22.0
 
 dev_dependencies:
   flutter_test:

@@ -267,9 +267,9 @@ class _PopularPageState extends State<PopularPage>
                         ),
                         SliverPadding(
                             padding: const EdgeInsets.fromLTRB(
-                                StyleString.safeSpace,
+                                StyleString.cardSpace,
                                 0,
-                                StyleString.safeSpace,
+                                StyleString.cardSpace,
                                 0),
                             sliver: Observer(builder: (context) {
                               if (popularController.bangumiList.isEmpty &&

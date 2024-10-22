@@ -159,7 +159,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   itemCount: pluginsController.pluginList.length,
                   itemBuilder: (context, index) {
                     return Card(
-                      margin: const EdgeInsets.all(8.0),
+                      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                       child: ListTile(
                         title: Text(
                           pluginsController.pluginList[index].name,

@@ -11,6 +11,7 @@ class AppDelegate: FlutterAppDelegate {
     
     var playerView: AVPlayerView!
     var player: AVPlayer?
+    var videoUrl: URL?
     
     override func applicationDidFinishLaunching(_ notification: Notification) {
         let controller : FlutterViewController = mainFlutterWindow?.contentViewController as! FlutterViewController
@@ -32,6 +33,46 @@ class AppDelegate: FlutterAppDelegate {
     }
     
     private func openVideoWithMime(url: String, mimeType: String) {
+        videoUrl = URL(string: url)
+        
+        let selectMenu = NSMenu()
+        
+        /* AVPlayer menu item sample start */
+        let menuItem = NSMenuItem()
+        menuItem.attributedTitle = NSAttributedString(string: "AVPlayer", attributes: [.font: NSFont.systemFont(ofSize: 14)])
+        menuItem.action = #selector(openWithAVPlayer)
+        menuItem.toolTip = "macOS自带播放器，部分视频源有兼容问题"
+        
+        let icon = NSWorkspace.shared.icon(forFile: "/System/Applications/Preview.app")
+        icon.size = NSSize(width: 16, height: 16)
+        menuItem.image = icon
+        
+        selectMenu.addItem(menuItem)
+        /* AVPlayer menu item sample end */
+        
+        /* IINA menu item start */
+        if let iinaPath = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.colliderli.iina") {
+            let menuItem = NSMenuItem()
+            menuItem.attributedTitle = NSAttributedString(string: "IINA.app", attributes: [.font: NSFont.systemFont(ofSize: 14)])
+            menuItem.action = #selector(openWithSelectedApp(_:))
+            menuItem.representedObject = "/Applications/IINA.app/Contents/MacOS/IINA"
+            
+            let icon = NSWorkspace.shared.icon(forFile: "/Applications/IINA.app")
+            icon.size = NSSize(width: 16, height: 16)
+            menuItem.image = icon
+
+            selectMenu.addItem(menuItem)
+        }
+        /* IINA menu item end */
+        
+        /* Add more app to menu item here start */
+
+        /* Add more app to menu item here end */
+        
+        selectMenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+    
+    @objc func openWithAVPlayer () {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
                               styleMask: [.titled, .closable, .resizable],
                               backing: .buffered, defer: false)
@@ -43,10 +84,23 @@ class AppDelegate: FlutterAppDelegate {
         window.contentView?.addSubview(playerView)
         window.delegate = self
         
-        let videoUrl = URL(string: url)
         player = AVPlayer(url: videoUrl!)
         playerView.player = player
         playerView.player?.play()
+    }
+    
+    @objc func openWithSelectedApp (_ sender: NSMenuItem) {
+        if let selectedApp = sender.representedObject {
+            let process = Process()
+            process.launchPath = selectedApp as? String
+            process.arguments = [videoUrl!.absoluteString]
+
+            do {
+                try process.run()
+            } catch {
+                print("Failed to open app: \(error)")
+            }
+        }
     }
 }
 

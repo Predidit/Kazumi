@@ -11,6 +11,9 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   // so we need to store the currentUrl manually
   String currentUrl = '';
 
+  Timer? ifrmaeParserTimer;
+  Timer? videoParserTimer;
+
   @override
   init() async {
     webviewController ??= WebViewController();
@@ -21,6 +24,8 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
 
   @override
   loadUrl(String url, {int offset = 0}) async {
+    ifrmaeParserTimer?.cancel();
+    videoParserTimer?.cancel();
     await unloadPage();
     await setDesktopUserAgent();
     count = 0;
@@ -110,7 +115,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
     });
     await webviewController!.loadRequest(Uri.parse(url));
 
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    ifrmaeParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
         timer.cancel();
       } else {
@@ -119,7 +124,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
       }
     });
     if (videoPageController.currentPlugin.useNativePlayer) {
-      Timer.periodic(const Duration(seconds: 1), (timer) {
+      videoParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (isVideoSourceLoaded) {
           timer.cancel();
         } else {

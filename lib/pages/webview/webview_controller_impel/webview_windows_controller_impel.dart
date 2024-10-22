@@ -5,6 +5,9 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 
 class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewController> {
+  Timer? ifrmaeParserTimer;
+  Timer? videoParserTimer;
+
   @override
   init() async {
     webviewController ??= WebviewController();
@@ -23,6 +26,8 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
 
   @override
   loadUrl(String url, {int offset = 0}) async {
+    ifrmaeParserTimer?.cancel();
+    videoParserTimer?.cancel();
     await unloadPage();
     count = 0;
     this.offset = offset;
@@ -31,7 +36,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
     videoPageController.loading = true;
     await webviewController!.loadUrl(url);
 
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    ifrmaeParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (isIframeLoaded) {
         timer.cancel();
       } else {
@@ -41,7 +46,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
       // parseIframeUrl();
     });
     if (videoPageController.currentPlugin.useNativePlayer) {
-      Timer.periodic(const Duration(seconds: 1), (timer) {
+      videoParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (isVideoSourceLoaded) {
           timer.cancel();
         } else {

@@ -51,7 +51,7 @@ class AppDelegate: FlutterAppDelegate {
         /* AVPlayer menu item sample end */
         
         /* IINA menu item start */
-        if let iinaPath = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.colliderli.iina") {
+        if (NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.colliderli.iina") != nil) {
             let menuItem = NSMenuItem()
             menuItem.attributedTitle = NSAttributedString(string: "IINA.app", attributes: [.font: NSFont.systemFont(ofSize: 14)])
             menuItem.action = #selector(openWithSelectedApp(_:))

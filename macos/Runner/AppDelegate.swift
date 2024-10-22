@@ -32,12 +32,42 @@ class AppDelegate: FlutterAppDelegate {
         });
     }
     
+    func findApplicationsByMimeType(mimeType: String) -> [URL] {
+        
+        let fileExtension = mimeType.components(separatedBy: "/").last ?? ""
+        let tempFileURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("temp.\(fileExtension)")
+        
+        FileManager.default.createFile(atPath: tempFileURL.path, contents: nil, attributes: nil)
+        
+        if #available(macOS 12.0, *) {
+            let listOfExternalApps = NSWorkspace.shared.urlsForApplications(toOpen: tempFileURL)
+            if FileManager.default.fileExists(atPath: tempFileURL.path) {
+                do {
+                    try FileManager.default.removeItem(atPath: tempFileURL.path)
+                } catch {
+                    print("Delete error: \(error.localizedDescription)")
+                }
+            }
+            return listOfExternalApps
+        } else {
+            if FileManager.default.fileExists(atPath: tempFileURL.path) {
+                do {
+                    try FileManager.default.removeItem(atPath: tempFileURL.path)
+                } catch {
+                    print("Delete error: \(error.localizedDescription)")
+                }
+            }
+            return []
+        }
+    }
+    
     private func openVideoWithMime(url: String, mimeType: String) {
         videoUrl = URL(string: url)
         
         let selectMenu = NSMenu()
+        let appLists = findApplicationsByMimeType(mimeType: mimeType)
         
-        /* AVPlayer menu item sample start */
+        /* AVPlayer menu item start */
         let menuItem = NSMenuItem()
         menuItem.attributedTitle = NSAttributedString(string: "AVPlayer", attributes: [.font: NSFont.systemFont(ofSize: 14)])
         menuItem.action = #selector(openWithAVPlayer)
@@ -48,26 +78,28 @@ class AppDelegate: FlutterAppDelegate {
         menuItem.image = icon
         
         selectMenu.addItem(menuItem)
-        /* AVPlayer menu item sample end */
+        /* AVPlayer menu item end */
         
-        /* IINA menu item start */
-        if (NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.colliderli.iina") != nil) {
-            let menuItem = NSMenuItem()
-            menuItem.attributedTitle = NSAttributedString(string: "IINA.app", attributes: [.font: NSFont.systemFont(ofSize: 14)])
-            menuItem.action = #selector(openWithSelectedApp(_:))
-            menuItem.representedObject = "/Applications/IINA.app/Contents/MacOS/IINA"
+        /* Applications menu item start */
+        for appList in appLists {
+            let appBundle = Bundle(url: appList)
+            let appName = appBundle?.infoDictionary?["CFBundleName"] as? String ?? ""
+            if appName == "QuickTime Player" || appName == "Books" {
+                continue
+            }
             
-            let icon = NSWorkspace.shared.icon(forFile: "/Applications/IINA.app")
+            let menuItem = NSMenuItem()
+            menuItem.attributedTitle = NSAttributedString(string: "\(appName).app", attributes: [.font: NSFont.systemFont(ofSize: 14)])
+            menuItem.action = #selector(openWithSelectedApp(_:))
+            menuItem.representedObject = "/Applications/\(appName).app/Contents/MacOS/\(appName)"
+            
+            let icon = NSWorkspace.shared.icon(forFile: "/Applications/\(appName).app")
             icon.size = NSSize(width: 16, height: 16)
             menuItem.image = icon
 
             selectMenu.addItem(menuItem)
         }
-        /* IINA menu item end */
-        
-        /* Add more app to menu item here start */
-
-        /* Add more app to menu item here end */
+        /* Applications menu item end */
         
         selectMenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }

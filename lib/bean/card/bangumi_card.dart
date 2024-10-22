@@ -97,7 +97,7 @@ class BangumiContent extends StatelessWidget {
     return Expanded(
       child: Padding(
         // 多列
-        padding: const EdgeInsets.fromLTRB(4, 5, 0, 3),
+        padding: const EdgeInsets.fromLTRB(5, 3, 5, 0),
         // 单列
         // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
         child: Column(
@@ -113,7 +113,7 @@ class BangumiContent extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.3,
                   ),
-                  maxLines: 1,
+                  maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
                   overflow: TextOverflow.ellipsis,
                 )),
               ],

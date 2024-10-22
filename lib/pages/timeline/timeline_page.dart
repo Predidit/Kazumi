@@ -210,7 +210,7 @@ class _TimelinePageState extends State<TimelinePage>
               ),
             ),
             body: Padding(
-                padding: const EdgeInsets.only(left: 5, right: 5, top: 10),
+                padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
                 child: renderBody(orientation)),
           ),
         );

@@ -168,7 +168,7 @@ class _VideoPageState extends State<VideoPage>
                                     ? 420
                                     : MediaQuery.of(context).size.width * 1 / 3,
                             child: Container(
-                                color: Colors.black,
+                                color: Theme.of(context).canvasColor,
                                 child: GridViewObserver(
                                   controller: videoPageController.observerController,
                                   child: Column(
@@ -223,7 +223,7 @@ class _VideoPageState extends State<VideoPage>
                               height: MediaQuery.of(context).size.height,
                               width: MediaQuery.of(context).size.height,
                               child: Container(
-                                  color: Colors.black,
+                                  color: Theme.of(context).canvasColor,
                                   child: GridViewObserver(
                                     controller: videoPageController.observerController,
                                     child: Column(

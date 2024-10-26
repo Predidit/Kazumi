@@ -304,6 +304,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void onBackPressed(BuildContext context) async {
     if (videoPageController.androidFullscreen) {
+      videoPageController.menuJumpToCurrentEpisode();
       setState(() {
         lockPanel = false;
       });
@@ -341,8 +342,10 @@ class _PlayerItemState extends State<PlayerItem>
         lockPanel = false;
       });
       Utils.exitFullScreen();
+      videoPageController.menuJumpToCurrentEpisode();
     } else {
       Utils.enterFullScreen();
+      videoPageController.showTabBody = false;
     }
     videoPageController.androidFullscreen =
         !videoPageController.androidFullscreen;
@@ -1407,8 +1410,8 @@ class _PlayerItemState extends State<PlayerItem>
                                         _handleDanmaku();
                                       },
                                     ),
-                                    (videoPageController.androidFullscreen ||
-                                            !Utils.isDesktop())
+                                    (!videoPageController.androidFullscreen &&
+                                            !Utils.isTablet() && !Utils.isDesktop())
                                         ? Container()
                                         : IconButton(
                                             color: Colors.white,
@@ -1420,6 +1423,10 @@ class _PlayerItemState extends State<PlayerItem>
                                               videoPageController.showTabBody =
                                                   !videoPageController
                                                       .showTabBody;
+                                              if (videoPageController.showTabBody) {
+                                                videoPageController.animation.forward();
+                                                videoPageController.menuJumpToCurrentEpisode();
+                                              }
                                             },
                                           ),
                                     IconButton(

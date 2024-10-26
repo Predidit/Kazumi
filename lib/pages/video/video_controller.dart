@@ -1,3 +1,4 @@
+import 'package:flutter/animation.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -7,6 +8,7 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:scrollview_observer/scrollview_observer.dart';
 
 part 'video_controller.g.dart';
 
@@ -49,6 +51,8 @@ abstract class _VideoPageController with Store {
   var roadList = ObservableList<Road>();
 
   late Plugin currentPlugin;
+  late GridObserverController observerController;
+  late AnimationController animation;
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
@@ -73,6 +77,15 @@ abstract class _VideoPageController with Store {
     }
     final webviewItemController = Modular.get<WebviewItemController>();
     await webviewItemController.loadUrl(urlItem, offset: offset);
+  }
+
+  menuJumpToCurrentEpisode() {
+    // if (showTabBody) {
+      Future.delayed(const Duration(milliseconds: 20), () {
+        observerController.jumpTo(
+            index: currentEspisode > 1 ? currentEspisode - 1 : currentEspisode);
+      });
+    // }
   }
 }
 

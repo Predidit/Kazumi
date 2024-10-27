@@ -501,6 +501,7 @@ class _VideoPageState extends State<VideoPage>
                     return;
                   }
                   KazumiLogger().log(Level.info, '视频链接为 $urlItem');
+                  closeTabBodyAnimated();
                   videoPageController.currentRoad = currentRoad;
                   videoPageController.changeEpisode(count0,
                       currentRoad: videoPageController.currentRoad);

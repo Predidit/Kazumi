@@ -37,6 +37,8 @@ class _VideoPageState extends State<VideoPage>
   late bool playResume;
 
   ScrollController scrollController = ScrollController();
+  late GridObserverController observerController;
+  late AnimationController animation;
   late Animation<Offset> _rightOffsetAnimation;
 
   // 当前播放列表
@@ -45,8 +47,8 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
-    videoPageController.observerController = GridObserverController(controller: scrollController);
-    videoPageController.animation = AnimationController(
+    observerController = GridObserverController(controller: scrollController);
+    animation = AnimationController(
       duration: const Duration(milliseconds: 100),
       vsync: this,
     );
@@ -54,7 +56,7 @@ class _VideoPageState extends State<VideoPage>
       begin: const Offset(1.0, 0.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: videoPageController.animation,
+      parent: animation,
       curve: Curves.easeInOut,
     ));
     WakelockPlus.enable();
@@ -85,8 +87,8 @@ class _VideoPageState extends State<VideoPage>
     try {
       playerController.mediaPlayer.dispose();
     } catch (_) {}
-    videoPageController.observerController.controller?.dispose();
-    videoPageController.animation.dispose();
+    observerController.controller?.dispose();
+    animation.dispose();
     WakelockPlus.disable();
     Utils.unlockScreenRotation();
     super.dispose();
@@ -96,8 +98,24 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.showDebugLog = !videoPageController.showDebugLog;
   }
 
+  void menuJumpToCurrentEpisode() {
+    Future.delayed(const Duration(milliseconds: 20), () {
+      observerController.jumpTo(
+          index: videoPageController.currentEspisode > 1
+              ? videoPageController.currentEspisode - 1
+              : videoPageController.currentEspisode);
+    });
+  }
+
+  void openTabBodyAnimated() {
+    if (videoPageController.showTabBody) {
+      animation.forward();
+      menuJumpToCurrentEpisode();
+    }
+  }
+
   void closeTabBodyAnimated() {
-    videoPageController.animation.reverse();
+    animation.reverse();
     Future.delayed(const Duration(milliseconds: 100), () {
       videoPageController.showTabBody = false;
     });
@@ -106,10 +124,7 @@ class _VideoPageState extends State<VideoPage>
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (videoPageController.showTabBody) {
-        videoPageController.animation.forward();
-        videoPageController.menuJumpToCurrentEpisode();
-      }
+      openTabBodyAnimated();
     });
     return OrientationBuilder(builder: (context, orientation) {
       if (!Utils.isTablet() && !Utils.isDesktop()) {
@@ -121,7 +136,7 @@ class _VideoPageState extends State<VideoPage>
         } else if (orientation == Orientation.portrait &&
             videoPageController.androidFullscreen) {
           Utils.exitFullScreen(lockOrientation: false);
-          videoPageController.menuJumpToCurrentEpisode();
+          menuJumpToCurrentEpisode();
           videoPageController.androidFullscreen = false;
         }
       }
@@ -170,7 +185,7 @@ class _VideoPageState extends State<VideoPage>
                             child: Container(
                                 color: Theme.of(context).canvasColor,
                                 child: GridViewObserver(
-                                  controller: videoPageController.observerController,
+                                  controller: observerController,
                                   child: Column(
                                     children: [
                                       tabBar,
@@ -191,7 +206,7 @@ class _VideoPageState extends State<VideoPage>
                               child: playerBody),
                           Expanded(
                               child: GridViewObserver(
-                            controller: videoPageController.observerController,
+                            controller: observerController,
                             child: Column(
                               children: [
                                 tabBar,
@@ -225,7 +240,7 @@ class _VideoPageState extends State<VideoPage>
                               child: Container(
                                   color: Theme.of(context).canvasColor,
                                   child: GridViewObserver(
-                                    controller: videoPageController.observerController,
+                                    controller: observerController,
                                     child: Column(
                                       children: [
                                         tabBar,
@@ -337,7 +352,7 @@ class _VideoPageState extends State<VideoPage>
                                   if (videoPageController.androidFullscreen ==
                                       true) {
                                     Utils.exitFullScreen();
-                                    videoPageController.menuJumpToCurrentEpisode();
+                                    menuJumpToCurrentEpisode();
                                     videoPageController.androidFullscreen =
                                         false;
                                     return;
@@ -353,10 +368,7 @@ class _VideoPageState extends State<VideoPage>
                                 child: IconButton(
                                     onPressed: () {
                                         videoPageController.showTabBody = !videoPageController.showTabBody;
-                                        if (videoPageController.showTabBody) {
-                                          videoPageController.animation.forward();
-                                          videoPageController.menuJumpToCurrentEpisode();
-                                        }
+                                        openTabBodyAnimated();
                                       },
                                     icon: Icon(
                                         videoPageController.showTabBody
@@ -387,7 +399,7 @@ class _VideoPageState extends State<VideoPage>
           child: (!videoPageController.currentPlugin.useNativePlayer ||
                   playerController.loading)
               ? Container()
-              : const PlayerItem(),
+              : PlayerItem(openMenu: openTabBodyAnimated, locateEpisode: menuJumpToCurrentEpisode),
         ),
 
         /// workaround for webview_windows

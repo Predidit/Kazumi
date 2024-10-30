@@ -32,7 +32,10 @@ import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constans.dart';
 
 class PlayerItem extends StatefulWidget {
-  const PlayerItem({super.key});
+  const PlayerItem({super.key, required this.openMenu, required this.locateEpisode});
+
+  final VoidCallback openMenu;
+  final VoidCallback locateEpisode;
 
   @override
   State<PlayerItem> createState() => _PlayerItemState();
@@ -304,6 +307,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void onBackPressed(BuildContext context) async {
     if (videoPageController.androidFullscreen) {
+      widget.locateEpisode();
       setState(() {
         lockPanel = false;
       });
@@ -341,8 +345,10 @@ class _PlayerItemState extends State<PlayerItem>
         lockPanel = false;
       });
       Utils.exitFullScreen();
+      widget.locateEpisode();
     } else {
       Utils.enterFullScreen();
+      videoPageController.showTabBody = false;
     }
     videoPageController.androidFullscreen =
         !videoPageController.androidFullscreen;
@@ -1307,7 +1313,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ),
                                     // 更换选集
                                     (videoPageController.androidFullscreen ||
-                                            !videoPageController.showTabBody)
+                                            Utils.isTablet() || Utils.isDesktop())
                                         ? IconButton(
                                             color: Colors.white,
                                             icon: const Icon(Icons.skip_next),
@@ -1378,10 +1384,7 @@ class _PlayerItemState extends State<PlayerItem>
                                             ),
                                           ),
                                     // 弹幕相关
-                                    ((videoPageController.androidFullscreen ||
-                                                !videoPageController
-                                                    .showTabBody) &&
-                                            playerController.danmakuOn)
+                                    (playerController.danmakuOn)
                                         ? IconButton(
                                             color: Colors.white,
                                             icon: const Icon(Icons.notes),
@@ -1407,8 +1410,8 @@ class _PlayerItemState extends State<PlayerItem>
                                         _handleDanmaku();
                                       },
                                     ),
-                                    (videoPageController.androidFullscreen ||
-                                            !Utils.isDesktop())
+                                    (!videoPageController.androidFullscreen &&
+                                            !Utils.isTablet() && !Utils.isDesktop())
                                         ? Container()
                                         : IconButton(
                                             color: Colors.white,
@@ -1420,6 +1423,7 @@ class _PlayerItemState extends State<PlayerItem>
                                               videoPageController.showTabBody =
                                                   !videoPageController
                                                       .showTabBody;
+                                              widget.openMenu();
                                             },
                                           ),
                                     IconButton(

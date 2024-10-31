@@ -578,7 +578,10 @@ class _PlayerItemState extends State<PlayerItem>
           ),
           actions: [
             TextButton(
-              onPressed: () => SmartDialog.dismiss(),
+              onPressed: () {
+                SmartDialog.dismiss();
+                _focusNode.requestFocus();
+              },
               child: Text(
                 '取消',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),

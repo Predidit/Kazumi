@@ -134,7 +134,8 @@ class _HistoryPageState extends State<HistoryPage>
         SliverPadding(
           padding: const EdgeInsets.only(
               left: StyleString.cardSpace + 2,
-              right: StyleString.cardSpace + 2),
+              right: StyleString.cardSpace + 2,
+              bottom: StyleString.safeSpace * 2),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 mainAxisSpacing: StyleString.cardSpace - 2,

@@ -97,6 +97,8 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
 
+  double lastPlayerSpeed = 1.0;
+
   /// 处理 Android/iOS 应用后台或熄屏
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -857,8 +859,8 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = true;
                               });
-                              playerController.setPlaybackSpeed(
-                                  playerController.playerSpeed * 2.5);
+                              lastPlayerSpeed = playerController.playerSpeed;
+                              playerController.setPlaybackSpeed(2.0);
                             },
                             onLongPressEnd: (_) {
                               if (lockPanel) {
@@ -867,8 +869,7 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = false;
                               });
-                              playerController.setPlaybackSpeed(
-                                  playerController.playerSpeed / 2.5);
+                              playerController.setPlaybackSpeed(lastPlayerSpeed);
                             },
                             child: Container(
                               color: Colors.transparent,

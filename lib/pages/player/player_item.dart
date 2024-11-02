@@ -302,8 +302,9 @@ class _PlayerItemState extends State<PlayerItem>
         try {
           playerTimer!.cancel();
         } catch (_) {}
-        videoPageController
-            .changeEpisode(videoPageController.currentEspisode + 1);
+        videoPageController.changeEpisode(
+            videoPageController.currentEspisode + 1,
+            currentRoad: videoPageController.currentRoad);
       }
     });
   }
@@ -869,7 +870,8 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = false;
                               });
-                              playerController.setPlaybackSpeed(lastPlayerSpeed);
+                              playerController
+                                  .setPlaybackSpeed(lastPlayerSpeed);
                             },
                             child: Container(
                               color: Colors.transparent,

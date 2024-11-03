@@ -124,6 +124,5 @@ class SettingBoxKey {
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd',
-      lowMemoryMode = 'lowMemoryMode',
-      extendPlaySpeed = 'extendPlaySpeed';
+      lowMemoryMode = 'lowMemoryMode';
 }

@@ -1,15 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:fvp/fvp.dart' as fvp;
+import 'package:hive/hive.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:hive/hive.dart';
 import 'package:kazumi/utils/constans.dart';
-import 'package:fvp/fvp.dart' as fvp;
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:provider/provider.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -138,14 +140,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 defaultVal: true,
               ),
             ),
-            const InkWell(
-              child: SetSwitchItem(
-                title: '拓展倍速',
-                subTitle: '启用更多的倍速选项，iOS平台有的视频无法以高于2.0的播放倍速播放',
-                setKey: SettingBoxKey.extendPlaySpeed,
-                defaultVal: false,
-              ),
-            ),
             ListTile(
               onTap: () async {
                 SmartDialog.show(
@@ -156,12 +150,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<double> playSpeedList;
-                          if (setting.get(SettingBoxKey.extendPlaySpeed,
-                              defaultValue: false)) {
+                          if (Platform.isMacOS &&
+                              setting.get(SettingBoxKey.hAenable,
+                                  defaultValue: true)) {
+                            playSpeedList = defaultPlaySpeedList;
+                          } else {
                             playSpeedList =
                                 defaultPlaySpeedList + extendPlaySpeedList;
-                          } else {
-                            playSpeedList = defaultPlaySpeedList;
                           }
                           return Wrap(
                             spacing: 8,

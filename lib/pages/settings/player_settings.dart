@@ -138,6 +138,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 defaultVal: true,
               ),
             ),
+            const InkWell(
+              child: SetSwitchItem(
+                title: '拓展倍速',
+                subTitle: '启用更多的倍速选项，iOS平台有的视频无法以高于2.0的播放倍速播放',
+                setKey: SettingBoxKey.extendPlaySpeed,
+                defaultVal: false,
+              ),
+            ),
             ListTile(
               onTap: () async {
                 SmartDialog.show(
@@ -147,6 +155,14 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         title: const Text('默认倍速'),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
+                          final List<double> playSpeedList;
+                          if (setting.get(SettingBoxKey.extendPlaySpeed,
+                              defaultValue: false)) {
+                            playSpeedList =
+                                defaultPlaySpeedList + extendPlaySpeedList;
+                          } else {
+                            playSpeedList = defaultPlaySpeedList;
+                          }
                           return Wrap(
                             spacing: 8,
                             runSpacing: 2,

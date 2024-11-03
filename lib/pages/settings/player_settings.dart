@@ -1,15 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:fvp/fvp.dart' as fvp;
+import 'package:hive/hive.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:hive/hive.dart';
 import 'package:kazumi/utils/constans.dart';
-import 'package:fvp/fvp.dart' as fvp;
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:provider/provider.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -147,6 +149,15 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         title: const Text('默认倍速'),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
+                          final List<double> playSpeedList;
+                          if ((Platform.isMacOS || Platform.isIOS) &&
+                              setting.get(SettingBoxKey.hAenable,
+                                  defaultValue: true)) {
+                            playSpeedList = defaultPlaySpeedList;
+                          } else {
+                            playSpeedList =
+                                defaultPlaySpeedList + extendPlaySpeedList;
+                          }
                           return Wrap(
                             spacing: 8,
                             runSpacing: 2,

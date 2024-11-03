@@ -98,6 +98,7 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
 
   double lastPlayerSpeed = 1.0;
+  List<double> playSpeedList = defaultPlaySpeedList;
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -683,6 +684,12 @@ class _PlayerItemState extends State<PlayerItem>
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
+    if ((Platform.isMacOS || Platform.isIOS) &&
+        setting.get(SettingBoxKey.hAenable, defaultValue: true)) {
+      playSpeedList = defaultPlaySpeedList;
+    } else {
+      playSpeedList = defaultPlaySpeedList + extendPlaySpeedList;
+    }
     _handleTap();
   }
 

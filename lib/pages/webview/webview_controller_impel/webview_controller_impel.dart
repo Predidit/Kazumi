@@ -67,7 +67,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
           videoPageController.logLines.add(
               'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
           debugPrint(
-              'Loading video source from ifame src ${Utils.decodeVideoSource(currentUrl)}');
+              'Loading video source from iframe src ${Utils.decodeVideoSource(currentUrl)}');
           unloadPage();
           playerController.videoUrl = Utils.decodeVideoSource(currentUrl);
           playerController.init(offset: offset);
@@ -158,6 +158,8 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
         .catchError((_) {});
     await webviewController!.loadRequest(Uri.parse('about:blank'));
     await webviewController!.clearCache();
+    ifrmaeParserTimer?.cancel();
+    videoParserTimer?.cancel();
   }
 
   @override
@@ -201,11 +203,11 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
         try {
           iframe.contentWindow.eval(`
             var videos = document.querySelectorAll('video');
-            window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
+            VideoBridgeDebug.postMessage('The number of video tags is' + videos.length);
             for (var i = 0; i < videos.length; i++) {
               var src = videos[i].getAttribute('src');
               if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
-                window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
+                VideoBridgeDebug.postMessage(src);
               } 
             }
                   `);

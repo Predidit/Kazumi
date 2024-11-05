@@ -127,7 +127,7 @@ class _VideoPageState extends State<VideoPage>
       openTabBodyAnimated();
     });
     return OrientationBuilder(builder: (context, orientation) {
-      if (!Utils.isTablet() && !Utils.isDesktop()) {
+      if (!Utils.isDesktop()) {
         if (orientation == Orientation.landscape &&
             !videoPageController.androidFullscreen) {
           Utils.enterFullScreen(lockOrientation: false);
@@ -350,13 +350,13 @@ class _VideoPageState extends State<VideoPage>
                                     color: Colors.white),
                                 onPressed: () {
                                   if (videoPageController.androidFullscreen ==
-                                      true) {
+                                      true && !Utils.isTablet()) {
                                     Utils.exitFullScreen();
                                     menuJumpToCurrentEpisode();
-                                    videoPageController.androidFullscreen =
-                                        false;
                                     return;
                                   }
+                                  Utils.exitFullScreen();
+                                  videoPageController.androidFullscreen = false;
                                   Navigator.of(context).pop();
                                 },
                               ),
@@ -536,8 +536,11 @@ class _VideoPageState extends State<VideoPage>
                             ),
                             const SizedBox(width: 6)
                           ],
-                          Text(
+                          Expanded(
+                            child: Text(
                             road.identifier[count0 - 1],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 13,
                                 color: (count0 ==
@@ -547,7 +550,7 @@ class _VideoPageState extends State<VideoPage>
                                             videoPageController.currentRoad)
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
-                          ),
+                          )),
                           const SizedBox(width: 2),
                         ],
                       ),

@@ -80,7 +80,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                   itemCount: pluginsController.pluginHTTPList.length,
                   itemBuilder: (context, index) {
                     return Card(
-                      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       child: ListTile(
                           title: Row(
                             children: [

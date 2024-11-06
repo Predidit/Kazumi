@@ -133,6 +133,38 @@ class _PopularPageState extends State<PopularPage>
                       )
                     : null,
                 backgroundColor: Colors.transparent,
+                actions: [
+                  IconButton(
+                      onPressed: () async {
+                        if (!showSearchBar) {
+                          setState(() {
+                            showSearchBar = true;
+                          });
+                          _focusNode.requestFocus();
+                        } else {
+                          if (keywordController.text == '') {
+                            _focusNode.unfocus();
+                            setState(() {
+                              showSearchBar = false;
+                              searchLoading = true;
+                              popularController.currentTag = '';
+                            });
+                            popularController.searchKeyword == '';
+                            await popularController.queryBangumiListFeed();
+                            setState(() {
+                              searchLoading = false;
+                            });
+                          } else {
+                            keywordController.text = '';
+                            popularController.searchKeyword = '';
+                            _focusNode.requestFocus();
+                          }
+                        }
+                      },
+                      icon: showSearchBar
+                          ? const Icon(Icons.close)
+                          : const Icon(Icons.search))
+                ],
                 title: Stack(
                   children: [
                     Positioned.fill(
@@ -142,103 +174,66 @@ class _PopularPageState extends State<PopularPage>
                         child: Container(),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Visibility(
-                            visible: showSearchBar,
-                            child: TextFormField(
-                              focusNode: _focusNode,
-                              cursorColor:
-                                  Theme.of(context).colorScheme.primary,
-                              decoration: const InputDecoration(
-                                alignLabelWithHint: true,
-                                contentPadding: EdgeInsets.symmetric(
-                                    vertical: 8, horizontal: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(8)),
-                                ),
-                              ),
-                              style: TextStyle(
-                                  color: isLight
-                                      ? Colors.black87
-                                      : Colors.white70),
-                              onChanged: (_) {
-                                scrollController.jumpTo(0.0);
-                              },
-                              controller: keywordController,
-                              onFieldSubmitted: (t) async {
-                                setState(() {
-                                  timeout = false;
-                                  searchLoading = true;
-                                  popularController.currentTag = '';
-                                });
-                                if (t != '') {
-                                  popularController.searchKeyword = t;
-                                  await popularController
-                                      .queryBangumi(
-                                          popularController.searchKeyword)
-                                      .then((_) {
-                                    if (popularController.bangumiList.isEmpty &&
-                                        mounted) {
-                                      setState(() {
-                                        timeout = true;
-                                      });
-                                    }
-                                  });
-                                } else {
-                                  popularController.searchKeyword = '';
-                                  await popularController
-                                      .queryBangumiListFeed()
-                                      .then((_) {
-                                    if (popularController.bangumiList.isEmpty &&
-                                        mounted) {
-                                      setState(() {
-                                        timeout = true;
-                                      });
-                                    }
-                                  });
-                                }
-                                setState(() {
-                                  searchLoading = false;
-                                });
-                              },
+                    Padding(
+                      padding:
+                          EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
+                      child: Visibility(
+                        visible: showSearchBar,
+                        child: TextFormField(
+                          focusNode: _focusNode,
+                          cursorColor: Theme.of(context).colorScheme.primary,
+                          decoration: const InputDecoration(
+                            alignLabelWithHint: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                vertical: 8, horizontal: 8),
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(8)),
                             ),
                           ),
-                        ),
-                        IconButton(
-                            onPressed: () async {
-                              if (!showSearchBar) {
-                                setState(() {
-                                  showSearchBar = true;
-                                });
-                                _focusNode.requestFocus();
-                              } else {
-                                if (keywordController.text == '') {
-                                  _focusNode.unfocus();
+                          style: TextStyle(
+                              color: isLight ? Colors.black87 : Colors.white70),
+                          onChanged: (_) {
+                            scrollController.jumpTo(0.0);
+                          },
+                          controller: keywordController,
+                          onFieldSubmitted: (t) async {
+                            setState(() {
+                              timeout = false;
+                              searchLoading = true;
+                              popularController.currentTag = '';
+                            });
+                            if (t != '') {
+                              popularController.searchKeyword = t;
+                              await popularController
+                                  .queryBangumi(popularController.searchKeyword)
+                                  .then((_) {
+                                if (popularController.bangumiList.isEmpty &&
+                                    mounted) {
                                   setState(() {
-                                    showSearchBar = false;
-                                    searchLoading = true;
-                                    popularController.currentTag = '';
+                                    timeout = true;
                                   });
-                                  popularController.searchKeyword == '';
-                                  await popularController
-                                      .queryBangumiListFeed();
-                                  setState(() {
-                                    searchLoading = false;
-                                  });
-                                } else {
-                                  keywordController.text = '';
-                                  popularController.searchKeyword = '';
-                                  _focusNode.requestFocus();
                                 }
-                              }
-                            },
-                            icon: showSearchBar
-                                ? const Icon(Icons.close)
-                                : const Icon(Icons.search))
-                      ],
+                              });
+                            } else {
+                              popularController.searchKeyword = '';
+                              await popularController
+                                  .queryBangumiListFeed()
+                                  .then((_) {
+                                if (popularController.bangumiList.isEmpty &&
+                                    mounted) {
+                                  setState(() {
+                                    timeout = true;
+                                  });
+                                }
+                              });
+                            }
+                            setState(() {
+                              searchLoading = false;
+                            });
+                          },
+                        ),
+                      ),
                     ),
                   ],
                 ),

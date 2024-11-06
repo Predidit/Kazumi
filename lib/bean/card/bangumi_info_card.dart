@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -145,20 +145,25 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         child:
                             Text('#${widget.bangumiItem.rank}', style: style),
                       ),
-                      Utils.isCompact() ? Container() : const SizedBox(width: 7),
-                      Utils.isCompact() ? Container() : FilledButton.tonal(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          side: const BorderSide(
-                              // width: 2,
+                      Utils.isCompact()
+                          ? Container()
+                          : const SizedBox(width: 7),
+                      Utils.isCompact()
+                          ? Container()
+                          : FilledButton.tonal(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                side: const BorderSide(
+                                    // width: 2,
+                                    ),
+                                backgroundColor: Colors.transparent,
                               ),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child: Text(widget.bangumiItem.airDate, style: style),
-                      ),
+                              child: Text(widget.bangumiItem.airDate,
+                                  style: style),
+                            ),
                     ],
                   ),
                   Utils.isCompact() ? Container() : const SizedBox(height: 10),

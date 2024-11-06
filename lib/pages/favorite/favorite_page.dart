@@ -1,7 +1,7 @@
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -98,20 +98,25 @@ class _FavoritePageState extends State<FavoritePage> {
           if (bangumiList.isNotEmpty) {
             return Stack(
               children: [
-                BangumiCardV(bangumiItem: bangumiList[index], canTap: !showDelete,),
+                BangumiCardV(
+                  bangumiItem: bangumiList[index],
+                  canTap: !showDelete,
+                ),
                 Positioned(
                   right: 5,
                   bottom: 5,
-                  child: showDelete ? IconButton.filledTonal(
-                    icon: const Icon(Icons.favorite),
-                    onPressed: () async {
-                      await favoriteController
-                          .deleteFavorite(bangumiList[index]);
-                      if (mounted) {
-                        setState(() {});
-                      }
-                    },
-                  ) : Container(),
+                  child: showDelete
+                      ? IconButton.filledTonal(
+                          icon: const Icon(Icons.favorite),
+                          onPressed: () async {
+                            await favoriteController
+                                .deleteFavorite(bangumiList[index]);
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          },
+                        )
+                      : Container(),
                 ),
               ],
             );

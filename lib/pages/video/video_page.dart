@@ -60,7 +60,7 @@ class _VideoPageState extends State<VideoPage>
       curve: Curves.easeInOut,
     ));
     WakelockPlus.enable();
-    videoPageController.currentEspisode = 1;
+    videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
@@ -71,7 +71,7 @@ class _VideoPageState extends State<VideoPage>
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
-          videoPageController.currentEspisode = progress.episode;
+          videoPageController.currentEpisode = progress.episode;
           videoPageController.currentRoad = progress.road;
           if (playResume) {
             videoPageController.historyOffset = progress.progress.inSeconds;
@@ -101,9 +101,9 @@ class _VideoPageState extends State<VideoPage>
   void menuJumpToCurrentEpisode() {
     Future.delayed(const Duration(milliseconds: 20), () {
       observerController.jumpTo(
-          index: videoPageController.currentEspisode > 1
-              ? videoPageController.currentEspisode - 1
-              : videoPageController.currentEspisode);
+          index: videoPageController.currentEpisode > 1
+              ? videoPageController.currentEpisode - 1
+              : videoPageController.currentEpisode);
     });
   }
 
@@ -176,24 +176,28 @@ class _VideoPageState extends State<VideoPage>
                             height: double.infinity,
                           ),
                         ),
-                        SlideTransition(position: _rightOffsetAnimation,
-                        child: SizedBox(
-                            height: MediaQuery.of(context).size.height,
-                            width: MediaQuery.of(context).size.width * 1 / 3 > 420
+                        SlideTransition(
+                            position: _rightOffsetAnimation,
+                            child: SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                width: MediaQuery.of(context).size.width *
+                                            1 /
+                                            3 >
+                                        420
                                     ? 420
                                     : MediaQuery.of(context).size.width * 1 / 3,
-                            child: Container(
-                                color: Theme.of(context).canvasColor,
-                                child: GridViewObserver(
-                                  controller: observerController,
-                                  child: Column(
-                                    children: [
-                                      tabBar,
-                                      tabBody,
-                                    ],
-                                  ),
-                                )))
-                        )]
+                                child: Container(
+                                    color: Theme.of(context).canvasColor,
+                                    child: GridViewObserver(
+                                      controller: observerController,
+                                      child: Column(
+                                        children: [
+                                          tabBar,
+                                          tabBody,
+                                        ],
+                                      ),
+                                    ))))
+                      ]
                     ],
                   )
                 : (!videoPageController.androidFullscreen)
@@ -201,7 +205,8 @@ class _VideoPageState extends State<VideoPage>
                         children: [
                           Container(
                               color: Colors.black,
-                              height: MediaQuery.of(context).size.width * 9 / 16,
+                              height:
+                                  MediaQuery.of(context).size.width * 9 / 16,
                               width: MediaQuery.of(context).size.width,
                               child: playerBody),
                           Expanded(
@@ -233,22 +238,23 @@ class _VideoPageState extends State<VideoPage>
                               height: double.infinity,
                             ),
                           ),
-                          SlideTransition(position: _rightOffsetAnimation,
-                          child: SizedBox(
-                              height: MediaQuery.of(context).size.height,
-                              width: MediaQuery.of(context).size.height,
-                              child: Container(
-                                  color: Theme.of(context).canvasColor,
-                                  child: GridViewObserver(
-                                    controller: observerController,
-                                    child: Column(
-                                      children: [
-                                        tabBar,
-                                        tabBody,
-                                      ],
-                                    ),
-                                  )))
-                          )]
+                          SlideTransition(
+                              position: _rightOffsetAnimation,
+                              child: SizedBox(
+                                  height: MediaQuery.of(context).size.height,
+                                  width: MediaQuery.of(context).size.height,
+                                  child: Container(
+                                      color: Theme.of(context).canvasColor,
+                                      child: GridViewObserver(
+                                        controller: observerController,
+                                        child: Column(
+                                          children: [
+                                            tabBar,
+                                            tabBody,
+                                          ],
+                                        ),
+                                      ))))
+                        ]
                       ]),
           ),
         );
@@ -365,20 +371,26 @@ class _VideoPageState extends State<VideoPage>
                                       child: SizedBox(height: 40))),
                               IconButton(
                                 icon: const Icon(
-                                    Icons.refresh_outlined,
-                                    color: Colors.white),
+                                  Icons.refresh_outlined,
+                                  color: Colors.white,
+                                ),
                                 onPressed: () {
-                                  videoPageController.changeEpisode(videoPageController.currentEspisode, currentRoad: videoPageController.currentRoad);
+                                  videoPageController.changeEpisode(
+                                      videoPageController.currentEpisode,
+                                      currentRoad:
+                                          videoPageController.currentRoad);
                                 },
                               ),
                               Visibility(
-                                visible: Utils.isDesktop() || Utils.isTablet(),
-                                child: IconButton(
-                                    onPressed: () {
-                                        videoPageController.showTabBody = !videoPageController.showTabBody;
+                                  visible:
+                                      Utils.isDesktop() || Utils.isTablet(),
+                                  child: IconButton(
+                                      onPressed: () {
+                                        videoPageController.showTabBody =
+                                            !videoPageController.showTabBody;
                                         openTabBodyAnimated();
                                       },
-                                    icon: Icon(
+                                      icon: Icon(
                                         videoPageController.showTabBody
                                             ? Icons.menu_open
                                             : Icons.menu_open_outlined,
@@ -407,7 +419,9 @@ class _VideoPageState extends State<VideoPage>
           child: (!videoPageController.currentPlugin.useNativePlayer ||
                   playerController.loading)
               ? Container()
-              : PlayerItem(openMenu: openTabBodyAnimated, locateEpisode: menuJumpToCurrentEpisode),
+              : PlayerItem(
+                  openMenu: openTabBodyAnimated,
+                  locateEpisode: menuJumpToCurrentEpisode),
         ),
 
         /// workaround for webview_windows
@@ -516,7 +530,7 @@ class _VideoPageState extends State<VideoPage>
               clipBehavior: Clip.hardEdge,
               child: InkWell(
                 onTap: () async {
-                  if (count0 == videoPageController.currentEspisode &&
+                  if (count0 == videoPageController.currentEpisode &&
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
@@ -534,7 +548,7 @@ class _VideoPageState extends State<VideoPage>
                     children: <Widget>[
                       Row(
                         children: [
-                          if (count0 == (videoPageController.currentEspisode) &&
+                          if (count0 == (videoPageController.currentEpisode) &&
                               currentRoad ==
                                   videoPageController.currentRoad) ...<Widget>[
                             Image.asset(
@@ -550,7 +564,7 @@ class _VideoPageState extends State<VideoPage>
                                 fontSize: 13,
                                 color: (count0 ==
                                             videoPageController
-                                                .currentEspisode &&
+                                                .currentEpisode &&
                                         currentRoad ==
                                             videoPageController.currentRoad)
                                     ? Theme.of(context).colorScheme.primary

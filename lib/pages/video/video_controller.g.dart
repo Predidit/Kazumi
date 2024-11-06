@@ -41,19 +41,19 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$currentEspisodeAtom =
-      Atom(name: '_VideoPageController.currentEspisode', context: context);
+  late final _$currentEpisodeAtom =
+      Atom(name: '_VideoPageController.currentEpisode', context: context);
 
   @override
-  int get currentEspisode {
-    _$currentEspisodeAtom.reportRead();
-    return super.currentEspisode;
+  int get currentEpisode {
+    _$currentEpisodeAtom.reportRead();
+    return super.currentEpisode;
   }
 
   @override
-  set currentEspisode(int value) {
-    _$currentEspisodeAtom.reportWrite(value, super.currentEspisode, () {
-      super.currentEspisode = value;
+  set currentEpisode(int value) {
+    _$currentEpisodeAtom.reportWrite(value, super.currentEpisode, () {
+      super.currentEpisode = value;
     });
   }
 
@@ -158,7 +158,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
     return '''
 loading: ${loading},
 logLines: ${logLines},
-currentEspisode: ${currentEspisode},
+currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
 androidFullscreen: ${androidFullscreen},
 showTabBody: ${showTabBody},

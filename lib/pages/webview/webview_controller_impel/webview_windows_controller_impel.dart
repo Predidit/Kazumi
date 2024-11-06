@@ -4,7 +4,8 @@ import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewController> {
+class WebviewWindowsItemControllerImpel
+    extends WebviewItemController<WebviewController> {
   Timer? ifrmaeParserTimer;
   Timer? videoParserTimer;
 
@@ -12,14 +13,15 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   init() async {
     webviewController ??= WebviewController();
     await webviewController!.initialize();
-    await webviewController!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    await webviewController!
+        .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     await initJSBridge();
     if (videoPageController.currentPlugin.useNativePlayer &&
         !videoPageController.currentPlugin.useLegacyParser) {
       await initBlobParser();
       await initInviewIframeBridge();
     }
-    videoPageController.changeEpisode(videoPageController.currentEspisode,
+    videoPageController.changeEpisode(videoPageController.currentEpisode,
         currentRoad: videoPageController.currentRoad,
         offset: videoPageController.historyOffset);
   }

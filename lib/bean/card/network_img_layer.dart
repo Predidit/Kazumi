@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/extension.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';

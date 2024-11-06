@@ -20,7 +20,7 @@ abstract class _VideoPageController with Store {
   ObservableList<String> logLines = ObservableList.of([]);
 
   @observable
-  int currentEspisode = 1;
+  int currentEpisode = 1;
 
   @observable
   int currentRoad = 0;
@@ -56,7 +56,7 @@ abstract class _VideoPageController with Store {
   changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
     showDebugLog = false;
     loading = true;
-    currentEspisode = episode;
+    currentEpisode = episode;
     this.currentRoad = currentRoad;
     logLines.clear();
     String chapterName = roadList[currentRoad].identifier[episode - 1];

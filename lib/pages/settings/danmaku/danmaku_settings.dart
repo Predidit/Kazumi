@@ -10,7 +10,7 @@ import 'package:hive/hive.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class DanmakuSettingsPage extends StatefulWidget {
   const DanmakuSettingsPage({super.key});
@@ -190,9 +190,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontSize(
-                                  (Utils.isCompact())
-                                      ? 16.0
-                                      : 25.0);
+                                  (Utils.isCompact()) ? 16.0 : 25.0);
                               SmartDialog.dismiss();
                             },
                             child: const Text('默认设置'),

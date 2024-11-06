@@ -223,3 +223,10 @@
               path: |
                 Kazumi_linux_*.tar.gz
                 Kazumi_linux_*.deb
+
+      typos:
+        name: "Spell Check"
+        runs-on: "ubuntu-latest"
+        steps:
+          - uses: actions/checkout@v4
+          - uses: crate-ci/typos@master

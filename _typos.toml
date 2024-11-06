@@ -1,3 +1,0 @@
-[default]
-extend-exclude = ["localized/*.po"]
-extend-ignore-identifiers-re = [".*UPnP.*"]

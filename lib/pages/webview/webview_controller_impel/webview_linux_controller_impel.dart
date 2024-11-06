@@ -90,8 +90,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
           videoPageController.logLines.add('Parsing video source $messageItem');
           if (Utils.decodeVideoSource(messageItem) !=
                   Uri.encodeFull(messageItem) &&
-              videoPageController.currentPlugin.useNativePlayer &&
-              videoPageController.currentPlugin.useLegacyParser) {
+              videoPageController.currentPlugin.useNativePlayer && videoPageController.currentPlugin.useLegacyParser) {
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
             videoPageController.loading = false;
@@ -120,7 +119,8 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
           String videoUrl = Uri.decodeFull(messageItem);
           debugPrint('Loading video source $videoUrl');
-          videoPageController.logLines.add('Loading video source $videoUrl');
+          videoPageController.logLines
+              .add('Loading video source $videoUrl');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
           videoPageController.loading = false;

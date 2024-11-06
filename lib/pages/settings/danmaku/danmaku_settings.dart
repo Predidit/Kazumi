@@ -190,7 +190,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontSize(
-                                  (Utils.isCompact()) ? 16.0 : 25.0);
+                                  (Utils.isCompact())
+                                      ? 16.0
+                                      : 25.0);
                               SmartDialog.dismiss();
                             },
                             child: const Text('默认设置'),

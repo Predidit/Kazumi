@@ -59,7 +59,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     if (hAenable) {
       if (lowMemoryMode) {
         fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
+          'platforms': ['windows', 'linux', 'macos'],
           'player': {
             'avio.reconnect': '1',
             'avio.reconnect_delay_max': '7',
@@ -68,7 +68,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         });
       } else {
         fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
+          'platforms': ['windows', 'linux', 'macos'],
           'player': {
             'avio.reconnect': '1',
             'avio.reconnect_delay_max': '7',
@@ -150,7 +150,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<double> playSpeedList;
-                          if ((Platform.isMacOS || Platform.isIOS) &&
+                          if (Platform.isIOS &&
                               setting.get(SettingBoxKey.hAenable,
                                   defaultValue: true)) {
                             playSpeedList = defaultPlaySpeedList;

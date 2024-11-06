@@ -618,8 +618,11 @@ class Utils {
     Box setting = GStorage.setting;
     bool haEnable =
         await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    if ((Platform.isIOS || Platform.isMacOS) && haEnable) {
+    if (Platform.isIOS && haEnable) {
       return 'AVPlayer';
+    }
+    if (Platform.isMacOS && haEnable) {
+      return 'Video Toolbox';
     }
     if (Platform.isAndroid && haEnable) {
       return 'ExoPlayer';

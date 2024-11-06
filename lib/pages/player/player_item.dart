@@ -311,7 +311,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void onBackPressed(BuildContext context) async {
-    if (videoPageController.androidFullscreen) {
+    if (videoPageController.androidFullscreen && !Utils.isTablet()) {
       widget.locateEpisode();
       setState(() {
         lockPanel = false;
@@ -336,6 +336,10 @@ class _PlayerItemState extends State<PlayerItem>
       }
     }
     if (mounted) {
+      if (videoPageController.androidFullscreen == true) {
+        Utils.exitFullScreen();
+        videoPageController.androidFullscreen = false;
+      }
       Navigator.of(context).pop();
     }
     // Navigator.of(context).pop();
@@ -804,7 +808,7 @@ class _PlayerItemState extends State<PlayerItem>
                           }
                           // Esc键被按下
                           if (event.logicalKey == LogicalKeyboardKey.escape) {
-                            if (videoPageController.androidFullscreen) {
+                            if (videoPageController.androidFullscreen && !Utils.isTablet()) {
                               try {
                                 danmakuController.onClear();
                               } catch (_) {}
@@ -1179,7 +1183,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         onBackPressed(context);
                                       },
                                     ),
-                                    (videoPageController.androidFullscreen)
+                                    (videoPageController.androidFullscreen || Utils.isDesktop())
                                         ? Text(
                                             ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]}]',
                                             style: TextStyle(
@@ -1447,7 +1451,12 @@ class _PlayerItemState extends State<PlayerItem>
                                               widget.openMenu();
                                             },
                                           ),
-                                    IconButton(
+                                    (Utils.isTablet() &&
+                                      videoPageController.androidFullscreen &&
+                                        MediaQuery.of(context).size.height <
+                                          MediaQuery.of(context).size.width)
+                                        ? Container()
+                                    : IconButton(
                                       color: Colors.white,
                                       icon: Icon(
                                           videoPageController.androidFullscreen

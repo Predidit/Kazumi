@@ -143,11 +143,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
         appBar: SysAppBar(
           title: const Text('规则管理'),
           actions: [
-            (Utils.isCompact()) ? IconButton(
+            IconButton(
                 onPressed: () {
                   _handleAdd();
                 },
-                icon: const Icon(Icons.add)) : Container()
+                icon: const Icon(Icons.add))
           ],
         ),
         body: Observer(builder: (context) {
@@ -159,7 +159,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   itemCount: pluginsController.pluginList.length,
                   itemBuilder: (context, index) {
                     return Card(
-                      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       child: ListTile(
                         title: Text(
                           pluginsController.pluginList[index].name,
@@ -244,12 +244,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   },
                 );
         }),
-        floatingActionButton: (!Utils.isCompact()) ? FloatingActionButton(
-          onPressed: () {
-            _handleAdd();
-          },
-          child: const Icon(Icons.add),
-        ) : null,
       ),
     );
   }

@@ -336,9 +336,11 @@ class _PlayerItemState extends State<PlayerItem>
       }
     }
     if (mounted) {
+      if (videoPageController.androidFullscreen == true) {
+        Utils.exitFullScreen();
+        videoPageController.androidFullscreen = false;
+      }
       Navigator.of(context).pop();
-      Utils.exitFullScreen();
-      videoPageController.androidFullscreen = false;
     }
     // Navigator.of(context).pop();
   }
@@ -1449,8 +1451,11 @@ class _PlayerItemState extends State<PlayerItem>
                                               widget.openMenu();
                                             },
                                           ),
-                                    (Utils.isTablet() && videoPageController.androidFullscreen)
-                                    ? Container()
+                                    (Utils.isTablet() &&
+                                      videoPageController.androidFullscreen &&
+                                        MediaQuery.of(context).size.height <
+                                          MediaQuery.of(context).size.width)
+                                        ? Container()
                                     : IconButton(
                                       color: Colors.white,
                                       icon: Icon(

@@ -236,7 +236,9 @@ class _VideoPageState extends State<VideoPage>
                           SlideTransition(position: _rightOffsetAnimation,
                           child: SizedBox(
                               height: MediaQuery.of(context).size.height,
-                              width: MediaQuery.of(context).size.height,
+                              width: (Utils.isTablet())
+                                      ? MediaQuery.of(context).size.width / 2
+                                      : MediaQuery.of(context).size.height,
                               child: Container(
                                   color: Theme.of(context).canvasColor,
                                   child: GridViewObserver(
@@ -353,10 +355,16 @@ class _VideoPageState extends State<VideoPage>
                                       true && !Utils.isTablet()) {
                                     Utils.exitFullScreen();
                                     menuJumpToCurrentEpisode();
+                                    videoPageController.androidFullscreen =
+                                        false;
                                     return;
                                   }
-                                  Utils.exitFullScreen();
-                                  videoPageController.androidFullscreen = false;
+                                  if (videoPageController.androidFullscreen ==
+                                      true) {
+                                    Utils.exitFullScreen();
+                                    videoPageController.androidFullscreen =
+                                        false;
+                                  }
                                   Navigator.of(context).pop();
                                 },
                               ),

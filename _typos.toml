@@ -1,2 +1,3 @@
-[default.extend-words]
-Pn = "Pn"
+[default]
+extend-exclude = ["localized/*.po"]
+extend-ignore-identifiers-re = [".*UPnP.*"]

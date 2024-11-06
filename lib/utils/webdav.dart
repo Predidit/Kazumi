@@ -34,11 +34,11 @@ class WebDav {
     );
     client.setHeaders({'accept-charset': 'utf-8'});
     try {
-      // KazumiLogger().log(Level.warning, 'webDav backup diretory not exists, creating');
+      // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
       await client.mkdir('/kazumiSync');
-      KazumiLogger().log(Level.info, 'webDav backup diretory create success');
+      KazumiLogger().log(Level.info, 'webDav backup directory create success');
     } catch (_) {
-      KazumiLogger().log(Level.error, 'webDav backup diretory create failed');
+      KazumiLogger().log(Level.error, 'webDav backup directory create failed');
     }
   }
 

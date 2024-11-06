@@ -5,14 +5,14 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 
-class SetDiaplayMode extends StatefulWidget {
-  const SetDiaplayMode({super.key});
+class SetDisplayMode extends StatefulWidget {
+  const SetDisplayMode({super.key});
 
   @override
-  State<SetDiaplayMode> createState() => _SetDiaplayModeState();
+  State<SetDisplayMode> createState() => _SetDisplayModeState();
 }
 
-class _SetDiaplayModeState extends State<SetDiaplayMode> {
+class _SetDisplayModeState extends State<SetDisplayMode> {
   List<DisplayMode> modes = <DisplayMode>[];
   DisplayMode? active;
   DisplayMode? preferred;

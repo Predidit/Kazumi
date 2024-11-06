@@ -16,7 +16,7 @@ class MyModule extends Module {
     r.child("/", child: (_) => const MyPage());
     r.child("/theme", child: (_) => const ThemeSettingsPage(), transition: TransitionType.noTransition);
     r.child("/theme/display",
-        child: (_) => const SetDiaplayMode(),
+        child: (_) => const SetDisplayMode(),
         transition: TransitionType.noTransition);
     r.child("/player", child: (_) => const PlayerSettingsPage(), transition: TransitionType.noTransition);
     r.child("/other", child: (_) => const OtherSettingsPage(), transition: TransitionType.noTransition);

@@ -18,7 +18,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
         !videoPageController.currentPlugin.useLegacyParser) {
       await initBlobParserAndiframeBridge();
     }
-    videoPageController.changeEpisode(videoPageController.currentEspisode,
+    videoPageController.changeEpisode(videoPageController.currentEpisode,
         currentRoad: videoPageController.currentRoad,
         offset: videoPageController.historyOffset);
   }

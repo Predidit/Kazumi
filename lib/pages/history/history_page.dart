@@ -7,7 +7,7 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';

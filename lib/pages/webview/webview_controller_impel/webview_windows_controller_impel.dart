@@ -19,7 +19,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
       await initBlobParser();
       await initInviewIframeBridge();
     }
-    videoPageController.changeEpisode(videoPageController.currentEspisode,
+    videoPageController.changeEpisode(videoPageController.currentEpisode,
         currentRoad: videoPageController.currentRoad,
         offset: videoPageController.historyOffset);
   }

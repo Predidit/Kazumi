@@ -1,6 +1,6 @@
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -8,7 +8,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
-  // Beacause getCalendarBySearch is not stable, it will miss some bangumi items.
+  // Because getCalendarBySearch is not stable, it will miss some bangumi items.
   static Future getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/info/info_controller.dart';

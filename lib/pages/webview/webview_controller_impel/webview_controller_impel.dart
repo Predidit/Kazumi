@@ -17,7 +17,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   @override
   init() async {
     webviewController ??= WebViewController();
-    videoPageController.changeEpisode(videoPageController.currentEspisode,
+    videoPageController.changeEpisode(videoPageController.currentEpisode,
         currentRoad: videoPageController.currentRoad,
         offset: videoPageController.historyOffset);
   }

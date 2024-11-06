@@ -75,22 +75,21 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, 'VideoItem开始初始化');
     int episodeFromTitle = 0;
     try {
-      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEspisode - 1]);
+      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]);
     } catch (e) {
       KazumiLogger().log(Level.error, '从标题解析集数错误 ${e.toString()}');
     }
     if (episodeFromTitle == 0) {
-      episodeFromTitle = videoPageController.currentEspisode;
+      episodeFromTitle = videoPageController.currentEpisode;
     }
-    getDanDanmaku(
-        videoPageController.title, episodeFromTitle);
+    getDanDanmaku(videoPageController.title, episodeFromTitle);
     mediaPlayer = await createVideoController();
-    bool aotoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
+    bool autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     playerSpeed = setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     if (offset != 0) {
       await mediaPlayer.seekTo(Duration(seconds: offset));
     }
-    if (aotoPlay) {
+    if (autoPlay) {
       await mediaPlayer.play();
     }
     setPlaybackSpeed(playerSpeed);

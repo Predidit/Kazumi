@@ -60,7 +60,7 @@ class _VideoPageState extends State<VideoPage>
       curve: Curves.easeInOut,
     ));
     WakelockPlus.enable();
-    videoPageController.currentEspisode = 1;
+    videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
@@ -71,7 +71,7 @@ class _VideoPageState extends State<VideoPage>
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
-          videoPageController.currentEspisode = progress.episode;
+          videoPageController.currentEpisode = progress.episode;
           videoPageController.currentRoad = progress.road;
           if (playResume) {
             videoPageController.historyOffset = progress.progress.inSeconds;
@@ -101,9 +101,9 @@ class _VideoPageState extends State<VideoPage>
   void menuJumpToCurrentEpisode() {
     Future.delayed(const Duration(milliseconds: 20), () {
       observerController.jumpTo(
-          index: videoPageController.currentEspisode > 1
-              ? videoPageController.currentEspisode - 1
-              : videoPageController.currentEspisode);
+          index: videoPageController.currentEpisode > 1
+              ? videoPageController.currentEpisode - 1
+              : videoPageController.currentEpisode);
     });
   }
 
@@ -376,7 +376,7 @@ class _VideoPageState extends State<VideoPage>
                                     Icons.refresh_outlined,
                                     color: Colors.white),
                                 onPressed: () {
-                                  videoPageController.changeEpisode(videoPageController.currentEspisode, currentRoad: videoPageController.currentRoad);
+                                  videoPageController.changeEpisode(videoPageController.currentEpisode, currentRoad: videoPageController.currentRoad);
                                 },
                               ),
                               Visibility(
@@ -524,7 +524,7 @@ class _VideoPageState extends State<VideoPage>
               clipBehavior: Clip.hardEdge,
               child: InkWell(
                 onTap: () async {
-                  if (count0 == videoPageController.currentEspisode &&
+                  if (count0 == videoPageController.currentEpisode &&
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
@@ -542,7 +542,7 @@ class _VideoPageState extends State<VideoPage>
                     children: <Widget>[
                       Row(
                         children: [
-                          if (count0 == (videoPageController.currentEspisode) &&
+                          if (count0 == (videoPageController.currentEpisode) &&
                               currentRoad ==
                                   videoPageController.currentRoad) ...<Widget>[
                             Image.asset(
@@ -561,7 +561,7 @@ class _VideoPageState extends State<VideoPage>
                                 fontSize: 13,
                                 color: (count0 ==
                                             videoPageController
-                                                .currentEspisode &&
+                                                .currentEpisode &&
                                         currentRoad ==
                                             videoPageController.currentRoad)
                                     ? Theme.of(context).colorScheme.primary

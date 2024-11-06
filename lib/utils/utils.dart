@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:screen_pixel/screen_pixel.dart';
-import 'package:kazumi/utils/constans.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:logger/logger.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -454,7 +454,7 @@ class Utils {
       return int.tryParse(match.group(1)!) ?? 0;
     }
 
-    return 0; 
+    return 0;
   }
 
   /// 判断是否为桌面设备

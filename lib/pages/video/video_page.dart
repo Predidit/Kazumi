@@ -363,6 +363,14 @@ class _VideoPageState extends State<VideoPage>
                               const Expanded(
                                   child: dtb.DragToMoveArea(
                                       child: SizedBox(height: 40))),
+                              IconButton(
+                                icon: const Icon(
+                                    Icons.refresh_outlined,
+                                    color: Colors.white),
+                                onPressed: () {
+                                  videoPageController.changeEpisode(videoPageController.currentEspisode, currentRoad: videoPageController.currentRoad);
+                                },
+                              ),
                               Visibility(
                                 visible: Utils.isDesktop() || Utils.isTablet(),
                                 child: IconButton(

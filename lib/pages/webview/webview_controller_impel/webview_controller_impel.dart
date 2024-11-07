@@ -56,7 +56,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
           currentUrl != message.message) {
         videoPageController.logLines
             .add('Parsing video source ${message.message}');
-        currentUrl = message.message;
+        currentUrl = Uri.encodeFull(message.message);
         redirctWithReferer(message.message);
         if (Utils.decodeVideoSource(currentUrl) != Uri.encodeFull(currentUrl) &&
             videoPageController.currentPlugin.useNativePlayer &&

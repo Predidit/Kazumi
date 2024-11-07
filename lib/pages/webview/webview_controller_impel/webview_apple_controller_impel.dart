@@ -4,7 +4,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebviewItemControllerImpel extends WebviewItemController<WebViewController> {
+class WebviewAppleItemControllerImpel
+    extends WebviewItemController<WebViewController> {
   // workaround for webview_flutter lib.
   // webview_flutter lib won't change currentUrl after redirect using window.location.href.
   // which causes multiple redirects to the same url.
@@ -35,8 +36,8 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
     isVideoSourceLoaded = false;
     videoPageController.loading = true;
     await webviewController!
-        .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
-      debugPrint('Current URL: ${currentUrl.url}');
+        .setNavigationDelegate(NavigationDelegate(onPageFinished: (currentUrl) {
+      debugPrint('Current URL: $currentUrl');
       if (videoPageController.currentPlugin.useNativePlayer &&
           !videoPageController.currentPlugin.useLegacyParser) {
         addBlobParser();
@@ -147,14 +148,14 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
 
   @override
   unloadPage() async {
-    await webviewController
-        !.removeJavaScriptChannel('JSBridgeDebug')
+    await webviewController!
+        .removeJavaScriptChannel('JSBridgeDebug')
         .catchError((_) {});
-    await webviewController
-        !.removeJavaScriptChannel('VideoBridgeDebug')
+    await webviewController!
+        .removeJavaScriptChannel('VideoBridgeDebug')
         .catchError((_) {});
-    await webviewController
-        !.removeJavaScriptChannel('FullscreenBridgeDebug')
+    await webviewController!
+        .removeJavaScriptChannel('FullscreenBridgeDebug')
         .catchError((_) {});
     await webviewController!.loadRequest(Uri.parse('about:blank'));
     await webviewController!.clearCache();

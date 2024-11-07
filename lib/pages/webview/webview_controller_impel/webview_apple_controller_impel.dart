@@ -4,6 +4,10 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+// The following code using almost the same code from lib/pages/webview/webview_controller.dart. 
+// It's a workaround for webview_flutter lib (It behaves differently on macOS/iOS and Android).
+// 1. We need onPageFinished rather than onUrlChanged to execute JavaScript code when document created.
+// 2. We need encode all url received from JavaScript channel to avoid crash. 
 class WebviewAppleItemControllerImpel
     extends WebviewItemController<WebViewController> {
   // workaround for webview_flutter lib.

@@ -203,11 +203,11 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
         try {
           iframe.contentWindow.eval(`
             var videos = document.querySelectorAll('video');
-            VideoBridgeDebug.postMessage('The number of video tags is' + videos.length);
+            window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
             for (var i = 0; i < videos.length; i++) {
               var src = videos[i].getAttribute('src');
               if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
-                VideoBridgeDebug.postMessage(src);
+                window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
               } 
             }
                   `);

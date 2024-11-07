@@ -622,7 +622,7 @@ class Utils {
       return 'AVPlayer';
     }
     if (Platform.isMacOS && haEnable) {
-      return 'Video Toolbox';
+      return 'VT';
     }
     if (Platform.isAndroid && haEnable) {
       return 'ExoPlayer';

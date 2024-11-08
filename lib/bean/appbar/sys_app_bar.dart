@@ -79,7 +79,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           toolbarHeight: preferredSize.height,
           scrolledUnderElevation: 0.0,
           title: title,
-          centerTitle: true,
+          centerTitle: Platform.isIOS ? true : false,
           actions: acs,
           leading: leading,
           leadingWidth: leadingWidth,

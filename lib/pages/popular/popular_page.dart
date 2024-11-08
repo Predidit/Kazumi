@@ -125,10 +125,16 @@ class _PopularPageState extends State<PopularPage>
                             width: 10,
                           ),
                           ClipOval(
-                            child: Image.asset(
-                              'assets/images/logo/logo_android.png',
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () {
+                                Modular.to.pushNamed('/tab/my/history');
+                              },
+                              child: Image.asset(
+                                'assets/images/logo/logo_android.png',
+                              ),
                             ),
-                          ),
+                          )
                         ],
                       )
                     : null,

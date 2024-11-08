@@ -55,11 +55,16 @@ class _SideMenu extends State<SideMenu> {
                         child: Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: ClipOval(
-                            child: Image.asset(
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () {
+                                Modular.to.pushNamed('/tab/my/history');
+                              },
+                              child: Image.asset(
                               'assets/images/logo/logo_android.png',
                             ),
                           ),
-                        )),
+                        ))),
                     destinations: const <NavigationRailDestination>[
                       NavigationRailDestination(
                         selectedIcon: Icon(Icons.home),

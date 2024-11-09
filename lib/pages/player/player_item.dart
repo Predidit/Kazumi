@@ -99,6 +99,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   List<double> playSpeedList = defaultPlaySpeedList;
+  Duration? keyDownTime;
+  Duration? keyUpTime;
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -618,6 +620,20 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
+  Future<void> increaseVolume() async {
+    try {
+      await FlutterVolumeController.raiseVolume(null);
+      playerController.volume = (await FlutterVolumeController.getVolume())!;
+    } catch (_) {}
+  }
+
+  Future<void> decreaseVolume() async {
+    try {
+      await FlutterVolumeController.lowerVolume(null);
+      playerController.volume = (await FlutterVolumeController.getVolume())!;
+    } catch (_) {}
+  }
+
   Future<void> setBrightness(double value) async {
     try {
       await ScreenBrightness().setScreenBrightness(value);
@@ -688,7 +704,7 @@ class _PlayerItemState extends State<PlayerItem>
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
-    if ((Platform.isMacOS || Platform.isIOS) &&
+    if (Platform.isIOS &&
         setting.get(SettingBoxKey.hAenable, defaultValue: true)) {
       playSpeedList = defaultPlaySpeedList;
     } else {
@@ -769,21 +785,8 @@ class _PlayerItemState extends State<PlayerItem>
                           // 右方向键被按下
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowRight) {
-                            try {
-                              if (playerTimer != null) {
-                                playerTimer!.cancel();
-                              }
-                              playerController.currentPosition = Duration(
-                                  seconds: playerController
-                                          .currentPosition.inSeconds +
-                                      10);
-                              playerController
-                                  .seek(playerController.currentPosition);
-                              playerTimer = getPlayerTimer();
-                            } catch (e) {
-                              KazumiLogger()
-                                  .log(Level.error, '播放器内部错误 ${e.toString()}');
-                            }
+                            keyDownTime = event.timeStamp;
+                            lastPlayerSpeed = playerController.playerSpeed;
                           }
                           // 左方向键被按下
                           if (event.logicalKey ==
@@ -806,6 +809,42 @@ class _PlayerItemState extends State<PlayerItem>
                               KazumiLogger().log(Level.error, e.toString());
                             }
                           }
+                          // 上方向键被按下
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowUp) {
+                            keyDownTime = event.timeStamp;
+                            increaseVolume();
+                            setState(() {
+                              showVolume = true;
+                            });
+                            final keyPressPeriod = keyDownTime! - keyUpTime!;
+                            if (keyPressPeriod.inMilliseconds < 300) {
+                              return;
+                            }
+                            Future.delayed(const Duration(seconds: 2), () {
+                              setState(() {
+                                showVolume = false;
+                              });
+                            });
+                          }
+                          // 下方向键被按下
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowDown) {
+                            keyDownTime = event.timeStamp;
+                            decreaseVolume();
+                            setState(() {
+                              showVolume = true;
+                            });
+                            final keyPressPeriod = keyDownTime! - keyUpTime!;
+                            if (keyPressPeriod.inMilliseconds < 300) {
+                              return;
+                            }
+                            Future.delayed(const Duration(seconds: 2), () {
+                              setState(() {
+                                showVolume = false;
+                              });
+                            });
+                          }
                           // Esc键被按下
                           if (event.logicalKey == LogicalKeyboardKey.escape) {
                             if (videoPageController.androidFullscreen && !Utils.isTablet()) {
@@ -826,6 +865,58 @@ class _PlayerItemState extends State<PlayerItem>
                           // D键盘被按下
                           if (event.logicalKey == LogicalKeyboardKey.keyD) {
                             _handleDanmaku();
+                          }
+                        } else if (event is KeyRepeatEvent) {
+                          // 右方向键长按
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowRight) {
+                            if (playerController.playerSpeed < 2.0) {
+                              setState(() {
+                                showPlaySpeed = true;
+                              });
+                              playerController.setPlaybackSpeed(2.0);
+                            }
+                          }
+                        } else if (event is KeyUpEvent) {
+                          // 右方向键抬起
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowRight) {
+                            keyUpTime = event.timeStamp;
+                            final keyPressPeriod = keyUpTime! - keyDownTime!;
+                            if (keyPressPeriod.inMilliseconds > 300) {
+                              setState(() {
+                                showPlaySpeed = false;
+                              });
+                              playerController
+                                  .setPlaybackSpeed(lastPlayerSpeed);
+                            } else {
+                              try {
+                                if (playerTimer != null) {
+                                  playerTimer!.cancel();
+                                }
+                                playerController.currentPosition = Duration(
+                                    seconds: playerController
+                                        .currentPosition.inSeconds +
+                                        10);
+                                playerController
+                                    .seek(playerController.currentPosition);
+                                playerTimer = getPlayerTimer();
+                              } catch (e) {
+                                KazumiLogger()
+                                    .log(Level.error,
+                                    '播放器内部错误 ${e.toString()}');
+                              }
+                            }
+                          }
+                          // 上方向键抬起
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowUp) {
+                            keyUpTime = event.timeStamp;
+                          }
+                          // 下方向键抬起
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowDown) {
+                            keyUpTime = event.timeStamp;
                           }
                         }
                       },

@@ -170,10 +170,10 @@ packages:
     dependency: "direct main"
     description:
       name: canvas_danmaku
-      sha256: "3e5f72c169484898b6a2e0022fa66753f6d70adfa3be25f45748037ae99c2010"
+      sha256: e5eebd19588cae528123fa14c0ad080fdc96881c3018f944f910024988ddb67e
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.1"
+    version: "0.2.2"
   characters:
     dependency: transitive
     description:
@@ -767,10 +767,10 @@ packages:
     dependency: transitive
     description:
       name: package_info_plus
-      sha256: df3eb3e0aed5c1107bb0fdb80a8e82e778114958b1c5ac5644fb1ac9cae8a998
+      sha256: da8d9ac8c4b1df253d1a328b7bf01ae77ef132833479ab40763334db13b91cce
       url: "https://pub.dev"
     source: hosted
-    version: "8.1.0"
+    version: "8.1.1"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -1015,10 +1015,10 @@ packages:
     dependency: "direct main"
     description:
       name: scrollview_observer
-      sha256: fa408bcfd41e19da841eb53fc471f8f952d5ef818b854d2505c4bb3f0c876381
+      sha256: "8537ba32e5a15ade301e5c77ae858fd8591695defaad1821eca9eeb4ac28a157"
       url: "https://pub.dev"
     source: hosted
-    version: "1.22.0"
+    version: "1.23.0"
   shared_preferences:
     dependency: transitive
     description:
@@ -1140,10 +1140,10 @@ packages:
     dependency: transitive
     description:
       name: sqflite
-      sha256: "79a297dc3cc137e758c6a4baf83342b039e5a6d2436fcdf3f96a00adaaf2ad62"
+      sha256: "2d7299468485dca85efeeadf5d38986909c5eb0cd71fd3db2c2f000e6c9454bb"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.0"
+    version: "2.4.1"
   sqflite_android:
     dependency: transitive
     description:
@@ -1164,10 +1164,10 @@ packages:
     dependency: transitive
     description:
       name: sqflite_darwin
-      sha256: "769733dddf94622d5541c73e4ddc6aa7b252d865285914b6fcd54a63c4b4f027"
+      sha256: "96a698e2bc82bd770a4d6aab00b42396a7c63d9e33513a56945cbccb594c2474"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.1-1"
+    version: "2.4.1"
   sqflite_platform_interface:
     dependency: transitive
     description:
@@ -1460,10 +1460,10 @@ packages:
     dependency: transitive
     description:
       name: webview_flutter_android
-      sha256: "74693a212d990b32e0b7055d27db973a18abf31c53942063948cdfaaef9787ba"
+      sha256: dec83a8da0a2dcd8a25418534cc59348dbc2855fa1dd0cc929c62b6029fde392
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.0"
+    version: "4.0.1"
   webview_flutter_platform_interface:
     dependency: transitive
     description:
@@ -1476,10 +1476,10 @@ packages:
     dependency: transitive
     description:
       name: webview_flutter_wkwebview
-      sha256: d4034901d96357beb1b6717ebf7d583c88e40cfc6eb85fe76dd1bf0979a9f251
+      sha256: f14ee08021772fed913da8daebcfdeb46be457081e521e93e9918fe6cd1ce9e8
       url: "https://pub.dev"
     source: hosted
-    version: "3.16.0"
+    version: "3.16.1"
   webview_windows:
     dependency: "direct main"
     description:
@@ -1493,10 +1493,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: "10169d3934549017f0ae278ccb07f828f9d6ea21573bab0fb77b0e1ef0fce454"
+      sha256: "84ba388638ed7a8cb3445a320c8273136ab2631cd5f2c57888335504ddab1bc2"
       url: "https://pub.dev"
     source: hosted
-    version: "5.7.2"
+    version: "5.8.0"
   win32_registry:
     dependency: transitive
     description:

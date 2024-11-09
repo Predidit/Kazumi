@@ -96,11 +96,11 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
+  Timer? keyShortPressTimer;
+  Timer? hideVolumeUITimer;
 
   double lastPlayerSpeed = 1.0;
   List<double> playSpeedList = defaultPlaySpeedList;
-  Duration? keyDownTime;
-  Duration? keyUpTime;
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -176,6 +176,24 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       mouseScrollerTimer = null;
+    });
+  }
+
+  void _handleKeyChangingVolume() {
+    setState(() {
+      showVolume = true;
+    });
+    if (hideVolumeUITimer != null) {
+      hideVolumeUITimer!.cancel();
+    }
+
+    hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          showVolume = false;
+        });
+      }
+      hideVolumeUITimer = null;
     });
   }
 
@@ -621,15 +639,21 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> increaseVolume() async {
+    // macOS system volume stepping is 1 / 16, or 0.0625, needs to be set manually,
+    // although it looks bad in percentage view
+    // Windows use system volume stepping without setting
+    // Linux stepping is set to 0.15 by plugin
+    final step = (Platform.isMacOS) ? 0.0625 : null;
     try {
-      await FlutterVolumeController.raiseVolume(null);
+      await FlutterVolumeController.raiseVolume(step);
       playerController.volume = (await FlutterVolumeController.getVolume())!;
     } catch (_) {}
   }
 
   Future<void> decreaseVolume() async {
+    final step = (Platform.isMacOS) ? 0.0625 : null;
     try {
-      await FlutterVolumeController.lowerVolume(null);
+      await FlutterVolumeController.lowerVolume(step);
       playerController.volume = (await FlutterVolumeController.getVolume())!;
     } catch (_) {}
   }
@@ -785,8 +809,13 @@ class _PlayerItemState extends State<PlayerItem>
                           // 右方向键被按下
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowRight) {
-                            keyDownTime = event.timeStamp;
                             lastPlayerSpeed = playerController.playerSpeed;
+                            if (keyShortPressTimer != null) {
+                              keyShortPressTimer!.cancel();
+                            }
+                            keyShortPressTimer = Timer(const Duration(milliseconds: 300), () {
+                              keyShortPressTimer = null;
+                            });
                           }
                           // 左方向键被按下
                           if (event.logicalKey ==
@@ -812,38 +841,14 @@ class _PlayerItemState extends State<PlayerItem>
                           // 上方向键被按下
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowUp) {
-                            keyDownTime = event.timeStamp;
                             increaseVolume();
-                            setState(() {
-                              showVolume = true;
-                            });
-                            final keyPressPeriod = keyDownTime! - keyUpTime!;
-                            if (keyPressPeriod.inMilliseconds < 300) {
-                              return;
-                            }
-                            Future.delayed(const Duration(seconds: 2), () {
-                              setState(() {
-                                showVolume = false;
-                              });
-                            });
+                            _handleKeyChangingVolume();
                           }
                           // 下方向键被按下
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowDown) {
-                            keyDownTime = event.timeStamp;
                             decreaseVolume();
-                            setState(() {
-                              showVolume = true;
-                            });
-                            final keyPressPeriod = keyDownTime! - keyUpTime!;
-                            if (keyPressPeriod.inMilliseconds < 300) {
-                              return;
-                            }
-                            Future.delayed(const Duration(seconds: 2), () {
-                              setState(() {
-                                showVolume = false;
-                              });
-                            });
+                            _handleKeyChangingVolume();
                           }
                           // Esc键被按下
                           if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -881,15 +886,14 @@ class _PlayerItemState extends State<PlayerItem>
                           // 右方向键抬起
                           if (event.logicalKey ==
                               LogicalKeyboardKey.arrowRight) {
-                            keyUpTime = event.timeStamp;
-                            final keyPressPeriod = keyUpTime! - keyDownTime!;
-                            if (keyPressPeriod.inMilliseconds > 300) {
+                            if (keyShortPressTimer == null) {
                               setState(() {
                                 showPlaySpeed = false;
                               });
                               playerController
                                   .setPlaybackSpeed(lastPlayerSpeed);
                             } else {
+                              keyShortPressTimer = null;
                               try {
                                 if (playerTimer != null) {
                                   playerTimer!.cancel();
@@ -907,16 +911,6 @@ class _PlayerItemState extends State<PlayerItem>
                                     '播放器内部错误 ${e.toString()}');
                               }
                             }
-                          }
-                          // 上方向键抬起
-                          if (event.logicalKey ==
-                              LogicalKeyboardKey.arrowUp) {
-                            keyUpTime = event.timeStamp;
-                          }
-                          // 下方向键抬起
-                          if (event.logicalKey ==
-                              LogicalKeyboardKey.arrowDown) {
-                            keyUpTime = event.timeStamp;
                           }
                         }
                       },

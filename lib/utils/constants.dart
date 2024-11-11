@@ -91,6 +91,19 @@ final List<double> danFontList = [
   32.0,
 ];
 
+// 可选弹幕字体字重
+final List<int> danFontWeightList = [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+];
+
 // 可选弹幕区域
 const List<double> danAreaList = [
   0.25,

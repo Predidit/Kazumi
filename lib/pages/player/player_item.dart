@@ -86,6 +86,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuBiliBiliSource;
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
+  late int _danmakuFontWeight;
 
   // 过渡动画
   late AnimationController _animationController;
@@ -725,6 +726,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
     _danmakuDanDanSource =
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+    _danmakuFontWeight = setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
@@ -1219,6 +1221,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 fontSize: _fontSize,
                                 duration: _duration.toInt(),
                                 showStroke: _border,
+                                fontWeight: _danmakuFontWeight,
                                 massiveMode: _massiveMode,
                               ),
                             ),

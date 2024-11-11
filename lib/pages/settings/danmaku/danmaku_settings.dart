@@ -25,6 +25,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late dynamic defaultDanmakuArea;
   late dynamic defaultDanmakuOpacity;
   late dynamic defaultDanmakuFontSize;
+  late int defaultDanmakuFontWeight;
   final PopularController popularController = Modular.get<PopularController>();
 
   @override
@@ -43,6 +44,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     defaultDanmakuFontSize = setting.get(SettingBoxKey.danmakuFontSize,
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
+    defaultDanmakuFontWeight =
+        setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
   }
 
   void onBackPressed(BuildContext context) {
@@ -68,6 +71,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     await setting.put(SettingBoxKey.danmakuFontSize, i);
     setState(() {
       defaultDanmakuFontSize = i;
+    });
+  }
+
+  void updateDanmakuFontWeight(int i) async {
+    await setting.put(SettingBoxKey.danmakuFontWeight, i);
+    setState(() {
+      defaultDanmakuFontWeight = i;
     });
   }
 
@@ -190,9 +200,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontSize(
-                                  (Utils.isCompact())
-                                      ? 16.0
-                                      : 25.0);
+                                  (Utils.isCompact()) ? 16.0 : 25.0);
                               SmartDialog.dismiss();
                             },
                             child: const Text('默认设置'),
@@ -204,6 +212,69 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               dense: false,
               title: const Text('字体大小'),
               subtitle: Text('$defaultDanmakuFontSize',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).colorScheme.outline)),
+            ),
+            ListTile(
+              onTap: () async {
+                SmartDialog.show(
+                    useAnimation: false,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('字体字重'),
+                        content: StatefulBuilder(builder:
+                            (BuildContext context, StateSetter setState) {
+                          return Wrap(
+                            spacing: 8,
+                            runSpacing: 2,
+                            children: [
+                              for (final int i in danFontWeightList) ...<Widget>[
+                                if (i == defaultDanmakuFontWeight) ...<Widget>[
+                                  FilledButton(
+                                    onPressed: () async {
+                                      updateDanmakuFontWeight(i);
+                                      SmartDialog.dismiss();
+                                    },
+                                    child: Text(i.toString()),
+                                  ),
+                                ] else ...[
+                                  FilledButton.tonal(
+                                    onPressed: () async {
+                                      updateDanmakuFontWeight(i);
+                                      SmartDialog.dismiss();
+                                    },
+                                    child: Text(i.toString()),
+                                  ),
+                                ]
+                              ]
+                            ],
+                          );
+                        }),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => SmartDialog.dismiss(),
+                            child: Text(
+                              '取消',
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.outline),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              updateDanmakuFontWeight(4);
+                              SmartDialog.dismiss();
+                            },
+                            child: const Text('默认设置'),
+                          ),
+                        ],
+                      );
+                    });
+              },
+              dense: false,
+              title: const Text('字体字重'),
+              subtitle: Text('$defaultDanmakuFontWeight',
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium!

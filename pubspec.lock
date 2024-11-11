@@ -170,10 +170,10 @@ packages:
     dependency: "direct main"
     description:
       name: canvas_danmaku
-      sha256: e5eebd19588cae528123fa14c0ad080fdc96881c3018f944f910024988ddb67e
+      sha256: "539beee7dab73b0d01980194885730de11527ec0f96d9c4fa26ae4eac6699b7f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.2"
+    version: "0.2.3"
   characters:
     dependency: transitive
     description:
@@ -461,10 +461,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_smart_dialog
-      sha256: "7932ab58440379094c6a568efc329d322c6dd740e5a553080f2d56a71ed53752"
+      sha256: d7b915461fdc9bb8111d23a709b4ce910dbc4b9bef0fbd941655f74bf7de09a6
       url: "https://pub.dev"
     source: hosted
-    version: "4.9.8+3"
+    version: "4.9.8+5"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -495,10 +495,10 @@ packages:
     dependency: "direct main"
     description:
       name: fvp
-      sha256: "439ff92c52349cb6c345f680dcbe7f7a40fcd524073030a1e93aec64f959d864"
+      sha256: "3dd245cac5dfba36311cbf5834d8f275ba1f3e49a5cdcb4a98e01cb41e9a21d8"
       url: "https://pub.dev"
     source: hosted
-    version: "0.27.0"
+    version: "0.28.0"
   glob:
     dependency: transitive
     description:
@@ -1023,10 +1023,10 @@ packages:
     dependency: transitive
     description:
       name: shared_preferences
-      sha256: "746e5369a43170c25816cc472ee016d3a66bc13fcf430c0bc41ad7b4b2922051"
+      sha256: "95f9997ca1fb9799d494d0cb2a780fd7be075818d59f00c43832ed112b158a82"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.2"
+    version: "2.3.3"
   shared_preferences_android:
     dependency: transitive
     description:

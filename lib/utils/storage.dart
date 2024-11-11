@@ -109,6 +109,7 @@ class SettingBoxKey {
       danmakuBiliBiliSource = 'danmakuBiliBiliSource',
       danmakuGamerSource = 'danmakuGamerSource',
       danmakuDanDanSource = 'danmakuDanDanSource',
+      danmakuFontWeight = 'danmakuFontWeight',
       themeMode = 'themeMode',
       themeColor = 'themeColor',
       privateMode = 'privateMode',

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -5,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/comments/comment_response.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -181,5 +183,19 @@ class BangumiHTTP {
           .log(Level.error, 'Resolve bangumi summary failed ${e.toString()}');
       return '';
     }
+  }
+
+  static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {
+    CommentResponse commentResponse = CommentResponse.fromTemplate();
+    try {
+      final res = await Request().get(Api.bangumiCommentsByID + id.toString() + '/comments?offset=$offset&limit=20',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      commentResponse = CommentResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi comments failed ${e.toString()}');
+    }
+    return commentResponse;
   }
 }

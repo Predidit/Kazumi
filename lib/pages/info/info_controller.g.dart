@@ -42,11 +42,28 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$commentsListAtom =
+      Atom(name: '_InfoController.commentsList', context: context);
+
+  @override
+  ObservableList<CommentItem> get commentsList {
+    _$commentsListAtom.reportRead();
+    return super.commentsList;
+  }
+
+  @override
+  set commentsList(ObservableList<CommentItem> value) {
+    _$commentsListAtom.reportWrite(value, super.commentsList, () {
+      super.commentsList = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
 pluginSearchResponseList: ${pluginSearchResponseList},
-pluginSearchStatus: ${pluginSearchStatus}
+pluginSearchStatus: ${pluginSearchStatus},
+commentsList: ${commentsList}
     ''';
   }
 }

@@ -8,6 +8,7 @@ import 'package:kazumi/request/bangumi.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 
 part 'info_controller.g.dart';
 
@@ -21,6 +22,9 @@ abstract class _InfoController with Store {
 
   @observable
   var pluginSearchStatus = ObservableMap<String, String>();
+
+  @observable
+  var commentsList = ObservableList<CommentItem>();
 
   /// 移动到 query_manager.dart 以解决可能的内存泄漏
   // querySource(String keyword) async {
@@ -68,5 +72,15 @@ abstract class _InfoController with Store {
         .log(Level.info, '播放列表长度 ${videoPageController.roadList.length}');
     KazumiLogger().log(
         Level.info, '第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
+  }
+
+  queryBangumiCommentsByID(int id, {int offset = 0}) async {
+    if (offset == 0) {
+      commentsList.clear();
+    }
+    await BangumiHTTP.getBangumiCommentsByID(id).then((value) {
+      commentsList.addAll(value.commentList);
+    });
+    KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
   }
 }

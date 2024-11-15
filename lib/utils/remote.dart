@@ -13,14 +13,13 @@ import 'package:url_launcher/url_launcher_string.dart';
 import '../pages/player/player_controller.dart';
 
 class RemotePlay {
-  // 注意：仍需开发 iOS/macOS/Linux 设备的远程播放功能。
+  // 注意：仍需开发 iOS/Linux 设备的远程播放功能。
   // 在 Windows 设备上，对于其他可能的实现，使用 scheme 的方案没有效果。VLC / PotPlayer 等主流播放器更倾向于使用 CLI 命令。
-  // 而对于 iOS / Mac 设备，由于没有设备，无法进行开发与验证。
-  // 可行的 iOS / Mac 处理代码，请参见 ios/Runner/AppDelegate.swift 的注释部分。
+  // 可行的 iOS 处理代码，请参见 ios/Runner/AppDelegate.swift 的注释部分。
 
   static const platform = MethodChannel('com.predidit.kazumi/intent');
 
-  castVideo(BuildContext context) async {
+  castVideo(BuildContext context, String referer) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
     final String video = Modular.get<PlayerController>().videoUrl;
@@ -39,7 +38,7 @@ class RemotePlay {
               actions: [
                 TextButton(
                   onPressed: () async {
-                    if (Platform.isAndroid || Platform.isWindows || Platform.isMacOS || Platform.isIOS) {
+                    if (Platform.isAndroid || Platform.isWindows && referer.isEmpty) {
                       if (await _launchURLWithMIME(video, 'video/mp4')) {
                         SmartDialog.dismiss();
                         SmartDialog.showToast('尝试唤起外部播放器',
@@ -48,7 +47,16 @@ class RemotePlay {
                         SmartDialog.showToast('唤起外部播放器失败',
                             displayType: SmartToastType.onlyRefresh);
                       }
-                    } else if (Platform.isLinux) {
+                    } else if (Platform.isMacOS || Platform.isIOS) {
+                      if (await _launchURLWithReferer(video, referer)) {
+                        SmartDialog.dismiss();
+                        SmartDialog.showToast('尝试唤起外部播放器',
+                            displayType: SmartToastType.onlyRefresh);
+                      } else {
+                        SmartDialog.showToast('唤起外部播放器失败',
+                            displayType: SmartToastType.onlyRefresh);
+                      }
+                    } else if (Platform.isLinux && referer.isEmpty) {
                       SmartDialog.dismiss();
                       if (await canLaunchUrlString(video)) {
                         launchUrlString(video);
@@ -59,8 +67,13 @@ class RemotePlay {
                             displayType: SmartToastType.onlyRefresh);
                       }
                     } else {
-                      SmartDialog.showToast('暂不支持该设备',
-                          displayType: SmartToastType.onlyRefresh);
+                      if (referer.isEmpty) {
+                        SmartDialog.showToast('暂不支持该设备',
+                            displayType: SmartToastType.onlyRefresh);
+                      } else {
+                        SmartDialog.showToast('暂不支持该规则',
+                            displayType: SmartToastType.onlyRefresh);
+                      }
                     }
                   },
                   child: const Text('外部播放'),
@@ -169,6 +182,18 @@ class RemotePlay {
     } on PlatformException catch (e) {
       KazumiLogger()
           .log(Level.error, "Failed to open with mime: '${e.message}'.");
+      return false;
+    }
+  }
+
+  Future<bool> _launchURLWithReferer(String url, String referer) async {
+    try {
+      await platform.invokeMethod(
+          'openWithReferer', <String, String>{'url': url, 'referer': referer});
+      return true;
+    } on PlatformException catch (e) {
+      KazumiLogger()
+          .log(Level.error, "Failed to open with referer: '${e.message}'.");
       return false;
     }
   }

@@ -1243,12 +1243,8 @@ class _PlayerItemState extends State<PlayerItem>
                                       color: Colors.white,
                                       icon: const Icon(Icons.cast),
                                       onPressed: () {
-                                        if (videoPageController.currentPlugin.referer == '') {
                                           playerController.pause();
-                                          RemotePlay().castVideo(context);
-                                        } else {
-                                          SmartDialog.showToast('暂不支持该播放源', displayType: SmartToastType.onlyRefresh);
-                                        }
+                                          RemotePlay().castVideo(context, videoPageController.currentPlugin.referer);
                                       },
                                     ),
                                     // 追番

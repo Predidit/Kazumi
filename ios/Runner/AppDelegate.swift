@@ -13,12 +13,12 @@ import AVKit
                                            binaryMessenger: controller.binaryMessenger)
         channel.setMethodCallHandler({
             (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-            if call.method == "openWithMime" {
+            if call.method == "openWithReferer" {
                 guard let args = call.arguments else { return }
                 if let myArgs = args as? [String: Any],
                    let url = myArgs["url"] as? String,
-                   let mimeType = myArgs["mimeType"] as? String {
-                    self.openVideoWithMime(url: url, mimeType: mimeType)
+                   let referer = myArgs["referer"] as? String {
+                    self.openVideoWithReferer(url: url, referer: referer)
                 }
                 result(nil)
             } else {
@@ -29,9 +29,17 @@ import AVKit
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
     
-    private func openVideoWithMime(url: String, mimeType: String) {
+    // TODO: ADD VLC SUPPORT
+    // VLC can be downloaded from iOS App Store, but don't know how to build selectable app lists, while checking if it is installled.
+    // VLC supports more video formats than AVPlayer but does not support referer while AVPlayer does
+    private func openVideoWithReferer(url: String, referer: String) {
         if let videoUrl = URL(string: url) {
-            let player = AVPlayer(url: videoUrl)
+            let headers: [String: String] = [
+                "Referer": referer,
+            ]
+            let asset = AVURLAsset(url: videoUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+            let playerItem = AVPlayerItem(asset: asset)
+            let player = AVPlayer(playerItem: playerItem)
             let playerViewController = AVPlayerViewController()
             playerViewController.player = player
             playerViewController.videoGravity = AVLayerVideoGravity.resizeAspect
@@ -40,5 +48,12 @@ import AVKit
                 playerViewController.player!.play()
             })
         }
+        
+//        guard let appURL = URL(string: "vlc-x-callback://x-callback-url/stream?url=" + url) else {
+//            return
+//        }
+//        if UIApplication.shared.canOpenURL(appURL) && referer.isEmpty {
+//            UIApplication.shared.open(appURL, options: [:], completionHandler: nil)
+//        }
     }
 }

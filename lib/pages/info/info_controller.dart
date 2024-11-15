@@ -78,7 +78,7 @@ abstract class _InfoController with Store {
     if (offset == 0) {
       commentsList.clear();
     }
-    await BangumiHTTP.getBangumiCommentsByID(id).then((value) {
+    await BangumiHTTP.getBangumiCommentsByID(id, offset: offset).then((value) {
       commentsList.addAll(value.commentList);
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');

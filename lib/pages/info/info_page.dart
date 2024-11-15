@@ -189,6 +189,7 @@ class _InfoPageState extends State<InfoPage>
               child: const Icon(Icons.comment),
               onPressed: () async {
                 showModalBottomSheet(
+                    // elevation: 10,
                     clipBehavior: Clip.antiAlias,
                     context: context,
                     builder: (context) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/bean/comments/comments_card.dart';
+import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
 

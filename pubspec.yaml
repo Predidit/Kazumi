@@ -74,6 +74,8 @@ dependencies:
   dlna_dart: ^0.0.8
   screen_pixel: ^0.0.3
   logger: ^2.4.0
+  flutter_rating_bar: ^4.0.1
+  scrollview_observer: ^1.22.0
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
@@ -82,7 +84,6 @@ dependencies:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
       ref: no_texture
-  scrollview_observer: ^1.22.0
 
 dev_dependencies:
   flutter_test:

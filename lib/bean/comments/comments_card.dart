@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
-class CommentsCard extends StatelessWidget{
+class CommentsCard extends StatelessWidget {
   const CommentsCard({
     super.key,
     required this.commentItem,
@@ -16,20 +18,33 @@ class CommentsCard extends StatelessWidget{
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
                   backgroundImage: NetworkImage(commentItem.user.avatar.large),
                 ),
+                const SizedBox(width: 8),
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(commentItem.user.nickname),
-                    Text(commentItem.comment.updatedAt.toString()),
+                    Text(Utils.dateFormat(commentItem.comment.updatedAt)),
                   ],
+                ),
+                Expanded(child: Container(height: 10)),
+                RatingBarIndicator(
+                  itemCount: 5,
+                  rating: commentItem.comment.rate.toDouble() / 2,
+                  itemBuilder: (context, index) => const Icon(
+                    Icons.star,
+                  ),
+                  itemSize: 20.0,
                 ),
               ],
             ),
+            const SizedBox(height: 8),
             Text(commentItem.comment.comment),
           ],
         ),

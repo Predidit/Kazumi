@@ -65,8 +65,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget get commentsListBody {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4.0, 0, 4.0, 0),
       child: Observer(builder: (context) {
@@ -88,6 +87,41 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   commentItem: infoController.commentsList[index]);
             });
       }),
+    );
+  }
+
+  Widget get staffListBody {
+    return const Center(
+      child: Text('施工中 (～￣▽￣)～'),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: Column(
+          children: [
+            const PreferredSize(
+              preferredSize: Size.fromHeight(kToolbarHeight),
+              child: Material(
+                child: TabBar(
+                  tabs: [
+                    Tab(text: '吐槽箱'),
+                    Tab(text: '制作人员'),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [commentsListBody, staffListBody],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

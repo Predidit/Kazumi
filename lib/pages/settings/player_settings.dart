@@ -128,7 +128,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             ListTile(
               onTap: () async {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('默认倍速'),

@@ -67,7 +67,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Widget get commentsListBody {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4.0, 0, 4.0, 0),
+      padding: const EdgeInsets.all(4.0),
       child: Observer(builder: (context) {
         if (infoController.commentsList.isEmpty && !commentsQueryTimeout) {
           return const Center(

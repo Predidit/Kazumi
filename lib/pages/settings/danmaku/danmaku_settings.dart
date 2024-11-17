@@ -142,7 +142,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ListTile(
               onTap: () async {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('字体大小'),
@@ -206,7 +206,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ListTile(
               onTap: () async {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('字体字重'),
@@ -270,7 +270,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ListTile(
               onTap: () async {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('弹幕不透明度'),
@@ -334,7 +334,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ListTile(
               onTap: () async {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('弹幕区域'),

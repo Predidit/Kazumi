@@ -138,7 +138,7 @@ class _InitPageState extends State<InitPage> {
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
       SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         backType: SmartBackType.ignore,
         clickMaskDismiss: false,
         builder: (context) {

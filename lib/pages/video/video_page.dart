@@ -457,7 +457,7 @@ class _VideoPageState extends State<VideoPage>
               ),
               onPressed: () {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('播放列表'),

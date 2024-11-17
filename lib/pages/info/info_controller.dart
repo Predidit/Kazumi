@@ -9,6 +9,7 @@ import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/characters/character_item.dart';
 
 part 'info_controller.g.dart';
 
@@ -28,6 +29,9 @@ abstract class _InfoController with Store {
 
   @observable
   var episodeCommentsList = ObservableList<EpisodeCommentItem>();
+  
+  @observable
+  var characterList = ObservableList<CharacterItem>();
 
   /// 移动到 query_manager.dart 以解决可能的内存泄漏
   // querySource(String keyword) async {
@@ -94,5 +98,13 @@ abstract class _InfoController with Store {
       episodeCommentsList.addAll(value.commentList);
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
+  }
+  
+  queryBangumiCharactersByID(int id) async {
+    characterList.clear();
+    await BangumiHTTP.getCharatersByID(id).then((value) {
+      characterList.addAll(value.characterList);
+    });
+    KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');
   }
 }

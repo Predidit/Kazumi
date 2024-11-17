@@ -6,6 +6,7 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
+import 'package:kazumi/modules/characters/character_response.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -224,5 +225,19 @@ class BangumiHTTP {
           .log(Level.error, 'Resolve bangumi episode comments failed ${e.toString()}');
     }
     return commentResponse;
+  }
+  
+  static Future<CharacterResponse> getCharatersByID(int id) async {
+    CharacterResponse characterResponse = CharacterResponse.fromTemplate();
+    try {
+      final res = await Request().get(Api.bangumiInfoByID + id.toString() + '/characters',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      characterResponse = CharacterResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi characters failed ${e.toString()}');
+    }
+    return characterResponse;
   }
 }

@@ -58,12 +58,29 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$characterListAtom =
+      Atom(name: '_InfoController.characterList', context: context);
+
+  @override
+  ObservableList<CharacterItem> get characterList {
+    _$characterListAtom.reportRead();
+    return super.characterList;
+  }
+
+  @override
+  set characterList(ObservableList<CharacterItem> value) {
+    _$characterListAtom.reportWrite(value, super.characterList, () {
+      super.characterList = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
 pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
-commentsList: ${commentsList}
+commentsList: ${commentsList},
+characterList: ${characterList}
     ''';
   }
 }

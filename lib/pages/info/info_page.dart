@@ -49,6 +49,7 @@ class _InfoPageState extends State<InfoPage>
   @override
   void dispose() {
     queryManager.cancel();
+    infoController.characterList.clear();
     infoController.commentsList.clear();
     videoPageController.currentEpisode = 1;
     super.dispose();

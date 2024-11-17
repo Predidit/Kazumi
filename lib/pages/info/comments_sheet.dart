@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
+import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
 
@@ -16,14 +17,19 @@ class CommentsBottomSheet extends StatefulWidget {
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   late ScrollController scrollController;
   final infoController = Modular.get<InfoController>();
-  bool isLoading = false;
+  bool commentsIsLoading = false;
+  bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
+  bool charactersQueryTimeout = false;
 
   @override
   void initState() {
     super.initState();
     if (infoController.commentsList.isEmpty) {
       loadMoreComments();
+    }
+    if (infoController.characterList.isEmpty) {
+      loadCharacters();
     }
     scrollController = ScrollController();
     scrollController.addListener(scrollListener);
@@ -32,14 +38,31 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   void scrollListener() {
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
-        !isLoading &&
+        !commentsIsLoading &&
         mounted) {
       setState(() {
-        isLoading = true;
+        commentsIsLoading = true;
       });
       loadMoreComments(offset: infoController.commentsList.length);
       KazumiLogger().log(Level.info, 'Popular is loading more');
     }
+  }
+
+  Future<void> loadCharacters() async {
+    infoController
+        .queryBangumiCharactersByID(infoController.bangumiItem.id)
+        .then((_) {
+      if (infoController.characterList.isEmpty && mounted) {
+        setState(() {
+          charactersQueryTimeout = true;
+        });
+      }
+      if (infoController.characterList.isNotEmpty && mounted) {
+        setState(() {
+          charactersIsLoading = false;
+        });
+      }
+    });
   }
 
   Future<void> loadMoreComments({int offset = 0}) async {
@@ -53,7 +76,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       }
       if (infoController.commentsList.isNotEmpty && mounted) {
         setState(() {
-          isLoading = false;
+          commentsIsLoading = false;
         });
       }
     });
@@ -90,9 +113,27 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
   }
 
-  Widget get staffListBody {
-    return const Center(
-      child: Text('施工中 (～￣▽￣)～'),
+  Widget get charactersListBody {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4.0, 0, 4.0, 0),
+      child: Observer(builder: (context) {
+        if (infoController.characterList.isEmpty && !charactersQueryTimeout) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        if (charactersQueryTimeout) {
+          return const Center(
+            child: Text('空空如也'),
+          );
+        }
+        return ListView.builder(
+            itemCount: infoController.characterList.length,
+            itemBuilder: (context, index) {
+              return CharacterCard(
+                  characterItem: infoController.characterList[index]);
+            });
+      }),
     );
   }
 
@@ -109,14 +150,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 child: TabBar(
                   tabs: [
                     Tab(text: '吐槽箱'),
-                    Tab(text: '制作人员'),
+                    Tab(text: '声优表'),
                   ],
                 ),
               ),
             ),
             Expanded(
               child: TabBarView(
-                children: [commentsListBody, staffListBody],
+                children: [commentsListBody, charactersListBody],
               ),
             ),
           ],

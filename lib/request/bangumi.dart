@@ -185,18 +185,20 @@ class BangumiHTTP {
     }
   }
 
-  static Future<int> getBangumiEpisodeByID(int id, int episode) async {
-    var episodeID = 0;
+  static Future<List> getBangumiEpisodeByID(int id, int episode) async {
+    List<dynamic> episodeInfo = [0,' ',' '];
     try {
       final res = await Request().get('${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data['data'];
-      episodeID = jsonData[0]['id'];
+      episodeInfo[0] = (jsonData[0]['id']);
+      episodeInfo[1] = (jsonData[0]['name']);
+      episodeInfo[2] = (jsonData[0]['name_cn']) ?? ' ';
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'Resolve bangumi episode failed ${e.toString()}');
     }
-    return episodeID;
+    return episodeInfo;
   }
 
   static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {

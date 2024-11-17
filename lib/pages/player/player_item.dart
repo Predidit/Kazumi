@@ -97,7 +97,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   List<double> playSpeedList = defaultPlaySpeedList;
-  String episodeText = "";
+  int episodeNum = 0;
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -422,82 +422,6 @@ class _PlayerItemState extends State<PlayerItem>
         });
   }
 
-  // 选择要查看评论的集数
-  void showEpisodeSelection() {
-    final TextEditingController textController = TextEditingController(
-        text: (episodeText.isNotEmpty) ? episodeText : null);
-    bool needReload = true;
-    bool openSheet = false;
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('查看集数'),
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextField(
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly
-                ],
-                controller: textController,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => SmartDialog.dismiss(),
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (textController.text.isEmpty) {
-                    SmartDialog.showToast('请输入集数');
-                    return;
-                  }
-
-                  if (episodeText == textController.text) {
-                    needReload = false;
-                  }
-                  episodeText = textController.text;
-                  openSheet = true;
-                  SmartDialog.dismiss();
-                },
-                child: const Text('查看'),
-              ),
-            ],
-          );
-        },
-        onDismiss: () {
-          if (!openSheet) {
-            return;
-          }
-          int ep = videoPageController.currentEpisode;
-          try {
-            ep = int.parse(episodeText);
-          } catch (_) {
-            SmartDialog.showToast('集数输入错误，正在显示第$ep集评论');
-            KazumiLogger().log(Level.error, '集数输入错误，正在显示第$ep集评论');
-          }
-          showModalBottomSheet(
-              isScrollControlled: true,
-              constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                  maxWidth: (Utils.isDesktop() || Utils.isTablet())
-                      ? MediaQuery.of(context).size.width * 9 / 16
-                      : MediaQuery.of(context).size.width),
-              clipBehavior: Clip.antiAlias,
-              context: context,
-              builder: (context) {
-                return EpisodeCommentsSheet(reload: needReload, episode: ep);
-              }).whenComplete(() {
-            _focusNode.requestFocus();
-          });
-        });
-  }
-
   // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playerSpeed;
@@ -774,6 +698,8 @@ class _PlayerItemState extends State<PlayerItem>
       playerTimer!.cancel();
     }
     _animationController.dispose();
+    infoController.episodeCommentsList.clear();
+    infoController.episodeInfo = [0,' ',' '];
     super.dispose();
   }
 
@@ -1323,7 +1249,24 @@ class _PlayerItemState extends State<PlayerItem>
                                             color: Colors.white,
                                             icon: const Icon(Icons.comment),
                                             onPressed: () {
-                                              showEpisodeSelection();
+                                              episodeNum = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]);
+                                              if (episodeNum == 0 || episodeNum > videoPageController.roadList[videoPageController.currentRoad].identifier.length) {
+                                                episodeNum = videoPageController.currentEpisode;
+                                              }
+                                              showModalBottomSheet(
+                                                  isScrollControlled: true,
+                                                  constraints: BoxConstraints(
+                                                      maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                                                      maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                                                          ? MediaQuery.of(context).size.width * 9 / 16
+                                                          : MediaQuery.of(context).size.width),
+                                                  clipBehavior: Clip.antiAlias,
+                                                  context: context,
+                                                  builder: (context) {
+                                                    return EpisodeCommentsSheet(episode: episodeNum);
+                                                  }).whenComplete(() {
+                                                _focusNode.requestFocus();
+                                              });
                                             },
                                           ),
                                     // 追番

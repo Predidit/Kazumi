@@ -17,6 +17,7 @@ class InfoController = _InfoController with _$InfoController;
 
 abstract class _InfoController with Store {
   late BangumiItem bangumiItem;
+  List episodeInfo = [0,' ',' '];
 
   @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
@@ -93,8 +94,8 @@ abstract class _InfoController with Store {
 
   queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
-    final episodeId = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
-    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeId).then((value) {
+    episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
+    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo[0]).then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');

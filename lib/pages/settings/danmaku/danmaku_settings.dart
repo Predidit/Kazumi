@@ -2,9 +2,6 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/settings.dart';
-import 'package:provider/provider.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -20,7 +17,6 @@ class DanmakuSettingsPage extends StatefulWidget {
 }
 
 class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
-  dynamic navigationBarState;
   Box setting = GStorage.setting;
   late dynamic defaultDanmakuArea;
   late dynamic defaultDanmakuOpacity;
@@ -31,13 +27,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
     defaultDanmakuArea =
         setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     defaultDanmakuOpacity =
@@ -49,7 +38,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
     // Navigator.of(context).pop();
   }
 
@@ -83,9 +71,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -97,7 +83,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           children: [
             ListTile(
               onTap: () {
-                Modular.to.pushNamed('/tab/my/danmaku/source');
+                Modular.to.pushNamed('/settings/danmaku/source');
               },
               dense: false,
               title: const Text('弹幕来源'),
@@ -230,7 +216,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             spacing: 8,
                             runSpacing: 2,
                             children: [
-                              for (final int i in danFontWeightList) ...<Widget>[
+                              for (final int i
+                                  in danFontWeightList) ...<Widget>[
                                 if (i == defaultDanmakuFontWeight) ...<Widget>[
                                   FilledButton(
                                     onPressed: () async {

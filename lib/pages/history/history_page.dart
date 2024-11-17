@@ -1,11 +1,7 @@
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -22,7 +18,6 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   final HistoryController historyController = Modular.get<HistoryController>();
-  dynamic navigationBarState;
   TabController? controller;
 
   /// show delete button
@@ -32,18 +27,9 @@ class _HistoryPageState extends State<HistoryPage>
   void initState() {
     super.initState();
     historyController.init();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
   }
 
-  void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
-  }
+  void onBackPressed(BuildContext context) {}
 
   void showHistoryClearDialog() {
     SmartDialog.show(
@@ -79,9 +65,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return OrientationBuilder(builder: (context, orientation) {
       return Observer(builder: (context) {
         return PopScope(

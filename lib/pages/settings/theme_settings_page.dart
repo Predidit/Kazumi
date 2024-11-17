@@ -9,9 +9,6 @@ import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/bean/settings/settings.dart';
-import 'package:provider/provider.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/utils.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
@@ -22,7 +19,6 @@ class ThemeSettingsPage extends StatefulWidget {
 }
 
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
-  dynamic navigationBarState;
   Box setting = GStorage.setting;
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
@@ -33,13 +29,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
     defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     defaultThemeColor =
@@ -47,9 +36,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
   }
 
-  void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
-  }
+  void onBackPressed(BuildContext context) {}
 
   void setTheme(Color? color) {
     var defaultDarkTheme = ThemeData(
@@ -118,9 +105,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -208,7 +193,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             Platform.isAndroid
                 ? ListTile(
                     onTap: () async {
-                      Modular.to.pushNamed('/tab/my/theme/display');
+                      Modular.to.pushNamed('/settings/theme/display');
                     },
                     dense: false,
                     title: const Text('屏幕帧率'),

@@ -58,7 +58,7 @@ class _SideMenu extends State<SideMenu> {
                             child: InkWell(
                               customBorder: const CircleBorder(),
                               onTap: () {
-                                Modular.to.pushNamed('/tab/my/history');
+                                Modular.to.pushNamed('/settings/history');
                               },
                               child: Image.asset(
                               'assets/images/logo/logo_android.png',

@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
-import 'package:provider/provider.dart';
 import 'package:hive/hive.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -19,24 +15,14 @@ class WebDavSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
-  dynamic navigationBarState;
   Box setting = GStorage.setting;
 
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
   }
 
-  void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
-  }
+  void onBackPressed(BuildContext context) {}
 
   checkWebDav() async {
     var webDavURL =
@@ -96,9 +82,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -123,7 +107,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/webdav/editor');
+                Modular.to.pushNamed('/settings/webdav/editor');
               },
               dense: false,
               title: Text(

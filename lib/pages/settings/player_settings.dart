@@ -6,12 +6,8 @@ import 'package:fvp/fvp.dart' as fvp;
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:provider/provider.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -22,7 +18,6 @@ class PlayerSettingsPage extends StatefulWidget {
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   Box setting = GStorage.setting;
-  dynamic navigationBarState;
   late double defaultPlaySpeed;
 
   @override
@@ -30,17 +25,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     super.initState();
     defaultPlaySpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
   }
 
   void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
     // Navigator.of(context).pop();
   }
 
@@ -103,9 +90,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {

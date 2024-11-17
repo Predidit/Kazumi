@@ -3,14 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/api.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:provider/provider.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -20,7 +16,6 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  dynamic navigationBarState;
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -30,19 +25,10 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
     _getCacheSize();
   }
 
-  void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
-  }
+  void onBackPressed(BuildContext context) {}
 
   Future<Directory> _getCacheDir() async {
     Directory tempDir = await getTemporaryDirectory();
@@ -127,9 +113,7 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -148,7 +132,7 @@ class _AboutPageState extends State<AboutPage> {
                       .labelMedium!
                       .copyWith(color: Theme.of(context).colorScheme.outline)),
               onTap: () {
-                Modular.to.pushNamed('/tab/my/about/license');
+                Modular.to.pushNamed('/settings/about/license');
               },
             ),
             ListTile(
@@ -205,7 +189,7 @@ class _AboutPageState extends State<AboutPage> {
             ),
             ListTile(
               onTap: () {
-                Modular.to.pushNamed('/tab/my/about/logs');
+                Modular.to.pushNamed('/settings/about/logs');
               },
               dense: false,
               title: const Text('错误日志'),

@@ -49,35 +49,35 @@ class _MyPageState extends State<MyPage> {
           children: [
             ListTile(
               onTap: () {
-                Modular.to.pushNamed('/tab/my/history');
+                Modular.to.pushNamed('/settings/history');
               },
               dense: false,
               title: const Text('历史记录'),
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/plugin');
+                Modular.to.pushNamed('/settings/plugin');
               },
               dense: false,
               title: const Text('规则管理'),
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/player');
+                Modular.to.pushNamed('/settings/player');
               },
               dense: false,
               title: const Text('播放设置'),
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/danmaku');
+                Modular.to.pushNamed('/settings/danmaku');
               },
               dense: false,
               title: const Text('弹幕设置'),
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/theme');
+                Modular.to.pushNamed('/settings/theme');
               },
               dense: false,
               title: const Text('外观设置'),
@@ -85,21 +85,21 @@ class _MyPageState extends State<MyPage> {
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/webdav');
+                Modular.to.pushNamed('/settings/webdav');
               },
               dense: false,
               title: const Text('同步设置'),
             ),
             ListTile(
               onTap: () async {
-                Modular.to.pushNamed('/tab/my/other');
+                Modular.to.pushNamed('/settings/other');
               },
               dense: false,
               title: const Text('其他设置'),
             ),
             ListTile(
               onTap: () {
-                Modular.to.pushNamed('/tab/my/about');
+                Modular.to.pushNamed('/settings/about');
               },
               dense: false,
               title: const Text('关于'),

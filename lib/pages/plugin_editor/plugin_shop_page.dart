@@ -1,16 +1,12 @@
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/api.dart';
-import 'package:provider/provider.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({super.key});
@@ -20,7 +16,6 @@ class PluginShopPage extends StatefulWidget {
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  dynamic navigationBarState;
   Box setting = GStorage.setting;
   bool timeout = false;
   bool loading = false;
@@ -36,13 +31,6 @@ class _PluginShopPageState extends State<PluginShopPage> {
     super.initState();
     enableGitProxy =
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
   }
 
   void _handleRefresh() async {
@@ -191,7 +179,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         ),
         FilledButton.tonal(
             onPressed: () {
-              Modular.to.pushNamed('/tab/my/other');
+              Modular.to.pushNamed('/settings/other');
             },
             child: Text(enableGitProxy ? '禁用镜像' : '启用镜像')),
         const SizedBox(
@@ -208,9 +196,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {

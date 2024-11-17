@@ -7,9 +7,6 @@ import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:provider/provider.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -19,7 +16,6 @@ class PluginViewPage extends StatefulWidget {
 }
 
 class _PluginViewPageState extends State<PluginViewPage> {
-  dynamic navigationBarState;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   _handleAdd() {
@@ -37,7 +33,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     title: const Text('新建规则'),
                     onTap: () {
                       SmartDialog.dismiss();
-                      Modular.to.pushNamed('/tab/my/plugin/editor',
+                      Modular.to.pushNamed('/settings/plugin/editor',
                           arguments: Plugin.fromTemplate());
                     },
                   ),
@@ -46,7 +42,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     title: const Text('从规则仓库导入'),
                     onTap: () {
                       SmartDialog.dismiss();
-                      Modular.to.pushNamed('/tab/my/plugin/shop',
+                      Modular.to.pushNamed('/settings/plugin/shop',
                           arguments: Plugin.fromTemplate());
                     },
                   ),
@@ -113,27 +109,17 @@ class _PluginViewPageState extends State<PluginViewPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    navigationBarState.showNavigate();
     // Navigator.of(context).pop();
   }
 
   @override
   void initState() {
     super.initState();
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigationBarState.hideNavigate();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -178,7 +164,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                 pluginsController.pluginList.removeAt(index);
                               });
                             } else if (result == 'Edit') {
-                              Modular.to.pushNamed('/tab/my/plugin/editor',
+                              Modular.to.pushNamed('/settings/plugin/editor',
                                   arguments:
                                       pluginsController.pluginList[index]);
                             } else if (result == 'Share') {

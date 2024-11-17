@@ -10,6 +10,7 @@ import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/request/query_manager.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/comments_sheet.dart';
@@ -189,7 +190,12 @@ class _InfoPageState extends State<InfoPage>
               child: const Icon(Icons.comment),
               onPressed: () async {
                 showModalBottomSheet(
-                    // elevation: 10,
+                    isScrollControlled: true,
+                    constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                        maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                            ? MediaQuery.of(context).size.width * 9 / 16
+                            : MediaQuery.of(context).size.width),
                     clipBehavior: Clip.antiAlias,
                     context: context,
                     builder: (context) {

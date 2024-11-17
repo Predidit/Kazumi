@@ -25,7 +25,7 @@ class RemotePlay {
     final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return StatefulBuilder(builder: (context, setState) {
             return AlertDialog(
@@ -142,9 +142,10 @@ class RemotePlay {
               ],
             );
           });
-        }).then((_) {
-      searcher.stop();
-    });
+        },
+        onDismiss: () {
+          searcher.stop();
+        });
   }
 
   Icon _deviceUPnPIcon(String deviceType) {

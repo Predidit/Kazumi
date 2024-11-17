@@ -26,6 +26,9 @@ abstract class _InfoController with Store {
   @observable
   var commentsList = ObservableList<CommentItem>();
 
+  @observable
+  var episodeCommentsList = ObservableList<EpisodeCommentItem>();
+
   /// 移动到 query_manager.dart 以解决可能的内存泄漏
   // querySource(String keyword) async {
   //   final PluginsController pluginsController =
@@ -82,5 +85,14 @@ abstract class _InfoController with Store {
       commentsList.addAll(value.commentList);
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
+  }
+
+  queryBangumiEpisodeCommentsByID(int id, String episode) async {
+    episodeCommentsList.clear();
+    final episodeId = await BangumiHTTP.getBangumiEpisodeByID(id, int.parse(episode));
+    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeId).then((value) {
+      episodeCommentsList.addAll(value.commentList);
+    });
+    KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
   }
 }

@@ -30,6 +30,7 @@ import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({super.key, required this.openMenu, required this.locateEpisode});
@@ -96,6 +97,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   List<double> playSpeedList = defaultPlaySpeedList;
+  String episodeText = "";
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -195,7 +197,7 @@ class _PlayerItemState extends State<PlayerItem>
   void showVideoInfo() async {
     String currentDemux = await Utils.getCurrentDemux();
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return AlertDialog(
             title: const Text('视频详情'),
@@ -370,7 +372,7 @@ class _PlayerItemState extends State<PlayerItem>
     final TextEditingController textController = TextEditingController();
     bool isSending = false; // 追踪是否正在发送
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return AlertDialog(
             title: const Text('发送弹幕'),
@@ -420,11 +422,75 @@ class _PlayerItemState extends State<PlayerItem>
         });
   }
 
+  // 选择要查看评论的集数
+  void showEpisodeSelection() {
+    final TextEditingController textController = TextEditingController(
+        text: (episodeText.isNotEmpty) ? episodeText : null);
+    bool needReload = true;
+    bool openSheet = false;
+    SmartDialog.show(
+        animationTime: const Duration(milliseconds: 100),
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('查看集数'),
+            content: StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+              return TextField(
+                inputFormatters: <TextInputFormatter>[
+                  FilteringTextInputFormatter.digitsOnly
+                ],
+                controller: textController,
+              );
+            }),
+            actions: [
+              TextButton(
+                onPressed: () => SmartDialog.dismiss(),
+                child: Text(
+                  '取消',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (episodeText == textController.text) {
+                    needReload = false;
+                  }
+                  episodeText = textController.text;
+                  openSheet = true;
+                  SmartDialog.dismiss();
+                },
+                child: const Text('查看'),
+              ),
+            ],
+          );
+        },
+        onDismiss: () {
+          if (!openSheet) {
+            return;
+          }
+          showModalBottomSheet(
+              isScrollControlled: true,
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                  maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                      ? MediaQuery.of(context).size.width * 9 / 16
+                      : MediaQuery.of(context).size.width),
+              clipBehavior: Clip.antiAlias,
+              context: context,
+              builder: (context) {
+                return EpisodeCommentsSheet(reload: needReload, episode: episodeText);
+              }).whenComplete(() {
+            _focusNode.requestFocus();
+          });
+        });
+  }
+
   // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playerSpeed;
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return AlertDialog(
             title: const Text('播放速度'),
@@ -493,7 +559,7 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     await SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return Dialog(
             child: ListView(
@@ -517,7 +583,7 @@ class _PlayerItemState extends State<PlayerItem>
                       return;
                     }
                     SmartDialog.show(
-                        useAnimation: false,
+                        animationTime: const Duration(milliseconds: 100),
                         builder: (context) {
                           return Dialog(
                             child: ListView(
@@ -546,7 +612,7 @@ class _PlayerItemState extends State<PlayerItem>
   // 弹幕查询
   void showDanmakuSwitch() {
     SmartDialog.show(
-      useAnimation: false,
+      animationTime: const Duration(milliseconds: 100),
       onDismiss: () {
         // workaround for foucus node.
         // input in textfield generated by flutter_smart_dialog will disable autofocus, which will cause the keyboard event lost.
@@ -1239,14 +1305,15 @@ class _PlayerItemState extends State<PlayerItem>
                                         ),
                                       ),
                                     ),
-                                    IconButton(
-                                      color: Colors.white,
-                                      icon: const Icon(Icons.cast),
-                                      onPressed: () {
-                                          playerController.pause();
-                                          RemotePlay().castVideo(context, videoPageController.currentPlugin.referer);
-                                      },
-                                    ),
+                                    (!Utils.isDesktop() && !Utils.isTablet() && videoPageController.androidFullscreen)
+                                        ? Container()
+                                        : IconButton(
+                                            color: Colors.white,
+                                            icon: const Icon(Icons.comment),
+                                            onPressed: () {
+                                              showEpisodeSelection();
+                                            },
+                                          ),
                                     // 追番
                                     IconButton(
                                       icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_outline,
@@ -1293,12 +1360,19 @@ class _PlayerItemState extends State<PlayerItem>
                                               children: [Text("视频详情")],
                                             ),
                                           ),
+                                          PopupMenuItem(
+                                            value: 3,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [Text("远程播放")],
+                                            ),
+                                          ),
                                         ];
                                       },
                                       onSelected: (value) {
                                         if (value == 0) {
                                           SmartDialog.show(
-                                              useAnimation: false,
+                                              animationTime: const Duration(milliseconds: 100),
                                               builder: (context) {
                                                 return SizedBox(
                                                     height: 440,
@@ -1310,6 +1384,10 @@ class _PlayerItemState extends State<PlayerItem>
                                         }
                                         if (value == 2) {
                                           showVideoInfo();
+                                        }
+                                        if (value == 3) {
+                                          playerController.pause();
+                                          RemotePlay().castVideo(context, videoPageController.currentPlugin.referer);
                                         }
                                       },
                                     )
@@ -1407,7 +1485,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         : Container(),
                                     IconButton(
                                       color: Colors.white,
-                                      icon: Icon(playerController.danmakuOn ? Icons.comment : Icons.comments_disabled),
+                                      icon: Icon(playerController.danmakuOn ? Icons.subtitles : Icons.subtitles_off),
                                       onPressed: () {
                                         _handleDanmaku();
                                       },

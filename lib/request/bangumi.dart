@@ -184,16 +184,44 @@ class BangumiHTTP {
     }
   }
 
+  static Future<int> getBangumiEpisodeByID(int id, int episode) async {
+    var episodeID = 0;
+    try {
+      final res = await Request().get('${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data['data'];
+      episodeID = jsonData[0]['id'];
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi episode failed ${e.toString()}');
+    }
+    return episodeID;
+  }
+
   static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
-      final res = await Request().get(Api.bangumiCommentsByID + id.toString() + '/comments?offset=$offset&limit=20',
+      final res = await Request().get('${Api.bangumiCommentsByID}$id/comments?offset=$offset&limit=20',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'Resolve bangumi comments failed ${e.toString()}');
+    }
+    return commentResponse;
+  }
+
+  static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(int id) async {
+    EpisodeCommentResponse commentResponse = EpisodeCommentResponse.fromTemplate();
+    try {
+      final res = await Request().get('${Api.bangumiCommentsByID}-/episode/$id/comments',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      commentResponse = EpisodeCommentResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi episode comments failed ${e.toString()}');
     }
     return commentResponse;
   }

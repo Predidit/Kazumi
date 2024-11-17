@@ -12,7 +12,7 @@ class EpisodeCommentsSheet extends StatefulWidget {
   const EpisodeCommentsSheet(
       {super.key, required this.reload, required this.episode});
 
-  final String episode;
+  final int episode;
   final bool reload;
 
   @override

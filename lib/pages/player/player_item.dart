@@ -453,6 +453,11 @@ class _PlayerItemState extends State<PlayerItem>
               ),
               TextButton(
                 onPressed: () {
+                  if (textController.text.isEmpty) {
+                    SmartDialog.showToast('请输入集数');
+                    return;
+                  }
+
                   if (episodeText == textController.text) {
                     needReload = false;
                   }
@@ -469,6 +474,13 @@ class _PlayerItemState extends State<PlayerItem>
           if (!openSheet) {
             return;
           }
+          int ep = videoPageController.currentEpisode;
+          try {
+            ep = int.parse(episodeText);
+          } catch (_) {
+            SmartDialog.showToast('集数输入错误，正在显示第$ep集评论');
+            KazumiLogger().log(Level.error, '集数输入错误，正在显示第$ep集评论');
+          }
           showModalBottomSheet(
               isScrollControlled: true,
               constraints: BoxConstraints(
@@ -479,7 +491,7 @@ class _PlayerItemState extends State<PlayerItem>
               clipBehavior: Clip.antiAlias,
               context: context,
               builder: (context) {
-                return EpisodeCommentsSheet(reload: needReload, episode: episodeText);
+                return EpisodeCommentsSheet(reload: needReload, episode: ep);
               }).whenComplete(() {
             _focusNode.requestFocus();
           });

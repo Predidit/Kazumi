@@ -37,7 +37,7 @@ class EpisodeCommentsCard extends StatelessWidget {
           Text(commentItem.comment.comment),
           (commentItem.replies.isNotEmpty)
               ? ListView.builder(
-                  scrollDirection: Axis.vertical,
+                  physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: commentItem.replies.length,
                   itemBuilder: (context, index) {
@@ -46,7 +46,7 @@ class EpisodeCommentsCard extends StatelessWidget {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Divider(color: Theme.of(context).dividerColor),
+                            Divider(color: Theme.of(context).dividerColor.withAlpha(60)),
                             Row(
                               children: [
                                 CircleAvatar(

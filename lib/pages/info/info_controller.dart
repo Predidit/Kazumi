@@ -91,9 +91,9 @@ abstract class _InfoController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
   }
 
-  queryBangumiEpisodeCommentsByID(int id, String episode) async {
+  queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
-    final episodeId = await BangumiHTTP.getBangumiEpisodeByID(id, int.parse(episode));
+    final episodeId = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
     await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeId).then((value) {
       episodeCommentsList.addAll(value.commentList);
     });

@@ -7,13 +7,15 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ApiInterceptor extends Interceptor {
   static Box setting = GStorage.setting;
-  bool enableGitProxy =
-      setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     // Github mirror
-    if (options.path.contains('github') && enableGitProxy) {
-      options.path = Api.gitMirror + options.path;
+    if (options.path.contains('github')) {
+      bool enableGitProxy =
+          setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+      if (enableGitProxy) {
+        options.path = Api.gitMirror + options.path;
+      }
     }
     handler.next(options);
   }

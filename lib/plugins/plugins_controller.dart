@@ -123,6 +123,7 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
 }
 
   Future<void> queryPluginHTTPList() async {
+    pluginHTTPList.clear();
     var pluginHTTPListRes = await PluginHTTP.getPluginList();
     pluginHTTPList.addAll(pluginHTTPListRes);
   } 

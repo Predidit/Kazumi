@@ -699,7 +699,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
     _animationController.dispose();
     infoController.episodeCommentsList.clear();
-    infoController.episodeInfo = [0,' ',' '];
+    infoController.episodeInfo.reset();
     super.dispose();
   }
 

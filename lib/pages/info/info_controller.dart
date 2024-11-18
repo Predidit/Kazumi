@@ -10,6 +10,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 
 part 'info_controller.g.dart';
 
@@ -17,7 +18,7 @@ class InfoController = _InfoController with _$InfoController;
 
 abstract class _InfoController with Store {
   late BangumiItem bangumiItem;
-  List episodeInfo = [0,' ',' '];
+  EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
   @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
@@ -95,7 +96,7 @@ abstract class _InfoController with Store {
   queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
     episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
-    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo[0]).then((value) {
+    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id).then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');

@@ -7,6 +7,7 @@ import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/character_response.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -185,15 +186,13 @@ class BangumiHTTP {
     }
   }
 
-  static Future<List> getBangumiEpisodeByID(int id, int episode) async {
-    List<dynamic> episodeInfo = [0,' ',' '];
+  static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
+    EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
     try {
       final res = await Request().get('${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
           options: Options(headers: bangumiHTTPHeader));
-      final jsonData = res.data['data'];
-      episodeInfo[0] = (jsonData[0]['id']);
-      episodeInfo[1] = (jsonData[0]['name']);
-      episodeInfo[2] = (jsonData[0]['name_cn']) ?? ' ';
+      final jsonData = res.data['data'][0];
+      episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'Resolve bangumi episode failed ${e.toString()}');

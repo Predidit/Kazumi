@@ -37,12 +37,14 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Future<void> loadComments(int episode) async {
+    commentsQueryTimeout = false;
     infoController
         .queryBangumiEpisodeCommentsByID(infoController.bangumiItem.id, episode)
         .then((_) {
       if (infoController.episodeCommentsList.isEmpty && mounted) {
         setState(() {
           commentsQueryTimeout = true;
+          isLoading = false;
         });
       }
       if (infoController.episodeCommentsList.isNotEmpty && mounted) {
@@ -63,8 +65,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
       child: Observer(builder: (context) {
-        if (infoController.episodeCommentsList.isEmpty &&
-            !commentsQueryTimeout) {
+        if (isLoading) {
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -96,15 +97,16 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(infoController.episodeInfo[1],
+                Text(
+                    '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.name}',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.outline)),
                 Text(
-                    (infoController.episodeInfo[2] != '')
-                        ? infoController.episodeInfo[2]
-                        : infoController.episodeInfo[1],
+                    (infoController.episodeInfo.nameCn != '')
+                        ? '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.nameCn}'
+                        : '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.name}',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 12,

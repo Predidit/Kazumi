@@ -5,9 +5,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
-import 'package:kazumi/request/bangumi.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 class EpisodeCommentsSheet extends StatefulWidget {
   const EpisodeCommentsSheet({super.key, required this.episode});

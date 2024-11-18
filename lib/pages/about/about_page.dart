@@ -81,7 +81,7 @@ class _AboutPageState extends State<AboutPage> {
 
   void _showCacheDialog() {
     SmartDialog.show(
-      useAnimation: false,
+      animationTime: const Duration(milliseconds: 100),
       builder: (context) {
         return AlertDialog(
           title: const Text('缓存管理'),

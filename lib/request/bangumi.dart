@@ -7,6 +7,7 @@ import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/character_response.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -185,10 +186,24 @@ class BangumiHTTP {
     }
   }
 
+  static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
+    EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+    try {
+      final res = await Request().get('${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data['data'][0];
+      episodeInfo = EpisodeInfo.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi episode failed ${e.toString()}');
+    }
+    return episodeInfo;
+  }
+
   static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
-      final res = await Request().get(Api.bangumiCommentsByID + id.toString() + '/comments?offset=$offset&limit=20',
+      final res = await Request().get('${Api.bangumiCommentsByID}$id/comments?offset=$offset&limit=20',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
@@ -199,6 +214,20 @@ class BangumiHTTP {
     return commentResponse;
   }
 
+  static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(int id) async {
+    EpisodeCommentResponse commentResponse = EpisodeCommentResponse.fromTemplate();
+    try {
+      final res = await Request().get('${Api.bangumiCommentsByID}-/episode/$id/comments',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      commentResponse = EpisodeCommentResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve bangumi episode comments failed ${e.toString()}');
+    }
+    return commentResponse;
+  }
+  
   static Future<CharacterResponse> getCharatersByID(int id) async {
     CharacterResponse characterResponse = CharacterResponse.fromTemplate();
     try {

@@ -20,7 +20,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   _handleAdd() {
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return AlertDialog(
             // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
@@ -64,7 +64,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
   _showInputDialog() {
     final TextEditingController textController = TextEditingController();
     SmartDialog.show(
-        useAnimation: false,
+        animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return AlertDialog(
             title: const Text('导入规则'),
@@ -169,7 +169,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                       pluginsController.pluginList[index]);
                             } else if (result == 'Share') {
                               SmartDialog.show(
-                                  useAnimation: false,
+                                  animationTime: const Duration(milliseconds: 100),
                                   builder: (context) {
                                     return AlertDialog(
                                       title: const Text('规则链接'),

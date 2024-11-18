@@ -119,7 +119,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               onTap: () async {
                 final List<Map<String, dynamic>> colorThemes = colorThemeTypes;
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('配色方案'),
@@ -203,7 +203,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             ListTile(
               onTap: () {
                 SmartDialog.show(
-                    useAnimation: false,
+                    animationTime: const Duration(milliseconds: 100),
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('主题模式'),

@@ -15,6 +15,7 @@ class MyController {
         }
       } else {
         SmartDialog.show(
+          animationTime: const Duration(milliseconds: 100),
           animationType: SmartAnimationType.centerFade_otherSlide,
           builder: (context) {
             return AlertDialog(

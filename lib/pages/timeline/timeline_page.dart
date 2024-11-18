@@ -101,7 +101,7 @@ class _TimelinePageState extends State<TimelinePage>
                 child: Text(timelineController.seasonString),
                 onTap: () {
                   SmartDialog.show(
-                      useAnimation: false,
+                      animationTime: const Duration(milliseconds: 100),
                       builder: (context) {
                         return AlertDialog(
                           title: const Text("时间机器"),

@@ -119,3 +119,60 @@ class CommentItem {
     };
   }
 }
+
+class EpisodeComment {
+  final User user;
+  final String comment;
+  final int createdAt;
+
+  EpisodeComment({
+    required this.user,
+    required this.comment,
+    required this.createdAt,
+  });
+
+
+  factory EpisodeComment.fromJson(Map<String, dynamic> json) {
+    return EpisodeComment(
+      user: User.fromJson(json['user']),
+      comment: json['content'] ?? '',
+      createdAt: json['createdAt'] ?? 0,
+    );
+  }
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user': user.toJson(),
+      'content': comment,
+      'createdAt': createdAt,
+    };
+  }
+}
+
+class EpisodeCommentItem {
+  final EpisodeComment comment;
+  final List<EpisodeComment> replies;
+
+  EpisodeCommentItem({
+    required this.comment,
+    required this.replies
+  });
+
+  factory EpisodeCommentItem.fromJson(Map<String, dynamic> json) {
+    var list = json['replies'] as List;
+    List<EpisodeComment> tempList =
+        list.map((i) => EpisodeComment.fromJson(i)).toList();
+    return EpisodeCommentItem(
+      comment: EpisodeComment.fromJson(json),
+      replies: tempList
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'comment': comment.toJson(),
+      'list': replies,
+    };
+  }
+}

@@ -33,7 +33,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   void showHistoryClearDialog() {
     SmartDialog.show(
-      useAnimation: false,
+      animationTime: const Duration(milliseconds: 100),
       builder: (context) {
         return AlertDialog(
           title: const Text('记录管理'),

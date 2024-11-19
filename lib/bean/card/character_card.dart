@@ -15,8 +15,8 @@ class CharacterCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.secondaryContainer,
       child: ExpansionTile(
         shape: const RoundedRectangleBorder(
-          side: BorderSide.none, 
-          borderRadius: BorderRadius.zero, 
+          side: BorderSide.none,
+          borderRadius: BorderRadius.zero,
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +30,10 @@ class CharacterCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(characterItem.name),
+                    SizedBox(
+                        width: 150,
+                        child: Text(characterItem.name,
+                            overflow: TextOverflow.clip, maxLines: 1)),
                     Text(characterItem.actorList.isEmpty
                         ? ''
                         : characterItem.actorList[0].name),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 
+import '../../utils/utils.dart';
+
 class CharacterCard extends StatefulWidget {
   const CharacterCard({
     super.key,
@@ -38,9 +40,15 @@ class _CharacterCard extends State<CharacterCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.characterItem.name),
-                    Text(widget.characterItem.actorList.isEmpty
-                        ? ''
-                        : widget.characterItem.actorList.map((actor) => actor.name).join(' / '))
+                    SizedBox(
+                        width: (Utils.isTablet() || Utils.isDesktop()) ? 300 : 150,
+                        child: Text(
+                            widget.characterItem.actorList.isEmpty
+                                ? ''
+                                : widget.characterItem.actorList.map((actor) => actor.name).join(' / '),
+                            overflow: TextOverflow.ellipsis
+                        )
+                    )
                   ],
                 ),
                 const Expanded(child: SizedBox(height: 10)),

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/request/bangumi.dart';
 
-class CharacterCard extends StatelessWidget {
+class CharacterCard extends StatefulWidget {
   const CharacterCard({
     super.key,
     required this.characterItem,
   });
 
   final CharacterItem characterItem;
+
+  @override
+  State<CharacterCard> createState() => _CharacterCard();
+}
+
+class _CharacterCard extends State<CharacterCard> {
 
   @override
   Widget build(BuildContext context) {
@@ -24,20 +31,20 @@ class CharacterCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage(characterItem.avator.grid),
+                  backgroundImage: NetworkImage(widget.characterItem.avator.grid),
                 ),
                 const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(characterItem.name),
-                    Text(characterItem.actorList.isEmpty
+                    Text(widget.characterItem.name),
+                    Text(widget.characterItem.actorList.isEmpty
                         ? ''
-                        : characterItem.actorList[0].name),
+                        : widget.characterItem.actorList.map((actor) => actor.name).join(' / '))
                   ],
                 ),
                 const Expanded(child: SizedBox(height: 10)),
-                Text(characterItem.relation)
+                Text(widget.characterItem.readType())
               ],
             ),
           ],
@@ -47,12 +54,25 @@ class CharacterCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(characterItem.actorList.isEmpty
-                  ? ''
-                  : characterItem.actorList[0].shortSummary),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  (widget.characterItem.info.nameCn.isNotEmpty)
+                  ? Text('中文名：${widget.characterItem.info.nameCn}')
+                  : Container(),
+                  Text(widget.characterItem.info.summary),
+                ],
+              )
             ),
           ),
         ],
+        onExpansionChanged: (value) async {
+          if (value == false || widget.characterItem.info.summary.isNotEmpty) {
+            return;
+          }
+          widget.characterItem.info = await BangumiHTTP.getCharactersExtraInfo(widget.characterItem);
+          setState(() {});
+        },
       ),
     );
   }

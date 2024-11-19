@@ -104,7 +104,7 @@ abstract class _InfoController with Store {
   
   queryBangumiCharactersByID(int id) async {
     characterList.clear();
-    await BangumiHTTP.getCharatersByID(id).then((value) {
+    await BangumiHTTP.getCharactersByID(id).then((value) {
       characterList.addAll(value.characterList);
     });
     KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');

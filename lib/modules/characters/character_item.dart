@@ -32,12 +32,32 @@ class CharacterAvator {
   }
 }
 
+class CharacterExtraInfo {
+  String nameCn;
+  String summary;
+
+  CharacterExtraInfo({required this.nameCn, required this.summary});
+
+  factory CharacterExtraInfo.fromJson(Map<String, dynamic> json) {
+    String nameCn = '';
+    final String hasNameCn = json['infobox'][0]['key'];
+    if (hasNameCn == '简体中文名') {
+      nameCn = json['infobox'][0]['value'];
+    }
+    return CharacterExtraInfo(
+      nameCn: nameCn,
+      summary: json['summary']
+    );
+  }
+}
+
 class CharacterItem {
   final int id;
   final int type;
   final String name;
   final CharacterAvator avator;
   final List<ActorItem> actorList;
+  CharacterExtraInfo info;
 
   CharacterItem({
     required this.id,
@@ -45,6 +65,7 @@ class CharacterItem {
     required this.name,
     required this.avator,
     required this.actorList,
+    required this.info
   });
 
   factory CharacterItem.fromJson(Map<String, dynamic> json) {
@@ -66,6 +87,7 @@ class CharacterItem {
       name: json['character']['name'] ?? '',
       avator: resAvator,
       actorList: resActorList,
+      info: CharacterExtraInfo(nameCn: '', summary: '')
     );
   }
 

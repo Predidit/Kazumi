@@ -24,7 +24,7 @@ class CharacterCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage(characterItem.avator.large),
+                  backgroundImage: NetworkImage(characterItem.avator.grid),
                 ),
                 const SizedBox(width: 8),
                 Column(

@@ -26,8 +26,8 @@ class Api {
   static const String bangumiInfoByID = 'https://api.bgm.tv/v0/subjects/';
   // 从条目ID获取剧集ID
   static const String bangumiEpisodeByID = 'https://api.bgm.tv/v0/episodes?subject_id=';
-  // 从条目ID获取评论
-  static const String bangumiCommentsByID = 'https://next.bgm.tv/p1/subjects/';
+  // Next条目API
+  static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
   static const String dandanAPI = "https://api.dandanplay.net/api/v2/comment/";

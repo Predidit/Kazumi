@@ -13,9 +13,12 @@ class CharacterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.secondaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8.0, 8.0, 16.0, 8.0),
-        child: Column(
+      child: ExpansionTile(
+        shape: const RoundedRectangleBorder(
+          side: BorderSide.none, 
+          borderRadius: BorderRadius.zero, 
+        ),
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -39,6 +42,17 @@ class CharacterCard extends StatelessWidget {
             ),
           ],
         ),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(characterItem.actorList.isEmpty
+                  ? ''
+                  : characterItem.actorList[0].shortSummary),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -203,7 +203,7 @@ class BangumiHTTP {
   static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiCommentsByID}$id/comments?offset=$offset&limit=20',
+      final res = await Request().get('${Api.bangumiInfoByIDNext}$id/comments?offset=$offset&limit=20',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
@@ -217,7 +217,7 @@ class BangumiHTTP {
   static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(int id) async {
     EpisodeCommentResponse commentResponse = EpisodeCommentResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiCommentsByID}-/episode/$id/comments',
+      final res = await Request().get('${Api.bangumiInfoByIDNext}-/episode/$id/comments',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);

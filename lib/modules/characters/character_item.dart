@@ -36,7 +36,6 @@ class CharacterItem {
   final int id;
   final int type;
   final String name;
-  final String relation;
   final CharacterAvator avator;
   final List<ActorItem> actorList;
 
@@ -44,7 +43,6 @@ class CharacterItem {
     required this.id,
     required this.type,
     required this.name,
-    required this.relation,
     required this.avator,
     required this.actorList,
   });
@@ -53,12 +51,20 @@ class CharacterItem {
     var list = json['actors'] as List;
     List<ActorItem> resActorList =
         list.map((i) => ActorItem.fromJson(i)).toList();
+    var resAvator = CharacterAvator(
+        small: 'https://bangumi.tv/img/info_only.png',
+        medium: 'https://bangumi.tv/img/info_only.png',
+        grid: 'https://bangumi.tv/img/info_only.png',
+        large: 'https://bangumi.tv/img/info_only.png');
+    if (json['character']['images'] != null) {
+      resAvator = CharacterAvator.fromJson(
+          json['character']['images'] as Map<String, dynamic>);
+    }
     return CharacterItem(
-      id: json['id'] ?? 0,
+      id: json['character']['id'] ?? 0,
       type: json['type'] ?? 0,
-      name: json['name'] ?? '',
-      relation: json['relation'] ?? '',
-      avator: CharacterAvator.fromJson(json['images'] as Map<String, dynamic>),
+      name: json['character']['name'] ?? '',
+      avator: resAvator,
       actorList: resActorList,
     );
   }
@@ -68,9 +74,21 @@ class CharacterItem {
       'id': id,
       'type': type,
       'name': name,
-      'relation': relation,
       'images': avator.toJson(),
       'actors': actorList.map((e) => e.toJson()).toList(),
     };
+  }
+
+  String readType() {
+    switch (type) {
+      case 1:
+        return '主角';
+      case 2:
+        return '配角';
+      case 3:
+        return '客串';
+      default:
+        return '';
+    }
   }
 }

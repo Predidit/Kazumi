@@ -231,9 +231,9 @@ class BangumiHTTP {
   static Future<CharacterResponse> getCharatersByID(int id) async {
     CharacterResponse characterResponse = CharacterResponse.fromTemplate();
     try {
-      final res = await Request().get(Api.bangumiInfoByID + id.toString() + '/characters',
+      final res = await Request().get('${Api.bangumiInfoByIDNext}$id/characters?limit=100',
           options: Options(headers: bangumiHTTPHeader));
-      final jsonData = res.data;
+      final jsonData = res.data['data'];
       characterResponse = CharacterResponse.fromJson(jsonData);
     } catch (e) {
       KazumiLogger()

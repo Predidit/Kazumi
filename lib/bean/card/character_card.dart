@@ -24,7 +24,7 @@ class CharacterCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: NetworkImage(characterItem.avator.large),
+                  backgroundImage: NetworkImage(characterItem.avator.grid),
                 ),
                 const SizedBox(width: 8),
                 Column(
@@ -33,11 +33,11 @@ class CharacterCard extends StatelessWidget {
                     Text(characterItem.name),
                     Text(characterItem.actorList.isEmpty
                         ? ''
-                        : characterItem.actorList[0].name),
+                        : characterItem.actorList.map((actor) => actor.name).join(' / '))
                   ],
                 ),
                 const Expanded(child: SizedBox(height: 10)),
-                Text(characterItem.relation)
+                Text(characterItem.readType())
               ],
             ),
           ],

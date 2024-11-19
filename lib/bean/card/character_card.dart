@@ -56,13 +56,15 @@ class _CharacterCard extends State<CharacterCard> {
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  (widget.characterItem.info.nameCn.isNotEmpty)
-                  ? Text('中文名：${widget.characterItem.info.nameCn}')
-                  : Container(),
-                  Text(widget.characterItem.info.summary),
-                ],
-              )
+                  children: [
+                    (widget.characterItem.info.nameCn.isNotEmpty)
+                        ? Text('中文名：${widget.characterItem.info.nameCn}')
+                        : Container(),
+                    (widget.characterItem.info.summary.isNotEmpty)
+                        ? Text('简介：\n${widget.characterItem.info.summary}')
+                        : const Text('加载中...')
+                  ],
+                )
             ),
           ),
         ],
@@ -71,6 +73,9 @@ class _CharacterCard extends State<CharacterCard> {
             return;
           }
           widget.characterItem.info = await BangumiHTTP.getCharactersExtraInfo(widget.characterItem);
+          if (widget.characterItem.info.summary.isEmpty) {
+            widget.characterItem.info.summary = '无';
+          }
           setState(() {});
         },
       ),

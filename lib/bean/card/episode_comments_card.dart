@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -103,9 +104,9 @@ class EpisodeCommentsCard extends StatelessWidget {
       ),
       'image': StyledTextWidgetBuilderTag(
         (_, attributes, textContent) {
-          return Image.network(
-            textContent!,
-            errorBuilder: (context, error, stackTrace) {
+          return CachedNetworkImage(
+            imageUrl: textContent!,
+            errorWidget: (context, error, stackTrace) {
               return const Text('.');
             },
           );

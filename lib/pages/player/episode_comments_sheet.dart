@@ -59,7 +59,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Widget get episodeCommentsBody {
-    return Padding(
+    return SelectionArea(
+        child: Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
       child: Observer(builder: (context) {
         if (isLoading) {
@@ -80,7 +81,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                   commentItem: infoController.episodeCommentsList[index]);
             });
       }),
-    );
+    ));
   }
 
   Widget get commentsInfo {

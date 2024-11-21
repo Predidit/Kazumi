@@ -19,12 +19,12 @@ class RemotePlay {
 
   static const platform = MethodChannel('com.predidit.kazumi/intent');
 
-  castVideo(BuildContext context, String referer) async {
+  Future<void> castVideo(BuildContext context, String referer) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
     final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
-    SmartDialog.show(
+    await SmartDialog.show(
         animationTime: const Duration(milliseconds: 100),
         builder: (context) {
           return StatefulBuilder(builder: (context, setState) {

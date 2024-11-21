@@ -1243,32 +1243,35 @@ class _PlayerItemState extends State<PlayerItem>
                                         ),
                                       ),
                                     ),
-                                    (!Utils.isDesktop() && !Utils.isTablet() && videoPageController.androidFullscreen)
-                                        ? Container()
-                                        : IconButton(
-                                            color: Colors.white,
-                                            icon: const Icon(Icons.comment),
-                                            onPressed: () {
-                                              episodeNum = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]);
-                                              if (episodeNum == 0 || episodeNum > videoPageController.roadList[videoPageController.currentRoad].identifier.length) {
-                                                episodeNum = videoPageController.currentEpisode;
-                                              }
-                                              showModalBottomSheet(
-                                                  isScrollControlled: true,
-                                                  constraints: BoxConstraints(
-                                                      maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                                                      maxWidth: (Utils.isDesktop() || Utils.isTablet())
-                                                          ? MediaQuery.of(context).size.width * 9 / 16
-                                                          : MediaQuery.of(context).size.width),
-                                                  clipBehavior: Clip.antiAlias,
-                                                  context: context,
-                                                  builder: (context) {
-                                                    return EpisodeCommentsSheet(episode: episodeNum);
-                                                  }).whenComplete(() {
-                                                _focusNode.requestFocus();
-                                              });
-                                            },
-                                          ),
+                                    IconButton(
+                                      color: Colors.white,
+                                      icon: const Icon(Icons.comment),
+                                      onPressed: () {
+                                        bool needRestart = playerController.playing;
+                                        playerController.pause();
+                                        episodeNum = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]);
+                                        if (episodeNum == 0 || episodeNum > videoPageController.roadList[videoPageController.currentRoad].identifier.length) {
+                                          episodeNum = videoPageController.currentEpisode;
+                                        }
+                                        showModalBottomSheet(
+                                            isScrollControlled: true,
+                                            constraints: BoxConstraints(
+                                                maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                                                maxWidth: (MediaQuery.of(context).size.width > MediaQuery.of(context).size.height)
+                                                    ? MediaQuery.of(context).size.width * 9 / 16
+                                                    : MediaQuery.of(context).size.width),
+                                            clipBehavior: Clip.antiAlias,
+                                            context: context,
+                                            builder: (context) {
+                                              return EpisodeCommentsSheet(episode: episodeNum);
+                                            }).whenComplete(() {
+                                          if (needRestart) {
+                                            playerController.play();
+                                          }
+                                          _focusNode.requestFocus();
+                                        });
+                                      },
+                                    ),
                                     // 追番
                                     IconButton(
                                       icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_outline,
@@ -1341,8 +1344,13 @@ class _PlayerItemState extends State<PlayerItem>
                                           showVideoInfo();
                                         }
                                         if (value == 3) {
+                                          bool needRestart = playerController.playing;
                                           playerController.pause();
-                                          RemotePlay().castVideo(context, videoPageController.currentPlugin.referer);
+                                          RemotePlay().castVideo(context, videoPageController.currentPlugin.referer).whenComplete(() {
+                                            if (needRestart) {
+                                              playerController.play();
+                                            }
+                                          });
                                         }
                                       },
                                     )

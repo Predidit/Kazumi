@@ -52,7 +52,8 @@ class _LogsPageState extends State<LogsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SelectionArea(
+        child: Scaffold(
       appBar: const SysAppBar(
         title: Text('日志'),
       ),
@@ -76,6 +77,6 @@ class _LogsPageState extends State<LogsPage> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

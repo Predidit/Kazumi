@@ -89,7 +89,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Widget get commentsListBody {
-    return Padding(
+    return SelectionArea(
+        child: Padding(
       padding: const EdgeInsets.all(4.0),
       child: Observer(builder: (context) {
         if (infoController.commentsList.isEmpty && !commentsQueryTimeout) {
@@ -110,11 +111,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   commentItem: infoController.commentsList[index]);
             });
       }),
-    );
+    ));
   }
 
   Widget get charactersListBody {
-    return Padding(
+    return SelectionArea(
+        child: Padding(
       padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 4.0),
       child: Observer(builder: (context) {
         if (infoController.characterList.isEmpty && !charactersQueryTimeout) {
@@ -134,7 +136,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   characterItem: infoController.characterList[index]);
             });
       }),
-    );
+    ));
   }
 
   @override

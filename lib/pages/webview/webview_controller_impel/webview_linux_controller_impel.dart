@@ -9,7 +9,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   Timer? videoParserTimer;
 
   @override
-  init() async {
+  Future<void> init() async {
     webviewController ??= await WebviewWindow.create(
       configuration: const CreateConfiguration(),
     );
@@ -24,7 +24,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   }
 
   @override
-  loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
@@ -67,16 +67,16 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   }
 
   @override
-  unloadPage() async {
+  Future<void> unloadPage() async {
     await redirect2Blank();
   }
 
   @override
-  dispose() {
+  void dispose() {
     webviewController!.close();
   }
 
-  initJSBridge() async {
+  Future<void> initJSBridge() async {
     webviewController!.addOnWebMessageReceivedCallback((message) async {
       if (message.contains('iframeMessage:')) {
         String messageItem =
@@ -134,7 +134,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
     });
   }
 
-  parseIframeUrl() async {
+  Future<void> parseIframeUrl() async {
     await webviewController!.evaluateJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
       window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
@@ -152,7 +152,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   }
 
   // 非blob资源
-  parseVideoSource() async {
+  Future<void> parseVideoSource() async {
     await webviewController!.evaluateJavaScript('''
       var videos = document.querySelectorAll('video');
       window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
@@ -181,7 +181,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   }
 
   // blob资源/iframe桥
-  initBlobParserAndiframeBridge() async {
+  Future<void> initBlobParserAndiframeBridge() async {
     webviewController!.setOnUrlRequestCallback((url) {
       debugPrint('Current URL: $url');
       return true;
@@ -254,7 +254,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   // webview_windows本身无此方法，loadurl方法相当于打开新标签页，会造成内存泄漏
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
-  redirect2Blank() async {
+  Future<void> redirect2Blank() async {
     await webviewController!.evaluateJavaScript('''
       window.location.href = 'about:blank';
     ''');

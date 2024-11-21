@@ -12,7 +12,7 @@ import 'package:kazumi/modules/bangumi/episode_item.dart';
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
   // Because getCalendarBySearch is not stable, it will miss some bangumi items.
-  static Future getCalendar() async {
+  static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
       var res = await Request().get(Api.bangumiCalendar,
@@ -43,7 +43,7 @@ class BangumiHTTP {
   // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
   // because the air date is the launch date of the anime, it is usually a few days before the start of the season
   // So we usually use the start of the season month -1 and the end of the season month -1
-  static Future getCalendarBySearch(List<String> dateRange) async {
+  static Future<List<List<BangumiItem>>> getCalendarBySearch(List<String> dateRange) async {
     List<BangumiItem> bangumiList = [];
     List<List<BangumiItem>> bangumiCalendar = [];
     var params = <String, dynamic>{
@@ -89,7 +89,7 @@ class BangumiHTTP {
     return bangumiCalendar;
   }
 
-  static Future getBangumiList({int rank = 2, String tag = ''}) async {
+  static Future<List<BangumiItem>> getBangumiList({int rank = 2, String tag = ''}) async {
     List<BangumiItem> bangumiList = [];
     late Map<String, dynamic> params;
     if (tag == '') {
@@ -134,7 +134,7 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future bangumiSearch(String keyword) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
@@ -174,7 +174,7 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static getBangumiSummaryByID(int id) async {
+  static Future<String> getBangumiSummaryByID(int id) async {
     try {
       final res = await Request().get(Api.bangumiInfoByID + id.toString(),
           options: Options(headers: bangumiHTTPHeader));

@@ -17,7 +17,7 @@ class WebDav {
   static final WebDav _instance = WebDav._internal();
   factory WebDav() => _instance;
 
-  Future init() async {
+  Future<void> init() async {
     var directory = await getApplicationSupportDirectory();
     webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp'); 
     Box setting = GStorage.setting;
@@ -42,7 +42,7 @@ class WebDav {
     }
   }
 
-  Future update(String boxName) async {
+  Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
     try {
       await client.remove('/kazumiSync/$boxName.tmp.cache');
@@ -60,15 +60,15 @@ class WebDav {
         '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
   }
 
-  Future updateHistory() async {
+  Future<void> updateHistory() async {
     await update('histories');
   }
 
-  Future updateFavorite() async {
+  Future<void> updateFavorite() async {
     await update('favorites');
   }
 
-  Future downloadHistory() async {
+  Future<void> downloadHistory() async {
     String fileName = 'histories.tmp';
     if (!await webDavLocalTempDirectory.exists()) {
       await webDavLocalTempDirectory.create(recursive: true);
@@ -84,7 +84,7 @@ class WebDav {
     await GStorage.patchHistory(existingFile.path); 
   }
   
-  Future downloadFavorite() async {
+  Future<void> downloadFavorite() async {
     String fileName = 'favorites.tmp';
     if (!await webDavLocalTempDirectory.exists()) {
       await webDavLocalTempDirectory.create(recursive: true);
@@ -100,7 +100,7 @@ class WebDav {
     await GStorage.patchFavorites(existingFile.path); 
   }
 
-  Future ping() async {
+  Future<void> ping() async {
     await client.ping();
   }
 }

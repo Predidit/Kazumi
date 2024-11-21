@@ -57,7 +57,7 @@ class _InfoPageState extends State<InfoPage>
 
   /// workaround for bangumi calendar api
   /// bangumi calendar api always return empty summary
-  queryBangumiSummaryByID(int id) async {
+  Future<void> queryBangumiSummaryByID(int id) async {
     try {
       await infoController.queryBangumiSummaryByID(id);
       setState(() {});

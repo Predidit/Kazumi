@@ -115,7 +115,7 @@ class Plugin {
     return data;
   }
 
-  queryBangumi(String keyword, {bool shouldRethrow = false}) async {
+  Future<PluginSearchResponse> queryBangumi(String keyword, {bool shouldRethrow = false}) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     dynamic resp;
     List<SearchItem> searchItems = [];
@@ -162,7 +162,7 @@ class Plugin {
     return pluginSearchResponse;
   }
 
-  querychapterRoads(String url) async {
+  Future<List<Road>> querychapterRoads(String url) async {
     List<Road> roadList = [];
     // 预处理
     if (!url.contains('https')) {

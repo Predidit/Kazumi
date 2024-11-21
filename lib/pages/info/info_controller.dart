@@ -59,13 +59,13 @@ abstract class _InfoController with Store {
   //   }
   // }
 
-  queryBangumiSummaryByID(int id) async {
+  Future<void> queryBangumiSummaryByID(int id) async {
     await BangumiHTTP.getBangumiSummaryByID(id).then((value) {
       bangumiItem.summary = value;
     });
   }
 
-  queryRoads(String url, String pluginName) async {
+  Future<void> queryRoads(String url, String pluginName) async {
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     final VideoPageController videoPageController =
@@ -83,7 +83,7 @@ abstract class _InfoController with Store {
         Level.info, '第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
   }
 
-  queryBangumiCommentsByID(int id, {int offset = 0}) async {
+  Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {
     if (offset == 0) {
       commentsList.clear();
     }
@@ -93,7 +93,7 @@ abstract class _InfoController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
   }
 
-  queryBangumiEpisodeCommentsByID(int id, int episode) async {
+  Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
     episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
     await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id).then((value) {
@@ -102,7 +102,7 @@ abstract class _InfoController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
   }
   
-  queryBangumiCharactersByID(int id) async {
+  Future<void> queryBangumiCharactersByID(int id) async {
     characterList.clear();
     await BangumiHTTP.getCharatersByID(id).then((value) {
       characterList.addAll(value.characterList);

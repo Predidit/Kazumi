@@ -24,7 +24,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
 
   void onBackPressed(BuildContext context) {}
 
-  checkWebDav() async {
+  Future<void> checkWebDav() async {
     var webDavURL =
         await setting.get(SettingBoxKey.webDavURL, defaultValue: '');
     if (webDavURL == '') {
@@ -46,7 +46,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     }
   }
 
-  updateWebdav() async {
+  Future<void> updateWebdav() async {
     var webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
@@ -63,7 +63,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     }
   }
 
-  downloadWebdav() async {
+  Future<void> downloadWebdav() async {
     var webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {

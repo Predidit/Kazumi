@@ -222,7 +222,7 @@ class _PlayerItemState extends State<PlayerItem>
         });
   }
 
-  getPlayerTimer() {
+  Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.mediaPlayer.value.isPlaying;
       playerController.isBuffering = playerController.mediaPlayer.value.isBuffering;

@@ -300,9 +300,6 @@ class Utils {
     return false;
   }
 
-  // 下载适用于当前系统的安装包
-  static Future matchVersion(data) async {}
-
   // 时间戳转时间
   static tampToSeektime(number) {
     int hours = number ~/ 60;

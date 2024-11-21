@@ -18,7 +18,7 @@ class PluginViewPage extends StatefulWidget {
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
-  _handleAdd() {
+  void _handleAdd() {
     SmartDialog.show(
         animationTime: const Duration(milliseconds: 100),
         builder: (context) {
@@ -61,7 +61,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         });
   }
 
-  _showInputDialog() {
+  void _showInputDialog() {
     final TextEditingController textController = TextEditingController();
     SmartDialog.show(
         animationTime: const Duration(milliseconds: 100),

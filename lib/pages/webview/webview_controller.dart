@@ -23,16 +23,16 @@ abstract class WebviewItemController<T> {
 
   /// Webview initialization method
   /// This method should eventually call the changeEpisode method of videoController
-  init();
+  Future<void> init();
 
   /// Webview load URL method
-  loadUrl(String url, {int offset = 0});
+  Future<void> loadUrl(String url, {int offset = 0});
 
   /// Webview unload page method
-  unloadPage();
+  Future<void> unloadPage();
 
   /// Webview dispose method
-  dispose();
+  void dispose();
 }
 
 class WebviewItemControllerFactory {

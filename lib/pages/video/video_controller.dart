@@ -53,7 +53,7 @@ abstract class _VideoPageController with Store {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
 
-  changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
+  Future<void> changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
     showDebugLog = false;
     loading = true;
     currentEpisode = episode;

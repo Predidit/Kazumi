@@ -9,7 +9,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   Timer? videoParserTimer;
 
   @override
-  init() async {
+  Future<void> init() async {
     webviewController ??= WebviewController();
     await webviewController!.initialize();
     await webviewController!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
@@ -25,7 +25,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   @override
-  loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
@@ -68,17 +68,17 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   @override
-  unloadPage() async {
+  Future<void> unloadPage() async {
     await redirect2Blank();
     await webviewController!.clearCache();
   }
 
   @override
-  dispose() {
+  void dispose() {
     webviewController!.dispose();
   }
 
-  initJSBridge() async {
+  Future<void> initJSBridge() async {
     webviewController!.webMessage.listen((event) async {
       if (event.toString().contains('iframeMessage:')) {
         String messageItem =
@@ -136,7 +136,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
     });
   }
 
-  parseIframeUrl() async {
+  Future<void> parseIframeUrl() async {
     await webviewController!.executeScript('''
       var iframes = document.getElementsByTagName('iframe');
       window.chrome.webview.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
@@ -154,7 +154,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   // 非blob资源
-  parseVideoSource() async {
+  Future<void> parseVideoSource() async {
     await webviewController!.executeScript('''
       var videos = document.querySelectorAll('video');
       window.chrome.webview.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
@@ -182,7 +182,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   // blob资源
-  initBlobParser() async {
+  Future<void> initBlobParser() async {
     await webviewController!.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
@@ -239,7 +239,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
     ''');
   }
 
-  initInviewIframeBridge() async {
+  Future<void> initInviewIframeBridge() async {
     await webviewController!.addScriptToExecuteOnDocumentCreated('''
       window.addEventListener("message", function(event) {
         if (event.data) {
@@ -254,7 +254,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   // webview_windows本身无此方法，loadurl方法相当于打开新标签页，会造成内存泄漏
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
-  redirect2Blank() async {
+  Future<void> redirect2Blank() async {
     await webviewController!.executeScript('''
       window.location.href = 'about:blank';
     ''');

@@ -15,7 +15,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   Timer? videoParserTimer;
 
   @override
-  init() async {
+  Future<void> init() async {
     webviewController ??= WebViewController();
     videoPageController.changeEpisode(videoPageController.currentEpisode,
         currentRoad: videoPageController.currentRoad,
@@ -23,7 +23,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   }
 
   @override
-  loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
@@ -146,7 +146,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   }
 
   @override
-  unloadPage() async {
+  Future<void> unloadPage() async {
     await webviewController
         !.removeJavaScriptChannel('JSBridgeDebug')
         .catchError((_) {});
@@ -163,11 +163,11 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   }
 
   @override
-  dispose() {
+  void dispose() {
     unloadPage();
   }
 
-  parseIframeUrl() async {
+  Future<void> parseIframeUrl() async {
     await webviewController!.runJavaScript('''
       var iframes = document.getElementsByTagName('iframe');
       JSBridgeDebug.postMessage('The number of iframe tags is' + iframes.length);
@@ -183,12 +183,12 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   ''');
   }
 
-  redirctWithReferer(String src) async {
+  Future<void> redirctWithReferer(String src) async {
     await webviewController!.runJavaScript('window.location.href = "$src";');
   }
 
   // 非blob资源
-  parseVideoSource() async {
+  Future<void> parseVideoSource() async {
     await webviewController!.runJavaScript('''
       var videos = document.querySelectorAll('video');
       VideoBridgeDebug.postMessage('The number of video tags is' + videos.length);
@@ -217,7 +217,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   }
 
   // blob资源
-  addBlobParser() async {
+  Future<void> addBlobParser() async {
     await webviewController!.runJavaScript('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
@@ -275,7 +275,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
     ''');
   }
 
-  addInviewIframeBridge() async {
+  Future<void> addInviewIframeBridge() async {
     await webviewController!.runJavaScript('''
       window.addEventListener("message", function(event) {
         if (event.data) {
@@ -288,13 +288,13 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   }
 
   // 设定UA
-  setDesktopUserAgent() async {
+  Future<void> setDesktopUserAgent() async {
     String desktopUserAgent = Utils.getRandomUA();
     await webviewController!.setUserAgent(desktopUserAgent);
   }
 
   // 全屏监听
-  addFullscreenListener() async {
+  Future<void> addFullscreenListener() async {
     await webviewController!.runJavaScript('''
       document.addEventListener('fullscreenchange', () => {
             if (document.fullscreenElement) {

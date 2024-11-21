@@ -21,7 +21,7 @@ abstract class _FavoriteController with Store {
     return !(GStorage.favorites.get(bangumiItem.id) == null);
   }
 
-  Future addFavorite(BangumiItem bangumiItem) async {
+  Future<void> addFavorite(BangumiItem bangumiItem) async {
     await GStorage.favorites.put(bangumiItem.id, bangumiItem);
     await GStorage.favorites.flush();
     bool webDavEnable = await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
@@ -35,7 +35,7 @@ abstract class _FavoriteController with Store {
     }
   }
 
-  Future deleteFavorite(BangumiItem bangumiItem) async {
+  Future<void> deleteFavorite(BangumiItem bangumiItem) async {
     await GStorage.favorites.delete(bangumiItem.id);
     await GStorage.favorites.flush();
     bool webDavEnable = await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
@@ -49,7 +49,7 @@ abstract class _FavoriteController with Store {
     }
   }
 
-  Future updateFavorite() async{
+  Future<void> updateFavorite() async{
     KazumiLogger().log(Level.debug, '提交到WebDav的追番列表长度 ${GStorage.favorites.length}');
     await WebDav().updateFavorite();
   }

@@ -21,7 +21,7 @@ abstract class _PopularController with Store {
   double scrollOffset = 0.0;
   bool isLoadingMore = false;
 
-  Future queryBangumiListFeed({String type = 'init', String tag = ''}) async {
+  Future<void> queryBangumiListFeed({String type = 'init', String tag = ''}) async {
     isLoadingMore = true;
     var random = Random();
     int randomNumber = random.nextInt(1000) + 1;
@@ -33,7 +33,7 @@ abstract class _PopularController with Store {
     isLoadingMore = false;
   }
 
-  Future queryBangumi(String keyword) async {
+  Future<void> queryBangumi(String keyword) async {
     isLoadingMore = true;
     var result = await BangumiHTTP.bangumiSearch(keyword);
     bangumiList.clear();

@@ -38,7 +38,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  updateFvp() async {
+  void updateFvp() async {
     bool hAenable =
         await setting.get(SettingBoxKey.hAenable, defaultValue: true);
     bool lowMemoryMode =

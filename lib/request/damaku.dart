@@ -12,7 +12,7 @@ import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 class DanmakuRequest {
 
   //获取弹弹Play集合，需要进一步处理
-  static getBangumiID(String title) async {
+  static Future<int> getBangumiID(String title) async {
     DanmakuSearchResponse danmakuSearchResponse = await getDanmakuSearchResponse(title);
 
     // 保留此判断以防止错误匹配
@@ -27,7 +27,7 @@ class DanmakuRequest {
   }
 
   //从BangumiID获取分集ID
-  static getDanDanEpisodesByBangumiID(int bangumiID) async {
+  static Future<DanmakuEpisodeResponse> getDanDanEpisodesByBangumiID(int bangumiID) async {
     var httpHeaders = {
       'user-agent':
           Utils.getRandomUA(),
@@ -57,7 +57,7 @@ class DanmakuRequest {
     return danmakuSearchResponse;
   }
 
-  static getDanDanmaku(int bangumiID, int episode) async {
+  static Future<List<Danmaku>> getDanDanmaku(int bangumiID, int episode) async {
     List<Danmaku> danmakus = [];
     if (bangumiID == 100000) {
       return danmakus;
@@ -88,7 +88,7 @@ class DanmakuRequest {
     return danmakus;
   }
 
-  static getDanDanmakuByEpisodeID(int episodeID) async {
+  static Future<List<Danmaku>> getDanDanmakuByEpisodeID(int episodeID) async {
     List<Danmaku> danmakus = [];
     var httpHeaders = {
       'user-agent':

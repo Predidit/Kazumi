@@ -16,11 +16,11 @@ abstract class _TimelineController with Store {
 
   DateTime selectedDate = DateTime.now();
 
-  Future getSchedules() async {
+  Future<void> getSchedules() async {
     bangumiCalendar = await BangumiHTTP.getCalendar();
   }
 
-  Future getSchedulesBySeason() async {
+  Future<void> getSchedulesBySeason() async {
     bangumiCalendar = await BangumiHTTP.getCalendarBySearch(AnimeSeason(selectedDate).toSeasonStartAndEnd());
   }
 }

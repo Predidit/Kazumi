@@ -61,7 +61,7 @@ abstract class _PlayerController with Store {
   Box setting = GStorage.setting;
   late bool hAenable;
 
-  Future init({int offset = 0}) async {
+  Future<void> init({int offset = 0}) async {
     playing = false;
     loading = true;
     isBuffering = true;
@@ -125,7 +125,7 @@ abstract class _PlayerController with Store {
     return mediaPlayer;
   }
 
-  Future setPlaybackSpeed(double playerSpeed) async {
+  Future<void> setPlaybackSpeed(double playerSpeed) async {
     this.playerSpeed = playerSpeed;
     try {
       mediaPlayer.setPlaybackSpeed(playerSpeed);
@@ -134,7 +134,7 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future playOrPause() async {
+  Future<void> playOrPause() async {
     if (mediaPlayer.value.isPlaying) {
       await pause();
     } else {
@@ -142,24 +142,24 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future seek(Duration duration) async {
+  Future<void> seek(Duration duration) async {
     danmakuController.clear();
     await mediaPlayer.seekTo(duration);
   }
 
-  Future pause() async {
+  Future<void> pause() async {
     danmakuController.pause();
     await mediaPlayer.pause();
     playing = false;
   }
 
-  Future play() async {
+  Future<void> play() async {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
   }
 
-  Future getDanDanmaku(String title, int episode) async {
+  Future<void> getDanDanmaku(String title, int episode) async {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $title');
     try {
       danDanmakus.clear();
@@ -171,7 +171,7 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future getDanDanmakuByEpisodeID(int episodeID) async {
+  Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
     try {
       danDanmakus.clear();

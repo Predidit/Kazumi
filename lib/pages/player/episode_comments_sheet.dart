@@ -16,7 +16,6 @@ class EpisodeCommentsSheet extends StatefulWidget {
 }
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
-  late ScrollController scrollController;
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
@@ -30,7 +29,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       });
       loadComments(widget.episode);
     }
-    scrollController = ScrollController();
   }
 
   Future<void> loadComments(int episode) async {
@@ -54,7 +52,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   void dispose() {
-    scrollController.dispose();
     super.dispose();
   }
 
@@ -73,13 +70,15 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             child: Text('空空如也'),
           );
         }
-        return ListView.builder(
-            controller: scrollController,
-            itemCount: infoController.episodeCommentsList.length,
-            itemBuilder: (context, index) {
-              return EpisodeCommentsCard(
-                  commentItem: infoController.episodeCommentsList[index]);
-            });
+        return SingleChildScrollView(
+            child: ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: infoController.episodeCommentsList.length,
+                itemBuilder: (context, index) {
+                  return EpisodeCommentsCard(
+                      commentItem: infoController.episodeCommentsList[index]);
+                }));
       }),
     ));
   }

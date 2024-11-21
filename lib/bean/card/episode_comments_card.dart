@@ -106,6 +106,10 @@ class EpisodeCommentsCard extends StatelessWidget {
         (_, attributes, textContent) {
           return CachedNetworkImage(
             imageUrl: textContent!,
+            placeholder: (context, url) => const SizedBox(
+              width: 14,
+              height: 14,
+            ),
             errorWidget: (context, error, stackTrace) {
               return const Text('.');
             },

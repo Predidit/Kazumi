@@ -44,7 +44,7 @@ class _InitPageState extends State<InitPage> {
     super.initState();
   }
 
-  _fvpInit() async {
+  Future<void> _fvpInit() async {
     bool hAenable =
         await setting.get(SettingBoxKey.hAenable, defaultValue: true);
     bool lowMemoryMode =
@@ -98,7 +98,7 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  _webDavInit() async {
+  Future<void> _webDavInit() async {
     bool webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     bool webDavEnableFavorite = await setting
@@ -128,7 +128,7 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  _pluginInit() async {
+  Future<void> _pluginInit() async {
     String statementsText = '';
     try {
       await pluginsController.loadPlugins();
@@ -177,14 +177,14 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  _update() {
+  void _update() {
     bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
     if (autoUpdate) {
       Modular.get<MyController>().checkUpdata(type: 'auto');
     }
   }
 
-  _pluginUpdate() async {
+  Future<void> _pluginUpdate() async {
     await pluginsController.queryPluginHTTPList();
     int count = 0;
     for (var plugin in pluginsController.pluginList) {

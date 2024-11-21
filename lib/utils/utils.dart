@@ -496,7 +496,7 @@ class Utils {
     return false;
   }
 
-  static enterWindowsFullscreen() async {
+  static Future<void> enterWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
       try {
@@ -507,7 +507,7 @@ class Utils {
     }
   }
 
-  static exitWindowsFullscreen() async {
+  static Future<void> exitWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
       try {
@@ -519,7 +519,7 @@ class Utils {
   }
 
   // 进入全屏显示
-  static enterFullScreen({bool lockOrientation = true}) async {
+  static Future<void> enterFullScreen({bool lockOrientation = true}) async {
     if (Platform.isWindows) {
       await enterWindowsFullscreen();
       return;

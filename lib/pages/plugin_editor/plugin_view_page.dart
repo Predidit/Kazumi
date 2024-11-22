@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -169,7 +170,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                       pluginsController.pluginList[index]);
                             } else if (result == 'Share') {
                               SmartDialog.show(
-                                  animationTime: const Duration(milliseconds: 100),
+                                  animationTime:
+                                      const Duration(milliseconds: 100),
                                   builder: (context) {
                                     return AlertDialog(
                                       title: const Text('规则链接'),
@@ -195,11 +197,12 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                         ),
                                         TextButton(
                                           onPressed: () {
-                                            Utils.copyToClipboard(
-                                                Utils.jsonToKazumiBase64(json
-                                                    .encode(pluginsController
-                                                        .pluginList[index]
-                                                        .toJson())));
+                                            Clipboard.setData(ClipboardData(
+                                                text: Utils.jsonToKazumiBase64(
+                                                    json.encode(
+                                                        pluginsController
+                                                            .pluginList[index]
+                                                            .toJson()))));
                                             SmartDialog.dismiss();
                                           },
                                           child: const Text('复制到剪贴板'),

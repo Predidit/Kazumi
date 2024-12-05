@@ -122,6 +122,19 @@
             run: |
               sudo apt-get update
               sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev
+              sudo apt-get install -y gcc g++ autoconf automake debhelper glslang-dev ladspa-sdk xutils-dev libasound2-dev \
+                  libarchive-dev libbluray-dev libbs2b-dev libcaca-dev libcdio-paranoia-dev libdrm-dev \
+                  libdav1d-dev libdvdnav-dev libegl1-mesa-dev libepoxy-dev libfontconfig-dev libfreetype6-dev \
+                  libfribidi-dev libgl1-mesa-dev libgbm-dev libgme-dev libgsm1-dev libharfbuzz-dev libjpeg-dev \
+                  libbrotli-dev liblcms2-dev liblircclient-dev libmodplug-dev libmp3lame-dev libopenal-dev \
+                  libopus-dev libopencore-amrnb-dev libopencore-amrwb-dev libpulse-dev librtmp-dev \
+                  libsdl2-dev libsixel-dev libssh-dev libsoxr-dev libspeex-dev libtool \
+                  libv4l-dev libva-dev libvdpau-dev libvorbis-dev libvo-amrwbenc-dev \
+                  libunwind-dev libvpx-dev libwayland-dev libx11-dev libxext-dev \
+                  libxkbcommon-dev libxrandr-dev libxss-dev libxv-dev libxvidcore-dev \
+                  linux-libc-dev nasm ninja-build pkg-config python3 python3-docutils wayland-protocols \
+                  x11proto-core-dev zlib1g-dev libfdk-aac-dev libtheora-dev libwebp-dev \
+                  unixodbc-dev libpq-dev libxxhash-dev libaom-dev              
             shell: bash
           - name: Set up Flutter
             uses: subosito/flutter-action@v2

@@ -8,7 +8,6 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
-import 'package:fvp/fvp.dart' as fvp;
 // import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
@@ -37,65 +36,10 @@ class _InitPageState extends State<InitPage> {
 
   @override
   void initState() {
-    _fvpInit();
     _pluginInit();
     _webDavInit();
     _update();
     super.initState();
-  }
-
-  Future<void> _fvpInit() async {
-    bool hAenable =
-        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    bool lowMemoryMode =
-        await setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    if (hAenable) {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-        // mdk.setLogHandler((p0, p1) {
-        //   print(p1);
-        //   writeLog(p1);
-        // });
-      }
-    } else {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-      }
-    }
   }
 
   Future<void> _webDavInit() async {

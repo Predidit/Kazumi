@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:fvp/fvp.dart' as fvp;
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings.dart';
@@ -38,56 +37,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  void updateFvp() async {
-    bool hAenable =
-        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    bool lowMemoryMode =
-        await setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    if (hAenable) {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux', 'macos'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux', 'macos'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-      }
-    } else {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
@@ -100,20 +49,18 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         appBar: const SysAppBar(title: Text('播放设置')),
         body: Column(
           children: [
-            InkWell(
+            const InkWell(
               child: SetSwitchItem(
                 title: '硬件解码',
                 setKey: SettingBoxKey.hAenable,
-                callFn: (_) => updateFvp(),
                 defaultVal: true,
               ),
             ),
-            InkWell(
+            const InkWell(
               child: SetSwitchItem(
                 title: '低内存模式',
                 subTitle: '禁用高级缓存以减少内存占用',
                 setKey: SettingBoxKey.lowMemoryMode,
-                callFn: (_) => updateFvp(),
                 defaultVal: false,
               ),
             ),

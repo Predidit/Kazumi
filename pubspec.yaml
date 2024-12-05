@@ -52,12 +52,10 @@ dependencies:
   flutter_smart_dialog: ^4.9.8
   cached_network_image: ^3.4.1
 
-  fvp: ^0.28.0
-  video_player: ^2.9.1
+  # fvp: ^0.28.0
+  # video_player: ^2.9.1
 
   flutter_volume_controller: ^1.3.2
-  screen_brightness: ^1.0.1
-  wakelock_plus: ^1.2.7
   audio_video_progress_bar: ^2.0.2
   adaptive_theme: ^3.6.0
   flutter_displaymode: ^0.6.0
@@ -76,6 +74,7 @@ dependencies:
   logger: ^2.4.0
   flutter_rating_bar: ^4.0.1
   scrollview_observer: ^1.22.0
+  styled_text: ^8.1.0
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
@@ -84,7 +83,63 @@ dependencies:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
       ref: no_texture
-  styled_text: ^8.1.0
+  media_kit:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./media_kit
+  media_kit_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./media_kit_video
+  media_kit_libs_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/universal/media_kit_libs_video
+
+dependency_overrides:
+  media_kit:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./media_kit
+  media_kit_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./media_kit_video
+  media_kit_libs_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/universal/media_kit_libs_video
+  media_kit_libs_linux:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/linux/media_kit_libs_linux
+  media_kit_libs_ios_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/ios/media_kit_libs_ios_video
+  media_kit_libs_android_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/android/media_kit_libs_android_video
+  media_kit_libs_windows_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/windows/media_kit_libs_windows_video
+  media_kit_libs_macos_video:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: main
+      path: ./libs/macos/media_kit_libs_macos_video
 
 dev_dependencies:
   flutter_test:

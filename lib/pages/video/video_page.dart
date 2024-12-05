@@ -14,7 +14,6 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
@@ -59,7 +58,7 @@ class _VideoPageState extends State<VideoPage>
       parent: animation,
       curve: Curves.easeInOut,
     ));
-    WakelockPlus.enable();
+    // WakelockPlus.enable();
     videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
@@ -89,7 +88,7 @@ class _VideoPageState extends State<VideoPage>
     } catch (_) {}
     observerController.controller?.dispose();
     animation.dispose();
-    WakelockPlus.disable();
+    // WakelockPlus.disable();
     Utils.unlockScreenRotation();
     super.dispose();
   }

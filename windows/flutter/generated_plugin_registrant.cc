@@ -8,8 +8,8 @@
 
 #include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <flutter_volume_controller/flutter_volume_controller_plugin_c_api.h>
-#include <fvp/fvp_plugin_c_api.h>
-#include <screen_brightness_windows/screen_brightness_windows_plugin.h>
+#include <media_kit_libs_windows_video/media_kit_libs_windows_video_plugin_c_api.h>
+#include <media_kit_video/media_kit_video_plugin_c_api.h>
 #include <screen_pixel/screen_pixel_plugin_c_api.h>
 #include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <tray_manager/tray_manager_plugin.h>
@@ -22,10 +22,10 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("ConnectivityPlusWindowsPlugin"));
   FlutterVolumeControllerPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterVolumeControllerPluginCApi"));
-  FvpPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("FvpPluginCApi"));
-  ScreenBrightnessWindowsPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("ScreenBrightnessWindowsPlugin"));
+  MediaKitLibsWindowsVideoPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("MediaKitLibsWindowsVideoPluginCApi"));
+  MediaKitVideoPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("MediaKitVideoPluginCApi"));
   ScreenPixelPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ScreenPixelPluginCApi"));
   ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(

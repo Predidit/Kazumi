@@ -9,11 +9,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
     bool isLowResolution = await Utils.isLowResolution();

@@ -452,6 +452,13 @@ class _PlayerItemState extends State<PlayerItem>
         });
   }
 
+  Future<void> _setPlaybackSpeed(double speed) async {
+    await playerController.setPlaybackSpeed(speed);
+    danmakuController.updateOption(
+      danmakuController.option.copyWith(duration: _duration ~/ speed),
+    );
+  }
+
   // 选择倍速
   void showSetSpeedSheet() {
     final double currentSpeed = playerController.playerSpeed;
@@ -467,23 +474,22 @@ class _PlayerItemState extends State<PlayerItem>
                 runSpacing: 2,
                 children: [
                   for (final double i in playSpeedList) ...<Widget>[
-                    if (i == currentSpeed) ...<Widget>[
+                    if (i == currentSpeed)
                       FilledButton(
                         onPressed: () async {
-                          await playerController.setPlaybackSpeed(i);
+                          await _setPlaybackSpeed(i);
                           SmartDialog.dismiss();
                         },
                         child: Text(i.toString()),
-                      ),
-                    ] else ...[
+                      )
+                    else
                       FilledButton.tonal(
                         onPressed: () async {
-                          await playerController.setPlaybackSpeed(i);
+                          await _setPlaybackSpeed(i);
                           SmartDialog.dismiss();
                         },
                         child: Text(i.toString()),
                       ),
-                    ]
                   ]
                 ],
               );
@@ -499,7 +505,7 @@ class _PlayerItemState extends State<PlayerItem>
               ),
               TextButton(
                 onPressed: () async {
-                  await playerController.setPlaybackSpeed(1.0);
+                  await _setPlaybackSpeed(1.0);
                   SmartDialog.dismiss();
                 },
                 child: const Text('默认速度'),
@@ -884,7 +890,7 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = true;
                               });
-                              playerController.setPlaybackSpeed(2.0);
+                              _setPlaybackSpeed(2.0);
                             }
                           }
                         } else if (event is KeyUpEvent) {
@@ -895,8 +901,7 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = false;
                               });
-                              playerController
-                                  .setPlaybackSpeed(lastPlayerSpeed);
+                              _setPlaybackSpeed(lastPlayerSpeed);
                             } else {
                               keyShortPressTimer = null;
                               try {
@@ -960,7 +965,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showPlaySpeed = true;
                               });
                               lastPlayerSpeed = playerController.playerSpeed;
-                              playerController.setPlaybackSpeed(2.0);
+                              _setPlaybackSpeed(2.0);
                             },
                             onLongPressEnd: (_) {
                               if (lockPanel) {
@@ -969,8 +974,7 @@ class _PlayerItemState extends State<PlayerItem>
                               setState(() {
                                 showPlaySpeed = false;
                               });
-                              playerController
-                                  .setPlaybackSpeed(lastPlayerSpeed);
+                              _setPlaybackSpeed(lastPlayerSpeed);
                             },
                             child: Container(
                               color: Colors.transparent,
@@ -1275,7 +1279,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 area: danmakuArea,
                                 opacity: _opacity,
                                 fontSize: _fontSize,
-                                duration: _duration.toInt(),
+                                duration:
+                                    _duration ~/ playerController.playerSpeed,
                                 showStroke: _border,
                                 fontWeight: _danmakuFontWeight,
                                 massiveMode: _massiveMode,

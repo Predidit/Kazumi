@@ -1,6 +1,6 @@
 class Api {
   // 当前版本
-  static const String version = '1.4.4';
+  static const String version = '1.4.5';
   // 规则API级别
   static const int apiLevel = 3;
   // 项目主页

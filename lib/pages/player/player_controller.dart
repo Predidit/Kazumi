@@ -64,6 +64,7 @@ abstract class _PlayerController with Store {
   Box setting = GStorage.setting;
   bool hAenable = true;
   bool lowMemoryMode = false;
+  bool autoPlay = true;
 
   Future<void> init({int offset = 0}) async {
     playing = false;
@@ -89,34 +90,18 @@ abstract class _PlayerController with Store {
       episodeFromTitle = videoPageController.currentEpisode;
     }
     getDanDanmaku(videoPageController.title, episodeFromTitle);
-    mediaPlayer = await createVideoController();
-    bool autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
+    mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
-    if (offset != 0) {
-      var sub = mediaPlayer.stream.buffer.listen(null);
-      sub.onData((event) async {
-        if (event.inSeconds > 0) {
-          // This is a workaround for unable to await for `mediaPlayer.stream.buffer.first`
-          // It seems that when the `buffer.first` is fired, the media is not fully loaded
-          // and the player will not seek properlly.
-          await sub.cancel();
-          await mediaPlayer.seek(Duration(seconds: offset));
-        }
-      });
-    }
-    if (autoPlay) {
-      await mediaPlayer.play();
-    }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
-    // 加载弹幕
     loading = false;
   }
 
-  Future<Player> createVideoController() async {
+  Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     if (videoPageController.currentPlugin.userAgent == '') {
@@ -158,15 +143,20 @@ abstract class _PlayerController with Store {
     );
     mediaPlayer.setPlaylistMode(PlaylistMode.none);
 
-    try {
-      await mediaPlayer.open(
-        Media(videoUrl, httpHeaders: httpHeaders),
-        play: true,
-      );
-    } catch (e) {
-      SmartDialog.showToast('播放器初始化失败 ${e.toString()}');
-      KazumiLogger().log(Level.error, 'Player init error: ${e.toString()}');
-    }
+    // error handle
+    mediaPlayer.stream.error.listen((event) {
+      SmartDialog.showToast('播放器内部错误 ${event.toString()} $videoUrl',
+          displayTime: const Duration(seconds: 5),
+          displayType: SmartToastType.onlyRefresh);
+      KazumiLogger().log(
+          Level.error, 'Player intent error: ${event.toString()} $videoUrl');
+    });
+
+    await mediaPlayer.open(
+      Media(videoUrl,
+          start: Duration(seconds: offset), httpHeaders: httpHeaders),
+      play: autoPlay,
+    );
 
     return mediaPlayer;
   }

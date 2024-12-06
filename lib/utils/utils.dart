@@ -538,18 +538,6 @@ class Utils {
 
   // 获取当前解复用器
   static Future<String> getCurrentDemux() async {
-    Box setting = GStorage.setting;
-    bool haEnable =
-        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    if (Platform.isIOS && haEnable) {
-      return 'AVPlayer';
-    }
-    if (Platform.isMacOS && haEnable) {
-      return 'VT';
-    }
-    if (Platform.isAndroid && haEnable) {
-      return 'ExoPlayer';
-    }
-    return 'FFmpeg';
+    return 'MPV';
   }
 }

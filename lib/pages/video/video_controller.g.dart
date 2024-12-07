@@ -73,19 +73,19 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$androidFullscreenAtom =
-      Atom(name: '_VideoPageController.androidFullscreen', context: context);
+  late final _$isFullscreenAtom =
+      Atom(name: '_VideoPageController.isFullscreen', context: context);
 
   @override
-  bool get androidFullscreen {
-    _$androidFullscreenAtom.reportRead();
-    return super.androidFullscreen;
+  bool get isFullscreen {
+    _$isFullscreenAtom.reportRead();
+    return super.isFullscreen;
   }
 
   @override
-  set androidFullscreen(bool value) {
-    _$androidFullscreenAtom.reportWrite(value, super.androidFullscreen, () {
-      super.androidFullscreen = value;
+  set isFullscreen(bool value) {
+    _$isFullscreenAtom.reportWrite(value, super.isFullscreen, () {
+      super.isFullscreen = value;
     });
   }
 
@@ -160,7 +160,7 @@ loading: ${loading},
 logLines: ${logLines},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
-androidFullscreen: ${androidFullscreen},
+isFullscreen: ${isFullscreen},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
 showDebugLog: ${showDebugLog},

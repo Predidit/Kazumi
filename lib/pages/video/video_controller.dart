@@ -25,9 +25,9 @@ abstract class _VideoPageController with Store {
   @observable
   int currentRoad = 0;
 
-  // 安卓全屏状态
+  // 全屏状态
   @observable
-  bool androidFullscreen = false;
+  bool isFullscreen = false;
 
   // 播放列表显示状态
   @observable

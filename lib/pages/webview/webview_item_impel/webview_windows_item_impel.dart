@@ -46,7 +46,7 @@ class _WebviewWindowsItemImpelState extends State<WebviewWindowsItemImpel> {
     _subscriptions.add(webviewDesktopItemController
         .webviewController.containsFullScreenElementChanged
         .listen((flag) {
-      videoPageController.androidFullscreen = flag;
+      videoPageController.isFullscreen = flag;
       windowManager.setFullScreen(flag);
     }));
     if (!mounted) return;

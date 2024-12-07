@@ -51,6 +51,13 @@ abstract class _PlayerController with Store {
   @observable
   bool danmakuOn = false;
 
+  // 视频比例类型
+  // 1. AUTO
+  // 2. COVER
+  // 3. FILL
+  @observable
+  int aspectRatioType = 1;
+
   // 视频音量/亮度
   @observable
   double volume = 0;

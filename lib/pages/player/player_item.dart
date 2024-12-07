@@ -383,8 +383,7 @@ class _PlayerItemState extends State<PlayerItem>
       Utils.enterFullScreen();
       videoPageController.showTabBody = false;
     }
-    videoPageController.isFullscreen =
-        !videoPageController.isFullscreen;
+    videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
 
   void _handleDanmaku() {
@@ -1289,8 +1288,7 @@ class _PlayerItemState extends State<PlayerItem>
                     ),
 
                     // 右侧锁定按钮
-                    (Utils.isDesktop() ||
-                            !videoPageController.isFullscreen)
+                    (Utils.isDesktop() || !videoPageController.isFullscreen)
                         ? Container()
                         : Positioned(
                             right: 0,
@@ -1349,6 +1347,48 @@ class _PlayerItemState extends State<PlayerItem>
                                 child: dtb.DragToMoveArea(
                                     child: SizedBox(height: 40)),
                               ),
+                              PopupMenuButton(
+                                tooltip: '',
+                                child: Text(
+                                    playerController.aspectRatioType == 1
+                                        ? 'AUTO'
+                                        : playerController.aspectRatioType == 2
+                                            ? 'COVER'
+                                            : 'FILL',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold
+                                    )),
+                                itemBuilder: (context) {
+                                  return const [
+                                    PopupMenuItem(
+                                      value: 1,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [Text("AUTO")],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 2,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [Text("COVER")],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 3,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [Text("FILL")],
+                                      ),
+                                    ),
+                                  ];
+                                },
+                                onSelected: (value) {
+                                  playerController.aspectRatioType = value;
+                                },
+                              ),
                               TextButton(
                                 style: ButtonStyle(
                                   padding:
@@ -1363,6 +1403,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
+                                    fontWeight: FontWeight.bold
                                   ),
                                 ),
                               ),
@@ -1684,32 +1725,41 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Widget get playerSurface {
-    return Video(
-      controller: playerController.videoController,
-      controls: NoVideoControls,
-      subtitleViewConfiguration: SubtitleViewConfiguration(
-        style: TextStyle(
-          color: Colors.pink,
-          fontSize: 48.0,
-          background: Paint()..color = Colors.transparent,
-          decoration: TextDecoration.none,
-          fontWeight: FontWeight.bold,
-          shadows: const [
-            Shadow(
-              offset: Offset(1.0, 1.0),
-              blurRadius: 3.0,
-              color: Color.fromARGB(255, 255, 255, 255),
+    return Observer(
+      builder: (context) {
+        return Video(
+          controller: playerController.videoController,
+          controls: NoVideoControls,
+          fit: playerController.aspectRatioType == 1
+              ? BoxFit.contain
+              : playerController.aspectRatioType == 2
+                  ? BoxFit.cover
+                  : BoxFit.fill,
+          subtitleViewConfiguration: SubtitleViewConfiguration(
+            style: TextStyle(
+              color: Colors.pink,
+              fontSize: 48.0,
+              background: Paint()..color = Colors.transparent,
+              decoration: TextDecoration.none,
+              fontWeight: FontWeight.bold,
+              shadows: const [
+                Shadow(
+                  offset: Offset(1.0, 1.0),
+                  blurRadius: 3.0,
+                  color: Color.fromARGB(255, 255, 255, 255),
+                ),
+                Shadow(
+                  offset: Offset(-1.0, -1.0),
+                  blurRadius: 3.0,
+                  color: Color.fromARGB(125, 255, 255, 255),
+                ),
+              ],
             ),
-            Shadow(
-              offset: Offset(-1.0, -1.0),
-              blurRadius: 3.0,
-              color: Color.fromARGB(125, 255, 255, 255),
-            ),
-          ],
-        ),
-        textAlign: TextAlign.center,
-        padding: const EdgeInsets.all(24.0),
-      ),
+            textAlign: TextAlign.center,
+            padding: const EdgeInsets.all(24.0),
+          ),
+        );
+      }
     );
   }
 }

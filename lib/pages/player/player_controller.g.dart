@@ -153,6 +153,22 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$aspectRatioTypeAtom =
+      Atom(name: '_PlayerController.aspectRatioType', context: context);
+
+  @override
+  int get aspectRatioType {
+    _$aspectRatioTypeAtom.reportRead();
+    return super.aspectRatioType;
+  }
+
+  @override
+  set aspectRatioType(int value) {
+    _$aspectRatioTypeAtom.reportWrite(value, super.aspectRatioType, () {
+      super.aspectRatioType = value;
+    });
+  }
+
   late final _$volumeAtom =
       Atom(name: '_PlayerController.volume', context: context);
 
@@ -213,6 +229,7 @@ currentPosition: ${currentPosition},
 buffer: ${buffer},
 duration: ${duration},
 danmakuOn: ${danmakuOn},
+aspectRatioType: ${aspectRatioType},
 volume: ${volume},
 brightness: ${brightness},
 playerSpeed: ${playerSpeed}

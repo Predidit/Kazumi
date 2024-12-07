@@ -285,9 +285,14 @@ class _PlayerItemState extends State<PlayerItem>
       }
       // 音量相关
       if (!volumeSeeking) {
-        FlutterVolumeController.getVolume().then((value) {
-          playerController.volume = value ?? 0.0;
-        });
+        if (Utils.isDesktop()) {
+          playerController.volume = playerController.mediaPlayer.state.volume;
+        } else {
+          FlutterVolumeController.getVolume().then((value) {
+            final volume = value ?? 0.0;
+            playerController.volume = volume * 100;
+          });
+        }
       }
       // 亮度相关
       if (!Platform.isWindows &&
@@ -638,31 +643,28 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setVolume(double value) async {
     try {
-      await FlutterVolumeController.updateShowSystemUI(false);
-      await FlutterVolumeController.setVolume(value);
-      if (Platform.isIOS && !volumeSeeking) {
-        await FlutterVolumeController.updateShowSystemUI(true);
+      if (Utils.isDesktop()) {
+        await playerController.mediaPlayer.setVolume(value);
+      } else {
+        await FlutterVolumeController.updateShowSystemUI(false);
+        await FlutterVolumeController.setVolume(value / 100);
       }
     } catch (_) {}
   }
 
   Future<void> increaseVolume() async {
-    // macOS system volume stepping is 1 / 16, or 0.0625, needs to be set manually,
-    // although it looks bad in percentage view
-    // Windows use system volume stepping without setting
-    // Linux stepping is set to 0.15 by plugin
-    final step = (Platform.isMacOS) ? 0.0625 : null;
+    double volume = playerController.volume + 10 > 100 ? 100 : playerController.volume + 10;
     try {
-      await FlutterVolumeController.raiseVolume(step);
-      playerController.volume = (await FlutterVolumeController.getVolume())!;
+      await playerController.mediaPlayer.setVolume(volume);
+      playerController.volume = volume;
     } catch (_) {}
   }
 
   Future<void> decreaseVolume() async {
-    final step = (Platform.isMacOS) ? 0.0625 : null;
+    double volume = playerController.volume - 10 < 0 ? 0 : playerController.volume - 10;
     try {
-      await FlutterVolumeController.lowerVolume(step);
-      playerController.volume = (await FlutterVolumeController.getVolume())!;
+      await playerController.mediaPlayer.setVolume(volume);
+      playerController.volume = volume;
     } catch (_) {}
   }
 
@@ -798,8 +800,8 @@ class _PlayerItemState extends State<PlayerItem>
                         _handleMouseScroller();
                         final scrollDelta = pointerSignal.scrollDelta;
                         final double volume =
-                            playerController.volume - scrollDelta.dy / 6000;
-                        final double result = volume.clamp(0.0, 1.0);
+                            playerController.volume - scrollDelta.dy / 60;
+                        final double result = volume.clamp(0.0, 100.0);
                         setVolume(result);
                         playerController.volume = result;
                       }
@@ -1112,12 +1114,12 @@ class _PlayerItemState extends State<PlayerItem>
                                         setState(() {
                                           showVolume = true;
                                         });
-                                        final double level = (totalHeight) * 3;
+                                        final double level = (totalHeight) * 0.03;
                                         final double volume =
                                             playerController.volume -
                                                 delta / level;
                                         final double result =
-                                            volume.clamp(0.0, 1.0);
+                                            volume.clamp(0.0, 100.0);
                                         setVolume(result);
                                         playerController.volume = result;
                                       }
@@ -1125,6 +1127,9 @@ class _PlayerItemState extends State<PlayerItem>
                                       (DragEndDetails details) {
                                       if (volumeSeeking) {
                                         volumeSeeking = false;
+                                        Future.delayed(const Duration(seconds: 1), () {
+                                          FlutterVolumeController.updateShowSystemUI(true);
+                                        });
                                       }
                                       if (brightnessSeeking) {
                                         brightnessSeeking = false;
@@ -1250,7 +1255,7 @@ class _PlayerItemState extends State<PlayerItem>
                                                 const Icon(Icons.volume_down,
                                                     color: Colors.white),
                                                 Text(
-                                                  ' ${(playerController.volume * 100).toInt()}%',
+                                                  ' ${playerController.volume.toInt()}%',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                   ),

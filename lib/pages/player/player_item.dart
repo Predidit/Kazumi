@@ -638,8 +638,11 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setVolume(double value) async {
     try {
-      FlutterVolumeController.updateShowSystemUI(false);
+      await FlutterVolumeController.updateShowSystemUI(false);
       await FlutterVolumeController.setVolume(value);
+      if (Platform.isIOS && !volumeSeeking) {
+        await FlutterVolumeController.updateShowSystemUI(true);
+      }
     } catch (_) {}
   }
 

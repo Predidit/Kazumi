@@ -26,6 +26,8 @@ class BangumiItem {
   @HiveField(8)
   Map<String, String> images;
   // Map<String, int>? collection;
+  @HiveField(9)
+  int? timeStamp;
 
   BangumiItem({
     required this.id,
@@ -40,6 +42,7 @@ class BangumiItem {
     required this.rank,
     required this.images,
     // this.collection,
+    this.timeStamp,
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -49,17 +52,20 @@ class BangumiItem {
       name: json['name'] ?? '',
       nameCn: (json['name_cn'] ?? '') == '' ? (json['name'] ?? '') : json['name_cn'],
       summary: json['summary'] ?? '',
-      airDate: json['air_date'] ?? json ['date'],
-      airWeekday: json['air_weekday'] ?? Utils.dateStringToWeekday(json ['date']) ?? 1,
+      airDate: json['air_date'] ?? json['date'],
+      airWeekday: json['air_weekday'] ?? Utils.dateStringToWeekday(json['date']) ?? 1,
       // rating: Rating.fromJson(json['rating']),
       rank: json['rating']['rank'] ?? 0,
-      images: Map<String, String>.from(json['images'] ?? {
-          "large": json['image'],
-          "common": "",
-          "medium": "",
-          "small": "",
-          "grid": ""
-        },),
+      images: Map<String, String>.from(
+        json['images'] ??
+            {
+              "large": json['image'],
+              "common": "",
+              "medium": "",
+              "small": "",
+              "grid": "",
+            },
+      ),
       // collection: Map<String, int>.from(json['collection']),
     );
   }

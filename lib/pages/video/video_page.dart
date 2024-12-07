@@ -128,30 +128,30 @@ class _VideoPageState extends State<VideoPage>
     return OrientationBuilder(builder: (context, orientation) {
       if (!Utils.isDesktop()) {
         if (orientation == Orientation.landscape &&
-            !videoPageController.androidFullscreen) {
+            !videoPageController.isFullscreen) {
           Utils.enterFullScreen(lockOrientation: false);
-          videoPageController.androidFullscreen = true;
+          videoPageController.isFullscreen = true;
           videoPageController.showTabBody = false;
         } else if (orientation == Orientation.portrait &&
-            videoPageController.androidFullscreen) {
+            videoPageController.isFullscreen) {
           Utils.exitFullScreen(lockOrientation: false);
           menuJumpToCurrentEpisode();
-          videoPageController.androidFullscreen = false;
+          videoPageController.isFullscreen = false;
         }
       }
       return Observer(builder: (context) {
         return Scaffold(
           appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                  videoPageController.androidFullscreen)
+                  videoPageController.isFullscreen)
               ? null
               : SysAppBar(
                   title: Text(videoPageController.title),
                 )),
           body: SafeArea(
-            top: !videoPageController.androidFullscreen,
+            top: !videoPageController.isFullscreen,
             bottom: false, // set iOS and Android navigation bar to immersive
-            left: !videoPageController.androidFullscreen,
-            right: !videoPageController.androidFullscreen,
+            left: !videoPageController.isFullscreen,
+            right: !videoPageController.isFullscreen,
             child: (Utils.isDesktop()) ||
                     ((Utils.isTablet()) &&
                         MediaQuery.of(context).size.height <
@@ -195,7 +195,7 @@ class _VideoPageState extends State<VideoPage>
                         )]
                     ],
                   )
-                : (!videoPageController.androidFullscreen)
+                : (!videoPageController.isFullscreen)
                     ? Column(
                         children: [
                           Container(
@@ -337,7 +337,7 @@ class _VideoPageState extends State<VideoPage>
                 ),
               ),
               ((videoPageController.currentPlugin.useNativePlayer ||
-                      videoPageController.androidFullscreen))
+                      videoPageController.isFullscreen))
                   ? Stack(
                       children: [
                         Positioned(
@@ -350,18 +350,18 @@ class _VideoPageState extends State<VideoPage>
                                 icon: const Icon(Icons.arrow_back,
                                     color: Colors.white),
                                 onPressed: () {
-                                  if (videoPageController.androidFullscreen ==
+                                  if (videoPageController.isFullscreen ==
                                       true && !Utils.isTablet()) {
                                     Utils.exitFullScreen();
                                     menuJumpToCurrentEpisode();
-                                    videoPageController.androidFullscreen =
+                                    videoPageController.isFullscreen =
                                         false;
                                     return;
                                   }
-                                  if (videoPageController.androidFullscreen ==
+                                  if (videoPageController.isFullscreen ==
                                       true) {
                                     Utils.exitFullScreen();
-                                    videoPageController.androidFullscreen =
+                                    videoPageController.isFullscreen =
                                         false;
                                   }
                                   Navigator.of(context).pop();

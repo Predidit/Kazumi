@@ -30,7 +30,7 @@ Map<String, String> bangumiHTTPHeader = {
   'referer': '',
 };
 
-// 可选播放倍速，iOS平台有的视频无法以高于2.0的播放倍速播放
+// 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,
   0.5,
@@ -40,10 +40,6 @@ const List<double> defaultPlaySpeedList = [
   1.5,
   1.75,
   2.0,
-];
-
-// 扩展播放倍速
-const List<double> extendPlaySpeedList = [
   2.25,
   2.5,
   2.75,

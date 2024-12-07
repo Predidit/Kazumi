@@ -82,14 +82,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<double> playSpeedList;
-                          if (Platform.isIOS &&
-                              setting.get(SettingBoxKey.hAenable,
-                                  defaultValue: true)) {
-                            playSpeedList = defaultPlaySpeedList;
-                          } else {
-                            playSpeedList =
-                                defaultPlaySpeedList + extendPlaySpeedList;
-                          }
+                          playSpeedList = defaultPlaySpeedList;
                           return Wrap(
                             spacing: 8,
                             runSpacing: 2,

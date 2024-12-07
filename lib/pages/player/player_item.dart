@@ -746,12 +746,7 @@ class _PlayerItemState extends State<PlayerItem>
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
-    if (Platform.isIOS &&
-        setting.get(SettingBoxKey.hAenable, defaultValue: true)) {
-      playSpeedList = defaultPlaySpeedList;
-    } else {
-      playSpeedList = defaultPlaySpeedList + extendPlaySpeedList;
-    }
+    playSpeedList = defaultPlaySpeedList;
     _handleTap();
   }
 

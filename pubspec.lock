@@ -30,6 +30,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.7.0"
+  ansicolor:
+    dependency: transitive
+    description:
+      name: ansicolor
+      sha256: "50e982d500bc863e1d703448afdbf9e5a72eb48840a4f766fa361ffd6877055f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.3"
   archive:
     dependency: transitive
     description:
@@ -449,6 +457,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.3.4"
+  flutter_native_splash:
+    dependency: "direct dev"
+    description:
+      name: flutter_native_splash
+      sha256: "1152ab0067ca5a2ebeb862fe0a762057202cceb22b7e62692dcbabf6483891bb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.3"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:

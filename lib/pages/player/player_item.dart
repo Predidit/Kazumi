@@ -681,18 +681,18 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Future<void> _handleScreenshot() async {
-    SmartDialog.showToast('截图中...');
+    SmartDialog.showToast('截图中...', displayType: SmartToastType.onlyRefresh);
 
     try {
       Uint8List? screenshot = await playerController.mediaPlayer.screenshot(format: 'image/png');
       final result = await SaverGallery.saveImage(screenshot!, fileName: DateTime.timestamp().toString(), skipIfExists: false);
       if (result.isSuccess) {
-        SmartDialog.showToast('截图保存到相簿成功');
+        SmartDialog.showToast('截图保存到相簿成功', displayType: SmartToastType.onlyRefresh);
       } else {
-        SmartDialog.showToast('截图保存失败：${result.errorMessage}');
+        SmartDialog.showToast('截图保存失败：${result.errorMessage}', displayType: SmartToastType.onlyRefresh);
       }
     } catch (e) {
-      SmartDialog.showToast('截图失败：$e');
+      SmartDialog.showToast('截图失败：$e', displayType: SmartToastType.onlyRefresh);
     }
   }
 

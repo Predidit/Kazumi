@@ -31,6 +31,7 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
+import 'package:saver_gallery/saver_gallery.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem(
@@ -679,6 +680,22 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
+  Future<void> _handleScreenshot() async {
+    SmartDialog.showToast('截图中...');
+
+    try {
+      Uint8List? screenshot = await playerController.mediaPlayer.screenshot(format: 'image/png');
+      final result = await SaverGallery.saveImage(screenshot!, fileName: DateTime.timestamp().toString(), skipIfExists: false);
+      if (result.isSuccess) {
+        SmartDialog.showToast('截图保存到相簿成功');
+      } else {
+        SmartDialog.showToast('截图保存失败：${result.errorMessage}');
+      }
+    } catch (e) {
+      SmartDialog.showToast('截图失败：$e');
+    }
+  }
+
   @override
   void onWindowRestore() {
     danmakuController.onClear();
@@ -1296,19 +1313,34 @@ class _PlayerItemState extends State<PlayerItem>
                             bottom: 0,
                             child: SlideTransition(
                               position: _leftOffsetAnimation,
-                              child: IconButton(
-                                icon: Icon(
-                                  lockPanel
-                                      ? Icons.lock_outline
-                                      : Icons.lock_open,
-                                  color: Colors.white,
+                              child: Column(children: [
+                                const Spacer(),
+                                (lockPanel)
+                                    ? Container()
+                                    : IconButton(
+                                        icon: const Icon(
+                                          Icons.photo_camera_outlined,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          _handleScreenshot();
+                                        },
+                                      ),
+                                IconButton(
+                                  icon: Icon(
+                                    lockPanel
+                                        ? Icons.lock_outline
+                                        : Icons.lock_open,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      lockPanel = !lockPanel;
+                                    });
+                                  },
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    lockPanel = !lockPanel;
-                                  });
-                                },
-                              ),
+                                const Spacer(),
+                              ]),
                             ),
                           ),
 

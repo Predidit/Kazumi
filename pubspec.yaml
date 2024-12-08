@@ -75,6 +75,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   scrollview_observer: ^1.22.0
   styled_text: ^8.1.0
+  saver_gallery: ^4.0.0
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

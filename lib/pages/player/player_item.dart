@@ -689,8 +689,8 @@ class _PlayerItemState extends State<PlayerItem>
       } else {
         SmartDialog.showToast('截图保存失败：${result.errorMessage}');
       }
-    } catch (_) {
-      SmartDialog.showToast('截图失败');
+    } catch (e) {
+      SmartDialog.showToast('截图失败：$e');
     }
   }
 

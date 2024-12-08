@@ -205,6 +205,9 @@ class _PlayerItemState extends State<PlayerItem>
     String currentDemux = await Utils.getCurrentDemux();
     SmartDialog.show(
         animationTime: const Duration(milliseconds: 100),
+        onDismiss: () {
+          _focusNode.requestFocus();
+        },
         builder: (context) {
           return AlertDialog(
             title: const Text('视频详情'),

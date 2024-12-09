@@ -1088,8 +1088,15 @@ class _PlayerItemState extends State<PlayerItem>
                                     180000 / MediaQuery.sizeOf(context).width;
                                 playerController.currentPosition = Duration(
                                     milliseconds: playerController
-                                            .currentPosition.inMilliseconds +
-                                        (details.delta.dx * scale).round());
+                                                    .currentPosition
+                                                    .inMilliseconds +
+                                                (details.delta.dx * scale)
+                                                    .round() <
+                                            0
+                                        ? 0
+                                        : playerController.currentPosition
+                                                .inMilliseconds +
+                                            (details.delta.dx * scale).round());
                               }, onHorizontalDragEnd: (DragEndDetails details) {
                                 playerController.play();
                                 playerController

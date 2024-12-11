@@ -116,7 +116,7 @@
               wait-for-completion: true
               output-artifact-directory: 'build/windows/msix_signed_output'
           
-          - name: Upload windows msix signed ouputs
+          -name: Upload windows msix signed ouputs
             uses: actions/upload-artifact@v4
             id: signed-windows-msix-artifacts
             with:

@@ -88,18 +88,40 @@
           # - run: Expand-Archive -LiteralPath ffmpeg_windows_x64.zip -DestinationPath build/windows/x64/runner/Release   
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
+            id: unsigned-windows-packet-artifacts
             uses: actions/upload-artifact@v4
             with:
               name: windows_outputs
               path: |
                 Kazumi_windows_*.zip
+  
           - run: dart run msix:create
           - name: Upload windows msix ouputs
             uses: actions/upload-artifact@v4
+            id: unsigned-windows-msix-artifacts
             with:
               name: windows_msix_outputs
               path: |
                 build/windows/x64/runner/Release/kazumi.msix
+          
+          -run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
+          -name: sign windows msix
+            uses: signpath/github-action-submit-signing-request@v1
+            with:
+              api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+              organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
+              project-slug: 'Kazumi'
+              signing-policy-slug: 'MSIX'
+              github-artifact-id: '${{ steps.unsigned-windows-msix-artifacts.outputs.artifact-id }}'
+              wait-for-completion: true
+              output-artifact-directory: 'build/windows/msix_signed_output'
+          
+          - name: Upload windows msix signed ouputs
+            uses: actions/upload-artifact@v4
+            id: signed-windows-msix-artifacts
+            with:
+              name: build/windows/msix_signed_output/*.msix
+
 
       flutter-build-ios:
         name: "Release for iOS"

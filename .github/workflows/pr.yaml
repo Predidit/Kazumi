@@ -120,7 +120,8 @@
             uses: actions/upload-artifact@v4
             id: signed-windows-msix-artifacts
             with:
-              name: build/windows/msix_signed_output/*.msix
+              name: windows_msix_signed_outputs
+              path: build/windows/msix_signed_output/*.msix
 
 
       flutter-build-ios:

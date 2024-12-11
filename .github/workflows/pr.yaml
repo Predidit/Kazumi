@@ -10,11 +10,11 @@
             description: 'Log level'     
             required: true
             default: 'warning'
-      signpath_sign:
-        description: 'sign binary by signpath'
-        required: false
-        default: false
-        type: boolean
+          signpath_sign:
+            description: 'sign binary by signpath'
+            required: false
+            default: false
+            type: boolean
     
     jobs:
       flutter-build-android:

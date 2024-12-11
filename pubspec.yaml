@@ -194,6 +194,7 @@ msix_config:
   display_name: Kazumi
   publisher: CN=Test certificate for 'Kazumi [OSS]'
   logo_path: assets/images/logo/logo_rounded.png
+  sign_msix: false
   install_certificate: false
 
 # The following section is specific to Flutter packages.

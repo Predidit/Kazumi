@@ -134,7 +134,7 @@ abstract class _PlayerController with Store {
     await pp.setProperty("af", "scaletempo2=max-speed=8");
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
-      await pp.setProperty("ao", "audiotrack,opensles");
+      await pp.setProperty("ao", "opensles");
     }
 
     await mediaPlayer.setAudioTrack(

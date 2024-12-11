@@ -93,6 +93,13 @@
               name: windows_outputs
               path: |
                 Kazumi_windows_*.zip
+          - run: dart run msix:create
+          - name: Upload windows msix ouputs
+            uses: actions/upload-artifact@v4
+            with:
+              name: windows_msix_outputs
+              path: |
+                build/windows/x64/runner/Release/kazumi.msix
 
       flutter-build-ios:
         name: "Release for iOS"

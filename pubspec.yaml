@@ -157,6 +157,7 @@ dev_dependencies:
   hive_generator: ^2.0.0
   flutter_launcher_icons: "^0.13.1"
   flutter_native_splash: ^2.4.3
+  msix: ^3.16.8
   
 
 # For information on the generic Dart part of this file, see the
@@ -188,6 +189,11 @@ flutter_native_splash:
   color_dark_ios: "#212121"
   image_ios: assets/images/logo/logo_ios.png
   image_dark_ios: assets/images/logo/logo_ios.png
+
+msix_config:
+  display_name: Kazumi
+  logo_path: assets/images/logo/logo_rounded.png
+  install_certificate: false
 
 # The following section is specific to Flutter packages.
 flutter:

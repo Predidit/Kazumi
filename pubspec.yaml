@@ -192,6 +192,7 @@ flutter_native_splash:
 
 msix_config:
   display_name: Kazumi
+  publisher: CN=Test certificate for 'Kazumi [OSS]'
   logo_path: assets/images/logo/logo_rounded.png
   install_certificate: false
 

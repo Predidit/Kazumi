@@ -104,8 +104,8 @@
               path: |
                 build/windows/x64/runner/Release/kazumi.msix
           
-          -run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
-          -name: sign windows msix
+          - run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
+          - name: sign windows msix
             uses: signpath/github-action-submit-signing-request@v1
             with:
               api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
@@ -116,7 +116,7 @@
               wait-for-completion: true
               output-artifact-directory: 'build/windows/msix_signed_output'
           
-          -name: Upload windows msix signed ouputs
+          - name: Upload windows msix signed ouputs
             uses: actions/upload-artifact@v4
             id: signed-windows-msix-artifacts
             with:

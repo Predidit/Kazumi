@@ -111,7 +111,8 @@
               api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
               organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
               project-slug: 'Kazumi'
-              signing-policy-slug: 'MSIX'
+              signing-policy-slug: 'test-signing'
+              artifact-configuration-slug: 'MSIX'
               github-artifact-id: '${{ steps.unsigned-windows-msix-artifacts.outputs.artifact-id }}'
               wait-for-completion: true
               output-artifact-directory: 'build/windows/msix_signed_output'

@@ -350,12 +350,12 @@
           - name: Download windows msix build file
             uses: actions/download-artifact@v4
             with:
-              name: windows_msix_outputs
-              path: windows_msix_outputs  
-          - name: List files in windows_msix_outputs directory
-            run: ls -l windows_msix_outputs   
+              name: windows_msix_signed_outputs
+              path: windows_msix_signed_outputs  
+          - name: List files in windows_msix_signed_outputs directory
+            run: ls -l windows_msix_signed_outputs   
           - name: Copy windows build file to root
-            run: cp windows_msix_outputs/* Kazumi_windows_${{ env.tag }}.msix
+            run: cp windows_msix_signed_outputs/* Kazumi_windows_${{ env.tag }}.msix
 
           - name: Download android build file
             uses: actions/download-artifact@v4

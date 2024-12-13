@@ -60,6 +60,7 @@
       flutter-build-windows:
         name: "Release for windows"
         runs-on: "windows-latest"
+        needs: [flutter-build-android, flutter-build-ios, flutter-build-linux, flutter-build-macos] 
         permissions: write-all
     
         steps:
@@ -100,10 +101,63 @@
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
           - name: Upload windows outputs
             uses: actions/upload-artifact@v4
+            id: unsigned-windows-zip-artifacts
             with:
               name: windows_outputs
               path: |
                 Kazumi_windows_*.zip
+
+          - name: Build unsigned msix
+            run: dart run msix:create
+          - name: Upload windows msix ouputs
+            uses: actions/upload-artifact@v4
+            id: unsigned-windows-msix-artifacts
+            with:
+              name: windows_msix_outputs
+              path: |
+                build/windows/x64/runner/Release/kazumi.msix
+          
+          # Sign MSIX
+          - run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
+          - name: sign windows msix
+            uses: signpath/github-action-submit-signing-request@v1
+            with:
+              api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+              organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
+              project-slug: 'Kazumi'
+              signing-policy-slug: 'release-signing'
+              artifact-configuration-slug: 'MSIX'
+              github-artifact-id: '${{ steps.unsigned-windows-msix-artifacts.outputs.artifact-id }}'
+              wait-for-completion: true
+              output-artifact-directory: 'build/windows/msix_signed_output'
+          
+          - name: Upload windows msix signed ouputs
+            uses: actions/upload-artifact@v4
+            id: signed-windows-msix-artifacts
+            with:
+              name: windows_msix_signed_outputs
+              path: build/windows/msix_signed_output/*.msix
+
+          # Sign Zip
+          - run: New-Item -Path "build/windows/zip_signed_output" -ItemType Directory
+          - name: sign windows zip
+            uses: signpath/github-action-submit-signing-request@v1
+            with:
+              api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+              organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
+              project-slug: 'Kazumi'
+              signing-policy-slug: 'release-signing'
+              artifact-configuration-slug: 'Packet'
+              github-artifact-id: '${{ steps.unsigned-windows-zip-artifacts.outputs.artifact-id }}'
+              wait-for-completion: true
+              output-artifact-directory: 'build/windows/zip_signed_output'
+          
+          - name: Upload windows zip signed ouputs
+            uses: actions/upload-artifact@v4
+            id: signed-windows-zip-artifacts
+            with:
+              name: windows_zip_signed_outputs
+              path: build/windows/zip_signed_output/*.zip
 
       flutter-build-linux:
         name: "Release for Linux"
@@ -265,7 +319,7 @@
       release:
         name: "Release"
         runs-on: "ubuntu-latest"
-        needs: [flutter-build-windows, flutter-build-android, flutter-build-ios, flutter-build-linux, flutter-build-macos] 
+        needs: [flutter-build-windows] 
         permissions: write-all
         steps:
           - name: Clone repository
@@ -283,15 +337,25 @@
           - name: Setup Android build tools
             run: sdkmanager "build-tools;34.0.0"
   
-          - name: Download windows build file
+          - name: Download windows zip build file
             uses: actions/download-artifact@v4
             with:
-              name: windows_outputs
-              path: windows_outputs  
+              name: windows_zip_signed_outputs
+              path: windows_zip_signed_outputs 
           - name: List files in windows_outputs directory
-            run: ls -l windows_outputs   
+            run: ls -l windows_zip_signed_outputs   
           - name: Copy windows build file to root
             run: cp windows_outputs/* Kazumi_windows_${{ env.tag }}.zip
+
+          - name: Download windows msix build file
+            uses: actions/download-artifact@v4
+            with:
+              name: windows_msix_outputs
+              path: windows_msix_outputs  
+          - name: List files in windows_msix_outputs directory
+            run: ls -l windows_msix_outputs   
+          - name: Copy windows build file to root
+            run: cp windows_msix_outputs/* Kazumi_windows_${{ env.tag }}.msix
 
           - name: Download android build file
             uses: actions/download-artifact@v4
@@ -357,6 +421,7 @@
               files: |
                 build/signed/*.apk
                 Kazumi_windows_*.zip
+                Kazumi_windows_*.msix
                 Kazumi_macos_*.dmg
                 Kazumi_ios_*.ipa
                 Kazumi_linux_*.tar.gz

@@ -345,7 +345,7 @@
           - name: List files in windows_outputs directory
             run: ls -l windows_zip_signed_outputs   
           - name: Copy windows build file to root
-            run: cp windows_outputs/* Kazumi_windows_${{ env.tag }}.zip
+            run: cp windows_zip_signed_outputs/* Kazumi_windows_${{ env.tag }}.zip
 
           - name: Download windows msix build file
             uses: actions/download-artifact@v4

@@ -131,6 +131,18 @@ A: 本项目编译需要良好的网络环境, 除了由Google托管的Flutter�
 
 本软件仅供个人学习、研究或非商业用途。禁止将本软件用于任何商业目的, 包括但不限于出售、出租、许可或以其他形式从中获利。
 
+## 代码签名策略 (Code signing policy)
+- Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
+- Team roles and their members
+  - Committers and reviewers：[Contributors](https://github.com/Predidit/Kazumi/graphs/contributors)
+  -  Approvers：[Owner](https://github.com/Predidit)
+- Privacy policy
+  - We don't collect any user data.
+
+## 赞助 (Sponsors)
+| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/),certficate by [SignPath Foundation](https://signpath.org/) |
+|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+
 ## 致谢
 
 特别感谢 [XpathSelector](https://github.com/simonkimi/xpath_selector) 这个优秀的项目是本项目的基石。

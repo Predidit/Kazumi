@@ -29,12 +29,17 @@ class ApiInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     String url = err.requestOptions.uri.toString();
     if (!url.contains('heartBeat')) {
-      KazumiDialog.showToast(
-        message: await dioError(err),
-      );
+      if (err.requestOptions.extra['customError'] == null) {
+        KazumiDialog.showToast(
+          message: await dioError(err),
+        );
+      } else {
+        KazumiDialog.showToast(
+          message: err.requestOptions.extra['customError'],
+        );
+      }
     }
     super.onError(err, handler);
-    // super.onError(err, handler);
   }
 
   static Future<String> dioError(DioException error) async {

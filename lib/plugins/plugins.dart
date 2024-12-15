@@ -115,7 +115,8 @@ class Plugin {
     return data;
   }
 
-  Future<PluginSearchResponse> queryBangumi(String keyword, {bool shouldRethrow = false}) async {
+  Future<PluginSearchResponse> queryBangumi(String keyword,
+      {bool shouldRethrow = false}) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     dynamic resp;
     List<SearchItem> searchItems = [];
@@ -133,6 +134,7 @@ class Plugin {
       };
       resp = await Request().post(postUri.toString(),
           options: Options(headers: httpHeaders),
+          extra: {'customError': '规则检索错误: $name 响应不符合预期'},
           data: queryParams,
           shouldRethrow: shouldRethrow);
     } else {
@@ -140,7 +142,9 @@ class Plugin {
         'referer': '$baseUrl/',
       };
       resp = await Request().get(queryURL,
-          options: Options(headers: httpHeaders), shouldRethrow: shouldRethrow);
+          options: Options(headers: httpHeaders),
+          shouldRethrow: shouldRethrow,
+          extra: {'customError': '规则检索错误: $name 响应不符合预期'});
     }
 
     var htmlString = resp.data.toString();
@@ -194,7 +198,10 @@ class Plugin {
             chapterNameList.add(itemName.replaceAll(RegExp(r'\s+'), ''));
           });
           if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
-            Road road = Road(name: '播放列表$count', data: chapterUrlList, identifier: chapterNameList);
+            Road road = Road(
+                name: '播放列表$count',
+                data: chapterUrlList,
+                identifier: chapterNameList);
             roadList.add(road);
             count++;
           }

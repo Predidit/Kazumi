@@ -80,6 +80,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             } catch (e) {
               KazumiLogger().log(Level.warning, e.toString());
               KazumiDialog.dismiss();
+              KazumiDialog.showToast(message: '网络资源获取失败 ${e.toString()}');
             }
           },
           child: Padding(

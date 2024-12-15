@@ -109,9 +109,11 @@ class Request {
       if (extra['ua'] != null) {
         options.headers = {'user-agent': headerUa(type: extra['ua'])};
       }
+      if (extra['customError'] != null) {
+        options.extra = {'customError': extra['customError']};
+      }
     }
     options.responseType = resType;
-
     try {
       response = await dio.get(
         url,

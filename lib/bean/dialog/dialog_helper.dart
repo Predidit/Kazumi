@@ -42,18 +42,20 @@ class KazumiDialog {
   }) {
     final scaffoldContext = context ?? _observer.currentContext;
     if (scaffoldContext != null) {
-      ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: duration,
-          action: showUndoButton
-              ? SnackBarAction(
-                  label: 'Dismiss',
-                  onPressed: () {},
-                )
-              : null,
-        ),
-      );
+      ScaffoldMessenger.of(scaffoldContext)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: duration,
+            action: showUndoButton
+                ? SnackBarAction(
+                    label: 'Dismiss',
+                    onPressed: () {},
+                  )
+                : null,
+          ),
+        );
     } else {
       debugPrint(
           'Kazumi Dialog Error: No Scaffold context available to show Toast');

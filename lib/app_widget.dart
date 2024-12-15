@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -13,6 +12,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/webdav.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -169,10 +169,9 @@ class _AppWidgetState extends State<AppWidget>
         theme: theme,
         darkTheme: darkTheme,
         routerConfig: Modular.routerConfig,
-        builder: FlutterSmartDialog.init(),
       ),
     );
-    Modular.setObservers([FlutterSmartDialog.observer]);
+    Modular.setObservers([KazumiDialog.observer]);
 
     // 强制设置高帧率
     if (Platform.isAndroid) {

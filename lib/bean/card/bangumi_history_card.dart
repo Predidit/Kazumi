@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -48,11 +48,12 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         child: InkWell(
           onTap: () async {
             if (widget.showDelete) {
-              SmartDialog.showToast('编辑模式',
-                  displayType: SmartToastType.onlyRefresh);
+              KazumiDialog.showToast(
+                message: '编辑模式',
+              );
               return;
             }
-            SmartDialog.showLoading(msg: '获取中');
+            KazumiDialog.showLoading(msg: '获取中');
             bool flag = false;
             for (Plugin plugin in pluginsController.pluginList) {
               if (plugin.name == widget.historyItem.adapterName) {
@@ -61,8 +62,8 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
               }
             }
             if (!flag) {
-              SmartDialog.dismiss();
-              SmartDialog.showToast('未找到关联番剧源');
+              KazumiDialog.dismiss();
+              KazumiDialog.showToast(message: '未找到关联番剧源');
               return;
             }
             infoController.bangumiItem = widget.historyItem.bangumiItem;
@@ -74,11 +75,11 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             try {
               await infoController.queryRoads(widget.historyItem.lastSrc,
                   videoPageController.currentPlugin.name);
-              SmartDialog.dismiss();
+              KazumiDialog.dismiss();
               Modular.to.pushNamed('/video/');
             } catch (e) {
               KazumiLogger().log(Level.warning, e.toString());
-              SmartDialog.dismiss();
+              KazumiDialog.dismiss();
             }
           },
           child: Padding(

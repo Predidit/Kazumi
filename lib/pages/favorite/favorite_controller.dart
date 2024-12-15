@@ -1,4 +1,4 @@
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -30,7 +30,7 @@ abstract class _FavoriteController with Store {
       try {
         await updateFavorite();
       } catch (e) {
-        SmartDialog.showToast('更新webDav记录失败 ${e.toString()}');
+        KazumiDialog.showToast(message: '更新webDav记录失败 ${e.toString()}');
       }
     }
   }
@@ -44,7 +44,7 @@ abstract class _FavoriteController with Store {
       try {
         await updateFavorite();
       } catch (e) {
-        SmartDialog.showToast('更新webDav记录失败 ${e.toString()}');
+        KazumiDialog.showToast(message: '更新webDav记录失败 ${e.toString()}');
       }
     }
   }

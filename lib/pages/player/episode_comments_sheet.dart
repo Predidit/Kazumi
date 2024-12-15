@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 
@@ -136,8 +136,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   // 选择要查看评论的集数
   void showEpisodeSelection() {
     final TextEditingController textController = TextEditingController();
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
         builder: (context) {
           return AlertDialog(
             title: const Text('输入集数'),
@@ -152,7 +151,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             }),
             actions: [
               TextButton(
-                onPressed: () => SmartDialog.dismiss(),
+                onPressed: () => KazumiDialog.dismiss(),
                 child: Text(
                   '取消',
                   style:
@@ -162,7 +161,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
               TextButton(
                 onPressed: () {
                   if (textController.text.isEmpty) {
-                    SmartDialog.showToast('请输入集数');
+                    KazumiDialog.showToast(message: '请输入集数');
                     return;
                   }
                   final ep = int.tryParse(textController.text) ?? 0;
@@ -173,7 +172,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                     isLoading = true;
                   });
                   loadComments(ep);
-                  SmartDialog.dismiss();
+                  KazumiDialog.dismiss();
                 },
                 child: const Text('刷新'),
               ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -37,8 +37,9 @@ class BangumiCardV extends StatelessWidget {
         child: InkWell(
           onTap: () {
             if (!canTap) {
-              SmartDialog.showToast('编辑模式',
-                  displayType: SmartToastType.onlyRefresh);
+              KazumiDialog.showToast(
+                message: '编辑模式',
+              );
               return;
             }
             infoController.bangumiItem = bangumiItem;

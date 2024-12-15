@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -141,8 +141,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             ListTile(
               onTap: () async {
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('字体大小'),
@@ -157,7 +156,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton(
                                     onPressed: () async {
                                       updateDanmakuFontSize(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -165,7 +164,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton.tonal(
                                     onPressed: () async {
                                       updateDanmakuFontSize(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -176,7 +175,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         }),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => SmartDialog.dismiss(),
+                            onPressed: () => KazumiDialog.dismiss(),
                             child: Text(
                               '取消',
                               style: TextStyle(
@@ -187,7 +186,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             onPressed: () async {
                               updateDanmakuFontSize(
                                   (Utils.isCompact()) ? 16.0 : 25.0);
-                              SmartDialog.dismiss();
+                              KazumiDialog.dismiss();
                             },
                             child: const Text('默认设置'),
                           ),
@@ -205,8 +204,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             ListTile(
               onTap: () async {
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('字体字重'),
@@ -222,7 +220,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton(
                                     onPressed: () async {
                                       updateDanmakuFontWeight(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -230,7 +228,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton.tonal(
                                     onPressed: () async {
                                       updateDanmakuFontWeight(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -241,7 +239,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         }),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => SmartDialog.dismiss(),
+                            onPressed: () => KazumiDialog.dismiss(),
                             child: Text(
                               '取消',
                               style: TextStyle(
@@ -251,7 +249,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuFontWeight(4);
-                              SmartDialog.dismiss();
+                              KazumiDialog.dismiss();
                             },
                             child: const Text('默认设置'),
                           ),
@@ -269,8 +267,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             ListTile(
               onTap: () async {
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('弹幕不透明度'),
@@ -286,7 +283,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton(
                                     onPressed: () async {
                                       updateDanmakuOpacity(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -294,7 +291,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton.tonal(
                                     onPressed: () async {
                                       updateDanmakuOpacity(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -305,7 +302,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         }),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => SmartDialog.dismiss(),
+                            onPressed: () => KazumiDialog.dismiss(),
                             child: Text(
                               '取消',
                               style: TextStyle(
@@ -315,7 +312,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuOpacity(1.0);
-                              SmartDialog.dismiss();
+                              KazumiDialog.dismiss();
                             },
                             child: const Text('默认设置'),
                           ),
@@ -333,8 +330,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             ListTile(
               onTap: () async {
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('弹幕区域'),
@@ -349,7 +345,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton(
                                     onPressed: () async {
                                       updateDanmakuArea(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -357,7 +353,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                   FilledButton.tonal(
                                     onPressed: () async {
                                       updateDanmakuArea(i);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Text(i.toString()),
                                   ),
@@ -368,7 +364,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         }),
                         actions: <Widget>[
                           TextButton(
-                            onPressed: () => SmartDialog.dismiss(),
+                            onPressed: () => KazumiDialog.dismiss(),
                             child: Text(
                               '取消',
                               style: TextStyle(
@@ -378,7 +374,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                           TextButton(
                             onPressed: () async {
                               updateDanmakuArea(1.0);
-                              SmartDialog.dismiss();
+                              KazumiDialog.dismiss();
                             },
                             child: const Text('默认设置'),
                           ),

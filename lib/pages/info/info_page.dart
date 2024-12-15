@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -160,19 +160,19 @@ class _InfoPageState extends State<InfoPage>
                                   tileColor: Colors.transparent,
                                   title: Text(searchItem.name),
                                   onTap: () async {
-                                    SmartDialog.showLoading(msg: '获取中');
+                                    KazumiDialog.showLoading(msg: '获取中');
                                     videoPageController.currentPlugin = plugin;
                                     videoPageController.title = searchItem.name;
                                     videoPageController.src = searchItem.src;
                                     try {
                                       await infoController.queryRoads(
                                           searchItem.src, plugin.name);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                       Modular.to.pushNamed('/video/');
                                     } catch (e) {
                                       KazumiLogger()
                                           .log(Level.error, e.toString());
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     }
                                   },
                                 ),

@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:logger/logger.dart';
 // import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
@@ -81,38 +81,39 @@ class _InitPageState extends State<InitPage> {
       _pluginUpdate();
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
-      SmartDialog.show(
-        useAnimation: false,
-        backType: SmartBackType.ignore,
+      KazumiDialog.show(
         clickMaskDismiss: false,
         builder: (context) {
-          return AlertDialog(
-            title: const Text('免责声明'),
-            scrollable: true,
-            content: Text(statementsText),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  exit(0);
-                },
-                child: Text(
-                  '退出',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
+          return PopScope(
+            canPop: false,
+            child: AlertDialog(
+              title: const Text('免责声明'),
+              scrollable: true,
+              content: Text(statementsText),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    exit(0);
+                  },
+                  child: Text(
+                    '退出',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  try {
-                    await pluginsController.copyPluginsToExternalDirectory();
-                    await pluginsController.loadPlugins();
-                  } catch (_) {}
-                  SmartDialog.dismiss();
-                  Modular.to.navigate('/tab/popular/');
-                },
-                child: const Text('已阅读并同意'),
-              ),
-            ],
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await pluginsController.copyPluginsToExternalDirectory();
+                      await pluginsController.loadPlugins();
+                    } catch (_) {}
+                    KazumiDialog.dismiss();
+                    Modular.to.navigate('/tab/popular/');
+                  },
+                  child: const Text('已阅读并同意'),
+                ),
+              ],
+            ),
           );
         },
       );
@@ -142,7 +143,7 @@ class _InitPageState extends State<InitPage> {
       }
     }
     if (count != 0) {
-      SmartDialog.showToast('检测到 $count 条规则可以更新');
+      KazumiDialog.showToast(message: '检测到 $count 条规则可以更新');
     }
   }
 

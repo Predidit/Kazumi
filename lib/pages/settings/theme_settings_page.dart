@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -118,8 +118,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
             ListTile(
               onTap: () async {
                 final List<Map<String, dynamic>> colorThemes = colorThemeTypes;
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('配色方案'),
@@ -138,7 +137,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                       index == 0
                                           ? resetTheme()
                                           : setTheme(e['color']);
-                                      SmartDialog.dismiss();
+                                      KazumiDialog.dismiss();
                                     },
                                     child: Column(
                                       children: [
@@ -202,8 +201,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 : Container(),
             ListTile(
               onTap: () {
-                SmartDialog.show(
-                    animationTime: const Duration(milliseconds: 100),
+                KazumiDialog.show(
                     builder: (context) {
                       return AlertDialog(
                         title: const Text('主题模式'),
@@ -218,39 +216,39 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     ? FilledButton(
                                         onPressed: () {
                                           updateTheme('system');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("跟随系统"))
                                     : FilledButton.tonal(
                                         onPressed: () {
                                           updateTheme('system');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("跟随系统")),
                                 defaultThemeMode == 'light'
                                     ? FilledButton(
                                         onPressed: () {
                                           updateTheme('light');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("浅色"))
                                     : FilledButton.tonal(
                                         onPressed: () {
                                           updateTheme('light');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("浅色")),
                                 defaultThemeMode == 'dark'
                                     ? FilledButton(
                                         onPressed: () {
                                           updateTheme('dark');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("深色"))
                                     : FilledButton.tonal(
                                         onPressed: () {
                                           updateTheme('dark');
-                                          SmartDialog.dismiss();
+                                          KazumiDialog.dismiss();
                                         },
                                         child: const Text("深色")),
                               ],

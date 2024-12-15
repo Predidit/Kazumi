@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:hive/hive.dart';
@@ -109,46 +109,46 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             pluginsController.pluginHTTPList[index]) ==
                         'install') {
                       try {
-                        SmartDialog.showToast('导入中');
+                        KazumiDialog.showToast(message: '导入中');
                         var pluginHTTPItem =
                             await pluginsController.queryPluginHTTP(
                                 pluginsController.pluginHTTPList[index].name);
                         if (pluginHTTPItem != null) {
                           if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-                            SmartDialog.showToast('kazumi版本过低, 此规则不兼容当前版本');
+                            KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
                             return;
                           }
                           await pluginsController
                               .savePluginToJsonFile(pluginHTTPItem);
                           await pluginsController.loadPlugins();
-                          SmartDialog.showToast('导入成功');
+                          KazumiDialog.showToast(message: '导入成功');
                           setState(() {});
                         }
                       } catch (e) {
-                        SmartDialog.showToast('导入规则失败');
+                        KazumiDialog.showToast(message: '导入规则失败');
                       }
                     }
                     if (pluginsController.pluginStatus(
                             pluginsController.pluginHTTPList[index]) ==
                         'update') {
                       try {
-                        SmartDialog.showToast('更新中');
+                        KazumiDialog.showToast(message: '更新中');
                         var pluginHTTPItem =
                             await pluginsController.queryPluginHTTP(
                                 pluginsController.pluginHTTPList[index].name);
                         if (pluginHTTPItem != null) {
                           if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-                            SmartDialog.showToast('kazumi版本过低, 此规则不兼容当前版本');
+                            KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
                             return;
                           }
                           await pluginsController
                               .savePluginToJsonFile(pluginHTTPItem);
                           await pluginsController.loadPlugins();
-                          SmartDialog.showToast('更新成功');
+                          KazumiDialog.showToast(message: '更新成功');
                           setState(() {});
                         }
                       } catch (e) {
-                        SmartDialog.showToast('更新规则失败');
+                        KazumiDialog.showToast(message: '更新规则失败');
                       }
                     }
                   },

@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -152,9 +152,7 @@ abstract class _PlayerController with Store {
 
     // error handle
     mediaPlayer.stream.error.listen((event) {
-      SmartDialog.showToast('播放器内部错误 ${event.toString()} $videoUrl',
-          displayTime: const Duration(seconds: 5),
-          displayType: SmartToastType.onlyRefresh);
+      KazumiDialog.showToast(message: '播放器内部错误 ${event.toString()} $videoUrl', duration: const Duration(seconds: 5), showUndoButton: true);
       KazumiLogger().log(
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });

@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -32,8 +32,7 @@ class _HistoryPageState extends State<HistoryPage>
   void onBackPressed(BuildContext context) {}
 
   void showHistoryClearDialog() {
-    SmartDialog.show(
-      animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
           title: const Text('记录管理'),
@@ -41,7 +40,7 @@ class _HistoryPageState extends State<HistoryPage>
           actions: [
             TextButton(
               onPressed: () {
-                SmartDialog.dismiss();
+                KazumiDialog.dismiss();
               },
               child: Text(
                 '取消',
@@ -50,7 +49,7 @@ class _HistoryPageState extends State<HistoryPage>
             ),
             TextButton(
               onPressed: () {
-                SmartDialog.dismiss();
+                KazumiDialog.dismiss();
                 try {
                   historyController.clearAll();
                 } catch (_) {}

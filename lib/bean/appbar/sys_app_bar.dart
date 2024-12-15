@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
@@ -37,8 +37,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.bottom});
 
   void _handleCloseEvent() {
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
         builder: (context) {
           return AlertDialog(
             title: const Text('退出确认'),
@@ -48,12 +47,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                   onPressed: () => exit(0), child: const Text('退出 Kazumi')),
               TextButton(
                   onPressed: () {
-                    SmartDialog.dismiss();
+                    KazumiDialog.dismiss();
                     windowManager.hide();
                   },
                   child: const Text('最小化至托盘')),
               const TextButton(
-                  onPressed: SmartDialog.dismiss, child: Text('取消')),
+                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
             ],
           );
         });

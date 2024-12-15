@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -20,8 +20,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void _handleAdd() {
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
         builder: (context) {
           return AlertDialog(
             // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
@@ -33,7 +32,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   ListTile(
                     title: const Text('新建规则'),
                     onTap: () {
-                      SmartDialog.dismiss();
+                      KazumiDialog.dismiss();
                       Modular.to.pushNamed('/settings/plugin/editor',
                           arguments: Plugin.fromTemplate());
                     },
@@ -42,7 +41,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   ListTile(
                     title: const Text('从规则仓库导入'),
                     onTap: () {
-                      SmartDialog.dismiss();
+                      KazumiDialog.dismiss();
                       Modular.to.pushNamed('/settings/plugin/shop',
                           arguments: Plugin.fromTemplate());
                     },
@@ -51,7 +50,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   ListTile(
                     title: const Text('从剪贴板导入'),
                     onTap: () {
-                      SmartDialog.dismiss();
+                      KazumiDialog.dismiss();
                       _showInputDialog();
                     },
                   ),
@@ -64,8 +63,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   void _showInputDialog() {
     final TextEditingController textController = TextEditingController();
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
         builder: (context) {
           return AlertDialog(
             title: const Text('导入规则'),
@@ -77,7 +75,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
             }),
             actions: [
               TextButton(
-                onPressed: () => SmartDialog.dismiss(),
+                onPressed: () => KazumiDialog.dismiss(),
                 child: Text(
                   '取消',
                   style:
@@ -93,13 +91,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       await pluginsController.savePluginToJsonFile(
                           Plugin.fromJson(
                               json.decode(Utils.kazumiBase64ToJson(msg))));
-                      SmartDialog.showToast('导入成功');
+                      KazumiDialog.showToast(message: '导入成功');
                     } catch (e) {
-                      SmartDialog.dismiss();
-                      SmartDialog.showToast('导入失败 ${e.toString()}');
+                      KazumiDialog.dismiss();
+                      KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                     }
                     pluginsController.loadPlugins();
-                    SmartDialog.dismiss();
+                    KazumiDialog.dismiss();
                   },
                   child: const Text('导入'),
                 );
@@ -169,9 +167,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                   arguments:
                                       pluginsController.pluginList[index]);
                             } else if (result == 'Share') {
-                              SmartDialog.show(
-                                  animationTime:
-                                      const Duration(milliseconds: 100),
+                              KazumiDialog.show(
                                   builder: (context) {
                                     return AlertDialog(
                                       title: const Text('规则链接'),
@@ -186,7 +182,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                       actions: [
                                         TextButton(
                                           onPressed: () =>
-                                              SmartDialog.dismiss(),
+                                              KazumiDialog.dismiss(),
                                           child: Text(
                                             '取消',
                                             style: TextStyle(
@@ -203,7 +199,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                                         pluginsController
                                                             .pluginList[index]
                                                             .toJson()))));
-                                            SmartDialog.dismiss();
+                                            KazumiDialog.dismiss();
                                           },
                                           child: const Text('复制到剪贴板'),
                                         ),

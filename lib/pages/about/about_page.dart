@@ -6,7 +6,7 @@ import 'package:kazumi/request/api.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -80,8 +80,7 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   void _showCacheDialog() {
-    SmartDialog.show(
-      animationTime: const Duration(milliseconds: 100),
+    KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
           title: const Text('缓存管理'),
@@ -89,7 +88,7 @@ class _AboutPageState extends State<AboutPage> {
           actions: [
             TextButton(
               onPressed: () {
-                SmartDialog.dismiss();
+                KazumiDialog.dismiss();
               },
               child: Text(
                 '取消',
@@ -101,7 +100,7 @@ class _AboutPageState extends State<AboutPage> {
                 try {
                   _clearCache();
                 } catch (_) {}
-                SmartDialog.dismiss();
+                KazumiDialog.dismiss();
               },
               child: const Text('确认'),
             ),

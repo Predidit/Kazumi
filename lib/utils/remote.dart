@@ -5,7 +5,7 @@ import 'package:dlna_dart/dlna.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -24,128 +24,130 @@ class RemotePlay {
     final dlna = await searcher.start();
     final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
-    await SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
-          return StatefulBuilder(builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('远程播放'),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: dlnaDevice,
-                ),
+    await KazumiDialog.show(builder: (context) {
+      return StatefulBuilder(builder: (context, setState) {
+        return AlertDialog(
+          title: const Text('远程播放'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: dlnaDevice,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                if (Platform.isAndroid ||
+                    Platform.isWindows && referer.isEmpty) {
+                  if (await _launchURLWithMIME(video, 'video/mp4')) {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(
+                      message: '尝试唤起外部播放器',
+                    );
+                  } else {
+                    KazumiDialog.showToast(
+                      message: '唤起外部播放器失败',
+                    );
+                  }
+                } else if (Platform.isMacOS || Platform.isIOS) {
+                  if (await _launchURLWithReferer(video, referer)) {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(
+                      message: '尝试唤起外部播放器',
+                    );
+                  } else {
+                    KazumiDialog.showToast(
+                      message: '唤起外部播放器失败',
+                    );
+                  }
+                } else if (Platform.isLinux && referer.isEmpty) {
+                  KazumiDialog.dismiss();
+                  if (await canLaunchUrlString(video)) {
+                    launchUrlString(video);
+                    KazumiDialog.showToast(
+                      message: '尝试唤起外部播放器',
+                    );
+                  } else {
+                    KazumiDialog.showToast(
+                      message: '无法使用外部播放器',
+                    );
+                  }
+                } else {
+                  if (referer.isEmpty) {
+                    KazumiDialog.showToast(
+                      message: '暂不支持该设备',
+                    );
+                  } else {
+                    KazumiDialog.showToast(
+                      message: '暂不支持该规则',
+                    );
+                  }
+                }
+              },
+              child: const Text('外部播放'),
+            ),
+            const SizedBox(width: 20),
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+              },
+              child: Text(
+                '退出',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () async {
-                    if (Platform.isAndroid || Platform.isWindows && referer.isEmpty) {
-                      if (await _launchURLWithMIME(video, 'video/mp4')) {
-                        SmartDialog.dismiss();
-                        SmartDialog.showToast('尝试唤起外部播放器',
-                            displayType: SmartToastType.onlyRefresh);
-                      } else {
-                        SmartDialog.showToast('唤起外部播放器失败',
-                            displayType: SmartToastType.onlyRefresh);
-                      }
-                    } else if (Platform.isMacOS || Platform.isIOS) {
-                      if (await _launchURLWithReferer(video, referer)) {
-                        SmartDialog.dismiss();
-                        SmartDialog.showToast('尝试唤起外部播放器',
-                            displayType: SmartToastType.onlyRefresh);
-                      } else {
-                        SmartDialog.showToast('唤起外部播放器失败',
-                            displayType: SmartToastType.onlyRefresh);
-                      }
-                    } else if (Platform.isLinux && referer.isEmpty) {
-                      SmartDialog.dismiss();
-                      if (await canLaunchUrlString(video)) {
-                        launchUrlString(video);
-                        SmartDialog.showToast('尝试唤起外部播放器',
-                            displayType: SmartToastType.onlyRefresh);
-                      } else {
-                        SmartDialog.showToast('无法使用外部播放器',
-                            displayType: SmartToastType.onlyRefresh);
-                      }
-                    } else {
-                      if (referer.isEmpty) {
-                        SmartDialog.showToast('暂不支持该设备',
-                            displayType: SmartToastType.onlyRefresh);
-                      } else {
-                        SmartDialog.showToast('暂不支持该规则',
-                            displayType: SmartToastType.onlyRefresh);
-                      }
-                    }
-                  },
-                  child: const Text('外部播放'),
-                ),
-                const SizedBox(width: 20),
-                TextButton(
-                  onPressed: () {
-                    SmartDialog.dismiss();
-                  },
-                  child: Text(
-                    '退出',
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.outline),
-                  ),
-                ),
-                TextButton(
-                    onPressed: () {
-                      setState(() {});
-                      SmartDialog.showToast('开始搜索',
-                          displayType: SmartToastType.onlyRefresh);
-                      dlna.devices.stream.listen((deviceList) {
-                        dlnaDevice = [];
-                        deviceList.forEach((key, value) async {
-                          debugPrint('Key: $key');
-                          debugPrint(
-                              'Value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
-                          setState(() {
-                            dlnaDevice.add(ListTile(
-                                leading: _deviceUPnPIcon(
-                                    value.info.deviceType.split(':')[3]),
-                                title: Text(value.info.friendlyName),
-                                subtitle:
-                                    Text(value.info.deviceType.split(':')[3]),
-                                onTap: () {
-                                  try {
-                                    SmartDialog.showToast(
-                                        '尝试投屏至 ${value.info.friendlyName}',
-                                        displayType:
-                                            SmartToastType.onlyRefresh);
-                                    DLNADevice(value.info).setUrl(video);
-                                    DLNADevice(value.info).play();
-                                  } catch (e) {
-                                    KazumiLogger()
-                                        .log(Level.error, 'DLNA Error: $e');
-                                    SmartDialog.showNotify(
-                                        msg:
-                                            'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
-                                        notifyType: NotifyType.alert);
-                                  }
-                                }));
-                          });
-                        });
+            ),
+            TextButton(
+                onPressed: () {
+                  setState(() {});
+                  KazumiDialog.showToast(
+                    message: '开始搜索',
+                  );
+                  dlna.devices.stream.listen((deviceList) {
+                    dlnaDevice = [];
+                    deviceList.forEach((key, value) async {
+                      debugPrint('Key: $key');
+                      debugPrint(
+                          'Value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
+                      setState(() {
+                        dlnaDevice.add(ListTile(
+                            leading: _deviceUPnPIcon(
+                                value.info.deviceType.split(':')[3]),
+                            title: Text(value.info.friendlyName),
+                            subtitle: Text(value.info.deviceType.split(':')[3]),
+                            onTap: () {
+                              try {
+                                KazumiDialog.showToast(
+                                  message: '尝试投屏至 ${value.info.friendlyName}',
+                                );
+                                DLNADevice(value.info).setUrl(video);
+                                DLNADevice(value.info).play();
+                              } catch (e) {
+                                KazumiLogger()
+                                    .log(Level.error, 'DLNA Error: $e');
+                                KazumiDialog.showToast(
+                                  message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
+                                );
+                              }
+                            }));
                       });
-                      Timer(const Duration(seconds: 30), () {
-                        SmartDialog.showToast(
-                          '已搜索30s，若未发现设备请尝试重新进入 DLNA 投屏',
-                          displayType: SmartToastType.onlyRefresh,
-                        );
-                      });
-                    },
-                    child: Text(
-                      '搜索',
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.outline),
-                    )),
-              ],
-            );
-          });
-        },
-        onDismiss: () {
-          searcher.stop();
-        });
+                    });
+                  });
+                  Timer(const Duration(seconds: 30), () {
+                    KazumiDialog.showToast(
+                      message: '已搜索30s，若未发现设备请尝试重新进入 DLNA 投屏',
+                    );
+                  });
+                },
+                child: Text(
+                  '搜索',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                )),
+          ],
+        );
+      });
+    }, onDismiss: () {
+      searcher.stop();
+    });
   }
 
   Icon _deviceUPnPIcon(String deviceType) {

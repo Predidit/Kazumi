@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:styled_text/styled_text.dart';
@@ -157,6 +157,6 @@ class EpisodeCommentsCard extends StatelessWidget {
   Future<void> _copyLink(Map<String?, String?> attrs) async {
     final String? link = attrs['href'];
     await Clipboard.setData(ClipboardData(text: link!));
-    SmartDialog.showToast('已复制链接到剪贴板');
+    KazumiDialog.showToast(message: '已复制链接到剪贴板');
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/storage.dart';
 
 class SetSwitchItem extends StatefulWidget {
@@ -43,7 +43,7 @@ class _SetSwitchItemState extends State<SetSwitchItem> {
       widget.callFn!.call(val);
     }
     if (widget.needReboot != null && widget.needReboot!) {
-      SmartDialog.showToast('重启生效');
+      KazumiDialog.showToast(message: '重启生效');
     }
     setState(() {});
   }

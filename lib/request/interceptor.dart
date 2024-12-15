@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ApiInterceptor extends Interceptor {
@@ -29,9 +29,8 @@ class ApiInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     String url = err.requestOptions.uri.toString();
     if (!url.contains('heartBeat')) {
-      SmartDialog.showToast(
-        await dioError(err),
-        displayType: SmartToastType.onlyRefresh,
+      KazumiDialog.showToast(
+        message: await dioError(err),
       );
     }
     super.onError(err, handler);

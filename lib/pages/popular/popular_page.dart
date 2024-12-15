@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/error/http_error.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -75,7 +75,7 @@ class _PopularPageState extends State<PopularPage>
             const Duration(seconds: 2)) {
       // 两次点击时间间隔超过2秒，重新记录时间戳
       _lastPressedAt = DateTime.now();
-      SmartDialog.showToast("再按一次退出应用");
+      KazumiDialog.showToast(message: "再按一次退出应用", context: context);
       return;
     }
     SystemNavigator.pop(); // 退出应用

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -73,16 +73,16 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
           try {
             await webDav.init();
           } catch (e) {
-            SmartDialog.showToast('配置失败 ${e.toString()}');
+            KazumiDialog.showToast(message: '配置失败 ${e.toString()}');
             await setting.put(SettingBoxKey.webDavEnable, false);
             return;
           }
-          SmartDialog.showToast('配置成功, 开始测试');
+          KazumiDialog.showToast(message: '配置成功, 开始测试');
           try {
             await webDav.ping();
-            SmartDialog.showToast('测试成功');
+            KazumiDialog.showToast(message: '测试成功');
           } catch (e) {
-            SmartDialog.showToast('测试失败 ${e.toString()}');
+            KazumiDialog.showToast(message: '测试失败 ${e.toString()}');
             await setting.put(SettingBoxKey.webDavEnable, false);
           }
         },

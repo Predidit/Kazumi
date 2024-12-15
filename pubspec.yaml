@@ -49,7 +49,6 @@ dependencies:
   path_provider: ^2.1.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  flutter_smart_dialog: ^4.9.8
   cached_network_image: ^3.4.1
 
   # fvp: ^0.28.0

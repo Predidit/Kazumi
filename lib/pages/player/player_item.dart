@@ -1560,11 +1560,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 onSelected: (value) {
                                   if (value == 0) {
                                     KazumiDialog.show(builder: (context) {
-                                      return SizedBox(
-                                          height: 440,
-                                          child: DanmakuSettingsWindow(
-                                              danmakuController:
-                                                  danmakuController));
+                                      return DanmakuSettingsWindow(
+                                          danmakuController: danmakuController);
                                     });
                                   }
                                   if (value == 1) {

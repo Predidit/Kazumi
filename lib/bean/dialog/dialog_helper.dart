@@ -70,6 +70,7 @@ class KazumiDialog {
     if (context != null) {
       await showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return Center(
             child: Card(

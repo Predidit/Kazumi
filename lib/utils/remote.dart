@@ -131,11 +131,11 @@ class RemotePlay {
                       });
                     });
                   });
-                  Timer(const Duration(seconds: 30), () {
-                    KazumiDialog.showToast(
-                      message: '已搜索30s，若未发现设备请尝试重新进入 DLNA 投屏',
-                    );
-                  });
+                  // Timer(const Duration(seconds: 30), () {
+                  //   KazumiDialog.showToast(
+                  //     message: '已搜索30s，若未发现设备请尝试重新进入 DLNA 投屏',
+                  //   );
+                  // });
                 },
                 child: Text(
                   '搜索',

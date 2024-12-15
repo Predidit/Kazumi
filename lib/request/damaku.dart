@@ -8,12 +8,11 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 
-
 class DanmakuRequest {
-
   //获取弹弹Play集合，需要进一步处理
   static Future<int> getBangumiID(String title) async {
-    DanmakuSearchResponse danmakuSearchResponse = await getDanmakuSearchResponse(title);
+    DanmakuSearchResponse danmakuSearchResponse =
+        await getDanmakuSearchResponse(title);
 
     // 保留此判断以防止错误匹配
     int minAnimeId = 100000;
@@ -27,23 +26,25 @@ class DanmakuRequest {
   }
 
   //从BangumiID获取分集ID
-  static Future<DanmakuEpisodeResponse> getDanDanEpisodesByBangumiID(int bangumiID) async {
+  static Future<DanmakuEpisodeResponse> getDanDanEpisodesByBangumiID(
+      int bangumiID) async {
     var httpHeaders = {
-      'user-agent':
-          Utils.getRandomUA(),
+      'user-agent': Utils.getRandomUA(),
       'referer': '',
     };
     final res = await Request().get(Api.dandanInfo + bangumiID.toString(),
-        options: Options(headers: httpHeaders));
+        options: Options(headers: httpHeaders),
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
     Map<String, dynamic> jsonData = res.data;
-    DanmakuEpisodeResponse danmakuEpisodeResponse = DanmakuEpisodeResponse.fromJson(jsonData);
+    DanmakuEpisodeResponse danmakuEpisodeResponse =
+        DanmakuEpisodeResponse.fromJson(jsonData);
     return danmakuEpisodeResponse;
   }
 
-  static Future<DanmakuSearchResponse> getDanmakuSearchResponse(String title) async {
+  static Future<DanmakuSearchResponse> getDanmakuSearchResponse(
+      String title) async {
     var httpHeaders = {
-      'user-agent':
-          Utils.getRandomUA(),
+      'user-agent': Utils.getRandomUA(),
       'referer': '',
     };
     Map<String, String> keywordMap = {
@@ -51,9 +52,12 @@ class DanmakuRequest {
     };
 
     final res = await Request().get(Api.dandanSearch,
-        data: keywordMap, options: Options(headers: httpHeaders));
+        data: keywordMap,
+        options: Options(headers: httpHeaders),
+        extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'});
     Map<String, dynamic> jsonData = res.data;
-    DanmakuSearchResponse danmakuSearchResponse = DanmakuSearchResponse.fromJson(jsonData);
+    DanmakuSearchResponse danmakuSearchResponse =
+        DanmakuSearchResponse.fromJson(jsonData);
     return danmakuSearchResponse;
   }
 
@@ -63,8 +67,7 @@ class DanmakuRequest {
       return danmakus;
     }
     var httpHeaders = {
-      'user-agent':
-          Utils.getRandomUA(),
+      'user-agent': Utils.getRandomUA(),
       'referer': '',
     };
     Map<String, String> withRelated = {
@@ -76,8 +79,9 @@ class DanmakuRequest {
     final res = await Request().get(
         ("${Api.dandanAPI}$bangumiID${episode.toString().padLeft(4, '0')}"),
         data: withRelated,
-        options: Options(headers: httpHeaders));
-    
+        options: Options(headers: httpHeaders),
+        extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
+
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];
 
@@ -91,15 +95,16 @@ class DanmakuRequest {
   static Future<List<Danmaku>> getDanDanmakuByEpisodeID(int episodeID) async {
     List<Danmaku> danmakus = [];
     var httpHeaders = {
-      'user-agent':
-          Utils.getRandomUA(),
+      'user-agent': Utils.getRandomUA(),
       'referer': '',
     };
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
     final res = await Request().get("${Api.dandanAPI}$episodeID",
-        data: withRelated, options: Options(headers: httpHeaders));
+        data: withRelated,
+        options: Options(headers: httpHeaders),
+        extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];
 

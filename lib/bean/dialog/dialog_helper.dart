@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 // A simple dialog helper class to show dialogs and toasts based on flutter native implementation (replace flutter_smart_dialog)
 // flutter_smart_dialog use overlays and self-managed route stack to show dialogs.
 // It's powerful but can't behave like the default showDialog, e.g. the lack of mask animation. the lack of snackbar.
-// Use the implementation should be careful, because shared route stack with the whole app, it may cause some unexpected behaviors. 
+// Use the implementation should be careful, because shared route stack with the whole app, it may cause some unexpected behaviors.
 // Don't use it in double PopScope widget.
 class KazumiDialog {
   static final KazumiDialogObserver _observer =
@@ -42,20 +42,18 @@ class KazumiDialog {
   }) {
     final scaffoldContext = context ?? _observer.currentContext;
     if (scaffoldContext != null) {
-      ScaffoldMessenger.of(scaffoldContext)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            duration: duration,
-            action: showUndoButton
-                ? SnackBarAction(
-                    label: 'Dismiss',
-                    onPressed: () {},
-                  )
-                : null,
-          ),
-        );
+      ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: duration,
+          action: showUndoButton
+              ? SnackBarAction(
+                  label: 'Dismiss',
+                  onPressed: () {},
+                )
+              : null,
+        ),
+      );
     } else {
       debugPrint(
           'Kazumi Dialog Error: No Scaffold context available to show Toast');
@@ -130,6 +128,7 @@ class KazumiDialogObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
+    _removeCurrentSnackBar(previousRoute);
     if (_isKazumiDialogRoute(route)) {
       _kazumiDialogRoutes.add(route);
       currentContext = route.navigator?.context;
@@ -141,6 +140,7 @@ class KazumiDialogObserver extends NavigatorObserver {
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
+    _removeCurrentSnackBar(route);
     if (_isKazumiDialogRoute(route)) {
       _kazumiDialogRoutes.remove(route);
     }
@@ -156,5 +156,11 @@ class KazumiDialogObserver extends NavigatorObserver {
 
   bool _isKazumiDialogRoute(Route<dynamic> route) {
     return route.settings.name == 'KazumiDialog';
+  }
+
+  void _removeCurrentSnackBar(Route<dynamic>? route) {
+    if (route?.navigator?.context != null) {
+      ScaffoldMessenger.of(route!.navigator!.context).removeCurrentSnackBar();
+    }
   }
 }

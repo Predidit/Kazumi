@@ -19,7 +19,7 @@ class WebDav {
 
   Future<void> init() async {
     var directory = await getApplicationSupportDirectory();
-    webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp'); 
+    webDavLocalTempDirectory = Directory('${directory.path}/webdavTemp');
     Box setting = GStorage.setting;
     webDavURL = setting.get(SettingBoxKey.webDavURL, defaultValue: '');
     webDavUsername =
@@ -47,8 +47,8 @@ class WebDav {
     try {
       await client.remove('/kazumiSync/$boxName.tmp.cache');
     } catch (_) {}
-    await client.writeFromFile('${directory.path}/hive/$boxName.hive', '/kazumiSync/$boxName.tmp.cache',
-        onProgress: (c, t) {
+    await client.writeFromFile('${directory.path}/hive/$boxName.hive',
+        '/kazumiSync/$boxName.tmp.cache', onProgress: (c, t) {
       // print(c / t);
     });
     try {
@@ -64,8 +64,8 @@ class WebDav {
     await update('histories');
   }
 
-  Future<void> updateFavorite() async {
-    await update('favorites');
+  Future<void> updateCollectibles() async {
+    await update('collectibles');
   }
 
   Future<void> downloadHistory() async {
@@ -81,11 +81,11 @@ class WebDav {
         onProgress: (c, t) {
       // print(c / t);
     });
-    await GStorage.patchHistory(existingFile.path); 
+    await GStorage.patchHistory(existingFile.path);
   }
-  
-  Future<void> downloadFavorite() async {
-    String fileName = 'favorites.tmp';
+
+  Future<void> downloadCollectibles() async {
+    String fileName = 'collectibles.tmp';
     if (!await webDavLocalTempDirectory.exists()) {
       await webDavLocalTempDirectory.create(recursive: true);
     }
@@ -97,7 +97,7 @@ class WebDav {
         onProgress: (c, t) {
       // print(c / t);
     });
-    await GStorage.patchFavorites(existingFile.path); 
+    await GStorage.patchCollectibles(existingFile.path);
   }
 
   Future<void> ping() async {

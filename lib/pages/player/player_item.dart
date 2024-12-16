@@ -21,7 +21,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/pages/favorite/favorite_controller.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/damaku.dart';
@@ -32,6 +32,7 @@ import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:saver_gallery/saver_gallery.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem(
@@ -55,11 +56,15 @@ class _PlayerItemState extends State<PlayerItem>
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
-  final FavoriteController favoriteController =
-      Modular.get<FavoriteController>();
+  final CollectController collectController = Modular.get<CollectController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
-  late bool isFavorite;
+  // 1. 在看
+  // 2. 想看
+  // 3. 搁置
+  // 4. 看过
+  // 5. 抛弃
+  late int collectType;
   late bool webDavEnable;
   late bool haEnable;
 
@@ -772,7 +777,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   Widget build(BuildContext context) {
-    isFavorite = favoriteController.isFavorite(infoController.bangumiItem);
+    collectType = collectController.getCollectType(infoController.bangumiItem);
 
     return PopScope(
       canPop: false,
@@ -1496,28 +1501,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 },
                               ),
                               // 追番
-                              IconButton(
-                                icon: Icon(
-                                    isFavorite
-                                        ? Icons.favorite
-                                        : Icons.favorite_outline,
-                                    color: Colors.white),
-                                onPressed: () async {
-                                  if (isFavorite) {
-                                    favoriteController.deleteFavorite(
-                                        infoController.bangumiItem);
-                                    KazumiDialog.showToast(message: '取消追番成功');
-                                  } else {
-                                    favoriteController.addFavorite(
-                                        infoController.bangumiItem);
-                                    KazumiDialog.showToast(
-                                        message: '自己追的番要好好看完哦');
-                                  }
-                                  setState(() {
-                                    isFavorite = !isFavorite;
-                                  });
-                                },
-                              ),
+                              CollectButton(bangumiItem: infoController.bangumiItem, withRounder: false),
                               PopupMenuButton(
                                 tooltip: '',
                                 icon: const Icon(

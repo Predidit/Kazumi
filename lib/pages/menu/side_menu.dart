@@ -98,7 +98,7 @@ class _SideMenu extends State<SideMenu> {
                           Modular.to.navigate('/tab/timeline/');
                           break;
                         case 2:
-                          Modular.to.navigate('/tab/favorite/');
+                          Modular.to.navigate('/tab/collect/');
                           break;
                         case 3:
                           Modular.to.navigate('/tab/my/');

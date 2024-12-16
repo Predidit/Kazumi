@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/favorite/favorite_controller.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
@@ -17,16 +16,12 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
-  late bool isFavorite;
 
   @override
   Widget build(BuildContext context) {
     TextStyle style =
         TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
     String heroTag = Utils.makeHeroTag(widget.bangumiItem.id);
-    final FavoriteController favoriteController =
-        Modular.get<FavoriteController>();
-    isFavorite = favoriteController.isFavorite(widget.bangumiItem);
     return SizedBox(
       height: Utils.isCompact() ? 240 : 300,
       child: Padding(
@@ -62,23 +57,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       Positioned(
                         right: 5,
                         bottom: 5,
-                        child: IconButton.filledTonal(
-                          icon: Icon(isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_outline),
-                          onPressed: () async {
-                            if (isFavorite) {
-                              favoriteController
-                                  .deleteFavorite(widget.bangumiItem);
-                            } else {
-                              favoriteController
-                                  .addFavorite(widget.bangumiItem);
-                            }
-                            setState(() {
-                              isFavorite = !isFavorite;
-                            });
-                          },
-                        ),
+                        child: CollectButton(bangumiItem: widget.bangumiItem)
                       ),
                     ],
                   );
@@ -145,20 +124,25 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         child:
                             Text('#${widget.bangumiItem.rank}', style: style),
                       ),
-                      Utils.isCompact() ? Container() : const SizedBox(width: 7),
-                      Utils.isCompact() ? Container() : FilledButton.tonal(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          side: const BorderSide(
-                              // width: 2,
+                      Utils.isCompact()
+                          ? Container()
+                          : const SizedBox(width: 7),
+                      Utils.isCompact()
+                          ? Container()
+                          : FilledButton.tonal(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                side: const BorderSide(
+                                    // width: 2,
+                                    ),
+                                backgroundColor: Colors.transparent,
                               ),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child: Text(widget.bangumiItem.airDate, style: style),
-                      ),
+                              child: Text(widget.bangumiItem.airDate,
+                                  style: style),
+                            ),
                     ],
                   ),
                   Utils.isCompact() ? Container() : const SizedBox(height: 10),

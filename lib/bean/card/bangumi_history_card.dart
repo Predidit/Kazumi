@@ -6,12 +6,12 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
@@ -26,7 +26,6 @@ class BangumiHistoryCardV extends StatefulWidget {
 }
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
-  late bool isFavorite;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -38,9 +37,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         fontSize: Theme.of(context).textTheme.labelMedium!.fontSize,
         overflow: TextOverflow.ellipsis);
     final InfoController infoController = Modular.get<InfoController>();
-    final FavoriteController favoriteController =
-        Modular.get<FavoriteController>();
-    isFavorite = favoriteController.isFavorite(widget.historyItem.bangumiItem);
     return SizedBox(
       height: 150,
       child: Card(
@@ -161,22 +157,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
                 Column(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_outline),
-                      onPressed: () async {
-                        if (isFavorite) {
-                          favoriteController
-                              .deleteFavorite(widget.historyItem.bangumiItem);
-                        } else {
-                          favoriteController
-                              .addFavorite(widget.historyItem.bangumiItem);
-                        }
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
-                    ),
+                    CollectButton(bangumiItem: widget.historyItem.bangumiItem),
                     widget.showDelete
                         ? IconButton(
                             icon: const Icon(Icons.delete),

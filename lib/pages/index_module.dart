@@ -8,7 +8,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
-import 'package:kazumi/pages/favorite/favorite_controller.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/video/video_module.dart';
@@ -26,7 +26,7 @@ class IndexModule extends Module {
     i.addSingleton(PluginsController.new);
     i.addSingleton(VideoPageController.new);
     i.addSingleton(TimelineController.new);
-    i.addSingleton(FavoriteController.new);
+    i.addSingleton(CollectController.new);
     i.addSingleton(HistoryController.new);
     i.addSingleton(MyController.new);
   }

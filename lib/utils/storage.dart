@@ -4,17 +4,22 @@ import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
 
 class GStorage {
+  // Don't use favorites box, it's replaced by collectibles.
   static late Box<BangumiItem> favorites;
+  static late Box<CollectedBangumi> collectibles;
   static late Box<History> histories;
   static late final Box<dynamic> setting;
 
   static Future init() async {
     Hive.registerAdapter(BangumiItemAdapter());
+    Hive.registerAdapter(CollectedBangumiAdapter());
     Hive.registerAdapter(ProgressAdapter());
     Hive.registerAdapter(HistoryAdapter());
     favorites = await Hive.openBox('favorites');
+    collectibles = await Hive.openBox('collectibles');
     histories = await Hive.openBox('histories');
     setting = await Hive.openBox('setting');
   }
@@ -30,7 +35,7 @@ class GStorage {
     }
   }
 
-  /// 弃用
+  /// Deprecated
   static Future<void> restoreHistory(String backupFilePath) async {
     final appDocumentDir = await getApplicationSupportDirectory();
     final backupFile = File(backupFilePath);
@@ -71,16 +76,16 @@ class GStorage {
     await tempBox.close();
   }
 
-  static Future<void> patchFavorites(String backupFilePath) async {
+  static Future<void> patchCollectibles(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
-    final tempBox = await Hive.openBox('tempFavoritesBox', bytes: backupContent);
+    final tempBox = await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
     debugPrint('webDav追番列表长度 ${tempBoxItems.length}');
 
-    await favorites.clear();
+    await collectibles.clear();
     for (var tempBoxItem in tempBoxItems) {
-      await favorites.put(tempBoxItem.key, tempBoxItem.value);
+      await collectibles.put(tempBoxItem.key, tempBoxItem.value);
     }
     await tempBox.close();
   }
@@ -121,7 +126,7 @@ class SettingBoxKey {
       enableSystemProxy = 'enableSystemProxy',
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
-      webDavEnableFavorite = 'webDavEnableFavorite',
+      webDavEnableCollect = 'webDavEnableCollect',
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd',

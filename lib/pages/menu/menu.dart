@@ -98,7 +98,7 @@ class _BottomMenu extends State<BottomMenu> {
                           break;
                         case 2:
                           {
-                            Modular.to.navigate('/tab/favorite/');
+                            Modular.to.navigate('/tab/collect/');
                           }
                           break;
                         case 3:

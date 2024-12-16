@@ -7,6 +7,7 @@ import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:logger/logger.dart';
 // import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
@@ -22,6 +23,7 @@ class InitPage extends StatefulWidget {
 
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final CollectController collectController = Modular.get<CollectController>();
   Box setting = GStorage.setting;
 
   // Future<File> _getLogFile() async {
@@ -39,14 +41,20 @@ class _InitPageState extends State<InitPage> {
     _pluginInit();
     _webDavInit();
     _update();
+    _migrateStorage();
     super.initState();
+  }
+
+  // migrate collect from old version (favorites)
+  Future<void> _migrateStorage() async {
+    await collectController.migrateCollect();
   }
 
   Future<void> _webDavInit() async {
     bool webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    bool webDavEnableFavorite = await setting
-        .get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
+    bool webDavEnableCollect = await setting
+        .get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
@@ -58,9 +66,9 @@ class _InitPageState extends State<InitPage> {
         } catch (e) {
           KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
         }
-        if (webDavEnableFavorite) {
+        if (webDavEnableCollect) {
           try {
-            await webDav.downloadFavorite();
+            await webDav.downloadCollectibles();
             KazumiLogger().log(Level.info, '同步追番列表完成');
           } catch (e) {
             KazumiLogger().log(Level.error, '同步追番列表失败 ${e.toString()}');
@@ -81,7 +89,7 @@ class _InitPageState extends State<InitPage> {
       _pluginUpdate();
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
-      KazumiDialog.show(
+      await KazumiDialog.show(
         clickMaskDismiss: false,
         builder: (context) {
           return PopScope(

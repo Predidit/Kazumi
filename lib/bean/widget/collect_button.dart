@@ -33,8 +33,8 @@ class _CollectButtonState extends State<CollectButton> {
     return PopupMenuButton(
       tooltip: '',
       child: widget.withRounder
-          ? NonClickableIconButton(icon: Icon(
-              () {
+          ? NonClickableIconButton(
+              icon: () {
                 switch (collectType) {
                   case 1:
                     return Icons.favorite;
@@ -50,10 +50,10 @@ class _CollectButtonState extends State<CollectButton> {
                     return Icons.favorite_border;
                 }
               }(),
-            ))
+            )
           : Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(
+              padding: const EdgeInsets.all(8.0),
+              child: Icon(
                 () {
                   switch (collectType) {
                     case 1:
@@ -72,7 +72,7 @@ class _CollectButtonState extends State<CollectButton> {
                 }(),
                 color: Colors.white,
               ),
-          ),
+            ),
       itemBuilder: (context) {
         return const [
           PopupMenuItem(
@@ -132,8 +132,7 @@ class _CollectButtonState extends State<CollectButton> {
 }
 
 class NonClickableIconButton extends StatelessWidget {
-  final Widget icon;
-  final double iconSize;
+  final IconData icon;
   final Color? iconColor;
   final Color? backgroundColor;
   final double padding;
@@ -141,7 +140,6 @@ class NonClickableIconButton extends StatelessWidget {
   const NonClickableIconButton({
     super.key,
     required this.icon,
-    this.iconSize = 24.0,
     this.iconColor,
     this.backgroundColor,
     this.padding = 8.0,
@@ -151,14 +149,14 @@ class NonClickableIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color effectiveBackgroundColor =
         backgroundColor ?? Theme.of(context).colorScheme.secondaryContainer;
-
+    final Color effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.onPrimaryContainer;
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: effectiveBackgroundColor,
         shape: BoxShape.circle,
       ),
-      child: icon,
+      child: Icon(icon, color: effectiveIconColor),
     );
   }
 }

@@ -148,7 +148,7 @@ class NonClickableIconButton extends StatelessWidget {
     final Color effectiveBackgroundColor =
         backgroundColor ?? Theme.of(context).colorScheme.secondaryContainer;
     final Color effectiveIconColor =
-        iconColor ?? Theme.of(context).colorScheme.onPrimaryContainer;
+        iconColor ?? Theme.of(context).colorScheme.onSecondaryContainer;
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(

@@ -67,11 +67,13 @@ class _LogsPageState extends State<LogsPage> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            heroTag: null, 
             onPressed: _clearLogs,
             child: const Icon(Icons.clear_all),
           ),
           const SizedBox(width: 15),
           FloatingActionButton(
+            heroTag: null, 
             onPressed: _copyLogs,
             child: const Icon(Icons.copy),
           ),

@@ -12,16 +12,17 @@ import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 class SettingsModule extends Module {
   @override
   void routes(r) {
-    r.child("/theme", child: (_) => const ThemeSettingsPage(), transition: TransitionType.noTransition);
-    r.child("/theme/display",
-        child: (_) => const SetDisplayMode(),
-        transition: TransitionType.noTransition);
-    r.child("/player", child: (_) => const PlayerSettingsPage(), transition: TransitionType.noTransition);
-    r.child("/other", child: (_) => const OtherSettingsPage(), transition: TransitionType.noTransition);
-    r.module("/webdav", module: WebDavModule(), transition: TransitionType.noTransition);
-    r.module("/about", module: AboutModule(), transition: TransitionType.noTransition);
-    r.module("/plugin", module: PluginModule(), transition: TransitionType.noTransition);
-    r.module("/history", module: HistoryModule(), transition: TransitionType.noTransition);
-    r.module("/danmaku", module: DanmakuModule(), transition: TransitionType.noTransition);
+    r.child("/theme", child: (_) => const ThemeSettingsPage());
+    r.child(
+      "/theme/display",
+      child: (_) => const SetDisplayMode(),
+    );
+    r.child("/player", child: (_) => const PlayerSettingsPage());
+    r.child("/other", child: (_) => const OtherSettingsPage());
+    r.module("/webdav", module: WebDavModule());
+    r.module("/about", module: AboutModule());
+    r.module("/plugin", module: PluginModule());
+    r.module("/history", module: HistoryModule());
+    r.module("/danmaku", module: DanmakuModule());
   }
 }

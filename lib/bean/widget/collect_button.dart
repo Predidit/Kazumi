@@ -25,11 +25,11 @@ class _CollectButtonState extends State<CollectButton> {
   @override
   void initState() {
     super.initState();
-    collectType = collectController.getCollectType(widget.bangumiItem);
   }
 
   @override
   Widget build(BuildContext context) {
+    collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
       tooltip: '',
       child: widget.withRounder

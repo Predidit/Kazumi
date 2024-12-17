@@ -120,7 +120,7 @@
           # Sign MSIX
           - run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
           - name: sign windows msix
-            uses: signpath/github-action-submit-signing-request@v1
+            uses: signpath/github-action-submit-signing-request@v1.1
             with:
               api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
               organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
@@ -141,7 +141,7 @@
           # Sign Zip
           - run: New-Item -Path "build/windows/zip_signed_output" -ItemType Directory
           - name: sign windows zip
-            uses: signpath/github-action-submit-signing-request@v1
+            uses: signpath/github-action-submit-signing-request@v1.1
             with:
               api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
               organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'

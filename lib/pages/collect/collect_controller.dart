@@ -41,9 +41,6 @@ abstract class _CollectController with Store {
     }
     CollectedBangumi collectedBangumi =
         CollectedBangumi(bangumiItem, DateTime.now(), type);
-    if (getCollectType(bangumiItem) != 0) {
-      await deleteCollect(bangumiItem);
-    }
     await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
     await GStorage.collectibles.flush();
     loadCollectibles();

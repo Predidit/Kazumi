@@ -122,9 +122,7 @@ class _CollectButtonState extends State<CollectButton> {
       onSelected: (value) {
         if (value != collectType && mounted) {
           collectController.addCollect(widget.bangumiItem, type: value);
-          setState(() {
-            collectType = value;
-          });
+          setState(() {});
         }
       },
     );
@@ -149,7 +147,8 @@ class NonClickableIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color effectiveBackgroundColor =
         backgroundColor ?? Theme.of(context).colorScheme.secondaryContainer;
-    final Color effectiveIconColor = iconColor ?? Theme.of(context).colorScheme.onPrimaryContainer;
+    final Color effectiveIconColor =
+        iconColor ?? Theme.of(context).colorScheme.onPrimaryContainer;
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(

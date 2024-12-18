@@ -48,6 +48,7 @@ class BangumiHTTP {
     List<List<BangumiItem>> bangumiCalendar = [];
     var params = <String, dynamic>{
       "keyword": "",
+      "sort": "rank",
       "filter": {
         "type": [2],
         "tag": ["日本"],

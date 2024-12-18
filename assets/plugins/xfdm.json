@@ -2,7 +2,7 @@
     "api": "3",
     "type": "anime",
     "name": "xfdm",
-    "version": "1.2",
+    "version": "1.3",
     "muliSources": true,
     "useWebview": true,
     "useNativePlayer": true,
@@ -15,6 +15,6 @@
     "searchList": "//div[4]/div/div[1]/div//div",
     "searchName": "//div[3]/div[1]/div[1]",
     "searchResult": "//div[3]/div[2]/a[1]",
-    "chapterRoads": "//div[6]/div[2]/div[2]//div",
+    "chapterRoads": "//div[5]/div[2]/div[2]//div",
     "chapterResult": "//li/a"
 }

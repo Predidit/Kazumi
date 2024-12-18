@@ -32,8 +32,8 @@ abstract class _TimelineController with Store {
       final offset = time * limit;
       var newList = await BangumiHTTP.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
-      for (int i = 0; i < bangumiCalendar.length; ++i) {
-        bangumiCalendar[i].addAll(newList[i]);
+      for (int i = 0; i < resBangumiCalendar.length; ++i) {
+        resBangumiCalendar[i].addAll(newList[i]);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);

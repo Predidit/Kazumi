@@ -43,11 +43,12 @@ class BangumiHTTP {
   // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
   // because the air date is the launch date of the anime, it is usually a few days before the start of the season
   // So we usually use the start of the season month -1 and the end of the season month -1
-  static Future<List<List<BangumiItem>>> getCalendarBySearch(List<String> dateRange) async {
+  static Future<List<List<BangumiItem>>> getCalendarBySearch(List<String> dateRange, int limit, int offset) async {
     List<BangumiItem> bangumiList = [];
     List<List<BangumiItem>> bangumiCalendar = [];
     var params = <String, dynamic>{
       "keyword": "",
+      "sort": "rank",
       "filter": {
         "type": [2],
         "tag": ["日本"],
@@ -57,7 +58,8 @@ class BangumiHTTP {
       }
     };
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final url = Api.formatUrl(Api.bangumiRankSearch, [limit, offset]);
+      final res = await Request().post(url,
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));

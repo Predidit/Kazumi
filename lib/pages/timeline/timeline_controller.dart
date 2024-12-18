@@ -21,6 +21,20 @@ abstract class _TimelineController with Store {
   }
 
   Future<void> getSchedulesBySeason() async {
-    bangumiCalendar = await BangumiHTTP.getCalendarBySearch(AnimeSeason(selectedDate).toSeasonStartAndEnd());
+    // 4次获取，每次最多20部
+    var time = 0;
+    const maxTime = 4;
+    const limit = 20;
+    bangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
+    for (time = 0; time < maxTime; time++) {
+      final offset = time * limit;
+      var newList = await BangumiHTTP.getCalendarBySearch(
+          AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
+      for (int i = 0; i < bangumiCalendar.length; ++i) {
+        bangumiCalendar[i].addAll(newList[i]);
+      }
+      // MobX
+      bangumiCalendar = List.from(bangumiCalendar);
+    }
   }
 }

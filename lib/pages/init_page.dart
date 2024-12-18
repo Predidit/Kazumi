@@ -178,27 +178,8 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
     return Scaffold(
-      body: Center(
-        child: SizedBox(
-          height: 200,
-          child: Flex(
-            direction: Axis.vertical,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              SizedBox(
-                width: size.width * 0.6,
-                child: const LinearProgressIndicator(
-                  backgroundColor: Colors.black12,
-                  minHeight: 10,
-                ),
-              ),
-              const Text("初始化中"),
-            ],
-          ),
-        ),
-      ),
+      body: Container()
     );
   }
 }

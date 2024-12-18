@@ -169,20 +169,17 @@ class _InitPageState extends State<InitPage> {
       KazumiLogger().log(Level.info, '当前设备非宽屏');
     }
     setting.put(SettingBoxKey.isWideScreen, isWideScreen);
-    return const RouterOutlet();
+    return const LoadingWidget();
   }
 }
 
 class LoadingWidget extends StatelessWidget {
-  const LoadingWidget({super.key, required this.value});
-
-  final double value;
+  const LoadingWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(title: const Text("Kazumi")),
       body: Center(
         child: SizedBox(
           height: 200,
@@ -192,8 +189,7 @@ class LoadingWidget extends StatelessWidget {
             children: [
               SizedBox(
                 width: size.width * 0.6,
-                child: LinearProgressIndicator(
-                  value: value,
+                child: const LinearProgressIndicator(
                   backgroundColor: Colors.black12,
                   minHeight: 10,
                 ),

@@ -9,7 +9,7 @@ class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
   @observable
-  List<List<BangumiItem>> bangumiCalendar = [];
+  ObservableList<List<BangumiItem>> bangumiCalendar = ObservableList<List<BangumiItem>>();
 
   @observable
   String seasonString = '';
@@ -17,7 +17,9 @@ abstract class _TimelineController with Store {
   DateTime selectedDate = DateTime.now();
 
   Future<void> getSchedules() async {
-    bangumiCalendar = await BangumiHTTP.getCalendar();
+    final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    bangumiCalendar.clear();
+    bangumiCalendar.addAll(resBangumiCalendar);
   }
 
   Future<void> getSchedulesBySeason() async {
@@ -25,7 +27,7 @@ abstract class _TimelineController with Store {
     var time = 0;
     const maxTime = 4;
     const limit = 20;
-    bangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
+    var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
     for (time = 0; time < maxTime; time++) {
       final offset = time * limit;
       var newList = await BangumiHTTP.getCalendarBySearch(
@@ -33,8 +35,8 @@ abstract class _TimelineController with Store {
       for (int i = 0; i < bangumiCalendar.length; ++i) {
         bangumiCalendar[i].addAll(newList[i]);
       }
-      // MobX
-      bangumiCalendar = List.from(bangumiCalendar);
+      bangumiCalendar.clear();
+      bangumiCalendar.addAll(resBangumiCalendar);
     }
   }
 }

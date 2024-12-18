@@ -118,7 +118,7 @@ class BangumiHTTP {
       };
     }
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -151,7 +151,7 @@ class BangumiHTTP {
     };
 
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));

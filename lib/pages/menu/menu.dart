@@ -85,28 +85,7 @@ class _BottomMenu extends State<BottomMenu> {
                       //   selectedIndex = index;
                       // });
                       state.updateSelectedIndex(index);
-                      switch (index) {
-                        case 0:
-                          {
-                            Modular.to.navigate('/tab/popular/');
-                          }
-                          break;
-                        case 1:
-                          {
-                            Modular.to.navigate('/tab/timeline/');
-                          }
-                          break;
-                        case 2:
-                          {
-                            Modular.to.navigate('/tab/collect/');
-                          }
-                          break;
-                        case 3:
-                          {
-                            Modular.to.navigate('/tab/my/');
-                          }
-                          break;
-                      }
+                      Modular.to.navigate("/tab${menu.getPath(index)}/");
                     },
                   );
           }),

@@ -231,6 +231,16 @@ class Utils {
     }
   }
 
+  static String shrinkAirDate(String airDate) {
+    try {
+      DateTime dateTime = DateTime.parse(airDate);
+      String dateWithoutDay = "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}";
+      return dateWithoutDay;
+    } catch (_) {
+      return airDate;
+    }
+  }
+
   static String jsonToKazumiBase64(String jsonStr) {
     String base64Str = base64Encode(utf8.encode(jsonStr));
     return 'kazumi://$base64Str';

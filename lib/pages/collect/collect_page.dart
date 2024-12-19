@@ -87,11 +87,9 @@ class _CollectPageState extends State<CollectPage>
           ),
           body: Padding(
               padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
-              child: Observer(
-                builder: (context) {
-                  return renderBody(orientation);
-                }
-              )),
+              child: Observer(builder: (context) {
+                return renderBody(orientation);
+              })),
         ),
       );
     });
@@ -113,13 +111,15 @@ class _CollectPageState extends State<CollectPage>
   List<Widget> contentGrid(
       List<CollectedBangumi> collectedBangumiList, Orientation orientation) {
     List<Widget> gridViewList = [];
-    List<List<CollectedBangumi>> collectedBangumiRenderItemList = [
-      collectedBangumiList.where((element) => element.type == 1).toList(),
-      collectedBangumiList.where((element) => element.type == 2).toList(),
-      collectedBangumiList.where((element) => element.type == 3).toList(),
-      collectedBangumiList.where((element) => element.type == 4).toList(),
-      collectedBangumiList.where((element) => element.type == 5).toList(),
-    ];
+    List<List<CollectedBangumi>> collectedBangumiRenderItemList =
+        List.generate(tabs.length, (_) => <CollectedBangumi>[]);
+    for (CollectedBangumi element in collectedBangumiList) {
+      collectedBangumiRenderItemList[element.type - 1].add(element);
+    }
+    for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
+      list.sort((a, b) => b.time.millisecondsSinceEpoch
+          .compareTo(a.time.millisecondsSinceEpoch));
+    }
     int crossCount = orientation != Orientation.portrait ? 6 : 3;
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
@@ -149,7 +149,10 @@ class _CollectPageState extends State<CollectPage>
                               right: 5,
                               bottom: 5,
                               child: showDelete
-                                  ? CollectButton(bangumiItem: collectedBangumiRenderItem[index].bangumiItem)
+                                  ? CollectButton(
+                                      bangumiItem:
+                                          collectedBangumiRenderItem[index]
+                                              .bangumiItem)
                                   : Container(),
                             ),
                           ],

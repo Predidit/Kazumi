@@ -12,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -376,74 +377,81 @@ class _PopularPageState extends State<PopularPage>
       '偶像',
       '治愈',
     ];
+
+    final ScrollController tagScrollController = ScrollController();
+
     return Row(
       children: <Widget>[
         Expanded(
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: tags.length,
-            itemBuilder: (context, index) {
-              final filter = tags[index];
-              return Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
-                child: filter == popularController.currentTag
-                    ? FilledButton(
-                        child: Text(filter),
-                        onPressed: () async {
-                          scrollController.jumpTo(0.0);
-                          setState(() {
-                            timeout = false;
-                            popularController.currentTag = '';
-                            searchLoading = true;
-                          });
-                          await popularController
-                              .queryBangumiListFeed(
-                            tag: popularController.currentTag,
-                          )
-                              .then((_) {
-                            if (popularController.bangumiList.isEmpty &&
-                                mounted) {
-                              setState(() {
-                                timeout = true;
-                              });
-                            }
-                          });
-                          setState(() {
-                            searchLoading = false;
-                          });
-                        },
-                      )
-                    : FilledButton.tonal(
-                        child: Text(filter),
-                        onPressed: () async {
-                          _focusNode.unfocus();
-                          scrollController.jumpTo(0.0);
-                          setState(() {
-                            timeout = false;
-                            popularController.currentTag = filter;
-                            keywordController.text = '';
-                            showSearchBar = false;
-                            searchLoading = true;
-                          });
-                          await popularController
-                              .queryBangumiListFeed(
-                            tag: popularController.currentTag,
-                          )
-                              .then((_) {
-                            if (popularController.bangumiList.isEmpty &&
-                                mounted) {
-                              setState(() {
-                                timeout = true;
-                              });
-                            }
-                          });
-                          setState(() {
-                            searchLoading = false;
-                          });
-                        },
-                      ),
-              );
-            },
+          child: ScrollableWrapper(
+            scrollController: tagScrollController,
+            child: ListView.builder(
+              controller: tagScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: tags.length,
+              itemBuilder: (context, index) {
+                final filter = tags[index];
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
+                  child: filter == popularController.currentTag
+                      ? FilledButton(
+                          child: Text(filter),
+                          onPressed: () async {
+                            scrollController.jumpTo(0.0);
+                            setState(() {
+                              timeout = false;
+                              popularController.currentTag = '';
+                              searchLoading = true;
+                            });
+                            await popularController
+                                .queryBangumiListFeed(
+                              tag: popularController.currentTag,
+                            )
+                                .then((_) {
+                              if (popularController.bangumiList.isEmpty &&
+                                  mounted) {
+                                setState(() {
+                                  timeout = true;
+                                });
+                              }
+                            });
+                            setState(() {
+                              searchLoading = false;
+                            });
+                          },
+                        )
+                      : FilledButton.tonal(
+                          child: Text(filter),
+                          onPressed: () async {
+                            _focusNode.unfocus();
+                            scrollController.jumpTo(0.0);
+                            setState(() {
+                              timeout = false;
+                              popularController.currentTag = filter;
+                              keywordController.text = '';
+                              showSearchBar = false;
+                              searchLoading = true;
+                            });
+                            await popularController
+                                .queryBangumiListFeed(
+                              tag: popularController.currentTag,
+                            )
+                                .then((_) {
+                              if (popularController.bangumiList.isEmpty &&
+                                  mounted) {
+                                setState(() {
+                                  timeout = true;
+                                });
+                              }
+                            });
+                            setState(() {
+                              searchLoading = false;
+                            });
+                          },
+                        ),
+                );
+              },
+            ),
           ),
         ),
         // Tooltip(

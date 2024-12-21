@@ -145,8 +145,8 @@ class _InitPageState extends State<InitPage> {
         if (plugin.name == pluginHTTP.name) {
           if (plugin.version != pluginHTTP.version) {
             count++;
-            break;
           }
+          break;
         }
       }
     }

@@ -125,9 +125,7 @@ class _PlayerItemState extends State<PlayerItem>
   void _handleTap() {
     if (!showPositioned) {
       _animationController.forward();
-      if (hideTimer != null) {
-        hideTimer!.cancel();
-      }
+      hideTimer?.cancel();
       hideTimer = Timer(const Duration(seconds: 4), () {
         if (mounted) {
           setState(() {
@@ -139,9 +137,7 @@ class _PlayerItemState extends State<PlayerItem>
       });
     } else {
       _animationController.reverse();
-      if (hideTimer != null) {
-        hideTimer!.cancel();
-      }
+      hideTimer?.cancel();
     }
     setState(() {
       showPositioned = !showPositioned;
@@ -155,9 +151,7 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {
       showPositioned = true;
     });
-    if (hideTimer != null) {
-      hideTimer!.cancel();
-    }
+    hideTimer?.cancel();
 
     hideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
@@ -174,10 +168,7 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {
       showVolume = true;
     });
-    if (mouseScrollerTimer != null) {
-      mouseScrollerTimer!.cancel();
-    }
-
+    mouseScrollerTimer?.cancel();
     mouseScrollerTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
@@ -192,10 +183,7 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {
       showVolume = true;
     });
-    if (hideVolumeUITimer != null) {
-      hideVolumeUITimer!.cancel();
-    }
-
+    hideVolumeUITimer?.cancel();
     hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
@@ -766,9 +754,7 @@ class _PlayerItemState extends State<PlayerItem>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
-    if (playerTimer != null) {
-      playerTimer!.cancel();
-    }
+    playerTimer?.cancel();
     _animationController.dispose();
     infoController.episodeCommentsList.clear();
     infoController.episodeInfo.reset();
@@ -844,9 +830,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     LogicalKeyboardKey.arrowRight) {
                                   lastPlayerSpeed =
                                       playerController.playerSpeed;
-                                  if (keyShortPressTimer != null) {
-                                    keyShortPressTimer!.cancel();
-                                  }
+                                  keyShortPressTimer?.cancel();
                                   keyShortPressTimer = Timer(
                                       const Duration(milliseconds: 300), () {
                                     keyShortPressTimer = null;
@@ -862,9 +846,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     targetPosition = 0;
                                   }
                                   try {
-                                    if (playerTimer != null) {
-                                      playerTimer!.cancel();
-                                    }
+                                    playerTimer?.cancel();
                                     playerController.currentPosition =
                                         Duration(seconds: targetPosition);
                                     playerController
@@ -935,9 +917,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   } else {
                                     keyShortPressTimer = null;
                                     try {
-                                      if (playerTimer != null) {
-                                        playerTimer!.cancel();
-                                      }
+                                      playerTimer?.cancel();
                                       playerController.currentPosition =
                                           Duration(
                                               seconds: playerController
@@ -1075,9 +1055,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 setState(() {
                                   showPosition = true;
                                 });
-                                if (playerTimer != null) {
-                                  playerTimer!.cancel();
-                                }
+                                playerTimer?.cancel();
                                 playerController.pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
@@ -1639,9 +1617,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   buffered: playerController.buffer,
                                   total: playerController.duration,
                                   onSeek: (duration) {
-                                    if (playerTimer != null) {
-                                      playerTimer!.cancel();
-                                    }
+                                    playerTimer?.cancel();
                                     playerController.currentPosition = duration;
                                     playerController.seek(duration);
                                     playerTimer = getPlayerTimer(); //Bug_time

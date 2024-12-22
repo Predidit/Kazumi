@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 
 part 'bangumi_item.g.dart';
 
@@ -26,6 +27,8 @@ class BangumiItem {
   @HiveField(8)
   Map<String, String> images;
   // Map<String, int>? collection;
+  @HiveField(9, defaultValue: [])
+  List<BangumiTag> tags;
 
   BangumiItem({
     required this.id,
@@ -40,9 +43,13 @@ class BangumiItem {
     required this.rank,
     required this.images,
     // this.collection,
+    required this.tags
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
+    List list = json['tags'] ?? [];
+    List<BangumiTag> tagList =
+    list.map((i) => BangumiTag.fromJson(i)).toList();
     return BangumiItem(
       id: json['id'],
       type: json['type'] ?? 2,
@@ -60,6 +67,7 @@ class BangumiItem {
           "small": "",
           "grid": ""
         },),
+      tags: tagList
       // collection: Map<String, int>.from(json['collection']),
     );
   }

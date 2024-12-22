@@ -6,6 +6,7 @@ import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   const CommentsBottomSheet({super.key});
@@ -88,6 +89,39 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     super.dispose();
   }
 
+  Widget get infoBody {
+    return SelectionArea(
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: SingleChildScrollView(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(infoController.bangumiItem.summary),
+            const SizedBox(height: 8),
+            Wrap(
+                spacing: 8.0,
+                runSpacing: Utils.isDesktop() ? 8 : 0,
+                children: List<Widget>.generate(
+                    infoController.bangumiItem.tags.length, (int index) {
+                  return Chip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${infoController.bangumiItem.tags[index].name} '),
+                        Text(
+                          '${infoController.bangumiItem.tags[index].count}',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList())
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget get commentsListBody {
     return SelectionArea(
         child: Padding(
@@ -142,7 +176,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         body: Column(
           children: [
@@ -151,6 +185,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               child: Material(
                 child: TabBar(
                   tabs: [
+                    Tab(text: '详情'),
                     Tab(text: '吐槽箱'),
                     Tab(text: '声优表'),
                   ],
@@ -159,7 +194,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
             Expanded(
               child: TabBarView(
-                children: [commentsListBody, charactersListBody],
+                children: [infoBody, commentsListBody, charactersListBody],
               ),
             ),
           ],

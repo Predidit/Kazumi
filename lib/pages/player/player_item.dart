@@ -480,7 +480,7 @@ class _PlayerItemState extends State<PlayerItem>
             builder: (BuildContext context, StateSetter setState) {
           return Wrap(
             spacing: 8,
-            runSpacing: 2,
+            runSpacing: Utils.isDesktop() ? 8 : 0,
             children: [
               for (final double i in playSpeedList) ...<Widget>[
                 if (i == currentSpeed)

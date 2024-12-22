@@ -5,6 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/settings.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -82,7 +83,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                           playSpeedList = defaultPlaySpeedList;
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (final double i in playSpeedList) ...<Widget>[
                                 if (i == defaultPlaySpeed) ...<Widget>[

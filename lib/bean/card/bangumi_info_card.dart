@@ -16,7 +16,6 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
-
   @override
   Widget build(BuildContext context) {
     TextStyle style =
@@ -55,10 +54,10 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         ),
                       ),
                       Positioned(
-                        right: 5,
-                        bottom: 5,
-                        child: CollectButton(bangumiItem: widget.bangumiItem)
-                      ),
+                          right: 5,
+                          bottom: 5,
+                          child:
+                              CollectButton(bangumiItem: widget.bangumiItem)),
                     ],
                   );
                 }),
@@ -93,46 +92,14 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     ),
                   ),
                   Utils.isCompact() ? Container() : const SizedBox(height: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          side: const BorderSide(
-                              // width: 2,
-                              ),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child:
-                            Text('#${widget.bangumiItem.rank}', style: style),
-                      ),
-                      Utils.isCompact()
-                          ? Container()
-                          : const SizedBox(height: 7),
-                      FilledButton.tonal(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          side: const BorderSide(
-                              // width: 2,
-                              ),
-                          backgroundColor: Colors.transparent,
-                        ),
-                        child: Text(widget.bangumiItem.airDate,
-                            style: style),
-                      ),
-                      Utils.isCompact()
-                          ? Container()
-                          : const SizedBox(height: 7),
-                      Utils.isCompact()
-                          ? Container()
-                          : FilledButton.tonal(
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FilledButton.tonal(
                               onPressed: () {},
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
@@ -143,11 +110,67 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                     ),
                                 backgroundColor: Colors.transparent,
                               ),
-                              child: Text(
-                                  widget.bangumiItem.type == 2 ? '番剧' : '其他',
+                              child: Text('#${widget.bangumiItem.rank}',
                                   style: style),
                             ),
-                    ],
+                            Utils.isCompact()
+                                ? Container()
+                                : const SizedBox(height: 7),
+                            FilledButton.tonal(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                side: const BorderSide(
+                                    // width: 2,
+                                    ),
+                                backgroundColor: Colors.transparent,
+                              ),
+                              child: Text(widget.bangumiItem.airDate,
+                                  style: style),
+                            ),
+                            Utils.isCompact()
+                                ? Container()
+                                : const SizedBox(height: 7),
+                            Utils.isCompact()
+                                ? Container()
+                                : FilledButton.tonal(
+                                    onPressed: () {},
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      side: const BorderSide(
+                                          // width: 2,
+                                          ),
+                                      backgroundColor: Colors.transparent,
+                                    ),
+                                    child: Text(
+                                        widget.bangumiItem.type == 2
+                                            ? '番剧'
+                                            : '其他',
+                                        style: style),
+                                  ),
+                          ],
+                        ),
+                        Utils.isCompact()
+                            ? Container()
+                            : const SizedBox(width: 10),
+                        // why there will overflow in the bottom?
+                        Utils.isCompact()
+                            ? Container()
+                            : Expanded(
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    widget.bangumiItem.summary,
+                                    style: style,
+                                    softWrap: true,
+                                  ),
+                                ),
+                              ),
+                      ],
+                    ),
                   ),
                 ],
               ),

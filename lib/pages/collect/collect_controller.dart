@@ -63,15 +63,15 @@ abstract class _CollectController with Store {
     }
   }
 
-  Future<void> updateLocalCollect(BangumiItem bangumiItem, {type = 1}) async {
-    try {
-      CollectedBangumi collectedBangumi = GStorage.collectibles.get(bangumiItem.id)!;
+  Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
+    CollectedBangumi? collectedBangumi = GStorage.collectibles.get(bangumiItem.id);
+    if (collectedBangumi == null) {
+      return;
+    } else {
       collectedBangumi.bangumiItem = bangumiItem;
       await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
       await GStorage.collectibles.flush();
       loadCollectibles();
-    } catch (e) {
-      KazumiLogger().log(Level.error, '更新 bangumi 失败 $e');
     }
   }
 

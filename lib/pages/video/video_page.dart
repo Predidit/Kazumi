@@ -463,7 +463,7 @@ class _VideoPageState extends State<VideoPage>
                             (BuildContext context, StateSetter innerSetState) {
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (int i = 1;
                                   i <= videoPageController.roadList.length;

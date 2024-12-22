@@ -149,7 +149,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             (BuildContext context, StateSetter setState) {
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (final double i in danFontList) ...<Widget>[
                                 if (i == defaultDanmakuFontSize) ...<Widget>[
@@ -212,7 +212,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             (BuildContext context, StateSetter setState) {
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (final int i
                                   in danFontWeightList) ...<Widget>[
@@ -275,7 +275,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             (BuildContext context, StateSetter setState) {
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (final double i
                                   in danOpacityList) ...<Widget>[
@@ -338,7 +338,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                             (BuildContext context, StateSetter setState) {
                           return Wrap(
                             spacing: 8,
-                            runSpacing: 2,
+                            runSpacing: Utils.isDesktop() ? 8 : 0,
                             children: [
                               for (final double i in danAreaList) ...<Widget>[
                                 if (i == defaultDanmakuArea) ...<Widget>[

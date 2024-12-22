@@ -210,7 +210,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                               (BuildContext context, StateSetter setState) {
                             return Wrap(
                               spacing: 8,
-                              runSpacing: 2,
+                              runSpacing: Utils.isDesktop() ? 8 : 0,
                               children: [
                                 defaultThemeMode == 'system'
                                     ? FilledButton(

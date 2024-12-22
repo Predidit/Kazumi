@@ -590,6 +590,7 @@ class _PlayerItemState extends State<PlayerItem>
       builder: (context) {
         final TextEditingController searchTextController =
             TextEditingController();
+        searchTextController.text = videoPageController.title;
         return AlertDialog(
           title: const Text('弹幕检索'),
           content: TextField(

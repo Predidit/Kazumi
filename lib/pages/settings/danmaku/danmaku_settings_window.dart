@@ -2,6 +2,7 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class DanmakuSettingsWindow extends StatefulWidget {
   final DanmakuController danmakuController;
@@ -27,7 +28,7 @@ class _DanmakuSettingsWindowState extends State<DanmakuSettingsWindow> {
               Slider(
                 value: widget.danmakuController.option.fontSize,
                 min: 10,
-                max: 32,
+                max: Utils.isCompact() ? 32 : 48,
                 divisions: 22,
                 label: widget.danmakuController.option.fontSize.toString(),
                 onChanged: (value) {

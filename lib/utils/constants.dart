@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class StyleString {
   static const double cardSpace = 8;
@@ -85,6 +86,24 @@ final List<double> danFontList = [
   30.0,
   31.0,
   32.0,
+  if (!Utils.isCompact()) ...[
+    33.0,
+    34.0,
+    35.0,
+    36.0,
+    37.0,
+    38.0,
+    39.0,
+    40.0,
+    41.0,
+    42.0,
+    43.0,
+    44.0,
+    45.0,
+    46.0,
+    47.0,
+    48.0,
+  ]
 ];
 
 // 可选弹幕字体字重

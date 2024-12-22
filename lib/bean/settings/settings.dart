@@ -39,9 +39,7 @@ class _SetSwitchItemState extends State<SetSwitchItem> {
   void switchChange(value) async {
     val = value ?? !val;
     await Setting.put(widget.setKey, val);
-    if (widget.callFn != null) {
-      widget.callFn!.call(val);
-    }
+    widget.callFn?.call(val);
     if (widget.needReboot != null && widget.needReboot!) {
       KazumiDialog.showToast(message: '重启生效');
     }

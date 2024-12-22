@@ -176,15 +176,15 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future<String> getBangumiSummaryByID(int id) async {
+  static Future<BangumiItem?> getBangumiInfoByID(int id) async {
     try {
       final res = await Request().get(Api.bangumiInfoByID + id.toString(),
           options: Options(headers: bangumiHTTPHeader));
-      return res.data['summary'];
+      return BangumiItem.fromJson(res.data);
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'Resolve bangumi summary failed ${e.toString()}');
-      return '';
+          .log(Level.error, 'Resolve bangumi item failed ${e.toString()}');
+      return null;
     }
   }
 

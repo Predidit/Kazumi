@@ -26,13 +26,14 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       airWeekday: fields[6] as int,
       rank: fields[7] as int,
       images: (fields[8] as Map).cast<String, String>(),
+      tags: fields[9] == null ? [] : (fields[9] as List).cast<BangumiTags>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, BangumiItem obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       ..writeByte(7)
       ..write(obj.rank)
       ..writeByte(8)
-      ..write(obj.images);
+      ..write(obj.images)
+      ..writeByte(9)
+      ..write(obj.tags);
   }
 
   @override

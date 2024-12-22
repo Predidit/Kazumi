@@ -3,7 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 part 'history_module.g.dart';
 
-// @HiveType(typeId: 1)
+@HiveType(typeId: 1)
 class History {
   @HiveField(0)
   Map<int, Progress> progresses = {};
@@ -23,7 +23,7 @@ class History {
   @HiveField(5)
   String lastSrc;
 
-  @HiveField(6)
+  @HiveField(6, defaultValue: '')
   String lastWatchEpisodeName;
 
   String get key => adapterName + bangumiItem.id.toString();
@@ -37,61 +37,6 @@ class History {
   String toString() {
     return 'Adapter: $adapterName, anime: ${bangumiItem.name}';
   }
-}
-
-class HistoryAdapter extends TypeAdapter<History> {
-  @override
-  final int typeId = 1;
-
-  @override
-  History read(BinaryReader reader) {
-    final numOfFields = reader.readByte();
-    final fields = <int, dynamic>{
-      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
-    };
-    // 保留对旧版本历史数据兼容
-    if (fields[6] == null) {
-      fields[6] = '';
-    }
-    return History(
-      fields[3] as BangumiItem,
-      fields[1] as int,
-      fields[2] as String,
-      fields[4] as DateTime,
-      fields[5] as String,
-      fields[6] as String,
-    )..progresses = (fields[0] as Map).cast<int, Progress>();
-  }
-
-  @override
-  void write(BinaryWriter writer, History obj) {
-    writer
-      ..writeByte(7)
-      ..writeByte(0)
-      ..write(obj.progresses)
-      ..writeByte(1)
-      ..write(obj.lastWatchEpisode)
-      ..writeByte(2)
-      ..write(obj.adapterName)
-      ..writeByte(3)
-      ..write(obj.bangumiItem)
-      ..writeByte(4)
-      ..write(obj.lastWatchTime)
-      ..writeByte(5)
-      ..write(obj.lastSrc)
-      ..writeByte(6)
-      ..write(obj.lastWatchEpisodeName);
-  }
-
-  @override
-  int get hashCode => typeId.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is HistoryAdapter &&
-              runtimeType == other.runtimeType &&
-              typeId == other.typeId;
 }
 
 @HiveType(typeId: 2)

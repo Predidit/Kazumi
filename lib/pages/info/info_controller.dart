@@ -1,3 +1,4 @@
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -59,9 +60,11 @@ abstract class _InfoController with Store {
   //   }
   // }
 
-  Future<void> queryBangumiSummaryByID(int id) async {
-    await BangumiHTTP.getBangumiSummaryByID(id).then((value) {
-      bangumiItem.summary = value;
+  Future<void> queryBangumiInfoByID(int id) async {
+    await BangumiHTTP.getBangumiInfoByID(id).then((value) {
+      if (value != null) {
+        bangumiItem = value;
+      }
     });
   }
 
@@ -107,6 +110,18 @@ abstract class _InfoController with Store {
     await BangumiHTTP.getCharatersByID(id).then((value) {
       characterList.addAll(value.characterList);
     });
+    Map<String, int> relationValue = {
+      '主角': 1,
+      '配角': 2,
+      '客串': 3,
+      '未知': 4,
+    };
+    try {
+      characterList.sort((a, b) =>
+          relationValue[a.relation]!.compareTo(relationValue[b.relation]!));
+    } catch (e) {
+      KazumiDialog.showToast(message: '$e');
+    }
     KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');
   }
 }

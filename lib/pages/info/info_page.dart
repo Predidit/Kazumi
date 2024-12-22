@@ -9,11 +9,13 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/comments_sheet.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -37,9 +39,7 @@ class _InfoPageState extends State<InfoPage>
   @override
   void initState() {
     super.initState();
-    if (infoController.bangumiItem.summary == '') {
-      queryBangumiSummaryByID(infoController.bangumiItem.id);
-    }
+    queryBangumiInfoByID(infoController.bangumiItem.id);
     queryManager = QueryManager();
     queryManager.querySource(popularController.keyword);
     tabController =
@@ -55,11 +55,9 @@ class _InfoPageState extends State<InfoPage>
     super.dispose();
   }
 
-  /// workaround for bangumi calendar api
-  /// bangumi calendar api always return empty summary
-  Future<void> queryBangumiSummaryByID(int id) async {
+  Future<void> queryBangumiInfoByID(int id) async {
     try {
-      await infoController.queryBangumiSummaryByID(id);
+      await infoController.queryBangumiInfoByID(id);
       setState(() {});
     } catch (e) {
       KazumiLogger().log(Level.error, e.toString());
@@ -95,7 +93,34 @@ class _InfoPageState extends State<InfoPage>
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: const SysAppBar(backgroundColor: Colors.transparent),
+            appBar: SysAppBar(
+              backgroundColor: Colors.transparent,
+              actions: [
+                IconButton(
+                    onPressed: () {
+                      int currentIndex = tabController.index;
+                      KazumiDialog.show(builder: (context) {
+                        return AlertDialog(
+                          title: const Text('退出确认'),
+                          content: const Text('您想要离开 Kazumi 并在浏览器中打开此视频源吗？'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => KazumiDialog.dismiss(),
+                                child: const Text('取消')),
+                            TextButton(
+                                onPressed: () {
+                                  KazumiDialog.dismiss();
+                                  launchUrl(Uri.parse(pluginsController
+                                      .pluginList[currentIndex].baseUrl));
+                                },
+                                child: const Text('确认')),
+                          ],
+                        );
+                      });
+                    },
+                    icon: const Icon(Icons.open_in_browser))
+              ],
+            ),
             body: Column(
               children: [
                 BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
@@ -188,7 +213,7 @@ class _InfoPageState extends State<InfoPage>
               ],
             ),
             floatingActionButton: FloatingActionButton(
-              child: const Icon(Icons.comment),
+              child: const Icon(Icons.expand_less),
               onPressed: () async {
                 showModalBottomSheet(
                     isScrollControlled: true,

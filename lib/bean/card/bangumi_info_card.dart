@@ -70,7 +70,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
-                    maxLines: 1,
+                    maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
                       style: TextStyle(
@@ -93,7 +93,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     ),
                   ),
                   Utils.isCompact() ? Container() : const SizedBox(height: 10),
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       FilledButton.tonal(
                         onPressed: () {},
@@ -109,7 +110,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         child:
                             Text('#${widget.bangumiItem.rank}', style: style),
                       ),
-                      const SizedBox(width: 7),
+                      Utils.isCompact()
+                          ? Container()
+                          : const SizedBox(height: 7),
                       FilledButton.tonal(
                         onPressed: () {},
                         style: OutlinedButton.styleFrom(
@@ -121,16 +124,12 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               ),
                           backgroundColor: Colors.transparent,
                         ),
-                        child: Text(
-                            Utils.isCompact()
-                                ? Utils.shrinkAirDate(
-                                    widget.bangumiItem.airDate)
-                                : widget.bangumiItem.airDate,
+                        child: Text(widget.bangumiItem.airDate,
                             style: style),
                       ),
                       Utils.isCompact()
                           ? Container()
-                          : const SizedBox(width: 7),
+                          : const SizedBox(height: 7),
                       Utils.isCompact()
                           ? Container()
                           : FilledButton.tonal(
@@ -150,12 +149,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             ),
                     ],
                   ),
-                  Utils.isCompact() ? Container() : const SizedBox(height: 10),
-                  Expanded(
-                      child: SingleChildScrollView(
-                    child: Text(widget.bangumiItem.summary,
-                        style: style, softWrap: true),
-                  )),
                 ],
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -18,6 +19,7 @@ part 'info_controller.g.dart';
 class InfoController = _InfoController with _$InfoController;
 
 abstract class _InfoController with Store {
+  final CollectController collectController = Modular.get<CollectController>();
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
@@ -64,6 +66,7 @@ abstract class _InfoController with Store {
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
       if (value != null) {
         bangumiItem = value;
+        collectController.updateLocalCollect(bangumiItem);
       }
     });
   }

@@ -63,6 +63,18 @@ abstract class _CollectController with Store {
     }
   }
 
+  Future<void> updateLocalCollect(BangumiItem bangumiItem, {type = 1}) async {
+    try {
+      CollectedBangumi collectedBangumi = GStorage.collectibles.get(bangumiItem.id)!;
+      collectedBangumi.bangumiItem = bangumiItem;
+      await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
+      await GStorage.collectibles.flush();
+      loadCollectibles();
+    } catch (e) {
+      KazumiLogger().log(Level.error, '更新 bangumi 失败 $e');
+    }
+  }
+
   Future<void> updateCollect() async {
     KazumiLogger()
         .log(Level.debug, '提交到WebDav的追番列表长度 ${GStorage.collectibles.length}');

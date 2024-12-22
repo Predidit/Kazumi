@@ -9,7 +9,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
@@ -39,7 +38,9 @@ class _InfoPageState extends State<InfoPage>
   @override
   void initState() {
     super.initState();
-    queryBangumiInfoByID(infoController.bangumiItem.id);
+    if (infoController.bangumiItem.summary == '' || infoController.bangumiItem.tags.isEmpty) {
+      queryBangumiInfoByID(infoController.bangumiItem.id);
+    }
     queryManager = QueryManager();
     queryManager.querySource(popularController.keyword);
     tabController =
@@ -213,7 +214,7 @@ class _InfoPageState extends State<InfoPage>
               ],
             ),
             floatingActionButton: FloatingActionButton(
-              child: const Icon(Icons.expand_less),
+              child: const Icon(Icons.widgets_rounded),
               onPressed: () async {
                 showModalBottomSheet(
                     isScrollControlled: true,

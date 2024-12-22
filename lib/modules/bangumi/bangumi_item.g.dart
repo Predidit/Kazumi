@@ -26,7 +26,7 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       airWeekday: fields[6] as int,
       rank: fields[7] as int,
       images: (fields[8] as Map).cast<String, String>(),
-      tags: fields[9] == null ? [] : (fields[9] as List).cast<BangumiTags>(),
+      tags: fields[9] == null ? [] : (fields[9] as List).cast<BangumiTag>(),
     );
   }
 

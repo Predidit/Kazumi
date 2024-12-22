@@ -1,35 +1,8 @@
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 
 part 'bangumi_item.g.dart';
-
-class BangumiTags {
-  final String name;
-  final int count;
-  final int totalCount;
-
-  BangumiTags({
-    required this.name,
-    required this.count,
-    required this.totalCount,
-  });
-
-  factory BangumiTags.fromJson(Map<String, dynamic> json) {
-    return BangumiTags(
-      name: json['name'] ?? '',
-      count: json['count'] ?? 0,
-      totalCount: json['total_cont'] ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'total_cont': totalCount,
-    };
-  }
-}
 
 @HiveType(typeId: 0)
 class BangumiItem {
@@ -55,7 +28,7 @@ class BangumiItem {
   Map<String, String> images;
   // Map<String, int>? collection;
   @HiveField(9, defaultValue: [])
-  List<BangumiTags> tags;
+  List<BangumiTag> tags;
 
   BangumiItem({
     required this.id,
@@ -74,9 +47,9 @@ class BangumiItem {
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
-    var list = json['tags'] as List;
-    List<BangumiTags> tagList =
-    list.map((i) => BangumiTags.fromJson(i)).toList();
+    List list = json['tags'] ?? [];
+    List<BangumiTag> tagList =
+    list.map((i) => BangumiTag.fromJson(i)).toList();
     return BangumiItem(
       id: json['id'],
       type: json['type'] ?? 2,

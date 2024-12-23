@@ -9,6 +9,7 @@ import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/request/api.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -147,5 +148,49 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
       }
     } 
     return pluginStatus;
+  }
+
+  String pluginUpdateStatus(Plugin plugin) {
+    if (!pluginHTTPList.any((p) => p.name == plugin.name)) {
+      return "nonexistent";
+    }
+    PluginHTTPItem p = pluginHTTPList.firstWhere(
+      (p) => p.name == plugin.name,
+    );
+    return p.version == plugin.version ? "latest" : "updatable";
+  }
+
+  Future<int> tryUpdatePlugin(Plugin plugin) async {
+    return await tryUpdatePluginByName(plugin.name);
+  }
+
+  Future<int> tryUpdatePluginByName(String name) async {
+    var pluginHTTPItem = await queryPluginHTTP(name);
+    if (pluginHTTPItem != null) {
+      if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
+        return 1;
+      }
+      await savePluginToJsonFile(pluginHTTPItem);
+      await loadPlugins();
+      return 0;
+    }
+    return 2;
+  }
+
+  Future<int> tryUpdateAllPlugin() async {
+    int count = 0;
+    for (Plugin plugin in pluginList) {
+      if (pluginUpdateStatus(plugin) == 'updatable') {
+        if (await tryUpdatePlugin(plugin) == 0) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  Future<void> tryInstallPlugin(Plugin plugin) async {
+    await savePluginToJsonFile(plugin);
+    await loadPlugins();
   }
 }

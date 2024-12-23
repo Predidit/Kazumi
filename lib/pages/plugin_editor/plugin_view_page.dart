@@ -19,6 +19,17 @@ class PluginViewPage extends StatefulWidget {
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
+  Future<void> _handleUpdate() async {
+    KazumiDialog.showLoading(msg: '更新中');
+    int count = await pluginsController.tryUpdateAllPlugin();
+    KazumiDialog.dismiss();
+    if (count == 0) {
+      KazumiDialog.showToast(message: '所有规则已是最新');
+    } else {
+      KazumiDialog.showToast(message: '更新成功 $count 条');
+    }
+  }
+
   void _handleAdd() {
     KazumiDialog.show(
         builder: (context) {
@@ -88,7 +99,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   onPressed: () async {
                     final String msg = textController.text;
                     try {
-                      await pluginsController.savePluginToJsonFile(
+                      await pluginsController.tryInstallPlugin(
                           Plugin.fromJson(
                               json.decode(Utils.kazumiBase64ToJson(msg))));
                       KazumiDialog.showToast(message: '导入成功');
@@ -96,7 +107,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       KazumiDialog.dismiss();
                       KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                     }
-                    pluginsController.loadPlugins();
                     KazumiDialog.dismiss();
                   },
                   child: const Text('导入'),
@@ -130,6 +140,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
           actions: [
             IconButton(
                 onPressed: () {
+                  _handleUpdate();
+                },
+                icon: const Icon(Icons.update)),
+            IconButton(
+                onPressed: () {
                   _handleAdd();
                 },
                 icon: const Icon(Icons.add))
@@ -143,20 +158,40 @@ class _PluginViewPageState extends State<PluginViewPage> {
               : ListView.builder(
                   itemCount: pluginsController.pluginList.length,
                   itemBuilder: (context, index) {
+                    var plugin = pluginsController.pluginList[index];
+                    bool canUpdate = pluginsController.pluginUpdateStatus(plugin)=='updatable';
                     return Card(
                       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       child: ListTile(
                         title: Text(
-                          pluginsController.pluginList[index].name,
+                          plugin.name,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'Version: ${pluginsController.pluginList[index].version}',
+                          'Version: ${plugin.version}${canUpdate?' （可更新）':''}',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: PopupMenuButton<String>(
-                          onSelected: (String result) {
-                            if (result == 'Delete') {
+                          onSelected: (String result) async {
+                            if (result == 'Update') {
+                              var state = pluginsController.pluginUpdateStatus(plugin);
+                              if (state == "nonexistent") {
+                                KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+                              } else if (state == "latest") {
+                                KazumiDialog.showToast(message: '规则已是最新');
+                              } else if (state == "updatable") {
+                                KazumiDialog.showLoading(msg: '更新中');
+                                int res = await pluginsController.tryUpdatePlugin(plugin);
+                                KazumiDialog.dismiss();
+                                if (res==0) {
+                                  KazumiDialog.showToast(message: '更新成功');
+                                } else if (res == 1) {
+                                  KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                                } else if (res == 2) {
+                                  KazumiDialog.showToast(message: '更新规则失败');
+                                }
+                              }
+                            } else if (result == 'Delete') {
                               setState(() {
                                 pluginsController.deletePluginJsonFile(
                                     pluginsController.pluginList[index]);
@@ -210,6 +245,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           },
                           itemBuilder: (BuildContext context) =>
                               <PopupMenuEntry<String>>[
+                            const PopupMenuItem<String>(
+                              value: 'Update',
+                              child: Text('更新'),
+                            ),
                             const PopupMenuItem<String>(
                               value: 'Edit',
                               child: Text('编辑'),

@@ -48,12 +48,12 @@ class _PopularPageState extends State<PopularPage>
           popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular is loading more');
         popularController.queryBangumiListFeed(
-            type: 'onload', tag: popularController.currentTag);
+            type: 'onload', useCurrTag: true);
       }
     });
     if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiListFeed().then((_) {
-        if (popularController.bangumiList.isEmpty && mounted) {
+      popularController.queryBangumiListFeed().then((succ) {
+        if (popularController.bangumiList.isEmpty && mounted && succ) {
           setState(() {
             timeout = true;
           });
@@ -107,9 +107,9 @@ class _PopularPageState extends State<PopularPage>
               });
             }
             await popularController
-                .queryBangumiListFeed(tag: popularController.currentTag)
-                .then((_) {
-              if (popularController.bangumiList.isEmpty && mounted) {
+                .queryBangumiListFeed(useCurrTag: true)
+                .then((succ) {
+              if (popularController.bangumiList.isEmpty && mounted && succ) {
                 setState(() {
                   timeout = true;
                 });
@@ -154,7 +154,6 @@ class _PopularPageState extends State<PopularPage>
                             setState(() {
                               showSearchBar = false;
                               searchLoading = true;
-                              popularController.currentTag = '';
                             });
                             popularController.searchKeyword == '';
                             await popularController.queryBangumiListFeed();
@@ -208,7 +207,6 @@ class _PopularPageState extends State<PopularPage>
                             setState(() {
                               timeout = false;
                               searchLoading = true;
-                              popularController.currentTag = '';
                             });
                             if (t != '') {
                               popularController.searchKeyword = t;
@@ -226,9 +224,9 @@ class _PopularPageState extends State<PopularPage>
                               popularController.searchKeyword = '';
                               await popularController
                                   .queryBangumiListFeed()
-                                  .then((_) {
+                                  .then((succ) {
                                 if (popularController.bangumiList.isEmpty &&
-                                    mounted) {
+                                    mounted && succ) {
                                   setState(() {
                                     timeout = true;
                                   });
@@ -284,10 +282,10 @@ class _PopularPageState extends State<PopularPage>
                                     });
                                     popularController
                                         .queryBangumiListFeed()
-                                        .then((_) {
+                                        .then((succ) {
                                       if (popularController
                                               .bangumiList.isEmpty &&
-                                          mounted) {
+                                          mounted && succ) {
                                         setState(() {
                                           timeout = true;
                                         });
@@ -400,16 +398,14 @@ class _PopularPageState extends State<PopularPage>
                             scrollController.jumpTo(0.0);
                             setState(() {
                               timeout = false;
-                              popularController.currentTag = '';
                               searchLoading = true;
                             });
                             await popularController
-                                .queryBangumiListFeed(
-                              tag: popularController.currentTag,
-                            )
-                                .then((_) {
+                                .queryBangumiListFeed(tag: '')
+                                .then((succ) {
                               if (popularController.bangumiList.isEmpty &&
-                                  mounted) {
+                                  mounted &&
+                                  succ) {
                                 setState(() {
                                   timeout = true;
                                 });
@@ -427,18 +423,18 @@ class _PopularPageState extends State<PopularPage>
                             scrollController.jumpTo(0.0);
                             setState(() {
                               timeout = false;
-                              popularController.currentTag = filter;
                               keywordController.text = '';
                               showSearchBar = false;
                               searchLoading = true;
                             });
                             await popularController
                                 .queryBangumiListFeed(
-                              tag: popularController.currentTag,
+                              tag: filter,
                             )
-                                .then((_) {
+                                .then((succ) {
                               if (popularController.bangumiList.isEmpty &&
-                                  mounted) {
+                                  mounted &&
+                                  succ) {
                                 setState(() {
                                   timeout = true;
                                 });

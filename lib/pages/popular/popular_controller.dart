@@ -21,16 +21,24 @@ abstract class _PopularController with Store {
   double scrollOffset = 0.0;
   bool isLoadingMore = false;
 
-  Future<void> queryBangumiListFeed({String type = 'init', String tag = ''}) async {
+
+  Future<bool> queryBangumiListFeed({String type = 'init', String tag = '', bool useCurrTag = false}) async {
+    if(!useCurrTag){
+      currentTag = tag;
+    }
     isLoadingMore = true;
     var random = Random();
     int randomNumber = random.nextInt(1000) + 1;
     var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
-    if (type == 'init') {
-      bangumiList.clear();
+    if (currentTag == tag) {
+      if (type == 'init') {
+        bangumiList.clear();
+      }
+      bangumiList.addAll(result);
+      isLoadingMore = false;
+      return true;
     }
-    bangumiList.addAll(result);
-    isLoadingMore = false;
+    return false;
   }
 
   Future<void> queryBangumi(String keyword) async {

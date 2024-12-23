@@ -9,6 +9,7 @@ import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/request/api.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -147,5 +148,42 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
       }
     } 
     return pluginStatus;
+  }
+
+  bool inPluginHTTPList(String name) {
+    return pluginHTTPList.any((plugin) => plugin.name == name);
+  }
+
+  bool canUpdatePlugin(String name, String version) {
+    if (!inPluginHTTPList(name)) return false;
+    PluginHTTPItem plugin = pluginHTTPList.firstWhere(
+      (plugin) => plugin.name == name,
+    );
+    return plugin.version != version;
+  }
+
+  Future<bool> tryUpdatePlugin(String name) async {
+    var pluginHTTPItem = await queryPluginHTTP(name);
+    if (pluginHTTPItem != null) {
+      if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
+        return false;
+      }
+      await savePluginToJsonFile(pluginHTTPItem);
+      await loadPlugins();
+      return true;
+    }
+    return false;
+  }
+
+  Future<int> tryUpdateAllPlugin() async {
+    int count = 0;
+    for (Plugin plugin in pluginList) {
+      if (canUpdatePlugin(plugin.name, plugin.version)) {
+        if (await tryUpdatePlugin(plugin.name)) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 }

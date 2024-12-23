@@ -19,6 +19,16 @@ class PluginViewPage extends StatefulWidget {
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
+  Future<void> _handleUpdate() async {
+    KazumiDialog.showToast(message: '更新中');
+    int count = await pluginsController.tryUpdateAllPlugin();
+    if (count == 0) {
+      KazumiDialog.showToast(message: '所有规则已是最新');
+    } else {
+      KazumiDialog.showToast(message: '更新成功 $count 条');
+    }
+  }
+
   void _handleAdd() {
     KazumiDialog.show(
         builder: (context) {
@@ -130,6 +140,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
           actions: [
             IconButton(
                 onPressed: () {
+                  _handleUpdate();
+                },
+                icon: const Icon(Icons.update)),
+            IconButton(
+                onPressed: () {
                   _handleAdd();
                 },
                 icon: const Icon(Icons.add))
@@ -143,20 +158,40 @@ class _PluginViewPageState extends State<PluginViewPage> {
               : ListView.builder(
                   itemCount: pluginsController.pluginList.length,
                   itemBuilder: (context, index) {
+                    var name = pluginsController.pluginList[index].name;
+                    var version = pluginsController.pluginList[index].version;
+                    bool canUpdate = pluginsController.inPluginHTTPList(name)&&pluginsController.canUpdatePlugin(name,version);
                     return Card(
                       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       child: ListTile(
                         title: Text(
-                          pluginsController.pluginList[index].name,
+                          name,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'Version: ${pluginsController.pluginList[index].version}',
+                          'Version: $version${canUpdate?' （可更新）':''}',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: PopupMenuButton<String>(
-                          onSelected: (String result) {
-                            if (result == 'Delete') {
+                          onSelected: (String result) async {
+                            if (result == 'Update') {
+                              if (pluginsController.inPluginHTTPList(name)) {
+                                if (pluginsController.canUpdatePlugin(
+                                    name, version)) {
+                                  KazumiDialog.showToast(message: '更新中');
+                                  bool succ = await pluginsController.tryUpdatePlugin(name);
+                                  if (succ) {
+                                    KazumiDialog.showToast(message: '更新成功');
+                                  } else {
+                                    KazumiDialog.showToast(message: '更新规则失败');
+                                  }
+                                } else {
+                                  KazumiDialog.showToast(message: '规则已是最新');
+                                }
+                              } else {
+                                KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+                              }
+                            } else if (result == 'Delete') {
                               setState(() {
                                 pluginsController.deletePluginJsonFile(
                                     pluginsController.pluginList[index]);
@@ -210,6 +245,10 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           },
                           itemBuilder: (BuildContext context) =>
                               <PopupMenuEntry<String>>[
+                            const PopupMenuItem<String>(
+                              value: 'Update',
+                              child: Text('更新'),
+                            ),
                             const PopupMenuItem<String>(
                               value: 'Edit',
                               child: Text('编辑'),

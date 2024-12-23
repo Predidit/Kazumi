@@ -181,11 +181,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                 KazumiDialog.showToast(message: '规则已是最新');
                               } else if (state == "updatable") {
                                 KazumiDialog.showLoading(msg: '更新中');
-                                bool succ = await pluginsController.tryUpdatePlugin(plugin);
+                                int res = await pluginsController.tryUpdatePlugin(plugin);
                                 KazumiDialog.dismiss();
-                                if (succ) {
+                                if (res==0) {
                                   KazumiDialog.showToast(message: '更新成功');
-                                } else {
+                                } else if (res == 1) {
+                                  KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                                } else if (res == 2) {
                                   KazumiDialog.showToast(message: '更新规则失败');
                                 }
                               }

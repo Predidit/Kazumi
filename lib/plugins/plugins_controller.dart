@@ -160,24 +160,28 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
     return p.version == plugin.version ? "latest" : "updatable";
   }
 
-  Future<bool> tryUpdatePlugin(Plugin plugin) async {
-    var pluginHTTPItem = await queryPluginHTTP(plugin.name);
+  Future<int> tryUpdatePlugin(Plugin plugin) async {
+    return await tryUpdatePluginByName(plugin.name);
+  }
+
+  Future<int> tryUpdatePluginByName(String name) async {
+    var pluginHTTPItem = await queryPluginHTTP(name);
     if (pluginHTTPItem != null) {
       if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-        return false;
+        return 1;
       }
       await savePluginToJsonFile(pluginHTTPItem);
       await loadPlugins();
-      return true;
+      return 0;
     }
-    return false;
+    return 2;
   }
 
   Future<int> tryUpdateAllPlugin() async {
     int count = 0;
     for (Plugin plugin in pluginList) {
       if (pluginUpdateStatus(plugin) == 'updatable') {
-        if (await tryUpdatePlugin(plugin)) {
+        if (await tryUpdatePlugin(plugin) == 0) {
           count++;
         }
       }

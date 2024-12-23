@@ -108,44 +108,34 @@ class _PluginShopPageState extends State<PluginShopPage> {
                     if (pluginsController.pluginStatus(
                             pluginsController.pluginHTTPList[index]) ==
                         'install') {
-                      try {
-                        KazumiDialog.showToast(message: '导入中');
-                        var pluginHTTPItem =
-                            await pluginsController.queryPluginHTTP(
-                                pluginsController.pluginHTTPList[index].name);
-                        if (pluginHTTPItem != null) {
-                          if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-                            KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
-                            return;
-                          }
-                          await pluginsController
-                              .tryInstallPlugin(pluginHTTPItem);
-                          KazumiDialog.showToast(message: '导入成功');
-                          setState(() {});
-                        }
-                      } catch (e) {
+                      KazumiDialog.showToast(message: '导入中');
+                      int res = await pluginsController.tryUpdatePluginByName(
+                          pluginsController.pluginHTTPList[index].name);
+                      if (res == 0) {
+                        KazumiDialog.showToast(message: '导入成功');
+                        setState(() {
+                          
+                        });
+                      } else if (res == 1) {
+                        KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                      } else if (res == 2) {
                         KazumiDialog.showToast(message: '导入规则失败');
                       }
                     }
                     if (pluginsController.pluginStatus(
                             pluginsController.pluginHTTPList[index]) ==
                         'update') {
-                      try {
-                        KazumiDialog.showToast(message: '更新中');
-                        var pluginHTTPItem =
-                            await pluginsController.queryPluginHTTP(
-                                pluginsController.pluginHTTPList[index].name);
-                        if (pluginHTTPItem != null) {
-                          if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
-                            KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
-                            return;
-                          }
-                          await pluginsController
-                              .tryInstallPlugin(pluginHTTPItem);
-                          KazumiDialog.showToast(message: '更新成功');
-                          setState(() {});
-                        }
-                      } catch (e) {
+                      KazumiDialog.showToast(message: '更新中');
+                      int res = await pluginsController.tryUpdatePluginByName(
+                          pluginsController.pluginHTTPList[index].name);
+                      if (res == 0) {
+                        KazumiDialog.showToast(message: '更新成功');
+                        setState(() {
+                          
+                        });
+                      } else if (res == 1) {
+                        KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                      } else if (res == 2) {
                         KazumiDialog.showToast(message: '更新规则失败');
                       }
                     }

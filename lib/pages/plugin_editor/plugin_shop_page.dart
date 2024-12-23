@@ -119,8 +119,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             return;
                           }
                           await pluginsController
-                              .savePluginToJsonFile(pluginHTTPItem);
-                          await pluginsController.loadPlugins();
+                              .tryInstallPlugin(pluginHTTPItem);
                           KazumiDialog.showToast(message: '导入成功');
                           setState(() {});
                         }
@@ -142,8 +141,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             return;
                           }
                           await pluginsController
-                              .savePluginToJsonFile(pluginHTTPItem);
-                          await pluginsController.loadPlugins();
+                              .tryInstallPlugin(pluginHTTPItem);
                           KazumiDialog.showToast(message: '更新成功');
                           setState(() {});
                         }

@@ -150,20 +150,18 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
     return pluginStatus;
   }
 
-  bool inPluginHTTPList(String name) {
-    return pluginHTTPList.any((plugin) => plugin.name == name);
-  }
-
-  bool canUpdatePlugin(String name, String version) {
-    if (!inPluginHTTPList(name)) return false;
-    PluginHTTPItem plugin = pluginHTTPList.firstWhere(
-      (plugin) => plugin.name == name,
+  String pluginUpdateStatus(Plugin plugin) {
+    if (!pluginHTTPList.any((p) => p.name == plugin.name)) {
+      return "nonexistent";
+    }
+    PluginHTTPItem p = pluginHTTPList.firstWhere(
+      (p) => p.name == plugin.name,
     );
-    return plugin.version != version;
+    return p.version == plugin.version ? "latest" : "updatable";
   }
 
-  Future<bool> tryUpdatePlugin(String name) async {
-    var pluginHTTPItem = await queryPluginHTTP(name);
+  Future<bool> tryUpdatePlugin(Plugin plugin) async {
+    var pluginHTTPItem = await queryPluginHTTP(plugin.name);
     if (pluginHTTPItem != null) {
       if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
         return false;
@@ -178,12 +176,17 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
   Future<int> tryUpdateAllPlugin() async {
     int count = 0;
     for (Plugin plugin in pluginList) {
-      if (canUpdatePlugin(plugin.name, plugin.version)) {
-        if (await tryUpdatePlugin(plugin.name)) {
+      if (pluginUpdateStatus(plugin) == 'updatable') {
+        if (await tryUpdatePlugin(plugin)) {
           count++;
         }
       }
     }
     return count;
+  }
+
+  Future<void> tryInstallPlugin(Plugin plugin) async {
+    await savePluginToJsonFile(plugin);
+    await loadPlugins();
   }
 }

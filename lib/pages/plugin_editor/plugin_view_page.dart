@@ -20,8 +20,9 @@ class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   Future<void> _handleUpdate() async {
-    KazumiDialog.showToast(message: '更新中');
+    KazumiDialog.showLoading(msg: '更新中');
     int count = await pluginsController.tryUpdateAllPlugin();
+    KazumiDialog.dismiss();
     if (count == 0) {
       KazumiDialog.showToast(message: '所有规则已是最新');
     } else {
@@ -98,7 +99,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   onPressed: () async {
                     final String msg = textController.text;
                     try {
-                      await pluginsController.savePluginToJsonFile(
+                      await pluginsController.tryInstallPlugin(
                           Plugin.fromJson(
                               json.decode(Utils.kazumiBase64ToJson(msg))));
                       KazumiDialog.showToast(message: '导入成功');
@@ -106,7 +107,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       KazumiDialog.dismiss();
                       KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
                     }
-                    pluginsController.loadPlugins();
                     KazumiDialog.dismiss();
                   },
                   child: const Text('导入'),
@@ -158,38 +158,36 @@ class _PluginViewPageState extends State<PluginViewPage> {
               : ListView.builder(
                   itemCount: pluginsController.pluginList.length,
                   itemBuilder: (context, index) {
-                    var name = pluginsController.pluginList[index].name;
-                    var version = pluginsController.pluginList[index].version;
-                    bool canUpdate = pluginsController.inPluginHTTPList(name)&&pluginsController.canUpdatePlugin(name,version);
+                    var plugin = pluginsController.pluginList[index];
+                    bool canUpdate = pluginsController.pluginUpdateStatus(plugin)=='updatable';
                     return Card(
                       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       child: ListTile(
                         title: Text(
-                          name,
+                          plugin.name,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          'Version: $version${canUpdate?' （可更新）':''}',
+                          'Version: ${plugin.version}${canUpdate?' （可更新）':''}',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         trailing: PopupMenuButton<String>(
                           onSelected: (String result) async {
                             if (result == 'Update') {
-                              if (pluginsController.inPluginHTTPList(name)) {
-                                if (pluginsController.canUpdatePlugin(
-                                    name, version)) {
-                                  KazumiDialog.showToast(message: '更新中');
-                                  bool succ = await pluginsController.tryUpdatePlugin(name);
-                                  if (succ) {
-                                    KazumiDialog.showToast(message: '更新成功');
-                                  } else {
-                                    KazumiDialog.showToast(message: '更新规则失败');
-                                  }
-                                } else {
-                                  KazumiDialog.showToast(message: '规则已是最新');
-                                }
-                              } else {
+                              var state = pluginsController.pluginUpdateStatus(plugin);
+                              if (state == "nonexistent") {
                                 KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+                              } else if (state == "latest") {
+                                KazumiDialog.showToast(message: '规则已是最新');
+                              } else if (state == "updatable") {
+                                KazumiDialog.showLoading(msg: '更新中');
+                                bool succ = await pluginsController.tryUpdatePlugin(plugin);
+                                KazumiDialog.dismiss();
+                                if (succ) {
+                                  KazumiDialog.showToast(message: '更新成功');
+                                } else {
+                                  KazumiDialog.showToast(message: '更新规则失败');
+                                }
                               }
                             } else if (result == 'Delete') {
                               setState(() {

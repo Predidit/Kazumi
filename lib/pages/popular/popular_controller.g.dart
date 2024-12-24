@@ -25,10 +25,44 @@ mixin _$PopularController on _PopularController, Store {
     });
   }
 
+  late final _$isLoadingMoreAtom =
+      Atom(name: '_PopularController.isLoadingMore', context: context);
+
+  @override
+  bool get isLoadingMore {
+    _$isLoadingMoreAtom.reportRead();
+    return super.isLoadingMore;
+  }
+
+  @override
+  set isLoadingMore(bool value) {
+    _$isLoadingMoreAtom.reportWrite(value, super.isLoadingMore, () {
+      super.isLoadingMore = value;
+    });
+  }
+
+  late final _$isTimeOutAtom =
+      Atom(name: '_PopularController.isTimeOut', context: context);
+
+  @override
+  bool get isTimeOut {
+    _$isTimeOutAtom.reportRead();
+    return super.isTimeOut;
+  }
+
+  @override
+  set isTimeOut(bool value) {
+    _$isTimeOutAtom.reportWrite(value, super.isTimeOut, () {
+      super.isTimeOut = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
-bangumiList: ${bangumiList}
+bangumiList: ${bangumiList},
+isLoadingMore: ${isLoadingMore},
+isTimeOut: ${isTimeOut}
     ''';
   }
 }

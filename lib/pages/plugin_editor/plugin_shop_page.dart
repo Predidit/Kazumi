@@ -6,7 +6,6 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/request/api.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({super.key});

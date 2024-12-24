@@ -7,32 +7,39 @@ import 'package:desktop_webview_window/desktop_webview_window.dart';
 class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   Timer? ifrmaeParserTimer;
   Timer? videoParserTimer;
+  bool bridgeInited = false;
 
   @override
   Future<void> init() async {
     webviewController ??= await WebviewWindow.create(
       configuration: const CreateConfiguration(),
     );
-    await initJSBridge();
-    if (videoPageController.currentPlugin.useNativePlayer &&
-        !videoPageController.currentPlugin.useLegacyParser) {
+    bridgeInited = false;
+    initEventController.add(true);
+  }
+
+  Future<void> initBridge(bool useNativePlayer, bool useLegacyParser) async {
+    await initJSBridge(useNativePlayer, useLegacyParser);
+    if (useNativePlayer && !useLegacyParser) {
       await initBlobParserAndiframeBridge();
     }
-    videoPageController.changeEpisode(videoPageController.currentEpisode,
-        currentRoad: videoPageController.currentRoad,
-        offset: videoPageController.historyOffset);
+    bridgeInited = true;
   }
 
   @override
-  Future<void> loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+      {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
+    if (!bridgeInited) {
+      await initBridge(useNativePlayer, useLegacyParser);
+    }
     count = 0;
     this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
-    videoPageController.loading = true;
+    videoLoadingEventController.add(true);
     webviewController!.launch(url);
 
     ifrmaeParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -44,7 +51,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
       }
       // parseIframeUrl();
     });
-    if (videoPageController.currentPlugin.useNativePlayer) {
+    if (useNativePlayer) {
       videoParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (isVideoSourceLoaded) {
           timer.cancel();
@@ -52,12 +59,12 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
           if (count >= 15) {
             timer.cancel();
             isIframeLoaded = true;
-            videoPageController.logLines.clear();
-            videoPageController.logLines.add('解析视频资源超时');
-            videoPageController.logLines.add('请切换到其他播放列表或视频源');
-            videoPageController.showDebugLog = true;
+            logEventController.add('clear');
+            logEventController.add('解析视频资源超时');
+            logEventController.add('请切换到其他播放列表或视频源');
+            logEventController.add('showDebug');
           } else {
-            if (!videoPageController.currentPlugin.useLegacyParser) {
+            if (!useLegacyParser) {
               parseVideoSource();
             }
           }
@@ -74,38 +81,37 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   @override
   void dispose() {
     webviewController!.close();
+    bridgeInited = false;
   }
 
-  Future<void> initJSBridge() async {
+  Future<void> initJSBridge(bool useNativePlayer, bool useLegacyParser) async {
     webviewController!.addOnWebMessageReceivedCallback((message) async {
       if (message.contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(message.replaceFirst('iframeMessage:', ''));
-        debugPrint('JS Bridge: $messageItem');
-        videoPageController.logLines
+        logEventController
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
-        videoPageController.logLines.add(
+        logEventController.add(
             'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http') || messageItem.startsWith('//')) {
-          videoPageController.logLines.add('Parsing video source $messageItem');
+          logEventController.add('Parsing video source $messageItem');
           if (Utils.decodeVideoSource(messageItem) !=
                   Uri.encodeFull(messageItem) &&
-              videoPageController.currentPlugin.useNativePlayer && videoPageController.currentPlugin.useLegacyParser) {
+              useNativePlayer &&
+              useLegacyParser) {
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
-            videoPageController.loading = false;
-            videoPageController.logLines.add(
+            videoLoadingEventController.add(false);
+            logEventController.add(
                 'Loading video source ${Utils.decodeVideoSource(messageItem)}');
-            debugPrint(
-                'Loading video source from ifame src ${Utils.decodeVideoSource(messageItem)}');
             unloadPage();
             playerController.videoUrl = Utils.decodeVideoSource(messageItem);
             playerController.init(offset: offset);
           }
-          if (!videoPageController.currentPlugin.useNativePlayer) {
+          if (!useNativePlayer) {
             Future.delayed(const Duration(seconds: 2), () {
               isIframeLoaded = true;
-              videoPageController.loading = false;
+              videoLoadingEventController.add(false);
             });
           }
         }
@@ -113,18 +119,15 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
       if (message.contains('videoMessage:')) {
         String messageItem =
             Uri.encodeFull(message.replaceFirst('videoMessage:', ''));
-        debugPrint('VideoJS Bridge: $messageItem');
-        videoPageController.logLines
+        logEventController
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
           String videoUrl = Uri.decodeFull(messageItem);
-          debugPrint('Loading video source $videoUrl');
-          videoPageController.logLines
-              .add('Loading video source $videoUrl');
+          logEventController.add('Loading video source $videoUrl');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
-          videoPageController.loading = false;
-          if (videoPageController.currentPlugin.useNativePlayer) {
+          videoLoadingEventController.add(false);
+          if (useNativePlayer) {
             unloadPage();
             playerController.videoUrl = videoUrl;
             playerController.init(offset: offset);

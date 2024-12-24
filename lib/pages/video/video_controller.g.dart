@@ -25,22 +25,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$logLinesAtom =
-      Atom(name: '_VideoPageController.logLines', context: context);
-
-  @override
-  ObservableList<String> get logLines {
-    _$logLinesAtom.reportRead();
-    return super.logLines;
-  }
-
-  @override
-  set logLines(ObservableList<String> value) {
-    _$logLinesAtom.reportWrite(value, super.logLines, () {
-      super.logLines = value;
-    });
-  }
-
   late final _$currentEpisodeAtom =
       Atom(name: '_VideoPageController.currentEpisode', context: context);
 
@@ -121,22 +105,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$showDebugLogAtom =
-      Atom(name: '_VideoPageController.showDebugLog', context: context);
-
-  @override
-  bool get showDebugLog {
-    _$showDebugLogAtom.reportRead();
-    return super.showDebugLog;
-  }
-
-  @override
-  set showDebugLog(bool value) {
-    _$showDebugLogAtom.reportWrite(value, super.showDebugLog, () {
-      super.showDebugLog = value;
-    });
-  }
-
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -157,13 +125,11 @@ mixin _$VideoPageController on _VideoPageController, Store {
   String toString() {
     return '''
 loading: ${loading},
-logLines: ${logLines},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
 isFullscreen: ${isFullscreen},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
-showDebugLog: ${showDebugLog},
 roadList: ${roadList}
     ''';
   }

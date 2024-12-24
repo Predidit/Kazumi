@@ -4,7 +4,8 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class WebviewItemControllerImpel extends WebviewItemController<WebViewController> {
+class WebviewItemControllerImpel
+    extends WebviewItemController<WebViewController> {
   // workaround for webview_flutter lib.
   // webview_flutter lib won't change currentUrl after redirect using window.location.href.
   // which causes multiple redirects to the same url.
@@ -17,13 +18,12 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
   @override
   Future<void> init() async {
     webviewController ??= WebViewController();
-    videoPageController.changeEpisode(videoPageController.currentEpisode,
-        currentRoad: videoPageController.currentRoad,
-        offset: videoPageController.historyOffset);
+    initEventController.add(true);
   }
 
   @override
-  Future<void> loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+      {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
@@ -33,67 +33,58 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
     this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
-    videoPageController.loading = true;
+    videoLoadingEventController.add(true);
     await webviewController!
         .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
       debugPrint('Current URL: ${currentUrl.url}');
-      if (videoPageController.currentPlugin.useNativePlayer &&
-          !videoPageController.currentPlugin.useLegacyParser) {
+      if (useNativePlayer && !useLegacyParser) {
         addBlobParser();
         addInviewIframeBridge();
       }
-      addFullscreenListener();
+      // addFullscreenListener();
     }));
     await webviewController!.setJavaScriptMode(JavaScriptMode.unrestricted);
     await webviewController!.addJavaScriptChannel('JSBridgeDebug',
         onMessageReceived: (JavaScriptMessage message) {
-      debugPrint('JS Bridge: ${message.message}');
-      videoPageController.logLines.add('Callback received: ${message.message}');
-      videoPageController.logLines.add(
+      logEventController.add('Callback received: ${message.message}');
+      logEventController.add(
           'If there is audio but no video, please report it to the rule developer.');
       if ((message.message.contains('http') ||
               message.message.startsWith('//')) &&
           currentUrl != message.message) {
-        videoPageController.logLines
-            .add('Parsing video source ${message.message}');
+        logEventController.add('Parsing video source ${message.message}');
         currentUrl = Uri.encodeFull(message.message);
         redirctWithReferer(message.message);
         if (Utils.decodeVideoSource(currentUrl) != Uri.encodeFull(currentUrl) &&
-            videoPageController.currentPlugin.useNativePlayer &&
-            videoPageController.currentPlugin.useLegacyParser) {
+            useNativePlayer &&
+            useLegacyParser) {
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
-          videoPageController.loading = false;
-          videoPageController.logLines.add(
+          videoLoadingEventController.add(false);
+          logEventController.add(
               'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
-          debugPrint(
-              'Loading video source from iframe src ${Utils.decodeVideoSource(currentUrl)}');
           unloadPage();
           playerController.videoUrl = Utils.decodeVideoSource(currentUrl);
           playerController.init(offset: offset);
         }
-        if (!videoPageController.currentPlugin.useNativePlayer) {
+        if (!useNativePlayer) {
           Future.delayed(const Duration(seconds: 2), () {
             isIframeLoaded = true;
-            videoPageController.loading = false;
+            videoLoadingEventController.add(false);
           });
         }
       }
     });
-    if (!videoPageController.currentPlugin.useLegacyParser) {
+    if (!useLegacyParser) {
       await webviewController!.addJavaScriptChannel('VideoBridgeDebug',
           onMessageReceived: (JavaScriptMessage message) {
-        debugPrint('VideoJS Bridge: ${message.message}');
-        videoPageController.logLines
-            .add('Callback received: ${message.message}');
+        logEventController.add('Callback received: ${message.message}');
         if (message.message.contains('http') && !isVideoSourceLoaded) {
-          debugPrint('Loading video source: ${message.message}');
-          videoPageController.logLines
-              .add('Loading video source: ${message.message}');
+          logEventController.add('Loading video source: ${message.message}');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
-          videoPageController.loading = false;
-          if (videoPageController.currentPlugin.useNativePlayer) {
+          videoLoadingEventController.add(false);
+          if (useNativePlayer) {
             unloadPage();
             playerController.videoUrl = message.message;
             playerController.init(offset: offset);
@@ -101,18 +92,6 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
         }
       });
     }
-    await webviewController!.addJavaScriptChannel('FullscreenBridgeDebug',
-        onMessageReceived: (JavaScriptMessage message) {
-      debugPrint('FullscreenJS桥收到的消息为 ${message.message}');
-      if (message.message == 'enteredFullscreen') {
-        videoPageController.isFullscreen = true;
-        Utils.enterFullScreen();
-      }
-      if (message.message == 'exitedFullscreen') {
-        videoPageController.isFullscreen = false;
-        Utils.exitFullScreen();
-      }
-    });
     await webviewController!.loadRequest(Uri.parse(url));
 
     ifrmaeParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -123,7 +102,7 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
         parseIframeUrl();
       }
     });
-    if (videoPageController.currentPlugin.useNativePlayer) {
+    if (useNativePlayer) {
       videoParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (isVideoSourceLoaded) {
           timer.cancel();
@@ -131,12 +110,12 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
           if (count >= 15) {
             timer.cancel();
             isIframeLoaded = true;
-            videoPageController.logLines.clear();
-            videoPageController.logLines.add('解析视频资源超时');
-            videoPageController.logLines.add('请切换到其他播放列表或视频源');
-            videoPageController.showDebugLog = true;
+            logEventController.add('clear');
+            logEventController.add('解析视频资源超时');
+            logEventController.add('请切换到其他播放列表或视频源');
+            logEventController.add('showDebug');
           } else {
-            if (!videoPageController.currentPlugin.useLegacyParser) {
+            if (!useLegacyParser) {
               parseVideoSource();
             }
           }
@@ -147,14 +126,11 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
 
   @override
   Future<void> unloadPage() async {
-    await webviewController
-        !.removeJavaScriptChannel('JSBridgeDebug')
+    await webviewController!
+        .removeJavaScriptChannel('JSBridgeDebug')
         .catchError((_) {});
-    await webviewController
-        !.removeJavaScriptChannel('VideoBridgeDebug')
-        .catchError((_) {});
-    await webviewController
-        !.removeJavaScriptChannel('FullscreenBridgeDebug')
+    await webviewController!
+        .removeJavaScriptChannel('VideoBridgeDebug')
         .catchError((_) {});
     await webviewController!.loadRequest(Uri.parse('about:blank'));
     await webviewController!.clearCache();
@@ -293,16 +269,17 @@ class WebviewItemControllerImpel extends WebviewItemController<WebViewController
     await webviewController!.setUserAgent(desktopUserAgent);
   }
 
+  // 弃用
   // 全屏监听
-  Future<void> addFullscreenListener() async {
-    await webviewController!.runJavaScript('''
-      document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                FullscreenBridgeDebug.postMessage('enteredFullscreen');
-            } else {
-                FullscreenBridgeDebug.postMessage('exitedFullscreen');
-            }
-        });
-    ''');
-  }
+  // Future<void> addFullscreenListener() async {
+  //   await webviewController!.runJavaScript('''
+  //     document.addEventListener('fullscreenchange', () => {
+  //           if (document.fullscreenElement) {
+  //               FullscreenBridgeDebug.postMessage('enteredFullscreen');
+  //           } else {
+  //               FullscreenBridgeDebug.postMessage('exitedFullscreen');
+  //           }
+  //       });
+  //   ''');
+  // }
 }

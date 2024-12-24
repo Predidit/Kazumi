@@ -75,7 +75,7 @@ abstract class _PlayerController with Store {
 
   Future<void> init({int offset = 0}) async {
     playing = false;
-    loading = true;
+    loading = true; 
     isBuffering = true;
     currentPosition = Duration.zero;
     buffer = Duration.zero;
@@ -230,5 +230,18 @@ abstract class _PlayerController with Store {
       danmakuList.add(element);
       danDanmakus[element.time.toInt()] = danmakuList;
     }
+  }
+
+  Future<void> dispose() async {
+    try {
+      await mediaPlayer.dispose();
+    } catch (_) {}
+  }
+
+  Future<void> stop() async {
+    try {
+      await mediaPlayer.stop();
+      loading = true;
+    } catch (_) {}
   }
 }

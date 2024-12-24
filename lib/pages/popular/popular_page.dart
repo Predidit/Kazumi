@@ -328,26 +328,28 @@ class _PopularPageState extends State<PopularPage>
                 final filter = tags[index];
                 return Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
-                  child: filter == popularController.currentTag
-                      ? FilledButton(
-                          child: Text(filter),
-                          onPressed: () async {
-                            scrollController.jumpTo(0.0);
-                            await popularController.queryBangumiListFeedByTag('');
-                          },
-                        )
-                      : FilledButton.tonal(
-                          child: Text(filter),
-                          onPressed: () async {
-                            _focusNode.unfocus();
-                            scrollController.jumpTo(0.0);
-                            setState(() {
-                              keywordController.text = '';
-                              showSearchBar = false;
-                            });
-                            await popularController.queryBangumiListFeedByTag(filter);
-                          },
-                        ),
+                  child: Observer(
+                    builder: (_) => filter == popularController.currentTag
+                        ? FilledButton(
+                            child: Text(filter),
+                            onPressed: () async {
+                              scrollController.jumpTo(0.0);
+                              await popularController.queryBangumiListFeedByTag('');
+                            },
+                          )
+                        : FilledButton.tonal(
+                            child: Text(filter),
+                            onPressed: () async {
+                              _focusNode.unfocus();
+                              scrollController.jumpTo(0.0);
+                              setState(() {
+                                keywordController.text = '';
+                                showSearchBar = false;
+                              });
+                              await popularController.queryBangumiListFeedByTag(filter);
+                            },
+                          ),
+                  ),
                 );
               },
             ),

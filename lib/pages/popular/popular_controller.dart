@@ -13,6 +13,8 @@ abstract class _PopularController with Store {
 
   String keyword = '';
   String searchKeyword = '';
+
+  @observable
   String currentTag = '';
 
   @observable

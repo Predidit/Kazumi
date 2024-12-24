@@ -13,24 +13,49 @@ abstract class _PopularController with Store {
 
   String keyword = '';
   String searchKeyword = '';
+
+  @observable
   String currentTag = '';
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
   double scrollOffset = 0.0;
+
+  @observable
   bool isLoadingMore = false;
 
-  Future<void> queryBangumiListFeed({String type = 'init', String tag = ''}) async {
+  @observable
+  bool isTimeOut = false;
+
+
+  Future<bool> queryBangumiListFeed() async {
     isLoadingMore = true;
-    var random = Random();
-    int randomNumber = random.nextInt(1000) + 1;
+    int randomNumber = Random().nextInt(1000) + 1;
+    var tag = currentTag;
     var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
-    if (type == 'init') {
-      bangumiList.clear();
+    if (currentTag == tag) {
+      bangumiList.addAll(result);
+      isLoadingMore = false;
+      isTimeOut = bangumiList.isEmpty;
+      return true;
     }
-    bangumiList.addAll(result);
-    isLoadingMore = false;
+    return false;
+  }
+
+  Future<bool> queryBangumiListFeedByTag(String tag) async {
+    currentTag = tag;
+    isLoadingMore = true;
+    int randomNumber = Random().nextInt(1000) + 1;
+    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
+    if (currentTag == tag) {
+      bangumiList.clear();
+      bangumiList.addAll(result);
+      isLoadingMore = false;
+      isTimeOut = bangumiList.isEmpty;
+      return true;
+    }
+    return false;
   }
 
   Future<void> queryBangumi(String keyword) async {

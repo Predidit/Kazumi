@@ -24,8 +24,6 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
-  bool timeout = false;
-  bool searchLoading = false;
   bool showTagFilter = true;
   bool showSearchBar = false;
   final FocusNode _focusNode = FocusNode();
@@ -39,7 +37,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   void initState() {
     super.initState();
-    timeout = false;
     scrollController.addListener(() {
       popularController.scrollOffset = scrollController.offset;
       if (scrollController.position.pixels >=
@@ -47,18 +44,11 @@ class _PopularPageState extends State<PopularPage>
           popularController.isLoadingMore == false &&
           popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular is loading more');
-        popularController.queryBangumiListFeed(
-            type: 'onload', tag: popularController.currentTag);
+        popularController.queryBangumiListFeed();
       }
     });
     if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiListFeed().then((_) {
-        if (popularController.bangumiList.isEmpty && mounted) {
-          setState(() {
-            timeout = true;
-          });
-        }
-      });
+      popularController.queryBangumiListFeed();
     }
   }
 
@@ -101,20 +91,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            if (mounted) {
-              setState(() {
-                timeout = false;
-              });
-            }
-            await popularController
-                .queryBangumiListFeed(tag: popularController.currentTag)
-                .then((_) {
-              if (popularController.bangumiList.isEmpty && mounted) {
-                setState(() {
-                  timeout = true;
-                });
-              }
-            });
+            await popularController.queryBangumiListFeed();
           },
           child: Scaffold(
               appBar: SysAppBar(
@@ -153,14 +130,9 @@ class _PopularPageState extends State<PopularPage>
                             _focusNode.unfocus();
                             setState(() {
                               showSearchBar = false;
-                              searchLoading = true;
-                              popularController.currentTag = '';
                             });
                             popularController.searchKeyword == '';
-                            await popularController.queryBangumiListFeed();
-                            setState(() {
-                              searchLoading = false;
-                            });
+                            await popularController.queryBangumiListFeedByTag('');
                           } else {
                             keywordController.text = '';
                             popularController.searchKeyword = '';
@@ -205,39 +177,13 @@ class _PopularPageState extends State<PopularPage>
                           },
                           controller: keywordController,
                           onFieldSubmitted: (t) async {
-                            setState(() {
-                              timeout = false;
-                              searchLoading = true;
-                              popularController.currentTag = '';
-                            });
                             if (t != '') {
                               popularController.searchKeyword = t;
-                              await popularController
-                                  .queryBangumi(popularController.searchKeyword)
-                                  .then((_) {
-                                if (popularController.bangumiList.isEmpty &&
-                                    mounted) {
-                                  setState(() {
-                                    timeout = true;
-                                  });
-                                }
-                              });
+                              await popularController.queryBangumi(popularController.searchKeyword);
                             } else {
                               popularController.searchKeyword = '';
-                              await popularController
-                                  .queryBangumiListFeed()
-                                  .then((_) {
-                                if (popularController.bangumiList.isEmpty &&
-                                    mounted) {
-                                  setState(() {
-                                    timeout = true;
-                                  });
-                                }
-                              });
+                              await popularController.queryBangumiListFeedByTag("");
                             }
-                            setState(() {
-                              searchLoading = false;
-                            });
                           },
                         ),
                       ),
@@ -259,12 +205,14 @@ class _PopularPageState extends State<PopularPage>
                       controller: scrollController,
                       slivers: [
                         SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                                top: 0, bottom: 10, left: 0),
-                            child: searchLoading
-                                ? const LinearProgressIndicator()
-                                : Container(),
+                          child: Observer(
+                            builder: (_) => Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 0, bottom: 10, left: 0),
+                              child: popularController.isLoadingMore
+                                  ? const LinearProgressIndicator()
+                                  : Container(),
+                            ),
                           ),
                         ),
                         SliverPadding(
@@ -275,29 +223,16 @@ class _PopularPageState extends State<PopularPage>
                                 0),
                             sliver: Observer(builder: (context) {
                               if (popularController.bangumiList.isEmpty &&
-                                  timeout) {
+                                  popularController.isTimeOut) {
                                 return HttpError(
                                   errMsg: '什么都没有找到 (´;ω;`)',
                                   fn: () {
-                                    setState(() {
-                                      timeout = false;
-                                    });
-                                    popularController
-                                        .queryBangumiListFeed()
-                                        .then((_) {
-                                      if (popularController
-                                              .bangumiList.isEmpty &&
-                                          mounted) {
-                                        setState(() {
-                                          timeout = true;
-                                        });
-                                      }
-                                    });
+                                    popularController.queryBangumiListFeed();
                                   },
                                 );
                               }
                               if (popularController.bangumiList.isEmpty &&
-                                  !timeout) {
+                                  !popularController.isTimeOut) {
                                 return SliverToBoxAdapter(
                                   child: SizedBox(
                                       height:
@@ -393,62 +328,28 @@ class _PopularPageState extends State<PopularPage>
                 final filter = tags[index];
                 return Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
-                  child: filter == popularController.currentTag
-                      ? FilledButton(
-                          child: Text(filter),
-                          onPressed: () async {
-                            scrollController.jumpTo(0.0);
-                            setState(() {
-                              timeout = false;
-                              popularController.currentTag = '';
-                              searchLoading = true;
-                            });
-                            await popularController
-                                .queryBangumiListFeed(
-                              tag: popularController.currentTag,
-                            )
-                                .then((_) {
-                              if (popularController.bangumiList.isEmpty &&
-                                  mounted) {
-                                setState(() {
-                                  timeout = true;
-                                });
-                              }
-                            });
-                            setState(() {
-                              searchLoading = false;
-                            });
-                          },
-                        )
-                      : FilledButton.tonal(
-                          child: Text(filter),
-                          onPressed: () async {
-                            _focusNode.unfocus();
-                            scrollController.jumpTo(0.0);
-                            setState(() {
-                              timeout = false;
-                              popularController.currentTag = filter;
-                              keywordController.text = '';
-                              showSearchBar = false;
-                              searchLoading = true;
-                            });
-                            await popularController
-                                .queryBangumiListFeed(
-                              tag: popularController.currentTag,
-                            )
-                                .then((_) {
-                              if (popularController.bangumiList.isEmpty &&
-                                  mounted) {
-                                setState(() {
-                                  timeout = true;
-                                });
-                              }
-                            });
-                            setState(() {
-                              searchLoading = false;
-                            });
-                          },
-                        ),
+                  child: Observer(
+                    builder: (_) => filter == popularController.currentTag
+                        ? FilledButton(
+                            child: Text(filter),
+                            onPressed: () async {
+                              scrollController.jumpTo(0.0);
+                              await popularController.queryBangumiListFeedByTag('');
+                            },
+                          )
+                        : FilledButton.tonal(
+                            child: Text(filter),
+                            onPressed: () async {
+                              _focusNode.unfocus();
+                              scrollController.jumpTo(0.0);
+                              setState(() {
+                                keywordController.text = '';
+                                showSearchBar = false;
+                              });
+                              await popularController.queryBangumiListFeedByTag(filter);
+                            },
+                          ),
+                  ),
                 );
               },
             ),

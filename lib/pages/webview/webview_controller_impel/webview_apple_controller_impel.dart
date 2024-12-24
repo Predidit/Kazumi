@@ -56,8 +56,7 @@ class WebviewAppleItemControllerImpel
       if ((message.message.contains('http') ||
               message.message.startsWith('//')) &&
           currentUrl != message.message) {
-        logEventController
-            .add('Parsing video source ${message.message}');
+        logEventController.add('Parsing video source ${message.message}');
         currentUrl = Uri.encodeFull(message.message);
         redirctWithReferer(message.message);
         if (Utils.decodeVideoSource(currentUrl) != Uri.encodeFull(currentUrl) &&
@@ -69,8 +68,8 @@ class WebviewAppleItemControllerImpel
           logEventController.add(
               'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
           unloadPage();
-          playerController.videoUrl = Utils.decodeVideoSource(currentUrl);
-          playerController.init(offset: offset);
+          videoParserEventController
+              .add((Utils.decodeVideoSource(currentUrl), offset));
         }
         if (!useNativePlayer) {
           Future.delayed(const Duration(seconds: 2), () {
@@ -83,18 +82,15 @@ class WebviewAppleItemControllerImpel
     if (!useLegacyParser) {
       await webviewController!.addJavaScriptChannel('VideoBridgeDebug',
           onMessageReceived: (JavaScriptMessage message) {
-        logEventController
-            .add('Callback received: ${message.message}');
+        logEventController.add('Callback received: ${message.message}');
         if (message.message.contains('http') && !isVideoSourceLoaded) {
-          logEventController
-              .add('Loading video source: ${message.message}');
+          logEventController.add('Loading video source: ${message.message}');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
           videoLoadingEventController.add(false);
           if (useNativePlayer) {
             unloadPage();
-            playerController.videoUrl = message.message;
-            playerController.init(offset: offset);
+            videoParserEventController.add((message.message, offset));
           }
         }
       });

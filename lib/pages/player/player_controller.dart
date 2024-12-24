@@ -73,7 +73,8 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
 
-  Future<void> init({int offset = 0}) async {
+  Future<void> init(String url, {int offset = 0}) async {
+    videoUrl = url;
     playing = false;
     loading = true; 
     isBuffering = true;

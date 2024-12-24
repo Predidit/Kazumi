@@ -55,6 +55,9 @@ class _VideoPageState extends State<VideoPage>
   late final StreamSubscription<String> _logSubscription;
   // webview video loaded events listener
   late final StreamSubscription<bool> _videoLoadedSubscription;
+  // webview video source events listener
+  // The first parameter is the video source URL and the second parameter is the video offset (start position)
+  late final StreamSubscription<(String, int)> _videoURLSubscription;
 
   @override
   void initState() {
@@ -104,6 +107,10 @@ class _VideoPageState extends State<VideoPage>
         webviewItemController.onVideoLoading.listen((event) {
       videoPageController.loading = event;
     });
+    _videoURLSubscription = webviewItemController.onVideoURLParser.listen((event) {
+      final (mediaUrl, offset) = event;
+      playerController.init(mediaUrl, offset: offset);
+    });
     _logSubscription = webviewItemController.onLog.listen((event) {
       debugPrint('Kazumi Webview log: $event');
       if (event == 'clear') {
@@ -126,6 +133,7 @@ class _VideoPageState extends State<VideoPage>
     animation.dispose();
     _initSubscription.cancel();
     _videoLoadedSubscription.cancel();
+    _videoURLSubscription.cancel();
     _logSubscription.cancel();
     playerController.dispose();
     Utils.unlockScreenRotation();

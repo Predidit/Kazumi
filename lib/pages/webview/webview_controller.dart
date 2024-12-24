@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_controller_impel.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_windows_controller_impel.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_linux_controller_impel.dart';
@@ -18,7 +16,6 @@ abstract class WebviewItemController<T> {
   int offset = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
-  PlayerController playerController = Modular.get<PlayerController>();
 
   /// Webview initialization method
   Future<void> init();
@@ -41,8 +38,16 @@ abstract class WebviewItemController<T> {
   // Stream to notify when the video source is loaded
   Stream<bool> get onVideoLoading => videoLoadingEventController.stream;
 
+  // Stream to notify video source URL when the video source is loaded
+  // The first parameter is the video source URL and the second parameter is the video offset (start position)
+  final StreamController<(String, int)> videoParserEventController =
+      StreamController<(String, int)>.broadcast();
+
+  Stream<(String, int)> get onVideoURLParser => videoParserEventController.stream;
+
   /// Webview load URL method
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser, {int offset = 0});
+  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+      {int offset = 0});
 
   /// Webview unload page method
   Future<void> unloadPage();

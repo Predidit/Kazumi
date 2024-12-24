@@ -64,8 +64,7 @@ class WebviewItemControllerImpel
           logEventController.add(
               'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
           unloadPage();
-          playerController.videoUrl = Utils.decodeVideoSource(currentUrl);
-          playerController.init(offset: offset);
+          videoParserEventController.add((Utils.decodeVideoSource(currentUrl), offset));
         }
         if (!useNativePlayer) {
           Future.delayed(const Duration(seconds: 2), () {
@@ -86,8 +85,7 @@ class WebviewItemControllerImpel
           videoLoadingEventController.add(false);
           if (useNativePlayer) {
             unloadPage();
-            playerController.videoUrl = message.message;
-            playerController.init(offset: offset);
+            videoParserEventController.add((message.message, offset));
           }
         }
       });

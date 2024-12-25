@@ -91,7 +91,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            await popularController.queryBangumiListFeed();
+            await popularController.queryBangumiListFeedByRefresh();
           },
           child: Scaffold(
               appBar: SysAppBar(
@@ -182,7 +182,7 @@ class _PopularPageState extends State<PopularPage>
                               await popularController.queryBangumi(popularController.searchKeyword);
                             } else {
                               popularController.searchKeyword = '';
-                              await popularController.queryBangumiListFeedByTag("");
+                              await popularController.queryBangumiListFeedByTag('');
                             }
                           },
                         ),

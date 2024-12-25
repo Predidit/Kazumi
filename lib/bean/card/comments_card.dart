@@ -21,6 +21,7 @@ class CommentsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   backgroundImage: NetworkImage(commentItem.user.avatar.large),
@@ -38,7 +39,7 @@ class CommentsCard extends StatelessWidget {
                   itemCount: 5,
                   rating: commentItem.comment.rate.toDouble() / 2,
                   itemBuilder: (context, index) => const Icon(
-                    Icons.star,
+                    Icons.star_rounded,
                   ),
                   itemSize: 20.0,
                 ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -422,67 +423,72 @@ class _VideoPageState extends State<VideoPage>
                           top: 0,
                           left: 0,
                           right: 0,
-                          child: Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back,
-                                    color: Colors.white),
-                                onPressed: () {
-                                  if (videoPageController.isFullscreen ==
-                                          true &&
-                                      !Utils.isTablet()) {
-                                    Utils.exitFullScreen();
-                                    menuJumpToCurrentEpisode();
-                                    videoPageController.isFullscreen = false;
-                                    return;
-                                  }
-                                  if (videoPageController.isFullscreen ==
-                                      true) {
-                                    Utils.exitFullScreen();
-                                    videoPageController.isFullscreen = false;
-                                  }
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                              const Expanded(
-                                  child: dtb.DragToMoveArea(
-                                      child: SizedBox(height: 40))),
-                              IconButton(
-                                icon: const Icon(Icons.refresh_outlined,
-                                    color: Colors.white),
-                                onPressed: () {
-                                  changeEpisode(
-                                      videoPageController.currentEpisode,
-                                      currentRoad:
-                                          videoPageController.currentRoad);
-                                },
-                              ),
-                              Visibility(
-                                  visible:
-                                      Utils.isDesktop() || Utils.isTablet(),
-                                  child: IconButton(
-                                      onPressed: () {
-                                        videoPageController.showTabBody =
-                                            !videoPageController.showTabBody;
-                                        openTabBodyAnimated();
-                                      },
-                                      icon: Icon(
-                                        videoPageController.showTabBody
-                                            ? Icons.menu_open
-                                            : Icons.menu_open_outlined,
-                                        color: Colors.white,
-                                      ))),
-                              IconButton(
-                                icon: Icon(
-                                    showDebugLog
-                                        ? Icons.bug_report
-                                        : Icons.bug_report_outlined,
-                                    color: Colors.white),
-                                onPressed: () {
-                                  switchDebugConsole();
-                                },
-                              ),
-                            ],
+                          child: SafeArea(
+                            minimum: (Platform.isMacOS)
+                                ? const EdgeInsets.only(top: 22)
+                                : EdgeInsets.zero,
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back,
+                                      color: Colors.white),
+                                  onPressed: () {
+                                    if (videoPageController.isFullscreen ==
+                                            true &&
+                                        !Utils.isTablet()) {
+                                      Utils.exitFullScreen();
+                                      menuJumpToCurrentEpisode();
+                                      videoPageController.isFullscreen = false;
+                                      return;
+                                    }
+                                    if (videoPageController.isFullscreen ==
+                                        true) {
+                                      Utils.exitFullScreen();
+                                      videoPageController.isFullscreen = false;
+                                    }
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                const Expanded(
+                                    child: dtb.DragToMoveArea(
+                                        child: SizedBox(height: 40))),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh_outlined,
+                                      color: Colors.white),
+                                  onPressed: () {
+                                    changeEpisode(
+                                        videoPageController.currentEpisode,
+                                        currentRoad:
+                                            videoPageController.currentRoad);
+                                  },
+                                ),
+                                Visibility(
+                                    visible:
+                                        Utils.isDesktop() || Utils.isTablet(),
+                                    child: IconButton(
+                                        onPressed: () {
+                                          videoPageController.showTabBody =
+                                              !videoPageController.showTabBody;
+                                          openTabBodyAnimated();
+                                        },
+                                        icon: Icon(
+                                          videoPageController.showTabBody
+                                              ? Icons.menu_open
+                                              : Icons.menu_open_outlined,
+                                          color: Colors.white,
+                                        ))),
+                                IconButton(
+                                  icon: Icon(
+                                      showDebugLog
+                                          ? Icons.bug_report
+                                          : Icons.bug_report_outlined,
+                                      color: Colors.white),
+                                  onPressed: () {
+                                    switchDebugConsole();
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

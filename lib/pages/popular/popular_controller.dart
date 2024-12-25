@@ -58,6 +58,10 @@ abstract class _PopularController with Store {
     return false;
   }
 
+  Future<bool> queryBangumiListFeedByRefresh() async{
+    return await queryBangumiListFeedByTag(currentTag);
+  }
+
   Future<void> queryBangumi(String keyword) async {
     isLoadingMore = true;
     var result = await BangumiHTTP.bangumiSearch(keyword);

@@ -309,7 +309,11 @@
           - run: flutter pub get
           - run: flutter build macos --release
           - name: Create DMG
-            run: hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/kazumi.app -volname kazumi Kazumi_macos_${{ env.tag }}.dmg
+            run: |
+              mkdir -p build/dist
+              cp -r build/macos/Build/Products/Release/kazumi.app build/dist/
+              ln -s /Applications build/dist/Applications
+              hdiutil create -format UDZO -srcfolder build/dist -volname kazumi Kazumi_macos_${{ env.tag }}.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:

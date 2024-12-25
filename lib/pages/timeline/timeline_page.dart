@@ -96,6 +96,7 @@ class _TimelinePageState extends State<TimelinePage>
           },
           child: Scaffold(
             appBar: SysAppBar(
+              needTopOffset: false,
               toolbarHeight: 104,
               bottom: TabBar(
                 controller: controller,

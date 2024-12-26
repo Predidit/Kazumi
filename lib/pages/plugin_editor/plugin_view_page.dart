@@ -294,9 +294,36 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Version: ${plugin.version}${canUpdate ? ' （可更新）' : ''}',
-                                style: const TextStyle(color: Colors.grey),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Version: ${plugin.version}${canUpdate ? ' （可更新）' : ''}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  if (pluginsController.validityTracker
+                                      .isSearchValid(plugin.name)) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .tertiaryContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '搜索有效',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onTertiaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               if (plugin.installTime > 0) ...[
                                 Text(

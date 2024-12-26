@@ -4,6 +4,7 @@ import 'package:mobx/mobx.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugin_validity_tracker.dart';
 import 'package:kazumi/request/plugin.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
@@ -21,6 +22,9 @@ abstract class _PluginsController with Store {
 
   @observable
   ObservableList<PluginHTTPItem> pluginHTTPList = ObservableList.of([]);
+
+  // 规则有效性追踪器
+  final validityTracker = PluginValidityTracker();
 
   Future<void> loadPlugins() async {
     pluginList.clear();

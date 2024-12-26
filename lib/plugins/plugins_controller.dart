@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugin_validity_tracker.dart';
+import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/plugin.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
@@ -26,6 +27,9 @@ abstract class _PluginsController with Store {
   // 规则有效性追踪器
   final validityTracker = PluginValidityTracker();
 
+  // 规则安装时间追踪器
+  final installTimeTracker = PluginInstallTimeTracker();
+
   Future<void> loadPlugins() async {
     pluginList.clear();
 
@@ -45,9 +49,10 @@ abstract class _PluginsController with Store {
         final jsonString = await file.readAsString();
         final data = jsonDecode(jsonString);
         final plugin = Plugin.fromJson(data);
-        // 使用文件修改时间当作安装时间
+        // 使用文件修改时间作为安装时间
         final stat = await file.stat();
-        plugin.installTime = stat.modified.millisecondsSinceEpoch;
+        installTimeTracker.setInstallTime(
+            plugin.name, stat.modified.millisecondsSinceEpoch);
         pluginList.add(plugin);
       }
 

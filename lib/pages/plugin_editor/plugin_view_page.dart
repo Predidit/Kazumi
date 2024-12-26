@@ -248,8 +248,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     sortedList.sort((a, b) =>
                         a.name.toLowerCase().compareTo(b.name.toLowerCase()));
                   } else {
-                    sortedList
-                        .sort((a, b) => b.installTime.compareTo(a.installTime));
+                    sortedList.sort((a, b) => pluginsController
+                        .installTimeTracker
+                        .getInstallTime(b.name)
+                        .compareTo(pluginsController.installTimeTracker
+                            .getInstallTime(a.name)));
                   }
 
                   return ListView.builder(
@@ -325,9 +328,11 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                   ],
                                 ],
                               ),
-                              if (plugin.installTime > 0) ...[
+                              if (pluginsController.installTimeTracker
+                                      .getInstallTime(plugin.name) >
+                                  0) ...[
                                 Text(
-                                  '安装时间: ${DateTime.fromMillisecondsSinceEpoch(plugin.installTime).toString().split('.')[0]}',
+                                  '安装时间: ${DateTime.fromMillisecondsSinceEpoch(pluginsController.installTimeTracker.getInstallTime(plugin.name)).toString().split('.')[0]}',
                                   style: const TextStyle(color: Colors.grey),
                                 ),
                               ],

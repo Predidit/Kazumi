@@ -1623,9 +1623,28 @@ class _PlayerItemState extends State<PlayerItem>
                                   total: playerController.duration,
                                   onSeek: (duration) {
                                     playerTimer?.cancel();
+                                    
                                     playerController.currentPosition = duration;
                                     playerController.seek(duration);
                                     playerTimer = getPlayerTimer(); //Bug_time
+                                  },
+                                  onDragStart: (details){playerController.pause();hideTimer?.cancel();},
+                                  onDragUpdate: (details) => {setState(() {
+                                    showPositioned=true;
+                                    playerController.currentPosition = details.timeStamp;
+                                  })},
+                                  onDragEnd: () {
+                                    playerController.play();
+                                    hideTimer =
+                                        Timer(const Duration(seconds: 4), () {
+                                      if (mounted) {
+                                        setState(() {
+                                          showPositioned = false;
+                                        });
+                                        _animationController.reverse();
+                                      }
+                                      hideTimer = null;
+                                    });
                                   },
                                 ),
                               ),

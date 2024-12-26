@@ -67,39 +67,51 @@ class _PluginShopPageState extends State<PluginShopPage> {
                     ),
                   ],
                 ),
-                subtitle: Row(
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 1.0),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondary,
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      child: Text(
-                        pluginsController.pluginHTTPList[index].version,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.surface),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 1.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.secondary,
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                          child: Text(
+                            pluginsController.pluginHTTPList[index].version,
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.surface),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0, vertical: 1.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(16.0),
+                          ),
+                          child: Text(
+                            pluginsController
+                                    .pluginHTTPList[index].useNativePlayer
+                                ? "native"
+                                : "webview",
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.surface),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(
-                      width: 5,
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 1.0),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(16.0),
+                    if (pluginsController.pluginHTTPList[index].lastUpdate >
+                        0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(pluginsController.pluginHTTPList[index].lastUpdate).toString().split('.')[0]}',
+                        style: const TextStyle(color: Colors.grey),
                       ),
-                      child: Text(
-                        pluginsController.pluginHTTPList[index].useNativePlayer
-                            ? "native"
-                            : "webview",
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.surface),
-                      ),
-                    ),
+                    ],
                   ],
                 ),
                 trailing: TextButton(
@@ -112,11 +124,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
                           pluginsController.pluginHTTPList[index].name);
                       if (res == 0) {
                         KazumiDialog.showToast(message: '导入成功');
-                        setState(() {
-                          
-                        });
+                        setState(() {});
                       } else if (res == 1) {
-                        KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                        KazumiDialog.showToast(
+                            message: 'kazumi版本过低, 此规则不兼容当前版本');
                       } else if (res == 2) {
                         KazumiDialog.showToast(message: '导入规则失败');
                       }
@@ -129,11 +140,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
                           pluginsController.pluginHTTPList[index].name);
                       if (res == 0) {
                         KazumiDialog.showToast(message: '更新成功');
-                        setState(() {
-                          
-                        });
+                        setState(() {});
                       } else if (res == 1) {
-                        KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                        KazumiDialog.showToast(
+                            message: 'kazumi版本过低, 此规则不兼容当前版本');
                       } else if (res == 2) {
                         KazumiDialog.showToast(message: '更新规则失败');
                       }

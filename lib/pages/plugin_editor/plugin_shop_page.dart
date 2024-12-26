@@ -19,6 +19,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
   bool timeout = false;
   bool loading = false;
   late bool enableGitProxy;
+  // 排序方式状态：false=按更新时间排序，true=按名称排序
+  bool sortByName = false;
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void onBackPressed(BuildContext context) {
@@ -32,6 +34,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
 
+  // 刷新规则列表
   void _handleRefresh() async {
     if (!loading) {
       setState(() {
@@ -51,10 +54,30 @@ class _PluginShopPageState extends State<PluginShopPage> {
     }
   }
 
+  // 切换排序方式
+  void _toggleSort() {
+    setState(() {
+      sortByName = !sortByName;
+    });
+  }
+
   Widget get pluginHTTPListBody {
     return Observer(builder: (context) {
+      // 创建列表副本用于排序
+      var sortedList = List.from(pluginsController.pluginHTTPList);
+
+      // 排序规则：
+      // 1. 按名称排序：忽略大小写的字母顺序
+      // 2. 按时间排序：更新时间降序（最新的在前面）
+      if (sortByName) {
+        sortedList.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      } else {
+        sortedList.sort((a, b) => b.lastUpdate.compareTo(a.lastUpdate));
+      }
+
       return ListView.builder(
-        itemCount: pluginsController.pluginHTTPList.length,
+        itemCount: sortedList.length,
         itemBuilder: (context, index) {
           return Card(
             margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
@@ -62,7 +85,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                 title: Row(
                   children: [
                     Text(
-                      pluginsController.pluginHTTPList[index].name,
+                      sortedList[index].name,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -80,7 +103,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             borderRadius: BorderRadius.circular(16.0),
                           ),
                           child: Text(
-                            pluginsController.pluginHTTPList[index].version,
+                            sortedList[index].version,
                             style: TextStyle(
                                 color: Theme.of(context).colorScheme.surface),
                           ),
@@ -94,8 +117,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             borderRadius: BorderRadius.circular(16.0),
                           ),
                           child: Text(
-                            pluginsController
-                                    .pluginHTTPList[index].useNativePlayer
+                            sortedList[index].useNativePlayer
                                 ? "native"
                                 : "webview",
                             style: TextStyle(
@@ -104,11 +126,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
                         ),
                       ],
                     ),
-                    if (pluginsController.pluginHTTPList[index].lastUpdate >
-                        0) ...[
+                    if (sortedList[index].lastUpdate > 0) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(pluginsController.pluginHTTPList[index].lastUpdate).toString().split('.')[0]}',
+                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(sortedList[index].lastUpdate).toString().split('.')[0]}',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -116,12 +137,11 @@ class _PluginShopPageState extends State<PluginShopPage> {
                 ),
                 trailing: TextButton(
                   onPressed: () async {
-                    if (pluginsController.pluginStatus(
-                            pluginsController.pluginHTTPList[index]) ==
+                    if (pluginsController.pluginStatus(sortedList[index]) ==
                         'install') {
                       KazumiDialog.showToast(message: '导入中');
-                      int res = await pluginsController.tryUpdatePluginByName(
-                          pluginsController.pluginHTTPList[index].name);
+                      int res = await pluginsController
+                          .tryUpdatePluginByName(sortedList[index].name);
                       if (res == 0) {
                         KazumiDialog.showToast(message: '导入成功');
                         setState(() {});
@@ -132,12 +152,11 @@ class _PluginShopPageState extends State<PluginShopPage> {
                         KazumiDialog.showToast(message: '导入规则失败');
                       }
                     }
-                    if (pluginsController.pluginStatus(
-                            pluginsController.pluginHTTPList[index]) ==
+                    if (pluginsController.pluginStatus(sortedList[index]) ==
                         'update') {
                       KazumiDialog.showToast(message: '更新中');
-                      int res = await pluginsController.tryUpdatePluginByName(
-                          pluginsController.pluginHTTPList[index].name);
+                      int res = await pluginsController
+                          .tryUpdatePluginByName(sortedList[index].name);
                       if (res == 0) {
                         KazumiDialog.showToast(message: '更新成功');
                         setState(() {});
@@ -149,12 +168,11 @@ class _PluginShopPageState extends State<PluginShopPage> {
                       }
                     }
                   },
-                  child: Text(pluginsController.pluginStatus(
-                              pluginsController.pluginHTTPList[index]) ==
+                  child: Text(pluginsController
+                              .pluginStatus(sortedList[index]) ==
                           'install'
                       ? '安装'
-                      : (pluginsController.pluginStatus(
-                                  pluginsController.pluginHTTPList[index]) ==
+                      : (pluginsController.pluginStatus(sortedList[index]) ==
                               'installed')
                           ? '已安装'
                           : '更新'),
@@ -207,9 +225,15 @@ class _PluginShopPageState extends State<PluginShopPage> {
           title: const Text('规则仓库'),
           actions: [
             IconButton(
+                onPressed: _toggleSort,
+                tooltip: sortByName ? '按名称排序' : '按更新时间排序',
+                icon:
+                    Icon(sortByName ? Icons.sort_by_alpha : Icons.access_time)),
+            IconButton(
                 onPressed: () {
                   _handleRefresh();
                 },
+                tooltip: '刷新规则列表',
                 icon: const Icon(Icons.refresh))
           ],
         ),

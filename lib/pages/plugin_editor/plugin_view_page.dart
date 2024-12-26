@@ -264,9 +264,20 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           plugin.name,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        subtitle: Text(
-                          'Version: ${plugin.version}${canUpdate ? ' （可更新）' : ''}',
-                          style: const TextStyle(color: Colors.grey),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Version: ${plugin.version}${canUpdate ? ' （可更新）' : ''}',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                            if (plugin.installTime > 0) ...[
+                              Text(
+                                '安装时间: ${DateTime.fromMillisecondsSinceEpoch(plugin.installTime).toString().split('.')[0]}',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ],
                         ),
                         trailing: isMultiSelectMode
                             ? Checkbox(

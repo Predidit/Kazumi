@@ -26,6 +26,7 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+  int installTime;
 
   Plugin({
     required this.api,
@@ -46,6 +47,7 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
+    this.installTime = 0,
   });
 
   factory Plugin.fromJson(Map<String, dynamic> json) {

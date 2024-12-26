@@ -37,9 +37,14 @@ abstract class _PluginsController with Store {
           .toList();
 
       for (var filePath in jsonFiles) {
-        final jsonString = await File(filePath).readAsString();
+        final file = File(filePath);
+        final jsonString = await file.readAsString();
         final data = jsonDecode(jsonString);
-        pluginList.add(Plugin.fromJson(data));
+        final plugin = Plugin.fromJson(data);
+        // 使用文件修改时间当作安装时间
+        final stat = await file.stat();
+        plugin.installTime = stat.modified.millisecondsSinceEpoch;
+        pluginList.add(plugin);
       }
 
       KazumiLogger().log(Level.info, '当前插件数量 ${pluginList.length}');
@@ -60,7 +65,7 @@ abstract class _PluginsController with Store {
     final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
     final jsonFiles = manifestMap.keys.where((String key) =>
-        key.startsWith('assets/plugins/') && key.endsWith('.json')); 
+        key.startsWith('assets/plugins/') && key.endsWith('.json'));
 
     for (var filePath in jsonFiles) {
       final jsonString = await rootBundle.loadString(filePath);
@@ -70,7 +75,8 @@ abstract class _PluginsController with Store {
       await file.writeAsString(jsonString);
     }
 
-    KazumiLogger().log(Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${pluginDirectory.path}');
+    KazumiLogger().log(
+        Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${pluginDirectory.path}');
   }
 
   Future<void> savePluginToJsonFile(Plugin plugin) async {
@@ -94,46 +100,48 @@ abstract class _PluginsController with Store {
     KazumiLogger().log(Level.info, '已创建插件文件 $fileName');
   }
 
-Future<void> deletePluginJsonFile(Plugin plugin) async {
-  final directory = await getApplicationSupportDirectory();
-  final pluginDirectory = Directory('${directory.path}/plugins');
+  Future<void> deletePluginJsonFile(Plugin plugin) async {
+    final directory = await getApplicationSupportDirectory();
+    final pluginDirectory = Directory('${directory.path}/plugins');
 
-  if (!await pluginDirectory.exists()) {
-    KazumiLogger().log(Level.warning, '插件目录不存在，无法删除文件');
-    return;
-  }
+    if (!await pluginDirectory.exists()) {
+      KazumiLogger().log(Level.warning, '插件目录不存在，无法删除文件');
+      return;
+    }
 
-  final fileName = '${plugin.name}.json';
-  final files = pluginDirectory.listSync();
+    final fileName = '${plugin.name}.json';
+    final files = pluginDirectory.listSync();
 
-  // workaround for android/linux case insensitive
-  File? targetFile;
-  for (var file in files) {
-    if (file is File && path.basename(file.path).toLowerCase() == fileName.toLowerCase()) {
-      targetFile = file;
-      break;
+    // workaround for android/linux case insensitive
+    File? targetFile;
+    for (var file in files) {
+      if (file is File &&
+          path.basename(file.path).toLowerCase() == fileName.toLowerCase()) {
+        targetFile = file;
+        break;
+      }
+    }
+
+    if (targetFile != null) {
+      await targetFile.delete();
+      KazumiLogger()
+          .log(Level.info, '已删除插件文件 ${path.basename(targetFile.path)}');
+    } else {
+      KazumiLogger().log(Level.warning, '插件文件 $fileName 不存在');
     }
   }
-
-  if (targetFile != null) {
-    await targetFile.delete();
-    KazumiLogger().log(Level.info, '已删除插件文件 ${path.basename(targetFile.path)}');
-  } else {
-    KazumiLogger().log(Level.warning, '插件文件 $fileName 不存在');
-  }
-}
 
   Future<void> queryPluginHTTPList() async {
     pluginHTTPList.clear();
     var pluginHTTPListRes = await PluginHTTP.getPluginList();
     pluginHTTPList.addAll(pluginHTTPListRes);
-  } 
+  }
 
   Future<Plugin?> queryPluginHTTP(String name) async {
     Plugin? plugin;
     plugin = await PluginHTTP.getPlugin(name);
     return plugin;
-  } 
+  }
 
   String pluginStatus(PluginHTTPItem pluginHTTPItem) {
     String pluginStatus = 'install';
@@ -146,7 +154,7 @@ Future<void> deletePluginJsonFile(Plugin plugin) async {
         }
         break;
       }
-    } 
+    }
     return pluginStatus;
   }
 

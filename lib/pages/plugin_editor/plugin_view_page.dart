@@ -20,8 +20,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   // 是否处于多选模式
   bool isMultiSelectMode = false;
-  // 已选中的规则索引集合
-  final Set<int> selectedIndices = {};
+  // 已选中的规则名称集合
+  final Set<String> selectedNames = {};
   // 排序方式状态：false=按安装时间排序，true=按名称排序
   bool sortByName = false;
 
@@ -137,7 +137,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         if (isMultiSelectMode) {
           setState(() {
             isMultiSelectMode = false;
-            selectedIndices.clear();
+            selectedNames.clear();
           });
           return;
         }
@@ -146,7 +146,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
       child: Scaffold(
         appBar: SysAppBar(
           title: isMultiSelectMode
-              ? Text('已选择 ${selectedIndices.length} 项')
+              ? Text('已选择 ${selectedNames.length} 项')
               : const Text('规则管理'),
           leading: isMultiSelectMode
               ? IconButton(
@@ -154,7 +154,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   onPressed: () {
                     setState(() {
                       isMultiSelectMode = false;
-                      selectedIndices.clear();
+                      selectedNames.clear();
                     });
                   },
                 )
@@ -162,14 +162,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
           actions: [
             if (isMultiSelectMode) ...[
               IconButton(
-                onPressed: selectedIndices.isEmpty
+                onPressed: selectedNames.isEmpty
                     ? null
                     : () {
                         KazumiDialog.show(
                           builder: (context) => AlertDialog(
                             title: const Text('删除规则'),
-                            content: Text(
-                                '确定要删除选中的 ${selectedIndices.length} 条规则吗？'),
+                            content:
+                                Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
                             actions: [
                               TextButton(
                                 onPressed: () => KazumiDialog.dismiss(),
@@ -184,17 +184,19 @@ class _PluginViewPageState extends State<PluginViewPage> {
                               TextButton(
                                 onPressed: () {
                                   // 从大到小排序，这样删除时不会影响前面的索引
-                                  final sortedIndices = selectedIndices.toList()
+                                  final sortedNames = selectedNames.toList()
                                     ..sort((a, b) => b.compareTo(a));
-                                  for (final index in sortedIndices) {
-                                    pluginsController.deletePluginJsonFile(
-                                        pluginsController.pluginList[index]);
+                                  for (final name in sortedNames) {
+                                    final plugin = pluginsController.pluginList
+                                        .firstWhere((p) => p.name == name);
+                                    pluginsController
+                                        .deletePluginJsonFile(plugin);
                                     pluginsController.pluginList
-                                        .removeAt(index);
+                                        .removeWhere((p) => p.name == name);
                                   }
                                   setState(() {
                                     isMultiSelectMode = false;
-                                    selectedIndices.clear();
+                                    selectedNames.clear();
                                   });
                                   KazumiDialog.dismiss();
                                 },
@@ -254,9 +256,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     itemCount: sortedList.length,
                     itemBuilder: (context, index) {
                       var plugin = sortedList[index];
-                      // 找到原始列表中的索引
-                      int originalIndex =
-                          pluginsController.pluginList.indexOf(plugin);
                       bool canUpdate =
                           pluginsController.pluginUpdateStatus(plugin) ==
                               'updatable';
@@ -267,25 +266,25 @@ class _PluginViewPageState extends State<PluginViewPage> {
                             if (!isMultiSelectMode) {
                               setState(() {
                                 isMultiSelectMode = true;
-                                selectedIndices.add(originalIndex);
+                                selectedNames.add(plugin.name);
                               });
                             }
                           },
                           onTap: () {
                             if (isMultiSelectMode) {
                               setState(() {
-                                if (selectedIndices.contains(originalIndex)) {
-                                  selectedIndices.remove(originalIndex);
-                                  if (selectedIndices.isEmpty) {
+                                if (selectedNames.contains(plugin.name)) {
+                                  selectedNames.remove(plugin.name);
+                                  if (selectedNames.isEmpty) {
                                     isMultiSelectMode = false;
                                   }
                                 } else {
-                                  selectedIndices.add(originalIndex);
+                                  selectedNames.add(plugin.name);
                                 }
                               });
                             }
                           },
-                          selected: selectedIndices.contains(originalIndex),
+                          selected: selectedNames.contains(plugin.name),
                           selectedTileColor:
                               Theme.of(context).colorScheme.primaryContainer,
                           title: Text(
@@ -309,15 +308,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           ),
                           trailing: isMultiSelectMode
                               ? Checkbox(
-                                  value:
-                                      selectedIndices.contains(originalIndex),
+                                  value: selectedNames.contains(plugin.name),
                                   onChanged: (bool? value) {
                                     setState(() {
                                       if (value == true) {
-                                        selectedIndices.add(originalIndex);
+                                        selectedNames.add(plugin.name);
                                       } else {
-                                        selectedIndices.remove(originalIndex);
-                                        if (selectedIndices.isEmpty) {
+                                        selectedNames.remove(plugin.name);
+                                        if (selectedNames.isEmpty) {
                                           isMultiSelectMode = false;
                                         }
                                       }
@@ -357,7 +355,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                         pluginsController
                                             .deletePluginJsonFile(plugin);
                                         pluginsController.pluginList
-                                            .removeAt(originalIndex);
+                                            .removeWhere(
+                                                (p) => p.name == plugin.name);
                                       });
                                     } else if (result == 'Edit') {
                                       Modular.to.pushNamed(

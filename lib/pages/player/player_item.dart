@@ -230,6 +230,13 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  void isMacOSFullscreen() async {
+    if (!Platform.isMacOS) {
+      return;
+    }
+    videoPageController.isFullscreen = await windowManager.isFullScreen();
+  }
+
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.mediaPlayer.state.playing;
@@ -240,6 +247,8 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.buffer = playerController.mediaPlayer.state.buffer;
       playerController.duration = playerController.mediaPlayer.state.duration;
       playerController.completed = playerController.mediaPlayer.state.completed;
+      // macOS 全屏相关
+      isMacOSFullscreen();
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.mediaPlayer.state.playing == true &&
@@ -1001,26 +1010,19 @@ class _PlayerItemState extends State<PlayerItem>
                         visible: !lockPanel,
                         child: SlideTransition(
                           position: _topOffsetAnimation,
-                          child: SafeArea(
-                            left: false,
-                            top: true,
-                            right: false,
-                            bottom: false,
-                            minimum: (Platform.isMacOS &&
+                          child: Container(
+                            height: (Platform.isMacOS &&
                                     !videoPageController.isFullscreen)
-                                ? const EdgeInsets.only(top: 22)
-                                : EdgeInsets.zero,
-                            child: Container(
-                              height: 50,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.black.withOpacity(0.9),
-                                    Colors.transparent,
-                                  ],
-                                ),
+                                ? 50 + 22
+                                : 50,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.9),
+                                  Colors.transparent,
+                                ],
                               ),
                             ),
                           ),

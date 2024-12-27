@@ -116,8 +116,6 @@ class _PlayerItemState extends State<PlayerItem>
   List<double> playSpeedList = defaultPlaySpeedList;
   int episodeNum = 0;
 
-  late ProgressBar progressBar;
-
   /// 处理 Android/iOS 应用后台或熄屏
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -1602,7 +1600,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   : Container(),
                                   forwardIcon(),
                               Expanded(
-                                child: progressBar = ProgressBar(
+                                child: ProgressBar(
                                   timeLabelLocation: TimeLabelLocation.none,
                                   progress: playerController.currentPosition,
                                   buffered: playerController.buffer,
@@ -1773,12 +1771,13 @@ class _PlayerItemState extends State<PlayerItem>
         color: Colors.white,
         icon: const Icon(Icons.fast_forward),
         onPressed: () {
-          progressBar.onSeek!(
+          playerController.seek(
               playerController.currentPosition + Duration(seconds: playerController.forwardTime));
         },
       ),
     );
   }
+
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
       String input = "";
@@ -1787,14 +1786,18 @@ class _PlayerItemState extends State<PlayerItem>
         content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
           return TextField(
-                  decoration: InputDecoration(
-                    floatingLabelBehavior: FloatingLabelBehavior.never,  // 控制label的显示方式
-                    labelText: playerController.forwardTime.toString(),
-                  ),
-                  onChanged: (value) {
-                    input = value;
-                  },
-                );
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+            ],
+            decoration: InputDecoration(
+              floatingLabelBehavior:
+                  FloatingLabelBehavior.never, // 控制label的显示方式
+              labelText: playerController.forwardTime.toString(),
+            ),
+            onChanged: (value) {
+              input = value;
+            },
+          );
         }),
         actions: <Widget>[
           TextButton(
@@ -1806,11 +1809,11 @@ class _PlayerItemState extends State<PlayerItem>
           ),
           TextButton(
             onPressed: () async {
-              if (int.tryParse(input) != null) {
+              if (input != "") {
                 playerController.setForwardTime(int.parse(input));
                 KazumiDialog.dismiss();
-              }else{
-                KazumiDialog.showToast(message: "输入不符合");
+              } else {
+                KazumiDialog.dismiss();
               }
             },
             child: const Text('确定'),

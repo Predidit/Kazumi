@@ -18,10 +18,13 @@ class PluginViewPage extends StatefulWidget {
 
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
+
   // 是否处于多选模式
   bool isMultiSelectMode = false;
+
   // 已选中的规则名称集合
   final Set<String> selectedNames = {};
+
   // 排序方式状态：false=按安装时间排序，true=按名称排序
   bool sortByName = false;
 
@@ -265,6 +268,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       return Card(
                         margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: ListTile(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           onLongPress: () {
                             if (!isMultiSelectMode) {
                               setState(() {
@@ -300,9 +305,31 @@ class _PluginViewPageState extends State<PluginViewPage> {
                               Row(
                                 children: [
                                   Text(
-                                    'Version: ${plugin.version}${canUpdate ? ' （可更新）' : ''}',
+                                    'Version: ${plugin.version}',
                                     style: const TextStyle(color: Colors.grey),
                                   ),
+                                  if (canUpdate) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .errorContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '可更新',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onErrorContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                   if (pluginsController.validityTracker
                                       .isSearchValid(plugin.name)) ...[
                                     const SizedBox(width: 8),

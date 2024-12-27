@@ -540,8 +540,4 @@ class Utils {
   static Future<String> getCurrentDemux() async {
     return 'MPV';
   }
-
-  static bool isInt(String input) {
-    return int.tryParse(input) != null;
-  }
 }

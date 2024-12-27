@@ -117,7 +117,6 @@ class _PlayerItemState extends State<PlayerItem>
   int episodeNum = 0;
 
   late ProgressBar progressBar;
-  int forWardTime = 80;
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
@@ -1772,17 +1771,16 @@ class _PlayerItemState extends State<PlayerItem>
       onLongPress: () => showForwardChange(),
       child: IconButton(
         color: Colors.white,
-        icon: const Icon(Icons.arrow_forward),
+        icon: const Icon(Icons.fast_forward),
         onPressed: () {
           progressBar.onSeek!(
-              playerController.currentPosition + Duration(seconds: forWardTime));
+              playerController.currentPosition + Duration(seconds: playerController.forwardTime));
         },
       ),
     );
   }
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
-
       String input = "";
       return AlertDialog(
         title: const Text('跳过秒数'),
@@ -1791,7 +1789,7 @@ class _PlayerItemState extends State<PlayerItem>
           return TextField(
                   decoration: InputDecoration(
                     floatingLabelBehavior: FloatingLabelBehavior.never,  // 控制label的显示方式
-                    labelText: forWardTime.toString(),
+                    labelText: playerController.forwardTime.toString(),
                   ),
                   onChanged: (value) {
                     input = value;
@@ -1808,8 +1806,8 @@ class _PlayerItemState extends State<PlayerItem>
           ),
           TextButton(
             onPressed: () async {
-              if(Utils.isInt(input)){
-                forWardTime = int.parse(input);
+              if (int.tryParse(input) != null) {
+                playerController.setForwardTime(int.parse(input));
                 KazumiDialog.dismiss();
               }else{
                 KazumiDialog.showToast(message: "输入不符合");

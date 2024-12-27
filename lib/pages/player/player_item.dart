@@ -1598,6 +1598,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       },
                                     )
                                   : Container(),
+                                  forwardIcon(),
                               Expanded(
                                 child: ProgressBar(
                                   timeLabelLocation: TimeLabelLocation.none,
@@ -1759,6 +1760,72 @@ class _PlayerItemState extends State<PlayerItem>
         _animationController.reverse();
       }
       hideTimer = null;
+    });
+  }
+
+  
+  Widget forwardIcon() {
+    return Tooltip(
+      message: '长按修改时间',
+      child: GestureDetector(
+        onLongPress: () => showForwardChange(),
+        child: IconButton(
+          icon: Image.asset(
+            'assets/images/forward_80.png',
+            color: Colors.white,
+            height: 24,
+          ),
+          onPressed: () {
+            playerController.seek(playerController.currentPosition +
+                Duration(seconds: playerController.forwardTime));
+          },
+        ),
+      ),
+    );
+  }
+
+  void showForwardChange() {
+    KazumiDialog.show(builder: (context) {
+      String input = "";
+      return AlertDialog(
+        title: const Text('跳过秒数'),
+        content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+          return TextField(
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+            ],
+            decoration: InputDecoration(
+              floatingLabelBehavior:
+                  FloatingLabelBehavior.never, // 控制label的显示方式
+              labelText: playerController.forwardTime.toString(),
+            ),
+            onChanged: (value) {
+              input = value;
+            },
+          );
+        }),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: Text(
+              '取消',
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (input != "") {
+                playerController.setForwardTime(int.parse(input));
+                KazumiDialog.dismiss();
+              } else {
+                KazumiDialog.dismiss();
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      );
     });
   }
 }

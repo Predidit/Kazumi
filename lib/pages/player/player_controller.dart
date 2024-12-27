@@ -73,6 +73,8 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
 
+  int forwardTime = 80;
+
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
     playing = false;
@@ -244,5 +246,9 @@ abstract class _PlayerController with Store {
       await mediaPlayer.stop();
       loading = true;
     } catch (_) {}
+  }
+
+  void setForwardTime(int time){
+    forwardTime = time;
   }
 }

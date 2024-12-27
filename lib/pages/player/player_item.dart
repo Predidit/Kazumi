@@ -1605,19 +1605,23 @@ class _PlayerItemState extends State<PlayerItem>
                                   buffered: playerController.buffer,
                                   total: playerController.duration,
                                   onSeek: (duration) {
-                                    playerTimer?.cancel();
                                     playerController.currentPosition = duration;
                                     playerController.seek(duration);
-                                    playerTimer = getPlayerTimer(); //Bug_time
                                   },
-                                  onDragStart: (details){playerController.pause();hideTimer?.cancel();},
-                                  onDragUpdate: (details) => {setState(() {
-                                    showPositioned=true;
-                                    playerController.currentPosition = details.timeStamp;
-                                  })},
+                                  onDragStart: (details) {
+                                    playerTimer?.cancel();
+                                    playerController.pause();
+                                    hideTimer?.cancel();
+                                    setState(() {
+                                      showPositioned = true;
+                                    });
+                                  },
+                                  onDragUpdate: (details) => {
+                                    playerController.currentPosition = details.timeStamp},
                                   onDragEnd: () {
                                     playerController.play();
                                     startHideTimer();
+                                    playerTimer = getPlayerTimer();
                                   },
                                 ),
                               ),

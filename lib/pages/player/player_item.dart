@@ -1765,15 +1765,21 @@ class _PlayerItemState extends State<PlayerItem>
 
   
   Widget forwardIcon() {
-    return GestureDetector(
-      onLongPress: () => showForwardChange(),
-      child: IconButton(
-        color: Colors.white,
-        icon: const Icon(Icons.fast_forward),
-        onPressed: () {
-          playerController.seek(
-              playerController.currentPosition + Duration(seconds: playerController.forwardTime));
-        },
+    return Tooltip(
+      message: '长按修改时间',
+      child: GestureDetector(
+        onLongPress: () => showForwardChange(),
+        child: IconButton(
+          icon: Image.asset(
+            'assets/images/forward_80.png',
+            color: Colors.white,
+            height: 24,
+          ),
+          onPressed: () {
+            playerController.seek(playerController.currentPosition +
+                Duration(seconds: playerController.forwardTime));
+          },
+        ),
       ),
     );
   }

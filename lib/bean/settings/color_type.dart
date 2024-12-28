@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 final List<Map<String, dynamic>> colorThemeTypes = [
   {'color': Colors.green, 'label': '默认'},
+  {'color': const Color(0xff6750a4), 'label': 'MD3 默认'},
   {'color': Colors.lightGreen, 'label': '浅绿色'},
   {'color': Colors.teal, 'label': '青色'},
   {'color': Colors.cyan, 'label': '蓝绿色'},

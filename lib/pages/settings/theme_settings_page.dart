@@ -154,11 +154,19 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                                   e['color'].withOpacity(0.8),
                                             ),
                                           ),
-                                          child: const AnimatedOpacity(
-                                            opacity: 0,
+                                          child: AnimatedOpacity(
+                                            opacity: (e['color']
+                                                        .value
+                                                        .toRadixString(16) ==
+                                                    defaultThemeColor ||
+                                                (defaultThemeColor ==
+                                                        'default' &&
+                                                    index == 0))
+                                            ? 1
+                                            : 0,
                                             duration:
-                                                Duration(milliseconds: 200),
-                                            child: Icon(
+                                                const Duration(milliseconds: 200),
+                                            child: const Icon(
                                               Icons.done,
                                               color: Colors.black,
                                               size: 20,

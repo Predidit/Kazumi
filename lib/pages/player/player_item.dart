@@ -230,13 +230,6 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  void isMacOSFullscreen() async {
-    if (!Platform.isMacOS) {
-      return;
-    }
-    videoPageController.isFullscreen = await windowManager.isFullScreen();
-  }
-
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.mediaPlayer.state.playing;
@@ -248,7 +241,7 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.duration = playerController.mediaPlayer.state.duration;
       playerController.completed = playerController.mediaPlayer.state.completed;
       // macOS 全屏相关
-      isMacOSFullscreen();
+      videoPageController.isMacOSFullscreen();
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.mediaPlayer.state.playing == true &&

@@ -28,6 +28,9 @@ abstract class _PopularController with Store {
   @observable
   bool isTimeOut = false;
 
+  void setSearchKeyword(String s){
+    searchKeyword = s;
+  }
 
   Future<bool> queryBangumiListFeed() async {
     isLoadingMore = true;

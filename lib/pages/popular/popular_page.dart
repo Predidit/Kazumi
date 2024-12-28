@@ -28,7 +28,6 @@ class _PopularPageState extends State<PopularPage>
   bool showSearchBar = false;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
-  final TextEditingController keywordController = TextEditingController();
   final PopularController popularController = Modular.get<PopularController>();
 
   @override
@@ -41,10 +40,11 @@ class _PopularPageState extends State<PopularPage>
       popularController.scrollOffset = scrollController.offset;
       if (scrollController.position.pixels >=
               scrollController.position.maxScrollExtent - 200 &&
-          popularController.isLoadingMore == false &&
-          popularController.searchKeyword == '') {
-        KazumiLogger().log(Level.info, 'Popular is loading more');
-        popularController.queryBangumiListFeed();
+          !popularController.isLoadingMore) {
+        if (popularController.searchKeyword == '') {
+          KazumiLogger().log(Level.info, 'Popular is loading more');
+          popularController.queryBangumiListFeed();
+        } else {}
       }
     });
     if (popularController.bangumiList.isEmpty) {
@@ -54,7 +54,7 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   void dispose() {
-    popularController.searchKeyword = '';
+    popularController.setSearchKeyword('');
     _focusNode.dispose();
     scrollController.removeListener(() {});
     super.dispose();
@@ -126,16 +126,14 @@ class _PopularPageState extends State<PopularPage>
                           });
                           _focusNode.requestFocus();
                         } else {
-                          if (keywordController.text == '') {
+                          if (popularController.searchKeyword == '') {
                             _focusNode.unfocus();
                             setState(() {
                               showSearchBar = false;
                             });
-                            popularController.searchKeyword == '';
                             await popularController.queryBangumiListFeedByTag('');
                           } else {
-                            keywordController.text = '';
-                            popularController.searchKeyword = '';
+                            popularController.setSearchKeyword('');
                             _focusNode.requestFocus();
                           }
                         }
@@ -175,13 +173,11 @@ class _PopularPageState extends State<PopularPage>
                           onChanged: (_) {
                             scrollController.jumpTo(0.0);
                           },
-                          controller: keywordController,
                           onFieldSubmitted: (t) async {
+                            popularController.setSearchKeyword(t);
                             if (t != '') {
-                              popularController.searchKeyword = t;
                               await popularController.queryBangumi(popularController.searchKeyword);
                             } else {
-                              popularController.searchKeyword = '';
                               await popularController.queryBangumiListFeedByTag('');
                             }
                           },
@@ -343,7 +339,7 @@ class _PopularPageState extends State<PopularPage>
                               _focusNode.unfocus();
                               scrollController.jumpTo(0.0);
                               setState(() {
-                                keywordController.text = '';
+                                popularController.setSearchKeyword('');
                                 showSearchBar = false;
                               });
                               await popularController.queryBangumiListFeedByTag(filter);

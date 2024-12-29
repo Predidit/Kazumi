@@ -88,7 +88,7 @@
 
       flutter-build-android:
         needs: changes
-        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_android) && (needs.changes.outputs.android || needs.changes.outputs.all) }}
+        if: ${{ github.event.inputs.run_android || (! github.event.pull_request.draft && (needs.changes.outputs.android || needs.changes.outputs.all)) }}
         name: "Release for android"
         runs-on: "ubuntu-latest"
         permissions: write-all
@@ -128,7 +128,7 @@
 
       flutter-build-windows:
         needs: changes
-        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_windows) && (needs.changes.outputs.windows || needs.changes.outputs.all) }}
+        if: ${{ github.event.inputs.run_windows || (! github.event.pull_request.draft && (needs.changes.outputs.windows || needs.changes.outputs.all)) }}
         name: "Release for windows"
         runs-on: "windows-latest"
         permissions: write-all
@@ -207,7 +207,7 @@
 
       flutter-build-ios:
         needs: changes
-        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_ios) && (needs.changes.outputs.ios || needs.changes.outputs.all) }}
+        if: ${{ github.event.inputs.run_ios || (! github.event.pull_request.draft && (needs.changes.outputs.ios || needs.changes.outputs.all)) }}
         name: "Release for iOS"
         runs-on: "macos-latest"
         permissions: write-all
@@ -237,7 +237,7 @@
 
       flutter-build-macos:
         needs: changes
-        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_macos) && (needs.changes.outputs.macos || needs.changes.outputs.all) }}
+        if: ${{ github.event.inputs.run_macos || (! github.event.pull_request.draft && (needs.changes.outputs.macos || needs.changes.outputs.all)) }}
         name: "Release for Macos"
         runs-on: "macos-latest"
         permissions: write-all
@@ -266,7 +266,7 @@
 
       flutter-build-linux:
         needs: changes
-        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_linux) && (needs.changes.outputs.linux || needs.changes.outputs.all) }}
+        if: ${{ github.event.inputs.run_linux || (! github.event.pull_request.draft && (needs.changes.outputs.linux || needs.changes.outputs.all)) }}
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 
         permissions: write-all

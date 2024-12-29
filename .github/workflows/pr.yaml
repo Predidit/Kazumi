@@ -23,10 +23,71 @@
             required: false
             default: false
             type: boolean
+          run_android:
+            description: 'manually run android build'
+            required: false
+            default: false
+            type: boolean
+          run_windows:
+            description: 'manually run windows build'
+            required: false
+            default: false
+            type: boolean
+          run_ios:
+            description: 'manually run ios build'
+            required: false
+            default: false
+            type: boolean
+          run_macos:
+            description: 'manually run macos build'
+            required: false
+            default: false
+            type: boolean
+          run_linux:
+            description: 'manually run linux build'
+            required: false
+            default: false
+            type: boolean
     
     jobs:
+      changes:
+        runs-on: "ubuntu-latest"
+        permissions:
+          pull-requests: read
+        outputs:
+          android: ${{ steps.filter.outputs.android }}
+          windows: ${{ steps.filter.outputs.windows }}
+          ios: ${{ steps.filter.outputs.ios }}
+          macos: ${{ steps.filter.outputs.macos }}
+          linux: ${{ steps.filter.outputs.linux }}
+          all: ${{ steps.filter.outputs.all }}
+        steps:
+          - uses: actions/checkout@v4
+          - uses: dorny/paths-filter@v3
+            id: filter
+            with:
+              filters: |
+                android:
+                  - 'android/**'
+                windows:
+                  - 'windows/**'
+                ios:
+                  - 'ios/**'
+                macos:
+                  - 'macos/**'
+                linux:
+                  - 'linux/**'
+                all:
+                  - '!android/**'
+                  - '!windows/**'
+                  - '!ios/**'
+                  - '!macos/**'
+                  - '!linux/**'
+
+
       flutter-build-android:
-        if: github.event.pull_request.draft == false
+        needs: changes
+        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_android) && (needs.changes.outputs.android || needs.changes.outputs.all) }}
         name: "Release for android"
         runs-on: "ubuntu-latest"
         permissions: write-all
@@ -65,7 +126,8 @@
               path: Kazumi_android_*.apk
 
       flutter-build-windows:
-        if: github.event.pull_request.draft == false
+        needs: changes
+        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_windows) && (needs.changes.outputs.windows || needs.changes.outputs.all) }}
         name: "Release for windows"
         runs-on: "windows-latest"
         permissions: write-all
@@ -143,7 +205,8 @@
 
 
       flutter-build-ios:
-        if: github.event.pull_request.draft == false
+        needs: changes
+        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_ios) && (needs.changes.outputs.ios || needs.changes.outputs.all) }}
         name: "Release for iOS"
         runs-on: "macos-latest"
         permissions: write-all
@@ -172,7 +235,8 @@
               path: Kazumi_ios_*.ipa
 
       flutter-build-macos:
-        if: github.event.pull_request.draft == false
+        needs: changes
+        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_macos) && (needs.changes.outputs.macos || needs.changes.outputs.all) }}
         name: "Release for Macos"
         runs-on: "macos-latest"
         permissions: write-all
@@ -200,7 +264,8 @@
               path: Kazumi_macos_*.dmg
 
       flutter-build-linux:
-        if: github.event.pull_request.draft == false
+        needs: changes
+        if: ${{ (! github.event.pull_request.draft || github.event.inputs.run_linux) && (needs.changes.outputs.linux || needs.changes.outputs.all) }}
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 
         permissions: write-all

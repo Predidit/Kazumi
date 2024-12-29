@@ -3,11 +3,19 @@
 
     on:
       pull_request:
-        types: [opened, synchronize, reopened]
+        types:
+          - opened
+          - synchronize
+          - reopened
+          - ready_for_review
+        paths-ignore:
+          - 'static/**'
+          - 'README.md'
+          - '.gitignore'
       workflow_dispatch:
         inputs:
           logLevel:
-            description: 'Log level'     
+            description: 'Log level'
             required: true
             default: 'warning'
           signpath_sign:
@@ -18,8 +26,9 @@
     
     jobs:
       flutter-build-android:
+        if: github.event.pull_request.draft == false
         name: "Release for android"
-        runs-on: "ubuntu-latest" 
+        runs-on: "ubuntu-latest"
         permissions: write-all
         steps:
           - name: Clone repository
@@ -56,6 +65,7 @@
               path: Kazumi_android_*.apk
 
       flutter-build-windows:
+        if: github.event.pull_request.draft == false
         name: "Release for windows"
         runs-on: "windows-latest"
         permissions: write-all
@@ -133,6 +143,7 @@
 
 
       flutter-build-ios:
+        if: github.event.pull_request.draft == false
         name: "Release for iOS"
         runs-on: "macos-latest"
         permissions: write-all
@@ -161,6 +172,7 @@
               path: Kazumi_ios_*.ipa
 
       flutter-build-macos:
+        if: github.event.pull_request.draft == false
         name: "Release for Macos"
         runs-on: "macos-latest"
         permissions: write-all
@@ -188,6 +200,7 @@
               path: Kazumi_macos_*.dmg
 
       flutter-build-linux:
+        if: github.event.pull_request.draft == false
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 
         permissions: write-all

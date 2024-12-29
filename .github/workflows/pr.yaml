@@ -51,6 +51,7 @@
     
     jobs:
       changes:
+        if: ${{ ! github.event.pull_request.draft }}
         runs-on: "ubuntu-latest"
         permissions:
           pull-requests: read

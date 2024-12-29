@@ -3,11 +3,19 @@
 
     on:
       pull_request:
-        types: [opened, synchronize, reopened]
+        types:
+          - opened
+          - synchronize
+          - reopened
+          - ready_for_review
+        paths-ignore:
+          - 'static/**'
+          - 'README.md'
+          - '.gitignore'
       workflow_dispatch:
         inputs:
           logLevel:
-            description: 'Log level'     
+            description: 'Log level'
             required: true
             default: 'warning'
           signpath_sign:
@@ -15,11 +23,75 @@
             required: false
             default: false
             type: boolean
+          run_android:
+            description: 'manually run android build'
+            required: false
+            default: false
+            type: boolean
+          run_windows:
+            description: 'manually run windows build'
+            required: false
+            default: false
+            type: boolean
+          run_ios:
+            description: 'manually run ios build'
+            required: false
+            default: false
+            type: boolean
+          run_macos:
+            description: 'manually run macos build'
+            required: false
+            default: false
+            type: boolean
+          run_linux:
+            description: 'manually run linux build'
+            required: false
+            default: false
+            type: boolean
     
     jobs:
+      changes:
+        if: ${{ ! github.event.pull_request.draft }}
+        runs-on: "ubuntu-latest"
+        permissions:
+          pull-requests: read
+        outputs:
+          android: ${{ steps.filter.outputs.android }}
+          windows: ${{ steps.filter.outputs.windows }}
+          ios: ${{ steps.filter.outputs.ios }}
+          macos: ${{ steps.filter.outputs.macos }}
+          linux: ${{ steps.filter.outputs.linux }}
+          all: ${{ steps.filter.outputs.all }}
+        steps:
+          - uses: actions/checkout@v4
+          - uses: dorny/paths-filter@v3
+            id: filter
+            with:
+              predicate-quantifier: 'every'
+              filters: |
+                android:
+                  - 'android/**'
+                windows:
+                  - 'windows/**'
+                ios:
+                  - 'ios/**'
+                macos:
+                  - 'macos/**'
+                linux:
+                  - 'linux/**'
+                all:
+                  - '!android/**'
+                  - '!windows/**'
+                  - '!ios/**'
+                  - '!macos/**'
+                  - '!linux/**'
+
+
       flutter-build-android:
+        needs: changes
+        if: ${{ github.event.inputs.run_android || (! github.event.pull_request.draft && (needs.changes.outputs.android || needs.changes.outputs.all)) }}
         name: "Release for android"
-        runs-on: "ubuntu-latest" 
+        runs-on: "ubuntu-latest"
         permissions: write-all
         steps:
           - name: Clone repository
@@ -56,6 +128,8 @@
               path: Kazumi_android_*.apk
 
       flutter-build-windows:
+        needs: changes
+        if: ${{ github.event.inputs.run_windows || (! github.event.pull_request.draft && (needs.changes.outputs.windows || needs.changes.outputs.all)) }}
         name: "Release for windows"
         runs-on: "windows-latest"
         permissions: write-all
@@ -133,6 +207,8 @@
 
 
       flutter-build-ios:
+        needs: changes
+        if: ${{ github.event.inputs.run_ios || (! github.event.pull_request.draft && (needs.changes.outputs.ios || needs.changes.outputs.all)) }}
         name: "Release for iOS"
         runs-on: "macos-latest"
         permissions: write-all
@@ -161,6 +237,8 @@
               path: Kazumi_ios_*.ipa
 
       flutter-build-macos:
+        needs: changes
+        if: ${{ github.event.inputs.run_macos || (! github.event.pull_request.draft && (needs.changes.outputs.macos || needs.changes.outputs.all)) }}
         name: "Release for Macos"
         runs-on: "macos-latest"
         permissions: write-all
@@ -188,6 +266,8 @@
               path: Kazumi_macos_*.dmg
 
       flutter-build-linux:
+        needs: changes
+        if: ${{ github.event.inputs.run_linux || (! github.event.pull_request.draft && (needs.changes.outputs.linux || needs.changes.outputs.all)) }}
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 
         permissions: write-all

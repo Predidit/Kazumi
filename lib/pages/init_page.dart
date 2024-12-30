@@ -141,13 +141,8 @@ class _InitPageState extends State<InitPage> {
     await pluginsController.queryPluginHTTPList();
     int count = 0;
     for (var plugin in pluginsController.pluginList) {
-      for (var pluginHTTP in pluginsController.pluginHTTPList) {
-        if (plugin.name == pluginHTTP.name) {
-          if (plugin.version != pluginHTTP.version) {
-            count++;
-          }
-          break;
-        }
+      if (pluginsController.pluginUpdateStatus(plugin) == 'updatable') {
+        count++;
       }
     }
     if (count != 0) {

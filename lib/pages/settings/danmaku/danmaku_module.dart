@@ -9,6 +9,6 @@ class DanmakuModule extends Module {
   @override
   void routes(r) {
     r.child("/", child: (_) => const DanmakuSettingsPage());
-    r.child("/source", child: (_) => const DanmakuSourceSettingsPage());
+    // r.child("/source", child: (_) => const DanmakuSourceSettingsPage());
   }
 }

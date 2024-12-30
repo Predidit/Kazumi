@@ -8,8 +8,8 @@ import 'package:adaptive_theme/adaptive_theme.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
-import 'package:kazumi/bean/settings/settings.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -113,180 +113,195 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('外观设置')),
-        body: Column(
-          children: [
-            ListTile(
-              onTap: () async {
-                final List<Map<String, dynamic>> colorThemes = colorThemeTypes;
-                KazumiDialog.show(
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Text('配色方案'),
-                        content: StatefulBuilder(builder:
-                            (BuildContext context, StateSetter setState) {
-                          return Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 22,
-                            runSpacing: 18,
-                            children: [
-                              ...colorThemes.map(
-                                (e) {
-                                  final index = colorThemes.indexOf(e);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      index == 0
-                                          ? resetTheme()
-                                          : setTheme(e['color']);
-                                      KazumiDialog.dismiss();
+        body: Center(
+          child: SizedBox(
+            width: (MediaQuery.of(context).size.width > 800) ? 800 : null,
+            child: SettingsList(
+              sections: [
+                SettingsSection(
+                  title: const Text('外观'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('配色方案'),
+                            content: StatefulBuilder(builder:
+                                (BuildContext context, StateSetter setState) {
+                              final List<Map<String, dynamic>> colorThemes =
+                                  colorThemeTypes;
+                              return Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 22,
+                                runSpacing: 18,
+                                children: [
+                                  ...colorThemes.map(
+                                    (e) {
+                                      final index = colorThemes.indexOf(e);
+                                      return GestureDetector(
+                                        onTap: () {
+                                          index == 0
+                                              ? resetTheme()
+                                              : setTheme(e['color']);
+                                          KazumiDialog.dismiss();
+                                        },
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              width: 46,
+                                              height: 46,
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    e['color'].withOpacity(0.8),
+                                                borderRadius:
+                                                    BorderRadius.circular(50),
+                                                border: Border.all(
+                                                  width: 2,
+                                                  color: e['color']
+                                                      .withOpacity(0.8),
+                                                ),
+                                              ),
+                                              child: AnimatedOpacity(
+                                                opacity: (e['color']
+                                                                .value
+                                                                .toRadixString(
+                                                                    16) ==
+                                                            defaultThemeColor ||
+                                                        (defaultThemeColor ==
+                                                                'default' &&
+                                                            index == 0))
+                                                    ? 1
+                                                    : 0,
+                                                duration: const Duration(
+                                                    milliseconds: 200),
+                                                child: const Icon(
+                                                  Icons.done,
+                                                  color: Colors.black,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              e['label'],
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .outline,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
                                     },
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          width: 46,
-                                          height: 46,
-                                          decoration: BoxDecoration(
-                                            color: e['color'].withOpacity(0.8),
-                                            borderRadius:
-                                                BorderRadius.circular(50),
-                                            border: Border.all(
-                                              width: 2,
-                                              color:
-                                                  e['color'].withOpacity(0.8),
-                                            ),
-                                          ),
-                                          child: AnimatedOpacity(
-                                            opacity: (e['color']
-                                                        .value
-                                                        .toRadixString(16) ==
-                                                    defaultThemeColor ||
-                                                (defaultThemeColor ==
-                                                        'default' &&
-                                                    index == 0))
-                                            ? 1
-                                            : 0,
-                                            duration:
-                                                const Duration(milliseconds: 200),
-                                            child: const Icon(
-                                              Icons.done,
-                                              color: Colors.black,
-                                              size: 20,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          e['label'],
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outline,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              )
-                            ],
+                                  )
+                                ],
+                              );
+                            }),
                           );
-                        }),
-                      );
-                    });
-              },
-              dense: false,
-              title: const Text('配色方案'),
+                        });
+                      },
+                      title: const Text('配色方案'),
+                    ),
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('暗黑模式'),
+                            content: StatefulBuilder(
+                              builder:
+                                  (BuildContext context, StateSetter setState) {
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: Utils.isDesktop() ? 8 : 0,
+                                  children: [
+                                    defaultThemeMode == 'system'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('system');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("跟随系统"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('system');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("跟随系统")),
+                                    defaultThemeMode == 'light'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('light');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("浅色"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('light');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("浅色")),
+                                    defaultThemeMode == 'dark'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('dark');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("深色"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('dark');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("深色")),
+                                  ],
+                                );
+                              },
+                            ),
+                          );
+                        });
+                      },
+                      title: const Text('暗黑模式'),
+                      value: Text(
+                        defaultThemeMode == 'light'
+                            ? '浅色'
+                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                      ),
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        oledEnhance = value ?? !oledEnhance;
+                        await setting.put(
+                            SettingBoxKey.oledEnhance, oledEnhance);
+                        updateOledEnhance();
+                        setState(() {});
+                      },
+                      title: const Text('OLED优化'),
+                      description: const Text('深色模式下使用纯黑背景'),
+                      initialValue: oledEnhance,
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  bottomInfo: const Text('仅安卓可以修改'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      enabled: Platform.isAndroid,
+                      onPressed: (_) async {
+                        Modular.to.pushNamed('/settings/theme/display');
+                      },
+                      title: const Text('屏幕帧率'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Platform.isAndroid
-                ? ListTile(
-                    onTap: () async {
-                      Modular.to.pushNamed('/settings/theme/display');
-                    },
-                    dense: false,
-                    title: const Text('屏幕帧率'),
-                    // trailing: const Icon(Icons.navigate_next),
-                  )
-                : Container(),
-            ListTile(
-              onTap: () {
-                KazumiDialog.show(
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Text('主题模式'),
-                        content: StatefulBuilder(
-                          builder:
-                              (BuildContext context, StateSetter setState) {
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: Utils.isDesktop() ? 8 : 0,
-                              children: [
-                                defaultThemeMode == 'system'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('system');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("跟随系统"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('system');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("跟随系统")),
-                                defaultThemeMode == 'light'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('light');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("浅色"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('light');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("浅色")),
-                                defaultThemeMode == 'dark'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('dark');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("深色"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('dark');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("深色")),
-                              ],
-                            );
-                          },
-                        ),
-                      );
-                    });
-              },
-              dense: false,
-              title: const Text('主题模式'),
-              subtitle: Text(
-                  defaultThemeMode == 'light'
-                      ? '浅色'
-                      : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium!
-                      .copyWith(color: Theme.of(context).colorScheme.outline)),
-            ),
-            InkWell(
-              child: SetSwitchItem(
-                title: 'OLED优化',
-                subTitle: '深色模式下使用纯黑背景',
-                setKey: SettingBoxKey.oledEnhance,
-                callFn: (_) => {updateOledEnhance()},
-                defaultVal: false,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -50,6 +50,10 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   cached_network_image: ^3.4.1
+  card_settings_ui:
+    git:
+      url: https://github.com/ErBWs/card-settings-ui.git
+      ref: main
 
   # fvp: ^0.28.0
   # video_player: ^2.9.1

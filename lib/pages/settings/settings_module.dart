@@ -18,7 +18,7 @@ class SettingsModule extends Module {
       child: (_) => const SetDisplayMode(),
     );
     r.child("/player", child: (_) => const PlayerSettingsPage());
-    r.child("/other", child: (_) => const OtherSettingsPage());
+    // r.child("/other", child: (_) => const OtherSettingsPage());
     r.module("/webdav", module: WebDavModule());
     r.module("/about", module: AboutModule());
     r.module("/plugin", module: PluginModule());

@@ -163,9 +163,7 @@ class KazumiDialogObserver extends NavigatorObserver {
 
   void _removeCurrentSnackBar(Route<dynamic>? route) {
     if (route?.navigator?.context != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(route!.navigator!.context).removeCurrentSnackBar();
-      });
+      ScaffoldMessenger.of(route!.navigator!.context).removeCurrentSnackBar();
     }
   }
 }

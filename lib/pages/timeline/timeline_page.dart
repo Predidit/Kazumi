@@ -82,6 +82,17 @@ class _TimelinePageState extends State<TimelinePage>
     Tab(text: '日'),
   ];
 
+  final seasons = [
+    '秋',
+    '夏',
+    '春',
+    '冬'
+  ];
+
+  String getStringByDateTime(DateTime d){
+    return d.year.toString() + Utils.getSeasonStringByMonth(d.month);
+  }
+
   @override
   Widget build(BuildContext context) {
     return OrientationBuilder(builder: (context, orientation) {
@@ -111,6 +122,15 @@ class _TimelinePageState extends State<TimelinePage>
                       showingTimeMachineDialog = false;
                     },
                     builder: (context) {
+                      var currDate = DateTime.now();
+                      final years = List.generate(20, (index) => currDate.year - index);
+                      List<DateTime> buttons = [];
+                      currDate = DateTime(2026);
+                      for (final i in years){
+                        for (final s in seasons){
+                          buttons.add(generateDateTime(i, s));
+                        }
+                      }
                     return AlertDialog(
                       title: const Text("时间机器"),
                       content: SingleChildScrollView(
@@ -118,68 +138,17 @@ class _TimelinePageState extends State<TimelinePage>
                           spacing: 8,
                           runSpacing: Utils.isCompact() ? 2 : 8,
                           children: [
-                            for (final int i in List.generate(
-                                20, (index) => DateTime.now().year - index))
-                              for (final String selectedSeason in [
-                                '秋',
-                                '夏',
-                                '春',
-                                '冬'
-                              ])
-                                DateTime.now().isAfter(
-                                        generateDateTime(i, selectedSeason))
-                                    ? timelineController.selectedDate ==
-                                            generateDateTime(i, selectedSeason)
+                            for (final date in buttons)
+                                currDate.isAfter(date)
+                                    ? timelineController.selectedDate == date
                                         ? FilledButton(
-                                            onPressed: () async {
-                                              if (timelineController
-                                                      .selectedDate !=
-                                                  generateDateTime(
-                                                      i, selectedSeason)) {
-                                                KazumiDialog.dismiss();
-                                                timelineController
-                                                        .selectedDate =
-                                                    generateDateTime(
-                                                        i, selectedSeason);
-                                                timelineController
-                                                        .seasonString =
-                                                    "加载中 ٩(◦`꒳´◦)۶";
-                                                if (AnimeSeason(
-                                                            timelineController
-                                                                .selectedDate)
-                                                        .toString() ==
-                                                    AnimeSeason(DateTime.now())
-                                                        .toString()) {
-                                                  await timelineController
-                                                      .getSchedules();
-                                                } else {
-                                                  await timelineController
-                                                      .getSchedulesBySeason();
-                                                }
-                                                timelineController
-                                                    .seasonString = AnimeSeason(
-                                                        timelineController
-                                                            .selectedDate)
-                                                    .toString();
-                                              }
-                                            },
-                                            child: Text(i.toString() +
-                                                selectedSeason.toString()),
+                                            onPressed: () {},
+                                            child: Text(getStringByDateTime(date)),
                                           )
                                         : FilledButton.tonal(
                                             onPressed: () async {
-                                              if (timelineController
-                                                      .selectedDate !=
-                                                  generateDateTime(
-                                                      i, selectedSeason)) {
-                                                KazumiDialog.dismiss();
-                                                timelineController
-                                                        .selectedDate =
-                                                    generateDateTime(
-                                                        i, selectedSeason);
-                                                timelineController
-                                                        .seasonString =
-                                                    "加载中 ٩(◦`꒳´◦)۶";
+                                              KazumiDialog.dismiss();
+                                                timelineController.tryEnterSeason(date);
                                                 if (AnimeSeason(
                                                             timelineController
                                                                 .selectedDate)
@@ -197,10 +166,8 @@ class _TimelinePageState extends State<TimelinePage>
                                                         timelineController
                                                             .selectedDate)
                                                     .toString();
-                                              }
                                             },
-                                            child: Text(i.toString() +
-                                                selectedSeason.toString()),
+                                            child: Text(getStringByDateTime(date)),
                                           )
                                     : Container(),
                           ],

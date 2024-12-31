@@ -68,90 +68,116 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            SwitchListTile(
-              title: const Text('内置播放器'),
-              subtitle: const Text('调试时保持禁用'),
-              value: useNativePlayer,
-              onChanged: (bool value) {
-                setState(() {
-                  useNativePlayer = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: versionController,
-              decoration: const InputDecoration(labelText: 'Version'),
-            ),
-            TextField(
-              controller: baseURLController,
-              decoration: const InputDecoration(labelText: 'BaseURL'),
-            ),
-            TextField(
-              controller: searchURLController,
-              decoration: const InputDecoration(labelText: 'SearchURL'),
-            ),
-            TextField(
-              controller: searchListController,
-              decoration: const InputDecoration(labelText: 'SearchList'),
-            ),
-            TextField(
-              controller: searchNameController,
-              decoration: const InputDecoration(labelText: 'SearchName'),
-            ),
-            TextField(
-              controller: searchResultController,
-              decoration: const InputDecoration(labelText: 'SearchResult'),
-            ),
-            TextField(
-              controller: chapterRoadsController,
-              decoration: const InputDecoration(labelText: 'ChapterRoads'),
-            ),
-            TextField(
-              controller: chapterResultController,
-              decoration: const InputDecoration(labelText: 'ChapterResult'),
-            ),
-            const SizedBox(height: 20),
-            ExpansionTile(
-              title: const Text('高级选项'),
+        child: Center(
+          child: SizedBox(
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+            child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('简易解析'),
-                  subtitle: const Text('使用简易解析器而不是现代解析器'),
-                  value: useLegacyParser,
+                  title: const Text('内置播放器'),
+                  subtitle: const Text('调试时保持禁用'),
+                  value: useNativePlayer,
                   onChanged: (bool value) {
                     setState(() {
-                      useLegacyParser = value;
+                      useNativePlayer = value;
                     });
                   },
                 ),
-                SwitchListTile(
-                  title: const Text('POST'),
-                  subtitle: const Text('使用POST而不是GET进行检索'),
-                  value: usePost,
-                  onChanged: (bool value) {
-                    setState(() {
-                      usePost = value;
-                    });
-                  },
-                ),
+                const SizedBox(height: 20),
                 TextField(
-                  controller: userAgentController,
-                  decoration: const InputDecoration(labelText: 'UserAgent'),
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                      labelText: 'Name', border: OutlineInputBorder()),
                 ),
+                const SizedBox(height: 20),
                 TextField(
-                  controller: refererController,
-                  decoration: const InputDecoration(labelText: 'Referer'),
+                  controller: versionController,
+                  decoration: const InputDecoration(
+                      labelText: 'Version', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: baseURLController,
+                  decoration: const InputDecoration(
+                      labelText: 'BaseURL', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: searchURLController,
+                  decoration: const InputDecoration(
+                      labelText: 'SearchURL', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: searchListController,
+                  decoration: const InputDecoration(
+                      labelText: 'SearchList', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: searchNameController,
+                  decoration: const InputDecoration(
+                      labelText: 'SearchName', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: searchResultController,
+                  decoration: const InputDecoration(
+                      labelText: 'SearchResult', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: chapterRoadsController,
+                  decoration: const InputDecoration(
+                      labelText: 'ChapterRoads', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: chapterResultController,
+                  decoration: const InputDecoration(
+                      labelText: 'ChapterResult', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                ExpansionTile(
+                  title: const Text('高级选项'),
+                  children: [
+                    SwitchListTile(
+                      title: const Text('简易解析'),
+                      subtitle: const Text('使用简易解析器而不是现代解析器'),
+                      value: useLegacyParser,
+                      onChanged: (bool value) {
+                        setState(() {
+                          useLegacyParser = value;
+                        });
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text('POST'),
+                      subtitle: const Text('使用POST而不是GET进行检索'),
+                      value: usePost,
+                      onChanged: (bool value) {
+                        setState(() {
+                          usePost = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: userAgentController,
+                      decoration: const InputDecoration(
+                          labelText: 'UserAgent', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: refererController,
+                      decoration: const InputDecoration(
+                          labelText: 'Referer', border: OutlineInputBorder()),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

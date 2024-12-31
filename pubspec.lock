@@ -182,6 +182,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.5"
+  card_settings_ui:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: b050ff751329a290b65e851adb19718e55efc1e2
+      url: "https://github.com/ErBWs/card-settings-ui.git"
+    source: git
+    version: "1.0.0"
   characters:
     dependency: transitive
     description:

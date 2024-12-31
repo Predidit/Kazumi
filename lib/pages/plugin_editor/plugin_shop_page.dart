@@ -41,6 +41,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
         loading = true;
         timeout = false;
       });
+      enableGitProxy =
+          setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
       pluginsController.queryPluginHTTPList().then((_) {
         setState(() {
           loading = false;
@@ -194,7 +196,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         ),
         FilledButton.tonal(
             onPressed: () {
-              Modular.to.pushNamed('/settings/other');
+              Modular.to.pushNamed('/settings/webdav/');
             },
             child: Text(enableGitProxy ? '禁用镜像' : '启用镜像')),
         const SizedBox(

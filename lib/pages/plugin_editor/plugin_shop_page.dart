@@ -41,6 +41,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
         loading = true;
         timeout = false;
       });
+      enableGitProxy =
+          setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
       pluginsController.queryPluginHTTPList().then((_) {
         setState(() {
           loading = false;

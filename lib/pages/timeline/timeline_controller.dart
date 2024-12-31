@@ -39,4 +39,9 @@ abstract class _TimelineController with Store {
       bangumiCalendar.addAll(resBangumiCalendar);
     }
   }
+
+  void tryEnterSeason(DateTime date) {
+    selectedDate = date;
+    seasonString = "加载中 ٩(◦`꒳´◦)۶";
+  }
 }

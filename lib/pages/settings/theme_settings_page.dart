@@ -115,7 +115,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         appBar: const SysAppBar(title: Text('外观设置')),
         body: Center(
           child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 800) ? 800 : null,
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
             child: SettingsList(
               sections: [
                 SettingsSection(
@@ -208,7 +208,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       onPressed: (_) {
                         KazumiDialog.show(builder: (context) {
                           return AlertDialog(
-                            title: const Text('暗黑模式'),
+                            title: const Text('深色模式'),
                             content: StatefulBuilder(
                               builder:
                                   (BuildContext context, StateSetter setState) {
@@ -262,7 +262,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           );
                         });
                       },
-                      title: const Text('暗黑模式'),
+                      title: const Text('深色模式'),
                       value: Text(
                         defaultThemeMode == 'light'
                             ? '浅色'

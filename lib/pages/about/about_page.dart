@@ -130,7 +130,7 @@ class _AboutPageState extends State<AboutPage> {
         // backgroundColor: Colors.transparent,
         body: Center(
           child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 800) ? 800 : null,
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
             child: SettingsList(
               physics: const NeverScrollableScrollPhysics(),
               sections: [

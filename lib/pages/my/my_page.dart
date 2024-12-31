@@ -48,7 +48,7 @@ class _MyPageState extends State<MyPage> {
         appBar: const SysAppBar(title: Text('我的')),
         body: Center(
           child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 800) ? 800 : null,
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
             child: SettingsList(
               sections: [
                 SettingsSection(

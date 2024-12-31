@@ -125,7 +125,6 @@ class _TimelinePageState extends State<TimelinePage>
                       var currDate = DateTime.now();
                       final years = List.generate(20, (index) => currDate.year - index);
                       List<DateTime> buttons = [];
-                      currDate = DateTime(2026);
                       for (final i in years){
                         for (final s in seasons){
                           buttons.add(generateDateTime(i, s));

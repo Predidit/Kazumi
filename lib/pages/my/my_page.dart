@@ -44,7 +44,7 @@ class _MyPageState extends State<MyPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('我的')),
+        appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
         body: ListView(
           children: [
             ListTile(

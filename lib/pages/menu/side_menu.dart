@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/router.dart';
@@ -53,8 +55,10 @@ class _SideMenu extends State<SideMenu> {
                     leading: SizedBox(
                         width: 50,
                         child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: ClipOval(
+                            padding: Platform.isMacOS
+                                ? const EdgeInsets.only(top: 30)
+                                : const EdgeInsets.only(top: 8),
+                            child: ClipOval(
                             child: InkWell(
                               customBorder: const CircleBorder(),
                               onTap: () {

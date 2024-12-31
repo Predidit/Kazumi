@@ -66,6 +66,7 @@ class _CollectPageState extends State<CollectPage>
         },
         child: Scaffold(
           appBar: SysAppBar(
+            needTopOffset: false,
             toolbarHeight: 104,
             bottom: TabBar(
               controller: controller,

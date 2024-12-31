@@ -24,6 +24,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final PreferredSizeWidget? bottom;
 
+  final bool needTopOffset;
+
   const SysAppBar(
       {super.key,
       this.toolbarHeight,
@@ -34,28 +36,26 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.actions,
       this.leading,
       this.leadingWidth,
-      this.bottom});
+      this.bottom,
+      this.needTopOffset = true});
 
   void _handleCloseEvent() {
-    KazumiDialog.show(
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('退出确认'),
-            content: const Text('您想要退出 Kazumi 吗？'),
-            actions: [
-              TextButton(
-                  onPressed: () => exit(0), child: const Text('退出 Kazumi')),
-              TextButton(
-                  onPressed: () {
-                    KazumiDialog.dismiss();
-                    windowManager.hide();
-                  },
-                  child: const Text('最小化至托盘')),
-              const TextButton(
-                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
-            ],
-          );
-        });
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('退出确认'),
+        content: const Text('您想要退出 Kazumi 吗？'),
+        actions: [
+          TextButton(onPressed: () => exit(0), child: const Text('退出 Kazumi')),
+          TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+                windowManager.hide();
+              },
+              child: const Text('最小化至托盘')),
+          const TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
+        ],
+      );
+    });
   }
 
   @override
@@ -66,15 +66,20 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      acs.add(Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: CloseButton(onPressed: () => _handleCloseEvent())));
+      if (!Platform.isMacOS) {
+        acs.add(CloseButton(onPressed: () => _handleCloseEvent()));
+      }
+      acs.add(const SizedBox(width: 8));
     }
-    return GestureDetector(
-      // behavior: HitTestBehavior.translucent,
-      onPanStart: (_) =>
-          (Utils.isDesktop()) ? windowManager.startDragging() : null,
-      child: AppBar(
+    return SafeArea(
+      minimum: (Platform.isMacOS && needTopOffset)
+          ? const EdgeInsets.only(top: 22)
+          : EdgeInsets.zero,
+      child: GestureDetector(
+        // behavior: HitTestBehavior.translucent,
+        onPanStart: (_) =>
+            (Utils.isDesktop()) ? windowManager.startDragging() : null,
+        child: AppBar(
           toolbarHeight: preferredSize.height,
           scrolledUnderElevation: 0.0,
           title: title,
@@ -88,17 +93,28 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           bottom: bottom,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Theme.of(context).brightness ==
-                    Brightness.light
-                ? Brightness.dark
-                : Brightness.light,
+            statusBarIconBrightness:
+                Theme.of(context).brightness == Brightness.light
+                    ? Brightness.dark
+                    : Brightness.light,
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarDividerColor: Colors.transparent,
-          )
           ),
+        ),
+      ),
     );
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+  Size get preferredSize {
+    if (Platform.isMacOS && needTopOffset) {
+      if (toolbarHeight != null) {
+        return Size.fromHeight(toolbarHeight! + 22);
+      } else {
+        return const Size.fromHeight(kToolbarHeight + 22);
+      }
+    } else {
+      return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+    }
+  }
 }

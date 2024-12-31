@@ -60,13 +60,15 @@ class _MyPageState extends State<MyPage> {
                       },
                       leading: const Icon(Icons.history_rounded),
                       title: const Text('历史记录'),
+                      description: const Text('查看播放历史记录'),
                     ),
                     SettingsTile.navigation(
                       onPressed: (_) {
                         Modular.to.pushNamed('/settings/plugin/');
                       },
-                      leading: const Icon(Icons.rule_folder_rounded),
+                      leading: const Icon(Icons.extension),
                       title: const Text('规则管理'),
+                      description: const Text('管理番剧资源规则'),
                     ),
                   ],
                 ),
@@ -79,6 +81,7 @@ class _MyPageState extends State<MyPage> {
                       },
                       leading: const Icon(Icons.display_settings_rounded),
                       title: const Text('播放设置'),
+                      description: const Text('设置播放器相关参数'),
                     ),
                     SettingsTile.navigation(
                       onPressed: (_) {
@@ -86,6 +89,7 @@ class _MyPageState extends State<MyPage> {
                       },
                       leading: const Icon(Icons.subtitles_rounded),
                       title: const Text('弹幕设置'),
+                      description: const Text('设置弹幕相关参数'),
                     ),
                   ],
                 ),
@@ -98,14 +102,15 @@ class _MyPageState extends State<MyPage> {
                       },
                       leading: const Icon(Icons.palette_rounded),
                       title: const Text('外观设置'),
-                      // trailing: const Icon(Icons.navigate_next),
+                      description: const Text('设置应用主题和刷新率'),
                     ),
                     SettingsTile.navigation(
                       onPressed: (_) {
                         Modular.to.pushNamed('/settings/webdav/');
                       },
-                      leading: const Icon(Icons.cloud_circle_rounded),
+                      leading: const Icon(Icons.cloud),
                       title: const Text('同步设置'),
+                      description: const Text('设置同步参数'),
                     ),
                   ],
                 ),

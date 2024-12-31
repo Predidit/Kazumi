@@ -131,7 +131,8 @@ class _PopularPageState extends State<PopularPage>
                             setState(() {
                               showSearchBar = false;
                             });
-                            await popularController.queryBangumiListFeedByTag('');
+                            await popularController
+                                .queryBangumiListFeedByTag('');
                           } else {
                             popularController.setSearchKeyword('');
                             _focusNode.requestFocus();
@@ -176,9 +177,11 @@ class _PopularPageState extends State<PopularPage>
                           onFieldSubmitted: (t) async {
                             popularController.setSearchKeyword(t);
                             if (t != '') {
-                              await popularController.queryBangumi(popularController.searchKeyword);
+                              await popularController.queryBangumi(
+                                  popularController.searchKeyword);
                             } else {
-                              await popularController.queryBangumiListFeedByTag('');
+                              await popularController
+                                  .queryBangumiListFeedByTag('');
                             }
                           },
                         ),
@@ -207,7 +210,9 @@ class _PopularPageState extends State<PopularPage>
                                   top: 0, bottom: 10, left: 0),
                               child: popularController.isLoadingMore
                                   ? const LinearProgressIndicator()
-                                  : Container(),
+                                  : const SizedBox(
+                                      height: 4.0,
+                                    ),
                             ),
                           ),
                         ),
@@ -330,7 +335,8 @@ class _PopularPageState extends State<PopularPage>
                             child: Text(filter),
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
-                              await popularController.queryBangumiListFeedByTag('');
+                              await popularController
+                                  .queryBangumiListFeedByTag('');
                             },
                           )
                         : FilledButton.tonal(
@@ -342,7 +348,8 @@ class _PopularPageState extends State<PopularPage>
                                 popularController.setSearchKeyword('');
                                 showSearchBar = false;
                               });
-                              await popularController.queryBangumiListFeedByTag(filter);
+                              await popularController
+                                  .queryBangumiListFeedByTag(filter);
                             },
                           ),
                   ),

@@ -256,7 +256,7 @@
           - name: Create DMG
             run: |
               mkdir -p build/dist
-              cp -r build/macos/Build/Products/Release/kazumi.app build/dist/
+              cp -a build/macos/Build/Products/Release/kazumi.app build/dist/
               ln -s /Applications build/dist/Applications
               hdiutil create -format UDZO -srcfolder build/dist -volname kazumi Kazumi_macos_canary.dmg
           - name: Upload MacOS build

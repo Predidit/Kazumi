@@ -107,7 +107,8 @@ class _VideoPageState extends State<VideoPage>
         webviewItemController.onVideoLoading.listen((event) {
       videoPageController.loading = event;
     });
-    _videoURLSubscription = webviewItemController.onVideoURLParser.listen((event) {
+    _videoURLSubscription =
+        webviewItemController.onVideoURLParser.listen((event) {
       final (mediaUrl, offset) = event;
       playerController.init(mediaUrl, offset: offset);
     });
@@ -197,104 +198,65 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
+  void onBackPressed(BuildContext context) async {
+    if (videoPageController.isFullscreen && !Utils.isTablet()) {
+      menuJumpToCurrentEpisode();
+      await Utils.exitFullScreen();
+      videoPageController.isFullscreen = false;
+      return;
+    }
+    if (videoPageController.isFullscreen) {
+      Utils.exitFullScreen();
+      videoPageController.isFullscreen = false;
+    }
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
     });
-    return OrientationBuilder(builder: (context, orientation) {
-      if (!Utils.isDesktop()) {
-        if (orientation == Orientation.landscape &&
-            !videoPageController.isFullscreen) {
-          videoPageController.enterFullScreen();
-        } else if (orientation == Orientation.portrait &&
-            videoPageController.isFullscreen) {
-          videoPageController.exitFullScreen();
-          menuJumpToCurrentEpisode();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        debugPrint("checkPoint: didPop: $didPop");
+        if (didPop) {
+          return;
         }
-      }
-      return Observer(builder: (context) {
-        return Scaffold(
-          appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                  videoPageController.isFullscreen)
-              ? null
-              : SysAppBar(
-                  title: Text(videoPageController.title),
-                )),
-          body: SafeArea(
-            top: !videoPageController.isFullscreen,
-            bottom: false, // set iOS and Android navigation bar to immersive
-            left: !videoPageController.isFullscreen,
-            right: !videoPageController.isFullscreen,
-            child: (Utils.isDesktop()) ||
-                    ((Utils.isTablet()) &&
-                        MediaQuery.of(context).size.height <
-                            MediaQuery.of(context).size.width)
-                ? Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      Container(
-                          color: Colors.black,
-                          height: MediaQuery.of(context).size.height,
-                          width: MediaQuery.of(context).size.width,
-                          child: playerBody),
-                      if (videoPageController.showTabBody) ...[
-                        GestureDetector(
-                          onTap: () {
-                            closeTabBodyAnimated();
-                          },
-                          child: Container(
-                            color: Colors.black38,
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
-                        ),
-                        SlideTransition(
-                            position: _rightOffsetAnimation,
-                            child: SizedBox(
-                                height: MediaQuery.of(context).size.height,
-                                width: MediaQuery.of(context).size.width *
-                                            1 /
-                                            3 >
-                                        420
-                                    ? 420
-                                    : MediaQuery.of(context).size.width * 1 / 3,
-                                child: Container(
-                                    color: Theme.of(context).canvasColor,
-                                    child: GridViewObserver(
-                                      controller: observerController,
-                                      child: Column(
-                                        children: [
-                                          tabBar,
-                                          tabBody,
-                                        ],
-                                      ),
-                                    ))))
-                      ]
-                    ],
-                  )
-                : (!videoPageController.isFullscreen)
-                    ? Column(
-                        children: [
-                          Container(
-                              color: Colors.black,
-                              height:
-                                  MediaQuery.of(context).size.width * 9 / 16,
-                              width: MediaQuery.of(context).size.width,
-                              child: playerBody),
-                          Expanded(
-                              child: GridViewObserver(
-                            controller: observerController,
-                            child: Column(
-                              children: [
-                                tabBar,
-                                tabBody,
-                              ],
-                            ),
-                          ))
-                        ],
-                      )
-                    : Stack(alignment: Alignment.centerRight, children: [
+        onBackPressed(context);
+      },
+      child: OrientationBuilder(builder: (context, orientation) {
+        if (!Utils.isDesktop()) {
+          if (orientation == Orientation.landscape &&
+              !videoPageController.isFullscreen) {
+            videoPageController.enterFullScreen();
+          } else if (orientation == Orientation.portrait &&
+              videoPageController.isFullscreen) {
+            videoPageController.exitFullScreen();
+            menuJumpToCurrentEpisode();
+          }
+        }
+        return Observer(builder: (context) {
+          return Scaffold(
+            appBar: ((videoPageController.currentPlugin.useNativePlayer ||
+                    videoPageController.isFullscreen)
+                ? null
+                : SysAppBar(
+                    title: Text(videoPageController.title),
+                  )),
+            body: SafeArea(
+              top: !videoPageController.isFullscreen,
+              bottom: false, // set iOS and Android navigation bar to immersive
+              left: !videoPageController.isFullscreen,
+              right: !videoPageController.isFullscreen,
+              child: (Utils.isDesktop()) ||
+                      ((Utils.isTablet()) &&
+                          MediaQuery.of(context).size.height <
+                              MediaQuery.of(context).size.width)
+                  ? Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
                         Container(
                             color: Colors.black,
                             height: MediaQuery.of(context).size.height,
@@ -315,9 +277,14 @@ class _VideoPageState extends State<VideoPage>
                               position: _rightOffsetAnimation,
                               child: SizedBox(
                                   height: MediaQuery.of(context).size.height,
-                                  width: (Utils.isTablet())
-                                      ? MediaQuery.of(context).size.width / 2
-                                      : MediaQuery.of(context).size.height,
+                                  width: MediaQuery.of(context).size.width *
+                                              1 /
+                                              3 >
+                                          420
+                                      ? 420
+                                      : MediaQuery.of(context).size.width *
+                                          1 /
+                                          3,
                                   child: Container(
                                       color: Theme.of(context).canvasColor,
                                       child: GridViewObserver(
@@ -330,11 +297,71 @@ class _VideoPageState extends State<VideoPage>
                                         ),
                                       ))))
                         ]
-                      ]),
-          ),
-        );
-      });
-    });
+                      ],
+                    )
+                  : (!videoPageController.isFullscreen)
+                      ? Column(
+                          children: [
+                            Container(
+                                color: Colors.black,
+                                height:
+                                    MediaQuery.of(context).size.width * 9 / 16,
+                                width: MediaQuery.of(context).size.width,
+                                child: playerBody),
+                            Expanded(
+                                child: GridViewObserver(
+                              controller: observerController,
+                              child: Column(
+                                children: [
+                                  tabBar,
+                                  tabBody,
+                                ],
+                              ),
+                            ))
+                          ],
+                        )
+                      : Stack(alignment: Alignment.centerRight, children: [
+                          Container(
+                              color: Colors.black,
+                              height: MediaQuery.of(context).size.height,
+                              width: MediaQuery.of(context).size.width,
+                              child: playerBody),
+                          if (videoPageController.showTabBody) ...[
+                            GestureDetector(
+                              onTap: () {
+                                closeTabBodyAnimated();
+                              },
+                              child: Container(
+                                color: Colors.black38,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                            SlideTransition(
+                                position: _rightOffsetAnimation,
+                                child: SizedBox(
+                                    height: MediaQuery.of(context).size.height,
+                                    width: (Utils.isTablet())
+                                        ? MediaQuery.of(context).size.width / 2
+                                        : MediaQuery.of(context).size.height,
+                                    child: Container(
+                                        color: Theme.of(context).canvasColor,
+                                        child: GridViewObserver(
+                                          controller: observerController,
+                                          child: Column(
+                                            children: [
+                                              tabBar,
+                                              tabBody,
+                                            ],
+                                          ),
+                                        ))))
+                          ]
+                        ]),
+            ),
+          );
+        });
+      }),
+    );
   }
 
   Widget get playerBody {
@@ -499,6 +526,7 @@ class _VideoPageState extends State<VideoPage>
                   openMenu: openTabBodyAnimated,
                   locateEpisode: menuJumpToCurrentEpisode,
                   changeEpisode: changeEpisode,
+                  onBackPressed: onBackPressed,
                 ),
         ),
 

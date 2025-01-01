@@ -50,11 +50,11 @@ class _PopularPageState extends State<PopularPage>
     if (popularController.bangumiList.isEmpty) {
       popularController.queryBangumiListFeed();
     }
+    showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
 
   @override
   void dispose() {
-    popularController.setSearchKeyword('');
     _focusNode.dispose();
     scrollController.removeListener(() {});
     super.dispose();
@@ -75,7 +75,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 暂时移除，某些情况下可能 crash
       // scrollController.jumpTo(popularController.scrollOffset);
@@ -135,6 +134,9 @@ class _PopularPageState extends State<PopularPage>
                                 .queryBangumiListFeedByTag('');
                           } else {
                             popularController.setSearchKeyword('');
+                            setState(() {
+                              showSearchBar = true;
+                            });
                             _focusNode.requestFocus();
                           }
                         }
@@ -157,34 +159,7 @@ class _PopularPageState extends State<PopularPage>
                           EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
                       child: Visibility(
                         visible: showSearchBar,
-                        child: TextFormField(
-                          focusNode: _focusNode,
-                          cursorColor: Theme.of(context).colorScheme.primary,
-                          decoration: const InputDecoration(
-                            alignLabelWithHint: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 8),
-                            border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(8)),
-                            ),
-                          ),
-                          style: TextStyle(
-                              color: isLight ? Colors.black87 : Colors.white70),
-                          onChanged: (_) {
-                            scrollController.jumpTo(0.0);
-                          },
-                          onFieldSubmitted: (t) async {
-                            popularController.setSearchKeyword(t);
-                            if (t != '') {
-                              await popularController.queryBangumi(
-                                  popularController.searchKeyword);
-                            } else {
-                              await popularController
-                                  .queryBangumiListFeedByTag('');
-                            }
-                          },
-                        ),
+                        child: searchBar(),
                       ),
                     ),
                   ],
@@ -379,6 +354,38 @@ class _PopularPageState extends State<PopularPage>
         //   ),
         // )
       ],
+    );
+  }
+
+  Widget searchBar(){
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final TextEditingController controller = TextEditingController();
+    controller.text = popularController.searchKeyword;
+    return TextField(
+      controller: controller,
+      focusNode: _focusNode,
+      cursorColor: Theme.of(context).colorScheme.primary,
+      decoration: InputDecoration(
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        labelText: popularController.searchKeyword,
+        alignLabelWithHint: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+      ),
+      style: TextStyle(color: isLight ? Colors.black87 : Colors.white70),
+      onChanged: (_) {
+        scrollController.jumpTo(0.0);
+      },
+      onSubmitted: (t) async {
+        popularController.setSearchKeyword(t);
+        if (t != '') {
+          await popularController.queryBangumi(popularController.searchKeyword);
+        } else {
+          await popularController.queryBangumiListFeedByTag('');
+        }
+      },
     );
   }
 }

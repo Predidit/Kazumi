@@ -130,9 +130,10 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  void _update() {
+  Future<void> _update() async {
     bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
     if (autoUpdate) {
+      await Future.delayed(const Duration(seconds: 1));
       Modular.get<MyController>().checkUpdata(type: 'auto');
     }
   }

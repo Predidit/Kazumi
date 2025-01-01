@@ -42,9 +42,7 @@ class _TimelinePageState extends State<TimelinePage>
           Provider.of<SideNavigationBarState>(context, listen: false);
     }
     if (timelineController.bangumiCalendar.isEmpty) {
-      timelineController.seasonString =
-          AnimeSeason(timelineController.selectedDate).toString();
-      timelineController.getSchedules();
+      timelineController.init();
     }
   }
 
@@ -141,7 +139,8 @@ class _TimelinePageState extends State<TimelinePage>
                           runSpacing: Utils.isCompact() ? 2 : 8,
                           children: [
                             for (final date in buttons)
-                              timelineController.selectedDate == date
+                              Utils.isSameSeason(
+                                      timelineController.selectedDate, date)
                                   ? FilledButton(
                                       onPressed: () {},
                                       child: Text(getStringByDateTime(date)),
@@ -150,11 +149,9 @@ class _TimelinePageState extends State<TimelinePage>
                                       onPressed: () async {
                                         KazumiDialog.dismiss();
                                         timelineController.tryEnterSeason(date);
-                                        if (AnimeSeason(timelineController
-                                                    .selectedDate)
-                                                .toString() ==
-                                            AnimeSeason(DateTime.now())
-                                                .toString()) {
+                                        if (Utils.isSameSeason(
+                                            timelineController.selectedDate,
+                                            currDate)) {
                                           await timelineController
                                               .getSchedules();
                                         } else {

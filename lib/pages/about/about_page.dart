@@ -132,7 +132,6 @@ class _AboutPageState extends State<AboutPage> {
           child: SizedBox(
             width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
             child: SettingsList(
-              physics: const NeverScrollableScrollPhysics(),
               sections: [
                 SettingsSection(
                   tiles: [

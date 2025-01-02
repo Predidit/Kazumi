@@ -66,6 +66,7 @@ abstract class _PopularController with Store {
   }
 
   Future<void> queryBangumi(String keyword) async {
+    currentTag = '';
     isLoadingMore = true;
     var result = await BangumiHTTP.bangumiSearch(keyword);
     bangumiList.clear();

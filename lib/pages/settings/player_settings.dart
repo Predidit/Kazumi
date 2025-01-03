@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -71,6 +72,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       title: const Text('硬件解码'),
                       initialValue: hAenable,
                     ),
+                    SettingsTile.navigation(
+                      onPressed: (value) async {
+                        await Modular.to.pushNamed('/settings/player/decoder');
+                      },
+                      title: const Text('硬件解码器'),
+                      description: const Text('仅在硬件解码启用时生效'),
+                    ),
                     SettingsTile.switchTile(
                       onToggle: (value) async {
                         lowMemoryMode = value ?? !lowMemoryMode;
@@ -99,7 +107,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     SettingsTile.switchTile(
                       onToggle: (value) async {
                         privateMode = value ?? !privateMode;
-                        await setting.put(SettingBoxKey.privateMode, privateMode);
+                        await setting.put(
+                            SettingBoxKey.privateMode, privateMode);
                         setState(() {});
                       },
                       title: const Text('隐身模式'),

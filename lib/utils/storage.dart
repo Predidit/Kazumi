@@ -98,6 +98,7 @@ class GStorage {
 
 class SettingBoxKey {
   static const String hAenable = 'hAenable',
+      hardwareDecoder = 'hardwareDecoder',
       searchEnhanceEnable = 'searchEnhanceEnable',
       autoUpdate = 'autoUpdate',
       alwaysOntop = 'alwaysOntop',

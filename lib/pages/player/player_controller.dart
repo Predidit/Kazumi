@@ -70,6 +70,7 @@ abstract class _PlayerController with Store {
 
   Box setting = GStorage.setting;
   bool hAenable = true;
+  late String hardwareDecoder;
   bool lowMemoryMode = false;
   bool autoPlay = true;
 
@@ -78,7 +79,7 @@ abstract class _PlayerController with Store {
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
     playing = false;
-    loading = true; 
+    loading = true;
     isBuffering = true;
     currentPosition = Duration.zero;
     buffer = Duration.zero;
@@ -87,7 +88,6 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer.dispose();
     } catch (_) {}
-    KazumiLogger().log(Level.info, 'VideoItem开始初始化');
     int episodeFromTitle = 0;
     try {
       episodeFromTitle = Utils.extractEpisodeNumber(videoPageController
@@ -111,9 +111,12 @@ abstract class _PlayerController with Store {
   Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    hardwareDecoder =
+        setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
     autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
+    KazumiLogger().log(Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
@@ -148,6 +151,7 @@ abstract class _PlayerController with Store {
       mediaPlayer,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: hAenable,
+        hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );
@@ -155,7 +159,10 @@ abstract class _PlayerController with Store {
 
     // error handle
     mediaPlayer.stream.error.listen((event) {
-      KazumiDialog.showToast(message: '播放器内部错误 ${event.toString()} $videoUrl', duration: const Duration(seconds: 5), showUndoButton: true);
+      KazumiDialog.showToast(
+          message: '播放器内部错误 ${event.toString()} $videoUrl',
+          duration: const Duration(seconds: 5),
+          showUndoButton: true);
       KazumiLogger().log(
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });
@@ -248,7 +255,7 @@ abstract class _PlayerController with Store {
     } catch (_) {}
   }
 
-  void setForwardTime(int time){
+  void setForwardTime(int time) {
     forwardTime = time;
   }
 }

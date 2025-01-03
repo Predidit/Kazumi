@@ -185,11 +185,10 @@ packages:
   card_settings_ui:
     dependency: "direct main"
     description:
-      path: "."
-      ref: main
-      resolved-ref: b050ff751329a290b65e851adb19718e55efc1e2
-      url: "https://github.com/ErBWs/card-settings-ui.git"
-    source: git
+      name: card_settings_ui
+      sha256: "36bd1bb8e3d18612e2654e722da0f1ed9bc7a412339b906205107ece72b8e14b"
+      url: "https://pub.dev"
+    source: hosted
     version: "1.0.0"
   characters:
     dependency: transitive

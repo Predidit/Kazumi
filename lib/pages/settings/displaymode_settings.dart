@@ -67,36 +67,44 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            if (modes.isEmpty) const Text('Nothing here'),
-            Padding(
-              padding: const EdgeInsets.only(left: 25, top: 10, bottom: 5),
-              child: Text(
-                '没有生效? 重启app试试',
-                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            if (modes.isEmpty)
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: modes.length,
-                itemBuilder: (_, int i) {
-                  final DisplayMode mode = modes[i];
-                  return RadioListTile<DisplayMode>(
-                    value: mode,
-                    title: mode == DisplayMode.auto
-                        ? const Text('自动')
-                        : Text('$mode${mode == active ? "  [系统]" : ""}'),
-                    groupValue: preferred,
-                    onChanged: (DisplayMode? newMode) async {
-                      await FlutterDisplayMode.setPreferredMode(newMode!);
-                      await Future<dynamic>.delayed(
-                        const Duration(milliseconds: 100),
-                      );
-                      await fetchAll();
-                    },
-                  );
-                },
+            if (modes.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 25, top: 10, bottom: 5),
+                child: Text(
+                  '没有生效? 重启app试试',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
               ),
-            ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: modes.length,
+                  itemBuilder: (_, int i) {
+                    final DisplayMode mode = modes[i];
+                    return RadioListTile<DisplayMode>(
+                      value: mode,
+                      title: mode == DisplayMode.auto
+                          ? const Text('自动')
+                          : Text('$mode${mode == active ? "  [系统]" : ""}'),
+                      groupValue: preferred,
+                      onChanged: (DisplayMode? newMode) async {
+                        await FlutterDisplayMode.setPreferredMode(newMode!);
+                        await Future<dynamic>.delayed(
+                          const Duration(milliseconds: 100),
+                        );
+                        await fetchAll();
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -80,12 +81,15 @@ class _InfoPageState extends State<InfoPage>
                 child: Opacity(
                   opacity: 0.2,
                   child: LayoutBuilder(builder: (context, boxConstraints) {
-                    return NetworkImgLayer(
-                      src: infoController.bangumiItem.images['large'] ?? '',
-                      width: boxConstraints.maxWidth,
-                      height: boxConstraints.maxHeight,
-                      fadeInDuration: const Duration(milliseconds: 0),
-                      fadeOutDuration: const Duration(milliseconds: 0),
+                    return ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                      child: NetworkImgLayer(
+                        src: infoController.bangumiItem.images['large'] ?? '',
+                        width: boxConstraints.maxWidth,
+                        height: boxConstraints.maxHeight,
+                        fadeInDuration: const Duration(milliseconds: 0),
+                        fadeOutDuration: const Duration(milliseconds: 0),
+                      ),
                     );
                   }),
                 ),

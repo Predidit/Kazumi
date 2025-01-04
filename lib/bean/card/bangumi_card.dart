@@ -25,7 +25,6 @@ class BangumiCardV extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String heroTag = Utils.makeHeroTag(bangumiItem.id);
     final InfoController infoController = Modular.get<InfoController>();
     final PopularController popularController =
         Modular.get<PopularController>();
@@ -66,17 +65,10 @@ class BangumiCardV extends StatelessWidget {
                   child: LayoutBuilder(builder: (context, boxConstraints) {
                     final double maxWidth = boxConstraints.maxWidth;
                     final double maxHeight = boxConstraints.maxHeight;
-                    return Stack(
-                      children: [
-                        Hero(
-                          tag: heroTag,
-                          child: NetworkImgLayer(
-                            src: bangumiItem.images['large'] ?? '',
-                            width: maxWidth,
-                            height: maxHeight,
-                          ),
-                        ),
-                      ],
+                    return NetworkImgLayer(
+                      src: bangumiItem.images['large'] ?? '',
+                      width: maxWidth,
+                      height: maxHeight,
                     );
                   }),
                 ),

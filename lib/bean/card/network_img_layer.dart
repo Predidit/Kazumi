@@ -16,11 +16,8 @@ class NetworkImgLayer extends StatelessWidget {
     this.type,
     this.fadeOutDuration,
     this.fadeInDuration,
-    // 图片质量 默认1%
     this.quality,
     this.origAspectRatio,
-    this.sigmaX = 0,
-    this.sigmaY = 0,
   });
 
   final String? src;
@@ -31,8 +28,6 @@ class NetworkImgLayer extends StatelessWidget {
   final Duration? fadeInDuration;
   final int? quality;
   final double? origAspectRatio;
-  final double sigmaX;
-  final double sigmaY;
 
   @override
   Widget build(BuildContext context) {
@@ -66,45 +61,35 @@ class NetworkImgLayer extends StatelessWidget {
     }
 
     return src != '' && src != null
-        ? CachedNetworkImage(
-            imageUrl: imageUrl,
-            width: width,
-            height: height,
-            memCacheWidth: memCacheWidth,
-            memCacheHeight: memCacheHeight,
-            fadeOutDuration:
-                fadeOutDuration ?? const Duration(milliseconds: 120),
-            fadeInDuration: fadeInDuration ?? const Duration(milliseconds: 120),
-            errorListener: (e) {
-              KazumiLogger().log(Level.warning, "网络图片加载错误 ${e.toString()}");
-            },
-            errorWidget: (BuildContext context, String url, Object error) =>
-                placeholder(context),
-            placeholder: (BuildContext context, String url) =>
-                placeholder(context),
-            imageBuilder: (context, imageProvider) => Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  filterQuality: FilterQuality.high,
-                  image: imageProvider,
-                  fit: BoxFit.cover,
-                ),
-                borderRadius: BorderRadius.circular(
-                  type == 'avatar'
-                      ? 50
-                      : type == 'emote'
-                          ? 0
-                          : StyleString.imgRadius.x,
-                ),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: sigmaX, sigmaY: sigmaY),
-                child: Container(
-                  color: Colors.transparent,
-                ),
-              ),
+        ? ClipRRect(
+            clipBehavior: Clip.antiAlias,
+            borderRadius: BorderRadius.circular(
+              type == 'avatar'
+                  ? 50
+                  : type == 'emote'
+                      ? 0
+                      : StyleString.imgRadius.x,
             ),
-          )
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              width: width,
+              height: height,
+              memCacheWidth: memCacheWidth,
+              memCacheHeight: memCacheHeight,
+              fit: BoxFit.cover,
+              fadeOutDuration:
+                  fadeOutDuration ?? const Duration(milliseconds: 120),
+              fadeInDuration:
+                  fadeInDuration ?? const Duration(milliseconds: 120),
+              filterQuality: FilterQuality.high,
+              errorListener: (e) {
+                KazumiLogger().log(Level.warning, "网络图片加载错误 ${e.toString()}");
+              },
+              errorWidget: (BuildContext context, String url, Object error) =>
+                  placeholder(context),
+              placeholder: (BuildContext context, String url) =>
+                  placeholder(context),
+            ))
         : placeholder(context);
   }
 

@@ -81,8 +81,6 @@ class _InfoPageState extends State<InfoPage>
                   opacity: 0.2,
                   child: LayoutBuilder(builder: (context, boxConstraints) {
                     return NetworkImgLayer(
-                      sigmaX: 15,
-                      sigmaY: 15,
                       src: infoController.bangumiItem.images['large'] ?? '',
                       width: boxConstraints.maxWidth,
                       height: boxConstraints.maxHeight,

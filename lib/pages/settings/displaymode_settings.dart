@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
 
 class SetDisplayMode extends StatefulWidget {
   const SetDisplayMode({super.key});
@@ -23,6 +24,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
     ..addListener(() {
       page.value = controller.page!.round();
     });
+
   @override
   void initState() {
     super.initState();
@@ -62,50 +64,35 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            if (modes.isEmpty)
-              const Expanded(
-                child: Center(
-                  child: CircularProgressIndicator(),
+      body: Center(
+        child: SizedBox(
+          width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+          child: (modes.isEmpty)
+              ? const CircularProgressIndicator()
+              : SettingsList(
+                  sections: [
+                    SettingsSection(
+                      title: const Text('没有生效? 重启app试试'),
+                      tiles: modes
+                          .map((e) => SettingsTile<DisplayMode>.radioTile(
+                                radioValue: e,
+                                groupValue: preferred,
+                                onChanged: (DisplayMode? newMode) async {
+                                  await FlutterDisplayMode.setPreferredMode(
+                                      newMode!);
+                                  await Future<dynamic>.delayed(
+                                    const Duration(milliseconds: 100),
+                                  );
+                                  await fetchAll();
+                                },
+                                title: e == DisplayMode.auto
+                                    ? const Text('自动')
+                                    : Text('$e${e == active ? "  [系统]" : ""}'),
+                              ))
+                          .toList(),
+                    ),
+                  ],
                 ),
-              ),
-            if (modes.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.only(left: 25, top: 10, bottom: 5),
-                child: Text(
-                  '没有生效? 重启app试试',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: modes.length,
-                  itemBuilder: (_, int i) {
-                    final DisplayMode mode = modes[i];
-                    return RadioListTile<DisplayMode>(
-                      value: mode,
-                      title: mode == DisplayMode.auto
-                          ? const Text('自动')
-                          : Text('$mode${mode == active ? "  [系统]" : ""}'),
-                      groupValue: preferred,
-                      onChanged: (DisplayMode? newMode) async {
-                        await FlutterDisplayMode.setPreferredMode(newMode!);
-                        await Future<dynamic>.delayed(
-                          const Duration(milliseconds: 100),
-                        );
-                        await fetchAll();
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

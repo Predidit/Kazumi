@@ -64,7 +64,7 @@ class _CollectButtonState extends State<CollectButton> {
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
-      tooltip: getTypeStringByInt(collectType),
+      tooltip: '',
       child: widget.withRounder
           ? NonClickableIconButton(
               icon: getIconByInt(collectType),

@@ -27,97 +27,69 @@ class _CollectButtonState extends State<CollectButton> {
     super.initState();
   }
 
+  String getTypeStringByInt(int collectType){
+    switch (collectType) {
+      case 1:
+        return "在看";
+      case 2:
+        return "想看";
+      case 3:
+        return "搁置";
+      case 4:
+        return "看过";
+      case 5:
+        return "抛弃";
+      default:
+        return "未追";
+    }
+  }
+  IconData getIconByInt(int collectType) {
+    switch (collectType) {
+      case 1:
+        return Icons.favorite;
+      case 2:
+        return Icons.star_rounded;
+      case 3:
+        return Icons.pending_actions;
+      case 4:
+        return Icons.done;
+      case 5:
+        return Icons.heart_broken;
+      default:
+        return Icons.favorite_border;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
-      tooltip: '',
+      tooltip: getTypeStringByInt(collectType),
       child: widget.withRounder
           ? NonClickableIconButton(
-              icon: () {
-                switch (collectType) {
-                  case 1:
-                    return Icons.favorite;
-                  case 2:
-                    return Icons.star_rounded;
-                  case 3:
-                    return Icons.pending_actions;
-                  case 4:
-                    return Icons.done;
-                  case 5:
-                    return Icons.heart_broken;
-                  default:
-                    return Icons.favorite_border;
-                }
-              }(),
+              icon: getIconByInt(collectType),
             )
           : Padding(
               padding: const EdgeInsets.all(8.0),
               child: Icon(
-                () {
-                  switch (collectType) {
-                    case 1:
-                      return Icons.favorite;
-                    case 2:
-                      return Icons.star_rounded;
-                    case 3:
-                      return Icons.pending_actions;
-                    case 4:
-                      return Icons.done;
-                    case 5:
-                      return Icons.heart_broken;
-                    default:
-                      return Icons.favorite_border;
-                  }
-                }(),
+                getIconByInt(collectType),
                 color: Colors.white,
               ),
             ),
       itemBuilder: (context) {
-        return const [
-          PopupMenuItem(
-            value: 0,
+        return List.generate(
+          6,
+          (i) => PopupMenuItem(
+            value: i,
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.favorite_border), Text(" 未追")],
+              children: [
+                Icon(getIconByInt(i)),
+                Text(' ${getTypeStringByInt(i)}'),
+              ],
             ),
           ),
-          PopupMenuItem(
-            value: 1,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.favorite), Text(" 在看")],
-            ),
-          ),
-          PopupMenuItem(
-            value: 2,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.star_rounded), Text(" 想看")],
-            ),
-          ),
-          PopupMenuItem(
-            value: 3,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.pending_actions), Text(" 搁置")],
-            ),
-          ),
-          PopupMenuItem(
-            value: 4,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.done), Text(" 看过")],
-            ),
-          ),
-          PopupMenuItem(
-            value: 5,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [Icon(Icons.heart_broken), Text(" 抛弃")],
-            ),
-          ),
-        ];
+        );
       },
       onSelected: (value) {
         if (value != collectType && mounted) {

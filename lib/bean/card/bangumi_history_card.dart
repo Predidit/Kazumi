@@ -58,6 +58,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                   if (plugin.name == widget.historyItem.adapterName) {
                     videoPageController.currentPlugin = plugin;
                     flag = true;
+                    break;
                   }
                 }
                 if (!flag) {

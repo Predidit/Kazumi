@@ -158,7 +158,10 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
                 Column(
                   children: [
-                    CollectButton(bangumiItem: widget.historyItem.bangumiItem),
+                    CollectButton(
+                      bangumiItem: widget.historyItem.bangumiItem,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
                     widget.showDelete
                         ? IconButton(
                             icon: Icon(

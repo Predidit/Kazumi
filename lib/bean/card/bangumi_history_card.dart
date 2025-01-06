@@ -162,20 +162,18 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                       bangumiItem: widget.historyItem.bangumiItem,
                       color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
-                    widget.showDelete
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.delete,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSecondaryContainer,
-                            ),
-                            onPressed: () {
-                              historyController
-                                  .deleteHistory(widget.historyItem);
-                            },
-                          )
-                        : Container(),
+                    if (widget.showDelete)
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                        onPressed: () {
+                          historyController.deleteHistory(widget.historyItem);
+                        },
+                      )
                   ],
                 ),
               ],

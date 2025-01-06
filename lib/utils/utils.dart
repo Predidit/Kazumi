@@ -406,6 +406,10 @@ class Utils {
     return !isDesktop() && !isWideScreen();
   }
 
+  static bool isPC(){
+    return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  }
+
   /// 判断是否分屏模式 (android only)
   static Future<bool> isInMultiWindowMode() async {
     if (Platform.isAndroid) {

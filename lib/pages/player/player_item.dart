@@ -132,27 +132,79 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  void _handleTap() {
-    if (!showPositioned) {
-      _animationController.forward();
-      hideTimer?.cancel();
-      startHideTimer();
-    } else {
-      _animationController.reverse();
-      hideTimer?.cancel();
-    }
+  void play() {
+    playerController.play();
+    playerTimer = getPlayerTimer();
+  }
+  
+  void pause(){
+    playerController.pause();
+    playerTimer?.cancel();
+  }
+
+  void playOrPause() {
+    playerController.playing ? pause() : play();
+  }
+
+  void showAnimationController(){
+    _animationController.forward();
+    hideTimer?.cancel();
+    startHideTimer();
     setState(() {
-      showPositioned = !showPositioned;
+      showPositioned = true;
     });
+  }
+
+  void hideAnimationController(){
+    _animationController.reverse();
+    hideTimer?.cancel();
+    setState(() {
+      showPositioned = false;
+    });
+  }
+
+  void enterOrExitFullScreen() {
+    _handleFullscreenChange(context);
+    if (videoPageController.isFullscreen) {
+      Utils.exitFullScreen();
+      widget.locateEpisode();
+    } else {
+      Utils.enterFullScreen();
+      videoPageController.showTabBody = false;
+    }
+    videoPageController.isFullscreen = !videoPageController.isFullscreen;
+  }
+
+  void _handleTap() {
+    if (Utils.isPC()) {
+      playOrPause();
+    } else {
+      if (showPositioned) {
+        hideAnimationController();
+      } else {
+        showAnimationController();
+      }
+    }
+  }
+
+  void _handleDoubleTap(){
+    if (Utils.isPC()) {
+      enterOrExitFullScreen();
+    } else {
+      if (!showPositioned) {
+        showAnimationController();
+      }
+      if (lockPanel) {
+        return;
+      }
+      playOrPause();
+    }
   }
 
   void _handleHove() {
     if (!showPositioned) {
-      _animationController.forward();
+      showAnimationController();
     }
-    setState(() {
-      showPositioned = true;
-    });
     hideTimer?.cancel();
     startHideTimer();
   }
@@ -341,15 +393,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreen() {
-    _handleFullscreenChange(context);
-    if (videoPageController.isFullscreen) {
-      Utils.exitFullScreen();
-      widget.locateEpisode();
-    } else {
-      Utils.enterFullScreen();
-      videoPageController.showTabBody = false;
-    }
-    videoPageController.isFullscreen = !videoPageController.isFullscreen;
+    enterOrExitFullScreen();
   }
 
   void _handleDanmaku() {
@@ -724,7 +768,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     playSpeedList = defaultPlaySpeedList;
-    _handleTap();
+    showAnimationController();
   }
 
   @override
@@ -792,7 +836,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.space) {
                                   try {
-                                    playerController.playOrPause();
+                                    playOrPause();
                                   } catch (e) {
                                     KazumiLogger().log(
                                         Level.error, '播放器内部错误 ${e.toString()}');
@@ -917,17 +961,7 @@ class _PlayerItemState extends State<PlayerItem>
                         _handleTap();
                       },
                       onDoubleTap: () {
-                        if (!showPositioned) {
-                          _handleTap();
-                        }
-                        if (lockPanel) {
-                          return;
-                        }
-                        if (playerController.playing) {
-                          playerController.pause();
-                        } else {
-                          playerController.play();
-                        }
+                        _handleDoubleTap();
                       },
                       onLongPressStart: (_) {
                         if (lockPanel) {
@@ -1022,8 +1056,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 setState(() {
                                   showPosition = true;
                                 });
-                                playerTimer?.cancel();
-                                playerController.pause();
+                                pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
                                 playerController.currentPosition = Duration(
@@ -1392,7 +1425,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 icon: const Icon(Icons.comment),
                                 onPressed: () {
                                   bool needRestart = playerController.playing;
-                                  playerController.pause();
+                                  pause();
                                   episodeNum = Utils.extractEpisodeNumber(
                                       videoPageController
                                               .roadList[videoPageController
@@ -1501,7 +1534,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   }
                                   if (value == 3) {
                                     bool needRestart = playerController.playing;
-                                    playerController.pause();
+                                    pause();
                                     RemotePlay()
                                         .castVideo(
                                             context,
@@ -1537,11 +1570,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ? Icons.pause
                                     : Icons.play_arrow),
                                 onPressed: () {
-                                  if (playerController.playing) {
-                                    playerController.pause();
-                                  } else {
-                                    playerController.play();
-                                  }
+                                  playOrPause();
                                 },
                               ),
                               // 更换选集
@@ -1590,8 +1619,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     playerController.seek(duration);
                                   },
                                   onDragStart: (details) {
-                                    playerTimer?.cancel();
-                                    playerController.pause();
+                                    pause();
                                     hideTimer?.cancel();
                                     setState(() {
                                       showPositioned = true;

@@ -161,7 +161,12 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     CollectButton(bangumiItem: widget.historyItem.bangumiItem),
                     widget.showDelete
                         ? IconButton(
-                            icon: const Icon(Icons.delete),
+                            icon: Icon(
+                              Icons.delete,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
+                            ),
                             onPressed: () {
                               historyController
                                   .deleteHistory(widget.historyItem);

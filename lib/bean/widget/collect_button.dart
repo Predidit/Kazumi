@@ -65,7 +65,8 @@ class _CollectButtonState extends State<CollectButton> {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
       tooltip: '',
-      child: widget.withRounder
+      padding: const EdgeInsets.all(0),
+      icon: widget.withRounder
           ? NonClickableIconButton(
               icon: getIconByInt(collectType),
             )
@@ -127,7 +128,7 @@ class NonClickableIconButton extends StatelessWidget {
         color: effectiveBackgroundColor,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: effectiveIconColor),
+      child: Icon(icon),
     );
   }
 }

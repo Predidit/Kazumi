@@ -6,6 +6,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 class CollectButton extends StatefulWidget {
   const CollectButton(
       {super.key, required this.bangumiItem, this.withRounder = true});
+
   final BangumiItem bangumiItem;
   final bool withRounder;
 
@@ -27,7 +28,7 @@ class _CollectButtonState extends State<CollectButton> {
     super.initState();
   }
 
-  String getTypeStringByInt(int collectType){
+  String getTypeStringByInt(int collectType) {
     switch (collectType) {
       case 1:
         return "在看";
@@ -43,6 +44,7 @@ class _CollectButtonState extends State<CollectButton> {
         return "未追";
     }
   }
+
   IconData getIconByInt(int collectType) {
     switch (collectType) {
       case 1:
@@ -65,16 +67,14 @@ class _CollectButtonState extends State<CollectButton> {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
       tooltip: '',
-      child: widget.withRounder
-          ? NonClickableIconButton(
-              icon: getIconByInt(collectType),
+      icon: widget.withRounder
+          ? Icon(
+              getIconByInt(collectType),
+              color: Theme.of(context).colorScheme.onSecondaryContainer,
             )
-          : Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Icon(
-                getIconByInt(collectType),
-                color: Colors.white,
-              ),
+          : Icon(
+              getIconByInt(collectType),
+              color: Colors.white,
             ),
       itemBuilder: (context) {
         return List.generate(
@@ -97,37 +97,6 @@ class _CollectButtonState extends State<CollectButton> {
           setState(() {});
         }
       },
-    );
-  }
-}
-
-class NonClickableIconButton extends StatelessWidget {
-  final IconData icon;
-  final Color? iconColor;
-  final Color? backgroundColor;
-  final double padding;
-
-  const NonClickableIconButton({
-    super.key,
-    required this.icon,
-    this.iconColor,
-    this.backgroundColor,
-    this.padding = 8.0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color effectiveBackgroundColor =
-        backgroundColor ?? Theme.of(context).colorScheme.secondaryContainer;
-    final Color effectiveIconColor =
-        iconColor ?? Theme.of(context).colorScheme.onSecondaryContainer;
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: effectiveBackgroundColor,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: effectiveIconColor),
     );
   }
 }

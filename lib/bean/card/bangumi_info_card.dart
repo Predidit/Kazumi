@@ -50,10 +50,19 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         fadeOutDuration: const Duration(milliseconds: 0),
                       ),
                       Positioned(
-                          right: 5,
-                          bottom: 5,
-                          child:
-                              CollectButton(bangumiItem: widget.bangumiItem)),
+                        right: 5,
+                        bottom: 5,
+                        child: Container(
+                            // padding: EdgeInsets.all(padding),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child:
+                                CollectButton(bangumiItem: widget.bangumiItem)),
+                      ),
                     ],
                   );
                 }),

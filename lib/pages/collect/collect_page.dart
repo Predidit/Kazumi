@@ -149,10 +149,19 @@ class _CollectPageState extends State<CollectPage>
                               right: 5,
                               bottom: 5,
                               child: showDelete
-                                  ? CollectButton(
-                                      bangumiItem:
-                                          collectedBangumiRenderItem[index]
-                                              .bangumiItem)
+                                  ? Container(
+                                      // padding: EdgeInsets.all(padding),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: CollectButton(
+                                          bangumiItem:
+                                              collectedBangumiRenderItem[index]
+                                                  .bangumiItem),
+                                    )
                                   : Container(),
                             ),
                           ],

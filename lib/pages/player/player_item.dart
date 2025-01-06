@@ -858,12 +858,8 @@ class _PlayerItemState extends State<PlayerItem>
                                     targetPosition = 0;
                                   }
                                   try {
-                                    playerTimer?.cancel();
-                                    playerController.currentPosition =
-                                        Duration(seconds: targetPosition);
-                                    playerController
-                                        .seek(playerController.currentPosition);
-                                    playerTimer = getPlayerTimer();
+                                    playerController.seek(
+                                        Duration(seconds: targetPosition));
                                   } catch (e) {
                                     KazumiLogger()
                                         .log(Level.error, e.toString());
@@ -928,16 +924,10 @@ class _PlayerItemState extends State<PlayerItem>
                                     _setPlaybackSpeed(lastPlayerSpeed);
                                   } else {
                                     try {
-                                      playerTimer?.cancel();
-                                      playerController.currentPosition =
-                                          Duration(
-                                              seconds: playerController
-                                                      .currentPosition
-                                                      .inSeconds +
-                                                  10);
-                                      playerController.seek(
-                                          playerController.currentPosition);
-                                      playerTimer = getPlayerTimer();
+                                      playerController.seek(Duration(
+                                          seconds: playerController
+                                                  .currentPosition.inSeconds +
+                                              10));
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
                                           '播放器内部错误 ${e.toString()}');
@@ -1059,22 +1049,16 @@ class _PlayerItemState extends State<PlayerItem>
                                 pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                playerController.currentPosition = Duration(
-                                    milliseconds: playerController
-                                                    .currentPosition
-                                                    .inMilliseconds +
-                                                (details.delta.dx * scale)
-                                                    .round() <
-                                            0
-                                        ? 0
-                                        : playerController.currentPosition
-                                                .inMilliseconds +
-                                            (details.delta.dx * scale).round());
+                                var ms = playerController
+                                        .currentPosition.inMilliseconds +
+                                    (details.delta.dx * scale).round();
+                                ms = ms > 0 ? ms : 0;
+                                playerController.currentPosition =
+                                    Duration(milliseconds: ms);
                               }, onHorizontalDragEnd: (DragEndDetails details) {
-                                playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
-                                playerTimer = getPlayerTimer();
+                                play();
                                 setState(() {
                                   showPosition = false;
                                 });
@@ -1615,7 +1599,6 @@ class _PlayerItemState extends State<PlayerItem>
                                   buffered: playerController.buffer,
                                   total: playerController.duration,
                                   onSeek: (duration) {
-                                    playerController.currentPosition = duration;
                                     playerController.seek(duration);
                                   },
                                   onDragStart: (details) {
@@ -1630,9 +1613,8 @@ class _PlayerItemState extends State<PlayerItem>
                                         details.timeStamp
                                   },
                                   onDragEnd: () {
-                                    playerController.play();
                                     startHideTimer();
-                                    playerTimer = getPlayerTimer();
+                                    play();
                                   },
                                 ),
                               ),

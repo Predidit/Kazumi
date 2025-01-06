@@ -1447,8 +1447,7 @@ class _PlayerItemState extends State<PlayerItem>
                               ),
                               // 追番
                               CollectButton(
-                                  bangumiItem: infoController.bangumiItem,
-                                  withRounder: false),
+                                  bangumiItem: infoController.bangumiItem),
                               PopupMenuButton(
                                 tooltip: '',
                                 icon: const Icon(

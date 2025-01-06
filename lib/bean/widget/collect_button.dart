@@ -5,10 +5,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 class CollectButton extends StatefulWidget {
   const CollectButton(
-      {super.key, required this.bangumiItem, this.withRounder = true});
+      {super.key, required this.bangumiItem, this.color = Colors.white});
 
   final BangumiItem bangumiItem;
-  final bool withRounder;
+  final Color color;
 
   @override
   State<CollectButton> createState() => _CollectButtonState();
@@ -67,15 +67,10 @@ class _CollectButtonState extends State<CollectButton> {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return PopupMenuButton(
       tooltip: '',
-      icon: widget.withRounder
-          ? Icon(
-              getIconByInt(collectType),
-              color: Theme.of(context).colorScheme.onSecondaryContainer,
-            )
-          : Icon(
-              getIconByInt(collectType),
-              color: Colors.white,
-            ),
+      icon: Icon(
+        getIconByInt(collectType),
+        color: widget.color,
+      ),
       itemBuilder: (context) {
         return List.generate(
           6,

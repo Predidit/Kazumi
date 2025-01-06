@@ -53,15 +53,20 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         right: 5,
                         bottom: 5,
                         child: Container(
-                            // padding: EdgeInsets.all(padding),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
-                              shape: BoxShape.circle,
-                            ),
-                            child:
-                                CollectButton(bangumiItem: widget.bangumiItem)),
+                          // padding: EdgeInsets.all(padding),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: CollectButton(
+                            bangumiItem: widget.bangumiItem,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer,
+                          ),
+                        ),
                       ),
                     ],
                   );

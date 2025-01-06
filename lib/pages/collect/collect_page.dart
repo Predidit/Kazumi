@@ -158,9 +158,13 @@ class _CollectPageState extends State<CollectPage>
                                         shape: BoxShape.circle,
                                       ),
                                       child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem),
+                                        bangumiItem:
+                                            collectedBangumiRenderItem[index]
+                                                .bangumiItem,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                      ),
                                     )
                                   : Container(),
                             ),

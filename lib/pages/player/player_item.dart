@@ -68,6 +68,7 @@ class _PlayerItemState extends State<PlayerItem>
   final CollectController collectController = Modular.get<CollectController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
+
   // 1. 在看
   // 2. 想看
   // 3. 搁置
@@ -78,8 +79,8 @@ class _PlayerItemState extends State<PlayerItem>
   late bool haEnable;
 
   // 界面管理
-  bool showPositioned = false;
-  bool showPosition = false;
+  bool showVideoController = false;
+  bool showSeekTime = false;
   bool showBrightness = false;
   bool showVolume = false;
   bool showPlaySpeed = false;
@@ -132,29 +133,55 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  void _handleTap() {
-    if (!showPositioned) {
-      _animationController.forward();
-      hideTimer?.cancel();
-      startHideTimer();
-    } else {
-      _animationController.reverse();
-      hideTimer?.cancel();
-    }
+  void displayVideoController() {
+    _animationController.forward();
+    hideTimer?.cancel();
+    startHideTimer();
     setState(() {
-      showPositioned = !showPositioned;
+      showVideoController = true;
     });
   }
 
-  void _handleHove() {
-    if (!showPositioned) {
-      _animationController.forward();
-    }
-    setState(() {
-      showPositioned = true;
-    });
+  void hideVideoController() {
+    _animationController.reverse();
     hideTimer?.cancel();
-    startHideTimer();
+    setState(() {
+      showVideoController = false;
+    });
+  }
+
+  void _handleTap() {
+    if (Utils.isDesktop()) {
+      playerController.playOrPause();
+    } else {
+      if (showVideoController) {
+        hideVideoController();
+      } else {
+        displayVideoController();
+      }
+    }
+  }
+
+  void _handleDoubleTap() {
+    if (Utils.isDesktop()) {
+      _handleFullscreen();
+    } else {
+      if (showVideoController) {
+        hideVideoController();
+      } else {
+        displayVideoController();
+      }
+      if (lockPanel) {
+        return;
+      }
+      playerController.playOrPause();
+    }
+  }
+
+  void _handleHove() {
+    if (!showVideoController) {
+      displayVideoController();
+    }
   }
 
   void _handleMouseScroller() {
@@ -724,7 +751,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     playSpeedList = defaultPlaySpeedList;
-    _handleTap();
+    displayVideoController();
   }
 
   @override
@@ -752,7 +779,7 @@ class _PlayerItemState extends State<PlayerItem>
           child: Container(
             color: Colors.black,
             child: MouseRegion(
-              cursor: (videoPageController.isFullscreen && !showPositioned)
+              cursor: (videoPageController.isFullscreen && !showVideoController)
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (_) {
@@ -815,10 +842,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   }
                                   try {
                                     playerTimer?.cancel();
-                                    playerController.currentPosition =
-                                        Duration(seconds: targetPosition);
-                                    playerController
-                                        .seek(playerController.currentPosition);
+                                    playerController.seek(
+                                        Duration(seconds: targetPosition));
                                     playerTimer = getPlayerTimer();
                                   } catch (e) {
                                     KazumiLogger()
@@ -885,14 +910,10 @@ class _PlayerItemState extends State<PlayerItem>
                                   } else {
                                     try {
                                       playerTimer?.cancel();
-                                      playerController.currentPosition =
-                                          Duration(
-                                              seconds: playerController
-                                                      .currentPosition
-                                                      .inSeconds +
-                                                  10);
-                                      playerController.seek(
-                                          playerController.currentPosition);
+                                      playerController.seek(Duration(
+                                          seconds: playerController
+                                                  .currentPosition.inSeconds +
+                                              10));
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
@@ -917,17 +938,7 @@ class _PlayerItemState extends State<PlayerItem>
                         _handleTap();
                       },
                       onDoubleTap: () {
-                        if (!showPositioned) {
-                          _handleTap();
-                        }
-                        if (lockPanel) {
-                          return;
-                        }
-                        if (playerController.playing) {
-                          playerController.pause();
-                        } else {
-                          playerController.play();
-                        }
+                        _handleDoubleTap();
                       },
                       onLongPressStart: (_) {
                         if (lockPanel) {
@@ -1020,30 +1031,25 @@ class _PlayerItemState extends State<PlayerItem>
                             : GestureDetector(onHorizontalDragUpdate:
                                 (DragUpdateDetails details) {
                                 setState(() {
-                                  showPosition = true;
+                                  showSeekTime = true;
                                 });
                                 playerTimer?.cancel();
                                 playerController.pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                playerController.currentPosition = Duration(
-                                    milliseconds: playerController
-                                                    .currentPosition
-                                                    .inMilliseconds +
-                                                (details.delta.dx * scale)
-                                                    .round() <
-                                            0
-                                        ? 0
-                                        : playerController.currentPosition
-                                                .inMilliseconds +
-                                            (details.delta.dx * scale).round());
+                                var ms = playerController
+                                        .currentPosition.inMilliseconds +
+                                    (details.delta.dx * scale).round();
+                                ms = ms > 0 ? ms : 0;
+                                playerController.currentPosition =
+                                    Duration(milliseconds: ms);
                               }, onHorizontalDragEnd: (DragEndDetails details) {
                                 playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
                                 playerTimer = getPlayerTimer();
                                 setState(() {
-                                  showPosition = false;
+                                  showSeekTime = false;
                                 });
                               }, onVerticalDragUpdate:
                                 (DragUpdateDetails details) async {
@@ -1108,7 +1114,7 @@ class _PlayerItemState extends State<PlayerItem>
                     // 顶部进度条
                     Positioned(
                         top: 25,
-                        child: showPosition
+                        child: showSeekTime
                             ? Wrap(
                                 alignment: WrapAlignment.center,
                                 children: <Widget>[
@@ -1537,11 +1543,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ? Icons.pause
                                     : Icons.play_arrow),
                                 onPressed: () {
-                                  if (playerController.playing) {
-                                    playerController.pause();
-                                  } else {
-                                    playerController.play();
-                                  }
+                                  playerController.playOrPause();
                                 },
                               ),
                               // 更换选集
@@ -1586,7 +1588,6 @@ class _PlayerItemState extends State<PlayerItem>
                                   buffered: playerController.buffer,
                                   total: playerController.duration,
                                   onSeek: (duration) {
-                                    playerController.currentPosition = duration;
                                     playerController.seek(duration);
                                   },
                                   onDragStart: (details) {
@@ -1594,7 +1595,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     playerController.pause();
                                     hideTimer?.cancel();
                                     setState(() {
-                                      showPositioned = true;
+                                      showVideoController = true;
                                     });
                                   },
                                   onDragUpdate: (details) => {
@@ -1737,7 +1738,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
-          showPositioned = false;
+          showVideoController = false;
         });
         _animationController.reverse();
       }

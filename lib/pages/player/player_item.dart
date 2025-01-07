@@ -133,13 +133,14 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void play() {
-    playerController.play();
+    playerTimer?.cancel();
     playerTimer = getPlayerTimer();
+    playerController.play();
   }
   
   void pause(){
-    playerController.pause();
     playerTimer?.cancel();
+    playerController.pause();
   }
 
   void playOrPause() {
@@ -176,7 +177,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
-    if (Utils.isPC()) {
+    if (Utils.isDesktop()) {
       playOrPause();
     } else {
       if (showPositioned) {
@@ -188,7 +189,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap(){
-    if (Utils.isPC()) {
+    if (Utils.isDesktop()) {
       enterOrExitFullScreen();
     } else {
       if (!showPositioned) {

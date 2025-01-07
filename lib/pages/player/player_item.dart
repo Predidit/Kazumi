@@ -68,6 +68,7 @@ class _PlayerItemState extends State<PlayerItem>
   final CollectController collectController = Modular.get<CollectController>();
   final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
+
   // 1. 在看
   // 2. 想看
   // 3. 搁置
@@ -78,8 +79,8 @@ class _PlayerItemState extends State<PlayerItem>
   late bool haEnable;
 
   // 界面管理
-  bool showPositioned = false;
-  bool showPosition = false;
+  bool showVideoController = false;
+  bool showSeekTime = false;
   bool showBrightness = false;
   bool showVolume = false;
   bool showPlaySpeed = false;
@@ -132,82 +133,55 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  void play() {
-    playerTimer?.cancel();
-    playerTimer = getPlayerTimer();
-    playerController.play();
-  }
-  
-  void pause(){
-    playerTimer?.cancel();
-    playerController.pause();
-  }
-
-  void playOrPause() {
-    playerController.playing ? pause() : play();
-  }
-
-  void showAnimationController(){
+  void displayVideoController() {
     _animationController.forward();
     hideTimer?.cancel();
     startHideTimer();
     setState(() {
-      showPositioned = true;
+      showVideoController = true;
     });
   }
 
-  void hideAnimationController(){
+  void hideVideoController() {
     _animationController.reverse();
     hideTimer?.cancel();
     setState(() {
-      showPositioned = false;
+      showVideoController = false;
     });
-  }
-
-  void enterOrExitFullScreen() {
-    _handleFullscreenChange(context);
-    if (videoPageController.isFullscreen) {
-      Utils.exitFullScreen();
-      widget.locateEpisode();
-    } else {
-      Utils.enterFullScreen();
-      videoPageController.showTabBody = false;
-    }
-    videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
 
   void _handleTap() {
     if (Utils.isDesktop()) {
-      playOrPause();
+      playerController.playOrPause();
     } else {
-      if (showPositioned) {
-        hideAnimationController();
+      if (showVideoController) {
+        hideVideoController();
       } else {
-        showAnimationController();
+        displayVideoController();
       }
     }
   }
 
-  void _handleDoubleTap(){
+  void _handleDoubleTap() {
     if (Utils.isDesktop()) {
-      enterOrExitFullScreen();
+      _handleFullscreen();
     } else {
-      if (!showPositioned) {
-        showAnimationController();
+      if (showVideoController) {
+        hideVideoController();
+      } else {
+        displayVideoController();
       }
       if (lockPanel) {
         return;
       }
-      playOrPause();
+      playerController.playOrPause();
     }
   }
 
   void _handleHove() {
-    if (!showPositioned) {
-      showAnimationController();
+    if (!showVideoController) {
+      displayVideoController();
     }
-    hideTimer?.cancel();
-    startHideTimer();
   }
 
   void _handleMouseScroller() {
@@ -394,7 +368,15 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreen() {
-    enterOrExitFullScreen();
+    _handleFullscreenChange(context);
+    if (videoPageController.isFullscreen) {
+      Utils.exitFullScreen();
+      widget.locateEpisode();
+    } else {
+      Utils.enterFullScreen();
+      videoPageController.showTabBody = false;
+    }
+    videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
 
   void _handleDanmaku() {
@@ -769,7 +751,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     playSpeedList = defaultPlaySpeedList;
-    showAnimationController();
+    displayVideoController();
   }
 
   @override
@@ -797,7 +779,7 @@ class _PlayerItemState extends State<PlayerItem>
           child: Container(
             color: Colors.black,
             child: MouseRegion(
-              cursor: (videoPageController.isFullscreen && !showPositioned)
+              cursor: (videoPageController.isFullscreen && !showVideoController)
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (_) {
@@ -837,7 +819,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.space) {
                                   try {
-                                    playOrPause();
+                                    playerController.playOrPause();
                                   } catch (e) {
                                     KazumiLogger().log(
                                         Level.error, '播放器内部错误 ${e.toString()}');
@@ -859,8 +841,10 @@ class _PlayerItemState extends State<PlayerItem>
                                     targetPosition = 0;
                                   }
                                   try {
+                                    playerTimer?.cancel();
                                     playerController.seek(
                                         Duration(seconds: targetPosition));
+                                    playerTimer = getPlayerTimer();
                                   } catch (e) {
                                     KazumiLogger()
                                         .log(Level.error, e.toString());
@@ -925,10 +909,12 @@ class _PlayerItemState extends State<PlayerItem>
                                     _setPlaybackSpeed(lastPlayerSpeed);
                                   } else {
                                     try {
+                                      playerTimer?.cancel();
                                       playerController.seek(Duration(
                                           seconds: playerController
                                                   .currentPosition.inSeconds +
                                               10));
+                                      playerTimer = getPlayerTimer();
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
                                           '播放器内部错误 ${e.toString()}');
@@ -1045,9 +1031,10 @@ class _PlayerItemState extends State<PlayerItem>
                             : GestureDetector(onHorizontalDragUpdate:
                                 (DragUpdateDetails details) {
                                 setState(() {
-                                  showPosition = true;
+                                  showSeekTime = true;
                                 });
-                                pause();
+                                playerTimer?.cancel();
+                                playerController.pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
                                 var ms = playerController
@@ -1057,11 +1044,12 @@ class _PlayerItemState extends State<PlayerItem>
                                 playerController.currentPosition =
                                     Duration(milliseconds: ms);
                               }, onHorizontalDragEnd: (DragEndDetails details) {
+                                playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
-                                play();
+                                playerTimer = getPlayerTimer();
                                 setState(() {
-                                  showPosition = false;
+                                  showSeekTime = false;
                                 });
                               }, onVerticalDragUpdate:
                                 (DragUpdateDetails details) async {
@@ -1126,7 +1114,7 @@ class _PlayerItemState extends State<PlayerItem>
                     // 顶部进度条
                     Positioned(
                         top: 25,
-                        child: showPosition
+                        child: showSeekTime
                             ? Wrap(
                                 alignment: WrapAlignment.center,
                                 children: <Widget>[
@@ -1410,7 +1398,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 icon: const Icon(Icons.comment),
                                 onPressed: () {
                                   bool needRestart = playerController.playing;
-                                  pause();
+                                  playerController.pause();
                                   episodeNum = Utils.extractEpisodeNumber(
                                       videoPageController
                                               .roadList[videoPageController
@@ -1519,7 +1507,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   }
                                   if (value == 3) {
                                     bool needRestart = playerController.playing;
-                                    pause();
+                                    playerController.pause();
                                     RemotePlay()
                                         .castVideo(
                                             context,
@@ -1555,7 +1543,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ? Icons.pause
                                     : Icons.play_arrow),
                                 onPressed: () {
-                                  playOrPause();
+                                  playerController.playOrPause();
                                 },
                               ),
                               // 更换选集
@@ -1603,10 +1591,11 @@ class _PlayerItemState extends State<PlayerItem>
                                     playerController.seek(duration);
                                   },
                                   onDragStart: (details) {
-                                    pause();
+                                    playerTimer?.cancel();
+                                    playerController.pause();
                                     hideTimer?.cancel();
                                     setState(() {
-                                      showPositioned = true;
+                                      showVideoController = true;
                                     });
                                   },
                                   onDragUpdate: (details) => {
@@ -1614,8 +1603,9 @@ class _PlayerItemState extends State<PlayerItem>
                                         details.timeStamp
                                   },
                                   onDragEnd: () {
+                                    playerController.play();
                                     startHideTimer();
-                                    play();
+                                    playerTimer = getPlayerTimer();
                                   },
                                 ),
                               ),
@@ -1748,7 +1738,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
         setState(() {
-          showPositioned = false;
+          showVideoController = false;
         });
         _animationController.reverse();
       }

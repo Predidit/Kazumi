@@ -132,27 +132,80 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  void _handleTap() {
-    if (!showPositioned) {
-      _animationController.forward();
-      hideTimer?.cancel();
-      startHideTimer();
-    } else {
-      _animationController.reverse();
-      hideTimer?.cancel();
-    }
+  void play() {
+    playerTimer?.cancel();
+    playerTimer = getPlayerTimer();
+    playerController.play();
+  }
+  
+  void pause(){
+    playerTimer?.cancel();
+    playerController.pause();
+  }
+
+  void playOrPause() {
+    playerController.playing ? pause() : play();
+  }
+
+  void showAnimationController(){
+    _animationController.forward();
+    hideTimer?.cancel();
+    startHideTimer();
     setState(() {
-      showPositioned = !showPositioned;
+      showPositioned = true;
     });
+  }
+
+  void hideAnimationController(){
+    _animationController.reverse();
+    hideTimer?.cancel();
+    setState(() {
+      showPositioned = false;
+    });
+  }
+
+  void enterOrExitFullScreen() {
+    _handleFullscreenChange(context);
+    if (videoPageController.isFullscreen) {
+      Utils.exitFullScreen();
+      widget.locateEpisode();
+    } else {
+      Utils.enterFullScreen();
+      videoPageController.showTabBody = false;
+    }
+    videoPageController.isFullscreen = !videoPageController.isFullscreen;
+  }
+
+  void _handleTap() {
+    if (Utils.isDesktop()) {
+      playOrPause();
+    } else {
+      if (showPositioned) {
+        hideAnimationController();
+      } else {
+        showAnimationController();
+      }
+    }
+  }
+
+  void _handleDoubleTap(){
+    if (Utils.isDesktop()) {
+      enterOrExitFullScreen();
+    } else {
+      if (!showPositioned) {
+        showAnimationController();
+      }
+      if (lockPanel) {
+        return;
+      }
+      playOrPause();
+    }
   }
 
   void _handleHove() {
     if (!showPositioned) {
-      _animationController.forward();
+      showAnimationController();
     }
-    setState(() {
-      showPositioned = true;
-    });
     hideTimer?.cancel();
     startHideTimer();
   }
@@ -341,15 +394,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreen() {
-    _handleFullscreenChange(context);
-    if (videoPageController.isFullscreen) {
-      Utils.exitFullScreen();
-      widget.locateEpisode();
-    } else {
-      Utils.enterFullScreen();
-      videoPageController.showTabBody = false;
-    }
-    videoPageController.isFullscreen = !videoPageController.isFullscreen;
+    enterOrExitFullScreen();
   }
 
   void _handleDanmaku() {
@@ -724,7 +769,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     playSpeedList = defaultPlaySpeedList;
-    _handleTap();
+    showAnimationController();
   }
 
   @override
@@ -792,7 +837,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.space) {
                                   try {
-                                    playerController.playOrPause();
+                                    playOrPause();
                                   } catch (e) {
                                     KazumiLogger().log(
                                         Level.error, '播放器内部错误 ${e.toString()}');
@@ -814,12 +859,8 @@ class _PlayerItemState extends State<PlayerItem>
                                     targetPosition = 0;
                                   }
                                   try {
-                                    playerTimer?.cancel();
-                                    playerController.currentPosition =
-                                        Duration(seconds: targetPosition);
-                                    playerController
-                                        .seek(playerController.currentPosition);
-                                    playerTimer = getPlayerTimer();
+                                    playerController.seek(
+                                        Duration(seconds: targetPosition));
                                   } catch (e) {
                                     KazumiLogger()
                                         .log(Level.error, e.toString());
@@ -884,16 +925,10 @@ class _PlayerItemState extends State<PlayerItem>
                                     _setPlaybackSpeed(lastPlayerSpeed);
                                   } else {
                                     try {
-                                      playerTimer?.cancel();
-                                      playerController.currentPosition =
-                                          Duration(
-                                              seconds: playerController
-                                                      .currentPosition
-                                                      .inSeconds +
-                                                  10);
-                                      playerController.seek(
-                                          playerController.currentPosition);
-                                      playerTimer = getPlayerTimer();
+                                      playerController.seek(Duration(
+                                          seconds: playerController
+                                                  .currentPosition.inSeconds +
+                                              10));
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
                                           '播放器内部错误 ${e.toString()}');
@@ -917,17 +952,7 @@ class _PlayerItemState extends State<PlayerItem>
                         _handleTap();
                       },
                       onDoubleTap: () {
-                        if (!showPositioned) {
-                          _handleTap();
-                        }
-                        if (lockPanel) {
-                          return;
-                        }
-                        if (playerController.playing) {
-                          playerController.pause();
-                        } else {
-                          playerController.play();
-                        }
+                        _handleDoubleTap();
                       },
                       onLongPressStart: (_) {
                         if (lockPanel) {
@@ -1022,26 +1047,19 @@ class _PlayerItemState extends State<PlayerItem>
                                 setState(() {
                                   showPosition = true;
                                 });
-                                playerTimer?.cancel();
-                                playerController.pause();
+                                pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                playerController.currentPosition = Duration(
-                                    milliseconds: playerController
-                                                    .currentPosition
-                                                    .inMilliseconds +
-                                                (details.delta.dx * scale)
-                                                    .round() <
-                                            0
-                                        ? 0
-                                        : playerController.currentPosition
-                                                .inMilliseconds +
-                                            (details.delta.dx * scale).round());
+                                var ms = playerController
+                                        .currentPosition.inMilliseconds +
+                                    (details.delta.dx * scale).round();
+                                ms = ms > 0 ? ms : 0;
+                                playerController.currentPosition =
+                                    Duration(milliseconds: ms);
                               }, onHorizontalDragEnd: (DragEndDetails details) {
-                                playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
-                                playerTimer = getPlayerTimer();
+                                play();
                                 setState(() {
                                   showPosition = false;
                                 });
@@ -1392,7 +1410,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 icon: const Icon(Icons.comment),
                                 onPressed: () {
                                   bool needRestart = playerController.playing;
-                                  playerController.pause();
+                                  pause();
                                   episodeNum = Utils.extractEpisodeNumber(
                                       videoPageController
                                               .roadList[videoPageController
@@ -1501,7 +1519,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   }
                                   if (value == 3) {
                                     bool needRestart = playerController.playing;
-                                    playerController.pause();
+                                    pause();
                                     RemotePlay()
                                         .castVideo(
                                             context,
@@ -1537,11 +1555,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     ? Icons.pause
                                     : Icons.play_arrow),
                                 onPressed: () {
-                                  if (playerController.playing) {
-                                    playerController.pause();
-                                  } else {
-                                    playerController.play();
-                                  }
+                                  playOrPause();
                                 },
                               ),
                               // 更换选集
@@ -1586,12 +1600,10 @@ class _PlayerItemState extends State<PlayerItem>
                                   buffered: playerController.buffer,
                                   total: playerController.duration,
                                   onSeek: (duration) {
-                                    playerController.currentPosition = duration;
                                     playerController.seek(duration);
                                   },
                                   onDragStart: (details) {
-                                    playerTimer?.cancel();
-                                    playerController.pause();
+                                    pause();
                                     hideTimer?.cancel();
                                     setState(() {
                                       showPositioned = true;
@@ -1602,9 +1614,8 @@ class _PlayerItemState extends State<PlayerItem>
                                         details.timeStamp
                                   },
                                   onDragEnd: () {
-                                    playerController.play();
                                     startHideTimer();
-                                    playerTimer = getPlayerTimer();
+                                    play();
                                   },
                                 ),
                               ),

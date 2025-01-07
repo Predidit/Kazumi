@@ -382,10 +382,7 @@ class Utils {
 
   /// 判断是否为桌面设备
   static bool isDesktop() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      return true;
-    }
-    return false;
+    return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
   /// 判断设备是否为宽屏

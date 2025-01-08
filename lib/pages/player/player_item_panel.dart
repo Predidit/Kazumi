@@ -56,7 +56,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     KazumiDialog.showToast(message: '截图中...');
     try {
       Uint8List? screenshot =
-          await playerController.mediaPlayer.screenshot(format: 'image/png');
+          await playerController.screenshot(format: 'image/png');
       final result = await SaverGallery.saveImage(screenshot!,
           fileName: DateTime.timestamp().toString(), skipIfExists: false);
       if (result.isSuccess) {
@@ -364,10 +364,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             child: Text(
                               playerController.currentPosition.compareTo(
                                           playerController
-                                              .mediaPlayer.state.position) >
+                                              .playerPosition) >
                                       0
-                                  ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.state.position.inSeconds} 秒'
-                                  : '快退 ${playerController.mediaPlayer.state.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
+                                  ? '快进 ${playerController.currentPosition.inSeconds - playerController.playerPosition.inSeconds} 秒'
+                                  : '快退 ${playerController.playerPosition.inSeconds - playerController.currentPosition.inSeconds} 秒',
                               style: const TextStyle(
                                 color: Colors.white,
                               ),

@@ -12,7 +12,6 @@ import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:window_manager/window_manager.dart';
@@ -28,6 +27,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
 class PlayerItem extends StatefulWidget {
@@ -103,7 +103,7 @@ class _PlayerItemState extends State<PlayerItem>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     try {
-      if (playerController.mediaPlayer.state.playing) {
+      if (playerController.playerPlaying) {
         danmakuController.resume();
       }
     } catch (_) {}
@@ -243,7 +243,7 @@ class _PlayerItemState extends State<PlayerItem>
   Future<void> setVolume(double value) async {
     try {
       if (Utils.isDesktop()) {
-        await playerController.mediaPlayer.setVolume(value);
+        await playerController.setVolume(value);
       } else {
         await FlutterVolumeController.updateShowSystemUI(false);
         await FlutterVolumeController.setVolume(value / 100);
@@ -255,7 +255,7 @@ class _PlayerItemState extends State<PlayerItem>
     double volume =
         playerController.volume + 10 > 100 ? 100 : playerController.volume + 10;
     try {
-      await playerController.mediaPlayer.setVolume(volume);
+      await playerController.setVolume(volume);
       playerController.volume = volume;
     } catch (_) {}
   }
@@ -264,7 +264,7 @@ class _PlayerItemState extends State<PlayerItem>
     double volume =
         playerController.volume - 10 < 0 ? 0 : playerController.volume - 10;
     try {
-      await playerController.mediaPlayer.setVolume(volume);
+      await playerController.setVolume(volume);
       playerController.volume = volume;
     } catch (_) {}
   }
@@ -288,17 +288,17 @@ class _PlayerItemState extends State<PlayerItem>
 
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
-      playerController.playing = playerController.mediaPlayer.state.playing;
+      playerController.playing = playerController.playerPlaying;
       playerController.isBuffering =
-          playerController.mediaPlayer.state.buffering;
+          playerController.playerBuffering;
       playerController.currentPosition =
-          playerController.mediaPlayer.state.position;
-      playerController.buffer = playerController.mediaPlayer.state.buffer;
-      playerController.duration = playerController.mediaPlayer.state.duration;
-      playerController.completed = playerController.mediaPlayer.state.completed;
+          playerController.playerPosition;
+      playerController.buffer = playerController.playerBuffer;
+      playerController.duration = playerController.playerDuration;
+      playerController.completed = playerController.playerCompleted;
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
-          playerController.mediaPlayer.state.playing == true &&
+          playerController.playerPlaying == true &&
           playerController.danmakuOn == true) {
         playerController.danDanmakus[playerController.currentPosition.inSeconds]
             ?.asMap()
@@ -326,8 +326,8 @@ class _PlayerItemState extends State<PlayerItem>
                               playerController.currentPosition.inSeconds]!
                           .length),
               () => mounted &&
-                      playerController.mediaPlayer.state.playing &&
-                      !playerController.mediaPlayer.state.buffering &&
+                      playerController.playerPlaying &&
+                      !playerController.playerBuffering &&
                       playerController.danmakuOn
                   ? danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
@@ -343,7 +343,7 @@ class _PlayerItemState extends State<PlayerItem>
       // 音量相关
       if (!playerController.volumeSeeking) {
         if (Utils.isDesktop()) {
-          playerController.volume = playerController.mediaPlayer.state.volume;
+          playerController.volume = playerController.playerVolume;
         } else {
           FlutterVolumeController.getVolume().then((value) {
             final volume = value ?? 0.0;
@@ -361,14 +361,14 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
-      if (playerController.mediaPlayer.state.playing &&
+      if (playerController.playerPlaying &&
           !videoPageController.loading) {
         historyController.updateHistory(
             videoPageController.currentEpisode,
             videoPageController.currentRoad,
             videoPageController.currentPlugin.name,
             infoController.bangumiItem,
-            playerController.mediaPlayer.state.position,
+            playerController.playerPosition,
             videoPageController.src,
             videoPageController.roadList[videoPageController.currentRoad]
                 .identifier[videoPageController.currentEpisode - 1]);
@@ -753,7 +753,7 @@ class _PlayerItemState extends State<PlayerItem>
                               }
                               return KeyEventResult.handled;
                             },
-                            child: playerSurface)),
+                            child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
                             videoPageController.loading)
                         ? const Positioned.fill(
@@ -924,42 +924,5 @@ class _PlayerItemState extends State<PlayerItem>
             ;
       },
     );
-  }
-
-  Widget get playerSurface {
-    return Observer(builder: (context) {
-      return Video(
-        controller: playerController.videoController,
-        controls: NoVideoControls,
-        fit: playerController.aspectRatioType == 1
-            ? BoxFit.contain
-            : playerController.aspectRatioType == 2
-                ? BoxFit.cover
-                : BoxFit.fill,
-        subtitleViewConfiguration: SubtitleViewConfiguration(
-          style: TextStyle(
-            color: Colors.pink,
-            fontSize: 48.0,
-            background: Paint()..color = Colors.transparent,
-            decoration: TextDecoration.none,
-            fontWeight: FontWeight.bold,
-            shadows: const [
-              Shadow(
-                offset: Offset(1.0, 1.0),
-                blurRadius: 3.0,
-                color: Color.fromARGB(255, 255, 255, 255),
-              ),
-              Shadow(
-                offset: Offset(-1.0, -1.0),
-                blurRadius: 3.0,
-                color: Color.fromARGB(125, 255, 255, 255),
-              ),
-            ],
-          ),
-          textAlign: TextAlign.center,
-          padding: const EdgeInsets.all(24.0),
-        ),
-      );
-    });
   }
 }

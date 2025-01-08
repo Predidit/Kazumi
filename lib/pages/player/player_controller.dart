@@ -14,6 +14,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:flutter/services.dart';
 
 part 'player_controller.g.dart';
 
@@ -28,24 +29,6 @@ abstract class _PlayerController with Store {
   Map<int, List<Danmaku>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
-
-  // 播放器状态
-  @observable
-  bool loading = true;
-  @observable
-  bool playing = false;
-  @observable
-  bool isBuffering = true;
-  @observable
-  bool completed = false;
-  @observable
-  Duration currentPosition = Duration.zero;
-  @observable
-  Duration buffer = Duration.zero;
-  @observable
-  Duration duration = Duration.zero;
-  @observable
-  double playerSpeed = 1.0;
 
   // 视频比例类型
   // 1. AUTO
@@ -92,12 +75,39 @@ abstract class _PlayerController with Store {
   late Player mediaPlayer;
   late VideoController videoController;
 
+  // 播放器面板状态
+  @observable
+  bool loading = true;
+  @observable
+  bool playing = false;
+  @observable
+  bool isBuffering = true;
+  @observable
+  bool completed = false;
+  @observable
+  Duration currentPosition = Duration.zero;
+  @observable
+  Duration buffer = Duration.zero;
+  @observable
+  Duration duration = Duration.zero;
+  @observable
+  double playerSpeed = 1.0;
+
   Box setting = GStorage.setting;
   bool hAenable = true;
   late String hardwareDecoder;
   bool lowMemoryMode = false;
   bool autoPlay = true;
   int forwardTime = 80;
+
+  // 播放器实时状态
+  bool get playerPlaying => mediaPlayer.state.playing;
+  bool get playerBuffering => mediaPlayer.state.buffering;
+  bool get playerCompleted => mediaPlayer.state.completed;
+  double get playerVolume => mediaPlayer.state.volume;
+  Duration get playerPosition => mediaPlayer.state.position;
+  Duration get playerBuffer => mediaPlayer.state.buffer;
+  Duration get playerDuration => mediaPlayer.state.duration;
 
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
@@ -209,6 +219,10 @@ abstract class _PlayerController with Store {
     }
   }
 
+  Future<void> setVolume(double value) async {
+    await mediaPlayer.setVolume(value);
+  }
+
   Future<void> playOrPause() async {
     if (mediaPlayer.state.playing) {
       await pause();
@@ -233,6 +247,27 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
+  }
+
+  Future<void> dispose() async {
+    try {
+      await mediaPlayer.dispose();
+    } catch (_) {}
+  }
+
+  Future<void> stop() async {
+    try {
+      await mediaPlayer.stop();
+      loading = true;
+    } catch (_) {}
+  }
+
+  Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
+    return await mediaPlayer.screenshot(format: format);
+  }
+
+  void setForwardTime(int time) {
+    forwardTime = time;
   }
 
   Future<void> getDanDanmaku(String title, int episode) async {
@@ -265,22 +300,5 @@ abstract class _PlayerController with Store {
       danmakuList.add(element);
       danDanmakus[element.time.toInt()] = danmakuList;
     }
-  }
-
-  Future<void> dispose() async {
-    try {
-      await mediaPlayer.dispose();
-    } catch (_) {}
-  }
-
-  Future<void> stop() async {
-    try {
-      await mediaPlayer.stop();
-      loading = true;
-    } catch (_) {}
-  }
-
-  void setForwardTime(int time) {
-    forwardTime = time;
   }
 }

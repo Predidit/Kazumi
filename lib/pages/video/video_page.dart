@@ -317,7 +317,7 @@ class _VideoPageState extends State<VideoPage>
                                 height: MediaQuery.of(context).size.height,
                                 width: MediaQuery.of(context).size.width,
                                 child: playerBody),
-                            if (videoPageController.showTabBody)
+                            if (videoPageController.showTabBody) ...[
                               GestureDetector(
                                 onTap: () {
                                   closeTabBodyAnimated();
@@ -328,27 +328,28 @@ class _VideoPageState extends State<VideoPage>
                                   height: double.infinity,
                                 ),
                               ),
-                            SlideTransition(
-                              position: _rightOffsetAnimation,
-                              child: SizedBox(
-                                height: MediaQuery.of(context).size.height,
-                                width: (Utils.isTablet())
-                                    ? MediaQuery.of(context).size.width / 2
-                                    : MediaQuery.of(context).size.height,
-                                child: Container(
-                                  color: Theme.of(context).canvasColor,
-                                  child: GridViewObserver(
-                                    controller: observerController,
-                                    child: Column(
-                                      children: [
-                                        menuBar,
-                                        menuBody,
-                                      ],
+                              SlideTransition(
+                                position: _rightOffsetAnimation,
+                                child: SizedBox(
+                                  height: MediaQuery.of(context).size.height,
+                                  width: (Utils.isTablet())
+                                      ? MediaQuery.of(context).size.width / 2
+                                      : MediaQuery.of(context).size.height,
+                                  child: Container(
+                                    color: Theme.of(context).canvasColor,
+                                    child: GridViewObserver(
+                                      controller: observerController,
+                                      child: Column(
+                                        children: [
+                                          menuBar,
+                                          menuBody,
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
             ),

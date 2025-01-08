@@ -95,6 +95,9 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
 
+  // 过渡动画控制器
+  AnimationController? animationController;
+
   double lastPlayerSpeed = 1.0;
   int episodeNum = 0;
 
@@ -223,14 +226,14 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void displayVideoController() {
-    playerController.animationController?.forward();
+    animationController?.forward();
     hideTimer?.cancel();
     startHideTimer();
     playerController.showVideoController = true;
   }
 
   void hideVideoController() {
-    playerController.animationController?.reverse();
+    animationController?.reverse();
     hideTimer?.cancel();
     playerController.showVideoController = false;
   }
@@ -282,7 +285,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
         playerController.showVideoController = false;
-        playerController.animationController?.reverse();
+        animationController?.reverse();
       }
       hideTimer = null;
     });
@@ -521,31 +524,10 @@ class _PlayerItemState extends State<PlayerItem>
           category: AudioSessionCategory.playback);
     }
     WidgetsBinding.instance.addObserver(this);
-    playerController.animationController = AnimationController(
+    animationController ??= AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    playerController.topOffsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, -1.0),
-      end: const Offset(0.0, 0.0),
-    ).animate(CurvedAnimation(
-      parent: playerController.animationController!,
-      curve: Curves.easeInOut,
-    ));
-    playerController.bottomOffsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 1.0),
-      end: const Offset(0.0, 0.0),
-    ).animate(CurvedAnimation(
-      parent: playerController.animationController!,
-      curve: Curves.easeInOut,
-    ));
-    playerController.leftOffsetAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: const Offset(0.0, 0.0),
-    ).animate(CurvedAnimation(
-      parent: playerController.animationController!,
-      curve: Curves.easeInOut,
-    ));
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     playerController.danmakuOn =
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
@@ -584,11 +566,14 @@ class _PlayerItemState extends State<PlayerItem>
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
     playerTimer?.cancel();
-    playerController.animationController?.dispose();
-    playerController.animationController = null;
+    hideTimer?.cancel();
+    mouseScrollerTimer?.cancel();
+    hideVolumeUITimer?.cancel();
+    animationController?.dispose();
+    animationController = null;
     // Reset player panel state
     playerController.lockPanel = false;
-    playerController.showVideoController = false;
+    playerController.showVideoController = true;
     playerController.showSeekTime = false;
     playerController.showBrightness = false;
     playerController.showVolume = false;
@@ -832,6 +817,7 @@ class _PlayerItemState extends State<PlayerItem>
                       handleFullscreen: handleFullscreen,
                       handleProgressBarDragStart: handleProgressBarDragStart,
                       handleProgressBarDragEnd: handleProgressBarDragEnd,
+                      animationController: animationController!,
                     ),
                     // 播放器手势控制
                     Positioned.fill(

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:mobx/mobx.dart';
@@ -47,7 +46,7 @@ abstract class _PlayerController with Store {
   @observable
   bool lockPanel = false;
   @observable
-  bool showVideoController = false;
+  bool showVideoController = true;
   @observable
   bool showSeekTime = false;
   @observable
@@ -60,12 +59,6 @@ abstract class _PlayerController with Store {
   bool brightnessSeeking = false;
   @observable
   bool volumeSeeking = false;
-
-  // 过渡动画
-  AnimationController? animationController;
-  late Animation<Offset> bottomOffsetAnimation;
-  late Animation<Offset> topOffsetAnimation;
-  late Animation<Offset> leftOffsetAnimation;
 
   // 视频地址
   String videoUrl = '';

@@ -28,6 +28,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
+    required this.animationController,
     required this.openMenu,
   });
 
@@ -39,6 +40,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
+  final AnimationController animationController;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -47,6 +49,9 @@ class PlayerItemPanel extends StatefulWidget {
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
   Box setting = GStorage.setting;
   late bool haEnable;
+  late Animation<Offset> topOffsetAnimation;
+  late Animation<Offset> bottomOffsetAnimation;
+  late Animation<Offset> leftOffsetAnimation;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final InfoController infoController = Modular.get<InfoController>();
@@ -265,6 +270,27 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   @override
   void initState() {
     super.initState();
+    topOffsetAnimation = Tween<Offset>(
+      begin: const Offset(0.0, -1.0),
+      end: const Offset(0.0, 0.0),
+    ).animate(CurvedAnimation(
+      parent: widget.animationController,
+      curve: Curves.easeInOut,
+    ));
+    bottomOffsetAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 1.0),
+      end: const Offset(0.0, 0.0),
+    ).animate(CurvedAnimation(
+      parent: widget.animationController,
+      curve: Curves.easeInOut,
+    ));
+    leftOffsetAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: const Offset(0.0, 0.0),
+    ).animate(CurvedAnimation(
+      parent: widget.animationController,
+      curve: Curves.easeInOut,
+    ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
   }
 
@@ -303,7 +329,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(
-                position: playerController.topOffsetAnimation,
+                position: topOffsetAnimation,
                 child: Container(
                   height: 50,
                   decoration: BoxDecoration(
@@ -330,7 +356,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(
-                position: playerController.bottomOffsetAnimation,
+                position: bottomOffsetAnimation,
                 child: Container(
                   height: 50,
                   decoration: BoxDecoration(
@@ -466,7 +492,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   top: 0,
                   bottom: 0,
                   child: SlideTransition(
-                    position: playerController.leftOffsetAnimation,
+                    position: leftOffsetAnimation,
                     child: Column(children: [
                       const Spacer(),
                       (playerController.lockPanel)
@@ -504,7 +530,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(
-                position: playerController.topOffsetAnimation,
+                position: topOffsetAnimation,
                 child: Row(
                   children: [
                     IconButton(
@@ -668,7 +694,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(
-                position: playerController.bottomOffsetAnimation,
+                position: bottomOffsetAnimation,
                 child: Row(
                   children: [
                     IconButton(

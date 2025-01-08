@@ -41,6 +41,7 @@ class _VideoPageState extends State<VideoPage>
   late bool playResume;
   bool showDebugLog = false;
   List<String> logLines = [];
+  final FocusNode keyboardFocus = FocusNode();
 
   ScrollController scrollController = ScrollController();
   late GridObserverController observerController;
@@ -200,6 +201,7 @@ class _VideoPageState extends State<VideoPage>
     Future.delayed(const Duration(milliseconds: 100), () {
       videoPageController.showTabBody = false;
     });
+    keyboardFocus.requestFocus();
   }
 
   void onBackPressed(BuildContext context) async {
@@ -523,6 +525,7 @@ class _VideoPageState extends State<VideoPage>
                   locateEpisode: menuJumpToCurrentEpisode,
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
+                  keyboardFocus: keyboardFocus,
                 ),
         ),
 

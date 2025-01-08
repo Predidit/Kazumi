@@ -22,22 +22,16 @@ class PlayerController = _PlayerController with _$PlayerController;
 abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-  @observable
-  bool loading = true;
-  // 视频地址
-  String videoUrl = '';
-  // DanDanPlay 弹幕ID
-  int bangumiID = 0;
-  // 播放器实体
-  late Player mediaPlayer;
-  late VideoController videoController;
-  // 弹幕控制器
+  // 弹幕控制
   late DanmakuController danmakuController;
-
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
+  @observable
+  bool danmakuOn = false;
 
   // 播放器状态
+  @observable
+  bool loading = true;
   @observable
   bool playing = false;
   @observable
@@ -50,10 +44,8 @@ abstract class _PlayerController with Store {
   Duration buffer = Duration.zero;
   @observable
   Duration duration = Duration.zero;
-
-  // 弹幕开关
   @observable
-  bool danmakuOn = false;
+  double playerSpeed = 1.0;
 
   // 视频比例类型
   // 1. AUTO
@@ -67,10 +59,6 @@ abstract class _PlayerController with Store {
   double volume = 0;
   @observable
   double brightness = 0;
-
-  // 播放器倍速
-  @observable
-  double playerSpeed = 1.0;
 
   // 播放器界面控制
   @observable
@@ -89,13 +77,20 @@ abstract class _PlayerController with Store {
   bool brightnessSeeking = false;
   @observable
   bool volumeSeeking = false;
-  
 
   // 过渡动画
   AnimationController? animationController;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
+
+  // 视频地址
+  String videoUrl = '';
+  // DanDanPlay 弹幕ID
+  int bangumiID = 0;
+  // 播放器实体
+  late Player mediaPlayer;
+  late VideoController videoController;
 
   Box setting = GStorage.setting;
   bool hAenable = true;

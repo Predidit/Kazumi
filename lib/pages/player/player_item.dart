@@ -31,18 +31,21 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
 class PlayerItem extends StatefulWidget {
-  const PlayerItem(
-      {super.key,
-      required this.openMenu,
-      required this.locateEpisode,
-      required this.changeEpisode,
-      required this.onBackPressed});
+  const PlayerItem({
+    super.key,
+    required this.openMenu,
+    required this.locateEpisode,
+    required this.changeEpisode,
+    required this.onBackPressed,
+    required this.keyboardFocus,
+  });
 
   final VoidCallback openMenu;
   final VoidCallback locateEpisode;
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
+  final FocusNode keyboardFocus;
 
   @override
   State<PlayerItem> createState() => _PlayerItemState();
@@ -60,7 +63,6 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
   final CollectController collectController = Modular.get<CollectController>();
-  final FocusNode _focusNode = FocusNode();
   late DanmakuController danmakuController;
 
   // 1. 在看
@@ -289,10 +291,8 @@ class _PlayerItemState extends State<PlayerItem>
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.playerPlaying;
-      playerController.isBuffering =
-          playerController.playerBuffering;
-      playerController.currentPosition =
-          playerController.playerPosition;
+      playerController.isBuffering = playerController.playerBuffering;
+      playerController.currentPosition = playerController.playerPosition;
       playerController.buffer = playerController.playerBuffer;
       playerController.duration = playerController.playerDuration;
       playerController.completed = playerController.playerCompleted;
@@ -361,8 +361,7 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
-      if (playerController.playerPlaying &&
-          !videoPageController.loading) {
+      if (playerController.playerPlaying && !videoPageController.loading) {
         historyController.updateHistory(
             videoPageController.currentEpisode,
             videoPageController.currentRoad,
@@ -481,7 +480,7 @@ class _PlayerItemState extends State<PlayerItem>
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                _focusNode.requestFocus();
+                widget.keyboardFocus.requestFocus();
               },
               child: Text(
                 '取消',
@@ -644,7 +643,8 @@ class _PlayerItemState extends State<PlayerItem>
                         child: Focus(
                             // workaround for #461
                             // I don't know why, but the focus node will break popscope.
-                            focusNode: Utils.isDesktop() ? _focusNode : null,
+                            focusNode:
+                                Utils.isDesktop() ? widget.keyboardFocus : null,
                             autofocus: Utils.isDesktop(),
                             onKeyEvent: (focusNode, KeyEvent event) {
                               if (event is KeyDownEvent) {
@@ -919,9 +919,7 @@ class _PlayerItemState extends State<PlayerItem>
               ),
             ),
           ),
-        )
-            // SizedBox(child: Text("${videoController.androidFullscreen}")),
-            ;
+        );
       },
     );
   }

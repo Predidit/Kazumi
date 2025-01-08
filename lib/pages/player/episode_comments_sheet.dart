@@ -15,8 +15,7 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
-    with AutomaticKeepAliveClientMixin {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
@@ -58,30 +57,39 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
 
   Widget get episodeCommentsBody {
     return SelectionArea(
-        child: Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-      child: Observer(builder: (context) {
-        if (isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (commentsQueryTimeout) {
-          return const Center(
-            child: Text('空空如也'),
-          );
-        }
-        return SingleChildScrollView(
-            child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: infoController.episodeCommentsList.length,
-                itemBuilder: (context, index) {
-                  return EpisodeCommentsCard(
-                      commentItem: infoController.episodeCommentsList[index]);
-                }));
-      }),
-    ));
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            sliver: Observer(builder: (context) {
+              if (isLoading) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (commentsQueryTimeout) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('空空如也'),
+                  ),
+                );
+              }
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return EpisodeCommentsCard(
+                        commentItem: infoController.episodeCommentsList[index]);
+                  },
+                  childCount: infoController.episodeCommentsList.length,
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget get commentsInfo {
@@ -184,7 +192,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +199,4 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }

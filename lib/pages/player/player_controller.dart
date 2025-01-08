@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:mobx/mobx.dart';
@@ -19,21 +20,24 @@ part 'player_controller.g.dart';
 class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
-  @observable
-  bool loading = true;
-
-  String videoUrl = '';
-  // dandanPlay弹幕ID
-  int bangumiID = 0;
-  late Player mediaPlayer;
-  late VideoController videoController;
-  late DanmakuController danmakuController;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  @observable
+  bool loading = true;
+  // 视频地址
+  String videoUrl = '';
+  // DanDanPlay 弹幕ID
+  int bangumiID = 0;
+  // 播放器实体
+  late Player mediaPlayer;
+  late VideoController videoController;
+  // 弹幕控制器
+  late DanmakuController danmakuController;
 
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
 
+  // 播放器状态
   @observable
   bool playing = false;
   @observable
@@ -68,12 +72,36 @@ abstract class _PlayerController with Store {
   @observable
   double playerSpeed = 1.0;
 
+  // 播放器界面控制
+  @observable
+  bool lockPanel = false;
+  @observable
+  bool showVideoController = false;
+  @observable
+  bool showSeekTime = false;
+  @observable
+  bool showBrightness = false;
+  @observable
+  bool showVolume = false;
+  @observable
+  bool showPlaySpeed = false;
+  @observable
+  bool brightnessSeeking = false;
+  @observable
+  bool volumeSeeking = false;
+  
+
+  // 过渡动画
+  AnimationController? animationController;
+  late Animation<Offset> bottomOffsetAnimation;
+  late Animation<Offset> topOffsetAnimation;
+  late Animation<Offset> leftOffsetAnimation;
+
   Box setting = GStorage.setting;
   bool hAenable = true;
   late String hardwareDecoder;
   bool lowMemoryMode = false;
   bool autoPlay = true;
-
   int forwardTime = 80;
 
   Future<void> init(String url, {int offset = 0}) async {
@@ -116,7 +144,8 @@ abstract class _PlayerController with Store {
     autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    KazumiLogger().log(Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
+    KazumiLogger().log(
+        Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {

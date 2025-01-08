@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -32,7 +33,6 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
-import 'package:saver_gallery/saver_gallery.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/bean/widget/collect_button.dart';
 
@@ -78,16 +78,6 @@ class _PlayerItemState extends State<PlayerItem>
   late bool webDavEnable;
   late bool haEnable;
 
-  // 界面管理
-  bool showVideoController = false;
-  bool showSeekTime = false;
-  bool showBrightness = false;
-  bool showVolume = false;
-  bool showPlaySpeed = false;
-  bool brightnessSeeking = false;
-  bool volumeSeeking = false;
-  bool lockPanel = false;
-
   // 弹幕
   final _danmuKey = GlobalKey();
   late bool _border;
@@ -104,12 +94,6 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late int _danmakuFontWeight;
-
-  // 过渡动画
-  late AnimationController _animationController;
-  late Animation<Offset> _bottomOffsetAnimation;
-  late Animation<Offset> _topOffsetAnimation;
-  late Animation<Offset> _leftOffsetAnimation;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -134,27 +118,23 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void displayVideoController() {
-    _animationController.forward();
+    playerController.animationController?.forward();
     hideTimer?.cancel();
     startHideTimer();
-    setState(() {
-      showVideoController = true;
-    });
+    playerController.showVideoController = true;
   }
 
   void hideVideoController() {
-    _animationController.reverse();
+    playerController.animationController?.reverse();
     hideTimer?.cancel();
-    setState(() {
-      showVideoController = false;
-    });
+    playerController.showVideoController = false;
   }
 
   void _handleTap() {
     if (Utils.isDesktop()) {
       playerController.playOrPause();
     } else {
-      if (showVideoController) {
+      if (playerController.showVideoController) {
         hideVideoController();
       } else {
         displayVideoController();
@@ -166,12 +146,12 @@ class _PlayerItemState extends State<PlayerItem>
     if (Utils.isDesktop()) {
       _handleFullscreen();
     } else {
-      if (showVideoController) {
+      if (playerController.showVideoController) {
         hideVideoController();
       } else {
         displayVideoController();
       }
-      if (lockPanel) {
+      if (playerController.lockPanel) {
         return;
       }
       playerController.playOrPause();
@@ -179,36 +159,28 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleHove() {
-    if (!showVideoController) {
+    if (!playerController.showVideoController) {
       displayVideoController();
     }
   }
 
   void _handleMouseScroller() {
-    setState(() {
-      showVolume = true;
-    });
+    playerController.showVolume = true;
     mouseScrollerTimer?.cancel();
     mouseScrollerTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
-        setState(() {
-          showVolume = false;
-        });
+        playerController.showVolume = false;
       }
       mouseScrollerTimer = null;
     });
   }
 
   void _handleKeyChangingVolume() {
-    setState(() {
-      showVolume = true;
-    });
+    playerController.showVolume = true;
     hideVolumeUITimer?.cancel();
     hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
-        setState(() {
-          showVolume = false;
-        });
+        playerController.showVolume = false;
       }
       hideVolumeUITimer = null;
     });
@@ -299,7 +271,7 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 音量相关
-      if (!volumeSeeking) {
+      if (!playerController.volumeSeeking) {
         if (Utils.isDesktop()) {
           playerController.volume = playerController.mediaPlayer.state.volume;
         } else {
@@ -313,7 +285,7 @@ class _PlayerItemState extends State<PlayerItem>
       if (!Platform.isWindows &&
           !Platform.isMacOS &&
           !Platform.isLinux &&
-          !brightnessSeeking) {
+          !playerController.brightnessSeeking) {
         ScreenBrightnessPlatform.instance.application.then((value) {
           playerController.brightness = value;
         });
@@ -351,9 +323,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _handleFullscreenChange(BuildContext context) async {
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
-      setState(() {
-        lockPanel = false;
-      });
+      playerController.lockPanel = false;
     }
     danmakuController.clear();
     if (webDavEnable) {
@@ -660,24 +630,6 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  Future<void> _handleScreenshot() async {
-    KazumiDialog.showToast(message: '截图中...');
-
-    try {
-      Uint8List? screenshot =
-          await playerController.mediaPlayer.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(screenshot!,
-          fileName: DateTime.timestamp().toString(), skipIfExists: false);
-      if (result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存到相簿成功');
-      } else {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
-    }
-  }
-
   @override
   void onWindowRestore() {
     danmakuController.onClear();
@@ -698,29 +650,29 @@ class _PlayerItemState extends State<PlayerItem>
           category: AudioSessionCategory.playback);
     }
     WidgetsBinding.instance.addObserver(this);
-    _animationController = AnimationController(
+    playerController.animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _topOffsetAnimation = Tween<Offset>(
+    playerController.topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: _animationController,
+      parent: playerController.animationController!,
       curve: Curves.easeInOut,
     ));
-    _bottomOffsetAnimation = Tween<Offset>(
+    playerController.bottomOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, 1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: _animationController,
+      parent: playerController.animationController!,
       curve: Curves.easeInOut,
     ));
-    _leftOffsetAnimation = Tween<Offset>(
+    playerController.leftOffsetAnimation = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: _animationController,
+      parent: playerController.animationController!,
       curve: Curves.easeInOut,
     ));
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
@@ -763,7 +715,18 @@ class _PlayerItemState extends State<PlayerItem>
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
     playerTimer?.cancel();
-    _animationController.dispose();
+    playerController.animationController?.dispose();
+    playerController.animationController = null;
+    // Reset player panel state
+    playerController.lockPanel = false;
+    playerController.showVideoController = false;
+    playerController.showSeekTime = false;
+    playerController.showBrightness = false;
+    playerController.showVolume = false;
+    playerController.showPlaySpeed = false;
+    playerController.brightnessSeeking = false;
+    playerController.volumeSeeking = false;
+    // Reset danmaku state
     infoController.episodeCommentsList.clear();
     infoController.episodeInfo.reset();
     super.dispose();
@@ -779,7 +742,8 @@ class _PlayerItemState extends State<PlayerItem>
           child: Container(
             color: Colors.black,
             child: MouseRegion(
-              cursor: (videoPageController.isFullscreen && !showVideoController)
+              cursor: (videoPageController.isFullscreen &&
+                      !playerController.showVideoController)
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (_) {
@@ -892,9 +856,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.arrowRight) {
                                   if (playerController.playerSpeed < 2.0) {
-                                    setState(() {
-                                      showPlaySpeed = true;
-                                    });
+                                    playerController.showPlaySpeed = true;
                                     _setPlaybackSpeed(2.0);
                                   }
                                 }
@@ -902,10 +864,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 // 右方向键抬起
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.arrowRight) {
-                                  if (showPlaySpeed) {
-                                    setState(() {
-                                      showPlaySpeed = false;
-                                    });
+                                  if (playerController.showPlaySpeed) {
+                                    playerController.showPlaySpeed = false;
                                     _setPlaybackSpeed(lastPlayerSpeed);
                                   } else {
                                     try {
@@ -941,21 +901,21 @@ class _PlayerItemState extends State<PlayerItem>
                         _handleDoubleTap();
                       },
                       onLongPressStart: (_) {
-                        if (lockPanel) {
+                        if (playerController.lockPanel) {
                           return;
                         }
                         setState(() {
-                          showPlaySpeed = true;
+                          playerController.showPlaySpeed = true;
                         });
                         lastPlayerSpeed = playerController.playerSpeed;
                         _setPlaybackSpeed(2.0);
                       },
                       onLongPressEnd: (_) {
-                        if (lockPanel) {
+                        if (playerController.lockPanel) {
                           return;
                         }
                         setState(() {
-                          showPlaySpeed = false;
+                          playerController.showPlaySpeed = false;
                         });
                         _setPlaybackSpeed(lastPlayerSpeed);
                       },
@@ -965,74 +925,18 @@ class _PlayerItemState extends State<PlayerItem>
                         height: double.infinity,
                       ),
                     ),
-
-                    //顶部渐变区域
-                    AnimatedPositioned(
-                      duration: const Duration(seconds: 1),
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Visibility(
-                        visible: !lockPanel,
-                        child: SlideTransition(
-                          position: _topOffsetAnimation,
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.9),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    //底部渐变区域
-                    AnimatedPositioned(
-                      duration: const Duration(seconds: 1),
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Visibility(
-                        visible: !lockPanel,
-                        child: SlideTransition(
-                          position: _bottomOffsetAnimation,
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.9),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    const PlayerItemPanel(),
                     // 播放器手势控制
                     Positioned.fill(
                         left: 16,
                         top: 25,
                         right: 15,
                         bottom: 15,
-                        child: (Utils.isDesktop() || lockPanel)
+                        child: (Utils.isDesktop() || playerController.lockPanel)
                             ? Container()
                             : GestureDetector(onHorizontalDragUpdate:
                                 (DragUpdateDetails details) {
-                                setState(() {
-                                  showSeekTime = true;
-                                });
+                                playerController.showSeekTime = true;
                                 playerTimer?.cancel();
                                 playerController.pause();
                                 final double scale =
@@ -1048,9 +952,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 playerController
                                     .seek(playerController.currentPosition);
                                 playerTimer = getPlayerTimer();
-                                setState(() {
-                                  showSeekTime = false;
-                                });
+                                playerController.showSeekTime = false;
                               }, onVerticalDragUpdate:
                                 (DragUpdateDetails details) async {
                                 final double totalWidth =
@@ -1068,10 +970,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 if (tapPosition < sectionWidth) {
                                   // 左边区域
-                                  brightnessSeeking = true;
-                                  setState(() {
-                                    showBrightness = true;
-                                  });
+                                  playerController.brightnessSeeking = true;
+                                  playerController.showBrightness = true;
                                   final double level = (totalHeight) * 2;
                                   final double brightness =
                                       playerController.brightness -
@@ -1082,10 +982,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   playerController.brightness = result;
                                 } else {
                                   // 右边区域
-                                  volumeSeeking = true;
-                                  setState(() {
-                                    showVolume = true;
-                                  });
+                                  playerController.volumeSeeking = true;
+                                  playerController.showVolume = true;
                                   final double level = (totalHeight) * 0.03;
                                   final double volume =
                                       playerController.volume - delta / level;
@@ -1095,141 +993,21 @@ class _PlayerItemState extends State<PlayerItem>
                                   playerController.volume = result;
                                 }
                               }, onVerticalDragEnd: (DragEndDetails details) {
-                                if (volumeSeeking) {
-                                  volumeSeeking = false;
+                                if (playerController.volumeSeeking) {
+                                  playerController.volumeSeeking = false;
                                   Future.delayed(const Duration(seconds: 1),
                                       () {
                                     FlutterVolumeController.updateShowSystemUI(
                                         true);
                                   });
                                 }
-                                if (brightnessSeeking) {
-                                  brightnessSeeking = false;
+                                if (playerController.brightnessSeeking) {
+                                  playerController.brightnessSeeking = false;
                                 }
-                                setState(() {
-                                  showVolume = false;
-                                  showBrightness = false;
-                                });
+                                playerController.showVolume = false;
+                                playerController.showBrightness = false;
                               })),
-                    // 顶部进度条
-                    Positioned(
-                        top: 25,
-                        child: showSeekTime
-                            ? Wrap(
-                                alignment: WrapAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                    padding: const EdgeInsets.all(8.0),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
-                                      borderRadius:
-                                          BorderRadius.circular(8.0), // 圆角
-                                    ),
-                                    child: Text(
-                                      playerController.currentPosition
-                                                  .compareTo(playerController
-                                                      .mediaPlayer
-                                                      .state
-                                                      .position) >
-                                              0
-                                          ? '快进 ${playerController.currentPosition.inSeconds - playerController.mediaPlayer.state.position.inSeconds} 秒'
-                                          : '快退 ${playerController.mediaPlayer.state.position.inSeconds - playerController.currentPosition.inSeconds} 秒',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Container()),
-                    // 顶部播放速度条
-                    Positioned(
-                        top: 25,
-                        child: showPlaySpeed
-                            ? Wrap(
-                                alignment: WrapAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                    padding: const EdgeInsets.all(8.0),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
-                                      borderRadius:
-                                          BorderRadius.circular(8.0), // 圆角
-                                    ),
-                                    child: const Row(
-                                      children: <Widget>[
-                                        Icon(Icons.fast_forward,
-                                            color: Colors.white),
-                                        Text(
-                                          ' 倍速播放',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Container()),
-                    // 亮度条
-                    Positioned(
-                        top: 25,
-                        child: showBrightness
-                            ? Wrap(
-                                alignment: WrapAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                      padding: const EdgeInsets.all(8.0),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        borderRadius:
-                                            BorderRadius.circular(8.0), // 圆角
-                                      ),
-                                      child: Row(
-                                        children: <Widget>[
-                                          const Icon(Icons.brightness_7,
-                                              color: Colors.white),
-                                          Text(
-                                            ' ${(playerController.brightness * 100).toInt()} %',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      )),
-                                ],
-                              )
-                            : Container()),
-                    // 音量条
-                    Positioned(
-                        top: 25,
-                        child: showVolume
-                            ? Wrap(
-                                alignment: WrapAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                      padding: const EdgeInsets.all(8.0),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        borderRadius:
-                                            BorderRadius.circular(8.0), // 圆角
-                                      ),
-                                      child: Row(
-                                        children: <Widget>[
-                                          const Icon(Icons.volume_down,
-                                              color: Colors.white),
-                                          Text(
-                                            ' ${playerController.volume.toInt()}%',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
-                                      )),
-                                ],
-                              )
-                            : Container()),
+
                     // 弹幕面板
                     Positioned(
                       top: 0,
@@ -1260,55 +1038,15 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
 
-                    // 右侧锁定按钮
-                    (Utils.isDesktop() || !videoPageController.isFullscreen)
-                        ? Container()
-                        : Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: SlideTransition(
-                              position: _leftOffsetAnimation,
-                              child: Column(children: [
-                                const Spacer(),
-                                (lockPanel)
-                                    ? Container()
-                                    : IconButton(
-                                        icon: const Icon(
-                                          Icons.photo_camera_outlined,
-                                          color: Colors.white,
-                                        ),
-                                        onPressed: () {
-                                          _handleScreenshot();
-                                        },
-                                      ),
-                                IconButton(
-                                  icon: Icon(
-                                    lockPanel
-                                        ? Icons.lock_outline
-                                        : Icons.lock_open,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      lockPanel = !lockPanel;
-                                    });
-                                  },
-                                ),
-                                const Spacer(),
-                              ]),
-                            ),
-                          ),
-
                     // 自定义顶部组件
                     Positioned(
                       top: 0,
                       left: 0,
                       right: 0,
                       child: Visibility(
-                        visible: !lockPanel,
+                        visible: !playerController.lockPanel,
                         child: SlideTransition(
-                          position: _topOffsetAnimation,
+                          position: playerController.topOffsetAnimation,
                           child: Row(
                             children: [
                               IconButton(
@@ -1532,9 +1270,9 @@ class _PlayerItemState extends State<PlayerItem>
                       left: 0,
                       right: 0,
                       child: Visibility(
-                        visible: !lockPanel,
+                        visible: !playerController.lockPanel,
                         child: SlideTransition(
-                          position: _bottomOffsetAnimation,
+                          position: playerController.bottomOffsetAnimation,
                           child: Row(
                             children: [
                               IconButton(
@@ -1594,9 +1332,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     playerTimer?.cancel();
                                     playerController.pause();
                                     hideTimer?.cancel();
-                                    setState(() {
-                                      showVideoController = true;
-                                    });
+                                    playerController.showVideoController = true;
                                   },
                                   onDragUpdate: (details) => {
                                     playerController.currentPosition =
@@ -1737,10 +1473,8 @@ class _PlayerItemState extends State<PlayerItem>
   void startHideTimer() {
     hideTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
-        setState(() {
-          showVideoController = false;
-        });
-        _animationController.reverse();
+        playerController.showVideoController = false;
+        playerController.animationController?.reverse();
       }
       hideTimer = null;
     });

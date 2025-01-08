@@ -270,7 +270,7 @@ class _VideoPageState extends State<VideoPage>
                           width: MediaQuery.of(context).size.width,
                           child: playerBody,
                         ),
-                        if (videoPageController.showTabBody)
+                        if (videoPageController.showTabBody) ...[
                           GestureDetector(
                             onTap: () {
                               closeTabBodyAnimated();
@@ -281,17 +281,18 @@ class _VideoPageState extends State<VideoPage>
                               height: double.infinity,
                             ),
                           ),
-                        SlideTransition(
-                          position: _rightOffsetAnimation,
-                          child: SizedBox(
-                            height: MediaQuery.of(context).size.height,
-                            width:
-                                MediaQuery.of(context).size.width * 1 / 3 > 420
-                                    ? 420
-                                    : MediaQuery.of(context).size.width * 1 / 3,
-                            child: tabBody,
+                          SlideTransition(
+                            position: _rightOffsetAnimation,
+                            child: SizedBox(
+                              height: MediaQuery.of(context).size.height,
+                              width: MediaQuery.of(context).size.width * 1 / 3 >
+                                      420
+                                  ? 420
+                                  : MediaQuery.of(context).size.width * 1 / 3,
+                              child: tabBody,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     )
                   : (!videoPageController.isFullscreen)
@@ -718,50 +719,46 @@ class _VideoPageState extends State<VideoPage>
       episodeNum = videoPageController.currentEpisode;
     }
 
-    return Visibility(
-      maintainState: true,
-      visible: videoPageController.showTabBody,
-      child: Container(
-        color: Theme.of(context).canvasColor,
-        child: DefaultTabController(
-          length: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TabBar(
-                dividerHeight: Utils.isDesktop() ? 0.5 : 0.2,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                labelPadding:
-                    const EdgeInsetsDirectional.only(start: 30, end: 30),
-                onTap: (index) {
-                  if (index == 0) {
-                    menuJumpToCurrentEpisode();
-                  }
-                },
-                tabs: const [
-                  Tab(text: '选集'),
-                  Tab(text: '评论'),
+    return Container(
+      color: Theme.of(context).canvasColor,
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TabBar(
+              dividerHeight: Utils.isDesktop() ? 0.5 : 0.2,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelPadding:
+                  const EdgeInsetsDirectional.only(start: 30, end: 30),
+              onTap: (index) {
+                if (index == 0) {
+                  menuJumpToCurrentEpisode();
+                }
+              },
+              tabs: const [
+                Tab(text: '选集'),
+                Tab(text: '评论'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  GridViewObserver(
+                    controller: observerController,
+                    child: Column(
+                      children: [
+                        menuBar,
+                        menuBody,
+                      ],
+                    ),
+                  ),
+                  EpisodeCommentsSheet(episode: episodeNum),
                 ],
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    GridViewObserver(
-                      controller: observerController,
-                      child: Column(
-                        children: [
-                          menuBar,
-                          menuBody,
-                        ],
-                      ),
-                    ),
-                    EpisodeCommentsSheet(episode: episodeNum),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

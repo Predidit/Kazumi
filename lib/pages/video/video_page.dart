@@ -19,6 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
+import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -51,10 +52,13 @@ class _VideoPageState extends State<VideoPage>
 
   // webview init events listener
   late final StreamSubscription<bool> _initSubscription;
+
   // webview logs events listener
   late final StreamSubscription<String> _logSubscription;
+
   // webview video loaded events listener
   late final StreamSubscription<bool> _videoLoadedSubscription;
+
   // webview video source events listener
   // The first parameter is the video source URL and the second parameter is the video offset (start position)
   late final StreamSubscription<(String, int)> _videoURLSubscription;
@@ -202,6 +206,7 @@ class _VideoPageState extends State<VideoPage>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       menuJumpToCurrentEpisode();
       await Utils.exitFullScreen();
+      videoPageController.showTabBody = true;
       videoPageController.isFullscreen = false;
       return;
     }
@@ -235,6 +240,7 @@ class _VideoPageState extends State<VideoPage>
               videoPageController.isFullscreen) {
             videoPageController.exitFullScreen();
             menuJumpToCurrentEpisode();
+            videoPageController.showTabBody = true;
           }
         }
         return Observer(builder: (context) {
@@ -247,7 +253,8 @@ class _VideoPageState extends State<VideoPage>
                   )),
             body: SafeArea(
               top: !videoPageController.isFullscreen,
-              bottom: false, // set iOS and Android navigation bar to immersive
+              // set iOS and Android navigation bar to immersive
+              bottom: false,
               left: !videoPageController.isFullscreen,
               right: !videoPageController.isFullscreen,
               child: (Utils.isDesktop()) ||
@@ -258,11 +265,12 @@ class _VideoPageState extends State<VideoPage>
                       alignment: Alignment.centerRight,
                       children: [
                         Container(
-                            color: Colors.black,
-                            height: MediaQuery.of(context).size.height,
-                            width: MediaQuery.of(context).size.width,
-                            child: playerBody),
-                        if (videoPageController.showTabBody) ...[
+                          color: Colors.black,
+                          height: MediaQuery.of(context).size.height,
+                          width: MediaQuery.of(context).size.width,
+                          child: playerBody,
+                        ),
+                        if (videoPageController.showTabBody)
                           GestureDetector(
                             onTap: () {
                               closeTabBodyAnimated();
@@ -273,90 +281,76 @@ class _VideoPageState extends State<VideoPage>
                               height: double.infinity,
                             ),
                           ),
-                          SlideTransition(
-                              position: _rightOffsetAnimation,
-                              child: SizedBox(
-                                  height: MediaQuery.of(context).size.height,
-                                  width: MediaQuery.of(context).size.width *
-                                              1 /
-                                              3 >
-                                          420
-                                      ? 420
-                                      : MediaQuery.of(context).size.width *
-                                          1 /
-                                          3,
-                                  child: Container(
-                                      color: Theme.of(context).canvasColor,
-                                      child: GridViewObserver(
-                                        controller: observerController,
-                                        child: Column(
-                                          children: [
-                                            tabBar,
-                                            tabBody,
-                                          ],
-                                        ),
-                                      ))))
-                        ]
+                        SlideTransition(
+                          position: _rightOffsetAnimation,
+                          child: SizedBox(
+                            height: MediaQuery.of(context).size.height,
+                            width:
+                                MediaQuery.of(context).size.width * 1 / 3 > 420
+                                    ? 420
+                                    : MediaQuery.of(context).size.width * 1 / 3,
+                            child: tabBody,
+                          ),
+                        ),
                       ],
                     )
                   : (!videoPageController.isFullscreen)
                       ? Column(
                           children: [
                             Container(
-                                color: Colors.black,
-                                height:
-                                    MediaQuery.of(context).size.width * 9 / 16,
-                                width: MediaQuery.of(context).size.width,
-                                child: playerBody),
+                              color: Colors.black,
+                              height:
+                                  MediaQuery.of(context).size.width * 9 / 16,
+                              width: MediaQuery.of(context).size.width,
+                              child: playerBody,
+                            ),
                             Expanded(
-                                child: GridViewObserver(
-                              controller: observerController,
-                              child: Column(
-                                children: [
-                                  tabBar,
-                                  tabBody,
-                                ],
-                              ),
-                            ))
+                              child: tabBody,
+                            ),
                           ],
                         )
-                      : Stack(alignment: Alignment.centerRight, children: [
-                          Container(
-                              color: Colors.black,
-                              height: MediaQuery.of(context).size.height,
-                              width: MediaQuery.of(context).size.width,
-                              child: playerBody),
-                          if (videoPageController.showTabBody) ...[
-                            GestureDetector(
-                              onTap: () {
-                                closeTabBodyAnimated();
-                              },
-                              child: Container(
-                                color: Colors.black38,
-                                width: double.infinity,
-                                height: double.infinity,
+                      : Stack(
+                          alignment: Alignment.centerRight,
+                          children: [
+                            Container(
+                                color: Colors.black,
+                                height: MediaQuery.of(context).size.height,
+                                width: MediaQuery.of(context).size.width,
+                                child: playerBody),
+                            if (videoPageController.showTabBody)
+                              GestureDetector(
+                                onTap: () {
+                                  closeTabBodyAnimated();
+                                },
+                                child: Container(
+                                  color: Colors.black38,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                ),
+                              ),
+                            SlideTransition(
+                              position: _rightOffsetAnimation,
+                              child: SizedBox(
+                                height: MediaQuery.of(context).size.height,
+                                width: (Utils.isTablet())
+                                    ? MediaQuery.of(context).size.width / 2
+                                    : MediaQuery.of(context).size.height,
+                                child: Container(
+                                  color: Theme.of(context).canvasColor,
+                                  child: GridViewObserver(
+                                    controller: observerController,
+                                    child: Column(
+                                      children: [
+                                        menuBar,
+                                        menuBody,
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                            SlideTransition(
-                                position: _rightOffsetAnimation,
-                                child: SizedBox(
-                                    height: MediaQuery.of(context).size.height,
-                                    width: (Utils.isTablet())
-                                        ? MediaQuery.of(context).size.width / 2
-                                        : MediaQuery.of(context).size.height,
-                                    child: Container(
-                                        color: Theme.of(context).canvasColor,
-                                        child: GridViewObserver(
-                                          controller: observerController,
-                                          child: Column(
-                                            children: [
-                                              tabBar,
-                                              tabBody,
-                                            ],
-                                          ),
-                                        ))))
-                          ]
-                        ]),
+                          ],
+                        ),
             ),
           );
         });
@@ -543,7 +537,7 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  Widget get tabBar {
+  Widget get menuBar {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Row(
@@ -619,7 +613,7 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  Widget get tabBody {
+  Widget get menuBody {
     var cardList = <Widget>[];
     for (var road in videoPageController.roadList) {
       if (road.name == '播放列表${currentRoad + 1}') {
@@ -706,6 +700,67 @@ class _VideoPageState extends State<VideoPage>
           itemBuilder: (context, index) {
             return cardList[index];
           },
+        ),
+      ),
+    );
+  }
+
+  Widget get tabBody {
+    int episodeNum = 0;
+    episodeNum = Utils.extractEpisodeNumber(videoPageController
+        .roadList[videoPageController.currentRoad]
+        .identifier[videoPageController.currentEpisode - 1]);
+    if (episodeNum == 0 ||
+        episodeNum >
+            videoPageController
+                .roadList[videoPageController.currentRoad].identifier.length) {
+      episodeNum = videoPageController.currentEpisode;
+    }
+
+    return Visibility(
+      maintainState: true,
+      visible: videoPageController.showTabBody,
+      child: Container(
+        color: Theme.of(context).canvasColor,
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TabBar(
+                dividerHeight: Utils.isDesktop() ? 0.5 : 0.2,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelPadding:
+                    const EdgeInsetsDirectional.only(start: 30, end: 30),
+                onTap: (index) {
+                  if (index == 0) {
+                    menuJumpToCurrentEpisode();
+                  }
+                },
+                tabs: const [
+                  Tab(text: '选集'),
+                  Tab(text: '评论'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    GridViewObserver(
+                      controller: observerController,
+                      child: Column(
+                        children: [
+                          menuBar,
+                          menuBody,
+                        ],
+                      ),
+                    ),
+                    EpisodeCommentsSheet(episode: episodeNum),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

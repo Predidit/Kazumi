@@ -15,7 +15,8 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
+    with AutomaticKeepAliveClientMixin {
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
@@ -137,52 +138,53 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   void showEpisodeSelection() {
     final TextEditingController textController = TextEditingController();
     KazumiDialog.show(
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('输入集数'),
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextField(
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly
-                ],
-                controller: textController,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => KazumiDialog.dismiss(),
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('输入集数'),
+          content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return TextField(
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly
+              ],
+              controller: textController,
+            );
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              TextButton(
-                onPressed: () {
-                  if (textController.text.isEmpty) {
-                    KazumiDialog.showToast(message: '请输入集数');
-                    return;
-                  }
-                  final ep = int.tryParse(textController.text) ?? 0;
-                  if (ep == 0) {
-                    return;
-                  }
-                  setState(() {
-                    isLoading = true;
-                  });
-                  loadComments(ep);
-                  KazumiDialog.dismiss();
-                },
-                child: const Text('刷新'),
-              ),
-            ],
-          );
-        });
+            ),
+            TextButton(
+              onPressed: () {
+                if (textController.text.isEmpty) {
+                  KazumiDialog.showToast(message: '请输入集数');
+                  return;
+                }
+                final ep = int.tryParse(textController.text) ?? 0;
+                if (ep == 0) {
+                  return;
+                }
+                setState(() {
+                  isLoading = true;
+                });
+                loadComments(ep);
+                KazumiDialog.dismiss();
+              },
+              child: const Text('刷新'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,4 +192,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

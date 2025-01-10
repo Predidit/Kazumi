@@ -12,6 +12,7 @@ class QueryManager {
 
   Future<void> querySource(String keyword) async {
     _controller = StreamController();
+    int count = pluginsController.pluginList.length;
     infoController.pluginSearchResponseList.clear();
 
     for (Plugin plugin in pluginsController.pluginList) {
@@ -31,15 +32,18 @@ class QueryManager {
         _controller.add(result);
       }).catchError((error) {
         if (_isCancelled) return;
-
+        
         infoController.pluginSearchStatus[plugin.name] = 'error';
+        --count;
+        if (count == 0) return;
       });
     }
 
     await for (var result in _controller.stream) {
       if (_isCancelled) break;
-
       infoController.pluginSearchResponseList.add(result);
+      --count;
+      if (count == 0) break;
     }
   }
 

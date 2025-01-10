@@ -277,10 +277,8 @@ class _InfoPageState extends State<InfoPage>
                 setState(() {});
               }
             }
+            break;
           }
-        }
-        if (mounted) {
-          setState(() {});
         }
       }
     }

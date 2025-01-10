@@ -42,7 +42,7 @@ class BangumiCardV extends StatelessWidget {
               return;
             }
             infoController.bangumiItem = bangumiItem;
-            if (popularController.searchKeyword == '') {
+            if (!popularController.isSearching) {
               popularController.keyword = bangumiItem.nameCn == ''
                   ? bangumiItem.name
                   : (bangumiItem.nameCn);

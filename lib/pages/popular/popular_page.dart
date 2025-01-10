@@ -50,11 +50,13 @@ class _PopularPageState extends State<PopularPage>
     if (popularController.bangumiList.isEmpty) {
       popularController.queryBangumiListFeed();
     }
+    popularController.isSearching = popularController.searchKeyword.isNotEmpty;
     showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
 
   @override
   void dispose() {
+    popularController.isSearching = false;
     _focusNode.dispose();
     scrollController.removeListener(() {});
     super.dispose();
@@ -319,8 +321,8 @@ class _PopularPageState extends State<PopularPage>
                             onPressed: () async {
                               _focusNode.unfocus();
                               scrollController.jumpTo(0.0);
+                              popularController.setSearchKeyword('');
                               setState(() {
-                                popularController.setSearchKeyword('');
                                 showSearchBar = false;
                               });
                               await popularController

@@ -130,9 +130,10 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  void _update() {
+  Future<void> _update() async {
     bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
     if (autoUpdate) {
+      await Future.delayed(const Duration(seconds: 1));
       Modular.get<MyController>().checkUpdata(type: 'auto');
     }
   }
@@ -141,13 +142,8 @@ class _InitPageState extends State<InitPage> {
     await pluginsController.queryPluginHTTPList();
     int count = 0;
     for (var plugin in pluginsController.pluginList) {
-      for (var pluginHTTP in pluginsController.pluginHTTPList) {
-        if (plugin.name == pluginHTTP.name) {
-          if (plugin.version != pluginHTTP.version) {
-            count++;
-          }
-          break;
-        }
+      if (pluginsController.pluginUpdateStatus(plugin) == 'updatable') {
+        count++;
       }
     }
     if (count != 0) {

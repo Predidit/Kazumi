@@ -3,12 +3,14 @@ class PluginHTTPItem {
   String version;
   bool useNativePlayer;
   String author;
+  int lastUpdate;
 
   PluginHTTPItem({
     required this.name,
     required this.version,
     required this.useNativePlayer,
     required this.author,
+    required this.lastUpdate,
   });
 
   factory PluginHTTPItem.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class PluginHTTPItem {
       version: json['version'],
       useNativePlayer: json['useNativePlayer'],
       author: json['author'],
+      lastUpdate: json['lastUpdate'] ?? 0,
     );
   }
 }

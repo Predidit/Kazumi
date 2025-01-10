@@ -28,7 +28,6 @@ class _PopularPageState extends State<PopularPage>
   bool showSearchBar = false;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
-  final TextEditingController keywordController = TextEditingController();
   final PopularController popularController = Modular.get<PopularController>();
 
   @override
@@ -41,20 +40,23 @@ class _PopularPageState extends State<PopularPage>
       popularController.scrollOffset = scrollController.offset;
       if (scrollController.position.pixels >=
               scrollController.position.maxScrollExtent - 200 &&
-          popularController.isLoadingMore == false &&
-          popularController.searchKeyword == '') {
-        KazumiLogger().log(Level.info, 'Popular is loading more');
-        popularController.queryBangumiListFeed();
+          !popularController.isLoadingMore) {
+        if (popularController.searchKeyword == '') {
+          KazumiLogger().log(Level.info, 'Popular is loading more');
+          popularController.queryBangumiListFeed();
+        } else {}
       }
     });
     if (popularController.bangumiList.isEmpty) {
       popularController.queryBangumiListFeed();
     }
+    popularController.isSearching = popularController.searchKeyword.isNotEmpty;
+    showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
 
   @override
   void dispose() {
-    popularController.searchKeyword = '';
+    popularController.isSearching = false;
     _focusNode.dispose();
     scrollController.removeListener(() {});
     super.dispose();
@@ -75,7 +77,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final isLight = Theme.of(context).brightness == Brightness.light;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 暂时移除，某些情况下可能 crash
       // scrollController.jumpTo(popularController.scrollOffset);
@@ -91,7 +92,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            await popularController.queryBangumiListFeed();
+            await popularController.queryBangumiListFeedByRefresh();
           },
           child: Scaffold(
               appBar: SysAppBar(
@@ -127,16 +128,18 @@ class _PopularPageState extends State<PopularPage>
                           });
                           _focusNode.requestFocus();
                         } else {
-                          if (keywordController.text == '') {
+                          if (popularController.searchKeyword == '') {
                             _focusNode.unfocus();
                             setState(() {
                               showSearchBar = false;
                             });
-                            popularController.searchKeyword == '';
-                            await popularController.queryBangumiListFeedByTag('');
+                            await popularController
+                                .queryBangumiListFeedByTag('');
                           } else {
-                            keywordController.text = '';
-                            popularController.searchKeyword = '';
+                            popularController.setSearchKeyword('');
+                            setState(() {
+                              showSearchBar = true;
+                            });
                             _focusNode.requestFocus();
                           }
                         }
@@ -159,34 +162,7 @@ class _PopularPageState extends State<PopularPage>
                           EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
                       child: Visibility(
                         visible: showSearchBar,
-                        child: TextFormField(
-                          focusNode: _focusNode,
-                          cursorColor: Theme.of(context).colorScheme.primary,
-                          decoration: const InputDecoration(
-                            alignLabelWithHint: true,
-                            contentPadding: EdgeInsets.symmetric(
-                                vertical: 8, horizontal: 8),
-                            border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(8)),
-                            ),
-                          ),
-                          style: TextStyle(
-                              color: isLight ? Colors.black87 : Colors.white70),
-                          onChanged: (_) {
-                            scrollController.jumpTo(0.0);
-                          },
-                          controller: keywordController,
-                          onFieldSubmitted: (t) async {
-                            if (t != '') {
-                              popularController.searchKeyword = t;
-                              await popularController.queryBangumi(popularController.searchKeyword);
-                            } else {
-                              popularController.searchKeyword = '';
-                              await popularController.queryBangumiListFeedByTag("");
-                            }
-                          },
-                        ),
+                        child: searchBar(),
                       ),
                     ),
                   ],
@@ -212,7 +188,9 @@ class _PopularPageState extends State<PopularPage>
                                   top: 0, bottom: 10, left: 0),
                               child: popularController.isLoadingMore
                                   ? const LinearProgressIndicator()
-                                  : Container(),
+                                  : const SizedBox(
+                                      height: 4.0,
+                                    ),
                             ),
                           ),
                         ),
@@ -335,7 +313,8 @@ class _PopularPageState extends State<PopularPage>
                             child: Text(filter),
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
-                              await popularController.queryBangumiListFeedByTag('');
+                              await popularController
+                                  .queryBangumiListFeedByTag('');
                             },
                           )
                         : FilledButton.tonal(
@@ -343,11 +322,12 @@ class _PopularPageState extends State<PopularPage>
                             onPressed: () async {
                               _focusNode.unfocus();
                               scrollController.jumpTo(0.0);
+                              popularController.setSearchKeyword('');
                               setState(() {
-                                keywordController.text = '';
                                 showSearchBar = false;
                               });
-                              await popularController.queryBangumiListFeedByTag(filter);
+                              await popularController
+                                  .queryBangumiListFeedByTag(filter);
                             },
                           ),
                   ),
@@ -377,6 +357,38 @@ class _PopularPageState extends State<PopularPage>
         //   ),
         // )
       ],
+    );
+  }
+
+  Widget searchBar(){
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final TextEditingController controller = TextEditingController();
+    controller.text = popularController.searchKeyword;
+    return TextField(
+      controller: controller,
+      focusNode: _focusNode,
+      cursorColor: Theme.of(context).colorScheme.primary,
+      decoration: InputDecoration(
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        labelText: popularController.searchKeyword,
+        alignLabelWithHint: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+      ),
+      style: TextStyle(color: isLight ? Colors.black87 : Colors.white70),
+      onChanged: (_) {
+        scrollController.jumpTo(0.0);
+      },
+      onSubmitted: (t) async {
+        popularController.setSearchKeyword(t);
+        if (t != '') {
+          await popularController.queryBangumi(popularController.searchKeyword);
+        } else {
+          await popularController.queryBangumiListFeedByTag('');
+        }
+      },
     );
   }
 }

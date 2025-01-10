@@ -1,3 +1,4 @@
+import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -45,66 +46,89 @@ class _MyPageState extends State<MyPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
-        body: ListView(
-          children: [
-            ListTile(
-              onTap: () {
-                Modular.to.pushNamed('/settings/history');
-              },
-              dense: false,
-              title: const Text('历史记录'),
+        body: Center(
+          child: SizedBox(
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+            child: SettingsList(
+              sections: [
+                SettingsSection(
+                  title: const Text('播放历史与视频源'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/history/');
+                      },
+                      leading: const Icon(Icons.history_rounded),
+                      title: const Text('历史记录'),
+                      description: const Text('查看播放历史记录'),
+                    ),
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/plugin/');
+                      },
+                      leading: const Icon(Icons.extension),
+                      title: const Text('规则管理'),
+                      description: const Text('管理番剧资源规则'),
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  title: const Text('播放器设置'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/player');
+                      },
+                      leading: const Icon(Icons.display_settings_rounded),
+                      title: const Text('播放设置'),
+                      description: const Text('设置播放器相关参数'),
+                    ),
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/danmaku/');
+                      },
+                      leading: const Icon(Icons.subtitles_rounded),
+                      title: const Text('弹幕设置'),
+                      description: const Text('设置弹幕相关参数'),
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  title: const Text('应用与外观'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/theme');
+                      },
+                      leading: const Icon(Icons.palette_rounded),
+                      title: const Text('外观设置'),
+                      description: const Text('设置应用主题和刷新率'),
+                    ),
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/webdav/');
+                      },
+                      leading: const Icon(Icons.cloud),
+                      title: const Text('同步设置'),
+                      description: const Text('设置同步参数'),
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  title: const Text('其他'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/about/');
+                      },
+                      leading: const Icon(Icons.info_outline_rounded),
+                      title: const Text('关于'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/plugin');
-              },
-              dense: false,
-              title: const Text('规则管理'),
-            ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/player');
-              },
-              dense: false,
-              title: const Text('播放设置'),
-            ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/danmaku');
-              },
-              dense: false,
-              title: const Text('弹幕设置'),
-            ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/theme');
-              },
-              dense: false,
-              title: const Text('外观设置'),
-              // trailing: const Icon(Icons.navigate_next),
-            ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/webdav');
-              },
-              dense: false,
-              title: const Text('同步设置'),
-            ),
-            ListTile(
-              onTap: () async {
-                Modular.to.pushNamed('/settings/other');
-              },
-              dense: false,
-              title: const Text('其他设置'),
-            ),
-            ListTile(
-              onTap: () {
-                Modular.to.pushNamed('/settings/about');
-              },
-              dense: false,
-              title: const Text('关于'),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -382,10 +382,7 @@ class Utils {
 
   /// 判断是否为桌面设备
   static bool isDesktop() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      return true;
-    }
-    return false;
+    return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
   /// 判断设备是否为宽屏
@@ -539,5 +536,16 @@ class Utils {
   // 获取当前解复用器
   static Future<String> getCurrentDemux() async {
     return 'MPV';
+  }
+
+  static String getSeasonStringByMonth(int month) {
+    if (month <= 3) return '冬';
+    if (month <= 6) return '春';
+    if (month <= 9) return '夏';
+    return '秋';
+  }
+
+  static bool isSameSeason(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
   }
 }

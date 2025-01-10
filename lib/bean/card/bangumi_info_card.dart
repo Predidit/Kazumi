@@ -20,7 +20,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   Widget build(BuildContext context) {
     TextStyle style =
         TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
-    String heroTag = Utils.makeHeroTag(widget.bangumiItem.id);
     return SizedBox(
       height: Utils.isCompact() ? 240 : 300,
       child: Padding(
@@ -43,21 +42,32 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                   final double maxHeight = boxConstraints.maxHeight;
                   return Stack(
                     children: [
-                      Hero(
-                        tag: heroTag,
-                        child: NetworkImgLayer(
-                          src: widget.bangumiItem.images['large'] ?? '',
-                          width: maxWidth,
-                          height: maxHeight,
-                          fadeInDuration: const Duration(milliseconds: 0),
-                          fadeOutDuration: const Duration(milliseconds: 0),
-                        ),
+                      NetworkImgLayer(
+                        src: widget.bangumiItem.images['large'] ?? '',
+                        width: maxWidth,
+                        height: maxHeight,
+                        fadeInDuration: const Duration(milliseconds: 0),
+                        fadeOutDuration: const Duration(milliseconds: 0),
                       ),
                       Positioned(
-                          right: 5,
-                          bottom: 5,
-                          child:
-                              CollectButton(bangumiItem: widget.bangumiItem)),
+                        right: 5,
+                        bottom: 5,
+                        child: Container(
+                          // padding: EdgeInsets.all(padding),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: CollectButton(
+                            bangumiItem: widget.bangumiItem,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSecondaryContainer,
+                          ),
+                        ),
+                      ),
                     ],
                   );
                 }),

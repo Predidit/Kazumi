@@ -217,6 +217,134 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$lockPanelAtom =
+      Atom(name: '_PlayerController.lockPanel', context: context);
+
+  @override
+  bool get lockPanel {
+    _$lockPanelAtom.reportRead();
+    return super.lockPanel;
+  }
+
+  @override
+  set lockPanel(bool value) {
+    _$lockPanelAtom.reportWrite(value, super.lockPanel, () {
+      super.lockPanel = value;
+    });
+  }
+
+  late final _$showVideoControllerAtom =
+      Atom(name: '_PlayerController.showVideoController', context: context);
+
+  @override
+  bool get showVideoController {
+    _$showVideoControllerAtom.reportRead();
+    return super.showVideoController;
+  }
+
+  @override
+  set showVideoController(bool value) {
+    _$showVideoControllerAtom.reportWrite(value, super.showVideoController, () {
+      super.showVideoController = value;
+    });
+  }
+
+  late final _$showSeekTimeAtom =
+      Atom(name: '_PlayerController.showSeekTime', context: context);
+
+  @override
+  bool get showSeekTime {
+    _$showSeekTimeAtom.reportRead();
+    return super.showSeekTime;
+  }
+
+  @override
+  set showSeekTime(bool value) {
+    _$showSeekTimeAtom.reportWrite(value, super.showSeekTime, () {
+      super.showSeekTime = value;
+    });
+  }
+
+  late final _$showBrightnessAtom =
+      Atom(name: '_PlayerController.showBrightness', context: context);
+
+  @override
+  bool get showBrightness {
+    _$showBrightnessAtom.reportRead();
+    return super.showBrightness;
+  }
+
+  @override
+  set showBrightness(bool value) {
+    _$showBrightnessAtom.reportWrite(value, super.showBrightness, () {
+      super.showBrightness = value;
+    });
+  }
+
+  late final _$showVolumeAtom =
+      Atom(name: '_PlayerController.showVolume', context: context);
+
+  @override
+  bool get showVolume {
+    _$showVolumeAtom.reportRead();
+    return super.showVolume;
+  }
+
+  @override
+  set showVolume(bool value) {
+    _$showVolumeAtom.reportWrite(value, super.showVolume, () {
+      super.showVolume = value;
+    });
+  }
+
+  late final _$showPlaySpeedAtom =
+      Atom(name: '_PlayerController.showPlaySpeed', context: context);
+
+  @override
+  bool get showPlaySpeed {
+    _$showPlaySpeedAtom.reportRead();
+    return super.showPlaySpeed;
+  }
+
+  @override
+  set showPlaySpeed(bool value) {
+    _$showPlaySpeedAtom.reportWrite(value, super.showPlaySpeed, () {
+      super.showPlaySpeed = value;
+    });
+  }
+
+  late final _$brightnessSeekingAtom =
+      Atom(name: '_PlayerController.brightnessSeeking', context: context);
+
+  @override
+  bool get brightnessSeeking {
+    _$brightnessSeekingAtom.reportRead();
+    return super.brightnessSeeking;
+  }
+
+  @override
+  set brightnessSeeking(bool value) {
+    _$brightnessSeekingAtom.reportWrite(value, super.brightnessSeeking, () {
+      super.brightnessSeeking = value;
+    });
+  }
+
+  late final _$volumeSeekingAtom =
+      Atom(name: '_PlayerController.volumeSeeking', context: context);
+
+  @override
+  bool get volumeSeeking {
+    _$volumeSeekingAtom.reportRead();
+    return super.volumeSeeking;
+  }
+
+  @override
+  set volumeSeeking(bool value) {
+    _$volumeSeekingAtom.reportWrite(value, super.volumeSeeking, () {
+      super.volumeSeeking = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
@@ -232,7 +360,15 @@ danmakuOn: ${danmakuOn},
 aspectRatioType: ${aspectRatioType},
 volume: ${volume},
 brightness: ${brightness},
-playerSpeed: ${playerSpeed}
+playerSpeed: ${playerSpeed},
+lockPanel: ${lockPanel},
+showVideoController: ${showVideoController},
+showSeekTime: ${showSeekTime},
+showBrightness: ${showBrightness},
+showVolume: ${showVolume},
+showPlaySpeed: ${showPlaySpeed},
+brightnessSeeking: ${brightnessSeeking},
+volumeSeeking: ${volumeSeeking}
     ''';
   }
 }

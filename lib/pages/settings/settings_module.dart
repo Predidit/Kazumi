@@ -6,7 +6,7 @@ import 'package:kazumi/pages/history/history_module.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
-import 'package:kazumi/pages/settings/other_settings.dart';
+import 'package:kazumi/pages/settings/decoder_settings.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 class SettingsModule extends Module {
@@ -18,7 +18,8 @@ class SettingsModule extends Module {
       child: (_) => const SetDisplayMode(),
     );
     r.child("/player", child: (_) => const PlayerSettingsPage());
-    r.child("/other", child: (_) => const OtherSettingsPage());
+    r.child("/player/decoder", child: (_) => const DecoderSettings());
+    // r.child("/other", child: (_) => const OtherSettingsPage());
     r.module("/webdav", module: WebDavModule());
     r.module("/about", module: AboutModule());
     r.module("/plugin", module: PluginModule());

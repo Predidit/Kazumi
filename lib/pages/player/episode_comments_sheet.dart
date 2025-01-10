@@ -57,30 +57,39 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Widget get episodeCommentsBody {
     return SelectionArea(
-        child: Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-      child: Observer(builder: (context) {
-        if (isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (commentsQueryTimeout) {
-          return const Center(
-            child: Text('空空如也'),
-          );
-        }
-        return SingleChildScrollView(
-            child: ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: infoController.episodeCommentsList.length,
-                itemBuilder: (context, index) {
-                  return EpisodeCommentsCard(
-                      commentItem: infoController.episodeCommentsList[index]);
-                }));
-      }),
-    ));
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+            sliver: Observer(builder: (context) {
+              if (isLoading) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (commentsQueryTimeout) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('空空如也'),
+                  ),
+                );
+              }
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    return EpisodeCommentsCard(
+                        commentItem: infoController.episodeCommentsList[index]);
+                  },
+                  childCount: infoController.episodeCommentsList.length,
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget get commentsInfo {
@@ -137,48 +146,48 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   void showEpisodeSelection() {
     final TextEditingController textController = TextEditingController();
     KazumiDialog.show(
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('输入集数'),
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextField(
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly
-                ],
-                controller: textController,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => KazumiDialog.dismiss(),
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('输入集数'),
+          content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return TextField(
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly
+              ],
+              controller: textController,
+            );
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              TextButton(
-                onPressed: () {
-                  if (textController.text.isEmpty) {
-                    KazumiDialog.showToast(message: '请输入集数');
-                    return;
-                  }
-                  final ep = int.tryParse(textController.text) ?? 0;
-                  if (ep == 0) {
-                    return;
-                  }
-                  setState(() {
-                    isLoading = true;
-                  });
-                  loadComments(ep);
-                  KazumiDialog.dismiss();
-                },
-                child: const Text('刷新'),
-              ),
-            ],
-          );
-        });
+            ),
+            TextButton(
+              onPressed: () {
+                if (textController.text.isEmpty) {
+                  KazumiDialog.showToast(message: '请输入集数');
+                  return;
+                }
+                final ep = int.tryParse(textController.text) ?? 0;
+                if (ep == 0) {
+                  return;
+                }
+                setState(() {
+                  isLoading = true;
+                });
+                loadComments(ep);
+                KazumiDialog.dismiss();
+              },
+              child: const Text('刷新'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

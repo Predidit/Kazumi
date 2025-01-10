@@ -41,34 +41,46 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: webDavURLController,
-              decoration: const InputDecoration(labelText: 'URL'),
+        child: Center(
+          child: SizedBox(
+            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+            child: Column(
+              children: [
+                TextField(
+                  controller: webDavURLController,
+                  decoration: const InputDecoration(
+                      labelText: 'URL', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: webDavUsernameController,
+                  decoration: const InputDecoration(
+                      labelText: 'Username', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: webDavPasswordController,
+                  decoration: const InputDecoration(
+                      labelText: 'Password', border: OutlineInputBorder()),
+                ),
+                // const SizedBox(height: 20),
+                // ExpansionTile(
+                //   title: const Text('高级选项'),
+                //   children: [],
+                // ),
+              ],
             ),
-            TextField(
-              controller: webDavUsernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            TextField(
-              controller: webDavPasswordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            // const SizedBox(height: 20),
-            // ExpansionTile(
-            //   title: const Text('高级选项'),
-            //   children: [],
-            // ),
-          ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.save),
         onPressed: () async {
           setting.put(SettingBoxKey.webDavURL, webDavURLController.text);
-          setting.put(SettingBoxKey.webDavUsername, webDavUsernameController.text);
-          setting.put(SettingBoxKey.webDavPassword, webDavPasswordController.text);
+          setting.put(
+              SettingBoxKey.webDavUsername, webDavUsernameController.text);
+          setting.put(
+              SettingBoxKey.webDavPassword, webDavPasswordController.text);
           var webDav = WebDav();
           try {
             await webDav.init();

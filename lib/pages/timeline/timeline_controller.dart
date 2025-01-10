@@ -14,7 +14,13 @@ abstract class _TimelineController with Store {
   @observable
   String seasonString = '';
 
-  DateTime selectedDate = DateTime.now();
+  late DateTime selectedDate;
+
+  void init() {
+    selectedDate = DateTime.now();
+    seasonString = AnimeSeason(selectedDate).toString();
+    getSchedules();
+  }
 
   Future<void> getSchedules() async {
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
@@ -38,5 +44,10 @@ abstract class _TimelineController with Store {
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
     }
+  }
+
+  void tryEnterSeason(DateTime date) {
+    selectedDate = date;
+    seasonString = "加载中 ٩(◦`꒳´◦)۶";
   }
 }

@@ -13,6 +13,7 @@ abstract class _PopularController with Store {
 
   String keyword = '';
   String searchKeyword = '';
+  bool isSearching = false;
 
   @observable
   String currentTag = '';
@@ -28,7 +29,8 @@ abstract class _PopularController with Store {
   @observable
   bool isTimeOut = false;
 
-  void setSearchKeyword(String s){
+  void setSearchKeyword(String s) {
+    isSearching = s.isNotEmpty;
     searchKeyword = s;
   }
 

@@ -89,4 +89,13 @@ abstract class _VideoPageController with Store {
     }
     isFullscreen = await windowManager.isFullScreen();
   }
+
+  void handleOnEnterFullScreen() async {
+    isFullscreen = true;
+    showTabBody = false;
+  }
+
+  void handleOnExitFullScreen() async {
+    isFullscreen = false;
+  }
 }

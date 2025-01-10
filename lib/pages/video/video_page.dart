@@ -21,6 +21,7 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
+import 'package:window_manager/window_manager.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -30,7 +31,7 @@ class VideoPage extends StatefulWidget {
 }
 
 class _VideoPageState extends State<VideoPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WindowListener {
   Box setting = GStorage.setting;
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
@@ -68,6 +69,8 @@ class _VideoPageState extends State<VideoPage>
   @override
   void initState() {
     super.initState();
+    windowManager.addListener(this);
+    videoPageController.isMacOSFullscreen();
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 100),
@@ -136,6 +139,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    windowManager.removeListener(this);
     observerController.controller?.dispose();
     animation.dispose();
     _initSubscription.cancel();
@@ -145,6 +149,16 @@ class _VideoPageState extends State<VideoPage>
     playerController.dispose();
     Utils.unlockScreenRotation();
     super.dispose();
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    videoPageController.handleOnEnterFullScreen();
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    videoPageController.handleOnExitFullScreen();
   }
 
   void showDebugConsole() {
@@ -449,7 +463,8 @@ class _VideoPageState extends State<VideoPage>
                           left: 0,
                           right: 0,
                           child: SafeArea(
-                            minimum: (Platform.isMacOS)
+                            minimum: (Platform.isMacOS &&
+                                    !videoPageController.isFullscreen)
                                 ? const EdgeInsets.only(top: 22)
                                 : EdgeInsets.zero,
                             child: Row(

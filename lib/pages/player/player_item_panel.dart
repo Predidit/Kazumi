@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -330,16 +332,26 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.9),
-                        Colors.transparent,
-                      ],
+                child: SafeArea(
+                  left: false,
+                  top: true,
+                  right: false,
+                  bottom: false,
+                  minimum:
+                      (Platform.isMacOS && !videoPageController.isFullscreen)
+                          ? const EdgeInsets.only(top: 22)
+                          : EdgeInsets.zero,
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.9),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -531,157 +543,167 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: Row(
-                  children: [
-                    IconButton(
-                      color: Colors.white,
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        widget.onBackPressed(context);
-                      },
-                    ),
-                    (videoPageController.isFullscreen || Utils.isDesktop())
-                        ? Text(
-                            ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
-                            style: TextStyle(
+                child: SafeArea(
+                  left: false,
+                  top: true,
+                  right: false,
+                  bottom: false,
+                  minimum:
+                      (Platform.isMacOS && !videoPageController.isFullscreen)
+                          ? const EdgeInsets.only(top: 22)
+                          : EdgeInsets.zero,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () {
+                          widget.onBackPressed(context);
+                        },
+                      ),
+                      (videoPageController.isFullscreen || Utils.isDesktop())
+                          ? Text(
+                              ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium!
+                                      .fontSize),
+                            )
+                          : Container(),
+                      // 拖动条
+                      const Expanded(
+                        child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
+                      ),
+                      PopupMenuButton(
+                        tooltip: '',
+                        child: Text(
+                            playerController.aspectRatioType == 1
+                                ? 'AUTO'
+                                : playerController.aspectRatioType == 2
+                                    ? 'COVER'
+                                    : 'FILL',
+                            style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium!
-                                    .fontSize),
-                          )
-                        : Container(),
-                    // 拖动条
-                    const Expanded(
-                      child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
-                    ),
-                    PopupMenuButton(
-                      tooltip: '',
-                      child: Text(
-                          playerController.aspectRatioType == 1
-                              ? 'AUTO'
-                              : playerController.aspectRatioType == 2
-                                  ? 'COVER'
-                                  : 'FILL',
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold)),
+                        itemBuilder: (context) {
+                          return const [
+                            PopupMenuItem(
+                              value: 1,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("AUTO")],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 2,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("COVER")],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 3,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("FILL")],
+                              ),
+                            ),
+                          ];
+                        },
+                        onSelected: (value) {
+                          playerController.aspectRatioType = value;
+                        },
+                      ),
+                      TextButton(
+                        style: ButtonStyle(
+                          padding: WidgetStateProperty.all(EdgeInsets.zero),
+                        ),
+                        onPressed: () {
+                          // 倍速播放
+                          showSetSpeedSheet();
+                        },
+                        child: Text(
+                          '${playerController.playerSpeed}X',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
-                              fontWeight: FontWeight.bold)),
-                      itemBuilder: (context) {
-                        return const [
-                          PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("AUTO")],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 2,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("COVER")],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 3,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("FILL")],
-                            ),
-                          ),
-                        ];
-                      },
-                      onSelected: (value) {
-                        playerController.aspectRatioType = value;
-                      },
-                    ),
-                    TextButton(
-                      style: ButtonStyle(
-                        padding: WidgetStateProperty.all(EdgeInsets.zero),
+                              fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      onPressed: () {
-                        // 倍速播放
-                        showSetSpeedSheet();
-                      },
-                      child: Text(
-                        '${playerController.playerSpeed}X',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    forwardIcon(),
-                    // 追番
-                    CollectButton(bangumiItem: infoController.bangumiItem),
-                    PopupMenuButton(
-                      tooltip: '',
-                      icon: const Icon(
-                        Icons.more_vert,
-                        color: Colors.white,
-                      ),
-                      itemBuilder: (context) {
-                        return const [
-                          PopupMenuItem(
-                            value: 0,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("弹幕设置")],
+                      forwardIcon(),
+                      // 追番
+                      CollectButton(bangumiItem: infoController.bangumiItem),
+                      PopupMenuButton(
+                        tooltip: '',
+                        icon: const Icon(
+                          Icons.more_vert,
+                          color: Colors.white,
+                        ),
+                        itemBuilder: (context) {
+                          return const [
+                            PopupMenuItem(
+                              value: 0,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("弹幕设置")],
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("弹幕切换")],
+                            PopupMenuItem(
+                              value: 1,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("弹幕切换")],
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 2,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("视频详情")],
+                            PopupMenuItem(
+                              value: 2,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("视频详情")],
+                              ),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 3,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [Text("远程播放")],
+                            PopupMenuItem(
+                              value: 3,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [Text("远程播放")],
+                              ),
                             ),
-                          ),
-                        ];
-                      },
-                      onSelected: (value) {
-                        if (value == 0) {
-                          KazumiDialog.show(builder: (context) {
-                            return DanmakuSettingsWindow(
-                                danmakuController:
-                                    playerController.danmakuController);
-                          });
-                        }
-                        if (value == 1) {
-                          widget.showDanmakuSwitch();
-                        }
-                        if (value == 2) {
-                          showVideoInfo();
-                        }
-                        if (value == 3) {
-                          bool needRestart = playerController.playing;
-                          playerController.pause();
-                          RemotePlay()
-                              .castVideo(context,
-                                  videoPageController.currentPlugin.referer)
-                              .whenComplete(() {
-                            if (needRestart) {
-                              playerController.play();
-                            }
-                          });
-                        }
-                      },
-                    )
-                  ],
+                          ];
+                        },
+                        onSelected: (value) {
+                          if (value == 0) {
+                            KazumiDialog.show(builder: (context) {
+                              return DanmakuSettingsWindow(
+                                  danmakuController:
+                                      playerController.danmakuController);
+                            });
+                          }
+                          if (value == 1) {
+                            widget.showDanmakuSwitch();
+                          }
+                          if (value == 2) {
+                            showVideoInfo();
+                          }
+                          if (value == 3) {
+                            bool needRestart = playerController.playing;
+                            playerController.pause();
+                            RemotePlay()
+                                .castVideo(context,
+                                    videoPageController.currentPlugin.referer)
+                                .whenComplete(() {
+                              if (needRestart) {
+                                playerController.play();
+                              }
+                            });
+                          }
+                        },
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),

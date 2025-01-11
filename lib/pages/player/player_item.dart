@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -245,33 +244,12 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  Future<void> setVolume(double value) async {
-    try {
-      if (Utils.isDesktop()) {
-        await playerController.setVolume(value);
-      } else {
-        await FlutterVolumeController.updateShowSystemUI(false);
-        await FlutterVolumeController.setVolume(value / 100);
-      }
-    } catch (_) {}
-  }
-
   Future<void> increaseVolume() async {
-    double volume =
-        playerController.volume + 10 > 100 ? 100 : playerController.volume + 10;
-    try {
-      await playerController.setVolume(volume);
-      playerController.volume = volume;
-    } catch (_) {}
+    await playerController.setVolume(playerController.volume + 10);
   }
 
   Future<void> decreaseVolume() async {
-    double volume =
-        playerController.volume - 10 < 0 ? 0 : playerController.volume - 10;
-    try {
-      await playerController.setVolume(volume);
-      playerController.volume = volume;
-    } catch (_) {}
+    await playerController.setVolume(playerController.volume - 10);
   }
 
   Future<void> setBrightness(double value) async {
@@ -613,9 +591,7 @@ class _PlayerItemState extends State<PlayerItem>
                     final scrollDelta = pointerSignal.scrollDelta;
                     final double volume =
                         playerController.volume - scrollDelta.dy / 60;
-                    final double result = volume.clamp(0.0, 100.0);
-                    setVolume(result);
-                    playerController.volume = result;
+                    playerController.setVolume(volume);
                   }
                 },
                 child: SizedBox(
@@ -880,10 +856,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   final double level = (totalHeight) * 0.03;
                                   final double volume =
                                       playerController.volume - delta / level;
-                                  final double result =
-                                      volume.clamp(0.0, 100.0);
-                                  setVolume(result);
-                                  playerController.volume = result;
+                                  playerController.setVolume(volume);
                                 }
                               }, onVerticalDragEnd: (DragEndDetails details) {
                                 if (playerController.volumeSeeking) {

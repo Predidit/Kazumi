@@ -178,10 +178,10 @@ packages:
     dependency: "direct main"
     description:
       name: canvas_danmaku
-      sha256: "25bb2dd9a3f46cc47a926a7a3aacca461ae8c6290e9d44767cddc0f9ac4f9c91"
+      sha256: a6761973c72328c3872fa288d0a943bf3675238a30913cf9cd0155d9b7cea9ca
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.5"
+    version: "0.2.6"
   card_settings_ui:
     dependency: "direct main"
     description:

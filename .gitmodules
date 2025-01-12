@@ -1,0 +1,4 @@
+[submodule "fastlane/.flutter"]
+	path = fastlane/.flutter
+	url = https://github.com/flutter/flutter.git
+	branch = stable

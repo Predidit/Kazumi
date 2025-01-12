@@ -34,6 +34,25 @@ abstract class _PopularController with Store {
     searchKeyword = s;
   }
 
+  Future<bool> queryLatestBangumiUpdates() async {
+    var result = await BangumiHTTP.getCalendar();
+    List<BangumiItem> bangumiList = [];
+    for (var list in result) {
+      bangumiList.addAll(list);
+    }
+    //按照时间倒序排序
+    bangumiList.sort((a, b) => b.airDate.compareTo(a.airDate));
+    //过滤掉现在时间之后的番剧
+    bangumiList = bangumiList
+        .where((item) =>
+            (DateTime.parse(item.airDate).isBefore(DateTime.now()) ||
+                DateTime.parse(item.airDate).isAtSameMomentAs(DateTime.now())))
+        .toList();
+    // [X|未实现]只保留tags中含有 "tag": ["日本"] 的番剧，效率很低
+    this.bangumiList = ObservableList.of(bangumiList);
+    return true;
+  }
+
   Future<bool> queryBangumiListFeed() async {
     isLoadingMore = true;
     int randomNumber = Random().nextInt(1000) + 1;

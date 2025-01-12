@@ -48,7 +48,7 @@ class _PopularPageState extends State<PopularPage>
       }
     });
     if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiListFeed();
+      popularController.queryLatestBangumiUpdates();
     }
     popularController.isSearching = popularController.searchKeyword.isNotEmpty;
     showSearchBar = popularController.searchKeyword.isNotEmpty;

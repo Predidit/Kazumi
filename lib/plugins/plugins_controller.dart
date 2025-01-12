@@ -226,7 +226,6 @@ abstract class _PluginsController with Store {
         return 1;
       }
       updatePlugin(pluginHTTPItem);
-      await savePlugins();
       return 0;
     }
     return 2;

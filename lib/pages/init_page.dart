@@ -83,7 +83,7 @@ class _InitPageState extends State<InitPage> {
   Future<void> _pluginInit() async {
     String statementsText = '';
     try {
-      await pluginsController.loadPlugins();
+      await pluginsController.loadAllPlugins();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
       _pluginUpdate();
@@ -113,7 +113,6 @@ class _InitPageState extends State<InitPage> {
                   onPressed: () async {
                     try {
                       await pluginsController.copyPluginsToExternalDirectory();
-                      await pluginsController.loadPlugins();
                     } catch (_) {}
                     KazumiDialog.dismiss();
                     Modular.to.navigate('/tab/popular/');

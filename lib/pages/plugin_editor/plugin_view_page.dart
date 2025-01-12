@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:logger/logger.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -24,9 +26,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
 
   // 已选中的规则名称集合
   final Set<String> selectedNames = {};
-
-  // 排序方式状态：false=按安装时间排序，true=按名称排序
-  bool sortByName = false;
 
   Future<void> _handleUpdate() async {
     KazumiDialog.showLoading(msg: '更新中');
@@ -105,7 +104,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               onPressed: () async {
                 final String msg = textController.text;
                 try {
-                  await pluginsController.tryInstallPlugin(Plugin.fromJson(
+                  pluginsController.updatePlugin(Plugin.fromJson(
                       json.decode(Utils.kazumiBase64ToJson(msg))));
                   KazumiDialog.showToast(message: '导入成功');
                 } catch (e) {
@@ -186,17 +185,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  // 从大到小排序，这样删除时不会影响前面的索引
-                                  final sortedNames = selectedNames.toList()
-                                    ..sort((a, b) => b.compareTo(a));
-                                  for (final name in sortedNames) {
-                                    final plugin = pluginsController.pluginList
-                                        .firstWhere((p) => p.name == name);
-                                    pluginsController
-                                        .deletePluginJsonFile(plugin);
-                                    pluginsController.pluginList
-                                        .removeWhere((p) => p.name == name);
-                                  }
+                                  pluginsController.removePlugins(selectedNames);
                                   setState(() {
                                     isMultiSelectMode = false;
                                     selectedNames.clear();
@@ -212,15 +201,6 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 icon: const Icon(Icons.delete),
               ),
             ] else ...[
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      sortByName = !sortByName;
-                    });
-                  },
-                  tooltip: sortByName ? '按名称排序' : '按安装时间排序',
-                  icon: Icon(
-                      sortByName ? Icons.sort_by_alpha : Icons.access_time)),
               IconButton(
                   onPressed: () {
                     _handleUpdate();
@@ -242,30 +222,25 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
                 )
               : Builder(builder: (context) {
-                  // 创建列表副本用于排序
-                  var sortedList = List.from(pluginsController.pluginList);
-                  // 排序规则：
-                  // 1. 按名称排序：忽略大小写的字母顺序
-                  // 2. 按时间排序：安装时间降序（最新的在前面）
-                  if (sortByName) {
-                    sortedList.sort((a, b) =>
-                        a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-                  } else {
-                    sortedList.sort((a, b) => pluginsController
-                        .installTimeTracker
-                        .getInstallTime(b.name)
-                        .compareTo(pluginsController.installTimeTracker
-                            .getInstallTime(a.name)));
-                  }
-
-                  return ListView.builder(
-                    itemCount: sortedList.length,
+                  return ReorderableListView.builder(
+                    proxyDecorator: (child, index, animation) {
+                      return Material(
+                        elevation: 0,
+                        color: Colors.transparent,
+                        child: child,
+                      );
+                    },
+                    onReorder: (int oldIndex, int newIndex) {
+                      pluginsController.onReorder(oldIndex, newIndex);
+                    },
+                    itemCount: pluginsController.pluginList.length,
                     itemBuilder: (context, index) {
-                      var plugin = sortedList[index];
+                      var plugin = pluginsController.pluginList[index];
                       bool canUpdate =
                           pluginsController.pluginUpdateStatus(plugin) ==
                               'updatable';
                       return Card(
+                        key: ValueKey(index),
                         margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: ListTile(
                           shape: RoundedRectangleBorder(
@@ -381,116 +356,96 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                     });
                                   },
                                 )
-                              : PopupMenuButton<String>(
-                                  onSelected: (String result) async {
-                                    if (result == 'Update') {
-                                      var state = pluginsController
-                                          .pluginUpdateStatus(plugin);
-                                      if (state == "nonexistent") {
-                                        KazumiDialog.showToast(
-                                            message: '规则仓库中没有当前规则');
-                                      } else if (state == "latest") {
-                                        KazumiDialog.showToast(
-                                            message: '规则已是最新');
-                                      } else if (state == "updatable") {
-                                        KazumiDialog.showLoading(msg: '更新中');
-                                        int res = await pluginsController
-                                            .tryUpdatePlugin(plugin);
-                                        KazumiDialog.dismiss();
-                                        if (res == 0) {
-                                          KazumiDialog.showToast(
-                                              message: '更新成功');
-                                        } else if (res == 1) {
-                                          KazumiDialog.showToast(
-                                              message:
-                                                  'kazumi版本过低, 此规则不兼容当前版本');
-                                        } else if (res == 2) {
-                                          KazumiDialog.showToast(
-                                              message: '更新规则失败');
-                                        }
-                                      }
-                                    } else if (result == 'Delete') {
-                                      setState(() {
-                                        pluginsController
-                                            .deletePluginJsonFile(plugin);
-                                        pluginsController.pluginList
-                                            .removeWhere(
-                                                (p) => p.name == plugin.name);
-                                      });
-                                    } else if (result == 'Edit') {
-                                      Modular.to.pushNamed(
-                                          '/settings/plugin/editor',
-                                          arguments: plugin);
-                                    } else if (result == 'Share') {
-                                      KazumiDialog.show(builder: (context) {
-                                        return AlertDialog(
-                                          title: const Text('规则链接'),
-                                          content: SelectableText(
-                                            Utils.jsonToKazumiBase64(
-                                                json.encode(pluginsController
-                                                    .pluginList[index]
-                                                    .toJson())),
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  KazumiDialog.dismiss(),
-                                              child: Text(
-                                                '取消',
-                                                style: TextStyle(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .outline),
-                                              ),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                Clipboard.setData(ClipboardData(
-                                                    text: Utils.jsonToKazumiBase64(
-                                                        json.encode(
-                                                            pluginsController
-                                                                .pluginList[
-                                                                    index]
-                                                                .toJson()))));
-                                                KazumiDialog.dismiss();
-                                              },
-                                              child: const Text('复制到剪贴板'),
-                                            ),
-                                          ],
-                                        );
-                                      });
-                                    }
-                                  },
-                                  itemBuilder: (BuildContext context) =>
-                                      <PopupMenuEntry<String>>[
-                                    const PopupMenuItem<String>(
-                                      value: 'Update',
-                                      child: Text('更新'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'Edit',
-                                      child: Text('编辑'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'Share',
-                                      child: Text('分享'),
-                                    ),
-                                    const PopupMenuItem<String>(
-                                      value: 'Delete',
-                                      child: Text('删除'),
-                                    ),
-                                  ],
-                                ),
+                              : popupMenuButton(index)
                         ),
                       );
-                    },
+                    }
                   );
                 });
         }),
       ),
+    );
+  }
+
+  Widget popupMenuButton(int index){
+    final plugin = pluginsController.pluginList[index];
+    return PopupMenuButton<String>(
+      onSelected: (String result) async {
+        if (result == 'Update') {
+          var state = pluginsController.pluginUpdateStatus(plugin);
+          if (state == "nonexistent") {
+            KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+          } else if (state == "latest") {
+            KazumiDialog.showToast(message: '规则已是最新');
+          } else if (state == "updatable") {
+            KazumiDialog.showLoading(msg: '更新中');
+            int res = await pluginsController.tryUpdatePlugin(plugin);
+            KazumiDialog.dismiss();
+            if (res == 0) {
+              KazumiDialog.showToast(message: '更新成功');
+            } else if (res == 1) {
+              KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+            } else if (res == 2) {
+              KazumiDialog.showToast(message: '更新规则失败');
+            }
+          }
+        } else if (result == 'Delete') {
+          setState(() {
+            pluginsController.removePlugin(plugin);
+          });
+        } else if (result == 'Edit') {
+          Modular.to.pushNamed('/settings/plugin/editor', arguments: plugin);
+        } else if (result == 'Share') {
+          KazumiDialog.show(builder: (context) {
+            return AlertDialog(
+              title: const Text('规则链接'),
+              content: SelectableText(
+                Utils.jsonToKazumiBase64(
+                    json.encode(pluginsController.pluginList[index].toJson())),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => KazumiDialog.dismiss(),
+                  child: Text(
+                    '取消',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(
+                        text: Utils.jsonToKazumiBase64(json.encode(
+                            pluginsController.pluginList[index].toJson()))));
+                    KazumiDialog.dismiss();
+                  },
+                  child: const Text('复制到剪贴板'),
+                ),
+              ],
+            );
+          });
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'Update',
+          child: Text('更新'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Edit',
+          child: Text('编辑'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Share',
+          child: Text('分享'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Delete',
+          child: Text('删除'),
+        ),
+      ],
     );
   }
 }

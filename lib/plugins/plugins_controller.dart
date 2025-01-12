@@ -43,8 +43,7 @@ abstract class _PluginsController with Store {
         final jsonString = await pluginsFile.readAsString();
         pluginList = ObservableList.of(getPluginListFromJson(jsonString));
         KazumiLogger().log(Level.info, '当前插件数量 ${pluginList.length}');
-      } else {}
-      if (pluginList.isEmpty) {
+      } else {
         var jsonFiles = await loadPlugins();
         for (var filePath in jsonFiles) {
           await File(filePath).delete(recursive: true);
@@ -61,12 +60,6 @@ abstract class _PluginsController with Store {
   Future<List<String>> loadPlugins() async {
     final directory = await getApplicationSupportDirectory();
     final pluginDirectory = Directory('${directory.path}/plugins');
-    if (await pluginDirectory.exists()) {
-      final pluginsFile = File('${pluginDirectory.path}/$pluginsFileName');
-      if (await pluginsFile.exists()) {
-        return [];
-      }
-    }
 
     pluginList.clear();
     KazumiLogger().log(Level.info, '插件目录 ${directory.path}/plugins');

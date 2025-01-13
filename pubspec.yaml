@@ -60,6 +60,7 @@ dependencies:
   adaptive_theme: ^3.6.0
   flutter_displaymode: ^0.6.0
 
+  vibration: ^1.8.4
   url_launcher: ^6.3.0
   device_info_plus: ^10.1.2
   window_manager: ^0.4.2

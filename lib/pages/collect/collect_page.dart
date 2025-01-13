@@ -150,7 +150,8 @@ class _CollectPageState extends State<CollectPage>
                               bottom: 5,
                               child: showDelete
                                   ? Container(
-                                      // padding: EdgeInsets.all(padding),
+                                      width: 40,
+                                      height: 40,
                                       decoration: BoxDecoration(
                                         color: Theme.of(context)
                                             .colorScheme

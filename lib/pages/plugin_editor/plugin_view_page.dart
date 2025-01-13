@@ -244,6 +244,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                         key: ValueKey(index),
                         margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                         child: ListTile(
+                          trailing: pluginCardTrailing(index),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                           onLongPress: () {
@@ -341,7 +342,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                               ],
                             ],
                           ),
-                                trailing: pluginCardTrailing(index)));
+                        ));
                       }
                   );
                 });

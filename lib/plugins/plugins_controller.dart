@@ -15,6 +15,10 @@ import 'package:kazumi/request/api.dart';
 
 part 'plugins_controller.g.dart';
 
+
+// 从 1.5.1 版本开始，规则文件储存在单一的 plugins.json 文件中。
+// 之前的版本中，规则以分离文件形式存储，版本更新后将这些分离文件合并为单一的 plugins.json 文件。
+
 class PluginsController = _PluginsController with _$PluginsController;
 
 abstract class _PluginsController with Store {

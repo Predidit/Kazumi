@@ -53,7 +53,7 @@ abstract class _PluginsController with Store {
       final pluginsFile = File('${pluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
-        pluginList = ObservableList.of(getPluginListFromJson(jsonString));
+        pluginList.addAll(getPluginListFromJson(jsonString));
         KazumiLogger().log(Level.info, '当前插件数量 ${pluginList.length}');
       } else {
         // No plugins.json

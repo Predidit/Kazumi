@@ -43,6 +43,8 @@ abstract class _PlayerController with Store {
   double volume = 0;
   @observable
   double brightness = 0;
+  @observable
+  double? curVolume = null;
 
   // 播放器界面控制
   @observable
@@ -131,6 +133,8 @@ abstract class _PlayerController with Store {
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    volume = curVolume ?? 100.0;
+    await setVolume(volume);
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
@@ -225,6 +229,7 @@ abstract class _PlayerController with Store {
         await FlutterVolumeController.setVolume(value / 100);
       }
     } catch (_) {}
+    curVolume = value;
   }
 
   Future<void> playOrPause() async {

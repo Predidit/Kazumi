@@ -40,7 +40,7 @@ abstract class _PlayerController with Store {
 
   // 视频音量/亮度
   @observable
-  double volume = 0;
+  double volume = -1;
   @observable
   double brightness = 0;
 
@@ -131,6 +131,14 @@ abstract class _PlayerController with Store {
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    if (Utils.isDesktop()) {
+      volume = volume != -1 ? volume : 100;
+    } else {
+      FlutterVolumeController.getVolume().then((value) {
+        volume = (value ?? 0.0) * 100;
+      });
+    }
+    await setVolume(volume);
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;

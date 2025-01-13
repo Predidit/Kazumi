@@ -36,21 +36,30 @@ abstract class _PluginsController with Store {
 
   String pluginsFileName = "plugins.json";
   
-  Directory? pluginDirectory;
+  Directory? oldPluginDirectory;
+
+  Directory? newPluginDirectory;
 
   // Initializes the plugin directory and loads all plugins
   Future<void> init() async {
     final directory = await getApplicationSupportDirectory();
-    pluginDirectory = Directory('${directory.path}/plugins');
+    oldPluginDirectory = Directory('${directory.path}/plugins');
+    if (!await oldPluginDirectory!.exists()) {
+      await oldPluginDirectory!.create(recursive: true);
+    }
+    newPluginDirectory = Directory('${directory.path}/plugins/v2');
+    if (!await newPluginDirectory!.exists()) {
+      await newPluginDirectory!.create(recursive: true);
+    }
     await loadAllPlugins();
   }
 
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
   Future<void> loadAllPlugins() async {
     pluginList.clear();
-    KazumiLogger().log(Level.info, '插件目录 ${pluginDirectory!.path}');
-    if (await pluginDirectory!.exists()) {
-      final pluginsFile = File('${pluginDirectory!.path}/$pluginsFileName');
+    KazumiLogger().log(Level.info, '插件目录 ${newPluginDirectory!.path}');
+    if (await newPluginDirectory!.exists()) {
+      final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
@@ -75,8 +84,8 @@ abstract class _PluginsController with Store {
 
   // Retrieves a list of JSON plugin file paths from the plugin directory
   Future<List<String>> getPluginFiles() async {
-    if (await pluginDirectory!.exists()) {
-      final jsonFiles = pluginDirectory!
+    if (await oldPluginDirectory!.exists()) {
+      final jsonFiles = oldPluginDirectory!
           .listSync()
           .where((file) => file.path.endsWith('.json') && file is File)
           .map((file) => file.path)
@@ -89,10 +98,6 @@ abstract class _PluginsController with Store {
 
   // Copies plugin JSON files from the assets to the plugin directory
   Future<void> copyPluginsToExternalDirectory() async {
-    if (!await pluginDirectory!.exists()) {
-      await pluginDirectory!.create(recursive: true);
-    }
-
     final manifestContent = await rootBundle.loadString('AssetManifest.json');
     final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
@@ -106,7 +111,7 @@ abstract class _PluginsController with Store {
     }
     await savePlugins();
     KazumiLogger().log(
-        Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${pluginDirectory!.path}');
+        Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${newPluginDirectory!.path}');
   }
 
   List<dynamic> pluginListToJson() {
@@ -159,9 +164,7 @@ abstract class _PluginsController with Store {
 
   Future<void> savePlugins() async {
     final jsonData = jsonEncode(pluginListToJson());
-    final directory = await getApplicationSupportDirectory();
-    final pluginDirectory = Directory('${directory.path}/plugins');
-    final pluginsFile = File('${pluginDirectory.path}/$pluginsFileName');
+    final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
     await pluginsFile.writeAsString(jsonData);
     KazumiLogger().log(Level.info, '已更新插件文件 $pluginsFileName');
   }

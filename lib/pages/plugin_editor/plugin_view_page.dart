@@ -223,6 +223,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 )
               : Builder(builder: (context) {
                   return ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
                     proxyDecorator: (child, index, animation) {
                       return Material(
                         elevation: 0,
@@ -340,31 +341,40 @@ class _PluginViewPageState extends State<PluginViewPage> {
                               ],
                             ],
                           ),
-                          trailing: isMultiSelectMode
-                              ? Checkbox(
-                                  value: selectedNames.contains(plugin.name),
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      if (value == true) {
-                                        selectedNames.add(plugin.name);
-                                      } else {
-                                        selectedNames.remove(plugin.name);
-                                        if (selectedNames.isEmpty) {
-                                          isMultiSelectMode = false;
-                                        }
-                                      }
-                                    });
-                                  },
-                                )
-                              : popupMenuButton(index)
-                        ),
-                      );
-                    }
+                                trailing: pluginCardTrailing(index)));
+                      }
                   );
                 });
         }),
       ),
     );
+  }
+
+  Widget pluginCardTrailing(int index) {
+    final plugin = pluginsController.pluginList[index];
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      isMultiSelectMode
+          ? Checkbox(
+              value: selectedNames.contains(plugin.name),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value == true) {
+                    selectedNames.add(plugin.name);
+                  } else {
+                    selectedNames.remove(plugin.name);
+                    if (selectedNames.isEmpty) {
+                      isMultiSelectMode = false;
+                    }
+                  }
+                });
+              },
+            )
+          : popupMenuButton(index),
+      ReorderableDragStartListener(
+        index: index,
+        child: const Icon(Icons.drag_handle), // 单独的拖拽按钮
+      )
+    ]);
   }
 
   Widget popupMenuButton(int index){

@@ -83,7 +83,7 @@ class _InitPageState extends State<InitPage> {
   Future<void> _pluginInit() async {
     String statementsText = '';
     try {
-      await pluginsController.loadAllPlugins();
+      await pluginsController.init();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
       _pluginUpdate();

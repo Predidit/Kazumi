@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -13,6 +13,8 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/theme/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -132,6 +134,7 @@ class _AppWidgetState extends State<AppWidget>
 
   @override
   Widget build(BuildContext context) {
+    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
     if (Utils.isDesktop()) {
       _handleTray();
     }
@@ -145,31 +148,56 @@ class _AppWidgetState extends State<AppWidget>
     }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    themeProvider.setDynamic(
+        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
+    final defaultThemeMode =
+        setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
+    if (defaultThemeMode == 'dark') {
+      themeProvider.setThemeMode(ThemeMode.dark);
+    }
+    if (defaultThemeMode == 'light') {
+      themeProvider.setThemeMode(ThemeMode.light);
+    }
+    if (defaultThemeMode == 'system') {
+      themeProvider.setThemeMode(ThemeMode.system);
+    }
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorSchemeSeed: color);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    var app = AdaptiveTheme(
-      light: ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.light,
-          colorSchemeSeed: color),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
-      initial: AdaptiveThemeMode.system,
-      builder: (theme, darkTheme) => MaterialApp.router(
-        title: "Kazumi",
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [
-          Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-        ],
-        locale: const Locale.fromSubtags(
-            languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
-        theme: theme,
-        darkTheme: darkTheme,
-        routerConfig: Modular.routerConfig,
+    themeProvider.setTheme(
+      ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: color,
       ),
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
+    );
+    var app = DynamicColorBuilder(
+      builder: (theme, darkTheme) {
+        if (themeProvider.useDynamicColor) {
+          themeProvider.setTheme(
+              ThemeData(colorScheme: theme),
+              oledEnhance
+                  ? Utils.oledDarkTheme(ThemeData(colorScheme: darkTheme))
+                  : ThemeData(colorScheme: darkTheme));
+        }
+        return MaterialApp.router(
+          title: "Kazumi",
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [
+            Locale.fromSubtags(
+                languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
+          ],
+          locale: const Locale.fromSubtags(
+              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          theme: themeProvider.light,
+          darkTheme: themeProvider.dark,
+          themeMode: themeProvider.themeMode,
+          routerConfig: Modular.routerConfig,
+        );
+      },
     );
     Modular.setObservers([KazumiDialog.observer]);
 

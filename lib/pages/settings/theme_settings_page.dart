@@ -4,12 +4,13 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:kazumi/modules/theme/theme_provider.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:provider/provider.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -24,7 +25,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
   late bool oledEnhance;
+  late bool useDynamicColor;
   final PopularController popularController = Modular.get<PopularController>();
+  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
@@ -34,6 +37,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     defaultThemeColor =
         setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    useDynamicColor =
+        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    });
   }
 
   void onBackPressed(BuildContext context) {}
@@ -45,13 +53,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       colorSchemeSeed: color,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    AdaptiveTheme.of(context).setTheme(
-      light: ThemeData(
+    themeProvider.setTheme(
+      ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: color,
       ),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = color?.value.toRadixString(16) ?? 'default';
     setting.put(SettingBoxKey.themeColor, defaultThemeColor);
@@ -64,13 +72,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       colorSchemeSeed: Colors.green,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    AdaptiveTheme.of(context).setTheme(
-      light: ThemeData(
+    themeProvider.setTheme(
+      ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: Colors.green,
       ),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
     setting.put(SettingBoxKey.themeColor, 'default');
@@ -78,13 +86,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   void updateTheme(String theme) async {
     if (theme == 'dark') {
-      AdaptiveTheme.of(context).setDark();
+      themeProvider.setThemeMode(ThemeMode.dark);
     }
     if (theme == 'light') {
-      AdaptiveTheme.of(context).setLight();
+      themeProvider.setThemeMode(ThemeMode.light);
     }
     if (theme == 'system') {
-      AdaptiveTheme.of(context).setSystem();
+      themeProvider.setThemeMode(ThemeMode.system);
     }
     await setting.put(SettingBoxKey.themeMode, theme);
     setState(() {
@@ -122,6 +130,72 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   title: const Text('外观'),
                   tiles: [
                     SettingsTile.navigation(
+                      onPressed: (_) {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('深色模式'),
+                            content: StatefulBuilder(
+                              builder:
+                                  (BuildContext context, StateSetter setState) {
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: Utils.isDesktop() ? 8 : 0,
+                                  children: [
+                                    defaultThemeMode == 'system'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('system');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("跟随系统"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('system');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("跟随系统")),
+                                    defaultThemeMode == 'light'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('light');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("浅色"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('light');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("浅色")),
+                                    defaultThemeMode == 'dark'
+                                        ? FilledButton(
+                                            onPressed: () {
+                                              updateTheme('dark');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("深色"))
+                                        : FilledButton.tonal(
+                                            onPressed: () {
+                                              updateTheme('dark');
+                                              KazumiDialog.dismiss();
+                                            },
+                                            child: const Text("深色")),
+                                  ],
+                                );
+                              },
+                            ),
+                          );
+                        });
+                      },
+                      title: const Text('深色模式'),
+                      value: Text(
+                        defaultThemeMode == 'light'
+                            ? '浅色'
+                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                      ),
+                    ),
+                    SettingsTile.navigation(
+                      enabled: !useDynamicColor,
                       onPressed: (_) async {
                         KazumiDialog.show(builder: (context) {
                           return AlertDialog(
@@ -204,72 +278,20 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       },
                       title: const Text('配色方案'),
                     ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        KazumiDialog.show(builder: (context) {
-                          return AlertDialog(
-                            title: const Text('深色模式'),
-                            content: StatefulBuilder(
-                              builder:
-                                  (BuildContext context, StateSetter setState) {
-                                return Wrap(
-                                  spacing: 8,
-                                  runSpacing: Utils.isDesktop() ? 8 : 0,
-                                  children: [
-                                    defaultThemeMode == 'system'
-                                        ? FilledButton(
-                                            onPressed: () {
-                                              updateTheme('system');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("跟随系统"))
-                                        : FilledButton.tonal(
-                                            onPressed: () {
-                                              updateTheme('system');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("跟随系统")),
-                                    defaultThemeMode == 'light'
-                                        ? FilledButton(
-                                            onPressed: () {
-                                              updateTheme('light');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("浅色"))
-                                        : FilledButton.tonal(
-                                            onPressed: () {
-                                              updateTheme('light');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("浅色")),
-                                    defaultThemeMode == 'dark'
-                                        ? FilledButton(
-                                            onPressed: () {
-                                              updateTheme('dark');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("深色"))
-                                        : FilledButton.tonal(
-                                            onPressed: () {
-                                              updateTheme('dark');
-                                              KazumiDialog.dismiss();
-                                            },
-                                            child: const Text("深色")),
-                                  ],
-                                );
-                              },
-                            ),
-                          );
-                        });
+                    SettingsTile.switchTile(
+                      enabled: !Platform.isIOS,
+                      onToggle: (value) async {
+                        useDynamicColor = value ?? !useDynamicColor;
+                        await setting.put(
+                            SettingBoxKey.useDynamicColor, useDynamicColor);
+                        themeProvider.setDynamic(useDynamicColor);
+                        setState(() {});
                       },
-                      title: const Text('深色模式'),
-                      value: Text(
-                        defaultThemeMode == 'light'
-                            ? '浅色'
-                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
-                      ),
+                      title: const Text('动态配色'),
+                      initialValue: useDynamicColor,
                     ),
                   ],
+                  bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
                 ),
                 SettingsSection(
                   tiles: [

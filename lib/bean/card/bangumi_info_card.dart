@@ -53,7 +53,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         right: 5,
                         bottom: 5,
                         child: Container(
-                          // padding: EdgeInsets.all(padding),
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme

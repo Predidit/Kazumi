@@ -668,6 +668,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     videoPageController.isFullscreen =
                                         !videoPageController.isFullscreen;
                                   } else if (!Platform.isMacOS) {
+                                    playerController.pause();
                                     windowManager.hide();
                                   }
                                 }

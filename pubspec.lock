@@ -720,7 +720,7 @@ packages:
     description:
       path: media_kit
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -729,7 +729,7 @@ packages:
     description:
       path: "libs/android/media_kit_libs_android_video"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -738,7 +738,7 @@ packages:
     description:
       path: "libs/ios/media_kit_libs_ios_video"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -747,7 +747,7 @@ packages:
     description:
       path: "libs/linux/media_kit_libs_linux"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -756,7 +756,7 @@ packages:
     description:
       path: "libs/macos/media_kit_libs_macos_video"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -765,7 +765,7 @@ packages:
     description:
       path: "libs/universal/media_kit_libs_video"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -774,7 +774,7 @@ packages:
     description:
       path: "libs/windows/media_kit_libs_windows_video"
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -783,7 +783,7 @@ packages:
     description:
       path: media_kit_video
       ref: main
-      resolved-ref: ba7c156ad59e55d69f9c8a5c74300f1bb7034c60
+      resolved-ref: c1734782ff3e950e59b057002b7e578f53e0cc61
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"
@@ -1047,26 +1047,26 @@ packages:
     dependency: transitive
     description:
       name: screen_brightness_android
-      sha256: "74455f9901ab8a1a45c9097b83855dbbb7498110cc2bc249cb5a86570dd1cf7c"
+      sha256: ff9141bed547db02233e7dd88f990ab01973a0c8a8c04ddb855c7b072f33409a
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.1.0"
   screen_brightness_ios:
     dependency: transitive
     description:
       name: screen_brightness_ios
-      sha256: caee02b34e0089b138a7aee35c461bd2d7c78446dd417f07613def192598ca08
+      sha256: bfd9bfd0ac852e7aa170e7e356cc27195b2a75037b72c8c6336cf6fb2115cffb
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.1.1"
   screen_brightness_platform_interface:
     dependency: transitive
     description:
       name: screen_brightness_platform_interface
-      sha256: "321e9455b0057e3647fd37700931e063739d94a8aa1b094f98133c01cb56c27b"
+      sha256: "737bd47b57746bc4291cab1b8a5843ee881af499514881b0247ec77447ee769c"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.1.0"
   screen_pixel:
     dependency: "direct main"
     description:

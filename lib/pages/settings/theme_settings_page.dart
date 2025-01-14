@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/theme/theme_provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
@@ -39,9 +39,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
     useDynamicColor =
         setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    });
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
   void onBackPressed(BuildContext context) {}

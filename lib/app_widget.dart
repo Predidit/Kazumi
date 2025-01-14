@@ -13,7 +13,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/theme/theme_provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 class AppWidget extends StatefulWidget {

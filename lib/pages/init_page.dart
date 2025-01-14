@@ -12,7 +12,7 @@ import 'package:logger/logger.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/modules/theme/theme_provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -43,9 +43,7 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     _update();
     _migrateStorage();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    });
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
 

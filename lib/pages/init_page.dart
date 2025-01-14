@@ -9,10 +9,10 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:logger/logger.dart';
-// import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
-// import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -25,6 +25,7 @@ class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final CollectController collectController = Modular.get<CollectController>();
   Box setting = GStorage.setting;
+  late final ThemeProvider themeProvider;
 
   // Future<File> _getLogFile() async {
   //   final directory = await getApplicationDocumentsDirectory();
@@ -42,6 +43,7 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     _update();
     _migrateStorage();
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
 
@@ -125,6 +127,8 @@ class _InitPageState extends State<InitPage> {
         },
       );
     } else {
+      themeProvider.setDynamic(
+          setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
       Modular.to.navigate('/tab/popular/');
     }
   }
@@ -173,8 +177,6 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container()
-    );
+    return Scaffold(body: Container());
   }
 }

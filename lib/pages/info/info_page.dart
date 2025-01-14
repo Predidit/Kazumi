@@ -39,8 +39,11 @@ class _InfoPageState extends State<InfoPage>
   @override
   void initState() {
     super.initState();
+    // Because the gap between different bangumi API reponse is too large, sometimes we need to query the bangumi info again
+    // We need the type parameter to determine whether to attach the new data to the old data
+    // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' || infoController.bangumiItem.tags.isEmpty) {
-      queryBangumiInfoByID(infoController.bangumiItem.id);
+      queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();
     queryManager.querySource(popularController.keyword);
@@ -57,9 +60,9 @@ class _InfoPageState extends State<InfoPage>
     super.dispose();
   }
 
-  Future<void> queryBangumiInfoByID(int id) async {
+  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     try {
-      await infoController.queryBangumiInfoByID(id);
+      await infoController.queryBangumiInfoByID(id, type: type);
       setState(() {});
     } catch (e) {
       KazumiLogger().log(Level.error, e.toString());

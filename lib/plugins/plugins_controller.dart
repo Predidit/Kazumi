@@ -9,7 +9,6 @@ import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/plugin.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 

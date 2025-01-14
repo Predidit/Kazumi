@@ -6,19 +6,19 @@ class ThemeProvider extends ChangeNotifier {
   late ThemeData light;
   late ThemeData dark;
 
-  void setTheme(ThemeData light, ThemeData dark) {
+  void setTheme(ThemeData light, ThemeData dark, {bool notify = true}) {
     this.light = light;
     this.dark = dark;
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
-  void setThemeMode(ThemeMode mode) {
+  void setThemeMode(ThemeMode mode, {bool notify = true}) {
     themeMode = mode;
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
-  void setDynamic(bool useDynamicColor) {
+  void setDynamic(bool useDynamicColor, {bool notify = true}) {
     this.useDynamicColor = useDynamicColor;
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 }

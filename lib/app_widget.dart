@@ -148,18 +148,16 @@ class _AppWidgetState extends State<AppWidget>
     }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
-    themeProvider.setDynamic(
-        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
     final defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     if (defaultThemeMode == 'dark') {
-      themeProvider.setThemeMode(ThemeMode.dark);
+      themeProvider.setThemeMode(ThemeMode.dark, notify: false);
     }
     if (defaultThemeMode == 'light') {
-      themeProvider.setThemeMode(ThemeMode.light);
+      themeProvider.setThemeMode(ThemeMode.light, notify: false);
     }
     if (defaultThemeMode == 'system') {
-      themeProvider.setThemeMode(ThemeMode.system);
+      themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
@@ -173,15 +171,18 @@ class _AppWidgetState extends State<AppWidget>
         colorSchemeSeed: color,
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      notify: false,
     );
     var app = DynamicColorBuilder(
       builder: (theme, darkTheme) {
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
-              ThemeData(colorScheme: theme),
-              oledEnhance
-                  ? Utils.oledDarkTheme(ThemeData(colorScheme: darkTheme))
-                  : ThemeData(colorScheme: darkTheme));
+            ThemeData(colorScheme: theme),
+            oledEnhance
+                ? Utils.oledDarkTheme(ThemeData(colorScheme: darkTheme))
+                : ThemeData(colorScheme: darkTheme),
+            notify: false,
+          );
         }
         return MaterialApp.router(
           title: "Kazumi",

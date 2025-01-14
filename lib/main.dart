@@ -25,7 +25,7 @@ void main() async {
       // backgroundColor: Colors.white,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden,
-      windowButtonVisibility: false,
+      windowButtonVisibility: Platform.isMacOS ? true : false,
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();

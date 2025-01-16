@@ -555,7 +555,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     const Expanded(
                       child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
                     ),
-                    if (Utils.isDesktop()) PopupMenuButton(
+                    PopupMenuButton(
                       tooltip: '',
                       child: Text(
                           playerController.superResolutionType == 1

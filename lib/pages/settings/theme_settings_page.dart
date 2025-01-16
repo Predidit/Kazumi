@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/palette_card.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -204,8 +205,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                   colorThemeTypes;
                               return Wrap(
                                 alignment: WrapAlignment.center,
-                                spacing: 22,
-                                runSpacing: 18,
+                                spacing: 8,
+                                runSpacing: Utils.isDesktop() ? 8 : 0,
                                 children: [
                                   ...colorThemes.map(
                                     (e) {
@@ -219,50 +220,17 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                         },
                                         child: Column(
                                           children: [
-                                            Container(
-                                              width: 46,
-                                              height: 46,
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    e['color'].withOpacity(0.8),
-                                                borderRadius:
-                                                    BorderRadius.circular(50),
-                                                border: Border.all(
-                                                  width: 2,
-                                                  color: e['color']
-                                                      .withOpacity(0.8),
-                                                ),
-                                              ),
-                                              child: AnimatedOpacity(
-                                                opacity: (e['color']
-                                                                .value
-                                                                .toRadixString(
-                                                                    16) ==
-                                                            defaultThemeColor ||
-                                                        (defaultThemeColor ==
-                                                                'default' &&
-                                                            index == 0))
-                                                    ? 1
-                                                    : 0,
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                child: const Icon(
-                                                  Icons.done,
-                                                  color: Colors.black,
-                                                  size: 20,
-                                                ),
-                                              ),
+                                            PaletteCard(
+                                              color: e['color'],
+                                              selected: (e['color']
+                                                          .value
+                                                          .toRadixString(16) ==
+                                                      defaultThemeColor ||
+                                                  (defaultThemeColor ==
+                                                          'default' &&
+                                                      index == 0)),
                                             ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              e['label'],
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline,
-                                              ),
-                                            ),
+                                            Text(e['label']),
                                           ],
                                         ),
                                       );

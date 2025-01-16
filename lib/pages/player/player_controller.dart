@@ -16,6 +16,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/utils/constants.dart';
 
 part 'player_controller.g.dart';
 
@@ -37,6 +38,12 @@ abstract class _PlayerController with Store {
   // 3. FILL
   @observable
   int aspectRatioType = 1;
+
+  // 视频超分
+  // 1. OFF
+  // 2. Anime4K
+  @observable
+  int superResolutionType = 1;
 
   // 视频音量/亮度
   @observable
@@ -146,6 +153,8 @@ abstract class _PlayerController with Store {
 
   Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
+    superResolutionType = setting.get(SettingBoxKey.defaultSuperResolutionType,
+        defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     hardwareDecoder =
         setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
@@ -204,6 +213,10 @@ abstract class _PlayerController with Store {
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });
 
+    if (superResolutionType != 1) {
+      await setShader(superResolutionType);
+    }
+
     await mediaPlayer.open(
       Media(videoUrl,
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
@@ -211,6 +224,24 @@ abstract class _PlayerController with Store {
     );
 
     return mediaPlayer;
+  }
+
+  Future<void> setShader(int type, {bool synchronized = true}) async {
+    var pp = mediaPlayer.platform as NativePlayer;
+    await pp.waitForPlayerInitialization;
+    await pp.waitForVideoControllerInitializationIfAttached;
+    if (type == 2) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        mpvAnime4KShaders,
+      ]);
+      superResolutionType = 2;
+    } else {
+      await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+      superResolutionType = 1;
+    }
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {

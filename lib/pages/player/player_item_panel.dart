@@ -555,6 +555,41 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     const Expanded(
                       child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
                     ),
+                    if (Utils.isDesktop()) PopupMenuButton(
+                      tooltip: '',
+                      child: Text(
+                          playerController.superResolutionType == 1
+                              ? 'OFF'
+                              : "Anime4K",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                      itemBuilder: (context) {
+                        return const [
+                          PopupMenuItem(
+                            value: 1,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [Text("OFF")],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 2,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [Text("Anime4K")],
+                            ),
+                          ),
+                        ];
+                      },
+                      onSelected: (value) {
+                        playerController.setShader(value);
+                      },
+                    ),
+                    const SizedBox(
+                      width: 20,
+                    ),
                     PopupMenuButton(
                       tooltip: '',
                       child: Text(

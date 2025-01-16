@@ -213,6 +213,7 @@ flutter:
   assets:
     - assets/images/ 
     - assets/plugins/
+    - assets/shaders/
     - assets/images/logo/
     - assets/statements/
 

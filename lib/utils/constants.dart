@@ -59,6 +59,10 @@ const Map<String, String> hardwareDecodersList = {
   'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
 };
 
+// 超分辨率滤镜
+const String mpvAnime4KShaders =
+    'assets/shaders/Anime4K_Clamp_Highlights.glsl;assets/shaders/Anime4K_Restore_CNN_VL.glsl;assets/shaders/Anime4K_Upscale_CNN_x2_VL.glsl;assets/shaders/Anime4K_AutoDownscalePre_x2.glsl;assets/shaders/Anime4K_AutoDownscalePre_x4.glsl;assets/shaders/Anime4K_Upscale_CNN_x2_M.glsl';
+
 // 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,

@@ -177,10 +177,12 @@ class _AppWidgetState extends State<AppWidget>
       builder: (theme, darkTheme) {
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
-            ThemeData(colorScheme: theme),
+            ThemeData(colorScheme: theme, brightness: Brightness.light),
             oledEnhance
-                ? Utils.oledDarkTheme(ThemeData(colorScheme: darkTheme))
-                : ThemeData(colorScheme: darkTheme),
+                ? Utils.oledDarkTheme(ThemeData(
+                    colorScheme: darkTheme, brightness: Brightness.dark))
+                : ThemeData(
+                    colorScheme: darkTheme, brightness: Brightness.dark),
             notify: false,
           );
         }

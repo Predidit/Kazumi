@@ -59,27 +59,6 @@ const Map<String, String> hardwareDecodersList = {
   'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
 };
 
-// 超分辨率滤镜
-const List<String> mpvAnime4KShaders = [
-  'Anime4K_Clamp_Highlights.glsl',
-  'Anime4K_Restore_CNN_VL.glsl',
-  'Anime4K_Upscale_CNN_x2_VL.glsl',
-  'Anime4K_AutoDownscalePre_x2.glsl',
-  'Anime4K_AutoDownscalePre_x4.glsl',
-  'Anime4K_Upscale_CNN_x2_M.glsl'
-];
-
-// 超分辨率滤镜 (轻量)
-const List<String> mpvAnime4KShadersLite = [
-  'Anime4K_Clamp_Highlights.glsl',
-  'Anime4K_Restore_CNN_M.glsl',
-  'Anime4K_Restore_CNN_S.glsl',
-  'Anime4K_Upscale_CNN_x2_M.glsl',
-  'Anime4K_AutoDownscalePre_x2.glsl',
-  'Anime4K_AutoDownscalePre_x4.glsl',
-  'Anime4K_Upscale_CNN_x2_S.glsl'
-];
-
 // 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,
@@ -175,3 +154,36 @@ const List<double> danAreaList = [
   0.75,
   1.0,
 ];
+
+// 超分辨率滤镜
+const List<String> mpvAnime4KShaders = [
+  'Anime4K_Clamp_Highlights.glsl',
+  'Anime4K_Restore_CNN_VL.glsl',
+  'Anime4K_Upscale_CNN_x2_VL.glsl',
+  'Anime4K_AutoDownscalePre_x2.glsl',
+  'Anime4K_AutoDownscalePre_x4.glsl',
+  'Anime4K_Upscale_CNN_x2_M.glsl'
+];
+
+// 超分辨率滤镜 (轻量)
+const List<String> mpvAnime4KShadersLite = [
+  'Anime4K_Clamp_Highlights.glsl',
+  'Anime4K_Restore_CNN_M.glsl',
+  'Anime4K_Restore_CNN_S.glsl',
+  'Anime4K_Upscale_CNN_x2_M.glsl',
+  'Anime4K_AutoDownscalePre_x2.glsl',
+  'Anime4K_AutoDownscalePre_x4.glsl',
+  'Anime4K_Upscale_CNN_x2_S.glsl'
+];
+
+enum SuperResolutionType {
+  off,
+  efficiency,
+  quality,
+}
+
+const Map<SuperResolutionType,List<String>> typeToShaders = {
+  SuperResolutionType.off : [],
+  SuperResolutionType.efficiency : mpvAnime4KShaders,
+  SuperResolutionType.quality : mpvAnime4KShadersLite,
+};

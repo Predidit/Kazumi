@@ -558,9 +558,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     PopupMenuButton(
                       tooltip: '',
                       child: Text(
-                          playerController.superResolutionType == 1
+                          playerController.superResolutionType == 0
                               ? 'OFF'
-                              : playerController.superResolutionType == 2
+                              : playerController.superResolutionType == 1
                                   ? "Efficiency"
                                   : "Quality",
                           style: const TextStyle(
@@ -570,21 +570,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       itemBuilder: (context) {
                         return const [
                           PopupMenuItem(
-                            value: 1,
+                            value: 0,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [Text("OFF")],
                             ),
                           ),
                           PopupMenuItem(
-                            value: 2,
+                            value: 1,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [Text("Efficiency")],
                             ),
                           ),
                           PopupMenuItem(
-                            value: 3,
+                            value: 2,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [Text("Quality")],
@@ -593,7 +593,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ];
                       },
                       onSelected: (value) {
-                        playerController.setShader(value);
+                        playerController.setShader(SuperResolutionType.values[value]);
                       },
                     ),
                     const SizedBox(

@@ -156,7 +156,7 @@ abstract class _PlayerController with Store {
   Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
     superResolutionType =
-        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
+        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 0);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     hardwareDecoder =
         setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
@@ -215,8 +215,8 @@ abstract class _PlayerController with Store {
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });
 
-    if (superResolutionType != 1) {
-      await setShader(superResolutionType);
+    if (superResolutionType != 0) {
+      await setShader(SuperResolutionType.values[superResolutionType]);
     }
 
     await mediaPlayer.open(
@@ -228,34 +228,22 @@ abstract class _PlayerController with Store {
     return mediaPlayer;
   }
 
-  Future<void> setShader(int type, {bool synchronized = true}) async {
+  Future<void> setShader(SuperResolutionType type, {bool synchronized = true}) async {
     var pp = mediaPlayer.platform as NativePlayer;
     await pp.waitForPlayerInitialization;
     await pp.waitForVideoControllerInitializationIfAttached;
-    if (type == 2) {
+    if (type == SuperResolutionType.off) {
+      await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+    } else {
+      final shaderPath = shadersController.getShadersAbsolutePath(type);
       await pp.command([
         'change-list',
         'glsl-shaders',
         'set',
-        Utils.buildShadersAbsolutePath(
-            shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+        shaderPath,
       ]);
-      superResolutionType = 2;
-      return;
     }
-    if (type == 3) {
-      await pp.command([
-        'change-list',
-        'glsl-shaders',
-        'set',
-        Utils.buildShadersAbsolutePath(
-            shadersController.shadersDirectory.path, mpvAnime4KShaders),
-      ]);
-      superResolutionType = 3;
-      return;
-    }
-    await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
-    superResolutionType = 1;
+    superResolutionType = type.index;
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {

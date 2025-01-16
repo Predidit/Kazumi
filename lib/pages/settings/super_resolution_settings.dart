@@ -15,9 +15,19 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   late final Box setting = GStorage.setting;
   late final ValueNotifier<String> superResolutionType = ValueNotifier<String>(
     setting
-        .get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1)
+        .get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 0)
         .toString(),
   );
+
+  void onValueChange(String? value) {
+    if (value != null) {
+      setting.put(
+          SettingBoxKey.defaultSuperResolutionType, int.tryParse(value) ?? 0);
+      setState(() {
+        superResolutionType.value = value;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,47 +47,23 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                     SettingsTile<String>.radioTile(
                       title: const Text("OFF"),
                       description: const Text("默认禁用超分辨率"),
-                      radioValue: "1",
+                      radioValue: "0",
                       groupValue: superResolutionType.value,
-                      onChanged: (String? value) {
-                        if (value != null) {
-                          setting.put(SettingBoxKey.defaultSuperResolutionType,
-                              int.tryParse(value) ?? 1);
-                          setState(() {
-                            superResolutionType.value = value;
-                          });
-                        }
-                      },
+                      onChanged: onValueChange,
                     ),
                     SettingsTile<String>.radioTile(
                       title: const Text("Efficiency"),
                       description: const Text("默认启用基于Anime4K的超分辨率 (效率优先)"),
-                      radioValue: "2",
+                      radioValue: "1",
                       groupValue: superResolutionType.value,
-                      onChanged: (String? value) {
-                        if (value != null) {
-                          setting.put(SettingBoxKey.defaultSuperResolutionType,
-                              int.tryParse(value) ?? 1);
-                          setState(() {
-                            superResolutionType.value = value;
-                          });
-                        }
-                      },
+                      onChanged: onValueChange,
                     ),
                     SettingsTile<String>.radioTile(
                       title: const Text("Quality"),
                       description: const Text("默认启用基于Anime4K的超分辨率 (质量优先)"),
-                      radioValue: "3",
+                      radioValue: "2",
                       groupValue: superResolutionType.value,
-                      onChanged: (String? value) {
-                        if (value != null) {
-                          setting.put(SettingBoxKey.defaultSuperResolutionType,
-                              int.tryParse(value) ?? 1);
-                          setState(() {
-                            superResolutionType.value = value;
-                          });
-                        }
-                      },
+                      onChanged: onValueChange,
                     )
                   ]),
             ],

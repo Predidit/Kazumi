@@ -30,7 +30,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
           width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
           child: SettingsList(
             sections: [
-              SettingsSection(title: const Text('若超分辨率没有生效, 请禁用硬件解码'), tiles: [
+              SettingsSection(title: const Text('超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换硬件解码器为 auto-copy'), tiles: [
                 SettingsTile<String>.radioTile(
                   title: const Text("OFF"),
                   description: const Text("默认禁用超分辨率"),

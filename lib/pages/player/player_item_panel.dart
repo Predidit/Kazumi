@@ -560,7 +560,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       child: Text(
                           playerController.superResolutionType == 1
                               ? 'OFF'
-                              : "Anime4K",
+                              : playerController.superResolutionType == 2
+                                  ? "Efficiency"
+                                  : "Quality",
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -578,7 +580,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             value: 2,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
-                              children: [Text("Anime4K")],
+                              children: [Text("Efficiency")],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 3,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [Text("Quality")],
                             ),
                           ),
                         ];

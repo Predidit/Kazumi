@@ -155,8 +155,8 @@ abstract class _PlayerController with Store {
 
   Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
-    superResolutionType = setting.get(SettingBoxKey.defaultSuperResolutionType,
-        defaultValue: 1);
+    superResolutionType =
+        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     hardwareDecoder =
         setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
@@ -237,13 +237,25 @@ abstract class _PlayerController with Store {
         'change-list',
         'glsl-shaders',
         'set',
-        Utils.buildShadersAbsolutePath(shadersController.shadersDirectory.path, mpvAnime4KShaders),
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
       ]);
       superResolutionType = 2;
-    } else {
-      await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
-      superResolutionType = 1;
+      return;
     }
+    if (type == 3) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShaders),
+      ]);
+      superResolutionType = 3;
+      return;
+    }
+    await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+    superResolutionType = 1;
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {

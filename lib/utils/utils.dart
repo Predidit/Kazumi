@@ -554,6 +554,9 @@ class Utils {
     List<String> absolutePaths = shaders.map((shader) {
       return path.join(baseDirectory, shader);
     }).toList();
-    return absolutePaths.join(';');
+    if (Platform.isWindows) {
+      return absolutePaths.join(';');
+    }
+    return absolutePaths.join(':');
   }
 }

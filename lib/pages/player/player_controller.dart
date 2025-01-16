@@ -17,6 +17,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 part 'player_controller.g.dart';
 
@@ -25,6 +26,7 @@ class PlayerController = _PlayerController with _$PlayerController;
 abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final ShadersController shadersController = Modular.get<ShadersController>();
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
@@ -235,7 +237,7 @@ abstract class _PlayerController with Store {
         'change-list',
         'glsl-shaders',
         'set',
-        mpvAnime4KShaders,
+        Utils.buildShadersAbsolutePath(shadersController.shadersDirectory.path, mpvAnime4KShaders),
       ]);
       superResolutionType = 2;
     } else {

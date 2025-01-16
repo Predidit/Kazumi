@@ -15,6 +15,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:path/path.dart' as path;
 
 class Utils {
   static final Random random = Random();
@@ -547,5 +548,12 @@ class Utils {
 
   static bool isSameSeason(DateTime d1, DateTime d2) {
     return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
+  }
+
+  static String buildShadersAbsolutePath(String baseDirectory, List<String> shaders) {
+    List<String> absolutePaths = shaders.map((shader) {
+      return path.join(baseDirectory, shader);
+    }).toList();
+    return absolutePaths.join(';');
   }
 }

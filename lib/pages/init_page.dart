@@ -13,6 +13,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -24,18 +25,9 @@ class InitPage extends StatefulWidget {
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final CollectController collectController = Modular.get<CollectController>();
+  final ShadersController shadersController = Modular.get<ShadersController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
-
-  // Future<File> _getLogFile() async {
-  //   final directory = await getApplicationDocumentsDirectory();
-  //   return File('${directory.path}/app_log.txt');
-  // }
-
-  // Future<void> writeLog(String message) async {
-  //   final logFile = await _getLogFile();
-  //   await logFile.writeAsString('$message\n', mode: FileMode.append);
-  // }
 
   @override
   void initState() {
@@ -43,6 +35,7 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     _update();
     _migrateStorage();
+    _loadShaders();
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
@@ -50,6 +43,10 @@ class _InitPageState extends State<InitPage> {
   // migrate collect from old version (favorites)
   Future<void> _migrateStorage() async {
     await collectController.migrateCollect();
+  }
+
+  Future<void> _loadShaders() async {
+    await shadersController.copyShadersToExternalDirectory();
   }
 
   Future<void> _webDavInit() async {

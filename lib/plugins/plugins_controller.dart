@@ -56,13 +56,13 @@ abstract class _PluginsController with Store {
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
   Future<void> loadAllPlugins() async {
     pluginList.clear();
-    KazumiLogger().log(Level.info, '插件目录 ${newPluginDirectory!.path}');
+    KazumiLogger().log(Level.info, 'Plugins Directory: ${newPluginDirectory!.path}');
     if (await newPluginDirectory!.exists()) {
       final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
-        KazumiLogger().log(Level.info, '当前插件数量 ${pluginList.length}');
+        KazumiLogger().log(Level.info, 'Current Plugin number: ${pluginList.length}');
       } else {
         // No plugins.json
         var jsonFiles = await getPluginFiles();
@@ -77,7 +77,7 @@ abstract class _PluginsController with Store {
         savePlugins();
       }
     } else {
-      KazumiLogger().log(Level.warning, '插件目录不存在');
+      KazumiLogger().log(Level.warning, 'Plugin directory does not exist');
     }
   }
 
@@ -110,7 +110,7 @@ abstract class _PluginsController with Store {
     }
     await savePlugins();
     KazumiLogger().log(
-        Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${newPluginDirectory!.path}');
+        Level.info, '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
   }
 
   List<dynamic> pluginListToJson() {

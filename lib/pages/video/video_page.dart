@@ -208,7 +208,7 @@ class _VideoPageState extends State<VideoPage>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       menuJumpToCurrentEpisode();
       await Utils.exitFullScreen();
-      videoPageController.showTabBody = true;
+      videoPageController.showTabBody = false;
       videoPageController.isFullscreen = false;
       return;
     }

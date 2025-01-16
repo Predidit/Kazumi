@@ -647,7 +647,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             fontWeight: FontWeight.bold),
                       ),
                     ),
-                    forwardIcon(),
                     // 追番
                     CollectButton(bangumiItem: infoController.bangumiItem),
                     PopupMenuButton(
@@ -771,6 +770,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             },
                           )
                         : Container(),
+                    forwardIcon(),
                     Expanded(
                       child: ProgressBar(
                         timeLabelLocation: TimeLabelLocation.none,

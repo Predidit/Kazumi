@@ -97,7 +97,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       title: const Text('超分辨率'),
                     ),
                   ],
-                  bottomInfo: const Text('超分辨率仅适用桌面平台'),
                 ),
                 SettingsSection(
                   tiles: [

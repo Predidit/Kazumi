@@ -91,7 +91,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       initialValue: lowMemoryMode,
                     ),
                     SettingsTile.navigation(
-                      enabled: Utils.isDesktop(),
                       onPressed: (_) async {
                         Modular.to.pushNamed('/settings/player/super');
                       },

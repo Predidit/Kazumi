@@ -42,10 +42,11 @@ abstract class _PlayerController with Store {
   int aspectRatioType = 1;
 
   // 视频超分
-  // 1. OFF
-  // 2. Anime4K
+  // 0. OFF
+  // 1. Anime4K-Efficiency
+  // 2. Anime4K-Quality
   @observable
-  int superResolutionType = 1;
+  int superResolutionType = 0;
 
   // 视频音量/亮度
   @observable

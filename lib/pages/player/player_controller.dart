@@ -143,7 +143,7 @@ abstract class _PlayerController with Store {
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
     } else {
-      FlutterVolumeController.getVolume().then((value) {
+      await FlutterVolumeController.getVolume().then((value) {
         volume = (value ?? 0.0) * 100;
       });
     }

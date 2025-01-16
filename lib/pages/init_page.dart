@@ -124,6 +124,8 @@ class _InitPageState extends State<InitPage> {
         },
       );
     } else {
+      // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
+      // setDynamic here to avoid white screen flash when themeMode is dark.
       themeProvider.setDynamic(
           setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
       Modular.to.navigate('/tab/popular/');

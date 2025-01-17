@@ -69,7 +69,7 @@ flutter {
 dependencies {}
 
 // F-droid splits APKs by ABI, and requires different versionCode for each ABI.
-// For flutter version X.Y.Z, version code is XYZA, where A is the ABI code.
+// For flutter version X.Y.Z, version code is X0Y0ZA, where A is the ABI code.
 // See:
 // * https://developer.android.com/build/gradle-tips
 // * https://developer.android.com/studio/build/configure-apk-splits

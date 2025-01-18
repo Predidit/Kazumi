@@ -148,6 +148,9 @@ abstract class _PlayerController with Store {
       });
     }
     await setVolume(volume);
+    if (Platform.isIOS) {
+      FlutterVolumeController.updateShowSystemUI(true);
+    }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;

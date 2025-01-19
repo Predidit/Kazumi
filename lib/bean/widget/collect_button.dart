@@ -65,33 +65,53 @@ class _CollectButtonState extends State<CollectButton> {
   @override
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
-    return PopupMenuButton(
-      tooltip: '',
-      icon: Icon(
-        getIconByInt(collectType),
-        color: widget.color,
-      ),
-      itemBuilder: (context) {
-        return List.generate(
-          6,
-          (i) => PopupMenuItem(
-            value: i,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(getIconByInt(i)),
-                Text(' ${getTypeStringByInt(i)}'),
-              ],
-            ),
+    return MenuAnchor(
+      builder:
+          (BuildContext context, MenuController controller, Widget? child) {
+        return IconButton(
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          icon: Icon(
+            getIconByInt(collectType),
+            color: widget.color,
           ),
         );
       },
-      onSelected: (value) {
-        if (value != collectType && mounted) {
-          collectController.addCollect(widget.bangumiItem, type: value);
-          setState(() {});
-        }
-      },
+      menuChildren: List<MenuItemButton>.generate(
+        6,
+        (int index) => MenuItemButton(
+          onPressed: () {
+            if (index != collectType && mounted) {
+              collectController.addCollect(widget.bangumiItem, type: index);
+              setState(() {});
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(getIconByInt(index),
+                    color: index == collectType
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.white),
+                Text(
+                  ' ${getTypeStringByInt(index)}',
+                  style: TextStyle(
+                      color: index == collectType
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

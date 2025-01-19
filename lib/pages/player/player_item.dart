@@ -141,7 +141,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _handleHove() {
+  void handleHove() {
     if (!playerController.showVideoController) {
       displayVideoController();
     }
@@ -581,7 +581,7 @@ class _PlayerItemState extends State<PlayerItem>
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
                 if (Utils.isDesktop()) {
-                  _handleHove();
+                  handleHove();
                 }
               },
               child: Listener(
@@ -795,6 +795,8 @@ class _PlayerItemState extends State<PlayerItem>
                       handleProgressBarDragStart: handleProgressBarDragStart,
                       handleProgressBarDragEnd: handleProgressBarDragEnd,
                       animationController: animationController!,
+                      keyboardFocus: widget.keyboardFocus,
+                      handleHove: handleHove,
                     ),
                     // 播放器手势控制
                     Positioned.fill(

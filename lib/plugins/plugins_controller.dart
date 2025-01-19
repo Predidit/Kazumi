@@ -240,5 +240,6 @@ abstract class _PluginsController with Store {
         pluginList.removeAt(i);
       }
     }
+    savePlugins();
   }
 }

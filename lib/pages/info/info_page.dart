@@ -225,7 +225,6 @@ class _InfoPageState extends State<InfoPage>
               onPressed: () async {
                 showModalBottomSheet(
                     isScrollControlled: true,
-                    enableDrag: false,
                     constraints: BoxConstraints(
                         maxHeight: MediaQuery.of(context).size.height * 3 / 4,
                         maxWidth: (Utils.isDesktop() || Utils.isTablet())

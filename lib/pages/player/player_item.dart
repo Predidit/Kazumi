@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -37,6 +38,7 @@ class PlayerItem extends StatefulWidget {
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
+    required this.sendDanmaku,
   });
 
   final VoidCallback openMenu;
@@ -44,6 +46,7 @@ class PlayerItem extends StatefulWidget {
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
+  final void Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
 
   @override
@@ -141,7 +144,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _handleHove() {
+  void handleHove() {
     if (!playerController.showVideoController) {
       displayVideoController();
     }
@@ -507,8 +510,6 @@ class _PlayerItemState extends State<PlayerItem>
       vsync: this,
     );
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    playerController.danmakuOn =
-        setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _duration = 8;
@@ -581,7 +582,7 @@ class _PlayerItemState extends State<PlayerItem>
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
                 if (Utils.isDesktop()) {
-                  _handleHove();
+                  handleHove();
                 }
               },
               child: Listener(
@@ -785,17 +786,36 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    PlayerItemPanel(
-                      onBackPressed: widget.onBackPressed,
-                      setPlaybackSpeed: setPlaybackSpeed,
-                      showDanmakuSwitch: showDanmakuSwitch,
-                      changeEpisode: widget.changeEpisode,
-                      openMenu: widget.openMenu,
-                      handleFullscreen: handleFullscreen,
-                      handleProgressBarDragStart: handleProgressBarDragStart,
-                      handleProgressBarDragEnd: handleProgressBarDragEnd,
-                      animationController: animationController!,
-                    ),
+                    (Utils.isDesktop() ||
+                            Utils.isTablet() ||
+                            videoPageController.isFullscreen)
+                        ? PlayerItemPanel(
+                            onBackPressed: widget.onBackPressed,
+                            setPlaybackSpeed: setPlaybackSpeed,
+                            showDanmakuSwitch: showDanmakuSwitch,
+                            changeEpisode: widget.changeEpisode,
+                            openMenu: widget.openMenu,
+                            handleFullscreen: handleFullscreen,
+                            handleProgressBarDragStart:
+                                handleProgressBarDragStart,
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            animationController: animationController!,
+                            keyboardFocus: widget.keyboardFocus,
+                            handleHove: handleHove,
+                            sendDanmaku: widget.sendDanmaku,
+                          )
+                        : SmallestPlayerItemPanel(
+                            onBackPressed: widget.onBackPressed,
+                            setPlaybackSpeed: setPlaybackSpeed,
+                            showDanmakuSwitch: showDanmakuSwitch,
+                            handleFullscreen: handleFullscreen,
+                            handleProgressBarDragStart:
+                                handleProgressBarDragStart,
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            animationController: animationController!,
+                            keyboardFocus: widget.keyboardFocus,
+                            handleHove: handleHove,
+                          ),
                     // 播放器手势控制
                     Positioned.fill(
                         left: 16,
@@ -834,10 +854,6 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double sectionWidth = totalWidth / 2;
                                 final double delta = details.delta.dy;
 
-                                /// 非全屏时禁用
-                                if (!videoPageController.isFullscreen) {
-                                  return;
-                                }
                                 if (tapPosition < sectionWidth) {
                                   // 左边区域
                                   playerController.brightnessSeeking = true;

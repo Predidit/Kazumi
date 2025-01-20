@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -217,6 +218,90 @@ class _VideoPageState extends State<VideoPage>
       videoPageController.isFullscreen = false;
     }
     Navigator.of(context).pop();
+  }
+
+  /// 发送弹幕 由于接口限制, 暂时未提交云端
+  void sendDanmaku(String msg) async {
+    keyboardFocus.requestFocus();
+    if (playerController.danDanmakus.isEmpty) {
+      KazumiDialog.showToast(
+        message: '当前剧集不支持弹幕发送的说',
+      );
+      return;
+    }
+    if (msg.isEmpty) {
+      KazumiDialog.showToast(message: '弹幕内容为空');
+      return;
+    } else if (msg.length > 100) {
+      KazumiDialog.showToast(message: '弹幕内容过长');
+      return;
+    }
+    // Todo 接口方限制
+
+    playerController.danmakuController
+        .addDanmaku(DanmakuContentItem(msg, selfSend: true));
+  }
+
+  void showMobileDanmakuInput() {
+    final TextEditingController textController = TextEditingController();
+    showModalBottomSheet(
+      shape: const BeveledRectangleBorder(),
+      isScrollControlled: true,
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 8,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 34),
+                  child: TextField(
+                    style: const TextStyle(fontSize: 15),
+                    controller: textController,
+                    autofocus: true,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      filled: true,
+                      floatingLabelBehavior: FloatingLabelBehavior.never,
+                      hintText: '发个友善的弹幕见证当下',
+                      hintStyle: TextStyle(fontSize: 14),
+                      alignLabelWithHint: true,
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
+                    ),
+                    onSubmitted: (msg) {
+                      sendDanmaku(msg);
+                      textController.clear();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  sendDanmaku(textController.text);
+                  textController.clear();
+                  Navigator.pop(context);
+                },
+                icon: Icon(
+                  Icons.send_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -526,6 +611,7 @@ class _VideoPageState extends State<VideoPage>
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
+                  sendDanmaku: sendDanmaku,
                 ),
         ),
 
@@ -729,22 +815,74 @@ class _VideoPageState extends State<VideoPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TabBar(
-              dividerHeight: Utils.isDesktop() ? 0.5 : 0.2,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelPadding:
-                  const EdgeInsetsDirectional.only(start: 30, end: 30),
-              onTap: (index) {
-                if (index == 0) {
-                  menuJumpToCurrentEpisode();
-                }
-              },
-              tabs: const [
-                Tab(text: '选集'),
-                Tab(text: '评论'),
+            Row(
+              children: [
+                TabBar(
+                  dividerHeight: 0,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelPadding:
+                      const EdgeInsetsDirectional.only(start: 30, end: 30),
+                  onTap: (index) {
+                    if (index == 0) {
+                      menuJumpToCurrentEpisode();
+                    }
+                  },
+                  tabs: const [
+                    Tab(text: '选集'),
+                    Tab(text: '评论'),
+                  ],
+                ),
+                if (!Utils.isDesktop() && !Utils.isTablet()) ...[
+                  const Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: playerController.danmakuOn
+                            ? Theme.of(context).hintColor
+                            : Theme.of(context).disabledColor,
+                        width: 0.5,
+                      ),
+                    ),
+                    width: 120,
+                    height: 31,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (playerController.danmakuOn) {
+                          showMobileDanmakuInput();
+                        } else {
+                          KazumiDialog.showToast(message: '请先打开弹幕');
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            '  点我发弹幕  ',
+                            softWrap: false,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              color: playerController.danmakuOn
+                                  ? Theme.of(context).hintColor
+                                  : Theme.of(context).disabledColor,
+                            ),
+                          ),
+                          Icon(
+                            Icons.send_rounded,
+                            size: 20,
+                            color: playerController.danmakuOn
+                                ? Theme.of(context).hintColor
+                                : Theme.of(context).disabledColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
               ],
             ),
+            Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
             Expanded(
               child: TabBarView(
                 children: [

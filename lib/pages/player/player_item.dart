@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:vibration/vibration.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -731,9 +732,16 @@ class _PlayerItemState extends State<PlayerItem>
                       onDoubleTap: () {
                         _handleDoubleTap();
                       },
-                      onLongPressStart: (_) {
+                      onLongPressStart: (_) async {
                         if (playerController.lockPanel) {
                           return;
+                        }
+                        if (!Utils.isDesktop()) {
+                          // 检查有无震动权限
+                          if (await Vibration.hasCustomVibrationsSupport() ??
+                              false) {
+                            Vibration.vibrate(duration: 100);
+                          }
                         }
                         setState(() {
                           playerController.showPlaySpeed = true;

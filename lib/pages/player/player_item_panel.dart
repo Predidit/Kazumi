@@ -15,7 +15,6 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class PlayerItemPanel extends StatefulWidget {
@@ -102,7 +101,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         decoration: InputDecoration(
           enabled: playerController.danmakuOn,
           filled: true,
-          fillColor: Colors.white30,
+          fillColor: Utils.isDesktop() ? Colors.white38 : Colors.white70,
           floatingLabelBehavior: FloatingLabelBehavior.never,
           hintText: playerController.danmakuOn ? '发个友善的弹幕见证当下' : '已关闭弹幕',
           hintStyle: TextStyle(fontSize: Utils.isDesktop() ? 15 : 13),
@@ -366,7 +365,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               child: SlideTransition(
                 position: bottomOffsetAnimation,
                 child: Container(
-                  height: 60,
+                  height: 80,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -391,7 +390,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         Container(
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black54,
                             borderRadius: BorderRadius.circular(8.0), // 圆角
                           ),
                           child: Text(
@@ -418,7 +417,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         Container(
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black54,
                             borderRadius: BorderRadius.circular(8.0), // 圆角
                           ),
                           child: const Row(
@@ -446,7 +445,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         Container(
                             padding: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black54,
                               borderRadius: BorderRadius.circular(8.0), // 圆角
                             ),
                             child: Row(
@@ -474,7 +473,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         Container(
                             padding: const EdgeInsets.all(8.0),
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
+                              color: Colors.black54,
                               borderRadius: BorderRadius.circular(8.0), // 圆角
                             ),
                             child: Row(
@@ -501,33 +500,35 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   bottom: 0,
                   child: SlideTransition(
                     position: leftOffsetAnimation,
-                    child: Column(children: [
-                      const Spacer(),
-                      (playerController.lockPanel)
-                          ? Container()
-                          : IconButton(
-                              icon: const Icon(
-                                Icons.photo_camera_outlined,
-                                color: Colors.white,
+                    child: Column(
+                      children: [
+                        const Spacer(),
+                        (playerController.lockPanel)
+                            ? Container()
+                            : IconButton(
+                                icon: const Icon(
+                                  Icons.photo_camera_outlined,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () {
+                                  _handleScreenshot();
+                                },
                               ),
-                              onPressed: () {
-                                _handleScreenshot();
-                              },
-                            ),
-                      IconButton(
-                        icon: Icon(
-                          playerController.lockPanel
-                              ? Icons.lock_outline
-                              : Icons.lock_open,
-                          color: Colors.white,
+                        IconButton(
+                          icon: Icon(
+                            playerController.lockPanel
+                                ? Icons.lock_outline
+                                : Icons.lock_open,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            playerController.lockPanel =
+                                !playerController.lockPanel;
+                          },
                         ),
-                        onPressed: () {
-                          playerController.lockPanel =
-                              !playerController.lockPanel;
-                        },
-                      ),
-                      const Spacer(),
-                    ]),
+                        const Spacer(),
+                      ],
+                    ),
                   ),
                 ),
           // 自定义顶部组件
@@ -563,64 +564,66 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     const Expanded(
                       child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
                     ),
+                    // 跳过
                     forwardIcon(),
                     // 追番
                     CollectButton(bangumiItem: infoController.bangumiItem),
                     MenuAnchor(
-                        builder: (BuildContext context,
-                            MenuController controller, Widget? child) {
-                          return IconButton(
-                            onPressed: () {
-                              if (controller.isOpen) {
-                                controller.close();
-                              } else {
-                                controller.open();
+                      builder: (BuildContext context, MenuController controller,
+                          Widget? child) {
+                        return IconButton(
+                          onPressed: () {
+                            if (controller.isOpen) {
+                              controller.close();
+                            } else {
+                              controller.open();
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
+                      menuChildren: [
+                        MenuItemButton(
+                          onPressed: () {
+                            widget.showDanmakuSwitch();
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: Text("弹幕切换"),
+                          ),
+                        ),
+                        MenuItemButton(
+                          onPressed: () {
+                            showVideoInfo();
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: Text("视频详情"),
+                          ),
+                        ),
+                        MenuItemButton(
+                          onPressed: () {
+                            bool needRestart = playerController.playing;
+                            playerController.pause();
+                            RemotePlay()
+                                .castVideo(context,
+                                    videoPageController.currentPlugin.referer)
+                                .whenComplete(() {
+                              if (needRestart) {
+                                playerController.play();
                               }
-                            },
-                            icon: const Icon(
-                              Icons.more_vert,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                        menuChildren: [
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showDanmakuSwitch();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("弹幕切换"),
-                            ),
+                            });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                            child: Text("远程播放"),
                           ),
-                          MenuItemButton(
-                            onPressed: () {
-                              showVideoInfo();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("视频详情"),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              bool needRestart = playerController.playing;
-                              playerController.pause();
-                              RemotePlay()
-                                  .castVideo(context,
-                                      videoPageController.currentPlugin.referer)
-                                  .whenComplete(() {
-                                if (needRestart) {
-                                  playerController.play();
-                                }
-                              });
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("远程播放"),
-                            ),
-                          ),
-                        ]),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -793,20 +796,22 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   ? '关闭弹幕(d)'
                                   : '打开弹幕(d)',
                             ),
-                            IconButton(
-                              tooltip: '弹幕设置',
-                              onPressed: () {
-                                widget.keyboardFocus.requestFocus();
-                                KazumiDialog.show(builder: (context) {
-                                  return DanmakuSettingsWindow(
-                                      danmakuController:
-                                          playerController.danmakuController);
-                                });
-                              },
-                              color: Colors.white,
-                              icon: const Icon(Icons.tune_rounded),
-                            ),
-                            Expanded(child: danmakuTextField()),
+                            if (playerController.danmakuOn) ...[
+                              IconButton(
+                                tooltip: '弹幕设置',
+                                onPressed: () {
+                                  KazumiDialog.show(builder: (context) {
+                                    return DanmakuSettingsWindow(
+                                        danmakuController:
+                                            playerController.danmakuController);
+                                  });
+                                },
+                                color: Colors.white,
+                                icon: const Icon(Icons.tune_rounded),
+                              ),
+                              Expanded(child: danmakuTextField()),
+                            ],
+                            if (!playerController.danmakuOn) const Spacer(),
                           ],
                           // 超分辨率
                           MenuAnchor(
@@ -847,7 +852,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                           ? Theme.of(context)
                                               .colorScheme
                                               .primary
-                                          : Colors.white,
+                                          : null,
                                     ),
                                   ),
                                 ),
@@ -892,7 +897,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                   ? Theme.of(context)
                                                       .colorScheme
                                                       .primary
-                                                  : Colors.white),
+                                                  : null),
                                     ),
                                   ),
                                 ),
@@ -937,7 +942,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                             ? Theme.of(context)
                                                 .colorScheme
                                                 .primary
-                                            : Colors.white),
+                                            : null),
                                   ),
                                 ),
                               ),

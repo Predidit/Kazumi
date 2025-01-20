@@ -238,7 +238,7 @@ class _VideoPageState extends State<VideoPage>
     }
     // Todo 接口方限制
 
-    KazumiDialog.showToast(message: '发送成功 $msg');
+    KazumiDialog.showToast(message: '发送成功');
     playerController.danmakuController
         .addDanmaku(DanmakuContentItem(msg, selfSend: true));
   }
@@ -836,50 +836,47 @@ class _VideoPageState extends State<VideoPage>
                 ),
                 if (!Utils.isDesktop() && !Utils.isTablet()) ...[
                   const Spacer(),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                  Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(
-                        color: Theme.of(context).dividerColor,
+                        color: playerController.danmakuOn
+                            ? Theme.of(context).hintColor
+                            : Theme.of(context).disabledColor,
                         width: 0.5,
                       ),
                     ),
-                    width: playerController.danmakuOn ? 120 : 41,
+                    width: 120,
                     height: 31,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (playerController.danmakuOn)
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                showMobileDanmakuInput();
-                              },
-                              child: Text(
-                                '  点我发弹幕',
-                                softWrap: false,
-                                overflow: TextOverflow.clip,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (playerController.danmakuOn) {
+                          showMobileDanmakuInput();
+                        } else {
+                          KazumiDialog.showToast(message: '请先打开弹幕');
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            '  点我发弹幕  ',
+                            softWrap: false,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              color: playerController.danmakuOn
+                                  ? Theme.of(context).hintColor
+                                  : Theme.of(context).disabledColor,
                             ),
                           ),
-                        IconButton(
-                          iconSize: 20,
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () {
-                            playerController.danmakuOn =
-                                !playerController.danmakuOn;
-                          },
-                          icon: Icon(
-                            playerController.danmakuOn
-                                ? Icons.subtitles
-                                : Icons.subtitles_off_rounded,
+                          Icon(
+                            Icons.send_rounded,
+                            size: 20,
+                            color: playerController.danmakuOn
+                                ? Theme.of(context).hintColor
+                                : Theme.of(context).disabledColor,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

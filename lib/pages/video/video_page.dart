@@ -849,8 +849,11 @@ class _VideoPageState extends State<VideoPage>
                     height: 31,
                     child: GestureDetector(
                       onTap: () {
-                        if (playerController.danmakuOn) {
+                        if (playerController.danmakuOn &&
+                            !videoPageController.loading) {
                           showMobileDanmakuInput();
+                        } else if (videoPageController.loading) {
+                          KazumiDialog.showToast(message: '请等待视频加载完成');
                         } else {
                           KazumiDialog.showToast(message: '请先打开弹幕');
                         }

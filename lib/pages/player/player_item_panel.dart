@@ -94,18 +94,20 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       constraints: Utils.isDesktop()
           ? const BoxConstraints(maxWidth: 500, maxHeight: 33)
           : const BoxConstraints(maxHeight: 33),
-      padding: EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
-        style: TextStyle(fontSize: Utils.isDesktop() ? 15 : 13),
+        style: TextStyle(
+            fontSize: Utils.isDesktop() ? 15 : 13, color: Colors.white),
         controller: textController,
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
           enabled: playerController.danmakuOn,
           filled: true,
-          fillColor: Colors.white70,
+          fillColor: Colors.white38,
           floatingLabelBehavior: FloatingLabelBehavior.never,
           hintText: playerController.danmakuOn ? '发个友善的弹幕见证当下' : '已关闭弹幕',
-          hintStyle: TextStyle(fontSize: Utils.isDesktop() ? 15 : 13),
+          hintStyle: TextStyle(
+              fontSize: Utils.isDesktop() ? 15 : 13, color: Colors.white60),
           alignLabelWithHint: true,
           contentPadding: EdgeInsets.symmetric(
               vertical: 8, horizontal: Utils.isDesktop() ? 8 : 12),
@@ -122,7 +124,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             style: TextButton.styleFrom(
               foregroundColor: playerController.danmakuOn
                   ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Colors.white,
+                  : Colors.white60,
               backgroundColor: playerController.danmakuOn
                   ? Theme.of(context).colorScheme.primaryContainer
                   : Theme.of(context).disabledColor,

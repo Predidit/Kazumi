@@ -37,6 +37,7 @@ class PlayerItem extends StatefulWidget {
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
+    required this.sendDanmaku,
   });
 
   final VoidCallback openMenu;
@@ -44,6 +45,7 @@ class PlayerItem extends StatefulWidget {
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
+  final void Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
 
   @override
@@ -797,6 +799,7 @@ class _PlayerItemState extends State<PlayerItem>
                       animationController: animationController!,
                       keyboardFocus: widget.keyboardFocus,
                       handleHove: handleHove,
+                      sendDanmaku: widget.sendDanmaku,
                     ),
                     // 播放器手势控制
                     Positioned.fill(

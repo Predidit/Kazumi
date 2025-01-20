@@ -238,7 +238,6 @@ class _VideoPageState extends State<VideoPage>
     }
     // Todo 接口方限制
 
-    KazumiDialog.showToast(message: '发送成功');
     playerController.danmakuController
         .addDanmaku(DanmakuContentItem(msg, selfSend: true));
   }

@@ -394,6 +394,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     // 追番
                     CollectButton(bangumiItem: infoController.bangumiItem),
                     MenuAnchor(
+                      consumeOutsideTap: true,
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return IconButton(

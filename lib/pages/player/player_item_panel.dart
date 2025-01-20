@@ -572,6 +572,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     // 追番
                     CollectButton(bangumiItem: infoController.bangumiItem),
                     MenuAnchor(
+                      consumeOutsideTap: true,
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return IconButton(
@@ -818,6 +819,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           ],
                           // 超分辨率
                           MenuAnchor(
+                            consumeOutsideTap: true,
                             builder: (BuildContext context,
                                 MenuController controller, Widget? child) {
                               return TextButton(
@@ -864,6 +866,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           ),
                           // 倍速播放
                           MenuAnchor(
+                            consumeOutsideTap: true,
                             builder: (BuildContext context,
                                 MenuController controller, Widget? child) {
                               return TextButton(
@@ -908,6 +911,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ],
                           ),
                           MenuAnchor(
+                            consumeOutsideTap: true,
                             builder: (BuildContext context,
                                 MenuController controller, Widget? child) {
                               return IconButton(

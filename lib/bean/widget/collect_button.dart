@@ -66,6 +66,7 @@ class _CollectButtonState extends State<CollectButton> {
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return MenuAnchor(
+      consumeOutsideTap: true,
       builder:
           (BuildContext context, MenuController controller, Widget? child) {
         return IconButton(

@@ -94,6 +94,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       constraints: Utils.isDesktop()
           ? const BoxConstraints(maxWidth: 500, maxHeight: 33)
           : const BoxConstraints(maxHeight: 33),
+      padding: EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
         style: TextStyle(fontSize: Utils.isDesktop() ? 15 : 13),
         controller: textController,
@@ -101,7 +102,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         decoration: InputDecoration(
           enabled: playerController.danmakuOn,
           filled: true,
-          fillColor: Utils.isDesktop() ? Colors.white38 : Colors.white70,
+          fillColor: Colors.white70,
           floatingLabelBehavior: FloatingLabelBehavior.never,
           hintText: playerController.danmakuOn ? '发个友善的弹幕见证当下' : '已关闭弹幕',
           hintStyle: TextStyle(fontSize: Utils.isDesktop() ? 15 : 13),

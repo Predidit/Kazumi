@@ -4,11 +4,18 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 class CollectButton extends StatefulWidget {
-  const CollectButton(
-      {super.key, required this.bangumiItem, this.color = Colors.white});
+  const CollectButton({
+    super.key,
+    required this.bangumiItem,
+    this.color = Colors.white,
+    this.onOpen,
+    this.onClose,
+  });
 
   final BangumiItem bangumiItem;
   final Color color;
+  final void Function()? onOpen;
+  final void Function()? onClose;
 
   @override
   State<CollectButton> createState() => _CollectButtonState();
@@ -67,6 +74,8 @@ class _CollectButtonState extends State<CollectButton> {
     collectType = collectController.getCollectType(widget.bangumiItem);
     return MenuAnchor(
       consumeOutsideTap: true,
+      onClose: widget.onClose,
+      onOpen: widget.onOpen,
       builder:
           (BuildContext context, MenuController controller, Widget? child) {
         return IconButton(

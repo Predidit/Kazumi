@@ -27,6 +27,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.animationController,
     required this.keyboardFocus,
     required this.handleHove,
+    required this.startHideTimer,
+    required this.cancelHideTimer,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -38,6 +40,8 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleHove;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
+  final void Function() startHideTimer;
+  final void Function() cancelHideTimer;
 
   @override
   State<SmallestPlayerItemPanel> createState() =>
@@ -205,12 +209,12 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 position: topOffsetAnimation,
                 child: Container(
                   height: 50,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.9),
+                        Colors.black87,
                         Colors.transparent,
                       ],
                     ),
@@ -232,13 +236,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 position: bottomOffsetAnimation,
                 child: Container(
                   height: 50,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.9),
+                        Colors.black87,
                       ],
                     ),
                   ),
@@ -391,9 +395,29 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       tooltip: playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
                     ),
                     // 追番
-                    CollectButton(bangumiItem: infoController.bangumiItem),
+                    CollectButton(
+                      bangumiItem: infoController.bangumiItem,
+                      onOpen: () {
+                        widget.cancelHideTimer();
+                        playerController.canHidePlayerPanel = false;
+                      },
+                      onClose: () {
+                        widget.cancelHideTimer();
+                        widget.startHideTimer();
+                        playerController.canHidePlayerPanel = true;
+                      },
+                    ),
                     MenuAnchor(
                       consumeOutsideTap: true,
+                      onOpen: () {
+                        widget.cancelHideTimer();
+                        playerController.canHidePlayerPanel = false;
+                      },
+                      onClose: () {
+                        widget.cancelHideTimer();
+                        widget.startHideTimer();
+                        playerController.canHidePlayerPanel = true;
+                      },
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return IconButton(

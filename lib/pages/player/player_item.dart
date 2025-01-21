@@ -144,7 +144,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void handleHove() {
+  void _handleHove() {
     if (!playerController.showVideoController) {
       displayVideoController();
     }
@@ -264,12 +264,17 @@ class _PlayerItemState extends State<PlayerItem>
 
   void startHideTimer() {
     hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) {
+      if (mounted && playerController.canHidePlayerPanel) {
         playerController.showVideoController = false;
         animationController?.reverse();
       }
       hideTimer = null;
     });
+  }
+
+  // Used to pass hideTimer operation to panel layer
+  void cancelHideTimer() {
+    hideTimer?.cancel();
   }
 
   Timer getPlayerTimer() {
@@ -580,11 +585,20 @@ class _PlayerItemState extends State<PlayerItem>
                       !playerController.showVideoController)
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
-              onHover: (_) {
+              onHover: (PointerEvent pointerEvent) {
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
                 if (Utils.isDesktop()) {
-                  handleHove();
+                  if (pointerEvent.position.dy > 50 &&
+                      pointerEvent.position.dy <
+                          MediaQuery.of(context).size.height - 70) {
+                    _handleHove();
+                  } else {
+                    if (!playerController.showVideoController) {
+                      animationController?.forward();
+                      playerController.showVideoController = true;
+                    }
+                  }
                 }
               },
               child: Listener(
@@ -803,8 +817,9 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
-                            handleHove: handleHove,
                             sendDanmaku: widget.sendDanmaku,
+                            startHideTimer: startHideTimer,
+                            cancelHideTimer: cancelHideTimer,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -816,7 +831,9 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
-                            handleHove: handleHove,
+                            handleHove: _handleHove,
+                            startHideTimer: startHideTimer,
+                            cancelHideTimer: cancelHideTimer,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

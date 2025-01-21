@@ -566,6 +566,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.showPlaySpeed = false;
     playerController.brightnessSeeking = false;
     playerController.volumeSeeking = false;
+    playerController.canHidePlayerPanel = true;
     // Reset danmaku state
     infoController.episodeCommentsList.clear();
     infoController.episodeInfo.reset();

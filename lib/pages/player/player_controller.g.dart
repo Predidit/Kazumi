@@ -233,6 +233,22 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$canHidePlayerPanelAtom =
+      Atom(name: '_PlayerController.canHidePlayerPanel', context: context);
+
+  @override
+  bool get canHidePlayerPanel {
+    _$canHidePlayerPanelAtom.reportRead();
+    return super.canHidePlayerPanel;
+  }
+
+  @override
+  set canHidePlayerPanel(bool value) {
+    _$canHidePlayerPanelAtom.reportWrite(value, super.canHidePlayerPanel, () {
+      super.canHidePlayerPanel = value;
+    });
+  }
+
   late final _$loadingAtom =
       Atom(name: '_PlayerController.loading', context: context);
 
@@ -378,6 +394,7 @@ showVolume: ${showVolume},
 showPlaySpeed: ${showPlaySpeed},
 brightnessSeeking: ${brightnessSeeking},
 volumeSeeking: ${volumeSeeking},
+canHidePlayerPanel: ${canHidePlayerPanel},
 loading: ${loading},
 playing: ${playing},
 isBuffering: ${isBuffering},

@@ -861,7 +861,9 @@ class _VideoPageState extends State<VideoPage>
                       child: Row(
                         children: [
                           Text(
-                            '  点我发弹幕  ',
+                            playerController.danmakuOn
+                                ? '  点我发弹幕  '
+                                : '  已关闭弹幕  ',
                             softWrap: false,
                             overflow: TextOverflow.clip,
                             style: TextStyle(

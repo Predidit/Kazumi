@@ -70,6 +70,8 @@ abstract class _PlayerController with Store {
   bool brightnessSeeking = false;
   @observable
   bool volumeSeeking = false;
+  @observable
+  bool canHidePlayerPanel = true;
 
   // 视频地址
   String videoUrl = '';

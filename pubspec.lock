@@ -704,7 +704,7 @@ packages:
     description:
       path: media_kit
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -713,7 +713,7 @@ packages:
     description:
       path: "libs/android/media_kit_libs_android_video"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -722,7 +722,7 @@ packages:
     description:
       path: "libs/ios/media_kit_libs_ios_video"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -731,7 +731,7 @@ packages:
     description:
       path: "libs/linux/media_kit_libs_linux"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -740,7 +740,7 @@ packages:
     description:
       path: "libs/macos/media_kit_libs_macos_video"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -749,7 +749,7 @@ packages:
     description:
       path: "libs/universal/media_kit_libs_video"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -758,7 +758,7 @@ packages:
     description:
       path: "libs/windows/media_kit_libs_windows_video"
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -767,7 +767,7 @@ packages:
     description:
       path: media_kit_video
       ref: main
-      resolved-ref: b60d6113126834debb8efa0e0275189a46254b2e
+      resolved-ref: dc4e014f4ba97ac4ad7fde86203d9949da908364
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"

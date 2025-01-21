@@ -5,7 +5,6 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';

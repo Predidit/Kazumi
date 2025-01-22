@@ -851,10 +851,13 @@ class _PlayerItemState extends State<PlayerItem>
                                 playerController.pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                var ms = playerController
-                                        .currentPosition.inMilliseconds +
-                                    (details.delta.dx * scale).round();
-                                ms = ms > 0 ? ms : 0;
+                                int ms = (playerController
+                                            .currentPosition.inMilliseconds +
+                                        (details.delta.dx * scale).round())
+                                    .clamp(
+                                        0,
+                                        playerController
+                                            .duration.inMilliseconds);
                                 playerController.currentPosition =
                                     Duration(milliseconds: ms);
                               }, onHorizontalDragEnd: (DragEndDetails details) {

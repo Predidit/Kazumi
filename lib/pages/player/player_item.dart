@@ -132,14 +132,6 @@ class _PlayerItemState extends State<PlayerItem>
     if (Utils.isDesktop()) {
       handleFullscreen();
     } else {
-      if (playerController.showVideoController) {
-        hideVideoController();
-      } else {
-        displayVideoController();
-      }
-      if (playerController.lockPanel) {
-        return;
-      }
       playerController.playOrPause();
     }
   }
@@ -746,9 +738,11 @@ class _PlayerItemState extends State<PlayerItem>
                       onTap: () {
                         _handleTap();
                       },
-                      onDoubleTap: () {
-                        _handleDoubleTap();
-                      },
+                      onDoubleTap: (playerController.lockPanel)
+                          ? null
+                          : () {
+                              _handleDoubleTap();
+                            },
                       onLongPressStart: (_) {
                         if (playerController.lockPanel) {
                           return;
@@ -838,14 +832,21 @@ class _PlayerItemState extends State<PlayerItem>
                           ),
                     // 播放器手势控制
                     Positioned.fill(
-                        left: 16,
-                        top: 25,
-                        right: 15,
-                        bottom: 15,
-                        child: (Utils.isDesktop() || playerController.lockPanel)
-                            ? Container()
-                            : GestureDetector(onHorizontalDragUpdate:
-                                (DragUpdateDetails details) {
+                      left: 16,
+                      top: 25,
+                      right: 15,
+                      bottom: 15,
+                      child: (Utils.isDesktop() || playerController.lockPanel)
+                          ? Container()
+                          : GestureDetector(
+                              onHorizontalDragStart: (_) {
+                                if (!playerController.showVideoController) {
+                                  animationController?.forward();
+                                }
+                                playerController.canHidePlayerPanel = false;
+                              },
+                              onHorizontalDragUpdate:
+                                  (DragUpdateDetails details) {
                                 playerController.showSeekTime = true;
                                 playerTimer?.cancel();
                                 playerController.pause();
@@ -857,14 +858,23 @@ class _PlayerItemState extends State<PlayerItem>
                                 ms = ms > 0 ? ms : 0;
                                 playerController.currentPosition =
                                     Duration(milliseconds: ms);
-                              }, onHorizontalDragEnd: (DragEndDetails details) {
+                              },
+                              onHorizontalDragEnd: (_) {
                                 playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
+                                playerController.canHidePlayerPanel = true;
+                                if (!playerController.showVideoController) {
+                                  animationController?.reverse();
+                                } else {
+                                  hideTimer?.cancel();
+                                  startHideTimer();
+                                }
                                 playerTimer = getPlayerTimer();
                                 playerController.showSeekTime = false;
-                              }, onVerticalDragUpdate:
-                                (DragUpdateDetails details) async {
+                              },
+                              onVerticalDragUpdate:
+                                  (DragUpdateDetails details) async {
                                 final double totalWidth =
                                     MediaQuery.sizeOf(context).width;
                                 final double totalHeight =
@@ -895,7 +905,8 @@ class _PlayerItemState extends State<PlayerItem>
                                       playerController.volume - delta / level;
                                   playerController.setVolume(volume);
                                 }
-                              }, onVerticalDragEnd: (DragEndDetails details) {
+                              },
+                              onVerticalDragEnd: (_) {
                                 if (playerController.volumeSeeking) {
                                   playerController.volumeSeeking = false;
                                   Future.delayed(const Duration(seconds: 1),
@@ -909,7 +920,9 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 playerController.showVolume = false;
                                 playerController.showBrightness = false;
-                              })),
+                              },
+                            ),
+                    ),
                   ]),
                 ),
               ),

@@ -720,7 +720,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         child: ProgressBar(
                           thumbRadius: 8,
                           thumbGlowRadius: 18,
-                          timeLabelLocation: TimeLabelLocation.none,
+                          timeLabelLocation: Utils.isTablet()
+                              ? TimeLabelLocation.sides
+                              : TimeLabelLocation.none,
+                          timeLabelTextStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.0,
+                            fontFeatures: [
+                              FontFeature.tabularFigures(),
+                            ],
+                          ),
                           progress: playerController.currentPosition,
                           buffered: playerController.buffer,
                           total: playerController.duration,
@@ -782,7 +791,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                           videoPageController.currentRoad);
                                 },
                               ),
-                            if (Utils.isDesktop() || Utils.isTablet())
+                            if (Utils.isDesktop())
                               Container(
                                 padding: const EdgeInsets.only(left: 10.0),
                                 child: Text(

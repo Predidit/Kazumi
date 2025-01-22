@@ -101,6 +101,11 @@ dependencies:
       ref: main
       path: ./libs/universal/media_kit_libs_video
 
+  html: any
+  material_color_utilities: any
+  path: any
+  screen_brightness_platform_interface: any
+
 dependency_overrides:
   media_kit:
     git:

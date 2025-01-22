@@ -61,6 +61,7 @@ dependencies:
   provider: ^6.1.2
   flutter_displaymode: ^0.6.0
 
+  vibration: ^2.0.1
   url_launcher: ^6.3.0
   device_info_plus: ^10.1.2
   window_manager: ^0.4.2

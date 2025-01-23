@@ -305,6 +305,10 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
+    final bool isWideScreen = (Utils.isDesktop()) ||
+        ((Utils.isTablet()) &&
+            MediaQuery.of(context).size.height <
+                MediaQuery.of(context).size.width);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
     });
@@ -338,108 +342,77 @@ class _VideoPageState extends State<VideoPage>
                     title: Text(videoPageController.title),
                   )),
             body: SafeArea(
-              top: !videoPageController.isFullscreen,
-              // set iOS and Android navigation bar to immersive
-              bottom: false,
-              left: !videoPageController.isFullscreen,
-              right: !videoPageController.isFullscreen,
-              child: (Utils.isDesktop()) ||
-                      ((Utils.isTablet()) &&
-                          MediaQuery.of(context).size.height <
-                              MediaQuery.of(context).size.width)
-                  ? Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        Container(
-                          color: Colors.black,
+                top: !videoPageController.isFullscreen,
+                // set iOS and Android navigation bar to immersive
+                bottom: false,
+                left: !videoPageController.isFullscreen,
+                right: !videoPageController.isFullscreen,
+                child: Stack(
+                  alignment: Alignment.centerRight,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        color: Colors.black,
+                        height: (isWideScreen || videoPageController.isFullscreen)
+                            ? MediaQuery.of(context).size.height
+                            : MediaQuery.of(context).size.width * 9 / 16,
+                        width: MediaQuery.of(context).size.width,
+                        child: playerBody,
+                      ),
+                    ),
+
+                    // when not wideScreen and not fullscreen, show tabBody below playerBody
+                    if (!isWideScreen && !videoPageController.isFullscreen)
+                      Positioned(
+                        top: MediaQuery.of(context).size.width * 9 / 16,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: tabBody,
+                      ),
+
+                    // when is wideScreen or fullscreen, show tabBody on the right side with SlideTransition
+                    if ((isWideScreen || videoPageController.isFullscreen) &&
+                        videoPageController.showTabBody) ...[
+                      GestureDetector(
+                        onTap: closeTabBodyAnimated,
+                        child: Container(
+                          color: Colors.black38,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
+                      SlideTransition(
+                        position: _rightOffsetAnimation,
+                        child: SizedBox(
                           height: MediaQuery.of(context).size.height,
-                          width: MediaQuery.of(context).size.width,
-                          child: playerBody,
-                        ),
-                        if (videoPageController.showTabBody) ...[
-                          GestureDetector(
-                            onTap: () {
-                              closeTabBodyAnimated();
-                            },
-                            child: Container(
-                              color: Colors.black38,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
-                          ),
-                          SlideTransition(
-                            position: _rightOffsetAnimation,
-                            child: SizedBox(
-                              height: MediaQuery.of(context).size.height,
-                              width: MediaQuery.of(context).size.width * 1 / 3 >
-                                      420
+                          width: videoPageController.isFullscreen
+                              ? (Utils.isTablet()
+                                  ? MediaQuery.of(context).size.width / 2
+                                  : MediaQuery.of(context).size.height)
+                              : (MediaQuery.of(context).size.width * 1 / 3 > 420
                                   ? 420
-                                  : MediaQuery.of(context).size.width * 1 / 3,
-                              child: tabBody,
+                                  : MediaQuery.of(context).size.width * 1 / 3),
+                          child: Container(
+                            color: Theme.of(context).canvasColor,
+                            child: GridViewObserver(
+                              controller: observerController,
+                              child: Column(
+                                children: [
+                                  menuBar,
+                                  menuBody,
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ],
-                    )
-                  : (!videoPageController.isFullscreen)
-                      ? Column(
-                          children: [
-                            Container(
-                              color: Colors.black,
-                              height:
-                                  MediaQuery.of(context).size.width * 9 / 16,
-                              width: MediaQuery.of(context).size.width,
-                              child: playerBody,
-                            ),
-                            Expanded(
-                              child: tabBody,
-                            ),
-                          ],
-                        )
-                      : Stack(
-                          alignment: Alignment.centerRight,
-                          children: [
-                            Container(
-                                color: Colors.black,
-                                height: MediaQuery.of(context).size.height,
-                                width: MediaQuery.of(context).size.width,
-                                child: playerBody),
-                            if (videoPageController.showTabBody) ...[
-                              GestureDetector(
-                                onTap: () {
-                                  closeTabBodyAnimated();
-                                },
-                                child: Container(
-                                  color: Colors.black38,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              SlideTransition(
-                                position: _rightOffsetAnimation,
-                                child: SizedBox(
-                                  height: MediaQuery.of(context).size.height,
-                                  width: (Utils.isTablet())
-                                      ? MediaQuery.of(context).size.width / 2
-                                      : MediaQuery.of(context).size.height,
-                                  child: Container(
-                                    color: Theme.of(context).canvasColor,
-                                    child: GridViewObserver(
-                                      controller: observerController,
-                                      child: Column(
-                                        children: [
-                                          menuBar,
-                                          menuBody,
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
                         ),
-            ),
+                      ),
+                    ],
+                  ],
+                )),
           );
         });
       }),

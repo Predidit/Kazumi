@@ -172,7 +172,9 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     danmakuController.clear();
-    playerController.danmakuOn = !playerController.danmakuOn;
+    setState(() {
+      playerController.danmakuOn = !playerController.danmakuOn;
+    });
   }
 
   void _handleFullscreenChange(BuildContext context) async {

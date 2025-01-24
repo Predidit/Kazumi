@@ -214,7 +214,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black87,
+                        Colors.black45,
                         Colors.transparent,
                       ],
                     ),
@@ -242,7 +242,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black87,
+                        Colors.black45,
                       ],
                     ),
                   ),

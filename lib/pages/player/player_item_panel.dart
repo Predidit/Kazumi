@@ -357,7 +357,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black87,
+                        Colors.black45,
                         Colors.transparent,
                       ],
                     ),
@@ -378,14 +378,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               child: SlideTransition(
                 position: bottomOffsetAnimation,
                 child: Container(
-                  height: 70,
+                  height: 100,
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black87,
+                        Colors.black45,
                       ],
                     ),
                   ),

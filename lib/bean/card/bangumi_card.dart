@@ -65,10 +65,14 @@ class BangumiCardV extends StatelessWidget {
                   child: LayoutBuilder(builder: (context, boxConstraints) {
                     final double maxWidth = boxConstraints.maxWidth;
                     final double maxHeight = boxConstraints.maxHeight;
-                    return NetworkImgLayer(
-                      src: bangumiItem.images['large'] ?? '',
-                      width: maxWidth,
-                      height: maxHeight,
+                    return Hero(
+                      transitionOnUserGestures: true,
+                      tag: bangumiItem.id,
+                      child: NetworkImgLayer(
+                        src: bangumiItem.images['large'] ?? '',
+                        width: maxWidth,
+                        height: maxHeight,
+                      ),
                     );
                   }),
                 ),
@@ -84,7 +88,9 @@ class BangumiCardV extends StatelessWidget {
 
 class BangumiContent extends StatelessWidget {
   const BangumiContent({super.key, required this.bangumiItem});
+
   final BangumiItem bangumiItem;
+
   @override
   Widget build(BuildContext context) {
     return Expanded(

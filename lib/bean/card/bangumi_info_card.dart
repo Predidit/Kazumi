@@ -40,36 +40,40 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 child: LayoutBuilder(builder: (context, boxConstraints) {
                   final double maxWidth = boxConstraints.maxWidth;
                   final double maxHeight = boxConstraints.maxHeight;
-                  return Stack(
-                    children: [
-                      NetworkImgLayer(
-                        src: widget.bangumiItem.images['large'] ?? '',
-                        width: maxWidth,
-                        height: maxHeight,
-                        fadeInDuration: const Duration(milliseconds: 0),
-                        fadeOutDuration: const Duration(milliseconds: 0),
-                      ),
-                      Positioned(
-                        right: 5,
-                        bottom: 5,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .secondaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: CollectButton(
-                            bangumiItem: widget.bangumiItem,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSecondaryContainer,
+                  return Hero(
+                    transitionOnUserGestures: true,
+                    tag: widget.bangumiItem.id,
+                    child: Stack(
+                      children: [
+                        NetworkImgLayer(
+                          src: widget.bangumiItem.images['large'] ?? '',
+                          width: maxWidth,
+                          height: maxHeight,
+                          fadeInDuration: const Duration(milliseconds: 0),
+                          fadeOutDuration: const Duration(milliseconds: 0),
+                        ),
+                        Positioned(
+                          right: 5,
+                          bottom: 5,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            child: CollectButton(
+                              bangumiItem: widget.bangumiItem,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 }),
               ),

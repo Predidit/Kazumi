@@ -356,9 +356,10 @@ class _VideoPageState extends State<VideoPage>
                       right: 0,
                       child: Container(
                         color: Colors.black,
-                        height: (isWideScreen || videoPageController.isFullscreen)
-                            ? MediaQuery.of(context).size.height
-                            : MediaQuery.of(context).size.width * 9 / 16,
+                        height:
+                            (isWideScreen || videoPageController.isFullscreen)
+                                ? MediaQuery.of(context).size.height
+                                : MediaQuery.of(context).size.width * 9 / 16,
                         width: MediaQuery.of(context).size.width,
                         child: playerBody,
                       ),
@@ -389,23 +390,22 @@ class _VideoPageState extends State<VideoPage>
                         position: _rightOffsetAnimation,
                         child: SizedBox(
                           height: MediaQuery.of(context).size.height,
-                          width: videoPageController.isFullscreen
-                              ? (Utils.isTablet()
-                                  ? MediaQuery.of(context).size.width / 2
-                                  : MediaQuery.of(context).size.height)
-                              : (MediaQuery.of(context).size.width * 1 / 3 > 420
+                          width:
+                              (MediaQuery.of(context).size.width * 1 / 3 > 420
                                   ? 420
                                   : MediaQuery.of(context).size.width * 1 / 3),
                           child: Container(
                             color: Theme.of(context).canvasColor,
                             child: GridViewObserver(
                               controller: observerController,
-                              child: Column(
-                                children: [
-                                  menuBar,
-                                  menuBody,
-                                ],
-                              ),
+                              child: isWideScreen
+                                  ? tabBody
+                                  : Column(
+                                      children: [
+                                        menuBar,
+                                        menuBody,
+                                      ],
+                                    ),
                             ),
                           ),
                         ),
@@ -720,7 +720,7 @@ class _VideoPageState extends State<VideoPage>
                           Expanded(
                               child: Text(
                             road.identifier[count0 - 1],
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: 13,

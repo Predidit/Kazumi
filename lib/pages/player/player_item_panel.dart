@@ -64,6 +64,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final InfoController infoController = Modular.get<InfoController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
+  final FocusNode textFieldFocus = FocusNode();
 
   Future<void> _handleScreenshot() async {
     KazumiDialog.showToast(message: '截图中...');
@@ -91,13 +92,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     playerController.danmakuOn = !playerController.danmakuOn;
   }
 
-  Widget danmakuTextField() {
+  Widget get danmakuTextField {
     return Container(
       constraints: Utils.isDesktop()
           ? const BoxConstraints(maxWidth: 500, maxHeight: 33)
           : const BoxConstraints(maxHeight: 33),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
+        focusNode: textFieldFocus,
         style: TextStyle(
             fontSize: Utils.isDesktop() ? 15 : 13, color: Colors.white),
         controller: textController,
@@ -120,6 +122,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ),
           suffixIcon: TextButton(
             onPressed: () {
+              textFieldFocus.unfocus();
               widget.sendDanmaku(textController.text);
               textController.clear();
             },
@@ -143,6 +146,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           playerController.canHidePlayerPanel = false;
         },
         onSubmitted: (msg) {
+          textFieldFocus.unfocus();
           widget.sendDanmaku(msg);
           widget.cancelHideTimer();
           widget.startHideTimer();
@@ -153,6 +157,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           widget.cancelHideTimer();
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;
+          textFieldFocus.unfocus();
           widget.keyboardFocus.requestFocus();
         },
       ),
@@ -855,8 +860,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                               icon: const Icon(
                                                   Icons.tune_rounded),
                                             ),
-                                            if (isSpaceEnough)
-                                              danmakuTextField(),
+                                            if (isSpaceEnough) danmakuTextField,
                                           ],
                                         ),
                                       );
@@ -890,7 +894,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     color: Colors.white,
                                     icon: const Icon(Icons.tune_rounded),
                                   ),
-                                  Expanded(child: danmakuTextField()),
+                                  Expanded(child: danmakuTextField),
                                 ],
                                 if (!playerController.danmakuOn) const Spacer(),
                               ],

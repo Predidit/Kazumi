@@ -67,6 +67,12 @@
   <img src="https://flathub.org/api/badge?locale=en" alt="Get it on Flathub" width="180"/>
 </a>
 
+对于 Arch Linux 用户，可以从 AUR 软件库安装：
+
+```bash
+yay -S kazumi
+```
+
 ## 贡献
 
 欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID

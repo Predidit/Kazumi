@@ -161,8 +161,8 @@
           - run: flutter pub get
           - name: Inject DanDan API Credentials
             run: |
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace 'kvpx7qkqjh', ${{ secrets.DANDANAPI_APPID }} | Set-Content -Path 'lib/utils/mortis.dart'
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace 'rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax', ${{ secrets.DANDANAPI_KEY }} | Set-Content -Path 'lib/utils/mortis.dart'
+              (Get-Content -Path 'lib/utils/mortis.dart') -replace 'kvpx7qkqjh' ${{ secrets.DANDANAPI_APPID }} | Set-Content -Path 'lib/utils/mortis.dart'
+              (Get-Content -Path 'lib/utils/mortis.dart') -replace 'rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax' ${{ secrets.DANDANAPI_KEY }} | Set-Content -Path 'lib/utils/mortis.dart'
           - run: flutter build windows  
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs

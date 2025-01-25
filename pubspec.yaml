@@ -162,7 +162,7 @@ dev_dependencies:
   mobx_codegen: ^2.3.0
   hive_generator: ^2.0.0
   flutter_launcher_icons: "^0.13.1"
-#  flutter_native_splash: ^2.4.3
+  flutter_native_splash: ^2.4.3
   msix: ^3.16.8
   
 
@@ -187,14 +187,14 @@ flutter_launcher_icons:
     image_path: assets/images/logo/logo_rounded.png
     icon_size: 256 # min:48, max:256, default: 48
 
-#flutter_native_splash:
-#  android: false
-#  ios: true
-#  web: false
-#  color_ios: "#ffffff"
-#  color_dark_ios: "#212121"
-#  image_ios: assets/images/logo/logo_ios.png
-#  image_dark_ios: assets/images/logo/logo_ios.png
+flutter_native_splash:
+  android: false
+  ios: true
+  web: false
+  color_ios: "#ffffff"
+  color_dark_ios: "#212121"
+  image_ios: assets/images/logo/logo_ios.png
+  image_dark_ios: assets/images/logo/logo_ios.png
 
 msix_config:
   display_name: Kazumi

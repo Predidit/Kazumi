@@ -4,6 +4,7 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
@@ -28,11 +29,18 @@ class DanmakuRequest {
   //从BangumiID获取分集ID
   static Future<DanmakuEpisodeResponse> getDanDanEpisodesByBangumiID(
       int bangumiID) async {
+    var path = Api.dandanAPIInfo + bangumiID.toString();
+    var endPoint = Api.dandanAPIDomain + path;
+    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     var httpHeaders = {
       'user-agent': Utils.getRandomUA(),
       'referer': '',
+      'X-Auth': 1,
+      'X-AppId': mortis['id'],
+      'X-Timestamp': timestamp.toString(),
+      'X-Signature': Utils.generateDandanSignature(path, timestamp),
     };
-    final res = await Request().get(Api.dandanInfo + bangumiID.toString(),
+    final res = await Request().get(endPoint,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
     Map<String, dynamic> jsonData = res.data;
@@ -43,15 +51,22 @@ class DanmakuRequest {
 
   static Future<DanmakuSearchResponse> getDanmakuSearchResponse(
       String title) async {
+    var path = Api.dandanAPISearch;
+    var endPoint = Api.dandanAPIDomain + path;
+    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     var httpHeaders = {
       'user-agent': Utils.getRandomUA(),
       'referer': '',
+      'X-Auth': 1,
+      'X-AppId': mortis['id'],
+      'X-Timestamp': timestamp.toString(),
+      'X-Signature': Utils.generateDandanSignature(path, timestamp),
     };
     Map<String, String> keywordMap = {
       'keyword': title,
     };
 
-    final res = await Request().get(Api.dandanSearch,
+    final res = await Request().get(endPoint,
         data: keywordMap,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'});
@@ -66,18 +81,25 @@ class DanmakuRequest {
     if (bangumiID == 100000) {
       return danmakus;
     }
+    // 这里猜测了弹弹Play的分集命名规则，例如上面的番剧ID为1758，第一集弹幕库ID大概率为17580001，但是此命名规则并没有体现在官方API文档里，保险的做法是请求 Api.dandanInfo
+    var path = Api.dandanAPIComment +
+        bangumiID.toString() +
+        episode.toString().padLeft(4, '0');
+    var endPoint = Api.dandanAPIDomain + path;
+    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     var httpHeaders = {
       'user-agent': Utils.getRandomUA(),
       'referer': '',
+      'X-Auth': 1,
+      'X-AppId': mortis['id'],
+      'X-Timestamp': timestamp.toString(),
+      'X-Signature': Utils.generateDandanSignature(path, timestamp),
     };
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
-    // 这里猜测了弹弹Play的分集命名规则，例如上面的番剧ID为1758，第一集弹幕库ID大概率为17580001，但是此命名规则并没有体现在官方API文档里，保险的做法是请求 Api.dandanInfo
-    KazumiLogger().log(Level.info,
-        "弹幕请求最终URL ${"${Api.dandanAPI}$bangumiID${episode.toString().padLeft(4, '0')}"}");
-    final res = await Request().get(
-        ("${Api.dandanAPI}$bangumiID${episode.toString().padLeft(4, '0')}"),
+    KazumiLogger().log(Level.info, "弹幕请求最终URL $endPoint");
+    final res = await Request().get(endPoint,
         data: withRelated,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
@@ -93,15 +115,23 @@ class DanmakuRequest {
   }
 
   static Future<List<Danmaku>> getDanDanmakuByEpisodeID(int episodeID) async {
+    var path = Api.dandanAPIComment + episodeID.toString();
+    var endPoint = Api.dandanAPIDomain + path;
+    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     List<Danmaku> danmakus = [];
     var httpHeaders = {
       'user-agent': Utils.getRandomUA(),
       'referer': '',
+      'X-Auth': 1,
+      'X-AppId': mortis['id'],
+      'X-Timestamp': timestamp.toString(),
+      'X-Signature': Utils.generateDandanSignature(path, timestamp),
     };
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
-    final res = await Request().get("${Api.dandanAPI}$episodeID",
+    final res = await Request().get(
+        endPoint,
         data: withRelated,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});

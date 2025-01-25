@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
@@ -16,6 +17,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:path/path.dart' as path;
+import 'package:kazumi/utils/mortis.dart';
 
 class Utils {
   static final Random random = Random();
@@ -550,7 +552,8 @@ class Utils {
     return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
   }
 
-  static String buildShadersAbsolutePath(String baseDirectory, List<String> shaders) {
+  static String buildShadersAbsolutePath(
+      String baseDirectory, List<String> shaders) {
     List<String> absolutePaths = shaders.map((shader) {
       return path.join(baseDirectory, shader);
     }).toList();
@@ -558,5 +561,14 @@ class Utils {
       return absolutePaths.join(';');
     }
     return absolutePaths.join(':');
+  }
+
+  static String generateDandanSignature(String path, int timestamp) {
+    String id = mortis['id']!;
+    String value = mortis['value']!;
+    String data = id + timestamp.toString() + path + value;
+    var bytes = utf8.encode(data);
+    var digest = sha256.convert(bytes);
+    return base64Encode(digest.bytes);
   }
 }

@@ -30,9 +30,10 @@ class Api {
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
-  static const String dandanAPI = "https://api.dandanplay.net/api/v2/comment/";
-  static const String dandanSearch = "https://api.dandanplay.net/api/v2/search/anime";
-  static const String dandanInfo = "https://api.dandanplay.net/api/v2/bangumi/";
+  static const String dandanAPIDomain = 'https://api.dandanplay.net';
+  static const String dandanAPIComment = "/api/v2/comment/";
+  static const String dandanAPISearch = "/api/v2/search/anime";
+  static const String dandanAPIInfo = "/api/v2/bangumi/";
 
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {

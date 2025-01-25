@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/mortis.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -175,6 +176,7 @@ class _AboutPageState extends State<AboutPage> {
                             mode: LaunchMode.externalApplication);
                       },
                       title: const Text('弹幕来源'),
+                      description: Text('ID: ${mortis['id']}'),
                       value: const Text('DanDanPlay'),
                     ),],),
                 SettingsSection(

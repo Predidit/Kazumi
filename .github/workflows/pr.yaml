@@ -223,8 +223,8 @@
           - run: flutter pub get
           - name: Inject DanDan API Credentials
             run: |
-              sed -i 's/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g' lib/utils/mortis.dart
-              sed -i 's/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g' lib/utils/mortis.dart
+              sed -i '' 's/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g' lib/utils/mortis.dart
+              sed -i '' 's/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g' lib/utils/mortis.dart
           - name: Build IPA
             run: |
               flutter build ios --release --no-codesign
@@ -257,8 +257,8 @@
           - run: flutter pub get
           - name: Inject DanDan API Credentials
             run: |
-              sed -i 's/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g' lib/utils/mortis.dart
-              sed -i 's/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g' lib/utils/mortis.dart
+              sed -i '' 's/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g' lib/utils/mortis.dart
+              sed -i '' 's/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g' lib/utils/mortis.dart
           - run: flutter build macos --release
           - name: Create DMG
             run: |

@@ -103,6 +103,7 @@ class Request {
   Future<Response> get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
     Response response;
     ResponseType resType = ResponseType.json;
+    options ??= Options();
     if (extra != null) {
       resType = extra!['resType'] ?? ResponseType.json;
       if (extra['ua'] != null) {

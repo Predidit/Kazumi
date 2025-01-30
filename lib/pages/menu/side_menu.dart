@@ -1,9 +1,9 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
+import 'package:kazumi/utils/storage.dart';
 
 class SideMenu extends StatefulWidget {
   //const SideMenu({Key? key}) : super(key: key);
@@ -38,6 +38,8 @@ class SideNavigationBarState extends ChangeNotifier {
 }
 
 class _SideMenu extends State<SideMenu> {
+  bool showWindowButton = GStorage.setting
+      .get(SettingBoxKey.showWindowButton, defaultValue: false);
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -55,7 +57,7 @@ class _SideMenu extends State<SideMenu> {
                     leading: SizedBox(
                         width: 50,
                         child: Padding(
-                            padding: Platform.isMacOS
+                            padding: (Platform.isMacOS && showWindowButton)
                                 ? const EdgeInsets.only(top: 30)
                                 : const EdgeInsets.only(top: 8),
                             child: ClipOval(

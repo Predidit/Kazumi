@@ -58,6 +58,7 @@ class PlayerItemPanel extends StatefulWidget {
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
   Box setting = GStorage.setting;
   late bool haEnable;
+  late bool showWindowButton;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
@@ -319,6 +320,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    showWindowButton =
+        setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
   }
 
   Widget forwardIcon() {
@@ -357,26 +360,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: SafeArea(
-                  left: false,
-                  top: true,
-                  right: false,
-                  bottom: false,
-                  minimum:
-                      (Platform.isMacOS && !videoPageController.isFullscreen)
-                          ? const EdgeInsets.only(top: 22)
-                          : EdgeInsets.zero,
-                  child: Container(
-                    height: 50,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black45,
-                          Colors.transparent,
-                        ],
-                      ),
+                child: Container(
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black45,
+                        Colors.transparent,
+                      ],
                     ),
                   ),
                 ),
@@ -570,124 +563,138 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: MouseRegion(
-                  cursor: (videoPageController.isFullscreen &&
-                          !playerController.showVideoController)
-                      ? SystemMouseCursors.none
-                      : SystemMouseCursors.basic,
-                  onEnter: (_) {
-                    widget.cancelHideTimer();
-                  },
-                  onExit: (_) {
-                    widget.cancelHideTimer();
-                    widget.startHideTimer();
-                  },
-                  child: Row(
-                    children: [
-                      IconButton(
-                        color: Colors.white,
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        onPressed: () {
-                          widget.onBackPressed(context);
-                        },
-                      ),
-                      (videoPageController.isFullscreen || Utils.isDesktop())
-                          ? Text(
-                              ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium!
-                                      .fontSize),
-                            )
-                          : Container(),
-                      // 拖动条
-                      const Expanded(
-                        child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
-                      ),
-                      // 跳过
-                      forwardIcon(),
-                      // 追番
-                      CollectButton(
-                        bangumiItem: infoController.bangumiItem,
-                        onOpen: () {
-                          widget.cancelHideTimer();
-                          playerController.canHidePlayerPanel = false;
-                        },
-                        onClose: () {
-                          widget.cancelHideTimer();
-                          widget.startHideTimer();
-                          playerController.canHidePlayerPanel = true;
-                        },
-                      ),
-                      MenuAnchor(
-                        consumeOutsideTap: true,
-                        onOpen: () {
-                          widget.cancelHideTimer();
-                          playerController.canHidePlayerPanel = false;
-                        },
-                        onClose: () {
-                          widget.cancelHideTimer();
-                          widget.startHideTimer();
-                          playerController.canHidePlayerPanel = true;
-                        },
-                        builder: (BuildContext context,
-                            MenuController controller, Widget? child) {
-                          return IconButton(
-                            onPressed: () {
-                              if (controller.isOpen) {
-                                controller.close();
-                              } else {
-                                controller.open();
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.more_vert,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                        menuChildren: [
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showDanmakuSwitch();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("弹幕切换"),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              showVideoInfo();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("视频详情"),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              bool needRestart = playerController.playing;
-                              playerController.pause();
-                              RemotePlay()
-                                  .castVideo(context,
-                                      videoPageController.currentPlugin.referer)
-                                  .whenComplete(() {
-                                if (needRestart) {
-                                  playerController.play();
+                child: SafeArea(
+                  left: false,
+                  top: true,
+                  right: false,
+                  bottom: false,
+                  minimum: (Platform.isMacOS &&
+                          !videoPageController.isFullscreen &&
+                          showWindowButton)
+                      ? const EdgeInsets.only(top: 22)
+                      : EdgeInsets.zero,
+                  child: MouseRegion(
+                    cursor: (videoPageController.isFullscreen &&
+                            !playerController.showVideoController)
+                        ? SystemMouseCursors.none
+                        : SystemMouseCursors.basic,
+                    onEnter: (_) {
+                      widget.cancelHideTimer();
+                    },
+                    onExit: (_) {
+                      widget.cancelHideTimer();
+                      widget.startHideTimer();
+                    },
+                    child: Row(
+                      children: [
+                        IconButton(
+                          color: Colors.white,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          onPressed: () {
+                            widget.onBackPressed(context);
+                          },
+                        ),
+                        (videoPageController.isFullscreen || Utils.isDesktop())
+                            ? Text(
+                                ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium!
+                                        .fontSize),
+                              )
+                            : Container(),
+                        // 拖动条
+                        const Expanded(
+                          child:
+                              dtb.DragToMoveArea(child: SizedBox(height: 40)),
+                        ),
+                        // 跳过
+                        forwardIcon(),
+                        // 追番
+                        CollectButton(
+                          bangumiItem: infoController.bangumiItem,
+                          onOpen: () {
+                            widget.cancelHideTimer();
+                            playerController.canHidePlayerPanel = false;
+                          },
+                          onClose: () {
+                            widget.cancelHideTimer();
+                            widget.startHideTimer();
+                            playerController.canHidePlayerPanel = true;
+                          },
+                        ),
+                        MenuAnchor(
+                          consumeOutsideTap: true,
+                          onOpen: () {
+                            widget.cancelHideTimer();
+                            playerController.canHidePlayerPanel = false;
+                          },
+                          onClose: () {
+                            widget.cancelHideTimer();
+                            widget.startHideTimer();
+                            playerController.canHidePlayerPanel = true;
+                          },
+                          builder: (BuildContext context,
+                              MenuController controller, Widget? child) {
+                            return IconButton(
+                              onPressed: () {
+                                if (controller.isOpen) {
+                                  controller.close();
+                                } else {
+                                  controller.open();
                                 }
-                              });
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("远程播放"),
+                              },
+                              icon: const Icon(
+                                Icons.more_vert,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                          menuChildren: [
+                            MenuItemButton(
+                              onPressed: () {
+                                widget.showDanmakuSwitch();
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                child: Text("弹幕切换"),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            MenuItemButton(
+                              onPressed: () {
+                                showVideoInfo();
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                child: Text("视频详情"),
+                              ),
+                            ),
+                            MenuItemButton(
+                              onPressed: () {
+                                bool needRestart = playerController.playing;
+                                playerController.pause();
+                                RemotePlay()
+                                    .castVideo(
+                                        context,
+                                        videoPageController
+                                            .currentPlugin.referer)
+                                    .whenComplete(() {
+                                  if (needRestart) {
+                                    playerController.play();
+                                  }
+                                });
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                child: Text("远程播放"),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

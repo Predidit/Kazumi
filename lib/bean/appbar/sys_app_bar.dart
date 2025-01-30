@@ -4,6 +4,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/utils/storage.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? toolbarHeight;
@@ -58,6 +59,11 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     });
   }
 
+  bool showWindowButton() {
+    return GStorage.setting
+        .get(SettingBoxKey.showWindowButton, defaultValue: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     List<Widget> acs = [];
@@ -66,13 +72,13 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      if (!Platform.isMacOS) {
+      if (!showWindowButton()) {
         acs.add(CloseButton(onPressed: () => _handleCloseEvent()));
       }
       acs.add(const SizedBox(width: 8));
     }
     return SafeArea(
-      minimum: (Platform.isMacOS && needTopOffset)
+      minimum: (Platform.isMacOS && needTopOffset && showWindowButton())
           ? const EdgeInsets.only(top: 22)
           : EdgeInsets.zero,
       child: GestureDetector(
@@ -107,7 +113,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    if (Platform.isMacOS && needTopOffset) {
+    if (Platform.isMacOS && needTopOffset && showWindowButton()) {
       if (toolbarHeight != null) {
         return Size.fromHeight(toolbarHeight! + 22);
       } else {

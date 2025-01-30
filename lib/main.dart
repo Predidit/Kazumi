@@ -18,22 +18,6 @@ import 'package:provider/provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  if (Utils.isDesktop()) {
-    await windowManager.ensureInitialized();
-    bool isLowResolution = await Utils.isLowResolution();
-    WindowOptions windowOptions = WindowOptions(
-      size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
-      center: true,
-      // backgroundColor: Colors.white,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-      windowButtonVisibility: Platform.isMacOS ? true : false,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-  }
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -53,6 +37,27 @@ void main() async {
           return const StorageErrorPage();
         }));
     return;
+  }
+  bool showWindowButton = await GStorage.setting
+      .get(SettingBoxKey.showWindowButton, defaultValue: false);
+  if (Utils.isDesktop()) {
+    await windowManager.ensureInitialized();
+    bool isLowResolution = await Utils.isLowResolution();
+    WindowOptions windowOptions = WindowOptions(
+      size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
+      center: true,
+      // backgroundColor: Colors.white,
+      skipTaskbar: false,
+      titleBarStyle: (Platform.isMacOS || !showWindowButton)
+          ? TitleBarStyle.hidden
+          : TitleBarStyle.normal,
+      windowButtonVisibility: showWindowButton,
+      title: 'Kazumi',
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
   }
   Request();
   await Request.setCookie();

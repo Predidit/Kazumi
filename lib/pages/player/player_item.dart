@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:flutter/foundation.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -38,6 +38,7 @@ class PlayerItem extends StatefulWidget {
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
+    required this.sendDanmaku,
   });
 
   final VoidCallback openMenu;
@@ -45,6 +46,7 @@ class PlayerItem extends StatefulWidget {
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
+  final void Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
 
   @override
@@ -130,14 +132,6 @@ class _PlayerItemState extends State<PlayerItem>
     if (Utils.isDesktop()) {
       handleFullscreen();
     } else {
-      if (playerController.showVideoController) {
-        hideVideoController();
-      } else {
-        displayVideoController();
-      }
-      if (playerController.lockPanel) {
-        return;
-      }
       playerController.playOrPause();
     }
   }
@@ -178,7 +172,9 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     danmakuController.clear();
-    playerController.danmakuOn = !playerController.danmakuOn;
+    setState(() {
+      playerController.danmakuOn = !playerController.danmakuOn;
+    });
   }
 
   void _handleFullscreenChange(BuildContext context) async {
@@ -245,33 +241,12 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  Future<void> setVolume(double value) async {
-    try {
-      if (Utils.isDesktop()) {
-        await playerController.setVolume(value);
-      } else {
-        await FlutterVolumeController.updateShowSystemUI(false);
-        await FlutterVolumeController.setVolume(value / 100);
-      }
-    } catch (_) {}
-  }
-
   Future<void> increaseVolume() async {
-    double volume =
-        playerController.volume + 10 > 100 ? 100 : playerController.volume + 10;
-    try {
-      await playerController.setVolume(volume);
-      playerController.volume = volume;
-    } catch (_) {}
+    await playerController.setVolume(playerController.volume + 10);
   }
 
   Future<void> decreaseVolume() async {
-    double volume =
-        playerController.volume - 10 < 0 ? 0 : playerController.volume - 10;
-    try {
-      await playerController.setVolume(volume);
-      playerController.volume = volume;
-    } catch (_) {}
+    await playerController.setVolume(playerController.volume - 10);
   }
 
   Future<void> setBrightness(double value) async {
@@ -283,12 +258,17 @@ class _PlayerItemState extends State<PlayerItem>
 
   void startHideTimer() {
     hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) {
+      if (mounted && playerController.canHidePlayerPanel) {
         playerController.showVideoController = false;
         animationController?.reverse();
       }
       hideTimer = null;
     });
+  }
+
+  // Used to pass hideTimer operation to panel layer
+  void cancelHideTimer() {
+    hideTimer?.cancel();
   }
 
   Timer getPlayerTimer() {
@@ -580,6 +560,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.showPlaySpeed = false;
     playerController.brightnessSeeking = false;
     playerController.volumeSeeking = false;
+    playerController.canHidePlayerPanel = true;
     // Reset danmaku state
     infoController.episodeCommentsList.clear();
     infoController.episodeInfo.reset();
@@ -599,11 +580,20 @@ class _PlayerItemState extends State<PlayerItem>
                       !playerController.showVideoController)
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
-              onHover: (_) {
+              onHover: (PointerEvent pointerEvent) {
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
                 if (Utils.isDesktop()) {
-                  _handleHove();
+                  if (pointerEvent.position.dy > 50 &&
+                      pointerEvent.position.dy <
+                          MediaQuery.of(context).size.height - 70) {
+                    _handleHove();
+                  } else {
+                    if (!playerController.showVideoController) {
+                      animationController?.forward();
+                      playerController.showVideoController = true;
+                    }
+                  }
                 }
               },
               child: Listener(
@@ -613,9 +603,7 @@ class _PlayerItemState extends State<PlayerItem>
                     final scrollDelta = pointerSignal.scrollDelta;
                     final double volume =
                         playerController.volume - scrollDelta.dy / 60;
-                    final double result = volume.clamp(0.0, 100.0);
-                    setVolume(result);
-                    playerController.volume = result;
+                    playerController.setVolume(volume);
                   }
                 },
                 child: SizedBox(
@@ -692,6 +680,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     videoPageController.isFullscreen =
                                         !videoPageController.isFullscreen;
                                   } else if (!Platform.isMacOS) {
+                                    playerController.pause();
                                     windowManager.hide();
                                   }
                                 }
@@ -751,9 +740,11 @@ class _PlayerItemState extends State<PlayerItem>
                       onTap: () {
                         _handleTap();
                       },
-                      onDoubleTap: () {
-                        _handleDoubleTap();
-                      },
+                      onDoubleTap: (playerController.lockPanel)
+                          ? null
+                          : () {
+                              _handleDoubleTap();
+                            },
                       onLongPressStart: (_) {
                         if (playerController.lockPanel) {
                           return;
@@ -808,46 +799,87 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    PlayerItemPanel(
-                      onBackPressed: widget.onBackPressed,
-                      setPlaybackSpeed: setPlaybackSpeed,
-                      showDanmakuSwitch: showDanmakuSwitch,
-                      changeEpisode: widget.changeEpisode,
-                      openMenu: widget.openMenu,
-                      handleFullscreen: handleFullscreen,
-                      handleProgressBarDragStart: handleProgressBarDragStart,
-                      handleProgressBarDragEnd: handleProgressBarDragEnd,
-                      animationController: animationController!,
-                    ),
+                    (Utils.isDesktop() ||
+                            Utils.isTablet() ||
+                            videoPageController.isFullscreen)
+                        ? PlayerItemPanel(
+                            onBackPressed: widget.onBackPressed,
+                            setPlaybackSpeed: setPlaybackSpeed,
+                            showDanmakuSwitch: showDanmakuSwitch,
+                            changeEpisode: widget.changeEpisode,
+                            openMenu: widget.openMenu,
+                            handleFullscreen: handleFullscreen,
+                            handleProgressBarDragStart:
+                                handleProgressBarDragStart,
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            animationController: animationController!,
+                            keyboardFocus: widget.keyboardFocus,
+                            sendDanmaku: widget.sendDanmaku,
+                            startHideTimer: startHideTimer,
+                            cancelHideTimer: cancelHideTimer,
+                          )
+                        : SmallestPlayerItemPanel(
+                            onBackPressed: widget.onBackPressed,
+                            setPlaybackSpeed: setPlaybackSpeed,
+                            showDanmakuSwitch: showDanmakuSwitch,
+                            handleFullscreen: handleFullscreen,
+                            handleProgressBarDragStart:
+                                handleProgressBarDragStart,
+                            handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            animationController: animationController!,
+                            keyboardFocus: widget.keyboardFocus,
+                            handleHove: _handleHove,
+                            startHideTimer: startHideTimer,
+                            cancelHideTimer: cancelHideTimer,
+                          ),
                     // 播放器手势控制
                     Positioned.fill(
-                        left: 16,
-                        top: 25,
-                        right: 15,
-                        bottom: 15,
-                        child: (Utils.isDesktop() || playerController.lockPanel)
-                            ? Container()
-                            : GestureDetector(onHorizontalDragUpdate:
-                                (DragUpdateDetails details) {
+                      left: 16,
+                      top: 25,
+                      right: 15,
+                      bottom: 15,
+                      child: (Utils.isDesktop() || playerController.lockPanel)
+                          ? Container()
+                          : GestureDetector(
+                              onHorizontalDragStart: (_) {
+                                if (!playerController.showVideoController) {
+                                  animationController?.forward();
+                                }
+                                playerController.canHidePlayerPanel = false;
+                              },
+                              onHorizontalDragUpdate:
+                                  (DragUpdateDetails details) {
                                 playerController.showSeekTime = true;
                                 playerTimer?.cancel();
                                 playerController.pause();
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
-                                var ms = playerController
-                                        .currentPosition.inMilliseconds +
-                                    (details.delta.dx * scale).round();
-                                ms = ms > 0 ? ms : 0;
+                                int ms = (playerController
+                                            .currentPosition.inMilliseconds +
+                                        (details.delta.dx * scale).round())
+                                    .clamp(
+                                        0,
+                                        playerController
+                                            .duration.inMilliseconds);
                                 playerController.currentPosition =
                                     Duration(milliseconds: ms);
-                              }, onHorizontalDragEnd: (DragEndDetails details) {
+                              },
+                              onHorizontalDragEnd: (_) {
                                 playerController.play();
                                 playerController
                                     .seek(playerController.currentPosition);
+                                playerController.canHidePlayerPanel = true;
+                                if (!playerController.showVideoController) {
+                                  animationController?.reverse();
+                                } else {
+                                  hideTimer?.cancel();
+                                  startHideTimer();
+                                }
                                 playerTimer = getPlayerTimer();
                                 playerController.showSeekTime = false;
-                              }, onVerticalDragUpdate:
-                                (DragUpdateDetails details) async {
+                              },
+                              onVerticalDragUpdate:
+                                  (DragUpdateDetails details) async {
                                 final double totalWidth =
                                     MediaQuery.sizeOf(context).width;
                                 final double totalHeight =
@@ -857,10 +889,6 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double sectionWidth = totalWidth / 2;
                                 final double delta = details.delta.dy;
 
-                                /// 非全屏时禁用
-                                if (!videoPageController.isFullscreen) {
-                                  return;
-                                }
                                 if (tapPosition < sectionWidth) {
                                   // 左边区域
                                   playerController.brightnessSeeking = true;
@@ -880,12 +908,10 @@ class _PlayerItemState extends State<PlayerItem>
                                   final double level = (totalHeight) * 0.03;
                                   final double volume =
                                       playerController.volume - delta / level;
-                                  final double result =
-                                      volume.clamp(0.0, 100.0);
-                                  setVolume(result);
-                                  playerController.volume = result;
+                                  playerController.setVolume(volume);
                                 }
-                              }, onVerticalDragEnd: (DragEndDetails details) {
+                              },
+                              onVerticalDragEnd: (_) {
                                 if (playerController.volumeSeeking) {
                                   playerController.volumeSeeking = false;
                                   Future.delayed(const Duration(seconds: 1),
@@ -899,7 +925,9 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 playerController.showVolume = false;
                                 playerController.showBrightness = false;
-                              })),
+                              },
+                            ),
+                    ),
                   ]),
                 ),
               ),

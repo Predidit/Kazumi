@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -16,7 +17,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
@@ -223,7 +223,7 @@ class _VideoPageState extends State<VideoPage>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       menuJumpToCurrentEpisode();
       await Utils.exitFullScreen();
-      videoPageController.showTabBody = true;
+      videoPageController.showTabBody = false;
       videoPageController.isFullscreen = false;
       return;
     }
@@ -234,8 +234,96 @@ class _VideoPageState extends State<VideoPage>
     Navigator.of(context).pop();
   }
 
+  /// 发送弹幕 由于接口限制, 暂时未提交云端
+  void sendDanmaku(String msg) async {
+    keyboardFocus.requestFocus();
+    if (playerController.danDanmakus.isEmpty) {
+      KazumiDialog.showToast(
+        message: '当前剧集不支持弹幕发送的说',
+      );
+      return;
+    }
+    if (msg.isEmpty) {
+      KazumiDialog.showToast(message: '弹幕内容为空');
+      return;
+    } else if (msg.length > 100) {
+      KazumiDialog.showToast(message: '弹幕内容过长');
+      return;
+    }
+    // Todo 接口方限制
+
+    playerController.danmakuController
+        .addDanmaku(DanmakuContentItem(msg, selfSend: true));
+  }
+
+  void showMobileDanmakuInput() {
+    final TextEditingController textController = TextEditingController();
+    showModalBottomSheet(
+      shape: const BeveledRectangleBorder(),
+      isScrollControlled: true,
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 8,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 34),
+                  child: TextField(
+                    style: const TextStyle(fontSize: 15),
+                    controller: textController,
+                    autofocus: true,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: const InputDecoration(
+                      filled: true,
+                      floatingLabelBehavior: FloatingLabelBehavior.never,
+                      hintText: '发个友善的弹幕见证当下',
+                      hintStyle: TextStyle(fontSize: 14),
+                      alignLabelWithHint: true,
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
+                    ),
+                    onSubmitted: (msg) {
+                      sendDanmaku(msg);
+                      textController.clear();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  sendDanmaku(textController.text);
+                  textController.clear();
+                  Navigator.pop(context);
+                },
+                icon: Icon(
+                  Icons.send_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isWideScreen = (Utils.isDesktop()) ||
+        ((Utils.isTablet()) &&
+            MediaQuery.of(context).size.height <
+                MediaQuery.of(context).size.width);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
     });
@@ -269,108 +357,80 @@ class _VideoPageState extends State<VideoPage>
                     title: Text(videoPageController.title),
                   )),
             body: SafeArea(
-              top: !videoPageController.isFullscreen,
-              // set iOS and Android navigation bar to immersive
-              bottom: false,
-              left: !videoPageController.isFullscreen,
-              right: !videoPageController.isFullscreen,
-              child: (Utils.isDesktop()) ||
-                      ((Utils.isTablet()) &&
-                          MediaQuery.of(context).size.height <
-                              MediaQuery.of(context).size.width)
-                  ? Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        Container(
-                          color: Colors.black,
+                top: !videoPageController.isFullscreen,
+                // set iOS and Android navigation bar to immersive
+                bottom: false,
+                left: !videoPageController.isFullscreen,
+                right: !videoPageController.isFullscreen,
+                child: Stack(
+                  alignment: Alignment.centerRight,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        color: Colors.black,
+                        height:
+                            (isWideScreen || videoPageController.isFullscreen)
+                                ? MediaQuery.of(context).size.height
+                                : MediaQuery.of(context).size.width * 9 / 16,
+                        width: MediaQuery.of(context).size.width,
+                        child: playerBody,
+                      ),
+                    ),
+
+                    // when not wideScreen and not fullscreen, show tabBody below playerBody
+                    if (!isWideScreen && !videoPageController.isFullscreen)
+                      Positioned(
+                        top: MediaQuery.of(context).size.width * 9 / 16,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: tabBody,
+                      ),
+
+                    // when is wideScreen or fullscreen, show tabBody on the right side with SlideTransition
+                    if ((isWideScreen || videoPageController.isFullscreen) &&
+                        videoPageController.showTabBody) ...[
+                      GestureDetector(
+                        onTap: closeTabBodyAnimated,
+                        child: Container(
+                          color: Colors.black38,
+                          width: double.infinity,
+                          height: double.infinity,
+                        ),
+                      ),
+                      SlideTransition(
+                        position: _rightOffsetAnimation,
+                        child: SizedBox(
                           height: MediaQuery.of(context).size.height,
-                          width: MediaQuery.of(context).size.width,
-                          child: playerBody,
-                        ),
-                        if (videoPageController.showTabBody) ...[
-                          GestureDetector(
-                            onTap: () {
-                              closeTabBodyAnimated();
-                            },
-                            child: Container(
-                              color: Colors.black38,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
-                          ),
-                          SlideTransition(
-                            position: _rightOffsetAnimation,
-                            child: SizedBox(
-                              height: MediaQuery.of(context).size.height,
-                              width: MediaQuery.of(context).size.width * 1 / 3 >
-                                      420
+                          width: videoPageController.isFullscreen
+                              ? (Utils.isTablet()
+                                  ? MediaQuery.of(context).size.width / 3
+                                  : MediaQuery.of(context).size.height)
+                              : (MediaQuery.of(context).size.width / 3 > 420
                                   ? 420
-                                  : MediaQuery.of(context).size.width * 1 / 3,
-                              child: tabBody,
+                                  : MediaQuery.of(context).size.width / 3),
+                          child: Container(
+                            color: Theme.of(context).canvasColor,
+                            child: GridViewObserver(
+                              controller: observerController,
+                              child: isWideScreen
+                                  ? tabBody
+                                  : Column(
+                                      children: [
+                                        menuBar,
+                                        menuBody,
+                                      ],
+                                    ),
                             ),
                           ),
-                        ],
-                      ],
-                    )
-                  : (!videoPageController.isFullscreen)
-                      ? Column(
-                          children: [
-                            Container(
-                              color: Colors.black,
-                              height:
-                                  MediaQuery.of(context).size.width * 9 / 16,
-                              width: MediaQuery.of(context).size.width,
-                              child: playerBody,
-                            ),
-                            Expanded(
-                              child: tabBody,
-                            ),
-                          ],
-                        )
-                      : Stack(
-                          alignment: Alignment.centerRight,
-                          children: [
-                            Container(
-                                color: Colors.black,
-                                height: MediaQuery.of(context).size.height,
-                                width: MediaQuery.of(context).size.width,
-                                child: playerBody),
-                            if (videoPageController.showTabBody) ...[
-                              GestureDetector(
-                                onTap: () {
-                                  closeTabBodyAnimated();
-                                },
-                                child: Container(
-                                  color: Colors.black38,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              SlideTransition(
-                                position: _rightOffsetAnimation,
-                                child: SizedBox(
-                                  height: MediaQuery.of(context).size.height,
-                                  width: (Utils.isTablet())
-                                      ? MediaQuery.of(context).size.width / 2
-                                      : MediaQuery.of(context).size.height,
-                                  child: Container(
-                                    color: Theme.of(context).canvasColor,
-                                    child: GridViewObserver(
-                                      controller: observerController,
-                                      child: Column(
-                                        children: [
-                                          menuBar,
-                                          menuBody,
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
                         ),
-            ),
+                      ),
+                    ],
+                  ],
+                )),
           );
         });
       }),
@@ -547,6 +607,7 @@ class _VideoPageState extends State<VideoPage>
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
+                  sendDanmaku: sendDanmaku,
                 ),
         ),
 
@@ -750,22 +811,79 @@ class _VideoPageState extends State<VideoPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TabBar(
-              dividerHeight: Utils.isDesktop() ? 0.5 : 0.2,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelPadding:
-                  const EdgeInsetsDirectional.only(start: 30, end: 30),
-              onTap: (index) {
-                if (index == 0) {
-                  menuJumpToCurrentEpisode();
-                }
-              },
-              tabs: const [
-                Tab(text: '选集'),
-                Tab(text: '评论'),
+            Row(
+              children: [
+                TabBar(
+                  dividerHeight: 0,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelPadding:
+                      const EdgeInsetsDirectional.only(start: 30, end: 30),
+                  onTap: (index) {
+                    if (index == 0) {
+                      menuJumpToCurrentEpisode();
+                    }
+                  },
+                  tabs: const [
+                    Tab(text: '选集'),
+                    Tab(text: '评论'),
+                  ],
+                ),
+                if (!Utils.isDesktop() && !Utils.isTablet()) ...[
+                  const Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: playerController.danmakuOn
+                            ? Theme.of(context).hintColor
+                            : Theme.of(context).disabledColor,
+                        width: 0.5,
+                      ),
+                    ),
+                    width: 120,
+                    height: 31,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (playerController.danmakuOn &&
+                            !videoPageController.loading) {
+                          showMobileDanmakuInput();
+                        } else if (videoPageController.loading) {
+                          KazumiDialog.showToast(message: '请等待视频加载完成');
+                        } else {
+                          KazumiDialog.showToast(message: '请先打开弹幕');
+                        }
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            playerController.danmakuOn
+                                ? '  点我发弹幕  '
+                                : '  已关闭弹幕  ',
+                            softWrap: false,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              color: playerController.danmakuOn
+                                  ? Theme.of(context).hintColor
+                                  : Theme.of(context).disabledColor,
+                            ),
+                          ),
+                          Icon(
+                            Icons.send_rounded,
+                            size: 20,
+                            color: playerController.danmakuOn
+                                ? Theme.of(context).hintColor
+                                : Theme.of(context).disabledColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
               ],
             ),
+            Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
             Expanded(
               child: TabBarView(
                 children: [

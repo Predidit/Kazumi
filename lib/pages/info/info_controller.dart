@@ -62,10 +62,16 @@ abstract class _InfoController with Store {
   //   }
   // }
 
-  Future<void> queryBangumiInfoByID(int id) async {
+  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
       if (value != null) {
-        bangumiItem = value;
+        if (type == "init") {
+          bangumiItem = value;
+        } else {
+          bangumiItem.summary = value.summary;
+          bangumiItem.tags = value.tags;
+          bangumiItem.rank = value.rank;
+        }
         collectController.updateLocalCollect(bangumiItem);
       }
     });

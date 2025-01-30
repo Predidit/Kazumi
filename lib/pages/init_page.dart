@@ -9,10 +9,11 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:logger/logger.dart';
-// import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
-// import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -24,17 +25,9 @@ class InitPage extends StatefulWidget {
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final CollectController collectController = Modular.get<CollectController>();
+  final ShadersController shadersController = Modular.get<ShadersController>();
   Box setting = GStorage.setting;
-
-  // Future<File> _getLogFile() async {
-  //   final directory = await getApplicationDocumentsDirectory();
-  //   return File('${directory.path}/app_log.txt');
-  // }
-
-  // Future<void> writeLog(String message) async {
-  //   final logFile = await _getLogFile();
-  //   await logFile.writeAsString('$message\n', mode: FileMode.append);
-  // }
+  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
@@ -42,12 +35,18 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     _update();
     _migrateStorage();
+    _loadShaders();
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
 
   // migrate collect from old version (favorites)
   Future<void> _migrateStorage() async {
     await collectController.migrateCollect();
+  }
+
+  Future<void> _loadShaders() async {
+    await shadersController.copyShadersToExternalDirectory();
   }
 
   Future<void> _webDavInit() async {
@@ -83,7 +82,7 @@ class _InitPageState extends State<InitPage> {
   Future<void> _pluginInit() async {
     String statementsText = '';
     try {
-      await pluginsController.loadPlugins();
+      await pluginsController.init();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
       _pluginUpdate();
@@ -113,7 +112,6 @@ class _InitPageState extends State<InitPage> {
                   onPressed: () async {
                     try {
                       await pluginsController.copyPluginsToExternalDirectory();
-                      await pluginsController.loadPlugins();
                     } catch (_) {}
                     KazumiDialog.dismiss();
                     Modular.to.navigate('/tab/popular/');
@@ -126,6 +124,10 @@ class _InitPageState extends State<InitPage> {
         },
       );
     } else {
+      // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
+      // setDynamic here to avoid white screen flash when themeMode is dark.
+      themeProvider.setDynamic(
+          setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
       Modular.to.navigate('/tab/popular/');
     }
   }
@@ -174,8 +176,6 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container()
-    );
+    return Scaffold(body: Container());
   }
 }

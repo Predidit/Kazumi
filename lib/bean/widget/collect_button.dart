@@ -4,11 +4,18 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 class CollectButton extends StatefulWidget {
-  const CollectButton(
-      {super.key, required this.bangumiItem, this.color = Colors.white});
+  const CollectButton({
+    super.key,
+    required this.bangumiItem,
+    this.color = Colors.white,
+    this.onOpen,
+    this.onClose,
+  });
 
   final BangumiItem bangumiItem;
   final Color color;
+  final void Function()? onOpen;
+  final void Function()? onClose;
 
   @override
   State<CollectButton> createState() => _CollectButtonState();
@@ -65,33 +72,56 @@ class _CollectButtonState extends State<CollectButton> {
   @override
   Widget build(BuildContext context) {
     collectType = collectController.getCollectType(widget.bangumiItem);
-    return PopupMenuButton(
-      tooltip: '',
-      icon: Icon(
-        getIconByInt(collectType),
-        color: widget.color,
-      ),
-      itemBuilder: (context) {
-        return List.generate(
-          6,
-          (i) => PopupMenuItem(
-            value: i,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(getIconByInt(i)),
-                Text(' ${getTypeStringByInt(i)}'),
-              ],
-            ),
+    return MenuAnchor(
+      consumeOutsideTap: true,
+      onClose: widget.onClose,
+      onOpen: widget.onOpen,
+      builder:
+          (BuildContext context, MenuController controller, Widget? child) {
+        return IconButton(
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          icon: Icon(
+            getIconByInt(collectType),
+            color: widget.color,
           ),
         );
       },
-      onSelected: (value) {
-        if (value != collectType && mounted) {
-          collectController.addCollect(widget.bangumiItem, type: value);
-          setState(() {});
-        }
-      },
+      menuChildren: List<MenuItemButton>.generate(
+        6,
+        (int index) => MenuItemButton(
+          onPressed: () {
+            if (index != collectType && mounted) {
+              collectController.addCollect(widget.bangumiItem, type: index);
+              setState(() {});
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(getIconByInt(index),
+                    color: index == collectType
+                        ? Theme.of(context).colorScheme.primary
+                        : null),
+                Text(
+                  ' ${getTypeStringByInt(index)}',
+                  style: TextStyle(
+                      color: index == collectType
+                          ? Theme.of(context).colorScheme.primary
+                          : null),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

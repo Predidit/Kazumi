@@ -1,15 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/card/palette_card.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:provider/provider.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -24,7 +26,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
   late bool oledEnhance;
+  late bool useDynamicColor;
   final PopularController popularController = Modular.get<PopularController>();
+  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
@@ -34,6 +38,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     defaultThemeColor =
         setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    useDynamicColor =
+        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
   void onBackPressed(BuildContext context) {}
@@ -45,13 +52,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       colorSchemeSeed: color,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    AdaptiveTheme.of(context).setTheme(
-      light: ThemeData(
+    themeProvider.setTheme(
+      ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: color,
       ),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = color?.value.toRadixString(16) ?? 'default';
     setting.put(SettingBoxKey.themeColor, defaultThemeColor);
@@ -64,13 +71,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       colorSchemeSeed: Colors.green,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    AdaptiveTheme.of(context).setTheme(
-      light: ThemeData(
+    themeProvider.setTheme(
+      ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: Colors.green,
       ),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
     setting.put(SettingBoxKey.themeColor, 'default');
@@ -78,13 +85,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   void updateTheme(String theme) async {
     if (theme == 'dark') {
-      AdaptiveTheme.of(context).setDark();
+      themeProvider.setThemeMode(ThemeMode.dark);
     }
     if (theme == 'light') {
-      AdaptiveTheme.of(context).setLight();
+      themeProvider.setThemeMode(ThemeMode.light);
     }
     if (theme == 'system') {
-      AdaptiveTheme.of(context).setSystem();
+      themeProvider.setThemeMode(ThemeMode.system);
     }
     await setting.put(SettingBoxKey.themeMode, theme);
     setState(() {
@@ -121,89 +128,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 SettingsSection(
                   title: const Text('外观'),
                   tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) async {
-                        KazumiDialog.show(builder: (context) {
-                          return AlertDialog(
-                            title: const Text('配色方案'),
-                            content: StatefulBuilder(builder:
-                                (BuildContext context, StateSetter setState) {
-                              final List<Map<String, dynamic>> colorThemes =
-                                  colorThemeTypes;
-                              return Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: 22,
-                                runSpacing: 18,
-                                children: [
-                                  ...colorThemes.map(
-                                    (e) {
-                                      final index = colorThemes.indexOf(e);
-                                      return GestureDetector(
-                                        onTap: () {
-                                          index == 0
-                                              ? resetTheme()
-                                              : setTheme(e['color']);
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: Column(
-                                          children: [
-                                            Container(
-                                              width: 46,
-                                              height: 46,
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    e['color'].withOpacity(0.8),
-                                                borderRadius:
-                                                    BorderRadius.circular(50),
-                                                border: Border.all(
-                                                  width: 2,
-                                                  color: e['color']
-                                                      .withOpacity(0.8),
-                                                ),
-                                              ),
-                                              child: AnimatedOpacity(
-                                                opacity: (e['color']
-                                                                .value
-                                                                .toRadixString(
-                                                                    16) ==
-                                                            defaultThemeColor ||
-                                                        (defaultThemeColor ==
-                                                                'default' &&
-                                                            index == 0))
-                                                    ? 1
-                                                    : 0,
-                                                duration: const Duration(
-                                                    milliseconds: 200),
-                                                child: const Icon(
-                                                  Icons.done,
-                                                  color: Colors.black,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 3),
-                                            Text(
-                                              e['label'],
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  )
-                                ],
-                              );
-                            }),
-                          );
-                        });
-                      },
-                      title: const Text('配色方案'),
-                    ),
                     SettingsTile.navigation(
                       onPressed: (_) {
                         KazumiDialog.show(builder: (context) {
@@ -269,7 +193,71 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                             : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
                       ),
                     ),
+                    SettingsTile.navigation(
+                      enabled: !useDynamicColor,
+                      onPressed: (_) async {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('配色方案'),
+                            content: StatefulBuilder(builder:
+                                (BuildContext context, StateSetter setState) {
+                              final List<Map<String, dynamic>> colorThemes =
+                                  colorThemeTypes;
+                              return Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: Utils.isDesktop() ? 8 : 0,
+                                children: [
+                                  ...colorThemes.map(
+                                    (e) {
+                                      final index = colorThemes.indexOf(e);
+                                      return GestureDetector(
+                                        onTap: () {
+                                          index == 0
+                                              ? resetTheme()
+                                              : setTheme(e['color']);
+                                          KazumiDialog.dismiss();
+                                        },
+                                        child: Column(
+                                          children: [
+                                            PaletteCard(
+                                              color: e['color'],
+                                              selected: (e['color']
+                                                          .value
+                                                          .toRadixString(16) ==
+                                                      defaultThemeColor ||
+                                                  (defaultThemeColor ==
+                                                          'default' &&
+                                                      index == 0)),
+                                            ),
+                                            Text(e['label']),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  )
+                                ],
+                              );
+                            }),
+                          );
+                        });
+                      },
+                      title: const Text('配色方案'),
+                    ),
+                    SettingsTile.switchTile(
+                      enabled: !Platform.isIOS,
+                      onToggle: (value) async {
+                        useDynamicColor = value ?? !useDynamicColor;
+                        await setting.put(
+                            SettingBoxKey.useDynamicColor, useDynamicColor);
+                        themeProvider.setDynamic(useDynamicColor);
+                        setState(() {});
+                      },
+                      title: const Text('动态配色'),
+                      initialValue: useDynamicColor,
+                    ),
                   ],
+                  bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
                 ),
                 SettingsSection(
                   tiles: [

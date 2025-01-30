@@ -201,7 +201,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           plugin.usePost = usePost;
           plugin.useLegacyParser = useLegacyParser;
           plugin.referer = refererController.text;
-          await pluginsController.tryInstallPlugin(plugin);
+          pluginsController.updatePlugin(plugin);
           Navigator.of(context).pop();
         },
       ),

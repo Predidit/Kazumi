@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -14,6 +16,8 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 part 'player_controller.g.dart';
 
@@ -22,6 +26,7 @@ class PlayerController = _PlayerController with _$PlayerController;
 abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final ShadersController shadersController = Modular.get<ShadersController>();
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
@@ -36,9 +41,15 @@ abstract class _PlayerController with Store {
   @observable
   int aspectRatioType = 1;
 
+  // 视频超分
+  // 1. OFF
+  // 2. Anime4K
+  @observable
+  int superResolutionType = 1;
+
   // 视频音量/亮度
   @observable
-  double volume = 0;
+  double volume = -1;
   @observable
   double brightness = 0;
 
@@ -59,6 +70,8 @@ abstract class _PlayerController with Store {
   bool brightnessSeeking = false;
   @observable
   bool volumeSeeking = false;
+  @observable
+  bool canHidePlayerPanel = true;
 
   // 视频地址
   String videoUrl = '';
@@ -129,6 +142,17 @@ abstract class _PlayerController with Store {
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    if (Utils.isDesktop()) {
+      volume = volume != -1 ? volume : 100;
+    } else {
+      await FlutterVolumeController.getVolume().then((value) {
+        volume = (value ?? 0.0) * 100;
+      });
+    }
+    await setVolume(volume);
+    if (Platform.isIOS) {
+      FlutterVolumeController.updateShowSystemUI(true);
+    }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
@@ -136,6 +160,8 @@ abstract class _PlayerController with Store {
 
   Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
+    superResolutionType =
+        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     hardwareDecoder =
         setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
@@ -194,6 +220,10 @@ abstract class _PlayerController with Store {
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });
 
+    if (superResolutionType != 1) {
+      await setShader(superResolutionType);
+    }
+
     await mediaPlayer.open(
       Media(videoUrl,
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
@@ -201,6 +231,36 @@ abstract class _PlayerController with Store {
     );
 
     return mediaPlayer;
+  }
+
+  Future<void> setShader(int type, {bool synchronized = true}) async {
+    var pp = mediaPlayer.platform as NativePlayer;
+    await pp.waitForPlayerInitialization;
+    await pp.waitForVideoControllerInitializationIfAttached;
+    if (type == 2) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+      ]);
+      superResolutionType = 2;
+      return;
+    }
+    if (type == 3) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShaders),
+      ]);
+      superResolutionType = 3;
+      return;
+    }
+    await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+    superResolutionType = 1;
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {
@@ -213,7 +273,16 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> setVolume(double value) async {
-    await mediaPlayer.setVolume(value);
+    value = value.clamp(0.0, 100.0);
+    volume = value;
+    try {
+      if (Utils.isDesktop()) {
+        await mediaPlayer.setVolume(value);
+      } else {
+        await FlutterVolumeController.updateShowSystemUI(false);
+        await FlutterVolumeController.setVolume(value / 100);
+      }
+    } catch (_) {}
   }
 
   Future<void> playOrPause() async {

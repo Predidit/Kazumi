@@ -9,11 +9,14 @@ import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/plugin.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:logger/logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 
 part 'plugins_controller.g.dart';
+
+
+// 从 1.5.1 版本开始，规则文件储存在单一的 plugins.json 文件中。
+// 之前的版本中，规则以分离文件形式存储，版本更新后将这些分离文件合并为单一的 plugins.json 文件。
 
 class PluginsController = _PluginsController with _$PluginsController;
 
@@ -30,46 +33,70 @@ abstract class _PluginsController with Store {
   // 规则安装时间追踪器
   final installTimeTracker = PluginInstallTimeTracker();
 
-  Future<void> loadPlugins() async {
-    pluginList.clear();
+  String pluginsFileName = "plugins.json";
+  
+  Directory? oldPluginDirectory;
 
+  Directory? newPluginDirectory;
+
+  // Initializes the plugin directory and loads all plugins
+  Future<void> init() async {
     final directory = await getApplicationSupportDirectory();
-    final pluginDirectory = Directory('${directory.path}/plugins');
-    KazumiLogger().log(Level.info, '插件目录 ${directory.path}/plugins');
+    oldPluginDirectory = Directory('${directory.path}/plugins');
+    if (!await oldPluginDirectory!.exists()) {
+      await oldPluginDirectory!.create(recursive: true);
+    }
+    newPluginDirectory = Directory('${directory.path}/plugins/v2');
+    if (!await newPluginDirectory!.exists()) {
+      await newPluginDirectory!.create(recursive: true);
+    }
+    await loadAllPlugins();
+  }
 
-    if (await pluginDirectory.exists()) {
-      final jsonFiles = pluginDirectory
+  // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
+  Future<void> loadAllPlugins() async {
+    pluginList.clear();
+    KazumiLogger().log(Level.info, 'Plugins Directory: ${newPluginDirectory!.path}');
+    if (await newPluginDirectory!.exists()) {
+      final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
+      if (await pluginsFile.exists()) {
+        final jsonString = await pluginsFile.readAsString();
+        pluginList.addAll(getPluginListFromJson(jsonString));
+        KazumiLogger().log(Level.info, 'Current Plugin number: ${pluginList.length}');
+      } else {
+        // No plugins.json
+        var jsonFiles = await getPluginFiles();
+        for (var filePath in jsonFiles) {
+          final file = File(filePath);
+          final jsonString = await file.readAsString();
+          final data = jsonDecode(jsonString);
+          final plugin = Plugin.fromJson(data);
+          pluginList.add(plugin);
+          await file.delete(recursive: true);
+        }
+        savePlugins();
+      }
+    } else {
+      KazumiLogger().log(Level.warning, 'Plugin directory does not exist');
+    }
+  }
+
+  // Retrieves a list of JSON plugin file paths from the plugin directory
+  Future<List<String>> getPluginFiles() async {
+    if (await oldPluginDirectory!.exists()) {
+      final jsonFiles = oldPluginDirectory!
           .listSync()
           .where((file) => file.path.endsWith('.json') && file is File)
           .map((file) => file.path)
           .toList();
-
-      for (var filePath in jsonFiles) {
-        final file = File(filePath);
-        final jsonString = await file.readAsString();
-        final data = jsonDecode(jsonString);
-        final plugin = Plugin.fromJson(data);
-        // 使用文件修改时间作为安装时间
-        final stat = await file.stat();
-        installTimeTracker.setInstallTime(
-            plugin.name, stat.modified.millisecondsSinceEpoch);
-        pluginList.add(plugin);
-      }
-
-      KazumiLogger().log(Level.info, '当前插件数量 ${pluginList.length}');
+      return jsonFiles;
     } else {
-      KazumiLogger().log(Level.warning, '插件目录不存在');
+      return [];
     }
   }
 
+  // Copies plugin JSON files from the assets to the plugin directory
   Future<void> copyPluginsToExternalDirectory() async {
-    final directory = await getApplicationSupportDirectory();
-    final pluginDirectory = Directory('${directory.path}/plugins');
-
-    if (!await pluginDirectory.exists()) {
-      await pluginDirectory.create(recursive: true);
-    }
-
     final manifestContent = await rootBundle.loadString('AssetManifest.json');
     final Map<String, dynamic> manifestMap = json.decode(manifestContent);
 
@@ -78,66 +105,67 @@ abstract class _PluginsController with Store {
 
     for (var filePath in jsonFiles) {
       final jsonString = await rootBundle.loadString(filePath);
-      // panic
-      final fileName = filePath.split('/').last;
-      final file = File('${pluginDirectory.path}/$fileName');
-      await file.writeAsString(jsonString);
+      final plugin = Plugin.fromJson(jsonDecode(jsonString));
+      pluginList.add(plugin);
     }
-
+    await savePlugins();
     KazumiLogger().log(
-        Level.info, '已将 ${jsonFiles.length} 个插件文件拷贝到 ${pluginDirectory.path}');
+        Level.info, '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
   }
 
-  Future<void> savePluginToJsonFile(Plugin plugin) async {
-    final directory = await getApplicationSupportDirectory();
-    final pluginDirectory = Directory('${directory.path}/plugins');
-
-    if (!await pluginDirectory.exists()) {
-      await pluginDirectory.create(recursive: true);
+  List<dynamic> pluginListToJson() {
+    final List<dynamic> json = [];
+    for (var plugin in pluginList) {
+      json.add(plugin.toJson());
     }
-
-    final fileName = '${plugin.name}.json';
-    final existingFile = File('${pluginDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-
-    final newFile = File('${pluginDirectory.path}/$fileName');
-    final jsonData = jsonEncode(plugin.toJson());
-    await newFile.writeAsString(jsonData);
-
-    KazumiLogger().log(Level.info, '已创建插件文件 $fileName');
+    return json;
   }
 
-  Future<void> deletePluginJsonFile(Plugin plugin) async {
-    final directory = await getApplicationSupportDirectory();
-    final pluginDirectory = Directory('${directory.path}/plugins');
-
-    if (!await pluginDirectory.exists()) {
-      KazumiLogger().log(Level.warning, '插件目录不存在，无法删除文件');
-      return;
+  // Converts a JSON string into a list of Plugin objects.
+  List<Plugin> getPluginListFromJson(String jsonString) {
+    List<dynamic> json = jsonDecode(jsonString);
+    List<Plugin> plugins = [];
+    for (var j in json) {
+      plugins.add(Plugin.fromJson(j));
     }
+    return plugins;
+  }
 
-    final fileName = '${plugin.name}.json';
-    final files = pluginDirectory.listSync();
+  Future<void> removePlugin(Plugin plugin) async {
+    pluginList.removeWhere((p) => p.name == plugin.name);
+    await savePlugins();
+  }
 
-    // workaround for android/linux case insensitive
-    File? targetFile;
-    for (var file in files) {
-      if (file is File &&
-          path.basename(file.path).toLowerCase() == fileName.toLowerCase()) {
-        targetFile = file;
+  // Update or add plugin
+  void updatePlugin(Plugin plugin) {
+    bool flag = false;
+    for (int i = 0; i < pluginList.length; ++i) {
+      if (pluginList[i].name == plugin.name) {
+        pluginList.replaceRange(i, i + 1, [plugin]);
+        flag = true;
         break;
       }
     }
-
-    if (targetFile != null) {
-      await targetFile.delete();
-      KazumiLogger()
-          .log(Level.info, '已删除插件文件 ${path.basename(targetFile.path)}');
-    } else {
-      KazumiLogger().log(Level.warning, '插件文件 $fileName 不存在');
+    if (!flag) {
+      pluginList.add(plugin);
     }
+    savePlugins();
+  }
+
+  void onReorder(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final plugin = pluginList.removeAt(oldIndex);
+    pluginList.insert(newIndex, plugin);
+    savePlugins();
+  }
+
+  Future<void> savePlugins() async {
+    final jsonData = jsonEncode(pluginListToJson());
+    final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
+    await pluginsFile.writeAsString(jsonData);
+    KazumiLogger().log(Level.info, '已更新插件文件 $pluginsFileName');
   }
 
   Future<void> queryPluginHTTPList() async {
@@ -187,8 +215,7 @@ abstract class _PluginsController with Store {
       if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
         return 1;
       }
-      await savePluginToJsonFile(pluginHTTPItem);
-      await loadPlugins();
+      updatePlugin(pluginHTTPItem);
       return 0;
     }
     return 2;
@@ -206,8 +233,13 @@ abstract class _PluginsController with Store {
     return count;
   }
 
-  Future<void> tryInstallPlugin(Plugin plugin) async {
-    await savePluginToJsonFile(plugin);
-    await loadPlugins();
+  void removePlugins(Set<String> pluginNames) {
+    for (int i = pluginList.length - 1; i >= 0; --i) {
+      var name = pluginList[i].name;
+      if (pluginNames.contains(name)) {
+        pluginList.removeAt(i);
+      }
+    }
+    savePlugins();
   }
 }

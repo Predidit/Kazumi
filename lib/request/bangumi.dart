@@ -233,7 +233,7 @@ class BangumiHTTP {
   static Future<CharacterResponse> getCharatersByID(int id) async {
     CharacterResponse characterResponse = CharacterResponse.fromTemplate();
     try {
-      final res = await Request().get(Api.bangumiInfoByID + id.toString() + '/characters',
+      final res = await Request().get('${Api.bangumiInfoByID}$id/characters',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       characterResponse = CharacterResponse.fromJson(jsonData);

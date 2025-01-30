@@ -90,6 +90,12 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       description: const Text('禁用高级缓存以减少内存占用'),
                       initialValue: lowMemoryMode,
                     ),
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        Modular.to.pushNamed('/settings/player/super');
+                      },
+                      title: const Text('超分辨率'),
+                    ),
                   ],
                 ),
                 SettingsSection(

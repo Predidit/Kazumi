@@ -1,5 +1,11 @@
 {
     "cmake.ignoreCMakeListsMissing": true,
+    "search.exclude": {
+        "**/fastlane": true
+    },
+    "dart.analysisExcludedFolders": [
+        "**/fastlane/**"
+    ],
     "files.associations": {
         "xiosbase": "cpp",
         "utility": "cpp",

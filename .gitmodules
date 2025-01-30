@@ -1,0 +1,7 @@
+[submodule "fastlane/.flutter"]
+	path = fastlane/.flutter
+	url = https://github.com/flutter/flutter.git
+	branch = stable
+[submodule "fastlane/.libmpv-android-video-build"]
+	path = fastlane/.libmpv-android-video-build
+	url = https://github.com/Predidit/libmpv-android-video-build.git

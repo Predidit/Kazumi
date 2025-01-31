@@ -142,6 +142,7 @@ class _VideoPageState extends State<VideoPage>
     _videoURLSubscription.cancel();
     _logSubscription.cancel();
     playerController.dispose();
+    infoController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     super.dispose();
   }

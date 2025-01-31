@@ -24,7 +24,7 @@ class AppWidget extends StatefulWidget {
 }
 
 class _AppWidgetState extends State<AppWidget>
-    with TrayListener, WidgetsBindingObserver {
+    with TrayListener, WidgetsBindingObserver, WindowListener {
   Box setting = GStorage.setting;
 
   final TrayManager trayManager = TrayManager.instance;
@@ -32,13 +32,21 @@ class _AppWidgetState extends State<AppWidget>
   @override
   void initState() {
     trayManager.addListener(this);
+    windowManager.addListener(this);
+    setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+  }
+
+  void setPreventClose() async {
+    await windowManager.setPreventClose(true);
+    setState(() {});
   }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -60,6 +68,29 @@ class _AppWidgetState extends State<AppWidget>
         windowManager.show();
       case 'exit':
         exit(0);
+    }
+  }
+
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      KazumiDialog.show(builder: (context) {
+        return AlertDialog(
+          title: const Text('退出确认'),
+          content: const Text('您想要退出 Kazumi 吗？'),
+          actions: [
+            TextButton(onPressed: () => exit(0), child: const Text('退出 Kazumi')),
+            TextButton(
+                onPressed: () {
+                  KazumiDialog.dismiss();
+                  windowManager.hide();
+                },
+                child: const Text('最小化至托盘')),
+            const TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
+          ],
+        );
+      });
     }
   }
 

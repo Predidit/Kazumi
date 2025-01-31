@@ -21,17 +21,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
   bool isLoading = false;
   bool commentsQueryTimeout = false;
 
-  @override
-  void initState() {
-    super.initState();
-    if (infoController.episodeCommentsList.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
-      loadComments(widget.episode);
-    }
-  }
-
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
     infoController
@@ -57,6 +46,12 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
   }
 
   Widget get episodeCommentsBody {
+    if (infoController.episodeCommentsList.isEmpty) {
+      setState(() {
+        isLoading = true;
+      });
+      loadComments(widget.episode);
+    }
     return CustomScrollView(
       // Scrollbars' movement is not linear so hide it.
       scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),

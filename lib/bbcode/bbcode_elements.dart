@@ -1,4 +1,31 @@
-import 'package:flutter/material.dart';
+// 记录进入 tag 时 list 所在位置
+class BBCodeTag {
+  int? bold;
+  int? italic;
+  int? underline;
+  int? strikeThrough;
+  int? masked;
+  int? quoted;
+  int? code;
+  int? size;
+  int? color;
+  int? link;
+  int? img;
+
+  void clear() {
+    bold = null;
+    italic = null;
+    underline = null;
+    strikeThrough = null;
+    masked = null;
+    quoted = null;
+    code = null;
+    size = null;
+    color = null;
+    link = null;
+    img = null;
+  }
+}
 
 class BBCodeText {
   String text;
@@ -47,3 +74,5 @@ class BBCodeImg {
 
   BBCodeImg({required this.imageUrl});
 }
+
+BBCodeTag bbCodeTag = BBCodeTag();

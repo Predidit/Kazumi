@@ -1,7 +1,9 @@
 import 'package:antlr4/antlr4.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:logger/logger.dart';
 import 'package:flutter/material.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/bbcode/bbcode_elements.dart';
 
 import 'generated/BBCodeListener.dart';
@@ -13,223 +15,160 @@ import 'generated/BBCodeLexer.dart';
 /// a subset of the available methods.
 class BBCodeBaseListener implements BBCodeListener {
   final List<dynamic> bbcode = [];
-  final List<Widget> widgets = [];
-  final Set<PlainContext> _handledPlains = {};
-
-  // 处理嵌套标签
-  List<Widget> _parseElements(List<ElementContext> elements) {
-    final List<Widget> result = [];
-    for (final element in elements) {
-      if (element.tag() != null) {
-        result.add(_parseTag(element.tag()!));
-      } else if (element.plain() != null) {
-        result.add(_parsePlain(element.plain()!));
-      } else if (element.bgm() != null) {
-        result.add(_parseBgm(element.bgm()!));
-      } else if (element.sticker() != null) {
-        result.add(_parseSticker(element.sticker()!));
-      }
-    }
-    return result;
-  }
 
   // 处理标签
-  Widget _parseTag(TagContext ctx) {
+  void _enterTag(TagContext ctx) {
     final tagName = ctx.tagName?.text;
-    final content = ctx.content != null ? _parseElements(ctx.elements()) : [];
-    final attr = ctx.attr?.text;
 
     switch (tagName) {
       case 'URL':
       case 'url':
-        return InkWell(
-          onTap: () {
-            if (attr != null) {
-              launchUrl(Uri.parse(attr));
-            } else {
-              launchUrl(Uri.parse(ctx.content!.text));
-            }
-          },
-          child: Text.rich(
-            TextSpan(
-              style: const TextStyle(color: Colors.blue),
-              children: content.map((widget) {
-                if (widget is Text) {
-                  return TextSpan(text: widget.data);
-                }
-                return WidgetSpan(child: widget);
-              }).toList(),
-            ),
-          ),
-        );
+        bbCodeTag.link = bbcode.length;
+        break;
       case 'USER':
       case 'user':
-        return InkWell(
-          onTap: () {
-            launchUrl(Uri.parse('https://bangumi.tv/user/$attr'));
-          },
-          child: Text.rich(
-            TextSpan(
-              text: '@${ctx.content?.text} ',
-              style: const TextStyle(color: Colors.blue),
-            ),
-          ),
-        );
+        bbCodeTag.link = bbcode.length;
+        break;
       case 'QUOTE':
       case 'quote':
-        return Wrap(
-          children: [
-            Text.rich(
-              TextSpan(
-                children: content.map((widget) {
-                  if (widget is Text) {
-                    return TextSpan(text: widget.data);
-                  }
-                  return WidgetSpan(child: widget);
-                }).toList(),
-              ),
-              style: const TextStyle(color: Colors.white70),
-            ),
-            const Icon(Icons.format_quote, color: Colors.white70),
-          ],
-        );
+        bbCodeTag.quoted = bbcode.length;
+        break;
       case 'B':
       case 'b':
-        return Text.rich(
-          TextSpan(
-            children: content.map((widget) {
-              if (widget is Text) {
-                return TextSpan(text: widget.data);
-              }
-              return WidgetSpan(child: widget);
-            }).toList(),
-          ),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        );
+        bbCodeTag.bold = bbcode.length;
+        break;
       case 'I':
       case 'i':
-        return Text.rich(
-          TextSpan(
-            children: content.map((widget) {
-              if (widget is Text) {
-                return TextSpan(text: widget.data);
-              }
-              return WidgetSpan(child: widget);
-            }).toList(),
-          ),
-          style: const TextStyle(fontStyle: FontStyle.italic),
-        );
+        bbCodeTag.italic = bbcode.length;
+        break;
       case 'S':
       case 's':
-        return Text.rich(
-          TextSpan(
-            children: content.map((widget) {
-              if (widget is Text) {
-                return TextSpan(text: widget.data);
-              }
-              return WidgetSpan(child: widget);
-            }).toList(),
-          ),
-          style: const TextStyle(decoration: TextDecoration.lineThrough),
-        );
+        bbCodeTag.strikeThrough = bbcode.length;
+        break;
       case 'U':
       case 'u':
-        return Text.rich(
-          TextSpan(
-            children: content.map((widget) {
-              if (widget is Text) {
-                return TextSpan(text: widget.data);
-              }
-              return WidgetSpan(child: widget);
-            }).toList(),
-          ),
-          style: const TextStyle(decoration: TextDecoration.underline),
-        );
+        bbCodeTag.underline = bbcode.length;
+        break;
       case 'PHOTO':
       case 'photo':
       case 'IMG':
       case 'img':
-        return CachedNetworkImage(
-          imageUrl: ctx.content!.text,
-          placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-          errorWidget: (context, error, stackTrace) {
-            return const Text('.');
-          },
-        );
+        bbCodeTag.img = bbcode.length;
+        break;
       case 'MASK':
       case 'mask':
-        return Text.rich(
-                TextSpan(
-                  children: content.map((widget) {
-                    if (widget is Text) {
-                      return TextSpan(text: widget.data);
-                    }
-                    return WidgetSpan(child: widget);
-                  }).toList(),
-                ),
-              );
+        bbCodeTag.masked = bbcode.length;
+        break;
+      case 'SIZE':
+      case 'size':
+        bbCodeTag.size = bbcode.length;
+        break;
+      case 'COLOR':
+      case 'color':
+        bbCodeTag.color = bbcode.length;
+        break;
       default:
-        return Text(ctx.text);
+        KazumiLogger()
+            .log(Level.error, '未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+        break;
     }
   }
 
-  // 处理普通文字
-  Widget _parsePlain(PlainContext ctx) {
-    _handledPlains.add(ctx);
-    return Text(ctx.text);
-  }
+  void _exitTag(TagContext ctx) {
+    final tagName = ctx.tagName?.text;
 
-  // 处理 (bgm12) 类型的表情
-  Widget _parseBgm(BgmContext ctx) {
-    final id = ctx.id?.text;
-    if (id == '11' || id == '23') {
-      return CachedNetworkImage(
-        imageUrl: 'https://bangumi.tv/img/smiles/bgm/$id.gif',
-        placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-        errorWidget: (context, error, stackTrace) {
-          return const Text('.');
-        },
-      );
+    switch (tagName) {
+      case 'URL':
+      case 'url':
+        if (ctx.attr != null) {
+          (bbcode[bbCodeTag.link!] as BBCodeText).link = ctx.attr!.text;
+        } else {
+          (bbcode[bbCodeTag.link!] as BBCodeText).link =
+              (bbcode[bbCodeTag.link!] as BBCodeText).text;
+        }
+        break;
+      case 'USER':
+      case 'user':
+        if (ctx.attr != null) {
+          (bbcode[bbCodeTag.link!] as BBCodeText).link = ctx.attr!.text;
+        }
+        break;
+      case 'QUOTE':
+      case 'quote':
+        for (int i = bbCodeTag.quoted!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).quoted = true;
+          }
+        }
+        break;
+      case 'B':
+      case 'b':
+        for (int i = bbCodeTag.bold!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).bold = true;
+          }
+        }
+        break;
+      case 'I':
+      case 'i':
+        for (int i = bbCodeTag.italic!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).italic = true;
+          }
+        }
+        break;
+      case 'S':
+      case 's':
+        for (int i = bbCodeTag.strikeThrough!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).strikeThrough = true;
+          }
+        }
+        break;
+      case 'U':
+      case 'u':
+        for (int i = bbCodeTag.underline!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).underline = true;
+          }
+        }
+        break;
+      case 'PHOTO':
+      case 'photo':
+      case 'IMG':
+      case 'img':
+        bbcode[bbCodeTag.img!] =
+            BBCodeImg(imageUrl: (bbcode[bbCodeTag.img!] as BBCodeText).text);
+        break;
+      case 'MASK':
+      case 'mask':
+        for (int i = bbCodeTag.masked!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).masked = true;
+          }
+        }
+        break;
+      case 'SIZE':
+      case 'size':
+        for (int i = bbCodeTag.size!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).size = int.parse(ctx.attr!.text!);
+          }
+        }
+        break;
+      case 'COLOR':
+      case 'color':
+        for (int i = bbCodeTag.color!; i < bbcode.length; i++) {
+          if (bbcode[i] == BBCodeText) {
+            (bbcode[i] as BBCodeText).color = ctx.attr?.text;
+          }
+        }
+        break;
+      default:
+        KazumiLogger()
+            .log(Level.error, '未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+        break;
     }
-    int num = int.tryParse(id!) ?? 0;
-    if (num < 24) {
-      return CachedNetworkImage(
-        imageUrl: 'https://bangumi.tv/img/smiles/bgm/$id.png',
-        placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-        errorWidget: (context, error, stackTrace) {
-          return const Text('.');
-        },
-      );
-    }
-    if (num < 33) {
-      return CachedNetworkImage(
-        imageUrl: 'https://bangumi.tv/img/smiles/tv/0${num - 23}.gif',
-        placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-        errorWidget: (context, error, stackTrace) {
-          return const Text('.');
-        },
-      );
-    }
-    return CachedNetworkImage(
-      imageUrl: 'https://bangumi.tv/img/smiles/tv/${num - 23}.gif',
-      placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-      errorWidget: (context, error, stackTrace) {
-        return const Text('.');
-      },
-    );
-  }
-
-  // 处理 (=A=) 类型的表情
-  Widget _parseSticker(StickerContext ctx) {
-    // 参考 BBCode.tokens 内的 token 值
-    final sticker = ctx.start?.type;
-    return CachedNetworkImage(
-      imageUrl: 'https://bangumi.tv/img/smiles/${sticker! - 9}.gif',
-      placeholder: (context, url) => const SizedBox(width: 1, height: 1),
-      errorWidget: (context, error, stackTrace) {
-        return const Text('.');
-      },
-    );
   }
 
   /// The default implementation does nothing.
@@ -251,21 +190,22 @@ class BBCodeBaseListener implements BBCodeListener {
   /// The default implementation does nothing.
   @override
   void enterTag(TagContext ctx) {
-    widgets.add(_parseTag(ctx));
+    _enterTag(ctx);
     debugPrint(ctx.tagName?.text);
   }
 
   /// The default implementation does nothing.
   @override
-  void exitTag(TagContext ctx) {}
+  void exitTag(TagContext ctx) {
+    _exitTag(ctx);
+    debugPrint(ctx.tagName?.text);
+  }
 
   /// The default implementation does nothing.
   @override
   void enterPlain(PlainContext ctx) {
+    bbcode.add(BBCodeText(text: ctx.text));
     debugPrint(ctx.text);
-    if (!_handledPlains.contains(ctx)) {
-      widgets.add(_parsePlain(ctx));
-    }
   }
 
   /// The default implementation does nothing.
@@ -275,8 +215,9 @@ class BBCodeBaseListener implements BBCodeListener {
   /// The default implementation does nothing.
   @override
   void enterBgm(BgmContext ctx) {
+    // 处理 (bgm35) 类型的表情
+    bbcode.add(BBCodeBgm(id: int.tryParse(ctx.id!.text!) ?? 0));
     debugPrint(ctx.id?.text);
-    widgets.add(_parseBgm(ctx));
   }
 
   /// The default implementation does nothing.
@@ -286,8 +227,10 @@ class BBCodeBaseListener implements BBCodeListener {
   /// The default implementation does nothing.
   @override
   void enterSticker(StickerContext ctx) {
+    // 处理 (=A=) 类型的表情
+    // ctx.start!.type 为 BBCode.tokens 内的 token 值
+    bbcode.add(BBCodeSticker(id: ctx.start!.type - 9));
     debugPrint(ctx.text);
-    widgets.add(_parseSticker(ctx));
   }
 
   /// The default implementation does nothing.
@@ -332,20 +275,102 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
     final tree = parser.document();
     final bbcodeBaseListener = BBCodeBaseListener();
     ParseTreeWalker.DEFAULT.walk(bbcodeBaseListener, tree);
+    bbCodeTag.clear();
 
     return Wrap(
-      children: bbcodeBaseListener.widgets,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: bbcodeBaseListener.bbcode.map((e) {
+              if (e is BBCodeText) {
+                if (e.link != null) {
+                  return WidgetSpan(
+                    child: InkWell(
+                      onTap: () {
+                        launchUrl(Uri.parse(e.link!));
+                      },
+                      child: Text(
+                        e.text,
+                        style: TextStyle(
+                          fontWeight: (e.bold) ? FontWeight.bold : null,
+                          fontStyle: (e.italic) ? FontStyle.italic : null,
+                          decoration: (e.underline)
+                              ? TextDecoration.underline
+                              : (e.strikeThrough)
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                          fontSize: e.size.toDouble(),
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  );
+                } else {
+                  return TextSpan(
+                    text: e.text,
+                    style: TextStyle(
+                      fontWeight: (e.bold) ? FontWeight.bold : null,
+                      fontStyle: (e.italic) ? FontStyle.italic : null,
+                      decoration: (e.underline)
+                          ? TextDecoration.underline
+                          : (e.strikeThrough)
+                          ? TextDecoration.lineThrough
+                          : null,
+                      fontSize: e.size.toDouble(),
+                    ),
+                  );
+                }
+              } else if (e is BBCodeImg) {
+                return WidgetSpan(
+                  child: CachedNetworkImage(
+                    imageUrl: e.imageUrl,
+                    placeholder: (context, url) =>
+                        const SizedBox(width: 1, height: 1),
+                    errorWidget: (context, error, stackTrace) {
+                      return const Text('.');
+                    },
+                  ),
+                );
+              } else if (e is BBCodeBgm) {
+                String url;
+                if (e.id == 11 || e.id == 23) {
+                  url = 'https://bangumi.tv/img/smiles/bgm/${e.id}.gif';
+                }
+                if (e.id < 24) {
+                  url = 'https://bangumi.tv/img/smiles/bgm/${e.id}.png';
+                }
+                if (e.id < 33) {
+                  url = 'https://bangumi.tv/img/smiles/tv/0${e.id - 23}.gif';
+                }
+                url = 'https://bangumi.tv/img/smiles/tv/${e.id - 23}.gif';
+                return WidgetSpan(
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    placeholder: (context, url) =>
+                        const SizedBox(width: 1, height: 1),
+                    errorWidget: (context, error, stackTrace) {
+                      return const Text('.');
+                    },
+                  ),
+                );
+              } else {
+                // return WidgetSpan(child: Container());
+                return WidgetSpan(
+                  child: CachedNetworkImage(
+                    imageUrl:
+                        'https://bangumi.tv/img/smiles/${(e as BBCodeSticker).id}.gif',
+                    placeholder: (context, url) =>
+                        const SizedBox(width: 1, height: 1),
+                    errorWidget: (context, error, stackTrace) {
+                      return const Text('.');
+                    },
+                  ),
+                );
+              }
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
-}
-
-void bbcodeParse(String args) async {
-  BBCodeParser.checkVersion();
-  BBCodeParser.checkVersion();
-  final input = InputStream.fromString(args);
-  final lexer = BBCodeLexer(input);
-  final tokens = CommonTokenStream(lexer);
-  final parser = BBCodeParser(tokens);
-  final tree = parser.document();
-  ParseTreeWalker.DEFAULT.walk(BBCodeBaseListener(), tree);
 }

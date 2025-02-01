@@ -147,6 +147,7 @@ class _VideoPageState extends State<VideoPage>
     _videoURLSubscription.cancel();
     _logSubscription.cancel();
     playerController.dispose();
+    infoController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     super.dispose();
   }
@@ -405,10 +406,8 @@ class _VideoPageState extends State<VideoPage>
                         position: _rightOffsetAnimation,
                         child: SizedBox(
                           height: MediaQuery.of(context).size.height,
-                          width: videoPageController.isFullscreen
-                              ? (Utils.isTablet()
-                                  ? MediaQuery.of(context).size.width / 3
-                                  : MediaQuery.of(context).size.height)
+                          width: !isWideScreen
+                              ? MediaQuery.of(context).size.height
                               : (MediaQuery.of(context).size.width / 3 > 420
                                   ? 420
                                   : MediaQuery.of(context).size.width / 3),

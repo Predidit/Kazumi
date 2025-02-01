@@ -15,21 +15,11 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
+    with AutomaticKeepAliveClientMixin {
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (infoController.episodeCommentsList.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
-      loadComments(widget.episode);
-    }
-  }
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
@@ -56,39 +46,60 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Widget get episodeCommentsBody {
-    return SelectionArea(
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-            sliver: Observer(builder: (context) {
-              if (isLoading) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
-              }
-              if (commentsQueryTimeout) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text('空空如也'),
-                  ),
-                );
-              }
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return EpisodeCommentsCard(
-                        commentItem: infoController.episodeCommentsList[index]);
-                  },
-                  childCount: infoController.episodeCommentsList.length,
+    if (infoController.episodeCommentsList.isEmpty) {
+      setState(() {
+        isLoading = true;
+      });
+      loadComments(widget.episode);
+    }
+    return CustomScrollView(
+      // Scrollbars' movement is not linear so hide it.
+      scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          sliver: Observer(builder: (context) {
+            if (isLoading) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(),
                 ),
               );
-            }),
-          ),
-        ],
-      ),
+            }
+            if (commentsQueryTimeout) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: Text('空空如也'),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  // Fix scroll issue caused by height change of network images
+                  // by keeping loaded cards alive.
+                  return KeepAlive(
+                    keepAlive: true,
+                    child: IndexedSemantics(
+                      index: index,
+                      child: SelectionArea(
+                        child: EpisodeCommentsCard(
+                          commentItem:
+                              infoController.episodeCommentsList[index],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                childCount: infoController.episodeCommentsList.length,
+                addAutomaticKeepAlives: false,
+                addRepaintBoundaries: false,
+                addSemanticIndexes: false,
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -192,6 +203,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,4 +211,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

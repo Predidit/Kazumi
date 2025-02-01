@@ -2,10 +2,10 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:provider/provider.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:provider/provider.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});

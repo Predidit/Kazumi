@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:logger/logger.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/logger.dart';
+import 'package:logger/logger.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
@@ -109,55 +109,53 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
                 const SizedBox(width: 15),
                 Expanded(
-                  child: OverflowBox(
-                    alignment: Alignment.topCenter,
-                    maxHeight: double.infinity,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RichText(
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          text: TextSpan(
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface),
-                            children: [
-                              TextSpan(
-                                text: widget.historyItem.bangumiItem.nameCn == ''
-                                    ? widget.historyItem.bangumiItem.name
-                                    : (widget.historyItem.bangumiItem.nameCn),
-                                style: TextStyle(
-                                  fontSize: MediaQuery.textScalerOf(context)
-                                      .scale(Theme.of(context)
-                                          .textTheme
-                                          .titleSmall!
-                                          .fontSize!),
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textScaler: MediaQuery.textScalerOf(context)
+                            .clamp(maxScaleFactor: 1.1),
+                        text: TextSpan(
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface),
+                          children: [
+                            TextSpan(
+                              text: widget.historyItem.bangumiItem.nameCn == ''
+                                  ? widget.historyItem.bangumiItem.name
+                                  : (widget.historyItem.bangumiItem.nameCn),
+                              style: TextStyle(
+                                fontSize: MediaQuery.textScalerOf(context)
+                                    .scale(Theme.of(context)
+                                        .textTheme
+                                        .titleSmall!
+                                        .fontSize!),
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        // 测试 因为API问题评分功能搁置
-                        Text('番剧源: ${widget.historyItem.adapterName}',
-                            style: style),
-                        Text(
-                            widget.historyItem.lastWatchEpisodeName == ''
-                                ? '上次看到: 第${widget.historyItem.lastWatchEpisode}话'
-                                : '上次看到: ${widget.historyItem.lastWatchEpisodeName}',
-                            style: style),
-                        Text('排名: ${widget.historyItem.bangumiItem.rank}',
-                            style: style),
-                        Text(
-                            widget.historyItem.bangumiItem.type == 2
-                                ? '番剧'
-                                : '其他',
-                            style: style),
-                        Text(widget.historyItem.bangumiItem.airDate,
-                            style: style),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      // 测试 因为API问题评分功能搁置
+                      Text('番剧源: ${widget.historyItem.adapterName}',
+                          style: style),
+                      Text(
+                          widget.historyItem.lastWatchEpisodeName == ''
+                              ? '上次看到: 第${widget.historyItem.lastWatchEpisode}话'
+                              : '上次看到: ${widget.historyItem.lastWatchEpisodeName}',
+                          style: style),
+                      Text('排名: ${widget.historyItem.bangumiItem.rank}',
+                          style: style),
+                      Text(
+                          widget.historyItem.bangumiItem.type == 2
+                              ? '番剧'
+                              : '其他',
+                          style: style),
+                      Text(widget.historyItem.bangumiItem.airDate,
+                          style: style),
+                    ],
                   ),
                 ),
                 Column(

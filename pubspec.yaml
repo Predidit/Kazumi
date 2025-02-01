@@ -105,6 +105,7 @@ dependencies:
   material_color_utilities: any
   path: any
   screen_brightness_platform_interface: any
+  antlr4: ^4.13.2
 
 dependency_overrides:
   media_kit:

@@ -30,6 +30,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  antlr4:
+    dependency: "direct main"
+    description:
+      name: antlr4
+      sha256: "752b4a6e4ad97953652a2b2bbf5377f46c94b579d3372b50080c7e5858234a05"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.13.2"
   archive:
     dependency: transitive
     description:

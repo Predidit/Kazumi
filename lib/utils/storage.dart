@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
-import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:path_provider/path_provider.dart';
 
 class GStorage {
   // Don't use favorites box, it's replaced by collectibles.
@@ -81,7 +82,8 @@ class GStorage {
   static Future<void> patchCollectibles(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
-    final tempBox = await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
+    final tempBox =
+        await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
     debugPrint('webDav追番列表长度 ${tempBoxItems.length}');
 
@@ -135,5 +137,6 @@ class SettingBoxKey {
       webDavPassword = 'webDavPasswd',
       lowMemoryMode = 'lowMemoryMode',
       useDynamicColor = 'useDynamicColor',
-      defaultSuperResolutionType = 'defaultSuperResolutionType';
+      defaultSuperResolutionType = 'defaultSuperResolutionType',
+      exitBehavior = 'exitBehavior';
 }

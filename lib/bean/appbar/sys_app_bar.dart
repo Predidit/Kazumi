@@ -40,7 +40,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   void _handleCloseEvent() {
     final setting = GStorage.setting;
-    final exitBehavior = setting.get(SettingBoxKey.exitBehavior);
+    final exitBehavior =
+        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
 
     switch (exitBehavior) {
       case 0:
@@ -71,10 +72,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 8,
                     children: [
-                      Checkbox(
-                        value: saveExitBehavior,
-                        onChanged: onChanged,
-                      ),
+                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
                       const Text('下次不再询问'),
                     ],
                   );

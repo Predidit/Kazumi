@@ -2,10 +2,8 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/pages/menu/side_menu.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 
@@ -17,13 +15,6 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
-  final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
-
-  final setting = GStorage.setting;
-
-  late int exitBehavior =
-      setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
-
   dynamic navigationBarState;
 
   void onBackPressed(BuildContext context) {
@@ -126,34 +117,6 @@ class _MyPageState extends State<MyPage> {
                 SettingsSection(
                   title: const Text('其他'),
                   tiles: [
-                    SettingsTile.navigation(
-                      leading: const Icon(Icons.exit_to_app),
-                      title: const Text('退出设置'),
-                      description: const Text('设置退出默认行为'),
-                      value: Text(exitBehaviorTitles[exitBehavior]),
-                      onPressed: (_) {
-                        KazumiDialog.show(builder: (context) {
-                          return SimpleDialog(
-                            title: const Text('退出行为'),
-                            children: [
-                              for (int i = 0; i < 3; i++)
-                                RadioListTile(
-                                  value: i,
-                                  groupValue: exitBehavior,
-                                  onChanged: (int? value) {
-                                    exitBehavior = value!;
-                                    setting.put(
-                                        SettingBoxKey.exitBehavior, value);
-                                    Navigator.pop(context);
-                                    setState(() {});
-                                  },
-                                  title: Text(exitBehaviorTitles[i]),
-                                ),
-                            ],
-                          );
-                        });
-                      },
-                    ),
                     SettingsTile.navigation(
                       onPressed: (_) {
                         Modular.to.pushNamed('/settings/about/');

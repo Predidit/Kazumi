@@ -40,6 +40,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     return SizedBox(
       height: 150,
       child: Card(
+        clipBehavior: Clip.antiAlias,
         color: Theme.of(context).colorScheme.secondaryContainer,
         child: InkWell(
           onTap: () async {
@@ -108,52 +109,55 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
                 const SizedBox(width: 15),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      RichText(
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        text: TextSpan(
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface),
-                          children: [
-                            TextSpan(
-                              text: widget.historyItem.bangumiItem.nameCn == ''
-                                  ? widget.historyItem.bangumiItem.name
-                                  : (widget.historyItem.bangumiItem.nameCn),
-                              style: TextStyle(
-                                fontSize: MediaQuery.textScalerOf(context)
-                                    .scale(Theme.of(context)
-                                        .textTheme
-                                        .titleSmall!
-                                        .fontSize!),
-                                fontWeight: FontWeight.bold,
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    maxHeight: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          text: TextSpan(
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface),
+                            children: [
+                              TextSpan(
+                                text: widget.historyItem.bangumiItem.nameCn == ''
+                                    ? widget.historyItem.bangumiItem.name
+                                    : (widget.historyItem.bangumiItem.nameCn),
+                                style: TextStyle(
+                                  fontSize: MediaQuery.textScalerOf(context)
+                                      .scale(Theme.of(context)
+                                          .textTheme
+                                          .titleSmall!
+                                          .fontSize!),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      // 测试 因为API问题评分功能搁置
-                      Text('番剧源: ${widget.historyItem.adapterName}',
-                          style: style),
-                      Text(
-                          widget.historyItem.lastWatchEpisodeName == ''
-                              ? '上次看到: 第${widget.historyItem.lastWatchEpisode}话'
-                              : '上次看到: ${widget.historyItem.lastWatchEpisodeName}',
-                          style: style),
-                      Text('排名: ${widget.historyItem.bangumiItem.rank}',
-                          style: style),
-                      Text(
-                          widget.historyItem.bangumiItem.type == 2
-                              ? '番剧'
-                              : '其他',
-                          style: style),
-                      Text(widget.historyItem.bangumiItem.airDate,
-                          style: style),
-                    ],
+                        const SizedBox(height: 12),
+                        // 测试 因为API问题评分功能搁置
+                        Text('番剧源: ${widget.historyItem.adapterName}',
+                            style: style),
+                        Text(
+                            widget.historyItem.lastWatchEpisodeName == ''
+                                ? '上次看到: 第${widget.historyItem.lastWatchEpisode}话'
+                                : '上次看到: ${widget.historyItem.lastWatchEpisodeName}',
+                            style: style),
+                        Text('排名: ${widget.historyItem.bangumiItem.rank}',
+                            style: style),
+                        Text(
+                            widget.historyItem.bangumiItem.type == 2
+                                ? '番剧'
+                                : '其他',
+                            style: style),
+                        Text(widget.historyItem.bangumiItem.airDate,
+                            style: style),
+                      ],
+                    ),
                   ),
                 ),
                 Column(

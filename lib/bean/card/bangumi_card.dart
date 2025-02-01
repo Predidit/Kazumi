@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/utils.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
@@ -96,16 +97,17 @@ class BangumiContent extends StatelessWidget {
     return Expanded(
       child: Padding(
         // 多列
-        padding: const EdgeInsets.fromLTRB(5, 3, 5, 0),
+        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 5),
         // 单列
         // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: ClipRect(
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            maxHeight: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                    child: Text(
+                Text(
                   bangumiItem.nameCn,
                   textAlign: TextAlign.start,
                   style: const TextStyle(
@@ -114,11 +116,10 @@ class BangumiContent extends StatelessWidget {
                   ),
                   maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
                   overflow: TextOverflow.ellipsis,
-                )),
+                ),
               ],
             ),
-            const SizedBox(height: 1),
-          ],
+          ),
         ),
       ),
     );

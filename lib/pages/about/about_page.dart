@@ -188,10 +188,11 @@ class _AboutPageState extends State<AboutPage> {
                     ),
                   ],
                 ),
-                SettingsSection(
-                  title: const Text('默认行为'),
-                  tiles: [
-                    if (Utils.isDesktop())
+                if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+                  SettingsSection(
+                    title: const Text('默认行为'),
+                    tiles: [
+                      // if (Utils.isDesktop())
                       SettingsTile.navigation(
                         title: const Text('关闭时'),
                         value: Text(exitBehaviorTitles[exitBehavior]),
@@ -218,8 +219,8 @@ class _AboutPageState extends State<AboutPage> {
                           });
                         },
                       ),
-                  ],
-                ),
+                    ],
+                  ),
                 SettingsSection(
                   tiles: [
                     SettingsTile.navigation(

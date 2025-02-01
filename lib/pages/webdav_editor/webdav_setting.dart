@@ -17,12 +17,16 @@ class WebDavSettingsPage extends StatefulWidget {
 class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   Box setting = GStorage.setting;
   late bool webDavEnable;
+  late bool webDavEnableCollect;
+  late bool webDavEnableHistory;
   late bool enableGitProxy;
 
   @override
   void initState() {
     super.initState();
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    webDavEnableCollect = setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+    webDavEnableHistory = setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
     enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
 
@@ -39,7 +43,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     try {
       KazumiDialog.showToast(message: '尝试从WebDav同步');
       var webDav = WebDav();
-      await webDav.downloadHistory();
+      await webDav.downloadAndPatchHistory();
       KazumiDialog.showToast(message: '同步成功');
     } catch (e) {
       if (e.toString().contains('Error: Not Found')) {
@@ -74,7 +78,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       try {
         KazumiDialog.showToast(message: '尝试从WebDav同步');
         var webDav = WebDav();
-        await webDav.downloadHistory();
+        await webDav.downloadAndPatchHistory();
         KazumiDialog.showToast(message: '同步成功');
       } catch (e) {
         KazumiDialog.showToast(message: '同步失败 ${e.toString()}');
@@ -124,8 +128,35 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         setState(() {});
                       },
                       title: const Text('WEBDAV同步'),
-                      description: const Text('使用WEBDAV自动同步观看记录'),
                       initialValue: webDavEnable,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        if (!webDavEnable) {
+                          KazumiDialog.showToast(message: '请先开启WEBDAV同步');
+                          return;
+                        }
+                        webDavEnableCollect = value ?? !webDavEnableCollect;
+                        await setting.put(SettingBoxKey.webDavEnableCollect, webDavEnableCollect);
+                        setState(() {});
+                      },
+                      title: const Text('追番同步'),
+                      description: const Text('允许手动同步追番列表'),
+                      initialValue: webDavEnableCollect,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        if (!webDavEnable) {
+                          KazumiDialog.showToast(message: '请先开启WEBDAV同步');
+                          return;
+                        }
+                        webDavEnableHistory = value ?? !webDavEnableHistory;
+                        await setting.put(SettingBoxKey.webDavEnableHistory, webDavEnableHistory);
+                        setState(() {});
+                      },
+                      title: const Text('观看记录同步'),
+                      description: const Text('允许自动同步观看记录'),
+                      initialValue: webDavEnableHistory,
                     ),
                     SettingsTile.navigation(
                       onPressed: (_) async {

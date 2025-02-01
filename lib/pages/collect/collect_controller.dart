@@ -1,5 +1,7 @@
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:hive/hive.dart';
@@ -43,28 +45,36 @@ abstract class _CollectController with Store {
         CollectedBangumi(bangumiItem, DateTime.now(), type);
     await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
     await GStorage.collectibles.flush();
+    final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
+    final CollectedBangumiChange collectChange = CollectedBangumiChange(
+        collectChangeId,
+        bangumiItem.id,
+        1,
+        type,
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000));
+    await GStorage.collectChanges.put(collectChangeId, collectChange);
+    await GStorage.collectChanges.flush();
     loadCollectibles();
   }
 
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
     await GStorage.collectibles.delete(bangumiItem.id);
     await GStorage.collectibles.flush();
-    bool webDavEnable =
-        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    bool webDavEnableCollect = await setting
-        .get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+    final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
+    final CollectedBangumiChange collectChange = CollectedBangumiChange(
+        collectChangeId,
+        bangumiItem.id,
+        3,
+        5,
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000));
+    await GStorage.collectChanges.put(collectChangeId, collectChange);
+    await GStorage.collectChanges.flush();
     loadCollectibles();
-    if (webDavEnable && webDavEnableCollect) {
-      try {
-        await updateCollect();
-      } catch (e) {
-        KazumiLogger().log(Level.error, '更新webDav追番记录失败 ${e.toString()}');
-      }
-    }
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
-    CollectedBangumi? collectedBangumi = GStorage.collectibles.get(bangumiItem.id);
+    CollectedBangumi? collectedBangumi =
+        GStorage.collectibles.get(bangumiItem.id);
     if (collectedBangumi == null) {
       return;
     } else {
@@ -75,10 +85,12 @@ abstract class _CollectController with Store {
     }
   }
 
-  Future<void> updateCollect() async {
-    KazumiLogger()
-        .log(Level.debug, '提交到WebDav的追番列表长度 ${GStorage.collectibles.length}');
-    await WebDav().updateCollectibles();
+  Future<void> syncCollectibles() async {
+    if (!WebDav().initialized) {
+      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
+      return;
+    }
+    await WebDav().syncCollectibles();
     loadCollectibles();
   }
 

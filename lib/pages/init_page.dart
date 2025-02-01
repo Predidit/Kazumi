@@ -52,26 +52,16 @@ class _InitPageState extends State<InitPage> {
   Future<void> _webDavInit() async {
     bool webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    bool webDavEnableCollect = await setting
-        .get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
       try {
         await webDav.init();
         try {
-          await webDav.downloadHistory();
+          await webDav.downloadAndPatchHistory();
           KazumiLogger().log(Level.info, '同步观看记录完成');
         } catch (e) {
           KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
-        }
-        if (webDavEnableCollect) {
-          try {
-            await webDav.downloadCollectibles();
-            KazumiLogger().log(Level.info, '同步追番列表完成');
-          } catch (e) {
-            KazumiLogger().log(Level.error, '同步追番列表失败 ${e.toString()}');
-          }
         }
       } catch (e) {
         KazumiLogger().log(Level.error, '初始化WebDav失败 ${e.toString()}');

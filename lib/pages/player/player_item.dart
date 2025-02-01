@@ -74,6 +74,7 @@ class _PlayerItemState extends State<PlayerItem>
   // 5. 抛弃
   late int collectType;
   late bool webDavEnable;
+  late bool webDavEnableHistory;
 
   // 弹幕
   final _danmuKey = GlobalKey();
@@ -182,7 +183,7 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.lockPanel = false;
     }
     danmakuController.clear();
-    if (webDavEnable) {
+    if (webDavEnable && webDavEnableHistory) {
       try {
         var webDav = WebDav();
         webDav.updateHistory();
@@ -509,6 +510,8 @@ class _PlayerItemState extends State<PlayerItem>
       vsync: this,
     );
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    webDavEnableHistory =
+        setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
     playerController.danmakuOn =
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);

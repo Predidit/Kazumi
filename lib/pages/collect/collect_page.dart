@@ -1,4 +1,5 @@
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({super.key});
@@ -25,6 +28,8 @@ class _CollectPageState extends State<CollectPage>
   dynamic navigationBarState;
   TabController? controller;
   bool showDelete = false;
+  bool syncCollectiblesing = false;
+  Box setting = GStorage.setting;
 
   void onBackPressed(BuildContext context) {
     navigationBarState.updateSelectedIndex(0);
@@ -74,6 +79,33 @@ class _CollectPageState extends State<CollectPage>
             ),
             title: const Text('追番'),
             actions: [
+              IconButton(
+                  onPressed: () async {
+                    bool webDavenable = await setting.get(
+                        SettingBoxKey.webDavEnable,
+                        defaultValue: false);
+                    if (!webDavenable) {
+                      KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
+                      return;
+                    }
+                    if (showDelete) {
+                      KazumiDialog.showToast(message: '编辑模式无法执行同步');
+                      return;
+                    }
+                    if (syncCollectiblesing) {
+                      return;
+                    }
+                    setState(() {
+                      syncCollectiblesing = true;
+                    });
+                    await collectController.syncCollectibles();
+                    setState(() {
+                      syncCollectiblesing = false;
+                    });
+                  },
+                  icon: syncCollectiblesing
+                      ? const CircularProgressIndicator()
+                      : const Icon(Icons.sync)),
               IconButton(
                   onPressed: () {
                     setState(() {

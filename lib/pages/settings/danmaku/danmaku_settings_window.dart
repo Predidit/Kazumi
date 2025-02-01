@@ -29,7 +29,7 @@ class _DanmakuSettingsWindowState extends State<DanmakuSettingsWindow> {
                 value: widget.danmakuController.option.fontSize,
                 min: 10,
                 max: Utils.isCompact() ? 32 : 48,
-                divisions: 22,
+                divisions: Utils.isCompact() ? 22 : 38,
                 label: widget.danmakuController.option.fontSize.toString(),
                 onChanged: (value) {
                   setState(() => widget.danmakuController.updateOption(

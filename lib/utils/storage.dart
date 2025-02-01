@@ -236,5 +236,6 @@ class SettingBoxKey {
       webDavPassword = 'webDavPasswd',
       lowMemoryMode = 'lowMemoryMode',
       useDynamicColor = 'useDynamicColor',
+      exitBehavior = 'exitBehavior',
       defaultSuperResolutionType = 'defaultSuperResolutionType';
 }

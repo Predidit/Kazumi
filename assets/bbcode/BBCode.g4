@@ -19,6 +19,9 @@ tag
 
 plain
     : (STRING | '=' | '/' | '[' | ']' | '(' | ')')+
+    // workaround unless these will break tag reconginze
+    | '[来自Bangumi for android]'
+    | '[来自Bangumi for iOS]'
     ;
 
 bgm

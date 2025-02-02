@@ -42,7 +42,6 @@ class EpisodeCommentsCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             BBCodeWidget(bbcode: commentItem.comment.comment),
-            // commentsWithStyledText(Utils.richTextParser(commentItem.comment.comment), context),
             if (commentItem.replies.isNotEmpty)
               ListView.builder(
                 physics: const NeverScrollableScrollPhysics(),
@@ -79,7 +78,6 @@ class EpisodeCommentsCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         BBCodeWidget(
                             bbcode: commentItem.replies[index].comment),
-                        // commentsWithStyledText(Utils.richTextParser(commentItem.replies[index].comment), context),
                       ],
                     ),
                   );

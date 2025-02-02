@@ -1,5 +1,6 @@
 import 'package:antlr4/antlr4.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +99,8 @@ class BBCodeBaseListener implements BBCodeListener {
             bbcode[i].quoted = true;
           }
         }
+        // Add icon to the end of quoted text
+        bbcode.add(const Icon(Icons.format_quote));
         break;
       case 'B':
       case 'b':
@@ -214,7 +217,7 @@ class BBCodeBaseListener implements BBCodeListener {
   void enterSticker(StickerContext ctx) {
     // 处理 (=A=) 类型的表情
     // ctx.start!.type 为 BBCode.tokens 内的 token 值
-    bbcode.add(BBCodeSticker(id: ctx.start!.type - 9));
+    bbcode.add(BBCodeSticker(id: ctx.start!.type - 11));
   }
 
   @override
@@ -265,40 +268,12 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
             children: bbcodeBaseListener.bbcode.map((e) {
               if (e is BBCodeText) {
                 if (e.link != null) {
-                  return WidgetSpan(
-                    child: InkWell(
-                      onTap: () {
-                        launchUrl(Uri.parse(e.link!));
-                      },
-                      child: Text(
-                        e.text,
-                        style: TextStyle(
-                          fontWeight: (e.bold) ? FontWeight.bold : null,
-                          fontStyle: (e.italic) ? FontStyle.italic : null,
-                          decoration: (e.underline)
-                              ? TextDecoration.underline
-                              : (e.strikeThrough)
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                          fontSize: e.size,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  );
-                } else if (e.masked) {
                   return TextSpan(
                     text: e.text,
-                    onEnter: (_) {
-                      setState(() {
-                        _isVisible = true;
-                      });
-                    },
-                    onExit: (_) {
-                      setState(() {
-                        _isVisible = false;
-                      });
-                    },
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        launchUrl(Uri.parse(e.link!));
+                      },
                     style: TextStyle(
                       fontWeight: (e.bold) ? FontWeight.bold : null,
                       fontStyle: (e.italic) ? FontStyle.italic : null,
@@ -307,9 +282,32 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                           : (e.strikeThrough)
                               ? TextDecoration.lineThrough
                               : null,
-                      fontSize: e.size,
+                      fontSize: e.size.toDouble(),
+                      color: Colors.blue,
+                    ),
+                  );
+                } else if (e.masked) {
+                  return TextSpan(
+                    text: e.text,
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        setState(() {
+                          _isVisible = !_isVisible;
+                        });
+                      },
+                    style: TextStyle(
+                      fontWeight: (e.bold) ? FontWeight.bold : null,
+                      fontStyle: (e.italic) ? FontStyle.italic : null,
+                      decoration: (e.underline)
+                          ? TextDecoration.underline
+                          : (e.strikeThrough)
+                              ? TextDecoration.lineThrough
+                              : null,
+                      fontSize: e.size.toDouble(),
                       color: (!_isVisible) ? Colors.transparent : null,
-                      backgroundColor: Colors.grey,
+                      backgroundColor: (!_isVisible)
+                          ? Theme.of(context).colorScheme.outline
+                          : null,
                     ),
                   );
                 } else {
@@ -323,7 +321,10 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                           : (e.strikeThrough)
                               ? TextDecoration.lineThrough
                               : null,
-                      fontSize: e.size,
+                      fontSize: e.size.toDouble(),
+                      color: (e.quoted)
+                          ? Theme.of(context).colorScheme.outline
+                          : null,
                     ),
                   );
                 }
@@ -360,11 +361,10 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                     },
                   ),
                 );
-              } else {
+              } else if (e is BBCodeSticker) {
                 return WidgetSpan(
                   child: CachedNetworkImage(
-                    imageUrl:
-                        'https://bangumi.tv/img/smiles/${(e as BBCodeSticker).id}.gif',
+                    imageUrl: 'https://bangumi.tv/img/smiles/${e.id}.gif',
                     placeholder: (context, url) =>
                         const SizedBox(width: 1, height: 1),
                     errorWidget: (context, error, stackTrace) {
@@ -372,6 +372,12 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                     },
                   ),
                 );
+              } else {
+                return WidgetSpan(
+                    child: Icon(
+                  (e as Icon).icon,
+                  color: Theme.of(context).colorScheme.outline,
+                ));
               }
             }).toList(),
           ),

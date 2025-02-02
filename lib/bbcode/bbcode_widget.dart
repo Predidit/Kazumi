@@ -80,14 +80,14 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   recognizer: TapGestureRecognizer()
                     ..onTap = (e.link != null || e.masked)
                         ? () {
-                      if (e.link != null) {
-                        launchUrl(Uri.parse(e.link!));
-                      } else if (e.masked) {
-                        setState(() {
-                          _isVisible = !_isVisible;
-                        });
-                      }
-                    }
+                            if (e.link != null) {
+                              launchUrl(Uri.parse(e.link!));
+                            } else if (e.masked) {
+                              setState(() {
+                                _isVisible = !_isVisible;
+                              });
+                            }
+                          }
                         : null,
                   style: TextStyle(
                     fontWeight: (e.bold) ? FontWeight.bold : null,
@@ -95,18 +95,18 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                     decoration: (e.underline)
                         ? TextDecoration.underline
                         : (e.strikeThrough)
-                        ? TextDecoration.lineThrough
-                        : null,
+                            ? TextDecoration.lineThrough
+                            : null,
                     fontSize: e.size.toDouble(),
                     color: (!_isVisible && e.masked)
                         ? Colors.transparent
                         : (e.link != null)
-                        ? Colors.blue
-                        : (e.quoted)
-                        ? Theme.of(context).colorScheme.outline
-                        : (e.color != null)
-                        ? _parseColor(e.color!)
-                        : null,
+                            ? Colors.blue
+                            : (e.quoted)
+                                ? Theme.of(context).colorScheme.outline
+                                : (e.color != null)
+                                    ? _parseColor(e.color!)
+                                    : null,
                     backgroundColor: (!_isVisible && e.masked)
                         ? Theme.of(context).colorScheme.outline
                         : null,
@@ -117,7 +117,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   child: CachedNetworkImage(
                     imageUrl: e.imageUrl,
                     placeholder: (context, url) =>
-                    const SizedBox(width: 1, height: 1),
+                        const SizedBox(width: 1, height: 1),
                     errorWidget: (context, error, stackTrace) {
                       return const Text('.');
                     },
@@ -139,7 +139,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   child: CachedNetworkImage(
                     imageUrl: url,
                     placeholder: (context, url) =>
-                    const SizedBox(width: 1, height: 1),
+                        const SizedBox(width: 1, height: 1),
                     errorWidget: (context, error, stackTrace) {
                       return const Text('.');
                     },
@@ -150,7 +150,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   child: CachedNetworkImage(
                     imageUrl: 'https://bangumi.tv/img/smiles/${e.id}.gif',
                     placeholder: (context, url) =>
-                    const SizedBox(width: 1, height: 1),
+                        const SizedBox(width: 1, height: 1),
                     errorWidget: (context, error, stackTrace) {
                       return const Text('.');
                     },
@@ -159,11 +159,12 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               } else {
                 // e is Icon
                 return WidgetSpan(
-                    child: Icon(
-                      (e as Icon).icon,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    alignment: PlaceholderAlignment.top);
+                  child: Icon(
+                    (e as Icon).icon,
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                  alignment: PlaceholderAlignment.top,
+                );
               }
             }).toList(),
           ),

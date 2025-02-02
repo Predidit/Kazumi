@@ -10,9 +10,6 @@ import 'generated/BBCodeListener.dart';
 import 'generated/BBCodeParser.dart';
 import 'generated/BBCodeLexer.dart';
 
-/// This class provides an empty implementation of [BBCodeListener],
-/// which can be extended to create a listener which only needs to handle
-/// a subset of the available methods.
 class BBCodeBaseListener implements BBCodeListener {
   final List<dynamic> bbcode = [];
 
@@ -80,56 +77,57 @@ class BBCodeBaseListener implements BBCodeListener {
     switch (tagName) {
       case 'URL':
       case 'url':
-        if (ctx.attr != null) {
-          (bbcode[bbCodeTag.link!] as BBCodeText).link = ctx.attr!.text;
-        } else {
-          (bbcode[bbCodeTag.link!] as BBCodeText).link =
-              (bbcode[bbCodeTag.link!] as BBCodeText).text;
+        if (bbcode[bbCodeTag.link!] is BBCodeText) {
+          if (ctx.attr != null) {
+            bbcode[bbCodeTag.link!].link = ctx.attr!.text;
+          } else {
+            bbcode[bbCodeTag.link!].link = bbcode[bbCodeTag.link!].text;
+          }
         }
         break;
       case 'USER':
       case 'user':
-        if (ctx.attr != null) {
-          (bbcode[bbCodeTag.link!] as BBCodeText).link = ctx.attr!.text;
+        if (ctx.attr != null && bbcode[bbCodeTag.link!] is BBCodeText) {
+          bbcode[bbCodeTag.link!].link = ctx.attr!.text;
         }
         break;
       case 'QUOTE':
       case 'quote':
         for (int i = bbCodeTag.quoted!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).quoted = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].quoted = true;
           }
         }
         break;
       case 'B':
       case 'b':
         for (int i = bbCodeTag.bold!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).bold = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].bold = true;
           }
         }
         break;
       case 'I':
       case 'i':
         for (int i = bbCodeTag.italic!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).italic = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].italic = true;
           }
         }
         break;
       case 'S':
       case 's':
         for (int i = bbCodeTag.strikeThrough!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).strikeThrough = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].strikeThrough = true;
           }
         }
         break;
       case 'U':
       case 'u':
         for (int i = bbCodeTag.underline!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).underline = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].underline = true;
           }
         }
         break;
@@ -137,30 +135,32 @@ class BBCodeBaseListener implements BBCodeListener {
       case 'photo':
       case 'IMG':
       case 'img':
-        bbcode[bbCodeTag.img!] =
-            BBCodeImg(imageUrl: (bbcode[bbCodeTag.img!] as BBCodeText).text);
+        if (bbcode[bbCodeTag.img!] is BBCodeText) {
+          bbcode[bbCodeTag.img!] =
+              BBCodeImg(imageUrl: bbcode[bbCodeTag.img!].text);
+        }
         break;
       case 'MASK':
       case 'mask':
         for (int i = bbCodeTag.masked!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).masked = true;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].masked = true;
           }
         }
         break;
       case 'SIZE':
       case 'size':
         for (int i = bbCodeTag.size!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).size = int.parse(ctx.attr!.text!);
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].size = int.parse(ctx.attr!.text!);
           }
         }
         break;
       case 'COLOR':
       case 'color':
         for (int i = bbCodeTag.color!; i < bbcode.length; i++) {
-          if (bbcode[i] == BBCodeText) {
-            (bbcode[i] as BBCodeText).color = ctx.attr?.text;
+          if (bbcode[i] is BBCodeText) {
+            bbcode[i].color = ctx.attr?.text;
           }
         }
         break;
@@ -171,85 +171,64 @@ class BBCodeBaseListener implements BBCodeListener {
     }
   }
 
-  /// The default implementation does nothing.
   @override
   void enterDocument(DocumentContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void exitDocument(DocumentContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void enterElement(ElementContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void exitElement(ElementContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void enterTag(TagContext ctx) {
     _enterTag(ctx);
-    debugPrint(ctx.tagName?.text);
   }
 
-  /// The default implementation does nothing.
   @override
   void exitTag(TagContext ctx) {
     _exitTag(ctx);
-    debugPrint(ctx.tagName?.text);
   }
 
-  /// The default implementation does nothing.
   @override
   void enterPlain(PlainContext ctx) {
     bbcode.add(BBCodeText(text: ctx.text));
-    debugPrint(ctx.text);
   }
 
-  /// The default implementation does nothing.
   @override
   void exitPlain(PlainContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void enterBgm(BgmContext ctx) {
     // 处理 (bgm35) 类型的表情
     bbcode.add(BBCodeBgm(id: int.tryParse(ctx.id!.text!) ?? 0));
-    debugPrint(ctx.id?.text);
   }
 
-  /// The default implementation does nothing.
   @override
   void exitBgm(BgmContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void enterSticker(StickerContext ctx) {
     // 处理 (=A=) 类型的表情
     // ctx.start!.type 为 BBCode.tokens 内的 token 值
     bbcode.add(BBCodeSticker(id: ctx.start!.type - 9));
-    debugPrint(ctx.text);
   }
 
-  /// The default implementation does nothing.
   @override
   void exitSticker(StickerContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void enterEveryRule(ParserRuleContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void exitEveryRule(ParserRuleContext ctx) {}
 
-  /// The default implementation does nothing.
   @override
   void visitTerminal(TerminalNode node) {}
 
-  /// The default implementation does nothing.
   @override
   void visitErrorNode(ErrorNode node) {}
 }
@@ -264,6 +243,8 @@ class BBCodeWidget extends StatefulWidget {
 }
 
 class _BBCodeWidgetState extends State<BBCodeWidget> {
+  bool _isVisible = false;
+
   @override
   Widget build(BuildContext context) {
     BBCodeParser.checkVersion();
@@ -279,8 +260,8 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
 
     return Wrap(
       children: [
-        RichText(
-          text: TextSpan(
+        SelectableText.rich(
+          TextSpan(
             children: bbcodeBaseListener.bbcode.map((e) {
               if (e is BBCodeText) {
                 if (e.link != null) {
@@ -299,10 +280,36 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                               : (e.strikeThrough)
                                   ? TextDecoration.lineThrough
                                   : null,
-                          fontSize: e.size.toDouble(),
+                          fontSize: e.size,
                           color: Colors.blue,
                         ),
                       ),
+                    ),
+                  );
+                } else if (e.masked) {
+                  return TextSpan(
+                    text: e.text,
+                    onEnter: (_) {
+                      setState(() {
+                        _isVisible = true;
+                      });
+                    },
+                    onExit: (_) {
+                      setState(() {
+                        _isVisible = false;
+                      });
+                    },
+                    style: TextStyle(
+                      fontWeight: (e.bold) ? FontWeight.bold : null,
+                      fontStyle: (e.italic) ? FontStyle.italic : null,
+                      decoration: (e.underline)
+                          ? TextDecoration.underline
+                          : (e.strikeThrough)
+                              ? TextDecoration.lineThrough
+                              : null,
+                      fontSize: e.size,
+                      color: (!_isVisible) ? Colors.transparent : null,
+                      backgroundColor: Colors.grey,
                     ),
                   );
                 } else {
@@ -314,9 +321,9 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                       decoration: (e.underline)
                           ? TextDecoration.underline
                           : (e.strikeThrough)
-                          ? TextDecoration.lineThrough
-                          : null,
-                      fontSize: e.size.toDouble(),
+                              ? TextDecoration.lineThrough
+                              : null,
+                      fontSize: e.size,
                     ),
                   );
                 }
@@ -354,7 +361,6 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   ),
                 );
               } else {
-                // return WidgetSpan(child: Container());
                 return WidgetSpan(
                   child: CachedNetworkImage(
                     imageUrl:

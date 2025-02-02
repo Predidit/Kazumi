@@ -38,7 +38,7 @@ class BBCodeText {
   bool quoted = false;
   bool code = false;
 
-  int size = 14;
+  double size = 14.0;
   String? color;
   String? link;
 

@@ -1,9 +1,6 @@
 import 'package:antlr4/antlr4.dart';
 
 import 'BBCodeListener.dart';
-import 'BBCodeBaseListener.dart';
-import 'BBCodeVisitor.dart';
-import 'BBCodeBaseVisitor.dart';
 const int RULE_document = 0, RULE_element = 1, RULE_tag = 2, RULE_plain = 3, 
           RULE_bgm = 4, RULE_sticker = 5;
 class BBCodeParser extends Parser {
@@ -306,14 +303,6 @@ class DocumentContext extends ParserRuleContext {
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitDocument(this);
   }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitDocument(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
-  }
 }
 
 class ElementContext extends ParserRuleContext {
@@ -331,14 +320,6 @@ class ElementContext extends ParserRuleContext {
   @override
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitElement(this);
-  }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitElement(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
   }
 }
 
@@ -361,14 +342,6 @@ class TagContext extends ParserRuleContext {
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitTag(this);
   }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitTag(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
-  }
 }
 
 class PlainContext extends ParserRuleContext {
@@ -384,14 +357,6 @@ class PlainContext extends ParserRuleContext {
   @override
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitPlain(this);
-  }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitPlain(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
   }
 }
 
@@ -409,14 +374,6 @@ class BgmContext extends ParserRuleContext {
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitBgm(this);
   }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitBgm(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
-  }
 }
 
 class StickerContext extends ParserRuleContext {
@@ -430,14 +387,6 @@ class StickerContext extends ParserRuleContext {
   @override
   void exitRule(ParseTreeListener listener) {
     if (listener is BBCodeListener) listener.exitSticker(this);
-  }
-  @override
-  T? accept<T>(ParseTreeVisitor<T> visitor) {
-    if (visitor is BBCodeVisitor<T>) {
-     return visitor.visitSticker(this);
-    } else {
-    	return visitor.visitChildren(this);
-    }
   }
 }
 

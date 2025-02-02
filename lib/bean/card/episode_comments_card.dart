@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/bbcode/bbcode.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -20,62 +21,72 @@ class EpisodeCommentsCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.secondaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundImage:
-                    NetworkImage(commentItem.comment.user.avatar.large),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(commentItem.comment.user.nickname),
-                  Text(Utils.dateFormat(commentItem.comment.createdAt)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          commentsWithStyledText(Utils.richTextParser(commentItem.comment.comment), context),
-          (commentItem.replies.isNotEmpty)
-              ? ListView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: commentItem.replies.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 48),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Divider(color: Theme.of(context).dividerColor.withAlpha(60)),
-                            Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundImage:
+                      NetworkImage(commentItem.comment.user.avatar.large),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(commentItem.comment.user.nickname),
+                    Text(Utils.dateFormat(commentItem.comment.createdAt)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            BBCodeWidget(bbcode: commentItem.comment.comment),
+            // commentsWithStyledText(Utils.richTextParser(commentItem.comment.comment), context),
+            if (commentItem.replies.isNotEmpty)
+              ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: commentItem.replies.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 48),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Divider(
+                          color: Theme.of(context).dividerColor.withAlpha(60),
+                        ),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundImage: NetworkImage(
+                                  commentItem.replies[index].user.avatar.large),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                CircleAvatar(
-                                  backgroundImage: NetworkImage(commentItem
-                                      .replies[index].user.avatar.large),
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(commentItem
-                                        .replies[index].user.nickname),
-                                    Text(Utils.dateFormat(
-                                        commentItem.replies[index].createdAt)),
-                                  ],
+                                Text(commentItem.replies[index].user.nickname),
+                                Text(
+                                  Utils.dateFormat(
+                                      commentItem.replies[index].createdAt),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            commentsWithStyledText(Utils.richTextParser(commentItem.replies[index].comment), context),
-                          ]),
-                    );
-                  })
-              : Container()
-        ]),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        BBCodeWidget(
+                            bbcode: commentItem.replies[index].comment),
+                        // commentsWithStyledText(Utils.richTextParser(commentItem.replies[index].comment), context),
+                      ],
+                    ),
+                  );
+                },
+              )
+          ],
+        ),
       ),
     );
   }
@@ -91,11 +102,9 @@ class EpisodeCommentsCard extends StatelessWidget {
       'q': StyledTextTag(
         style: TextStyle(color: Theme.of(context).colorScheme.outline),
       ),
-      'format_quote': StyledTextIconTag(
-        Icons.format_quote,
-        color: Theme.of(context).colorScheme.outline,
-        alignment: PlaceholderAlignment.top
-      ),
+      'format_quote': StyledTextIconTag(Icons.format_quote,
+          color: Theme.of(context).colorScheme.outline,
+          alignment: PlaceholderAlignment.top),
       's': StyledTextTag(
         style: const TextStyle(decoration: TextDecoration.lineThrough),
       ),
@@ -117,40 +126,44 @@ class EpisodeCommentsCard extends StatelessWidget {
         },
       ),
       'link': StyledTextActionTag(
-            (_, attrs) {
-              _copyLink(attrs);
-            },
+        (_, attrs) {
+          _copyLink(attrs);
+        },
         style: const TextStyle(color: Colors.blue),
       ),
       'color': StyledTextCustomTag(
-        baseStyle: const TextStyle(fontStyle: FontStyle.normal),
-        parse: (baseStyle, attributes) {
-          if (attributes.containsKey('color')) {
-            final String color = attributes['color']!;
-            switch (color) {
-              case 'red': return baseStyle?.copyWith(color: Colors.red);
-              case 'blue': return baseStyle?.copyWith(color: Colors.blue);
-              case 'orange': return baseStyle?.copyWith(color: Colors.orange);
-              case 'green': return baseStyle?.copyWith(color: Colors.green);
-              case 'grey': return baseStyle?.copyWith(color: Colors.grey);
-              default: return baseStyle;
+          baseStyle: const TextStyle(fontStyle: FontStyle.normal),
+          parse: (baseStyle, attributes) {
+            if (attributes.containsKey('color')) {
+              final String color = attributes['color']!;
+              switch (color) {
+                case 'red':
+                  return baseStyle?.copyWith(color: Colors.red);
+                case 'blue':
+                  return baseStyle?.copyWith(color: Colors.blue);
+                case 'orange':
+                  return baseStyle?.copyWith(color: Colors.orange);
+                case 'green':
+                  return baseStyle?.copyWith(color: Colors.green);
+                case 'grey':
+                  return baseStyle?.copyWith(color: Colors.grey);
+                default:
+                  return baseStyle;
+              }
+            } else {
+              return baseStyle;
             }
-          } else {
-            return baseStyle;
-          }
-        }
-      ),
+          }),
       'size': StyledTextCustomTag(
-        baseStyle: const TextStyle(fontStyle: FontStyle.normal),
-        parse: (baseStyle, attributes) {
-          if (attributes.containsKey('size')) {
-            double size = double.tryParse(attributes['size']!) ?? 14;
-            return baseStyle?.copyWith(fontSize: size);
-          } else {
-            return baseStyle;
-          }
-        }
-      ),
+          baseStyle: const TextStyle(fontStyle: FontStyle.normal),
+          parse: (baseStyle, attributes) {
+            if (attributes.containsKey('size')) {
+              double size = double.tryParse(attributes['size']!) ?? 14;
+              return baseStyle?.copyWith(fontSize: size);
+            } else {
+              return baseStyle;
+            }
+          }),
     });
   }
 

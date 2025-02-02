@@ -70,6 +70,9 @@ class WebDav {
   }
 
   Future<void> updateCollectibles() async {
+    // don't try muliti thread update here
+    // some webdav server may not support muliti thread write
+    // you will get 423 locked error
     await update('collectibles');
     if (GStorage.collectChanges.isNotEmpty) {
       await update('collectchanges');
@@ -125,17 +128,17 @@ class WebDav {
   Future<void> syncCollectibles() async {
     List<CollectedBangumi> remoteCollectibles = [];
     List<CollectedBangumiChange> remoteChanges = [];
-    try {
-      await downloadCollectibles();
-    } catch (e) {
+
+    // muliti thread download
+    Future<void> collectiblesFuture = downloadCollectibles().catchError((e) {
       KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
-    }
-    try {
-      await downloadCollectChanges();
-    } catch (e) {
+    });
+    Future<void> changesFuture = downloadCollectChanges().catchError((e) {
       KazumiLogger()
           .log(Level.error, 'webDav download collect changes failed $e');
-    }
+    });
+    await Future.wait([collectiblesFuture, changesFuture]);
+
     try {
       remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');

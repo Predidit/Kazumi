@@ -93,28 +93,24 @@ class BangumiContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ts = MediaQuery.textScalerOf(context);
+
     return Expanded(
       child: Padding(
         // 多列
-        padding: const EdgeInsets.fromLTRB(5, 3, 5, 0),
+        padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
         // 单列
         // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              bangumiItem.nameCn,
-              textAlign: TextAlign.start,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.3,
-              ),
-              textScaler:
-                  MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1),
-              maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+        child: Text(
+          bangumiItem.nameCn,
+          textAlign: TextAlign.start,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
+          ),
+          textScaler: ts.clamp(maxScaleFactor: 1.1),
+          maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

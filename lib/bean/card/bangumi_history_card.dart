@@ -112,6 +112,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 4),
                       RichText(
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

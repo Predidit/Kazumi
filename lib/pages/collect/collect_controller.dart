@@ -90,6 +90,17 @@ abstract class _CollectController with Store {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
       return;
     }
+    bool flag = true;
+    try {
+      await WebDav().ping();
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'WebDav连接失败: $e');
+      KazumiDialog.showToast(message: 'WebDav连接失败: $e');
+      flag = false;
+    }
+    if (!flag) {
+      return;
+    }
     await WebDav().syncCollectibles();
     loadCollectibles();
   }

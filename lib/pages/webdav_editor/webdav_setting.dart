@@ -17,7 +17,6 @@ class WebDavSettingsPage extends StatefulWidget {
 class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   Box setting = GStorage.setting;
   late bool webDavEnable;
-  late bool webDavEnableCollect;
   late bool webDavEnableHistory;
   late bool enableGitProxy;
 
@@ -25,7 +24,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   void initState() {
     super.initState();
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    webDavEnableCollect = setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     webDavEnableHistory = setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
     enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
@@ -124,25 +122,14 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     SettingsTile.switchTile(
                       onToggle: (value) async {
                         webDavEnable = value ?? !webDavEnable;
+                        if (!WebDav().initialized && webDavEnable) {
+                          WebDav().init();
+                        }
                         await setting.put(SettingBoxKey.webDavEnable, webDavEnable);
                         setState(() {});
                       },
                       title: const Text('WEBDAV同步'),
                       initialValue: webDavEnable,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        if (!webDavEnable) {
-                          KazumiDialog.showToast(message: '请先开启WEBDAV同步');
-                          return;
-                        }
-                        webDavEnableCollect = value ?? !webDavEnableCollect;
-                        await setting.put(SettingBoxKey.webDavEnableCollect, webDavEnableCollect);
-                        setState(() {});
-                      },
-                      title: const Text('追番同步'),
-                      description: const Text('允许手动同步追番列表'),
-                      initialValue: webDavEnableCollect,
                     ),
                     SettingsTile.switchTile(
                       onToggle: (value) async {

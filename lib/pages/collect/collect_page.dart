@@ -80,33 +80,6 @@ class _CollectPageState extends State<CollectPage>
             title: const Text('追番'),
             actions: [
               IconButton(
-                  onPressed: () async {
-                    bool webDavenable = await setting.get(
-                        SettingBoxKey.webDavEnable,
-                        defaultValue: false);
-                    if (!webDavenable) {
-                      KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
-                      return;
-                    }
-                    if (showDelete) {
-                      KazumiDialog.showToast(message: '编辑模式无法执行同步');
-                      return;
-                    }
-                    if (syncCollectiblesing) {
-                      return;
-                    }
-                    setState(() {
-                      syncCollectiblesing = true;
-                    });
-                    await collectController.syncCollectibles();
-                    setState(() {
-                      syncCollectiblesing = false;
-                    });
-                  },
-                  icon: syncCollectiblesing
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.sync)),
-              IconButton(
                   onPressed: () {
                     setState(() {
                       showDelete = !showDelete;
@@ -116,6 +89,34 @@ class _CollectPageState extends State<CollectPage>
                       ? const Icon(Icons.edit_outlined)
                       : const Icon(Icons.edit))
             ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
+                  defaultValue: false);
+              if (!webDavenable) {
+                KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
+                return;
+              }
+              if (showDelete) {
+                KazumiDialog.showToast(message: '编辑模式无法执行同步');
+                return;
+              }
+              if (syncCollectiblesing) {
+                return;
+              }
+              setState(() {
+                syncCollectiblesing = true;
+              });
+              await collectController.syncCollectibles();
+              setState(() {
+                syncCollectiblesing = false;
+              });
+            },
+            child: syncCollectiblesing
+                ? const SizedBox(
+                    width: 24, height: 24, child: CircularProgressIndicator())
+                : const Icon(Icons.cloud_sync),
           ),
           body: Padding(
               padding: const EdgeInsets.only(left: 8, right: 8, top: 8),

@@ -2,9 +2,13 @@ import 'package:hive/hive.dart';
 
 part 'collect_change_module.g.dart';
 
+// The box stores the changes history of collected bangumi
+// The changes will be used to sync with webDav
 @HiveType(typeId: 5)
 class CollectedBangumiChange {
   // timestamp in seconds
+  // hivebox has limited the length of key, the max number is 4294967295
+  // we have to use timestamp in seconds as key to avoid key conflict and hive key limit
   @HiveField(0)
   int id;
 

@@ -52,6 +52,7 @@ class BangumiCardV extends StatelessWidget {
             Modular.to.pushNamed('/info/');
           },
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.only(

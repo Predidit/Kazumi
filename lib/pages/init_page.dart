@@ -104,7 +104,11 @@ class _InitPageState extends State<InitPage> {
                       await pluginsController.copyPluginsToExternalDirectory();
                     } catch (_) {}
                     KazumiDialog.dismiss();
-                    Modular.to.navigate('/tab/popular/');
+                    if (!Platform.isAndroid) {
+                      Modular.to.navigate('/tab/popular/');
+                      return;
+                    }
+                    _switchUpdateMirror();
                   },
                   child: const Text('已阅读并同意'),
                 ),
@@ -122,11 +126,78 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
+  // The function is not completed yet
+  // We simply disable update when the user is using F-Droid mirror
+  // We are trying to meet F-Droid requirement to submit the app
+  // After the app is submitted, we will complete the function
+  Future<void> _switchUpdateMirror() async {
+    await KazumiDialog.show(
+      clickMaskDismiss: false,
+      builder: (context) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('更新镜像'),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    '您希望从哪里获取应用更新？',
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Github镜像为大多数情况下的最佳选择。如果您使用F-Droid应用商店, 请选择F-Droid镜像。',
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setting.put(SettingBoxKey.autoUpdate, true);
+                  KazumiDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: const Text(
+                  'Github',
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setting.put(SettingBoxKey.autoUpdate, false);
+                  KazumiDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: Text(
+                  'F-Droid',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _update() async {
-    bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
-    if (autoUpdate) {
-      await Future.delayed(const Duration(seconds: 1));
-      Modular.get<MyController>().checkUpdata(type: 'auto');
+    // Don't check update when there is no plugin.
+    // We will progress init workflow instead.
+    if (pluginsController.pluginList.isNotEmpty) {
+      bool autoUpdate =
+          setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+      if (autoUpdate) {
+        await Future.delayed(const Duration(seconds: 1));
+        Modular.get<MyController>().checkUpdata(type: 'auto');
+      }
     }
   }
 

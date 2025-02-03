@@ -112,9 +112,6 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget contentGrid(Orientation orientation) {
     int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
-    final tt = Theme.of(context).textTheme;
-    final tsFontSize = tt.titleMedium?.fontSize ?? kDefaultFontSize;
-    final lmFontSize = tt.labelMedium?.fontSize ?? kDefaultFontSize;
     return CustomScrollView(
       slivers: [
         SliverPadding(

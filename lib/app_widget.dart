@@ -73,22 +73,18 @@ class _AppWidgetState extends State<AppWidget>
       debugPrint("应用进入后台");
       bool webDavEnable =
           await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      bool webDavEnableHistory =
-          await setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+      bool webDavEnableHistory = await setting
+          .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
       if (webDavEnable && webDavEnableHistory) {
-        try {
-          var webDav = WebDav();
-          webDav.updateHistory();
-        } catch (e) {
-          KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-        }
+        var webDav = WebDav();
+        webDav.updateHistory();
       }
     } else if (state == AppLifecycleState.resumed) {
       debugPrint("应用回到前台");
       bool webDavEnable =
           await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      bool webDavEnableHistory =
-          await setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+      bool webDavEnableHistory = await setting
+          .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
       if (webDavEnable && webDavEnableHistory) {
         try {
           var webDav = WebDav();
@@ -102,15 +98,11 @@ class _AppWidgetState extends State<AppWidget>
       if (Platform.isWindows || Platform.isLinux) {
         bool webDavEnable =
             await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-        bool webDavEnableHistory =
-            await setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+        bool webDavEnableHistory = await setting
+            .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
         if (webDavEnable && webDavEnableHistory) {
-          try {
-            var webDav = WebDav();
-            webDav.updateHistory();
-          } catch (e) {
-            KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-          }
+          var webDav = WebDav();
+          webDav.updateHistory();
         }
       }
     }

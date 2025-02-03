@@ -24,8 +24,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   void initState() {
     super.initState();
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    webDavEnableHistory = setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-    enableGitProxy = setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    webDavEnableHistory =
+        setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+    enableGitProxy =
+        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {}
@@ -56,14 +58,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     var webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
-      try {
-        KazumiDialog.showToast(message: '尝试上传到WebDav');
-        var webDav = WebDav();
-        await webDav.updateHistory();
-        KazumiDialog.showToast(message: '同步成功');
-      } catch (e) {
-        KazumiDialog.showToast(message: '同步失败 ${e.toString()}');
-      }
+      KazumiDialog.showToast(message: '尝试上传到WebDav');
+      var webDav = WebDav();
+      await webDav.updateHistory();
+      KazumiDialog.showToast(message: '同步成功');
     } else {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
     }
@@ -107,7 +105,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     SettingsTile.switchTile(
                       onToggle: (value) async {
                         enableGitProxy = value ?? !enableGitProxy;
-                        await setting.put(SettingBoxKey.enableGitProxy, enableGitProxy);
+                        await setting.put(
+                            SettingBoxKey.enableGitProxy, enableGitProxy);
                         setState(() {});
                       },
                       title: const Text('Github镜像'),
@@ -125,7 +124,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         if (!WebDav().initialized && webDavEnable) {
                           WebDav().init();
                         }
-                        await setting.put(SettingBoxKey.webDavEnable, webDavEnable);
+                        await setting.put(
+                            SettingBoxKey.webDavEnable, webDavEnable);
                         setState(() {});
                       },
                       title: const Text('WEBDAV同步'),
@@ -138,7 +138,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                           return;
                         }
                         webDavEnableHistory = value ?? !webDavEnableHistory;
-                        await setting.put(SettingBoxKey.webDavEnableHistory, webDavEnableHistory);
+                        await setting.put(SettingBoxKey.webDavEnableHistory,
+                            webDavEnableHistory);
                         setState(() {});
                       },
                       title: const Text('观看记录同步'),

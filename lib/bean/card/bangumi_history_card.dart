@@ -113,30 +113,16 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      RichText(
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textScaler: MediaQuery.textScalerOf(context)
-                            .clamp(maxScaleFactor: 1.1),
-                        text: TextSpan(
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface),
-                          children: [
-                            TextSpan(
-                              text: widget.historyItem.bangumiItem.nameCn == ''
-                                  ? widget.historyItem.bangumiItem.name
-                                  : (widget.historyItem.bangumiItem.nameCn),
-                              style: TextStyle(
-                                fontSize: MediaQuery.textScalerOf(context)
-                                    .scale(Theme.of(context)
-                                        .textTheme
-                                        .titleSmall!
-                                        .fontSize!),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        widget.historyItem.bangumiItem.nameCn == ''
+                            ? widget.historyItem.bangumiItem.name
+                            : widget.historyItem.bangumiItem.nameCn,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 12),
                       // 测试 因为API问题评分功能搁置

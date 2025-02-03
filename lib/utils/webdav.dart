@@ -16,6 +16,8 @@ class WebDav {
   late webdav.Client client;
 
   bool initialized = false;
+  // make sure only one upload history task at a time
+  bool isHistorySyncing = false;
 
   WebDav._internal();
   static final WebDav _instance = WebDav._internal();
@@ -66,7 +68,16 @@ class WebDav {
   }
 
   Future<void> updateHistory() async {
-    await update('histories');
+    if (isHistorySyncing) {
+      return;
+    }
+    isHistorySyncing = true;
+    try {
+      await update('histories');
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'webDav update history failed $e');
+    }
+    isHistorySyncing = false;
   }
 
   Future<void> updateCollectibles() async {
@@ -80,19 +91,29 @@ class WebDav {
   }
 
   Future<void> downloadAndPatchHistory() async {
+    if (isHistorySyncing) {
+      return;
+    }
+    isHistorySyncing = true;
     String fileName = 'histories.tmp';
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
+    try {
+      if (!await webDavLocalTempDirectory.exists()) {
+        await webDavLocalTempDirectory.create(recursive: true);
+      }
+      final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
+      if (await existingFile.exists()) {
+        await existingFile.delete();
+      }
+      await client.read2File('/kazumiSync/$fileName', existingFile.path,
+          onProgress: (c, t) {
+        // print(c / t);
+      });
+      await GStorage.patchHistory(existingFile.path);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'webDav download and patch history failed $e');
     }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await client.read2File('/kazumiSync/$fileName', existingFile.path,
-        onProgress: (c, t) {
-      // print(c / t);
-    });
-    await GStorage.patchHistory(existingFile.path);
+    isHistorySyncing = false;
   }
 
   Future<void> downloadCollectibles() async {

@@ -221,6 +221,11 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void onBackPressed(BuildContext context) async {
+    if (videoPageController.isPip) {
+      Utils.exitDesktopPIPWindow();
+      videoPageController.isPip = false;
+      return;
+    }
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       menuJumpToCurrentEpisode();
       await Utils.exitFullScreen();

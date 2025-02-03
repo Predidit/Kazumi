@@ -184,13 +184,8 @@ class _PlayerItemState extends State<PlayerItem>
     }
     danmakuController.clear();
     if (webDavEnable && webDavEnableHistory) {
-      try {
-        var webDav = WebDav();
-        webDav.updateHistory();
-      } catch (e) {
-        KazumiDialog.showToast(message: '同步记录失败 ${e.toString()}');
-        KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-      }
+      var webDav = WebDav();
+      webDav.updateHistory();
     }
   }
 
@@ -802,7 +797,7 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    (Utils.isDesktop() ||
+                    ((Utils.isDesktop() && !videoPageController.isPip) ||
                             Utils.isTablet() ||
                             videoPageController.isFullscreen)
                         ? PlayerItemPanel(

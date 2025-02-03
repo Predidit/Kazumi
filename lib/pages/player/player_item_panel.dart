@@ -612,7 +612,17 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ),
                         // 跳过
                         forwardIcon(),
-                        // 追番
+                        if (Utils.isDesktop())
+                        IconButton(
+                            onPressed: () {
+                              if (videoPageController.isPip) {
+                                Utils.exitDesktopPIPWindow();
+                              } else {
+                                Utils.enterDesktopPIPWindow();
+                              }
+                              videoPageController.isPip = !videoPageController.isPip;
+                            },
+                            icon: const Icon(Icons.picture_in_picture, color: Colors.white)),// 追番
                         CollectButton(
                           bangumiItem: infoController.bangumiItem,
                           onOpen: () {

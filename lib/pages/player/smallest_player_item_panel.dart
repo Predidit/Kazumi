@@ -13,6 +13,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
@@ -379,9 +380,25 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         widget.onBackPressed(context);
                       },
                     ),
-                    const Spacer(),
+                    // 拖动条
+                    const Expanded(
+                      child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
+                    ),
                     // 跳过
                     forwardIcon(),
+                    if (Utils.isDesktop())
+                      IconButton(
+                          onPressed: () {
+                            if (videoPageController.isPip) {
+                              Utils.exitDesktopPIPWindow();
+                            } else {
+                              Utils.enterDesktopPIPWindow();
+                            }
+                            videoPageController.isPip =
+                                !videoPageController.isPip;
+                          },
+                          icon: const Icon(Icons.picture_in_picture,
+                              color: Colors.white)),
                     // 弹幕开关
                     IconButton(
                       color: Colors.white,
@@ -634,15 +651,16 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         ],
                       ),
                     ),
-                    IconButton(
-                      color: Colors.white,
-                      icon: Icon(videoPageController.isFullscreen
-                          ? Icons.fullscreen_exit_rounded
-                          : Icons.fullscreen_rounded),
-                      onPressed: () {
-                        widget.handleFullscreen();
-                      },
-                    ),
+                    if (!videoPageController.isPip)
+                      IconButton(
+                        color: Colors.white,
+                        icon: Icon(videoPageController.isFullscreen
+                            ? Icons.fullscreen_exit_rounded
+                            : Icons.fullscreen_rounded),
+                        onPressed: () {
+                          widget.handleFullscreen();
+                        },
+                      ),
                   ],
                 ),
               ),

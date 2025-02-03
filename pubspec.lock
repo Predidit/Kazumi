@@ -30,6 +30,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
+  antlr4:
+    dependency: "direct main"
+    description:
+      name: antlr4
+      sha256: "752b4a6e4ad97953652a2b2bbf5377f46c94b579d3372b50080c7e5858234a05"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.13.2"
   archive:
     dependency: transitive
     description:
@@ -1256,14 +1264,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
-  styled_text:
-    dependency: "direct main"
-    description:
-      name: styled_text
-      sha256: fd624172cf629751b4f171dd0ecf9acf02a06df3f8a81bb56c0caa4f1df706c3
-      url: "https://pub.dev"
-    source: hosted
-    version: "8.1.0"
   synchronized:
     dependency: transitive
     description:
@@ -1569,14 +1569,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.5.0"
-  xmlstream:
-    dependency: transitive
-    description:
-      name: xmlstream
-      sha256: cfc14e3f256997897df9481ae630d94c2d85ada5187ebeb868bb1aabc2c977b4
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
   xpath_selector:
     dependency: "direct main"
     description:

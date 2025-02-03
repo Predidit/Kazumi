@@ -27,6 +27,10 @@ abstract class _VideoPageController with Store {
   @observable
   bool isFullscreen = false;
 
+  // PIP状态
+  @observable
+  bool isPip = false;
+
   // 播放列表显示状态
   @observable
   bool showTabBody = true;

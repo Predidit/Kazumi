@@ -473,6 +473,22 @@ class Utils {
     return '秋';
   }
 
+  // 进入桌面设备小窗模式
+  static Future<void> enterDesktopPIPWindow() async {
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setResizable(false);
+    await windowManager.setSize(const Size(480, 270));
+  }
+
+  // 退出桌面设备小窗模式
+  static Future<void> exitDesktopPIPWindow() async {
+    bool isLowResolution = await Utils.isLowResolution();
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setResizable(true);
+    await windowManager.setSize(isLowResolution ? const Size(800, 600) : const Size(1280, 860));
+    await windowManager.center();
+  }
+
   static bool isSameSeason(DateTime d1, DateTime d2) {
     return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
   }

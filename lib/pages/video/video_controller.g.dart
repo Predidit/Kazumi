@@ -73,6 +73,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$isPipAtom =
+      Atom(name: '_VideoPageController.isPip', context: context);
+
+  @override
+  bool get isPip {
+    _$isPipAtom.reportRead();
+    return super.isPip;
+  }
+
+  @override
+  set isPip(bool value) {
+    _$isPipAtom.reportWrite(value, super.isPip, () {
+      super.isPip = value;
+    });
+  }
+
   late final _$showTabBodyAtom =
       Atom(name: '_VideoPageController.showTabBody', context: context);
 
@@ -128,6 +144,7 @@ loading: ${loading},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
 isFullscreen: ${isFullscreen},
+isPip: ${isPip},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
 roadList: ${roadList}

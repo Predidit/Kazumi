@@ -15,11 +15,21 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
-    with AutomaticKeepAliveClientMixin {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (infoController.episodeCommentsList.isEmpty) {
+      setState(() {
+        isLoading = true;
+      });
+      loadComments(widget.episode);
+    }
+  }
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
@@ -46,12 +56,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
   }
 
   Widget get episodeCommentsBody {
-    if (infoController.episodeCommentsList.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
-      loadComments(widget.episode);
-    }
     return CustomScrollView(
       // Scrollbars' movement is not linear so hide it.
       scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),
@@ -203,7 +207,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +214,4 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
       ),
     );
   }
-
-  @override
-  bool get wantKeepAlive => true;
 }

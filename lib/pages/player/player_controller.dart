@@ -211,11 +211,15 @@ abstract class _PlayerController with Store {
     mediaPlayer.setPlaylistMode(PlaylistMode.none);
 
     // error handle
+    bool showPlayerError =
+        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     mediaPlayer.stream.error.listen((event) {
-      KazumiDialog.showToast(
-          message: '播放器内部错误 ${event.toString()} $videoUrl',
-          duration: const Duration(seconds: 5),
-          showUndoButton: true);
+      if (showPlayerError) {
+        KazumiDialog.showToast(
+            message: '播放器内部错误 ${event.toString()} $videoUrl',
+            duration: const Duration(seconds: 5),
+            showUndoButton: true);
+      }
       KazumiLogger().log(
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });

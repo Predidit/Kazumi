@@ -21,6 +21,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool hAenable;
   late bool lowMemoryMode;
   late bool playResume;
+  late bool showPlayerError;
   late bool privateMode;
 
   @override
@@ -33,6 +34,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
+    showPlayerError =
+        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
   }
 
   void onBackPressed(BuildContext context) {
@@ -109,6 +112,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       title: const Text('自动跳转'),
                       description: const Text('跳转到上次播放位置'),
                       initialValue: playResume,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        showPlayerError = value ?? !showPlayerError;
+                        await setting.put(SettingBoxKey.showPlayerError, showPlayerError);
+                        setState(() {});
+                      },
+                      title: const Text('错误提示'),
+                      description: const Text('显示播放器内部错误提示'),
+                      initialValue: showPlayerError,
                     ),
                     SettingsTile.switchTile(
                       onToggle: (value) async {

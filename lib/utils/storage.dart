@@ -223,6 +223,7 @@ class SettingBoxKey {
       privateMode = 'privateMode',
       autoPlay = 'autoPlay',
       playResume = 'playResume',
+      showPlayerError = 'showPlayerError',
       oledEnhance = 'oledEnhance',
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',

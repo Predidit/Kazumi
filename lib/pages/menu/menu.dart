@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
+import 'package:kazumi/utils/storage.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key});
+
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
 }
@@ -15,7 +18,9 @@ class NavigationBarState extends ChangeNotifier {
   bool _isBottom = false;
 
   int get selectedIndex => _selectedIndex;
+
   bool get isHide => _isHide;
+
   bool get isBottom => _isBottom;
 
   void updateSelectedIndex(int pageIndex) {
@@ -36,6 +41,8 @@ class NavigationBarState extends ChangeNotifier {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
+  bool showWindowButton =
+      GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +115,9 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                 leading: SizedBox(
                     width: 50,
                     child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
+                        padding: (Platform.isMacOS && showWindowButton)
+                            ? const EdgeInsets.only(top: 30)
+                            : const EdgeInsets.only(top: 8),
                         child: ClipOval(
                           child: InkWell(
                             customBorder: const CircleBorder(),

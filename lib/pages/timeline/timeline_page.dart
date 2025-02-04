@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/pages/menu/side_menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -25,7 +24,7 @@ class _TimelinePageState extends State<TimelinePage>
   final TimelineController timelineController =
       Modular.get<TimelineController>();
   bool showingTimeMachineDialog = false;
-  dynamic navigationBarState;
+  late NavigationBarState navigationBarState;
   TabController? controller;
 
   @override
@@ -34,13 +33,8 @@ class _TimelinePageState extends State<TimelinePage>
     int weekday = DateTime.now().weekday - 1;
     controller =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
-    if (Utils.isCompact()) {
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
-    } else {
-      navigationBarState =
-          Provider.of<SideNavigationBarState>(context, listen: false);
-    }
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
@@ -80,14 +74,9 @@ class _TimelinePageState extends State<TimelinePage>
     Tab(text: '日'),
   ];
 
-  final seasons = [
-    '秋',
-    '夏',
-    '春',
-    '冬'
-  ];
+  final seasons = ['秋', '夏', '春', '冬'];
 
-  String getStringByDateTime(DateTime d){
+  String getStringByDateTime(DateTime d) {
     return d.year.toString() + Utils.getSeasonStringByMonth(d.month);
   }
 
@@ -115,22 +104,21 @@ class _TimelinePageState extends State<TimelinePage>
                 child: Text(timelineController.seasonString),
                 onTap: () {
                   showingTimeMachineDialog = true;
-                  KazumiDialog.show(
-                    onDismiss: () {
-                      showingTimeMachineDialog = false;
-                    },
-                    builder: (context) {
-                      final currDate = DateTime.now();
-                      final years = List.generate(20, (index) => currDate.year - index);
-                      List<DateTime> buttons = [];
-                      for (final i in years){
-                        for (final s in seasons){
-                          final date = generateDateTime(i, s);
-                          if(currDate.isAfter(date)) {
-                            buttons.add(date);
-                          }
+                  KazumiDialog.show(onDismiss: () {
+                    showingTimeMachineDialog = false;
+                  }, builder: (context) {
+                    final currDate = DateTime.now();
+                    final years =
+                        List.generate(20, (index) => currDate.year - index);
+                    List<DateTime> buttons = [];
+                    for (final i in years) {
+                      for (final s in seasons) {
+                        final date = generateDateTime(i, s);
+                        if (currDate.isAfter(date)) {
+                          buttons.add(date);
                         }
                       }
+                    }
                     return AlertDialog(
                       title: const Text("时间机器"),
                       content: SingleChildScrollView(

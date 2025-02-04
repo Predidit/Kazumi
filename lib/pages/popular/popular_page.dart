@@ -13,6 +13,8 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:provider/provider.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -26,6 +28,7 @@ class _PopularPageState extends State<PopularPage>
   DateTime? _lastPressedAt;
   bool showTagFilter = true;
   bool showSearchBar = false;
+  late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
@@ -55,6 +58,12 @@ class _PopularPageState extends State<PopularPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    navigationBarState = Provider.of<NavigationBarState>(context, listen: true);
+  }
+
+  @override
   void dispose() {
     popularController.isSearching = false;
     _focusNode.dispose();
@@ -77,10 +86,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 暂时移除，某些情况下可能 crash
-      // scrollController.jumpTo(popularController.scrollOffset);
-    });
     return OrientationBuilder(builder: (context, orientation) {
       return PopScope(
         canPop: false,
@@ -98,7 +103,7 @@ class _PopularPageState extends State<PopularPage>
               appBar: SysAppBar(
                 needTopOffset: false,
                 leadingWidth: 66, // default 56 + 10
-                leading: (Utils.isCompact())
+                leading: (navigationBarState.isBottom)
                     ? Row(
                         children: [
                           const SizedBox(
@@ -360,7 +365,7 @@ class _PopularPageState extends State<PopularPage>
     );
   }
 
-  Widget searchBar(){
+  Widget searchBar() {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final TextEditingController controller = TextEditingController();
     controller.text = popularController.searchKeyword;

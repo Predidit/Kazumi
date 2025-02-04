@@ -160,19 +160,18 @@ class WebDav {
     });
     await Future.wait([collectiblesFuture, changesFuture]);
 
+
+    // we should block download changes when download collectibles failed
+    // download changes failed but collectibles success means remote files broken or newwork error
+    // we should force push local collectibles to remote to fix it
     try {
       remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');
-    } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav get collectibles from file failed $e');
-    }
-    try {
       remoteChanges = await GStorage.getCollectChangesFromFile(
           '${webDavLocalTempDirectory.path}/collectChanges.tmp');
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'webDav get collect changes from file failed $e');
+          .log(Level.error, 'webDav get collectibles from file failed $e');
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);

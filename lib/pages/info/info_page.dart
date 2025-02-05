@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/info/comments_sheet.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
@@ -15,6 +16,9 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../bean/widget/collect_button.dart';
+import '../../utils/constants.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -45,8 +49,6 @@ class _InfoPageState extends State<InfoPage>
         infoController.bangumiItem.tags.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
-    queryManager = QueryManager();
-    queryManager.querySource(popularController.keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
   }
@@ -101,43 +103,25 @@ class _InfoPageState extends State<InfoPage>
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: SysAppBar(
+            appBar: const SysAppBar(
               backgroundColor: Colors.transparent,
-              actions: [
-                IconButton(
-                    onPressed: () {
-                      int currentIndex = tabController.index;
-                      KazumiDialog.show(builder: (context) {
-                        return AlertDialog(
-                          title: const Text('退出确认'),
-                          content: const Text('您想要离开 Kazumi 并在浏览器中打开此视频源吗？'),
-                          actions: [
-                            TextButton(
-                                onPressed: () => KazumiDialog.dismiss(),
-                                child: const Text('取消')),
-                            TextButton(
-                                onPressed: () {
-                                  KazumiDialog.dismiss();
-                                  launchUrl(Uri.parse(pluginsController
-                                      .pluginList[currentIndex].baseUrl));
-                                },
-                                child: const Text('确认')),
-                          ],
-                        );
-                      });
-                    },
-                    icon: const Icon(Icons.open_in_browser))
-              ],
             ),
             body: Column(
               children: [
                 BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+                const Flexible(
+                  child: CommentsBottomSheet(),
+                ),
               ],
             ),
             floatingActionButton: FloatingActionButton.extended(
               icon: const Icon(Icons.play_arrow_rounded),
               label: const Text('开始观看'),
               onPressed: () async {
+                if (infoController.pluginSearchResponseList.isEmpty) {
+                  queryManager = QueryManager();
+                  queryManager.querySource(popularController.keyword);
+                }
                 showModalBottomSheet(
                     isScrollControlled: true,
                     constraints: BoxConstraints(

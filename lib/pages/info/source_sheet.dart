@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({super.key});
@@ -43,51 +44,84 @@ class _SourceSheetState extends State<SourceSheet>
       child: Scaffold(
         body: Column(
           children: [
-            TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.center,
-              controller: tabController,
-              tabs: pluginsController.pluginList
-                  .map(
-                    (plugin) => Observer(
-                      builder: (context) => Tab(
-                        child: Row(
-                          children: [
-                            Text(
-                              plugin.name,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium!
-                                      .fontSize,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface),
-                            ),
-                            const SizedBox(width: 5.0),
-                            Container(
-                              width: 8.0,
-                              height: 8.0,
-                              decoration: BoxDecoration(
-                                color: infoController
-                                            .pluginSearchStatus[plugin.name] ==
-                                        'success'
-                                    ? Colors.green
-                                    : (infoController.pluginSearchStatus[
+            Row(
+              children: [
+                Expanded(child:
+                TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.center,
+                  dividerHeight: 0,
+                  controller: tabController,
+                  tabs: pluginsController.pluginList
+                      .map(
+                        (plugin) => Observer(
+                          builder: (context) => Tab(
+                            child: Row(
+                              children: [
+                                Text(
+                                  plugin.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium!
+                                          .fontSize,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface),
+                                ),
+                                const SizedBox(width: 5.0),
+                                Container(
+                                  width: 8.0,
+                                  height: 8.0,
+                                  decoration: BoxDecoration(
+                                    color: infoController.pluginSearchStatus[
                                                 plugin.name] ==
-                                            'pending')
-                                        ? Colors.grey
-                                        : Colors.red,
-                                shape: BoxShape.circle,
-                              ),
+                                            'success'
+                                        ? Colors.green
+                                        : (infoController.pluginSearchStatus[
+                                                    plugin.name] ==
+                                                'pending')
+                                            ? Colors.grey
+                                            : Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+                      )
+                      .toList(),
+                ),),
+                IconButton(
+                  onPressed: () {
+                    int currentIndex = tabController.index;
+                    KazumiDialog.show(builder: (context) {
+                      return AlertDialog(
+                        title: const Text('退出确认'),
+                        content: const Text('您想要离开 Kazumi 并在浏览器中打开此视频源吗？'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => KazumiDialog.dismiss(),
+                              child: const Text('取消')),
+                          TextButton(
+                              onPressed: () {
+                                KazumiDialog.dismiss();
+                                launchUrl(Uri.parse(pluginsController
+                                    .pluginList[currentIndex].baseUrl));
+                              },
+                              child: const Text('确认')),
+                        ],
+                      );
+                    });
+                  },
+                  icon: const Icon(Icons.open_in_browser),
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
+            const Divider(height: 0),
             Expanded(
               child: Observer(
                 builder: (context) => TabBarView(
@@ -102,7 +136,8 @@ class _SourceSheetState extends State<SourceSheet>
                         for (var searchItem in searchResponse.data) {
                           cardList.add(
                             Card(
-                              margin: const EdgeInsets.only(left: 10, right: 10, top: 10),
+                              margin: const EdgeInsets.only(
+                                  left: 10, right: 10, top: 10),
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () async {

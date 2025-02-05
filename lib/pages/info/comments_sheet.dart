@@ -110,7 +110,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         Text('${infoController.bangumiItem.tags[index].name} '),
                         Text(
                           '${infoController.bangumiItem.tags[index].count}',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary),
                         ),
                       ],
                     ),
@@ -178,19 +179,15 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         body: Column(
           children: [
-            const PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Material(
-                child: TabBar(
-                  tabs: [
-                    Tab(text: '详情'),
-                    Tab(text: '吐槽箱'),
-                    Tab(text: '声优表'),
-                  ],
-                ),
-              ),
+            const TabBar(
+              tabs: [
+                Tab(text: '详情'),
+                Tab(text: '吐槽箱'),
+                Tab(text: '声优表'),
+              ],
             ),
             Expanded(
               child: TabBarView(

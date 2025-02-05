@@ -52,7 +52,7 @@ class CharacterCard extends StatelessWidget {
               padding: const EdgeInsets.all(8.0),
               child: Text(characterItem.actorList.isEmpty
                   ? ''
-                  : characterItem.actorList[0].shortSummary),
+                  : characterItem.actorList[0].toString()),
             ),
           ),
         ],

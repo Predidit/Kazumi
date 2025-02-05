@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
@@ -14,7 +14,6 @@ import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/pages/info/comments_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class InfoPage extends StatefulWidget {
@@ -42,7 +41,8 @@ class _InfoPageState extends State<InfoPage>
     // Because the gap between different bangumi API reponse is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
-    if (infoController.bangumiItem.summary == '' || infoController.bangumiItem.tags.isEmpty) {
+    if (infoController.bangumiItem.summary == '' ||
+        infoController.bangumiItem.tags.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();
@@ -132,96 +132,11 @@ class _InfoPageState extends State<InfoPage>
             body: Column(
               children: [
                 BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-                TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.center,
-                  controller: tabController,
-                  tabs: pluginsController.pluginList
-                      .map((plugin) => Observer(
-                            builder: (context) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  plugin.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium!
-                                          .fontSize,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface),
-                                ),
-                                const SizedBox(width: 5.0),
-                                Container(
-                                  width: 8.0,
-                                  height: 8.0,
-                                  decoration: BoxDecoration(
-                                    color: infoController.pluginSearchStatus[
-                                                plugin.name] ==
-                                            'success'
-                                        ? Colors.green
-                                        : (infoController.pluginSearchStatus[
-                                                    plugin.name] ==
-                                                'pending')
-                                            ? Colors.grey
-                                            : Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ))
-                      .toList(),
-                ),
-                Expanded(
-                  child: Observer(
-                    builder: (context) => TabBarView(
-                      controller: tabController,
-                      children: List.generate(
-                          pluginsController.pluginList.length, (pluginIndex) {
-                        var plugin = pluginsController.pluginList[pluginIndex];
-                        var cardList = <Widget>[];
-                        for (var searchResponse
-                            in infoController.pluginSearchResponseList) {
-                          if (searchResponse.pluginName == plugin.name) {
-                            for (var searchItem in searchResponse.data) {
-                              cardList.add(Card(
-                                color: Colors.transparent,
-                                child: ListTile(
-                                  tileColor: Colors.transparent,
-                                  title: Text(searchItem.name),
-                                  onTap: () async {
-                                    KazumiDialog.showLoading(msg: '获取中');
-                                    videoPageController.currentPlugin = plugin;
-                                    videoPageController.title = searchItem.name;
-                                    videoPageController.src = searchItem.src;
-                                    try {
-                                      await infoController.queryRoads(
-                                          searchItem.src, plugin.name);
-                                      KazumiDialog.dismiss();
-                                      Modular.to.pushNamed('/video/');
-                                    } catch (e) {
-                                      KazumiLogger()
-                                          .log(Level.error, e.toString());
-                                      KazumiDialog.dismiss();
-                                    }
-                                  },
-                                ),
-                              ));
-                            }
-                          }
-                        }
-                        return ListView(children: cardList);
-                      }),
-                    ),
-                  ),
-                )
               ],
             ),
-            floatingActionButton: FloatingActionButton(
-              child: const Icon(Icons.widgets_rounded),
+            floatingActionButton: FloatingActionButton.extended(
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('开始观看'),
               onPressed: () async {
                 showModalBottomSheet(
                     isScrollControlled: true,
@@ -233,7 +148,7 @@ class _InfoPageState extends State<InfoPage>
                     clipBehavior: Clip.antiAlias,
                     context: context,
                     builder: (context) {
-                      return const CommentsBottomSheet();
+                      return const SourceSheet();
                     });
               },
             ),

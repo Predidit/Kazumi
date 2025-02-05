@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class StyleString {
   static const double cardSpace = 8;
@@ -30,7 +31,56 @@ Map<String, String> bangumiHTTPHeader = {
   'referer': '',
 };
 
-// 可选播放倍速，iOS平台有的视频无法以高于2.0的播放倍速播放
+// 可选硬件解码器
+const Map<String, String> hardwareDecodersList = {
+  'auto': '启用任意可用解码器',
+  'auto-safe': '启用最佳解码器',
+  'auto-copy': '启用带拷贝功能的最佳解码器',
+  'd3d11va': 'DirectX11 (windows8 及以上)',
+  'd3d11va-copy': 'DirectX11 (windows8 及以上) (非直通)',
+  'videotoolbox': 'VideoToolbox (macOS / iOS)',
+  'videotoolbox-copy': 'VideoToolbox (macOS / iOS) (非直通)',
+  'vaapi': 'VAAPI (Linux)',
+  'vaapi-copy': 'VAAPI (Linux) (非直通)',
+  'nvdec': 'NVDEC (NVIDIA独占)',
+  'nvdec-copy': 'NVDEC (NVIDIA独占) (非直通)',
+  'drm': 'DRM (Linux)',
+  'drm-copy': 'DRM (Linux) (非直通)',
+  'vulkan': 'Vulkan (全平台) (实验性)',
+  'vulkan-copy': 'Vulkan (全平台) (实验性) (非直通)',
+  'dxva2': 'DXVA2 (Windows7 及以上)',
+  'dxva2-copy': 'DXVA2 (Windows7 及以上) (非直通)',
+  'vdpau': 'VDPAU (Linux)',
+  'vdpau-copy': 'VDPAU (Linux) (非直通)',
+  'mediacodec': 'MediaCodec (Android)',
+  'cuda': 'CUDA (NVIDIA独占) (过时)',
+  'cuda-copy': 'CUDA (NVIDIA独占) (过时) (非直通)',
+  'crystalhd': 'CrystalHD (全平台) (过时)',
+  'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
+};
+
+// 超分辨率滤镜
+const List<String> mpvAnime4KShaders = [
+  'Anime4K_Clamp_Highlights.glsl',
+  'Anime4K_Restore_CNN_VL.glsl',
+  'Anime4K_Upscale_CNN_x2_VL.glsl',
+  'Anime4K_AutoDownscalePre_x2.glsl',
+  'Anime4K_AutoDownscalePre_x4.glsl',
+  'Anime4K_Upscale_CNN_x2_M.glsl'
+];
+
+// 超分辨率滤镜 (轻量)
+const List<String> mpvAnime4KShadersLite = [
+  'Anime4K_Clamp_Highlights.glsl',
+  'Anime4K_Restore_CNN_M.glsl',
+  'Anime4K_Restore_CNN_S.glsl',
+  'Anime4K_Upscale_CNN_x2_M.glsl',
+  'Anime4K_AutoDownscalePre_x2.glsl',
+  'Anime4K_AutoDownscalePre_x4.glsl',
+  'Anime4K_Upscale_CNN_x2_S.glsl'
+];
+
+// 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,
   0.5,
@@ -40,10 +90,6 @@ const List<double> defaultPlaySpeedList = [
   1.5,
   1.75,
   2.0,
-];
-
-// 扩展播放倍速
-const List<double> extendPlaySpeedList = [
   2.25,
   2.5,
   2.75,
@@ -89,6 +135,24 @@ final List<double> danFontList = [
   30.0,
   31.0,
   32.0,
+  if (!Utils.isCompact()) ...[
+    33.0,
+    34.0,
+    35.0,
+    36.0,
+    37.0,
+    38.0,
+    39.0,
+    40.0,
+    41.0,
+    42.0,
+    43.0,
+    44.0,
+    45.0,
+    46.0,
+    47.0,
+    48.0,
+  ]
 ];
 
 // 可选弹幕字体字重

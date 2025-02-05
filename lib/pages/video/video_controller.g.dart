@@ -25,22 +25,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$logLinesAtom =
-      Atom(name: '_VideoPageController.logLines', context: context);
-
-  @override
-  ObservableList<String> get logLines {
-    _$logLinesAtom.reportRead();
-    return super.logLines;
-  }
-
-  @override
-  set logLines(ObservableList<String> value) {
-    _$logLinesAtom.reportWrite(value, super.logLines, () {
-      super.logLines = value;
-    });
-  }
-
   late final _$currentEpisodeAtom =
       Atom(name: '_VideoPageController.currentEpisode', context: context);
 
@@ -73,19 +57,35 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$androidFullscreenAtom =
-      Atom(name: '_VideoPageController.androidFullscreen', context: context);
+  late final _$isFullscreenAtom =
+      Atom(name: '_VideoPageController.isFullscreen', context: context);
 
   @override
-  bool get androidFullscreen {
-    _$androidFullscreenAtom.reportRead();
-    return super.androidFullscreen;
+  bool get isFullscreen {
+    _$isFullscreenAtom.reportRead();
+    return super.isFullscreen;
   }
 
   @override
-  set androidFullscreen(bool value) {
-    _$androidFullscreenAtom.reportWrite(value, super.androidFullscreen, () {
-      super.androidFullscreen = value;
+  set isFullscreen(bool value) {
+    _$isFullscreenAtom.reportWrite(value, super.isFullscreen, () {
+      super.isFullscreen = value;
+    });
+  }
+
+  late final _$isPipAtom =
+      Atom(name: '_VideoPageController.isPip', context: context);
+
+  @override
+  bool get isPip {
+    _$isPipAtom.reportRead();
+    return super.isPip;
+  }
+
+  @override
+  set isPip(bool value) {
+    _$isPipAtom.reportWrite(value, super.isPip, () {
+      super.isPip = value;
     });
   }
 
@@ -121,22 +121,6 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$showDebugLogAtom =
-      Atom(name: '_VideoPageController.showDebugLog', context: context);
-
-  @override
-  bool get showDebugLog {
-    _$showDebugLogAtom.reportRead();
-    return super.showDebugLog;
-  }
-
-  @override
-  set showDebugLog(bool value) {
-    _$showDebugLogAtom.reportWrite(value, super.showDebugLog, () {
-      super.showDebugLog = value;
-    });
-  }
-
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -157,13 +141,12 @@ mixin _$VideoPageController on _VideoPageController, Store {
   String toString() {
     return '''
 loading: ${loading},
-logLines: ${logLines},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
-androidFullscreen: ${androidFullscreen},
+isFullscreen: ${isFullscreen},
+isPip: ${isPip},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
-showDebugLog: ${showDebugLog},
 roadList: ${roadList}
     ''';
   }

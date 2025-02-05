@@ -55,6 +55,7 @@ class CharacterItem {
   final int id;
   final int type;
   final String name;
+  final String relation;
   final CharacterAvator avator;
   final List<ActorItem> actorList;
   CharacterExtraInfo info;
@@ -63,6 +64,7 @@ class CharacterItem {
     required this.id,
     required this.type,
     required this.name,
+    required this.relation,
     required this.avator,
     required this.actorList,
     required this.info
@@ -82,10 +84,11 @@ class CharacterItem {
           json['character']['images'] as Map<String, dynamic>);
     }
     return CharacterItem(
-      id: json['character']['id'] ?? 0,
+      id: json['id'] ?? 0,
       type: json['type'] ?? 0,
-      name: json['character']['name'] ?? '',
-      avator: resAvator,
+      name: json['name'] ?? '',
+      relation: json['relation'] ?? '未知',
+      avator: CharacterAvator.fromJson(json['images'] as Map<String, dynamic>),
       actorList: resActorList,
       info: CharacterExtraInfo(nameCn: '', summary: '')
     );
@@ -96,6 +99,7 @@ class CharacterItem {
       'id': id,
       'type': type,
       'name': name,
+      'relation': relation,
       'images': avator.toJson(),
       'actors': actorList.map((e) => e.toJson()).toList(),
     };

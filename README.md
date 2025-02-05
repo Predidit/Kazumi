@@ -1,5 +1,5 @@
 # Kazumi
-使用 flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 `Xpath` 语法的选择器构建自己的规则。支持规则导入与规则分享。绝赞开发中 (～￣▽￣)～
+使用 flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 `Xpath` 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 `Anime4K` 的实时超分辨率。绝赞开发中 (～￣▽￣)～
 
 ## 支持平台
 
@@ -8,6 +8,7 @@
 - MacOS 10.15 及以上
 - Linux (实验性)
 - iOS (需要自签名)
+- HarmonyOS NEXT (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要侧载)
 
 ## 屏幕截图 
 
@@ -46,6 +47,7 @@
 - [x] 跨设备同步
 - [x] 无线投屏 (DLNA)
 - [x] 外部播放器播放
+- [x] 超分辨率
 - [ ] 番剧下载
 - [ ] 番剧更新提醒
 - [ ] 还有更多 (/・ω・＼) 
@@ -65,6 +67,12 @@
   <img src="https://flathub.org/api/badge?locale=en" alt="Get it on Flathub" width="180"/>
 </a>
 
+对于 Arch Linux 用户，可以从 AUR 软件库安装：
+
+```bash
+yay -S kazumi
+```
+
 ## 贡献
 
 欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID
@@ -77,6 +85,10 @@
 #### Q: 为什么少数番剧中有广告。
 
 A: 本项目未插入任何广告。广告来自视频源, 请不要相信广告中的任何内容, 并尽量选择没有广告的视频源观看。
+
+#### Q: 为什么我启用超分辨率功能后播放卡顿。
+
+A: 超分辨率功能对GPU性能要求较高, 如果没有在高性能独立显卡上运行Kazumi, 尽量选择效率档而非质量档。对低分辨率视频源而非高分辨率视频源使用超分也可以降低性能消耗。
 
 #### Q: 为什么播放视频时内存占用较高。
 
@@ -126,9 +138,17 @@ A: 本项目编译需要良好的网络环境, 除了由Google托管的Flutter�
 
 使用本项目需遵守所在地法律法规, 不得进行任何侵犯第三方知识产权的行为。因使用本项目而产生的数据和缓存应在24小时内清除, 超出24小时的使用需获得相关权利人的授权。
 
-## 禁止商用条款
+## 隐私政策 (Privacy policy)
 
-本软件仅供个人学习、研究或非商业用途。禁止将本软件用于任何商业目的, 包括但不限于出售、出租、许可或以其他形式从中获利。
+我们不收集任何用户数据, 不使用任何遥测组件。
+
+## 代码签名策略 (Code signing policy)
+提交者: [Contributors](https://github.com/Predidit/Kazumi/graphs/contributors)
+审阅者: [Owner](https://github.com/Predidit)
+
+## 赞助 (Sponsors)
+| ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/),certficate by [SignPath Foundation](https://signpath.org/) |
+|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 
 ## 致谢
 
@@ -138,7 +158,11 @@ A: 本项目编译需要良好的网络环境, 除了由Google托管的Flutter�
 
 特别感谢 [Bangumi](https://bangumi.tv/) 本项目使用了 Bangumi 开放API 以提供番剧元数据。
 
-感谢 [fvp](https://github.com/wang-bin/fvp) 本项目跨平台媒体播放能力来自 fvp
+特别感谢 [Anime4K](https://github.com/bloc97/Anime4K) 本项目使用 Anime4K 进行实时超分。
+
+感谢 [media-kit](https://github.com/media-kit/media-kit) 本项目跨平台媒体播放能力来自 media-kit
+
+感谢 [avbuild](https://github.com/wang-bin/avbuild) 本项目使用了来自 avbuild 的树外补丁实现非标准视频流播放
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive
 

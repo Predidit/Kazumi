@@ -58,6 +58,22 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$episodeCommentsListAtom =
+      Atom(name: '_InfoController.episodeCommentsList', context: context);
+
+  @override
+  ObservableList<EpisodeCommentItem> get episodeCommentsList {
+    _$episodeCommentsListAtom.reportRead();
+    return super.episodeCommentsList;
+  }
+
+  @override
+  set episodeCommentsList(ObservableList<EpisodeCommentItem> value) {
+    _$episodeCommentsListAtom.reportWrite(value, super.episodeCommentsList, () {
+      super.episodeCommentsList = value;
+    });
+  }
+
   late final _$characterListAtom =
       Atom(name: '_InfoController.characterList', context: context);
 
@@ -80,6 +96,7 @@ mixin _$InfoController on _InfoController, Store {
 pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
 commentsList: ${commentsList},
+episodeCommentsList: ${episodeCommentsList},
 characterList: ${characterList}
     ''';
   }

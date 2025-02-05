@@ -9,6 +9,10 @@ class AppDelegate: FlutterAppDelegate {
         return true
     }
     
+    override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        return true
+    }
+    
     var playerView: AVPlayerView!
     var player: AVPlayer?
     var videoUrl: URL?

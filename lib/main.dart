@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
     bool isLowResolution = await Utils.isLowResolution();
@@ -52,8 +56,13 @@ void main() async {
   }
   Request();
   await Request.setCookie();
-  runApp(ModularApp(
-    module: AppModule(),
-    child: const AppWidget(),
-  ));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: ModularApp(
+        module: AppModule(),
+        child: const AppWidget(),
+      ),
+    ),
+  );
 }

@@ -1,39 +1,47 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 
-class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewController> {
+class WebviewWindowsItemControllerImpel
+    extends WebviewItemController<WebviewController> {
   Timer? ifrmaeParserTimer;
   Timer? videoParserTimer;
+  bool bridgeInited = false;
 
   @override
-  init() async {
+  Future<void> init() async {
     webviewController ??= WebviewController();
     await webviewController!.initialize();
-    await webviewController!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
-    await initJSBridge();
-    if (videoPageController.currentPlugin.useNativePlayer &&
-        !videoPageController.currentPlugin.useLegacyParser) {
+    await webviewController!
+        .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    bridgeInited = false;
+    initEventController.add(true);
+  }
+
+  Future<void> initBridge(bool useNativePlayer, bool useLegacyParser) async {
+    await initJSBridge(useNativePlayer, useLegacyParser);
+    if (useNativePlayer && !useLegacyParser) {
       await initBlobParser();
       await initInviewIframeBridge();
     }
-    videoPageController.changeEpisode(videoPageController.currentEpisode,
-        currentRoad: videoPageController.currentRoad,
-        offset: videoPageController.historyOffset);
+    bridgeInited = true;
   }
 
   @override
-  loadUrl(String url, {int offset = 0}) async {
+  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+      {int offset = 0}) async {
     ifrmaeParserTimer?.cancel();
     videoParserTimer?.cancel();
     await unloadPage();
+    if (!bridgeInited) {
+      await initBridge(useNativePlayer, useLegacyParser);
+    }
     count = 0;
     this.offset = offset;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
-    videoPageController.loading = true;
+    videoLoadingEventController.add(true);
     await webviewController!.loadUrl(url);
 
     ifrmaeParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -45,7 +53,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
       }
       // parseIframeUrl();
     });
-    if (videoPageController.currentPlugin.useNativePlayer) {
+    if (useNativePlayer) {
       videoParserTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (isVideoSourceLoaded) {
           timer.cancel();
@@ -53,12 +61,12 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
           if (count >= 15) {
             timer.cancel();
             isIframeLoaded = true;
-            videoPageController.logLines.clear();
-            videoPageController.logLines.add('解析视频资源超时');
-            videoPageController.logLines.add('请切换到其他播放列表或视频源');
-            videoPageController.showDebugLog = true;
+            logEventController.add('clear');
+            logEventController.add('解析视频资源超时');
+            logEventController.add('请切换到其他播放列表或视频源');
+            logEventController.add('showDebug');
           } else {
-            if (!videoPageController.currentPlugin.useLegacyParser) {
+            if (!useLegacyParser) {
               parseVideoSource();
             }
           }
@@ -68,47 +76,45 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   @override
-  unloadPage() async {
+  Future<void> unloadPage() async {
     await redirect2Blank();
     await webviewController!.clearCache();
   }
 
   @override
-  dispose() {
+  void dispose() {
+    bridgeInited = false;
     webviewController!.dispose();
   }
 
-  initJSBridge() async {
+  Future<void> initJSBridge(bool useNativePlayer, bool useLegacyParser) async {
     webviewController!.webMessage.listen((event) async {
       if (event.toString().contains('iframeMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('iframeMessage:', ''));
-        debugPrint('JS Bridge: $messageItem');
-        videoPageController.logLines
+        logEventController
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
-        videoPageController.logLines.add(
+        logEventController.add(
             'If there is audio but no video, please report it to the rule developer.');
         if (messageItem.contains('http') || messageItem.startsWith('//')) {
-          videoPageController.logLines.add('Parsing video source $messageItem');
+          logEventController.add('Parsing video source $messageItem');
           if (Utils.decodeVideoSource(messageItem) !=
                   Uri.encodeFull(messageItem) &&
-              videoPageController.currentPlugin.useNativePlayer &&
-              videoPageController.currentPlugin.useLegacyParser) {
+              useNativePlayer &&
+              useLegacyParser) {
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
-            videoPageController.loading = false;
-            videoPageController.logLines.add(
+            videoLoadingEventController.add(false);
+            logEventController.add(
                 'Loading video source ${Utils.decodeVideoSource(messageItem)}');
-            debugPrint(
-                'Loading video source from ifame src ${Utils.decodeVideoSource(messageItem)}');
             unloadPage();
-            playerController.videoUrl = Utils.decodeVideoSource(messageItem);
-            playerController.init(offset: offset);
+            videoParserEventController
+                .add((Utils.decodeVideoSource(messageItem), offset));
           }
-          if (!videoPageController.currentPlugin.useNativePlayer) {
+          if (!useNativePlayer) {
             Future.delayed(const Duration(seconds: 2), () {
               isIframeLoaded = true;
-              videoPageController.loading = false;
+              videoLoadingEventController.add(false);
             });
           }
         }
@@ -116,27 +122,24 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
       if (event.toString().contains('videoMessage:')) {
         String messageItem =
             Uri.encodeFull(event.toString().replaceFirst('videoMessage:', ''));
-        debugPrint('VideoJS Bridge: $messageItem');
-        videoPageController.logLines
+        logEventController
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         if (messageItem.contains('http') && !isVideoSourceLoaded) {
           String videoUrl = Uri.decodeFull(messageItem);
-          debugPrint('Loading video source $videoUrl');
-          videoPageController.logLines.add('Loading video source $videoUrl');
+          logEventController.add('Loading video source $videoUrl');
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
-          videoPageController.loading = false;
-          if (videoPageController.currentPlugin.useNativePlayer) {
+          videoLoadingEventController.add(false);
+          if (useNativePlayer) {
             unloadPage();
-            playerController.videoUrl = videoUrl;
-            playerController.init(offset: offset);
+            videoParserEventController.add((videoUrl, offset));
           }
         }
       }
     });
   }
 
-  parseIframeUrl() async {
+  Future<void> parseIframeUrl() async {
     await webviewController!.executeScript('''
       var iframes = document.getElementsByTagName('iframe');
       window.chrome.webview.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
@@ -154,7 +157,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   // 非blob资源
-  parseVideoSource() async {
+  Future<void> parseVideoSource() async {
     await webviewController!.executeScript('''
       var videos = document.querySelectorAll('video');
       window.chrome.webview.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
@@ -182,7 +185,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   }
 
   // blob资源
-  initBlobParser() async {
+  Future<void> initBlobParser() async {
     await webviewController!.addScriptToExecuteOnDocumentCreated('''
       const _r_text = window.Response.prototype.text;
       window.Response.prototype.text = function () {
@@ -239,7 +242,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
     ''');
   }
 
-  initInviewIframeBridge() async {
+  Future<void> initInviewIframeBridge() async {
     await webviewController!.addScriptToExecuteOnDocumentCreated('''
       window.addEventListener("message", function(event) {
         if (event.data) {
@@ -254,7 +257,7 @@ class WebviewWindowsItemControllerImpel extends WebviewItemController<WebviewCon
   // webview_windows本身无此方法，loadurl方法相当于打开新标签页，会造成内存泄漏
   // 而直接销毁 webview 控制器会导致更换选集时需要重新初始化，webview 重新初始化开销较大
   // 故使用此方法
-  redirect2Blank() async {
+  Future<void> redirect2Blank() async {
     await webviewController!.executeScript('''
       window.location.href = 'about:blank';
     ''');

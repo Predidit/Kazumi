@@ -3,18 +3,95 @@
 
     on:
       pull_request:
-        types: [opened, synchronize, reopened]
+        types:
+          - opened
+          - synchronize
+          - reopened
+          - ready_for_review
+        paths-ignore:
+          - 'static/**'
+          - 'README.md'
+          - '.gitignore'
       workflow_dispatch:
         inputs:
           logLevel:
-            description: 'Log level'     
+            description: 'Log level'
             required: true
             default: 'warning'
+          signpath_sign:
+            description: 'sign binary by signpath'
+            required: false
+            default: false
+            type: boolean
+          run_android:
+            description: 'manually run android build'
+            required: false
+            default: false
+            type: boolean
+          run_windows:
+            description: 'manually run windows build'
+            required: false
+            default: false
+            type: boolean
+          run_ios:
+            description: 'manually run ios build'
+            required: false
+            default: false
+            type: boolean
+          run_macos:
+            description: 'manually run macos build'
+            required: false
+            default: false
+            type: boolean
+          run_linux:
+            description: 'manually run linux build'
+            required: false
+            default: false
+            type: boolean
     
     jobs:
+      changes:
+        if: ${{ ! github.event.pull_request.draft }}
+        runs-on: "ubuntu-latest"
+        permissions:
+          pull-requests: read
+        outputs:
+          android: ${{ steps.filter.outputs.android }}
+          windows: ${{ steps.filter.outputs.windows }}
+          ios: ${{ steps.filter.outputs.ios }}
+          macos: ${{ steps.filter.outputs.macos }}
+          linux: ${{ steps.filter.outputs.linux }}
+          all: ${{ steps.filter.outputs.all }}
+        steps:
+          - uses: actions/checkout@v4
+          - uses: dorny/paths-filter@v3
+            id: filter
+            with:
+              predicate-quantifier: 'every'
+              filters: |
+                android:
+                  - 'android/**'
+                windows:
+                  - 'windows/**'
+                ios:
+                  - 'ios/**'
+                macos:
+                  - 'macos/**'
+                linux:
+                  - 'linux/**'
+                all:
+                  - '!android/**'
+                  - '!windows/**'
+                  - '!ios/**'
+                  - '!macos/**'
+                  - '!linux/**'
+
+
       flutter-build-android:
+        needs: changes
+        if: ${{ github.event.inputs.run_android || (! github.event.pull_request.draft && (needs.changes.outputs.android || needs.changes.outputs.all)) }}
         name: "Release for android"
-        runs-on: "ubuntu-latest" 
+        runs-on: "ubuntu-latest"
         permissions: write-all
         steps:
           - name: Clone repository
@@ -37,6 +114,10 @@
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
+          - name: Inject DanDan API Credentials
+            run: |
+              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
+              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build Flutter for Android
             run: flutter build apk --split-per-abi
             shell: bash
@@ -51,6 +132,8 @@
               path: Kazumi_android_*.apk
 
       flutter-build-windows:
+        needs: changes
+        if: ${{ github.event.inputs.run_windows || (! github.event.pull_request.draft && (needs.changes.outputs.windows || needs.changes.outputs.all)) }}
         name: "Release for windows"
         runs-on: "windows-latest"
         permissions: write-all
@@ -76,25 +159,58 @@
               distribution: 'temurin'
               java-version: '18'
           - run: flutter pub get
-          - run: flutter build windows
-          # - name: Download FFmpeg Assets
-          #   uses: dsaltares/fetch-gh-release-asset@master
-          #   with:
-          #     repo: 'Predidit/avbuild'
-          #     version: 'tags/1.1.0'
-          #     file: 'ffmpeg_windows_x64.zip'
-          #     token: ${{ secrets.GITHUB_TOKEN }}
-          # - run: Remove-Item -Path build/windows/x64/runner/Release/ffmpeg-7.dll -Force
-          # - run: Expand-Archive -LiteralPath ffmpeg_windows_x64.zip -DestinationPath build/windows/x64/runner/Release   
+          - name: Inject DanDan API Credentials
+            env:
+              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
+              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+            run: |
+              (Get-Content -Path 'lib/utils/mortis.dart') -replace "kvpx7qkqjh", "$env:DANDANAPI_APPID" | Set-Content -Path 'lib/utils/mortis.dart'
+              (Get-Content -Path 'lib/utils/mortis.dart') -replace "rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax", "$env:DANDANAPI_KEY" | Set-Content -Path 'lib/utils/mortis.dart'
+          - run: flutter build windows  
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
+            id: unsigned-windows-packet-artifacts
             uses: actions/upload-artifact@v4
             with:
               name: windows_outputs
               path: |
                 Kazumi_windows_*.zip
+          # - name: Build unsigned msix
+          #   run: dart run msix:create
+          # - name: Upload windows msix ouputs
+          #   uses: actions/upload-artifact@v4
+          #   id: unsigned-windows-msix-artifacts
+          #   with:
+          #     name: windows_msix_outputs
+          #     path: |
+          #       build/windows/x64/runner/Release/kazumi.msix
+          
+          # - run: New-Item -Path "build/windows/msix_signed_output" -ItemType Directory
+          # - name: sign windows msix
+          #   if: ${{ github.event.inputs.signpath_sign == 'true'}}
+          #   uses: signpath/github-action-submit-signing-request@v1
+          #   with:
+          #     api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+          #     organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
+          #     project-slug: 'Kazumi'
+          #     signing-policy-slug: 'test-signing'
+          #     artifact-configuration-slug: 'MSIX'
+          #     github-artifact-id: '${{ steps.unsigned-windows-msix-artifacts.outputs.artifact-id }}'
+          #     wait-for-completion: true
+          #     output-artifact-directory: 'build/windows/msix_signed_output'
+          
+          # - name: Upload windows msix signed ouputs
+          #   if: ${{ github.event.inputs.signpath_sign == 'true'}}
+          #   uses: actions/upload-artifact@v4
+          #   id: signed-windows-msix-artifacts
+          #   with:
+          #     name: windows_msix_signed_outputs
+          #     path: build/windows/msix_signed_output/*.msix
+
 
       flutter-build-ios:
+        needs: changes
+        if: ${{ github.event.inputs.run_ios || (! github.event.pull_request.draft && (needs.changes.outputs.ios || needs.changes.outputs.all)) }}
         name: "Release for iOS"
         runs-on: "macos-latest"
         permissions: write-all
@@ -108,6 +224,10 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
+          - name: Inject DanDan API Credentials
+            run: |
+              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
+              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build IPA
             run: |
               flutter build ios --release --no-codesign
@@ -123,6 +243,8 @@
               path: Kazumi_ios_*.ipa
 
       flutter-build-macos:
+        needs: changes
+        if: ${{ github.event.inputs.run_macos || (! github.event.pull_request.draft && (needs.changes.outputs.macos || needs.changes.outputs.all)) }}
         name: "Release for Macos"
         runs-on: "macos-latest"
         permissions: write-all
@@ -136,9 +258,17 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
+          - name: Inject DanDan API Credentials
+            run: |
+              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
+              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - run: flutter build macos --release
           - name: Create DMG
-            run: hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/kazumi.app -volname kazumi Kazumi_macos_canary.dmg
+            run: |
+              mkdir -p build/dist
+              cp -a build/macos/Build/Products/Release/kazumi.app build/dist/
+              ln -s /Applications build/dist/Applications
+              hdiutil create -format UDZO -srcfolder build/dist -volname kazumi Kazumi_macos_canary.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:
@@ -146,6 +276,8 @@
               path: Kazumi_macos_*.dmg
 
       flutter-build-linux:
+        needs: changes
+        if: ${{ github.event.inputs.run_linux || (! github.event.pull_request.draft && (needs.changes.outputs.linux || needs.changes.outputs.all)) }}
         name: "Release for Linux"
         runs-on: "ubuntu-latest" 
         permissions: write-all
@@ -156,6 +288,19 @@
             run: |
               sudo apt-get update
               sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev
+              sudo apt-get install -y gcc g++ autoconf automake debhelper glslang-dev ladspa-sdk xutils-dev libasound2-dev \
+                  libarchive-dev libbluray-dev libbs2b-dev libcaca-dev libcdio-paranoia-dev libdrm-dev \
+                  libdav1d-dev libdvdnav-dev libegl1-mesa-dev libepoxy-dev libfontconfig-dev libfreetype6-dev \
+                  libfribidi-dev libgl1-mesa-dev libgbm-dev libgme-dev libgsm1-dev libharfbuzz-dev libjpeg-dev \
+                  libbrotli-dev liblcms2-dev libmodplug-dev libmp3lame-dev libopenal-dev \
+                  libopus-dev libopencore-amrnb-dev libopencore-amrwb-dev libpulse-dev librtmp-dev \
+                  libsdl2-dev libsixel-dev libssh-dev libsoxr-dev libspeex-dev libtool \
+                  libv4l-dev libva-dev libvdpau-dev libvorbis-dev libvo-amrwbenc-dev \
+                  libunwind-dev libvpx-dev libwayland-dev libx11-dev libxext-dev \
+                  libxkbcommon-dev libxrandr-dev libxss-dev libxv-dev libxvidcore-dev \
+                  linux-libc-dev nasm ninja-build pkg-config python3 python3-docutils wayland-protocols \
+                  x11proto-core-dev zlib1g-dev libfdk-aac-dev libtheora-dev libwebp-dev \
+                  unixodbc-dev libpq-dev libxxhash-dev libaom-dev 
             shell: bash
           - name: Set up Flutter
             uses: subosito/flutter-action@v2
@@ -164,6 +309,11 @@
               flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
+            shell: bash
+          - name: Inject DanDan API Credentials
+            run: |
+              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
+              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
             shell: bash
           - name: Build Flutter for Linux
             run: flutter build linux

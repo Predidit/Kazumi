@@ -40,7 +40,7 @@ class AnimeSeason {
       year--;
     }
 
-    var start = DateTime(year, season * 3 + 1, 1);
+    var start = DateTime(year, startMonth, 1);
     return [start.toString(), end.toString()];
   }
 

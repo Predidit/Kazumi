@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'dart:math';
 import 'package:dio/dio.dart';
-import 'package:crypto/crypto.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:screen_pixel/screen_pixel.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -17,6 +16,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:path/path.dart' as path;
+import 'package:kazumi/utils/mortis.dart';
 
 class Utils {
   static final Random random = Random();
@@ -67,32 +68,6 @@ class Utils {
     return screenInfo;
   }
 
-  static Future<String> getCookiePath() async {
-    final Directory tempDir = await getApplicationSupportDirectory();
-    final String tempPath = "${tempDir.path}/.plpl/";
-    final Directory dir = Directory(tempPath);
-    final bool b = await dir.exists();
-    if (!b) {
-      dir.createSync(recursive: true);
-    }
-    return tempPath;
-  }
-
-  static String numFormat(dynamic number) {
-    if (number == null) {
-      return '0';
-    }
-    if (number is String) {
-      return number;
-    }
-    final String res = (number / 10000).toString();
-    if (int.parse(res.split('.')[0]) >= 1) {
-      return '${(number / 10000).toStringAsFixed(1)}万';
-    } else {
-      return number.toString();
-    }
-  }
-
   // 从URL参数中解析 m3u8/mp4
   static String decodeVideoSource(String iframeUrl) {
     var decodedUrl = Uri.decodeFull(iframeUrl);
@@ -111,27 +86,6 @@ class Utils {
     });
 
     return Uri.encodeFull(matchedUrl);
-  }
-
-  static String timeFormat(dynamic time) {
-    // 1小时内
-    if (time is String && time.contains(':')) {
-      return time;
-    }
-    if (time < 3600) {
-      final int minute = time ~/ 60;
-      final double res = time / 60;
-      if (minute != res) {
-        return '${minute < 10 ? '0$minute' : minute}:${(time - minute * 60) < 10 ? '0${(time - minute * 60)}' : (time - minute * 60)}';
-      } else {
-        return '$minute:00';
-      }
-    } else {
-      final int hour = time ~/ 3600;
-      final String hourStr = hour < 10 ? '0$hour' : hour.toString();
-      var a = timeFormat(time - hour * 3600);
-      return '$hourStr:$a';
-    }
   }
 
   // 完全相对时间显示
@@ -254,36 +208,6 @@ class Utils {
     return v.toString() + random.nextInt(9999).toString();
   }
 
-  static int duration(String duration) {
-    List timeList = duration.split(':');
-    int len = timeList.length;
-    if (len == 2) {
-      return int.parse(timeList[0]) * 60 + int.parse(timeList[1]);
-    }
-    if (len == 3) {
-      return int.parse(timeList[0]) * 3600 +
-          int.parse(timeList[1]) * 60 +
-          int.parse(timeList[2]);
-    }
-    return 0;
-  }
-
-  static int findClosestNumber(int target, List<int> numbers) {
-    int minDiff = 127;
-    late int closestNumber;
-    try {
-      for (int number in numbers) {
-        int diff = (number - target).abs();
-
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestNumber = number;
-        }
-      }
-    } catch (_) {}
-    return closestNumber;
-  }
-
   // 版本对比
   static bool needUpdate(localVersion, remoteVersion) {
     List<String> localVersionList = localVersion.split('.');
@@ -300,20 +224,6 @@ class Utils {
     return false;
   }
 
-  // 下载适用于当前系统的安装包
-  static Future matchVersion(data) async {}
-
-  // 时间戳转时间
-  static tampToSeektime(number) {
-    int hours = number ~/ 60;
-    int minutes = number % 60;
-
-    String formattedHours = hours.toString().padLeft(2, '0');
-    String formattedMinutes = minutes.toString().padLeft(2, '0');
-
-    return '$formattedHours:$formattedMinutes';
-  }
-
   // 日期字符串转换为 weekday (eg: 2024-09-23 -> 1 (星期一))
   static int dateStringToWeekday(String dateString) {
     try {
@@ -322,56 +232,6 @@ class Utils {
     } catch (_) {
       return 1;
     }
-  }
-
-  static String appSign(
-      Map<String, dynamic> params, String appkey, String appsec) {
-    params['appkey'] = appkey;
-    var searchParams = Uri(queryParameters: params).query;
-    var sortedParams = searchParams.split('&')..sort();
-    var sortedQueryString = sortedParams.join('&');
-
-    var appsecString = sortedQueryString + appsec;
-    var md5Digest = md5.convert(utf8.encode(appsecString));
-    var md5String = md5Digest.toString(); // 获取MD5哈希值
-
-    return md5String;
-  }
-
-  static List<int> generateRandomBytes(int minLength, int maxLength) {
-    return List<int>.generate(random.nextInt(maxLength - minLength + 1),
-        (_) => random.nextInt(0x60) + 0x20);
-  }
-
-  static String base64EncodeRandomString(int minLength, int maxLength) {
-    List<int> randomBytes = generateRandomBytes(minLength, maxLength);
-    return base64.encode(randomBytes);
-  }
-
-  static String jsonToWebVTT(Map<String, dynamic> json) {
-    var webvttContent = 'WEBVTT FILE\n\n';
-    int i = 1;
-    for (var entry in json['body']) {
-      final startTime = formatTime(entry['from']);
-      final endTime = formatTime(entry['to']);
-      final content = entry['content'];
-      webvttContent += '${i.toString()}\n$startTime --> $endTime\n$content\n\n';
-      i = i + 1;
-    }
-    return webvttContent;
-  }
-
-  static String formatTime(double seconds) {
-    if (seconds <= 0) {
-      return '00:00';
-    }
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    final secs = seconds % 60;
-    if (hours == 0) {
-      return '${minutes.toString().padLeft(2, '0')}:${secs.floor().toString().padLeft(2, '0')}';
-    }
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.floor().toString().padLeft(2, '0')}';
   }
 
   static String jsonToKazumiBase64(String jsonStr) {
@@ -386,10 +246,6 @@ class Utils {
     String base64Str = kazumiBase64Str.substring(9);
     String jsonStr = utf8.decode(base64.decode(base64Str));
     return jsonStr;
-  }
-
-  static void copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
   }
 
   static String durationToString(Duration duration) {
@@ -431,11 +287,6 @@ class Utils {
     );
   }
 
-  static String getBaseUrl(String url) {
-    Uri uri = Uri.parse(url);
-    return '${uri.scheme}://${uri.host}';
-  }
-
   static generateDanmakuColor(int colorValue) {
     // 提取颜色分量
     int red = (colorValue >> 16) & 0xFF;
@@ -459,10 +310,7 @@ class Utils {
 
   /// 判断是否为桌面设备
   static bool isDesktop() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      return true;
-    }
-    return false;
+    return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
   /// 判断设备是否为宽屏
@@ -499,7 +347,7 @@ class Utils {
     return false;
   }
 
-  static enterWindowsFullscreen() async {
+  static Future<void> enterWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
       try {
@@ -510,7 +358,7 @@ class Utils {
     }
   }
 
-  static exitWindowsFullscreen() async {
+  static Future<void> exitWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
       try {
@@ -522,7 +370,7 @@ class Utils {
   }
 
   // 进入全屏显示
-  static enterFullScreen({bool lockOrientation = true}) async {
+  static Future<void> enterFullScreen({bool lockOrientation = true}) async {
     if (Platform.isWindows) {
       await enterWindowsFullscreen();
       return;
@@ -615,18 +463,53 @@ class Utils {
 
   // 获取当前解复用器
   static Future<String> getCurrentDemux() async {
-    Box setting = GStorage.setting;
-    bool haEnable =
-        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    if (Platform.isIOS && haEnable) {
-      return 'AVPlayer';
+    return 'MPV';
+  }
+
+  static String getSeasonStringByMonth(int month) {
+    if (month <= 3) return '冬';
+    if (month <= 6) return '春';
+    if (month <= 9) return '夏';
+    return '秋';
+  }
+
+  // 进入桌面设备小窗模式
+  static Future<void> enterDesktopPIPWindow() async {
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setResizable(false);
+    await windowManager.setSize(const Size(480, 270));
+  }
+
+  // 退出桌面设备小窗模式
+  static Future<void> exitDesktopPIPWindow() async {
+    bool isLowResolution = await Utils.isLowResolution();
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setResizable(true);
+    await windowManager.setSize(isLowResolution ? const Size(800, 600) : const Size(1280, 860));
+    await windowManager.center();
+  }
+
+  static bool isSameSeason(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
+  }
+
+  static String buildShadersAbsolutePath(
+      String baseDirectory, List<String> shaders) {
+    List<String> absolutePaths = shaders.map((shader) {
+      return path.join(baseDirectory, shader);
+    }).toList();
+    if (Platform.isWindows) {
+      return absolutePaths.join(';');
     }
-    if (Platform.isMacOS && haEnable) {
-      return 'VT';
-    }
-    if (Platform.isAndroid && haEnable) {
-      return 'ExoPlayer';
-    }
-    return 'FFmpeg';
+    return absolutePaths.join(':');
+  }
+
+  static String generateDandanSignature(String path, int timestamp) {
+    String id = mortis['id']!;
+    String value = mortis['value']!;
+    String data = id + timestamp.toString() + path + value;
+    var bytes = utf8.encode(data);
+    var digest = sha256.convert(bytes);
+    return base64Encode(digest.bytes);
   }
 }

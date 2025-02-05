@@ -10,11 +10,11 @@ class CommentResponse {
   });
 
   factory CommentResponse.fromJson(Map<String, dynamic> json) {
-    var list = json['list'] as List;
-    List<CommentItem> resCommentList =
-        list.map((i) => CommentItem.fromJson(i)).toList();
+    List? list = (json['list'] as List?) ?? (json['data'] as List?);
+    List<CommentItem>? resCommentList =
+        list?.map((i) => CommentItem.fromJson(i)).toList();
     return CommentResponse(
-      commentList: resCommentList,
+      commentList: resCommentList ?? <CommentItem>[],
       total: json['total'],
     );
   }
@@ -42,10 +42,10 @@ class EpisodeCommentResponse {
   });
 
   factory EpisodeCommentResponse.fromJson(List<dynamic> json) {
-    List<EpisodeCommentItem> resCommentList =
-    json.map((i) => EpisodeCommentItem.fromJson(i)).toList();
+    List<EpisodeCommentItem>? resCommentList =
+        (json as List?)?.map((i) => EpisodeCommentItem.fromJson(i)).toList();
     return EpisodeCommentResponse(
-      commentList: resCommentList,
+      commentList: resCommentList ?? <EpisodeCommentItem>[],
     );
   }
 

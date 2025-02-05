@@ -1,18 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:logger/logger.dart';
-import 'package:fvp/fvp.dart' as fvp;
-// import 'package:fvp/mdk.dart' as mdk;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
-// import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -23,104 +24,44 @@ class InitPage extends StatefulWidget {
 
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final CollectController collectController = Modular.get<CollectController>();
+  final ShadersController shadersController = Modular.get<ShadersController>();
   Box setting = GStorage.setting;
-
-  // Future<File> _getLogFile() async {
-  //   final directory = await getApplicationDocumentsDirectory();
-  //   return File('${directory.path}/app_log.txt');
-  // }
-
-  // Future<void> writeLog(String message) async {
-  //   final logFile = await _getLogFile();
-  //   await logFile.writeAsString('$message\n', mode: FileMode.append);
-  // }
+  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
-    _fvpInit();
     _pluginInit();
     _webDavInit();
     _update();
+    _migrateStorage();
+    _loadShaders();
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
 
-  _fvpInit() async {
-    bool hAenable =
-        await setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    bool lowMemoryMode =
-        await setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    if (hAenable) {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'platforms': ['windows', 'linux'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-        // mdk.setLogHandler((p0, p1) {
-        //   print(p1);
-        //   writeLog(p1);
-        // });
-      }
-    } else {
-      if (lowMemoryMode) {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+10000',
-          }
-        });
-      } else {
-        fvp.registerWith(options: {
-          'video.decoders': ['FFmpeg'],
-          'player': {
-            'avio.reconnect': '1',
-            'avio.reconnect_delay_max': '7',
-            'buffer': '2000+1500000',
-            'demux.buffer.ranges': '8',
-          }
-        });
-      }
-    }
+  // migrate collect from old version (favorites)
+  Future<void> _migrateStorage() async {
+    await collectController.migrateCollect();
   }
 
-  _webDavInit() async {
+  Future<void> _loadShaders() async {
+    await shadersController.copyShadersToExternalDirectory();
+  }
+
+  Future<void> _webDavInit() async {
     bool webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    bool webDavEnableFavorite = await setting
-        .get(SettingBoxKey.webDavEnableFavorite, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
       KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
       try {
         await webDav.init();
         try {
-          await webDav.downloadHistory();
+          await webDav.downloadAndPatchHistory();
           KazumiLogger().log(Level.info, '同步观看记录完成');
         } catch (e) {
           KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
-        }
-        if (webDavEnableFavorite) {
-          try {
-            await webDav.downloadFavorite();
-            KazumiLogger().log(Level.info, '同步追番列表完成');
-          } catch (e) {
-            KazumiLogger().log(Level.error, '同步追番列表失败 ${e.toString()}');
-          }
         }
       } catch (e) {
         KazumiLogger().log(Level.error, '初始化WebDav失败 ${e.toString()}');
@@ -128,77 +69,148 @@ class _InitPageState extends State<InitPage> {
     }
   }
 
-  _pluginInit() async {
+  Future<void> _pluginInit() async {
     String statementsText = '';
     try {
-      await pluginsController.loadPlugins();
+      await pluginsController.init();
       statementsText =
           await rootBundle.loadString("assets/statements/statements.txt");
       _pluginUpdate();
     } catch (_) {}
     if (pluginsController.pluginList.isEmpty) {
-      SmartDialog.show(
-        useAnimation: false,
-        backType: SmartBackType.ignore,
+      await KazumiDialog.show(
         clickMaskDismiss: false,
         builder: (context) {
-          return AlertDialog(
-            title: const Text('免责声明'),
-            scrollable: true,
-            content: Text(statementsText),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  exit(0);
-                },
-                child: Text(
-                  '退出',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
+          return PopScope(
+            canPop: false,
+            child: AlertDialog(
+              title: const Text('免责声明'),
+              scrollable: true,
+              content: Text(statementsText),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    exit(0);
+                  },
+                  child: Text(
+                    '退出',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  try {
-                    await pluginsController.copyPluginsToExternalDirectory();
-                    await pluginsController.loadPlugins();
-                  } catch (_) {}
-                  SmartDialog.dismiss();
-                  Modular.to.navigate('/tab/popular/');
-                },
-                child: const Text('已阅读并同意'),
-              ),
-            ],
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await pluginsController.copyPluginsToExternalDirectory();
+                    } catch (_) {}
+                    KazumiDialog.dismiss();
+                    if (!Platform.isAndroid) {
+                      Modular.to.navigate('/tab/popular/');
+                      return;
+                    }
+                    _switchUpdateMirror();
+                  },
+                  child: const Text('已阅读并同意'),
+                ),
+              ],
+            ),
           );
         },
       );
     } else {
+      // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
+      // setDynamic here to avoid white screen flash when themeMode is dark.
+      themeProvider.setDynamic(
+          setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
       Modular.to.navigate('/tab/popular/');
     }
   }
 
-  _update() {
-    bool autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
-    if (autoUpdate) {
-      Modular.get<MyController>().checkUpdata(type: 'auto');
+  // The function is not completed yet
+  // We simply disable update when the user is using F-Droid mirror
+  // We are trying to meet F-Droid requirement to submit the app
+  // After the app is submitted, we will complete the function
+  Future<void> _switchUpdateMirror() async {
+    await KazumiDialog.show(
+      clickMaskDismiss: false,
+      builder: (context) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('更新镜像'),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    '您希望从哪里获取应用更新？',
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Github镜像为大多数情况下的最佳选择。如果您使用F-Droid应用商店, 请选择F-Droid镜像。',
+                    textAlign: TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setting.put(SettingBoxKey.autoUpdate, true);
+                  KazumiDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: const Text(
+                  'Github',
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setting.put(SettingBoxKey.autoUpdate, false);
+                  KazumiDialog.dismiss();
+                  Modular.to.navigate('/tab/popular/');
+                },
+                child: Text(
+                  'F-Droid',
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _update() async {
+    // Don't check update when there is no plugin.
+    // We will progress init workflow instead.
+    if (pluginsController.pluginList.isNotEmpty) {
+      bool autoUpdate =
+          setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+      if (autoUpdate) {
+        await Future.delayed(const Duration(seconds: 1));
+        Modular.get<MyController>().checkUpdata(type: 'auto');
+      }
     }
   }
 
-  _pluginUpdate() async {
+  Future<void> _pluginUpdate() async {
     await pluginsController.queryPluginHTTPList();
     int count = 0;
     for (var plugin in pluginsController.pluginList) {
-      for (var pluginHTTP in pluginsController.pluginHTTPList) {
-        if (plugin.name == pluginHTTP.name) {
-          if (plugin.version != pluginHTTP.version) {
-            count++;
-            break;
-          }
-        }
+      if (pluginsController.pluginUpdateStatus(plugin) == 'updatable') {
+        count++;
       }
     }
     if (count != 0) {
-      SmartDialog.showToast('检测到 $count 条规则可以更新');
+      KazumiDialog.showToast(message: '检测到 $count 条规则可以更新');
     }
   }
 
@@ -216,40 +228,15 @@ class _InitPageState extends State<InitPage> {
       KazumiLogger().log(Level.info, '当前设备非宽屏');
     }
     setting.put(SettingBoxKey.isWideScreen, isWideScreen);
-    return const RouterOutlet();
+    return const LoadingWidget();
   }
 }
 
 class LoadingWidget extends StatelessWidget {
-  const LoadingWidget({super.key, required this.value});
-
-  final double value;
+  const LoadingWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
-    return Scaffold(
-      appBar: AppBar(title: const Text("Kazumi")),
-      body: Center(
-        child: SizedBox(
-          height: 200,
-          child: Flex(
-            direction: Axis.vertical,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              SizedBox(
-                width: size.width * 0.6,
-                child: LinearProgressIndicator(
-                  value: value,
-                  backgroundColor: Colors.black12,
-                  minHeight: 10,
-                ),
-              ),
-              const Text("初始化中"),
-            ],
-          ),
-        ),
-      ),
-    );
+    return Scaffold(body: Container());
   }
 }

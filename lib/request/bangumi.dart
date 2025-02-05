@@ -13,7 +13,7 @@ import 'package:kazumi/modules/bangumi/episode_item.dart';
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
   // Because getCalendarBySearch is not stable, it will miss some bangumi items.
-  static Future getCalendar() async {
+  static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
       var res = await Request().get(Api.bangumiCalendar,
@@ -44,11 +44,12 @@ class BangumiHTTP {
   // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
   // because the air date is the launch date of the anime, it is usually a few days before the start of the season
   // So we usually use the start of the season month -1 and the end of the season month -1
-  static Future getCalendarBySearch(List<String> dateRange) async {
+  static Future<List<List<BangumiItem>>> getCalendarBySearch(List<String> dateRange, int limit, int offset) async {
     List<BangumiItem> bangumiList = [];
     List<List<BangumiItem>> bangumiCalendar = [];
     var params = <String, dynamic>{
       "keyword": "",
+      "sort": "rank",
       "filter": {
         "type": [2],
         "tag": ["日本"],
@@ -58,7 +59,8 @@ class BangumiHTTP {
       }
     };
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final url = Api.formatUrl(Api.bangumiRankSearch, [limit, offset]);
+      final res = await Request().post(url,
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -90,7 +92,7 @@ class BangumiHTTP {
     return bangumiCalendar;
   }
 
-  static Future getBangumiList({int rank = 2, String tag = ''}) async {
+  static Future<List<BangumiItem>> getBangumiList({int rank = 2, String tag = ''}) async {
     List<BangumiItem> bangumiList = [];
     late Map<String, dynamic> params;
     if (tag == '') {
@@ -117,7 +119,7 @@ class BangumiHTTP {
       };
     }
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -135,7 +137,7 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future bangumiSearch(String keyword) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
@@ -150,7 +152,7 @@ class BangumiHTTP {
     };
 
     try {
-      final res = await Request().post(Api.bangumiRankSearch,
+      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -175,15 +177,15 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static getBangumiSummaryByID(int id) async {
+  static Future<BangumiItem?> getBangumiInfoByID(int id) async {
     try {
       final res = await Request().get(Api.bangumiInfoByID + id.toString(),
           options: Options(headers: bangumiHTTPHeader));
-      return res.data['summary'];
+      return BangumiItem.fromJson(res.data);
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'Resolve bangumi summary failed ${e.toString()}');
-      return '';
+          .log(Level.error, 'Resolve bangumi item failed ${e.toString()}');
+      return null;
     }
   }
 
@@ -232,9 +234,9 @@ class BangumiHTTP {
   static Future<CharacterResponse> getCharactersByID(int id) async {
     CharacterResponse characterResponse = CharacterResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiInfoByIDNext}$id/characters?limit=100',
+      final res = await Request().get('${Api.bangumiInfoByID}$id/characters',
           options: Options(headers: bangumiHTTPHeader));
-      final jsonData = res.data['data'];
+      final jsonData = res.data;
       characterResponse = CharacterResponse.fromJson(jsonData);
     } catch (e) {
       KazumiLogger()

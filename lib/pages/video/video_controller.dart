@@ -6,6 +6,7 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
 
 part 'video_controller.g.dart';
@@ -17,17 +18,18 @@ abstract class _VideoPageController with Store {
   bool loading = true;
 
   @observable
-  ObservableList<String> logLines = ObservableList.of([]);
-
-  @observable
   int currentEpisode = 1;
 
   @observable
   int currentRoad = 0;
 
-  // 安卓全屏状态
+  // 全屏状态
   @observable
-  bool androidFullscreen = false;
+  bool isFullscreen = false;
+
+  // PIP状态
+  @observable
+  bool isPip = false;
 
   // 播放列表显示状态
   @observable
@@ -36,10 +38,6 @@ abstract class _VideoPageController with Store {
   // 上次观看位置
   @observable
   int historyOffset = 0;
-
-  // 显示调试日志
-  @observable
-  bool showDebugLog = false;
 
   String title = '';
 
@@ -53,12 +51,10 @@ abstract class _VideoPageController with Store {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
 
-  changeEpisode(int episode, {int currentRoad = 0, int offset = 0}) async {
-    showDebugLog = false;
-    loading = true;
+  Future<void> changeEpisode(int episode,
+      {int currentRoad = 0, int offset = 0}) async {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
-    logLines.clear();
     String chapterName = roadList[currentRoad].identifier[episode - 1];
     KazumiLogger().log(Level.info, '跳转到$chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
@@ -72,7 +68,19 @@ abstract class _VideoPageController with Store {
       urlItem = urlItem.replaceFirst('http', 'https');
     }
     final webviewItemController = Modular.get<WebviewItemController>();
-    await webviewItemController.loadUrl(urlItem, offset: offset);
+    await webviewItemController.loadUrl(
+        urlItem, currentPlugin.useNativePlayer, currentPlugin.useLegacyParser,
+        offset: offset);
+  }
+
+  void enterFullScreen() {
+    isFullscreen = true;
+    showTabBody = false;
+    Utils.enterFullScreen(lockOrientation: false);
+  }
+
+  void exitFullScreen() {
+    isFullscreen = false;
+    Utils.exitFullScreen();
   }
 }
-

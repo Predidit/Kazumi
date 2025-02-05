@@ -1,4 +1,6 @@
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -17,6 +19,7 @@ part 'info_controller.g.dart';
 class InfoController = _InfoController with _$InfoController;
 
 abstract class _InfoController with Store {
+  final CollectController collectController = Modular.get<CollectController>();
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
@@ -59,13 +62,22 @@ abstract class _InfoController with Store {
   //   }
   // }
 
-  queryBangumiSummaryByID(int id) async {
-    await BangumiHTTP.getBangumiSummaryByID(id).then((value) {
-      bangumiItem.summary = value;
+  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
+    await BangumiHTTP.getBangumiInfoByID(id).then((value) {
+      if (value != null) {
+        if (type == "init") {
+          bangumiItem = value;
+        } else {
+          bangumiItem.summary = value.summary;
+          bangumiItem.tags = value.tags;
+          bangumiItem.rank = value.rank;
+        }
+        collectController.updateLocalCollect(bangumiItem);
+      }
     });
   }
 
-  queryRoads(String url, String pluginName) async {
+  Future<void> queryRoads(String url, String pluginName) async {
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     final VideoPageController videoPageController =
@@ -83,7 +95,7 @@ abstract class _InfoController with Store {
         Level.info, '第一播放列表选集数 ${videoPageController.roadList[0].data.length}');
   }
 
-  queryBangumiCommentsByID(int id, {int offset = 0}) async {
+  Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {
     if (offset == 0) {
       commentsList.clear();
     }
@@ -93,7 +105,7 @@ abstract class _InfoController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
   }
 
-  queryBangumiEpisodeCommentsByID(int id, int episode) async {
+  Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
     episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
     await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id).then((value) {
@@ -102,11 +114,23 @@ abstract class _InfoController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
   }
   
-  queryBangumiCharactersByID(int id) async {
+  Future<void> queryBangumiCharactersByID(int id) async {
     characterList.clear();
     await BangumiHTTP.getCharactersByID(id).then((value) {
       characterList.addAll(value.characterList);
     });
+    Map<String, int> relationValue = {
+      '主角': 1,
+      '配角': 2,
+      '客串': 3,
+      '未知': 4,
+    };
+    try {
+      characterList.sort((a, b) =>
+          relationValue[a.relation]!.compareTo(relationValue[b.relation]!));
+    } catch (e) {
+      KazumiDialog.showToast(message: '$e');
+    }
     KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');
   }
 }

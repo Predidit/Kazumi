@@ -13,13 +13,13 @@ mixin _$TimelineController on _TimelineController, Store {
       Atom(name: '_TimelineController.bangumiCalendar', context: context);
 
   @override
-  List<List<BangumiItem>> get bangumiCalendar {
+  ObservableList<List<BangumiItem>> get bangumiCalendar {
     _$bangumiCalendarAtom.reportRead();
     return super.bangumiCalendar;
   }
 
   @override
-  set bangumiCalendar(List<List<BangumiItem>> value) {
+  set bangumiCalendar(ObservableList<List<BangumiItem>> value) {
     _$bangumiCalendarAtom.reportWrite(value, super.bangumiCalendar, () {
       super.bangumiCalendar = value;
     });

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/plugins/plugins_controller.dart'; 
+import 'package:kazumi/plugins/plugins_controller.dart';
 
 class QueryManager {
   final InfoController infoController = Modular.get<InfoController>();
@@ -19,22 +19,25 @@ class QueryManager {
     }
 
     for (Plugin plugin in pluginsController.pluginList) {
-      if (_isCancelled) return; 
+      if (_isCancelled) return;
 
       plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
-        if (_isCancelled) return; 
+        if (_isCancelled) return;
 
         infoController.pluginSearchStatus[plugin.name] = 'success';
+        if (result.data.isNotEmpty) {
+          pluginsController.validityTracker.markSearchValid(plugin.name);
+        }
         _controller.add(result);
       }).catchError((error) {
-        if (_isCancelled) return; 
+        if (_isCancelled) return;
 
         infoController.pluginSearchStatus[plugin.name] = 'error';
       });
     }
 
     await for (var result in _controller.stream) {
-      if (_isCancelled) break; 
+      if (_isCancelled) break;
 
       infoController.pluginSearchResponseList.add(result);
     }

@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -13,6 +12,9 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/webdav.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -71,22 +73,22 @@ class _AppWidgetState extends State<AppWidget>
       debugPrint("应用进入后台");
       bool webDavEnable =
           await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      if (webDavEnable) {
-        try {
-          var webDav = WebDav();
-          webDav.updateHistory();
-        } catch (e) {
-          KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-        }
+      bool webDavEnableHistory = await setting
+          .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+      if (webDavEnable && webDavEnableHistory) {
+        var webDav = WebDav();
+        webDav.updateHistory();
       }
     } else if (state == AppLifecycleState.resumed) {
       debugPrint("应用回到前台");
       bool webDavEnable =
           await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      if (webDavEnable) {
+      bool webDavEnableHistory = await setting
+          .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+      if (webDavEnable && webDavEnableHistory) {
         try {
           var webDav = WebDav();
-          webDav.downloadHistory();
+          webDav.downloadAndPatchHistory();
         } catch (e) {
           KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
         }
@@ -96,13 +98,11 @@ class _AppWidgetState extends State<AppWidget>
       if (Platform.isWindows || Platform.isLinux) {
         bool webDavEnable =
             await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-        if (webDavEnable) {
-          try {
-            var webDav = WebDav();
-            webDav.updateHistory();
-          } catch (e) {
-            KazumiLogger().log(Level.error, '同步记录失败 ${e.toString()}');
-          }
+        bool webDavEnableHistory = await setting
+            .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+        if (webDavEnable && webDavEnableHistory) {
+          var webDav = WebDav();
+          webDav.updateHistory();
         }
       }
     }
@@ -132,6 +132,7 @@ class _AppWidgetState extends State<AppWidget>
 
   @override
   Widget build(BuildContext context) {
+    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
     if (Utils.isDesktop()) {
       _handleTray();
     }
@@ -145,34 +146,61 @@ class _AppWidgetState extends State<AppWidget>
     }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    final defaultThemeMode =
+        setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
+    if (defaultThemeMode == 'dark') {
+      themeProvider.setThemeMode(ThemeMode.dark, notify: false);
+    }
+    if (defaultThemeMode == 'light') {
+      themeProvider.setThemeMode(ThemeMode.light, notify: false);
+    }
+    if (defaultThemeMode == 'system') {
+      themeProvider.setThemeMode(ThemeMode.system, notify: false);
+    }
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorSchemeSeed: color);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    var app = AdaptiveTheme(
-      light: ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.light,
-          colorSchemeSeed: color),
-      dark: oledEnhance ? oledDarkTheme : defaultDarkTheme,
-      initial: AdaptiveThemeMode.system,
-      builder: (theme, darkTheme) => MaterialApp.router(
-        title: "Kazumi",
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [
-          Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-        ],
-        locale: const Locale.fromSubtags(
-            languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
-        theme: theme,
-        darkTheme: darkTheme,
-        routerConfig: Modular.routerConfig,
-        builder: FlutterSmartDialog.init(),
+    themeProvider.setTheme(
+      ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: color,
       ),
+      oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      notify: false,
     );
-    Modular.setObservers([FlutterSmartDialog.observer]);
+    var app = DynamicColorBuilder(
+      builder: (theme, darkTheme) {
+        if (themeProvider.useDynamicColor) {
+          themeProvider.setTheme(
+            ThemeData(colorScheme: theme, brightness: Brightness.light),
+            oledEnhance
+                ? Utils.oledDarkTheme(ThemeData(
+                    colorScheme: darkTheme, brightness: Brightness.dark))
+                : ThemeData(
+                    colorScheme: darkTheme, brightness: Brightness.dark),
+            notify: false,
+          );
+        }
+        return MaterialApp.router(
+          title: "Kazumi",
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [
+            Locale.fromSubtags(
+                languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
+          ],
+          locale: const Locale.fromSubtags(
+              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          theme: themeProvider.light,
+          darkTheme: themeProvider.dark,
+          themeMode: themeProvider.themeMode,
+          routerConfig: Modular.routerConfig,
+        );
+      },
+    );
+    Modular.setObservers([KazumiDialog.observer]);
 
     // 强制设置高帧率
     if (Platform.isAndroid) {

@@ -17,18 +17,18 @@ class Request {
   factory Request() => _instance;
 
   // 初始化 （一般只在应用启动时调用）
-  static setCookie() {
+  static Future<void> setCookie() async {
     setOptionsHeaders();
   }
 
   // 设置请求头
-  static setOptionsHeaders() {
+  static void setOptionsHeaders() {
     dio.options.headers['referer'] = '';
     dio.options.headers['user-agent'] = Utils.getRandomUA();
   }
 
   // 设置代理
-  static setProxy() {
+  static void setProxy() {
     // var systemProxyHost =
     //     localCache.get(LocalCacheKey.systemProxyHost, defaultValue: '');
     // var systemProxyPort =
@@ -50,7 +50,7 @@ class Request {
   }
 
   // 禁用代理
-  static disableProxy() {
+  static void disableProxy() {
     dio.httpClientAdapter = IOHttpClientAdapter(
         createHttpClient: () {
           final HttpClient client = HttpClient();
@@ -100,18 +100,20 @@ class Request {
     };
   }
 
-  get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
+  Future<Response> get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
     Response response;
-    final Options options = Options();
     ResponseType resType = ResponseType.json;
+    options ??= Options();
     if (extra != null) {
       resType = extra!['resType'] ?? ResponseType.json;
       if (extra['ua'] != null) {
         options.headers = {'user-agent': headerUa(type: extra['ua'])};
       }
+      if (extra['customError'] != null) {
+        options.extra = {'customError': extra['customError']};
+      }
     }
     options.responseType = resType;
-
     try {
       response = await dio.get(
         url,
@@ -135,7 +137,7 @@ class Request {
     }
   }
 
-  post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
+  Future<Response> post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
     // print('post-data: $data');
     Response response;
     try {

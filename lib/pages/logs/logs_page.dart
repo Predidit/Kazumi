@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 
 class LogsPage extends StatefulWidget {
   const LogsPage({super.key});
@@ -47,12 +47,13 @@ class _LogsPageState extends State<LogsPage> {
 
   Future<void> _copyLogs() async {
     await Clipboard.setData(ClipboardData(text: fileContent));
-    SmartDialog.showToast('已复制到剪贴板');
+    KazumiDialog.showToast(message: '已复制到剪贴板');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SelectionArea(
+        child: Scaffold(
       appBar: const SysAppBar(
         title: Text('日志'),
       ),
@@ -66,16 +67,18 @@ class _LogsPageState extends State<LogsPage> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            heroTag: null, 
             onPressed: _clearLogs,
             child: const Icon(Icons.clear_all),
           ),
           const SizedBox(width: 15),
           FloatingActionButton(
+            heroTag: null, 
             onPressed: _copyLogs,
             child: const Icon(Icons.copy),
           ),
         ],
       ),
-    );
+    ));
   }
 }

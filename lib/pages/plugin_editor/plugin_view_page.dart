@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -18,94 +19,104 @@ class PluginViewPage extends StatefulWidget {
 class _PluginViewPageState extends State<PluginViewPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
-  _handleAdd() {
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
-          return AlertDialog(
-            // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
-            content: SingleChildScrollView(
-              // 使用可滚动的SingleChildScrollView包装Column
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
-                children: [
-                  ListTile(
-                    title: const Text('新建规则'),
-                    onTap: () {
-                      SmartDialog.dismiss();
-                      Modular.to.pushNamed('/settings/plugin/editor',
-                          arguments: Plugin.fromTemplate());
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    title: const Text('从规则仓库导入'),
-                    onTap: () {
-                      SmartDialog.dismiss();
-                      Modular.to.pushNamed('/settings/plugin/shop',
-                          arguments: Plugin.fromTemplate());
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  ListTile(
-                    title: const Text('从剪贴板导入'),
-                    onTap: () {
-                      SmartDialog.dismiss();
-                      _showInputDialog();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        });
+  // 是否处于多选模式
+  bool isMultiSelectMode = false;
+
+  // 已选中的规则名称集合
+  final Set<String> selectedNames = {};
+
+  Future<void> _handleUpdate() async {
+    KazumiDialog.showLoading(msg: '更新中');
+    int count = await pluginsController.tryUpdateAllPlugin();
+    KazumiDialog.dismiss();
+    if (count == 0) {
+      KazumiDialog.showToast(message: '所有规则已是最新');
+    } else {
+      KazumiDialog.showToast(message: '更新成功 $count 条');
+    }
   }
 
-  _showInputDialog() {
-    final TextEditingController textController = TextEditingController();
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('导入规则'),
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextField(
-                controller: textController,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => SmartDialog.dismiss(),
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
+  void _handleAdd() {
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
+        content: SingleChildScrollView(
+          // 使用可滚动的SingleChildScrollView包装Column
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
+            children: [
+              ListTile(
+                title: const Text('新建规则'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  Modular.to.pushNamed('/settings/plugin/editor',
+                      arguments: Plugin.fromTemplate());
+                },
               ),
-              StatefulBuilder(
-                  builder: (BuildContext context, StateSetter setState) {
-                return TextButton(
-                  onPressed: () async {
-                    final String msg = textController.text;
-                    try {
-                      await pluginsController.savePluginToJsonFile(
-                          Plugin.fromJson(
-                              json.decode(Utils.kazumiBase64ToJson(msg))));
-                      SmartDialog.showToast('导入成功');
-                    } catch (e) {
-                      SmartDialog.dismiss();
-                      SmartDialog.showToast('导入失败 ${e.toString()}');
-                    }
-                    pluginsController.loadPlugins();
-                    SmartDialog.dismiss();
-                  },
-                  child: const Text('导入'),
-                );
-              })
+              const SizedBox(height: 10),
+              ListTile(
+                title: const Text('从规则仓库导入'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  Modular.to.pushNamed('/settings/plugin/shop',
+                      arguments: Plugin.fromTemplate());
+                },
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                title: const Text('从剪贴板导入'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  _showInputDialog();
+                },
+              ),
             ],
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showInputDialog() {
+    final TextEditingController textController = TextEditingController();
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('导入规则'),
+        content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+          return TextField(
+            controller: textController,
           );
-        });
+        }),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: Text(
+              '取消',
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            ),
+          ),
+          StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return TextButton(
+              onPressed: () async {
+                final String msg = textController.text;
+                try {
+                  pluginsController.updatePlugin(Plugin.fromJson(
+                      json.decode(Utils.kazumiBase64ToJson(msg))));
+                  KazumiDialog.showToast(message: '导入成功');
+                } catch (e) {
+                  KazumiDialog.dismiss();
+                  KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
+                }
+                KazumiDialog.dismiss();
+              },
+              child: const Text('导入'),
+            );
+          })
+        ],
+      );
+    });
   }
 
   void onBackPressed(BuildContext context) {
@@ -121,19 +132,86 @@ class _PluginViewPageState extends State<PluginViewPage> {
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
-      canPop: true,
+      canPop: !isMultiSelectMode,
       onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (isMultiSelectMode) {
+          setState(() {
+            isMultiSelectMode = false;
+            selectedNames.clear();
+          });
+          return;
+        }
         onBackPressed(context);
       },
       child: Scaffold(
         appBar: SysAppBar(
-          title: const Text('规则管理'),
+          title: isMultiSelectMode
+              ? Text('已选择 ${selectedNames.length} 项')
+              : const Text('规则管理'),
+          leading: isMultiSelectMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      isMultiSelectMode = false;
+                      selectedNames.clear();
+                    });
+                  },
+                )
+              : null,
           actions: [
-            IconButton(
-                onPressed: () {
-                  _handleAdd();
-                },
-                icon: const Icon(Icons.add))
+            if (isMultiSelectMode) ...[
+              IconButton(
+                onPressed: selectedNames.isEmpty
+                    ? null
+                    : () {
+                        KazumiDialog.show(
+                          builder: (context) => AlertDialog(
+                            title: const Text('删除规则'),
+                            content:
+                                Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => KazumiDialog.dismiss(),
+                                child: Text(
+                                  '取消',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  pluginsController.removePlugins(selectedNames);
+                                  setState(() {
+                                    isMultiSelectMode = false;
+                                    selectedNames.clear();
+                                  });
+                                  KazumiDialog.dismiss();
+                                },
+                                child: const Text('删除'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.delete),
+              ),
+            ] else ...[
+              IconButton(
+                  onPressed: () {
+                    _handleUpdate();
+                  },
+                  tooltip: '更新全部',
+                  icon: const Icon(Icons.update)),
+              IconButton(
+                  onPressed: () {
+                    _handleAdd();
+                  },
+                  tooltip: '添加规则',
+                  icon: const Icon(Icons.add))
+            ],
           ],
         ),
         body: Observer(builder: (context) {
@@ -141,96 +219,242 @@ class _PluginViewPageState extends State<PluginViewPage> {
               ? const Center(
                   child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
                 )
-              : ListView.builder(
-                  itemCount: pluginsController.pluginList.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                      child: ListTile(
-                        title: Text(
-                          pluginsController.pluginList[index].name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          'Version: ${pluginsController.pluginList[index].version}',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (String result) {
-                            if (result == 'Delete') {
+              : Builder(builder: (context) {
+                  return ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    proxyDecorator: (child, index, animation) {
+                      return Material(
+                        elevation: 0,
+                        color: Colors.transparent,
+                        child: child,
+                      );
+                    },
+                    onReorder: (int oldIndex, int newIndex) {
+                      pluginsController.onReorder(oldIndex, newIndex);
+                    },
+                    itemCount: pluginsController.pluginList.length,
+                    itemBuilder: (context, index) {
+                      var plugin = pluginsController.pluginList[index];
+                      bool canUpdate =
+                          pluginsController.pluginUpdateStatus(plugin) ==
+                              'updatable';
+                      return Card(
+                        key: ValueKey(index),
+                        margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                        child: ListTile(
+                          trailing: pluginCardTrailing(index),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          onLongPress: () {
+                            if (!isMultiSelectMode) {
                               setState(() {
-                                pluginsController.deletePluginJsonFile(
-                                    pluginsController.pluginList[index]);
-                                pluginsController.pluginList.removeAt(index);
+                                isMultiSelectMode = true;
+                                selectedNames.add(plugin.name);
                               });
-                            } else if (result == 'Edit') {
-                              Modular.to.pushNamed('/settings/plugin/editor',
-                                  arguments:
-                                      pluginsController.pluginList[index]);
-                            } else if (result == 'Share') {
-                              SmartDialog.show(
-                                  animationTime: const Duration(milliseconds: 100),
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text('规则链接'),
-                                      content: SelectableText(
-                                        Utils.jsonToKazumiBase64(json.encode(
-                                            pluginsController.pluginList[index]
-                                                .toJson())),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              SmartDialog.dismiss(),
-                                          child: Text(
-                                            '取消',
-                                            style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline),
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Utils.copyToClipboard(
-                                                Utils.jsonToKazumiBase64(json
-                                                    .encode(pluginsController
-                                                        .pluginList[index]
-                                                        .toJson())));
-                                            SmartDialog.dismiss();
-                                          },
-                                          child: const Text('复制到剪贴板'),
-                                        ),
-                                      ],
-                                    );
-                                  });
                             }
                           },
-                          itemBuilder: (BuildContext context) =>
-                              <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'Edit',
-                              child: Text('编辑'),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'Share',
-                              child: Text('分享'),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'Delete',
-                              child: Text('删除'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
+                          onTap: () {
+                            if (isMultiSelectMode) {
+                              setState(() {
+                                if (selectedNames.contains(plugin.name)) {
+                                  selectedNames.remove(plugin.name);
+                                  if (selectedNames.isEmpty) {
+                                    isMultiSelectMode = false;
+                                  }
+                                } else {
+                                  selectedNames.add(plugin.name);
+                                }
+                              });
+                            }
+                          },
+                          selected: selectedNames.contains(plugin.name),
+                          selectedTileColor:
+                              Theme.of(context).colorScheme.primaryContainer,
+                          title: Text(
+                            plugin.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Version: ${plugin.version}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  if (canUpdate) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .errorContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '可更新',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onErrorContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (pluginsController.validityTracker
+                                      .isSearchValid(plugin.name)) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .tertiaryContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '搜索有效',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onTertiaryContainer,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (pluginsController.installTimeTracker
+                                      .getInstallTime(plugin.name) >
+                                  0) ...[
+                                Text(
+                                  '安装时间: ${DateTime.fromMillisecondsSinceEpoch(pluginsController.installTimeTracker.getInstallTime(plugin.name)).toString().split('.')[0]}',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ));
+                      }
+                  );
+                });
         }),
       ),
+    );
+  }
+
+  Widget pluginCardTrailing(int index) {
+    final plugin = pluginsController.pluginList[index];
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      isMultiSelectMode
+          ? Checkbox(
+              value: selectedNames.contains(plugin.name),
+              onChanged: (bool? value) {
+                setState(() {
+                  if (value == true) {
+                    selectedNames.add(plugin.name);
+                  } else {
+                    selectedNames.remove(plugin.name);
+                    if (selectedNames.isEmpty) {
+                      isMultiSelectMode = false;
+                    }
+                  }
+                });
+              },
+            )
+          : popupMenuButton(index),
+      ReorderableDragStartListener(
+        index: index,
+        child: const Icon(Icons.drag_handle), // 单独的拖拽按钮
+      )
+    ]);
+  }
+
+  Widget popupMenuButton(int index){
+    final plugin = pluginsController.pluginList[index];
+    return PopupMenuButton<String>(
+      onSelected: (String result) async {
+        if (result == 'Update') {
+          var state = pluginsController.pluginUpdateStatus(plugin);
+          if (state == "nonexistent") {
+            KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+          } else if (state == "latest") {
+            KazumiDialog.showToast(message: '规则已是最新');
+          } else if (state == "updatable") {
+            KazumiDialog.showLoading(msg: '更新中');
+            int res = await pluginsController.tryUpdatePlugin(plugin);
+            KazumiDialog.dismiss();
+            if (res == 0) {
+              KazumiDialog.showToast(message: '更新成功');
+            } else if (res == 1) {
+              KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+            } else if (res == 2) {
+              KazumiDialog.showToast(message: '更新规则失败');
+            }
+          }
+        } else if (result == 'Delete') {
+          setState(() {
+            pluginsController.removePlugin(plugin);
+          });
+        } else if (result == 'Edit') {
+          Modular.to.pushNamed('/settings/plugin/editor', arguments: plugin);
+        } else if (result == 'Share') {
+          KazumiDialog.show(builder: (context) {
+            return AlertDialog(
+              title: const Text('规则链接'),
+              content: SelectableText(
+                Utils.jsonToKazumiBase64(
+                    json.encode(pluginsController.pluginList[index].toJson())),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => KazumiDialog.dismiss(),
+                  child: Text(
+                    '取消',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(
+                        text: Utils.jsonToKazumiBase64(json.encode(
+                            pluginsController.pluginList[index].toJson()))));
+                    KazumiDialog.dismiss();
+                  },
+                  child: const Text('复制到剪贴板'),
+                ),
+              ],
+            );
+          });
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'Update',
+          child: Text('更新'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Edit',
+          child: Text('编辑'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Share',
+          child: Text('分享'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'Delete',
+          child: Text('删除'),
+        ),
+      ],
     );
   }
 }

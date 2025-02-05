@@ -1,5 +1,9 @@
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:video_player/video_player.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_volume_controller/flutter_volume_controller.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:mobx/mobx.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -11,26 +15,75 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:flutter/services.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/shaders/shaders_controller.dart';
 
 part 'player_controller.g.dart';
 
 class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
-  @observable
-  bool loading = true;
-
-  String videoUrl = '';
-  // dandanPlay弹幕ID
-  int bangumiID = 0;
-  late VideoPlayerController mediaPlayer;
-  late DanmakuController danmakuController;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-
+  final ShadersController shadersController = Modular.get<ShadersController>();
+  // 弹幕控制
+  late DanmakuController danmakuController;
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
+  @observable
+  bool danmakuOn = false;
 
+  // 视频比例类型
+  // 1. AUTO
+  // 2. COVER
+  // 3. FILL
+  @observable
+  int aspectRatioType = 1;
+
+  // 视频超分
+  // 1. OFF
+  // 2. Anime4K
+  @observable
+  int superResolutionType = 1;
+
+  // 视频音量/亮度
+  @observable
+  double volume = -1;
+  @observable
+  double brightness = 0;
+
+  // 播放器界面控制
+  @observable
+  bool lockPanel = false;
+  @observable
+  bool showVideoController = true;
+  @observable
+  bool showSeekTime = false;
+  @observable
+  bool showBrightness = false;
+  @observable
+  bool showVolume = false;
+  @observable
+  bool showPlaySpeed = false;
+  @observable
+  bool brightnessSeeking = false;
+  @observable
+  bool volumeSeeking = false;
+  @observable
+  bool canHidePlayerPanel = true;
+
+  // 视频地址
+  String videoUrl = '';
+  // DanDanPlay 弹幕ID
+  int bangumiID = 0;
+  // 播放器实体
+  late Player mediaPlayer;
+  late VideoController videoController;
+
+  // 播放器面板状态
+  @observable
+  bool loading = true;
   @observable
   bool playing = false;
   @observable
@@ -43,25 +96,27 @@ abstract class _PlayerController with Store {
   Duration buffer = Duration.zero;
   @observable
   Duration duration = Duration.zero;
-
-  // 弹幕开关
-  @observable
-  bool danmakuOn = false;
-
-  // 视频音量/亮度
-  @observable
-  double volume = 0;
-  @observable
-  double brightness = 0;
-
-  // 播放器倍速
   @observable
   double playerSpeed = 1.0;
 
   Box setting = GStorage.setting;
-  late bool hAenable;
+  bool hAenable = true;
+  late String hardwareDecoder;
+  bool lowMemoryMode = false;
+  bool autoPlay = true;
+  int forwardTime = 80;
 
-  Future init({int offset = 0}) async {
+  // 播放器实时状态
+  bool get playerPlaying => mediaPlayer.state.playing;
+  bool get playerBuffering => mediaPlayer.state.buffering;
+  bool get playerCompleted => mediaPlayer.state.completed;
+  double get playerVolume => mediaPlayer.state.volume;
+  Duration get playerPosition => mediaPlayer.state.position;
+  Duration get playerBuffer => mediaPlayer.state.buffer;
+  Duration get playerDuration => mediaPlayer.state.duration;
+
+  Future<void> init(String url, {int offset = 0}) async {
+    videoUrl = url;
     playing = false;
     loading = true;
     isBuffering = true;
@@ -72,10 +127,11 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer.dispose();
     } catch (_) {}
-    KazumiLogger().log(Level.info, 'VideoItem开始初始化');
     int episodeFromTitle = 0;
     try {
-      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]);
+      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController
+          .roadList[videoPageController.currentRoad]
+          .identifier[videoPageController.currentEpisode - 1]);
     } catch (e) {
       KazumiLogger().log(Level.error, '从标题解析集数错误 ${e.toString()}');
     }
@@ -83,23 +139,37 @@ abstract class _PlayerController with Store {
       episodeFromTitle = videoPageController.currentEpisode;
     }
     getDanDanmaku(videoPageController.title, episodeFromTitle);
-    mediaPlayer = await createVideoController();
-    bool autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
-    playerSpeed = setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
-    if (offset != 0) {
-      await mediaPlayer.seekTo(Duration(seconds: offset));
+    mediaPlayer = await createVideoController(offset: offset);
+    playerSpeed =
+        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    if (Utils.isDesktop()) {
+      volume = volume != -1 ? volume : 100;
+    } else {
+      await FlutterVolumeController.getVolume().then((value) {
+        volume = (value ?? 0.0) * 100;
+      });
     }
-    if (autoPlay) {
-      await mediaPlayer.play();
+    await setVolume(volume);
+    if (Platform.isIOS) {
+      FlutterVolumeController.updateShowSystemUI(true);
     }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
-    // 加载弹幕
     loading = false;
   }
 
-  Future<VideoPlayerController> createVideoController() async {
+  Future<Player> createVideoController({int offset = 0}) async {
     String userAgent = '';
+    superResolutionType =
+        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
+    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    hardwareDecoder =
+        setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
+    autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
+    lowMemoryMode =
+        setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
+    KazumiLogger().log(
+        Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
@@ -112,54 +182,161 @@ abstract class _PlayerController with Store {
       'user-agent': userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
-    mediaPlayer = VideoPlayerController.networkUrl(Uri.parse(videoUrl),
-        httpHeaders: httpHeaders);
-    mediaPlayer.addListener(() {
-      if (mediaPlayer.value.hasError && !mediaPlayer.value.isCompleted) {
-        SmartDialog.showToast('播放器内部错误 ${mediaPlayer.value.errorDescription}');
-        KazumiLogger().log(Level.error, 'Player inent error. ${mediaPlayer.value.errorDescription} $videoUrl');
+
+    mediaPlayer = Player(
+      configuration: PlayerConfiguration(
+        bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+      ),
+    );
+
+    var pp = mediaPlayer.platform as NativePlayer;
+    await pp.setProperty("af", "scaletempo2=max-speed=8");
+    if (Platform.isAndroid) {
+      await pp.setProperty("volume-max", "100");
+      await pp.setProperty("ao", "opensles");
+    }
+
+    await mediaPlayer.setAudioTrack(
+      AudioTrack.auto(),
+    );
+
+    videoController = VideoController(
+      mediaPlayer,
+      configuration: VideoControllerConfiguration(
+        enableHardwareAcceleration: hAenable,
+        hwdec: hAenable ? hardwareDecoder : 'no',
+        androidAttachSurfaceAfterVideoParameters: false,
+      ),
+    );
+    mediaPlayer.setPlaylistMode(PlaylistMode.none);
+
+    // error handle
+    bool showPlayerError =
+        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
+    mediaPlayer.stream.error.listen((event) {
+      if (showPlayerError) {
+        KazumiDialog.showToast(
+            message: '播放器内部错误 ${event.toString()} $videoUrl',
+            duration: const Duration(seconds: 5),
+            showUndoButton: true);
       }
+      KazumiLogger().log(
+          Level.error, 'Player intent error: ${event.toString()} $videoUrl');
     });
-    await mediaPlayer.initialize();
-    KazumiLogger().log(Level.info, 'videoController 配置成功 $videoUrl');
+
+    if (superResolutionType != 1) {
+      await setShader(superResolutionType);
+    }
+
+    await mediaPlayer.open(
+      Media(videoUrl,
+          start: Duration(seconds: offset), httpHeaders: httpHeaders),
+      play: autoPlay,
+    );
+
     return mediaPlayer;
   }
 
-  Future setPlaybackSpeed(double playerSpeed) async {
+  Future<void> setShader(int type, {bool synchronized = true}) async {
+    var pp = mediaPlayer.platform as NativePlayer;
+    await pp.waitForPlayerInitialization;
+    await pp.waitForVideoControllerInitializationIfAttached;
+    if (type == 2) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+      ]);
+      superResolutionType = 2;
+      return;
+    }
+    if (type == 3) {
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        'set',
+        Utils.buildShadersAbsolutePath(
+            shadersController.shadersDirectory.path, mpvAnime4KShaders),
+      ]);
+      superResolutionType = 3;
+      return;
+    }
+    await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+    superResolutionType = 1;
+  }
+
+  Future<void> setPlaybackSpeed(double playerSpeed) async {
     this.playerSpeed = playerSpeed;
     try {
-      mediaPlayer.setPlaybackSpeed(playerSpeed);
+      mediaPlayer.setRate(playerSpeed);
     } catch (e) {
       KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
   }
 
-  Future playOrPause() async {
-    if (mediaPlayer.value.isPlaying) {
+  Future<void> setVolume(double value) async {
+    value = value.clamp(0.0, 100.0);
+    volume = value;
+    try {
+      if (Utils.isDesktop()) {
+        await mediaPlayer.setVolume(value);
+      } else {
+        await FlutterVolumeController.updateShowSystemUI(false);
+        await FlutterVolumeController.setVolume(value / 100);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> playOrPause() async {
+    if (mediaPlayer.state.playing) {
       await pause();
     } else {
       await play();
     }
   }
 
-  Future seek(Duration duration) async {
+  Future<void> seek(Duration duration) async {
+    currentPosition = duration;
     danmakuController.clear();
-    await mediaPlayer.seekTo(duration);
+    await mediaPlayer.seek(duration);
   }
 
-  Future pause() async {
+  Future<void> pause() async {
     danmakuController.pause();
     await mediaPlayer.pause();
     playing = false;
   }
 
-  Future play() async {
+  Future<void> play() async {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
   }
 
-  Future getDanDanmaku(String title, int episode) async {
+  Future<void> dispose() async {
+    try {
+      await mediaPlayer.dispose();
+    } catch (_) {}
+  }
+
+  Future<void> stop() async {
+    try {
+      await mediaPlayer.stop();
+      loading = true;
+    } catch (_) {}
+  }
+
+  Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
+    return await mediaPlayer.screenshot(format: format);
+  }
+
+  void setForwardTime(int time) {
+    forwardTime = time;
+  }
+
+  Future<void> getDanDanmaku(String title, int episode) async {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $title');
     try {
       danDanmakus.clear();
@@ -171,7 +348,7 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future getDanDanmakuByEpisodeID(int episodeID) async {
+  Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
     try {
       danDanmakus.clear();

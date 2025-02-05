@@ -1,6 +1,6 @@
 class Api {
   // 当前版本
-  static const String version = '1.4.3';
+  static const String version = '1.5.5';
   // 规则API级别
   static const int apiLevel = 3;
   // 项目主页
@@ -21,7 +21,7 @@ class Api {
   // 番剧检索 (弃用)
   static const String bangumiSearch = 'https://api.bgm.tv/search/subject/';
   // 条目搜索
-  static const String bangumiRankSearch = 'https://api.bgm.tv/v0/search/subjects?limit=100';
+  static const String bangumiRankSearch = 'https://api.bgm.tv/v0/search/subjects?limit={0}&offset={1}';
   // 从条目ID获取详细信息
   static const String bangumiInfoByID = 'https://api.bgm.tv/v0/subjects/';
   // 从条目ID获取剧集ID
@@ -32,7 +32,15 @@ class Api {
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
-  static const String dandanAPI = "https://api.dandanplay.net/api/v2/comment/";
-  static const String dandanSearch = "https://api.dandanplay.net/api/v2/search/anime";
-  static const String dandanInfo = "https://api.dandanplay.net/api/v2/bangumi/";
+  static const String dandanAPIDomain = 'https://api.dandanplay.net';
+  static const String dandanAPIComment = "/api/v2/comment/";
+  static const String dandanAPISearch = "/api/v2/search/anime";
+  static const String dandanAPIInfo = "/api/v2/bangumi/";
+
+  static String formatUrl(String url, List<dynamic> params) {
+    for (int i = 0; i < params.length; i++) {
+      url = url.replaceAll('{$i}', params[i].toString());
+    }
+    return url;
+  }
 }

@@ -6,7 +6,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 
 class PluginHTTP {
-  static Future getPluginList() async {
+  static Future<List<PluginHTTPItem>> getPluginList() async {
     List<PluginHTTPItem> pluginHTTPItemList = [];
     try {
       var res = await Request().get('${Api.pluginShop}index.json');

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/favorite/favorite_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
@@ -26,7 +26,6 @@ class BangumiHistoryCardV extends StatefulWidget {
 }
 
 class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
-  late bool isFavorite;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -38,9 +37,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         fontSize: Theme.of(context).textTheme.labelMedium!.fontSize,
         overflow: TextOverflow.ellipsis);
     final InfoController infoController = Modular.get<InfoController>();
-    final FavoriteController favoriteController =
-        Modular.get<FavoriteController>();
-    isFavorite = favoriteController.isFavorite(widget.historyItem.bangumiItem);
     return SizedBox(
       height: 150,
       child: Card(
@@ -48,21 +44,23 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         child: InkWell(
           onTap: () async {
             if (widget.showDelete) {
-              SmartDialog.showToast('编辑模式',
-                  displayType: SmartToastType.onlyRefresh);
+              KazumiDialog.showToast(
+                message: '编辑模式',
+              );
               return;
             }
-            SmartDialog.showLoading(msg: '获取中');
+            KazumiDialog.showLoading(msg: '获取中');
             bool flag = false;
             for (Plugin plugin in pluginsController.pluginList) {
               if (plugin.name == widget.historyItem.adapterName) {
                 videoPageController.currentPlugin = plugin;
                 flag = true;
+                break;
               }
             }
             if (!flag) {
-              SmartDialog.dismiss();
-              SmartDialog.showToast('未找到关联番剧源');
+              KazumiDialog.dismiss();
+              KazumiDialog.showToast(message: '未找到关联番剧源');
               return;
             }
             infoController.bangumiItem = widget.historyItem.bangumiItem;
@@ -74,11 +72,12 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             try {
               await infoController.queryRoads(widget.historyItem.lastSrc,
                   videoPageController.currentPlugin.name);
-              SmartDialog.dismiss();
+              KazumiDialog.dismiss();
               Modular.to.pushNamed('/video/');
             } catch (e) {
               KazumiLogger().log(Level.warning, e.toString());
-              SmartDialog.dismiss();
+              KazumiDialog.dismiss();
+              KazumiDialog.showToast(message: '网络资源获取失败 ${e.toString()}');
             }
           },
           child: Padding(
@@ -159,31 +158,22 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
                 Column(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_outline),
-                      onPressed: () async {
-                        if (isFavorite) {
-                          favoriteController
-                              .deleteFavorite(widget.historyItem.bangumiItem);
-                        } else {
-                          favoriteController
-                              .addFavorite(widget.historyItem.bangumiItem);
-                        }
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
+                    CollectButton(
+                      bangumiItem: widget.historyItem.bangumiItem,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
-                    widget.showDelete
-                        ? IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              historyController
-                                  .deleteHistory(widget.historyItem);
-                            },
-                          )
-                        : Container(),
+                    if (widget.showDelete)
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                        ),
+                        onPressed: () {
+                          historyController.deleteHistory(widget.historyItem);
+                        },
+                      )
                   ],
                 ),
               ],

@@ -1,8 +1,6 @@
 import 'dart:io';
+import 'dart:async';
 
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_controller_impel.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_windows_controller_impel.dart';
 import 'package:kazumi/pages/webview/webview_controller_impel/webview_linux_controller_impel.dart';
@@ -18,21 +16,44 @@ abstract class WebviewItemController<T> {
   int offset = 0;
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
-  VideoPageController videoPageController = Modular.get<VideoPageController>();
-  PlayerController playerController = Modular.get<PlayerController>();
 
   /// Webview initialization method
-  /// This method should eventually call the changeEpisode method of videoController
-  init();
+  Future<void> init();
+
+  final StreamController<bool> initEventController =
+      StreamController<bool>.broadcast();
+
+  // Stream to notify when the webview is initialized
+  Stream<bool> get onInitialized => initEventController.stream;
+
+  final StreamController<String> logEventController =
+      StreamController<String>.broadcast();
+
+  // Stream to subscribe to webview logs
+  Stream<String> get onLog => logEventController.stream;
+
+  final StreamController<bool> videoLoadingEventController =
+      StreamController<bool>.broadcast();
+
+  // Stream to notify when the video source is loaded
+  Stream<bool> get onVideoLoading => videoLoadingEventController.stream;
+
+  // Stream to notify video source URL when the video source is loaded
+  // The first parameter is the video source URL and the second parameter is the video offset (start position)
+  final StreamController<(String, int)> videoParserEventController =
+      StreamController<(String, int)>.broadcast();
+
+  Stream<(String, int)> get onVideoURLParser => videoParserEventController.stream;
 
   /// Webview load URL method
-  loadUrl(String url, {int offset = 0});
+  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+      {int offset = 0});
 
   /// Webview unload page method
-  unloadPage();
+  Future<void> unloadPage();
 
   /// Webview dispose method
-  dispose();
+  void dispose();
 }
 
 class WebviewItemControllerFactory {

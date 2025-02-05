@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -25,7 +25,6 @@ class BangumiCardV extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String heroTag = Utils.makeHeroTag(bangumiItem.id);
     final InfoController infoController = Modular.get<InfoController>();
     final PopularController popularController =
         Modular.get<PopularController>();
@@ -37,12 +36,13 @@ class BangumiCardV extends StatelessWidget {
         child: InkWell(
           onTap: () {
             if (!canTap) {
-              SmartDialog.showToast('编辑模式',
-                  displayType: SmartToastType.onlyRefresh);
+              KazumiDialog.showToast(
+                message: '编辑模式',
+              );
               return;
             }
             infoController.bangumiItem = bangumiItem;
-            if (popularController.searchKeyword == '') {
+            if (!popularController.isSearching) {
               popularController.keyword = bangumiItem.nameCn == ''
                   ? bangumiItem.name
                   : (bangumiItem.nameCn);
@@ -65,17 +65,14 @@ class BangumiCardV extends StatelessWidget {
                   child: LayoutBuilder(builder: (context, boxConstraints) {
                     final double maxWidth = boxConstraints.maxWidth;
                     final double maxHeight = boxConstraints.maxHeight;
-                    return Stack(
-                      children: [
-                        Hero(
-                          tag: heroTag,
-                          child: NetworkImgLayer(
-                            src: bangumiItem.images['large'] ?? '',
-                            width: maxWidth,
-                            height: maxHeight,
-                          ),
-                        ),
-                      ],
+                    return Hero(
+                      transitionOnUserGestures: true,
+                      tag: bangumiItem.id,
+                      child: NetworkImgLayer(
+                        src: bangumiItem.images['large'] ?? '',
+                        width: maxWidth,
+                        height: maxHeight,
+                      ),
                     );
                   }),
                 ),
@@ -91,7 +88,9 @@ class BangumiCardV extends StatelessWidget {
 
 class BangumiContent extends StatelessWidget {
   const BangumiContent({super.key, required this.bangumiItem});
+
   final BangumiItem bangumiItem;
+
   @override
   Widget build(BuildContext context) {
     return Expanded(

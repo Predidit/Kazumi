@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 
@@ -16,7 +16,6 @@ class EpisodeCommentsSheet extends StatefulWidget {
 }
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
-  late ScrollController scrollController;
   final infoController = Modular.get<InfoController>();
   bool isLoading = false;
   bool commentsQueryTimeout = false;
@@ -30,7 +29,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       });
       loadComments(widget.episode);
     }
-    scrollController = ScrollController();
   }
 
   Future<void> loadComments(int episode) async {
@@ -54,32 +52,58 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   void dispose() {
-    scrollController.dispose();
     super.dispose();
   }
 
   Widget get episodeCommentsBody {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-      child: Observer(builder: (context) {
-        if (isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (commentsQueryTimeout) {
-          return const Center(
-            child: Text('空空如也'),
-          );
-        }
-        return ListView.builder(
-            controller: scrollController,
-            itemCount: infoController.episodeCommentsList.length,
-            itemBuilder: (context, index) {
-              return EpisodeCommentsCard(
-                  commentItem: infoController.episodeCommentsList[index]);
-            });
-      }),
+    return CustomScrollView(
+      // Scrollbars' movement is not linear so hide it.
+      scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          sliver: Observer(builder: (context) {
+            if (isLoading) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            if (commentsQueryTimeout) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: Text('空空如也'),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  // Fix scroll issue caused by height change of network images
+                  // by keeping loaded cards alive.
+                  return KeepAlive(
+                    keepAlive: true,
+                    child: IndexedSemantics(
+                      index: index,
+                      child: SelectionArea(
+                        child: EpisodeCommentsCard(
+                          commentItem:
+                              infoController.episodeCommentsList[index],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                childCount: infoController.episodeCommentsList.length,
+                addAutomaticKeepAlives: false,
+                addRepaintBoundaries: false,
+                addSemanticIndexes: false,
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -136,50 +160,49 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   // 选择要查看评论的集数
   void showEpisodeSelection() {
     final TextEditingController textController = TextEditingController();
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('输入集数'),
-            content: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-              return TextField(
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly
-                ],
-                controller: textController,
-              );
-            }),
-            actions: [
-              TextButton(
-                onPressed: () => SmartDialog.dismiss(),
-                child: Text(
-                  '取消',
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.outline),
-                ),
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('输入集数'),
+          content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setState) {
+            return TextField(
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly
+              ],
+              controller: textController,
+            );
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              TextButton(
-                onPressed: () {
-                  if (textController.text.isEmpty) {
-                    SmartDialog.showToast('请输入集数');
-                    return;
-                  }
-                  final ep = int.tryParse(textController.text) ?? 0;
-                  if (ep == 0) {
-                    return;
-                  }
-                  setState(() {
-                    isLoading = true;
-                  });
-                  loadComments(ep);
-                  SmartDialog.dismiss();
-                },
-                child: const Text('刷新'),
-              ),
-            ],
-          );
-        });
+            ),
+            TextButton(
+              onPressed: () {
+                if (textController.text.isEmpty) {
+                  KazumiDialog.showToast(message: '请输入集数');
+                  return;
+                }
+                final ep = int.tryParse(textController.text) ?? 0;
+                if (ep == 0) {
+                  return;
+                }
+                setState(() {
+                  isLoading = true;
+                });
+                loadComments(ep);
+                KazumiDialog.dismiss();
+              },
+              child: const Text('刷新'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

@@ -1,9 +1,11 @@
 import 'dart:io';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
-import 'package:kazumi/utils/utils.dart';
+
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:window_manager/window_manager.dart';
 
 class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double? toolbarHeight;
@@ -37,26 +39,70 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.bottom});
 
   void _handleCloseEvent() {
-    SmartDialog.show(
-        animationTime: const Duration(milliseconds: 100),
-        builder: (context) {
+    final setting = GStorage.setting;
+    final exitBehavior =
+        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+
+    switch (exitBehavior) {
+      case 0:
+        exit(0);
+      case 1:
+        KazumiDialog.dismiss();
+        windowManager.hide();
+        break;
+      default:
+        KazumiDialog.show(builder: (context) {
+          bool saveExitBehavior = false; // 下次不再询问？
+
           return AlertDialog(
             title: const Text('退出确认'),
-            content: const Text('您想要退出 Kazumi 吗？'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('您想要退出 Kazumi 吗？'),
+                const SizedBox(height: 24),
+                StatefulBuilder(builder: (context, setState) {
+                  onChanged(value) {
+                    saveExitBehavior = value ?? false;
+                    setState(() {});
+                  }
+
+                  return Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
+                      const Text('下次不再询问'),
+                    ],
+                  );
+                }),
+              ],
+            ),
             actions: [
               TextButton(
-                  onPressed: () => exit(0), child: const Text('退出 Kazumi')),
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 0);
+                    }
+                    exit(0);
+                  },
+                  child: const Text('退出 Kazumi')),
               TextButton(
-                  onPressed: () {
-                    SmartDialog.dismiss();
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 1);
+                    }
+                    KazumiDialog.dismiss();
                     windowManager.hide();
                   },
                   child: const Text('最小化至托盘')),
               const TextButton(
-                  onPressed: SmartDialog.dismiss, child: Text('取消')),
+                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
             ],
           );
         });
+    }
   }
 
   @override
@@ -89,14 +135,13 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           bottom: bottom,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Theme.of(context).brightness ==
-                    Brightness.light
-                ? Brightness.dark
-                : Brightness.light,
+            statusBarIconBrightness:
+                Theme.of(context).brightness == Brightness.light
+                    ? Brightness.dark
+                    : Brightness.light,
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarDividerColor: Colors.transparent,
-          )
-          ),
+          )),
     );
   }
 

@@ -13,27 +13,62 @@ abstract class _PopularController with Store {
 
   String keyword = '';
   String searchKeyword = '';
+  bool isSearching = false;
+
+  @observable
   String currentTag = '';
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
   double scrollOffset = 0.0;
+
+  @observable
   bool isLoadingMore = false;
 
-  Future queryBangumiListFeed({String type = 'init', String tag = ''}) async {
-    isLoadingMore = true;
-    var random = Random();
-    int randomNumber = random.nextInt(1000) + 1;
-    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
-    if (type == 'init') {
-      bangumiList.clear();
-    }
-    bangumiList.addAll(result);
-    isLoadingMore = false;
+  @observable
+  bool isTimeOut = false;
+
+  void setSearchKeyword(String s) {
+    isSearching = s.isNotEmpty;
+    searchKeyword = s;
   }
 
-  Future queryBangumi(String keyword) async {
+  Future<bool> queryBangumiListFeed() async {
+    isLoadingMore = true;
+    int randomNumber = Random().nextInt(1000) + 1;
+    var tag = currentTag;
+    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
+    if (currentTag == tag) {
+      bangumiList.addAll(result);
+      isLoadingMore = false;
+      isTimeOut = bangumiList.isEmpty;
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> queryBangumiListFeedByTag(String tag) async {
+    currentTag = tag;
+    isLoadingMore = true;
+    int randomNumber = Random().nextInt(1000) + 1;
+    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
+    if (currentTag == tag) {
+      bangumiList.clear();
+      bangumiList.addAll(result);
+      isLoadingMore = false;
+      isTimeOut = bangumiList.isEmpty;
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> queryBangumiListFeedByRefresh() async{
+    return await queryBangumiListFeedByTag(currentTag);
+  }
+
+  Future<void> queryBangumi(String keyword) async {
+    currentTag = '';
     isLoadingMore = true;
     var result = await BangumiHTTP.bangumiSearch(keyword);
     bangumiList.clear();

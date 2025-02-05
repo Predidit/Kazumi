@@ -14,7 +14,6 @@ class NetworkImgLayer extends StatelessWidget {
     this.type,
     this.fadeOutDuration,
     this.fadeInDuration,
-    // 图片质量 默认1%
     this.quality,
     this.origAspectRatio,
   });
@@ -88,8 +87,7 @@ class NetworkImgLayer extends StatelessWidget {
                   placeholder(context),
               placeholder: (BuildContext context, String url) =>
                   placeholder(context),
-            ),
-          )
+            ))
         : placeholder(context);
   }
 

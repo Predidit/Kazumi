@@ -1,0 +1,213 @@
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:provider/provider.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/utils/storage.dart';
+
+class CollectPage extends StatefulWidget {
+  const CollectPage({super.key});
+
+  @override
+  State<CollectPage> createState() => _CollectPageState();
+}
+
+class _CollectPageState extends State<CollectPage>
+    with SingleTickerProviderStateMixin {
+  final CollectController collectController = Modular.get<CollectController>();
+  late NavigationBarState navigationBarState;
+  TabController? controller;
+  bool showDelete = false;
+  bool syncCollectiblesing = false;
+  Box setting = GStorage.setting;
+
+  void onBackPressed(BuildContext context) {
+    navigationBarState.updateSelectedIndex(0);
+    Modular.to.navigate('/tab/popular/');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    collectController.loadCollectibles();
+    controller = TabController(vsync: this, length: tabs.length);
+      navigationBarState =
+          Provider.of<NavigationBarState>(context, listen: false);
+  }
+
+  final List<Tab> tabs = const <Tab>[
+    Tab(text: '在看'),
+    Tab(text: '想看'),
+    Tab(text: '搁置'),
+    Tab(text: '看过'),
+    Tab(text: '抛弃'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return OrientationBuilder(builder: (context, orientation) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          onBackPressed(context);
+        },
+        child: Scaffold(
+          appBar: SysAppBar(
+            toolbarHeight: 104,
+            bottom: TabBar(
+              controller: controller,
+              tabs: tabs,
+              indicatorColor: Theme.of(context).colorScheme.primary,
+            ),
+            title: const Text('追番'),
+            actions: [
+              IconButton(
+                  onPressed: () {
+                    setState(() {
+                      showDelete = !showDelete;
+                    });
+                  },
+                  icon: showDelete
+                      ? const Icon(Icons.edit_outlined)
+                      : const Icon(Icons.edit))
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
+                  defaultValue: false);
+              if (!webDavenable) {
+                KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
+                return;
+              }
+              if (showDelete) {
+                KazumiDialog.showToast(message: '编辑模式无法执行同步');
+                return;
+              }
+              if (syncCollectiblesing) {
+                return;
+              }
+              setState(() {
+                syncCollectiblesing = true;
+              });
+              await collectController.syncCollectibles();
+              setState(() {
+                syncCollectiblesing = false;
+              });
+            },
+            child: syncCollectiblesing
+                ? const SizedBox(
+                    width: 24, height: 24, child: CircularProgressIndicator())
+                : const Icon(Icons.cloud_sync),
+          ),
+          body: Padding(
+              padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
+              child: Observer(builder: (context) {
+                return renderBody(orientation);
+              })),
+        ),
+      );
+    });
+  }
+
+  Widget renderBody(Orientation orientation) {
+    if (collectController.collectibles.isNotEmpty) {
+      return TabBarView(
+        controller: controller,
+        children: contentGrid(collectController.collectibles, orientation),
+      );
+    } else {
+      return const Center(
+        child: Text('啊嘞, 没有追番的说 (´;ω;`)'),
+      );
+    }
+  }
+
+  List<Widget> contentGrid(
+      List<CollectedBangumi> collectedBangumiList, Orientation orientation) {
+    List<Widget> gridViewList = [];
+    List<List<CollectedBangumi>> collectedBangumiRenderItemList =
+        List.generate(tabs.length, (_) => <CollectedBangumi>[]);
+    for (CollectedBangumi element in collectedBangumiList) {
+      collectedBangumiRenderItemList[element.type - 1].add(element);
+    }
+    for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
+      list.sort((a, b) => b.time.millisecondsSinceEpoch
+          .compareTo(a.time.millisecondsSinceEpoch));
+    }
+    int crossCount = orientation != Orientation.portrait ? 6 : 3;
+    for (List<CollectedBangumi> collectedBangumiRenderItem
+        in collectedBangumiRenderItemList) {
+      gridViewList.add(
+        CustomScrollView(
+          slivers: [
+            SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                mainAxisSpacing: StyleString.cardSpace - 2,
+                crossAxisSpacing: StyleString.cardSpace,
+                crossAxisCount: crossCount,
+                mainAxisExtent:
+                    MediaQuery.of(context).size.width / crossCount / 0.65 +
+                        MediaQuery.textScalerOf(context).scale(32.0),
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  return collectedBangumiRenderItem.isNotEmpty
+                      ? Stack(
+                          children: [
+                            BangumiCardV(
+                              bangumiItem:
+                                  collectedBangumiRenderItem[index].bangumiItem,
+                              canTap: !showDelete,
+                            ),
+                            Positioned(
+                              right: 5,
+                              bottom: 5,
+                              child: showDelete
+                                  ? Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .secondaryContainer,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: CollectButton(
+                                        bangumiItem:
+                                            collectedBangumiRenderItem[index]
+                                                .bangumiItem,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSecondaryContainer,
+                                      ),
+                                    )
+                                  : Container(),
+                            ),
+                          ],
+                        )
+                      : null;
+                },
+                childCount: collectedBangumiRenderItem.isNotEmpty
+                    ? collectedBangumiRenderItem.length
+                    : 10,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return gridViewList;
+  }
+}

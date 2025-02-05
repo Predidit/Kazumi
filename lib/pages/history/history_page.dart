@@ -124,8 +124,7 @@ class _HistoryPageState extends State<HistoryPage>
               mainAxisSpacing: StyleString.cardSpace - 2,
               crossAxisSpacing: StyleString.cardSpace - 2,
               crossAxisCount: crossCount,
-              mainAxisExtent: MediaQuery.sizeOf(context).height /
-                  (Utils.isWideScreen() ? 5 : 6), // 根据屏幕大小改变高度
+              mainAxisExtent: 150,
             ),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {

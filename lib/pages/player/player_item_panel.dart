@@ -612,7 +612,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ),
                         // 跳过
                         forwardIcon(),
-                        if (Utils.isDesktop())
+                        if (Utils.isDesktop() && !videoPageController.isFullscreen)
                         IconButton(
                             onPressed: () {
                               if (videoPageController.isPip) {

@@ -112,6 +112,13 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget contentGrid(Orientation orientation) {
     int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
+
+    final scale = MediaQuery.textScalerOf(context);
+    final textTheme = Theme.of(context).textTheme;
+    final titleHeight = Utils.getTextPxHeight(scale, textTheme.titleSmall);
+    final labelHeight = Utils.getTextPxHeight(scale, textTheme.labelSmall);
+    final height = 4 * 2 + 7 * 2 + 4 + titleHeight + 15 + labelHeight * 5;
+
     return CustomScrollView(
       slivers: [
         SliverPadding(
@@ -124,7 +131,7 @@ class _HistoryPageState extends State<HistoryPage>
               mainAxisSpacing: StyleString.cardSpace - 2,
               crossAxisSpacing: StyleString.cardSpace - 2,
               crossAxisCount: crossCount,
-              mainAxisExtent: 150,
+              mainAxisExtent: height,
             ),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {

@@ -48,9 +48,10 @@ void main() async {
       center: true,
       // backgroundColor: Colors.white,
       skipTaskbar: false,
-      titleBarStyle: (Platform.isMacOS || !showWindowButton)
-          ? TitleBarStyle.hidden
-          : TitleBarStyle.normal,
+      titleBarStyle:
+          (Platform.isMacOS || Platform.isWindows || !showWindowButton)
+              ? TitleBarStyle.hidden
+              : TitleBarStyle.normal,
       windowButtonVisibility: showWindowButton,
       title: 'Kazumi',
     );

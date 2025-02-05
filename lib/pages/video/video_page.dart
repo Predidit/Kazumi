@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -22,6 +21,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -526,11 +526,8 @@ class _VideoPageState extends State<VideoPage>
                           top: 0,
                           left: 0,
                           right: 0,
-                          child: SafeArea(
-                            minimum: (Platform.isMacOS &&
-                                    !videoPageController.isFullscreen)
-                                ? const EdgeInsets.only(top: 22)
-                                : EdgeInsets.zero,
+                          child: DesktopTitleBar(
+                            requireOffset: !videoPageController.isFullscreen,
                             child: Row(
                               children: [
                                 IconButton(

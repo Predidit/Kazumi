@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -59,10 +60,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
       acs.add(const SizedBox(width: 8));
     }
-    return SafeArea(
-      minimum: (Platform.isMacOS && needTopOffset && showWindowButton())
-          ? const EdgeInsets.only(top: 22)
-          : EdgeInsets.zero,
+    return DesktopTitleBar(
+      requireOffset: needTopOffset,
       child: GestureDetector(
         // behavior: HitTestBehavior.translucent,
         onPanStart: (_) =>

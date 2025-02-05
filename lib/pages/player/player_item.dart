@@ -130,7 +130,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap() {
-    if (Utils.isDesktop()) {
+    if (Utils.isDesktop() && !videoPageController.isPip) {
       handleFullscreen();
     } else {
       playerController.playOrPause();
@@ -685,7 +685,9 @@ class _PlayerItemState extends State<PlayerItem>
                                 // F键被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.keyF) {
-                                  handleFullscreen();
+                                  if (!videoPageController.isPip) {
+                                    handleFullscreen();
+                                  }
                                 }
                                 // D键盘被按下
                                 if (event.logicalKey ==

@@ -23,19 +23,19 @@ abstract class _VideoPageController with Store {
   @observable
   int currentRoad = 0;
 
-  // 全屏状态
+  /// 全屏状态
   @observable
   bool isFullscreen = false;
 
-  // PIP状态
+  /// 画中画状态
   @observable
   bool isPip = false;
 
-  // 播放列表显示状态
+  /// 播放列表显示状态
   @observable
   bool showTabBody = true;
 
-  // 上次观看位置
+  /// 上次观看位置
   @observable
   int historyOffset = 0;
 

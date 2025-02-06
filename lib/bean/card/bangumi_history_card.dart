@@ -34,22 +34,25 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
 
   Widget propertyChip({
     required String title,
-    required Object value,
+    required String value,
     bool showTitle = false,
   }) {
     final message = '$title: $value';
-    return FilterChip(
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      label: Text(
-        showTitle ? message : value.toString(),
-        style: Theme.of(context).textTheme.labelSmall,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
+    return Tooltip(
+      message: message,
+      child: Chip(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        side: BorderSide.none,
+        label: Text(
+          showTitle ? message : value,
+          style: Theme.of(context).textTheme.labelSmall,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
       ),
-      tooltip: message,
-      onSelected: (_) {},
     );
   }
 
@@ -57,8 +60,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   Widget build(BuildContext context) {
     final InfoController infoController = Modular.get<InfoController>();
     return Card(
-      clipBehavior: Clip.antiAlias,
-      color: Theme.of(context).colorScheme.secondaryContainer,
       child: InkWell(
         onTap: () async {
           if (widget.showDelete) {
@@ -158,7 +159,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                         ),
                         propertyChip(
                           title: '排名',
-                          value: widget.historyItem.bangumiItem.rank,
+                          value: widget.historyItem.bangumiItem.rank.toString(),
                           showTitle: true,
                         ),
                         // 只有 '番剧'

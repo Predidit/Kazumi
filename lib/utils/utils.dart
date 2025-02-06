@@ -572,11 +572,4 @@ class Utils {
     var digest = sha256.convert(bytes);
     return base64Encode(digest.bytes);
   }
-
-  /// 参考：https://api.flutter.dev/flutter/painting/TextStyle/height.html
-  static double getTextPxHeight(TextScaler scale, TextStyle? style) {
-    final size = scale.scale(style?.fontSize ?? kDefaultFontSize);
-    final height = style?.height ?? 1.0;
-    return (size * height).ceilToDouble();
-  }
 }

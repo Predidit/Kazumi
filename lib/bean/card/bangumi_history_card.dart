@@ -11,6 +11,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 
 // 视频历史记录卡片 - 水平布局
@@ -30,6 +31,27 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
+
+  Widget propertyChip({
+    required String title,
+    required Object value,
+    bool showTitle = false,
+  }) {
+    final message = '$title: $value';
+    return FilterChip(
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      label: Text(
+        showTitle ? message : value.toString(),
+        style: Theme.of(context).textTheme.labelSmall,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+      tooltip: message,
+      onSelected: (_) {},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,29 +142,36 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     ),
                     const SizedBox(height: 12),
                     // 测试 因为API问题评分功能搁置
-                    _PropertyText('番剧源: ${widget.historyItem.adapterName}'),
-                    _PropertyText(
-                      widget.historyItem.lastWatchEpisodeName == ''
-                          ? '上次看到: 第${widget.historyItem.lastWatchEpisode}话'
-                          : '上次看到: ${widget.historyItem.lastWatchEpisodeName}',
-                    ),
-                    _PropertyText('排名: ${widget.historyItem.bangumiItem.rank}'),
-                    _PropertyText(
-                      widget.historyItem.bangumiItem.type == 2 ? '番剧' : '其他',
-                    ),
-                    _PropertyText(widget.historyItem.bangumiItem.airDate),
-                    // Wrap(
-                    //   spacing: 4,
-                    //   runSpacing: Utils.isDesktop() ? 4 : -10,
-                    //   children: [
-                    //     _PropertyChip(
-                    //       title: '番剧源',
-                    //       value: widget.historyItem.adapterName,
-                    //       color: Colors.redAccent,
-                    //     ),
-                    //     ...
-                    //   ],
-                    // ),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: Utils.isDesktop() ? 4 : -10,
+                      children: [
+                        propertyChip(
+                          title: '番剧源',
+                          value: widget.historyItem.adapterName,
+                        ),
+                        propertyChip(
+                          title: '上次看到',
+                          value: widget.historyItem.lastWatchEpisodeName.isEmpty
+                              ? '第${widget.historyItem.lastWatchEpisode}话'
+                              : widget.historyItem.lastWatchEpisodeName,
+                        ),
+                        propertyChip(
+                          title: '排名',
+                          value: widget.historyItem.bangumiItem.rank,
+                          showTitle: true,
+                        ),
+                        // 只有 '番剧'
+                        // propertyChip(
+                        //   title: '种类',
+                        //   value: widget.historyItem.bangumiItem.type == 2 ? '番剧' : '其他',
+                        // ),
+                        propertyChip(
+                          title: '首播',
+                          value: widget.historyItem.bangumiItem.airDate,
+                        ),
+                      ],
+                    )
                   ],
                 ),
               ),
@@ -172,59 +201,3 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     );
   }
 }
-
-class _PropertyText extends StatelessWidget {
-  final String data;
-
-  const _PropertyText(this.data);
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: data,
-      child: Text(
-        data,
-        style: Theme.of(context).textTheme.labelSmall,
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-    );
-  }
-}
-
-// class _PropertyChip extends StatelessWidget {
-//   final String title, value;
-//   final Color? color;
-//   final bool showTitle;
-//
-//   const _PropertyChip({
-//     required this.title,
-//     required this.value,
-//     this.color,
-//     this.showTitle = false,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final color_ = color;
-//     final message = '$title: $value';
-//     return FilterChip(
-//       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-//       color: WidgetStatePropertyAll(
-//         color_ != null
-//             ? Color.lerp(Theme.of(context).colorScheme.surface, color_, 0.38)
-//             : null,
-//       ),
-//       padding: EdgeInsets.zero,
-//       label: Text(
-//         showTitle ? message : value,
-//         style: TextStyle(
-//           fontSize: Theme.of(context).textTheme.labelSmall?.fontSize,
-//           overflow: TextOverflow.ellipsis,
-//         ),
-//       ),
-//       tooltip: message,
-//       onSelected: (_) {},
-//     );
-//   }
-// }

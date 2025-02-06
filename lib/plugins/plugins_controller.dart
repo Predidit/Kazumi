@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:mobx/mobx.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugin_validity_tracker.dart';
@@ -13,7 +13,6 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 
 part 'plugins_controller.g.dart';
-
 
 // 从 1.5.1 版本开始，规则文件储存在单一的 plugins.json 文件中。
 // 之前的版本中，规则以分离文件形式存储，版本更新后将这些分离文件合并为单一的 plugins.json 文件。
@@ -34,7 +33,7 @@ abstract class _PluginsController with Store {
   final installTimeTracker = PluginInstallTimeTracker();
 
   String pluginsFileName = "plugins.json";
-  
+
   Directory? oldPluginDirectory;
 
   Directory? newPluginDirectory;
@@ -56,13 +55,15 @@ abstract class _PluginsController with Store {
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
   Future<void> loadAllPlugins() async {
     pluginList.clear();
-    KazumiLogger().log(Level.info, 'Plugins Directory: ${newPluginDirectory!.path}');
+    KazumiLogger()
+        .log(Level.info, 'Plugins Directory: ${newPluginDirectory!.path}');
     if (await newPluginDirectory!.exists()) {
       final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
-        KazumiLogger().log(Level.info, 'Current Plugin number: ${pluginList.length}');
+        KazumiLogger()
+            .log(Level.info, 'Current Plugin number: ${pluginList.length}');
       } else {
         // No plugins.json
         var jsonFiles = await getPluginFiles();
@@ -97,11 +98,10 @@ abstract class _PluginsController with Store {
 
   // Copies plugin JSON files from the assets to the plugin directory
   Future<void> copyPluginsToExternalDirectory() async {
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
-
-    final jsonFiles = manifestMap.keys.where((String key) =>
-        key.startsWith('assets/plugins/') && key.endsWith('.json'));
+    final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final assets = assetManifest.listAssets();
+    final jsonFiles = assets.where((String asset) =>
+        asset.startsWith('assets/plugins/') && asset.endsWith('.json'));
 
     for (var filePath in jsonFiles) {
       final jsonString = await rootBundle.loadString(filePath);
@@ -109,8 +109,8 @@ abstract class _PluginsController with Store {
       pluginList.add(plugin);
     }
     await savePlugins();
-    KazumiLogger().log(
-        Level.info, '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
+    KazumiLogger().log(Level.info,
+        '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
   }
 
   List<dynamic> pluginListToJson() {

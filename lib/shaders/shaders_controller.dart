@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:mobx/mobx.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
@@ -15,18 +14,19 @@ abstract class _ShadersController with Store {
   late Directory shadersDirectory;
 
   Future<void> copyShadersToExternalDirectory() async {
-    final manifestContent = await rootBundle.loadString('AssetManifest.json');
-    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+    final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final assets = assetManifest.listAssets();
     final directory = await getApplicationSupportDirectory();
     shadersDirectory = Directory(path.join(directory.path, 'anime_shaders'));
 
     if (!await shadersDirectory.exists()) {
       await shadersDirectory.create(recursive: true);
-      KazumiLogger().log(Level.info, 'Create GLSL Shader: ${shadersDirectory.path}');
+      KazumiLogger()
+          .log(Level.info, 'Create GLSL Shader: ${shadersDirectory.path}');
     }
 
-    final shaderFiles = manifestMap.keys.where((String key) =>
-        key.startsWith('assets/shaders/') && key.endsWith('.glsl'));
+    final shaderFiles = assets.where((String asset) =>
+        asset.startsWith('assets/shaders/') && asset.endsWith('.glsl'));
 
     int copiedFilesCount = 0;
 
@@ -34,7 +34,8 @@ abstract class _ShadersController with Store {
       final fileName = filePath.split('/').last;
       final targetFile = File(path.join(shadersDirectory.path, fileName));
       if (await targetFile.exists()) {
-        KazumiLogger().log(Level.info, 'GLSL Shader exists, skip: ${targetFile.path}');
+        KazumiLogger()
+            .log(Level.info, 'GLSL Shader exists, skip: ${targetFile.path}');
         continue;
       }
 
@@ -49,7 +50,7 @@ abstract class _ShadersController with Store {
       }
     }
 
-    KazumiLogger().log(
-        Level.info, '$copiedFilesCount GLSL files copied to ${shadersDirectory.path}');
+    KazumiLogger().log(Level.info,
+        '$copiedFilesCount GLSL files copied to ${shadersDirectory.path}');
   }
 }

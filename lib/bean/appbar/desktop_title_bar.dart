@@ -20,7 +20,7 @@ class _DesktopTitleBar extends State<DesktopTitleBar> {
   bool showWindowButton =
       GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 
-  EdgeInsets getInsets() {
+  EdgeInsets get getInsets {
     if (!showWindowButton) {
       return EdgeInsets.zero;
     }
@@ -29,8 +29,6 @@ class _DesktopTitleBar extends State<DesktopTitleBar> {
     }
     if (Platform.isMacOS) {
       return const EdgeInsets.only(top: 22);
-    } else if (Platform.isWindows) {
-      return const EdgeInsets.only(top: 32);
     } else {
       return EdgeInsets.zero;
     }
@@ -43,7 +41,7 @@ class _DesktopTitleBar extends State<DesktopTitleBar> {
       top: true,
       right: false,
       bottom: false,
-      minimum: getInsets(),
+      minimum: getInsets,
       child: widget.child,
     );
   }

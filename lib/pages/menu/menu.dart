@@ -1,9 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
-import 'package:kazumi/utils/storage.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key});
@@ -41,8 +40,6 @@ class NavigationBarState extends ChangeNotifier {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
-  bool showWindowButton =
-      GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +103,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return Scaffold(
       body: Row(
         children: [
-          SafeArea(
+          DesktopTitleBar(
             child: Visibility(
               visible: !state.isHide,
               child: NavigationRail(
@@ -115,9 +112,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                 leading: SizedBox(
                     width: 50,
                     child: Padding(
-                        padding: (Platform.isMacOS && showWindowButton)
-                            ? const EdgeInsets.only(top: 30)
-                            : const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.only(top: 8),
                         child: ClipOval(
                           child: InkWell(
                             customBorder: const CircleBorder(),

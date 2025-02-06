@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/utils.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
@@ -52,6 +52,7 @@ class BangumiCardV extends StatelessWidget {
             Modular.to.pushNamed('/info/');
           },
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.only(
@@ -93,32 +94,24 @@ class BangumiContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ts = MediaQuery.textScalerOf(context);
+
     return Expanded(
       child: Padding(
         // 多列
-        padding: const EdgeInsets.fromLTRB(5, 3, 5, 0),
+        padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
         // 单列
         // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                    child: Text(
-                  bangumiItem.nameCn,
-                  textAlign: TextAlign.start,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
-                  ),
-                  maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
-                  overflow: TextOverflow.ellipsis,
-                )),
-              ],
-            ),
-            const SizedBox(height: 1),
-          ],
+        child: Text(
+          bangumiItem.nameCn,
+          textAlign: TextAlign.start,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
+          ),
+          textScaler: ts.clamp(maxScaleFactor: 1.1),
+          maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

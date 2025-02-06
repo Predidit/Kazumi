@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/bean/card/bangumi_history_card.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
-
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/card/bangumi_history_card.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -112,6 +112,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget contentGrid(Orientation orientation) {
     int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
+
     return CustomScrollView(
       slivers: [
         SliverPadding(
@@ -121,10 +122,11 @@ class _HistoryPageState extends State<HistoryPage>
               bottom: StyleString.safeSpace * 2),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                mainAxisSpacing: StyleString.cardSpace - 2,
-                crossAxisSpacing: StyleString.cardSpace - 2,
-                crossAxisCount: crossCount,
-                mainAxisExtent: 150),
+              mainAxisSpacing: StyleString.cardSpace - 2,
+              crossAxisSpacing: StyleString.cardSpace - 2,
+              crossAxisCount: crossCount,
+              mainAxisExtent: MediaQuery.textScalerOf(context).scale(150),
+            ),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
                 return historyController.histories.isNotEmpty
@@ -143,14 +145,14 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  // Widget contentGrid(List<History> histories) {
-  //   return ListView.builder(
-  //     itemCount: histories.isNotEmpty ? histories.length : 10,
-  //     itemBuilder: (BuildContext context, int index) {
-  //       return histories.isNotEmpty
-  //           ? BangumiHistoryCardV(historyItem: histories[index])
-  //           : Container();
-  //     },
-  //   );
-  // }
+// Widget contentGrid(List<History> histories) {
+//   return ListView.builder(
+//     itemCount: histories.isNotEmpty ? histories.length : 10,
+//     itemBuilder: (BuildContext context, int index) {
+//       return histories.isNotEmpty
+//           ? BangumiHistoryCardV(historyItem: histories[index])
+//           : Container();
+//     },
+//   );
+// }
 }

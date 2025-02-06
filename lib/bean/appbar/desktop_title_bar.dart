@@ -13,10 +13,10 @@ class DesktopTitleBar extends StatefulWidget {
   final bool requireOffset;
 
   @override
-  State<StatefulWidget> createState() => _DesktopTitleBar();
+  State<StatefulWidget> createState() => _DesktopTitleBarState();
 }
 
-class _DesktopTitleBar extends State<DesktopTitleBar> {
+class _DesktopTitleBarState extends State<DesktopTitleBar> {
   bool showWindowButton =
       GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 

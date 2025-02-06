@@ -476,7 +476,6 @@ class Utils {
   // 进入桌面设备小窗模式
   static Future<void> enterDesktopPIPWindow() async {
     await windowManager.setAlwaysOnTop(true);
-    await windowManager.setResizable(false);
     await windowManager.setSize(const Size(480, 270));
   }
 
@@ -484,7 +483,6 @@ class Utils {
   static Future<void> exitDesktopPIPWindow() async {
     bool isLowResolution = await Utils.isLowResolution();
     await windowManager.setAlwaysOnTop(false);
-    await windowManager.setResizable(true);
     await windowManager.setSize(isLowResolution ? const Size(800, 600) : const Size(1280, 860));
     await windowManager.center();
   }

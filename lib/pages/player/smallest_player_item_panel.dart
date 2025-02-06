@@ -7,7 +7,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -554,11 +554,23 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         ),
                         MenuItemButton(
                           onPressed: () {
-                            KazumiDialog.show(builder: (context) {
-                              return DanmakuSettingsWindow(
-                                  danmakuController:
-                                      playerController.danmakuController);
-                            });
+                            showModalBottomSheet(
+                                isScrollControlled: true,
+                                constraints: BoxConstraints(
+                                    maxHeight: 280,
+                                    maxWidth: (Utils.isDesktop() ||
+                                            Utils.isTablet())
+                                        ? MediaQuery.of(context).size.width *
+                                            9 /
+                                            16
+                                        : MediaQuery.of(context).size.width),
+                                clipBehavior: Clip.antiAlias,
+                                context: context,
+                                builder: (context) {
+                                  return DanmakuSettingsSheet(
+                                      danmakuController:
+                                          playerController.danmakuController);
+                                });
                           },
                           child: const Padding(
                             padding: EdgeInsets.fromLTRB(0, 10, 10, 10),

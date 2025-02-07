@@ -1,8 +1,7 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
@@ -26,6 +25,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final PreferredSizeWidget? bottom;
 
+  final bool needTopOffset;
+
   const SysAppBar(
       {super.key,
       this.toolbarHeight,
@@ -36,73 +37,12 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.actions,
       this.leading,
       this.leadingWidth,
-      this.bottom});
+      this.bottom,
+      this.needTopOffset = true});
 
-  void _handleCloseEvent() {
-    final setting = GStorage.setting;
-    final exitBehavior =
-        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
-
-    switch (exitBehavior) {
-      case 0:
-        exit(0);
-      case 1:
-        KazumiDialog.dismiss();
-        windowManager.hide();
-        break;
-      default:
-        KazumiDialog.show(builder: (context) {
-          bool saveExitBehavior = false; // 下次不再询问？
-
-          return AlertDialog(
-            title: const Text('退出确认'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('您想要退出 Kazumi 吗？'),
-                const SizedBox(height: 24),
-                StatefulBuilder(builder: (context, setState) {
-                  onChanged(value) {
-                    saveExitBehavior = value ?? false;
-                    setState(() {});
-                  }
-
-                  return Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
-                      const Text('下次不再询问'),
-                    ],
-                  );
-                }),
-              ],
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () async {
-                    if (saveExitBehavior) {
-                      await setting.put(SettingBoxKey.exitBehavior, 0);
-                    }
-                    exit(0);
-                  },
-                  child: const Text('退出 Kazumi')),
-              TextButton(
-                  onPressed: () async {
-                    if (saveExitBehavior) {
-                      await setting.put(SettingBoxKey.exitBehavior, 1);
-                    }
-                    KazumiDialog.dismiss();
-                    windowManager.hide();
-                  },
-                  child: const Text('最小化至托盘')),
-              const TextButton(
-                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
-            ],
-          );
-        });
-    }
+  bool showWindowButton() {
+    return GStorage.setting
+        .get(SettingBoxKey.showWindowButton, defaultValue: false);
   }
 
   @override
@@ -113,15 +53,18 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     if (Utils.isDesktop()) {
       // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      acs.add(Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: CloseButton(onPressed: () => _handleCloseEvent())));
+      if (!showWindowButton()) {
+        acs.add(CloseButton(onPressed: () => windowManager.close()));
+      }
+      acs.add(const SizedBox(width: 8));
     }
-    return GestureDetector(
-      // behavior: HitTestBehavior.translucent,
-      onPanStart: (_) =>
-          (Utils.isDesktop()) ? windowManager.startDragging() : null,
-      child: AppBar(
+    return EmbeddedNativeControlArea(
+      requireOffset: needTopOffset,
+      child: GestureDetector(
+        // behavior: HitTestBehavior.translucent,
+        onPanStart: (_) =>
+            (Utils.isDesktop()) ? windowManager.startDragging() : null,
+        child: AppBar(
           toolbarHeight: preferredSize.height,
           scrolledUnderElevation: 0.0,
           title: title,
@@ -141,10 +84,24 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
                     : Brightness.light,
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarDividerColor: Colors.transparent,
-          )),
+          ),
+        ),
+      ),
     );
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+  Size get preferredSize {
+    // macOS needs to add 22(macOS title bar height)
+    // to default toolbar height to build appbar like normal
+    if (Platform.isMacOS && needTopOffset && showWindowButton()) {
+      if (toolbarHeight != null) {
+        return Size.fromHeight(toolbarHeight! + 22);
+      } else {
+        return const Size.fromHeight(kToolbarHeight + 22);
+      }
+    } else {
+      return Size.fromHeight(toolbarHeight ?? kToolbarHeight);
+    }
+  }
 }

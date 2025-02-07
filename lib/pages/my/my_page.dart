@@ -38,7 +38,7 @@ class _MyPageState extends State<MyPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('我的')),
+        appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
         body: Center(
           child: SizedBox(
             width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,

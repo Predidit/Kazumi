@@ -101,6 +101,7 @@ class _PopularPageState extends State<PopularPage>
           },
           child: Scaffold(
               appBar: SysAppBar(
+                needTopOffset: false,
                 leadingWidth: 66, // default 56 + 10
                 leading: (navigationBarState.isBottom)
                     ? Row(

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -8,6 +10,7 @@ import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:window_manager/window_manager.dart';
 
 part 'video_controller.g.dart';
 
@@ -82,5 +85,18 @@ abstract class _VideoPageController with Store {
   void exitFullScreen() {
     isFullscreen = false;
     Utils.exitFullScreen();
+  }
+
+  void isDesktopFullscreen() async {
+    isFullscreen = await windowManager.isFullScreen();
+  }
+
+  void handleOnEnterFullScreen() async {
+    isFullscreen = true;
+    showTabBody = false;
+  }
+
+  void handleOnExitFullScreen() async {
+    isFullscreen = false;
   }
 }

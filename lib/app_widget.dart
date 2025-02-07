@@ -24,7 +24,7 @@ class AppWidget extends StatefulWidget {
 }
 
 class _AppWidgetState extends State<AppWidget>
-    with TrayListener, WidgetsBindingObserver {
+    with TrayListener, WidgetsBindingObserver, WindowListener {
   Box setting = GStorage.setting;
 
   final TrayManager trayManager = TrayManager.instance;
@@ -32,13 +32,21 @@ class _AppWidgetState extends State<AppWidget>
   @override
   void initState() {
     trayManager.addListener(this);
+    windowManager.addListener(this);
+    setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+  }
+
+  void setPreventClose() async {
+    await windowManager.setPreventClose(true);
+    setState(() {});
   }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -60,6 +68,76 @@ class _AppWidgetState extends State<AppWidget>
         windowManager.show();
       case 'exit':
         exit(0);
+    }
+  }
+
+  /// 处理窗口关闭事件，
+  /// 需要使用 `windowManager.close()` 来触发，`exit(0)` 会直接退出程序
+  @override
+  void onWindowClose() {
+    final setting = GStorage.setting;
+    final exitBehavior =
+        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+
+    switch (exitBehavior) {
+      case 0:
+        exit(0);
+      case 1:
+        KazumiDialog.dismiss();
+        windowManager.hide();
+        break;
+      default:
+        KazumiDialog.show(builder: (context) {
+          bool saveExitBehavior = false; // 下次不再询问？
+
+          return AlertDialog(
+            title: const Text('退出确认'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('您想要退出 Kazumi 吗？'),
+                const SizedBox(height: 24),
+                StatefulBuilder(builder: (context, setState) {
+                  onChanged(value) {
+                    saveExitBehavior = value ?? false;
+                    setState(() {});
+                  }
+
+                  return Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
+                      const Text('下次不再询问'),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 0);
+                    }
+                    exit(0);
+                  },
+                  child: const Text('退出 Kazumi')),
+              TextButton(
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 1);
+                    }
+                    KazumiDialog.dismiss();
+                    windowManager.hide();
+                  },
+                  child: const Text('最小化至托盘')),
+              const TextButton(
+                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
+            ],
+          );
+        });
     }
   }
 

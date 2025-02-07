@@ -39,12 +39,8 @@ class _EmbeddedNativeControlAreaState extends State<EmbeddedNativeControlArea> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      left: false,
-      top: true,
-      right: false,
-      bottom: false,
-      minimum: getInsets,
+    return Padding(
+      padding: getInsets,
       child: widget.child,
     );
   }

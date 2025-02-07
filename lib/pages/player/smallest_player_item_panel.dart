@@ -15,7 +15,7 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:kazumi/bean/widget/embedded_window_control_area.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
@@ -372,7 +372,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: EmbeddedWindowControlArea(
+                child: EmbeddedNativeControlArea(
                   child: Row(
                     children: [
                       IconButton(

@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/storage.dart';
 
-class EmbeddedWindowControlArea extends StatefulWidget {
-  const EmbeddedWindowControlArea({
+class EmbeddedNativeControlArea extends StatefulWidget {
+  const EmbeddedNativeControlArea({
     super.key,
     required this.child,
     this.requireOffset = true,
@@ -13,10 +13,10 @@ class EmbeddedWindowControlArea extends StatefulWidget {
   final bool requireOffset;
 
   @override
-  State<StatefulWidget> createState() => _EmbeddedWindowControlAreaState();
+  State<StatefulWidget> createState() => _EmbeddedNativeControlAreaState();
 }
 
-class _EmbeddedWindowControlAreaState extends State<EmbeddedWindowControlArea> {
+class _EmbeddedNativeControlAreaState extends State<EmbeddedNativeControlArea> {
   bool showWindowButton =
       GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 

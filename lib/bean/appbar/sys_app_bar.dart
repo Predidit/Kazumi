@@ -1,8 +1,7 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
+import 'package:kazumi/bean/widget/embedded_window_control_area.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
@@ -59,7 +58,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
       acs.add(const SizedBox(width: 8));
     }
-    return DesktopTitleBar(
+    return EmbeddedWindowControlArea(
       requireOffset: needTopOffset,
       child: GestureDetector(
         // behavior: HitTestBehavior.translucent,
@@ -93,6 +92,8 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
+    // macOS needs to add 22(macOS title bar height)
+    // to default toolbar height to build appbar like normal
     if (Platform.isMacOS && needTopOffset && showWindowButton()) {
       if (toolbarHeight != null) {
         return Size.fromHeight(toolbarHeight! + 22);

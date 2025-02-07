@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/storage.dart';
 
-class DesktopTitleBar extends StatefulWidget {
-  const DesktopTitleBar({
+class EmbeddedWindowControlArea extends StatefulWidget {
+  const EmbeddedWindowControlArea({
     super.key,
     required this.child,
     this.requireOffset = true,
@@ -13,10 +13,10 @@ class DesktopTitleBar extends StatefulWidget {
   final bool requireOffset;
 
   @override
-  State<StatefulWidget> createState() => _DesktopTitleBarState();
+  State<StatefulWidget> createState() => _EmbeddedWindowControlAreaState();
 }
 
-class _DesktopTitleBarState extends State<DesktopTitleBar> {
+class _EmbeddedWindowControlAreaState extends State<EmbeddedWindowControlArea> {
   bool showWindowButton =
       GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
 

@@ -71,6 +71,8 @@ class _AppWidgetState extends State<AppWidget>
     }
   }
 
+  /// 处理窗口关闭事件，
+  /// 需要使用 `windowManager.close()` 来触发，`exit(0)` 会直接退出程序
   @override
   void onWindowClose() {
     final setting = GStorage.setting;

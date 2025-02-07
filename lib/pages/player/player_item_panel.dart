@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
+import 'package:kazumi/bean/widget/embedded_window_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -559,7 +559,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: DesktopTitleBar(
+                child: EmbeddedWindowControlArea(
                   requireOffset: !videoPageController.isFullscreen,
                   child: MouseRegion(
                     cursor: (videoPageController.isFullscreen &&

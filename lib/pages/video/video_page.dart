@@ -21,7 +21,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
+import 'package:kazumi/bean/widget/embedded_window_control_area.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -70,6 +70,8 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     windowManager.addListener(this);
+    // Check fullscreen when enter video page
+    // in case user use system controls to enter fullscreen outside video page
     videoPageController.isDesktopFullscreen();
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
@@ -152,6 +154,7 @@ class _VideoPageState extends State<VideoPage>
     super.dispose();
   }
 
+  // Handle fullscreen change invoked by system controls
   @override
   void onWindowEnterFullScreen() {
     videoPageController.handleOnEnterFullScreen();
@@ -526,7 +529,7 @@ class _VideoPageState extends State<VideoPage>
                           top: 0,
                           left: 0,
                           right: 0,
-                          child: DesktopTitleBar(
+                          child: EmbeddedWindowControlArea(
                             requireOffset: !videoPageController.isFullscreen,
                             child: Row(
                               children: [

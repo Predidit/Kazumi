@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/desktop_title_bar.dart';
+import 'package:kazumi/bean/widget/embedded_window_control_area.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
 
@@ -103,7 +103,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return Scaffold(
       body: Row(
         children: [
-          DesktopTitleBar(
+          EmbeddedWindowControlArea(
             child: Visibility(
               visible: !state.isHide,
               child: NavigationRail(

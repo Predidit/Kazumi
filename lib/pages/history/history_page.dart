@@ -6,7 +6,6 @@ import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/utils.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});

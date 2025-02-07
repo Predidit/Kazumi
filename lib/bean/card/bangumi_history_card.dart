@@ -38,20 +38,17 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     bool showTitle = false,
   }) {
     final message = '$title: $value';
-    return Tooltip(
-      message: message,
-      child: Chip(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        side: BorderSide.none,
-        label: Text(
-          showTitle ? message : value,
-          style: Theme.of(context).textTheme.labelSmall,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
+    return Chip(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      side: BorderSide.none,
+      label: Text(
+        showTitle ? message : value,
+        style: Theme.of(context).textTheme.labelSmall,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -20,8 +21,8 @@ class _DecoderSettingsState extends State<DecoderSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('硬件解码器'),
+      appBar: const SysAppBar(
+        title: Text('硬件解码器'),
       ),
       body: Center(
         child: SizedBox(

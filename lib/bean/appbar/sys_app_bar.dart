@@ -76,6 +76,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
           elevation: elevation,
           shape: shape,
           bottom: bottom,
+          forceMaterialTransparency: Platform.isMacOS ? true : false,
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
             statusBarIconBrightness:

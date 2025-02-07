@@ -11,7 +11,6 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 
 // 视频历史记录卡片 - 水平布局
@@ -142,7 +141,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     // 测试 因为API问题评分功能搁置
                     Wrap(
                       spacing: 4,
-                      runSpacing: Utils.isDesktop() ? 4 : -10,
+                      runSpacing: 4,
                       children: [
                         propertyChip(
                           title: '番剧源',

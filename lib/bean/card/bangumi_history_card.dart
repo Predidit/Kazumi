@@ -176,6 +176,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
               Column(
                 children: [
                   CollectButton(
+                    onClose: () {
+                      FocusScope.of(context).unfocus();
+                    },
                     bangumiItem: widget.historyItem.bangumiItem,
                     color: Theme.of(context).colorScheme.onSecondaryContainer,
                   ),

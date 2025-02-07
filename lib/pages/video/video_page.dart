@@ -70,7 +70,7 @@ class _VideoPageState extends State<VideoPage>
   void initState() {
     super.initState();
     windowManager.addListener(this);
-    videoPageController.isMacOSFullscreen();
+    videoPageController.isDesktopFullscreen();
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 100),

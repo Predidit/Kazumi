@@ -613,7 +613,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   !videoPageController.isPip;
                             },
                             icon: const Icon(Icons.picture_in_picture,
-                                color: Colors.white)),// 追番
+                                color: Colors.white)),
+                        // 追番
                         CollectButton(
                           bangumiItem: infoController.bangumiItem,
                           onOpen: () {

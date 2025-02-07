@@ -87,10 +87,7 @@ abstract class _VideoPageController with Store {
     Utils.exitFullScreen();
   }
 
-  void isMacOSFullscreen() async {
-    if (!Platform.isMacOS) {
-      return;
-    }
+  void isDesktopFullscreen() async {
     isFullscreen = await windowManager.isFullScreen();
   }
 

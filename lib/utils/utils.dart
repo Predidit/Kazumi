@@ -348,6 +348,7 @@ class Utils {
     return false;
   }
 
+  // Deprecated
   static Future<void> enterWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
@@ -359,6 +360,7 @@ class Utils {
     }
   }
 
+  // Deprecated
   static Future<void> exitWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
@@ -372,11 +374,11 @@ class Utils {
 
   // 进入全屏显示
   static Future<void> enterFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isWindows) {
-      await enterWindowsFullscreen();
-      return;
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
+    // if (Platform.isWindows) {
+    //   await enterWindowsFullscreen();
+    //   return;
+    // }
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       await windowManager.setFullScreen(true);
       return;
     }
@@ -397,10 +399,10 @@ class Utils {
 
   //退出全屏显示
   static Future<void> exitFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isWindows) {
-      await exitWindowsFullscreen();
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
+    // if (Platform.isWindows) {
+    //   await exitWindowsFullscreen();
+    // }
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       await windowManager.setFullScreen(false);
     }
     late SystemUiMode mode = SystemUiMode.edgeToEdge;

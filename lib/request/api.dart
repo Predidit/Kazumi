@@ -28,6 +28,7 @@ class Api {
   static const String bangumiEpisodeByID = 'https://api.bgm.tv/v0/episodes?subject_id=';
   // Next条目API
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
+  static const String bangumiEpisodeByIDNext = 'https://next.bgm.tv/p1/episodes/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
   static const String dandanAPIDomain = 'https://api.dandanplay.net';

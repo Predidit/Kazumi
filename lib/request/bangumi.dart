@@ -219,7 +219,7 @@ class BangumiHTTP {
   static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(int id) async {
     EpisodeCommentResponse commentResponse = EpisodeCommentResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiInfoByIDNext}-/episode/$id/comments',
+      final res = await Request().get('${Api.bangumiEpisodeByIDNext}$id/comments',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);

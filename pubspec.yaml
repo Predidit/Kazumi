@@ -105,6 +105,7 @@ dependencies:
   path: any
   screen_brightness_platform_interface: any
   antlr4: ^4.13.2
+  protobuf: ^3.1.0
 
 dependency_overrides:
   media_kit:

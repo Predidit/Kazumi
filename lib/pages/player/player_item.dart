@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/modules/bili_dm/dm.pb.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -267,6 +268,20 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer?.cancel();
   }
 
+  late int latestAddedPosition = -1;
+
+  DanmakuItemType getPosition(int mode) {
+    DanmakuItemType type = DanmakuItemType.scroll;
+    if (mode >= 1 && mode <= 3) {
+      type = DanmakuItemType.scroll;
+    } else if (mode == 4) {
+      type = DanmakuItemType.bottom;
+    } else if (mode == 5) {
+      type = DanmakuItemType.top;
+    }
+    return type;
+  }
+
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.playerPlaying;
@@ -279,45 +294,70 @@ class _PlayerItemState extends State<PlayerItem>
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
           playerController.danmakuOn == true) {
-        playerController.danDanmakus[playerController.currentPosition.inSeconds]
-            ?.asMap()
-            .forEach((idx, danmaku) async {
-          if (!_danmakuColor) {
-            danmaku.color = Colors.white;
-          }
-          if (!_danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
+        if (playerController.isBiliDm) {
+          int currentPosition = playerController.currentPosition.inSeconds;
+
+          if (currentPosition == latestAddedPosition) {
             return;
           }
-          if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
-            return;
+          latestAddedPosition = currentPosition;
+
+          List? currentDanmakuList =
+              playerController.getCurrentDanmaku(currentPosition);
+          if (currentDanmakuList != null) {
+            for (DanmakuElem e in currentDanmakuList) {
+              danmakuController.addDanmaku(
+                DanmakuContentItem(
+                  e.content,
+                  color: Color(e.color).withAlpha(255),
+                  type: getPosition(e.mode),
+                ),
+              );
+            }
           }
-          if (!_danmakuDanDanSource &&
-              !(danmaku.source.contains('BiliBili') ||
-                  danmaku.source.contains('Gamer'))) {
-            return;
-          }
-          await Future.delayed(
-              Duration(
-                  milliseconds: idx *
-                      1000 ~/
-                      playerController
-                          .danDanmakus[
-                              playerController.currentPosition.inSeconds]!
-                          .length),
-              () => mounted &&
-                      playerController.playerPlaying &&
-                      !playerController.playerBuffering &&
-                      playerController.danmakuOn
-                  ? danmakuController.addDanmaku(DanmakuContentItem(
-                      danmaku.message,
-                      color: danmaku.color,
-                      type: danmaku.type == 4
-                          ? DanmakuItemType.bottom
-                          : (danmaku.type == 5
-                              ? DanmakuItemType.top
-                              : DanmakuItemType.scroll)))
-                  : null);
-        });
+        } else {
+          playerController
+              .danDanmakus[playerController.currentPosition.inSeconds]
+              ?.asMap()
+              .forEach((idx, danmaku) async {
+            if (!_danmakuColor) {
+              danmaku.color = Colors.white;
+            }
+            if (!_danmakuBiliBiliSource &&
+                danmaku.source.contains('BiliBili')) {
+              return;
+            }
+            if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
+              return;
+            }
+            if (!_danmakuDanDanSource &&
+                !(danmaku.source.contains('BiliBili') ||
+                    danmaku.source.contains('Gamer'))) {
+              return;
+            }
+            await Future.delayed(
+                Duration(
+                    milliseconds: idx *
+                        1000 ~/
+                        playerController
+                            .danDanmakus[
+                                playerController.currentPosition.inSeconds]!
+                            .length),
+                () => mounted &&
+                        playerController.playerPlaying &&
+                        !playerController.playerBuffering &&
+                        playerController.danmakuOn
+                    ? danmakuController.addDanmaku(DanmakuContentItem(
+                        danmaku.message,
+                        color: danmaku.color,
+                        type: danmaku.type == 4
+                            ? DanmakuItemType.bottom
+                            : (danmaku.type == 5
+                                ? DanmakuItemType.top
+                                : DanmakuItemType.scroll)))
+                    : null);
+          });
+        }
       }
       // 音量相关
       if (!playerController.volumeSeeking) {
@@ -442,18 +482,62 @@ class _PlayerItemState extends State<PlayerItem>
     KazumiDialog.show(
       builder: (context) {
         final TextEditingController searchTextController =
-            TextEditingController();
-        searchTextController.text = videoPageController.title;
+            TextEditingController(
+                text: playerController.isBiliDm
+                    ? playerController.cid?.toString()
+                    : videoPageController.title);
+        Color dmStateColor() => playerController.isBiliDm
+            ? Theme.of(context).colorScheme.secondary
+            : Theme.of(context).colorScheme.onSurfaceVariant;
         return AlertDialog(
-          title: const Text('弹幕检索'),
-          content: TextField(
-            controller: searchTextController,
-            decoration: const InputDecoration(
-              hintText: '番剧名',
-            ),
-            onSubmitted: (keyword) {
-              showDanmakuSearchDialog(keyword);
-            },
+          title: Text(playerController.isBiliDm ? 'Bili弹幕' : '弹幕检索'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                autofocus: true,
+                controller: searchTextController,
+                decoration: InputDecoration(
+                  hintText: playerController.isBiliDm ? '番剧cid' : '番剧名',
+                ),
+                onSubmitted: (keyword) {
+                  if (playerController.isBiliDm) {
+                    KazumiDialog.dismiss();
+                    playerController
+                      ..danDanmakus.clear()
+                      ..requestedSeg.clear()
+                      ..cid = int.tryParse(keyword)
+                      ..getBiliDanmaku();
+                  } else {
+                    showDanmakuSearchDialog(keyword);
+                  }
+                },
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  playerController.isBiliDm = !playerController.isBiliDm;
+                  if (context.mounted) {
+                    (context as Element?)?.markNeedsBuild();
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      Icon(
+                        playerController.isBiliDm
+                            ? Icons.check_box
+                            : Icons.check_box_outline_blank,
+                        size: 22,
+                        color: dmStateColor(),
+                      ),
+                      Text(' Bili弹幕', style: TextStyle(color: dmStateColor())),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -468,11 +552,18 @@ class _PlayerItemState extends State<PlayerItem>
             ),
             TextButton(
               onPressed: () {
-                showDanmakuSearchDialog(searchTextController.text);
+                if (playerController.isBiliDm) {
+                  KazumiDialog.dismiss();
+                  playerController
+                    ..danDanmakus.clear()
+                    ..requestedSeg.clear()
+                    ..cid = int.tryParse(searchTextController.text)
+                    ..getBiliDanmaku();
+                } else {
+                  showDanmakuSearchDialog(searchTextController.text);
+                }
               },
-              child: const Text(
-                '提交',
-              ),
+              child: const Text('提交'),
             ),
           ],
         );

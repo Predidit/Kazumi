@@ -13,13 +13,13 @@ mixin _$PlayerController on _PlayerController, Store {
       Atom(name: '_PlayerController.danDanmakus', context: context);
 
   @override
-  Map<int, List<Danmaku>> get danDanmakus {
+  Map<int, List> get danDanmakus {
     _$danDanmakusAtom.reportRead();
     return super.danDanmakus;
   }
 
   @override
-  set danDanmakus(Map<int, List<Danmaku>> value) {
+  set danDanmakus(Map<int, List> value) {
     _$danDanmakusAtom.reportWrite(value, super.danDanmakus, () {
       super.danDanmakus = value;
     });

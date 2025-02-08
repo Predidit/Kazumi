@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bili_dm/dm.pb.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -30,7 +31,7 @@ abstract class _PlayerController with Store {
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
-  Map<int, List<Danmaku>> danDanmakus = {};
+  Map<int, List> danDanmakus = {};
   @observable
   bool danmakuOn = false;
 
@@ -138,6 +139,8 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
+    cid = null;
+    isBiliDm = false;
     getDanDanmaku(videoPageController.title, episodeFromTitle);
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
@@ -340,9 +343,14 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $title');
     try {
       danDanmakus.clear();
-      bangumiID = await DanmakuRequest.getBangumiID(title);
-      var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
-      addDanmakus(res);
+      if (isBiliDm) {
+        requestedSeg.clear();
+        getBiliDanmaku();
+      } else {
+        bangumiID = await DanmakuRequest.getBangumiID(title);
+        var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+        addDanmakus(res);
+      }
     } catch (e) {
       KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
     }
@@ -352,8 +360,13 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
     try {
       danDanmakus.clear();
-      var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
-      addDanmakus(res);
+      if (isBiliDm) {
+        requestedSeg.clear();
+        getBiliDanmaku();
+      } else {
+        var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
+        addDanmakus(res);
+      }
     } catch (e) {
       KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
     }
@@ -366,5 +379,39 @@ abstract class _PlayerController with Store {
       danmakuList.add(element);
       danDanmakus[element.time.toInt()] = danmakuList;
     }
+  }
+
+  late bool isBiliDm = false;
+  dynamic cid;
+  late final int segmentLength = 60 * 6 * 1000;
+  late final Map<int, bool> requestedSeg = {};
+
+  int calcSegment(int progress) {
+    return progress ~/ segmentLength;
+  }
+
+  Future getBiliDanmaku([int? segmentIndex]) async {
+    if (cid == null) return;
+    segmentIndex ??= calcSegment(currentPosition.inMilliseconds);
+    if (requestedSeg[segmentIndex] == true) return;
+    requestedSeg[segmentIndex] = true;
+    final DmSegMobileReply result =
+        await DanmakuRequest.getBiliDanmaku(cid, segmentIndex + 1);
+    KazumiLogger().log(Level.info, 'Bili弹幕: ${result.elems.length}');
+    if (result.elems.isNotEmpty) {
+      for (var element in result.elems) {
+        int pos = element.progress ~/ 1000;
+        danDanmakus[pos] ??= [];
+        danDanmakus[pos]!.add(element);
+      }
+    }
+  }
+
+  List? getCurrentDanmaku(int progress) {
+    int segmentIndex = calcSegment(progress * 1000);
+    if (requestedSeg[segmentIndex] != true) {
+      getBiliDanmaku(segmentIndex);
+    }
+    return danDanmakus[progress];
   }
 }

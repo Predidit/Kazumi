@@ -52,11 +52,11 @@ class Request {
   // 禁用代理
   static void disableProxy() {
     dio.httpClientAdapter = IOHttpClientAdapter(
-        createHttpClient: () {
-          final HttpClient client = HttpClient();
-          return client;
-        },
-      );
+      createHttpClient: () {
+        final HttpClient client = HttpClient();
+        return client;
+      },
+    );
     debugPrint('代理禁用');
   }
 
@@ -78,7 +78,7 @@ class Request {
 
     dio = Dio(options);
     // debugPrint('Dio 初始化完成');
-    
+
     // if (enableSystemProxy) {
     //   setProxy();
     //   debugPrint('系统代理启用');
@@ -100,9 +100,14 @@ class Request {
     };
   }
 
-  Future<Response> get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
+  Future<Response> get(url,
+      {queryParameters,
+      options,
+      cancelToken,
+      extra,
+      bool shouldRethrow = false}) async {
     Response response;
-    ResponseType resType = ResponseType.json;
+    late ResponseType resType = ResponseType.json;
     options ??= Options();
     if (extra != null) {
       resType = extra!['resType'] ?? ResponseType.json;
@@ -113,11 +118,11 @@ class Request {
         options.extra = {'customError': extra['customError']};
       }
     }
-    options.responseType = resType;
+    options.responseType ??= resType;
     try {
       response = await dio.get(
         url,
-        queryParameters: data,
+        queryParameters: queryParameters,
         options: options,
         cancelToken: cancelToken,
       );
@@ -137,7 +142,13 @@ class Request {
     }
   }
 
-  Future<Response> post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
+  Future<Response> post(url,
+      {data,
+      queryParameters,
+      options,
+      cancelToken,
+      extra,
+      bool shouldRethrow = false}) async {
     // print('post-data: $data');
     Response response;
     try {

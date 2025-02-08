@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:kazumi/modules/bili_dm/dm.pb.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -67,7 +68,7 @@ class DanmakuRequest {
     };
 
     final res = await Request().get(endPoint,
-        data: keywordMap,
+        queryParameters: keywordMap,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'});
     Map<String, dynamic> jsonData = res.data;
@@ -100,7 +101,7 @@ class DanmakuRequest {
     };
     KazumiLogger().log(Level.info, "弹幕请求最终URL $endPoint");
     final res = await Request().get(endPoint,
-        data: withRelated,
+        queryParameters: withRelated,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
 
@@ -130,9 +131,8 @@ class DanmakuRequest {
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
-    final res = await Request().get(
-        endPoint,
-        data: withRelated,
+    final res = await Request().get(endPoint,
+        queryParameters: withRelated,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
     Map<String, dynamic> jsonData = res.data;
@@ -143,5 +143,28 @@ class DanmakuRequest {
       danmakus.add(danmaku);
     }
     return danmakus;
+  }
+
+  static Future getBiliDanmaku(dynamic cid, int segmentIndex) async {
+    final response = await Request().get(
+      '${Api.biliApiBaseUrl}${Api.biliWebDanmaku}',
+      queryParameters: {
+        'type': 1,
+        'oid': cid,
+        'segment_index': segmentIndex,
+      },
+      options: Options(
+        headers: {'user-agent': ''},
+        responseType: ResponseType.bytes,
+      ),
+    );
+    if (response.statusCode != 200 || response.data == null) {
+      return DmSegMobileReply();
+    }
+    try {
+      return DmSegMobileReply.fromBuffer(response.data);
+    } catch (e) {
+      return DmSegMobileReply();
+    }
   }
 }

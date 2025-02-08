@@ -302,8 +302,8 @@ class _PlayerItemState extends State<PlayerItem>
           }
           latestAddedPosition = currentPosition;
 
-          List? currentDanmakuList =
-              playerController.getCurrentDanmaku(currentPosition);
+          List? currentDanmakuList = playerController
+              .getCurrentDanmaku(currentPosition + playerController.dmOffset);
           if (currentDanmakuList != null) {
             for (DanmakuElem e in currentDanmakuList) {
               danmakuController.addDanmaku(
@@ -316,8 +316,9 @@ class _PlayerItemState extends State<PlayerItem>
             }
           }
         } else {
-          playerController
-              .danDanmakus[playerController.currentPosition.inSeconds]
+          playerController.danDanmakus[
+                  playerController.currentPosition.inSeconds +
+                      playerController.dmOffset]
               ?.asMap()
               .forEach((idx, danmaku) async {
             if (!_danmakuColor) {
@@ -475,6 +476,56 @@ class _PlayerItemState extends State<PlayerItem>
         ),
       );
     });
+  }
+
+  // 调整弹幕时间轴
+  void showDmOffsetDialog() {
+    if (playerController.danDanmakus.isEmpty) {
+      return;
+    }
+    KazumiDialog.show(
+      builder: (context) {
+        ButtonStyle buttonStyle = FilledButton.styleFrom(
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+        );
+        return AlertDialog(
+          title: const Text(
+            '调整弹幕时间轴',
+            style: TextStyle(fontSize: 18),
+          ),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              FilledButton.tonal(
+                style: buttonStyle,
+                onPressed: () {
+                  playerController.dmOffset -= 1;
+                  if (context.mounted) {
+                    (context as Element?)?.markNeedsBuild();
+                  }
+                },
+                child: const Text('慢1秒'),
+              ),
+              Text(playerController.dmOffset == 0
+                  ? '正常'
+                  : '${playerController.dmOffset > 0 ? '快' : '慢'}${playerController.dmOffset.abs()}秒'),
+              FilledButton.tonal(
+                style: buttonStyle,
+                onPressed: () {
+                  playerController.dmOffset += 1;
+                  if (context.mounted) {
+                    (context as Element?)?.markNeedsBuild();
+                  }
+                },
+                child: const Text('快1秒'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // 弹幕查询
@@ -908,6 +959,7 @@ class _PlayerItemState extends State<PlayerItem>
                             sendDanmaku: widget.sendDanmaku,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            showDmOffsetDialog: showDmOffsetDialog,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -922,6 +974,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleHove: _handleHove,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            showDmOffsetDialog: showDmOffsetDialog,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

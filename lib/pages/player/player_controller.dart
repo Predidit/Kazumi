@@ -34,6 +34,8 @@ abstract class _PlayerController with Store {
   Map<int, List> danDanmakus = {};
   @observable
   bool danmakuOn = false;
+  // 弹幕时间轴偏移量
+  int dmOffset = 0;
 
   // 视频比例类型
   // 1. AUTO
@@ -141,6 +143,7 @@ abstract class _PlayerController with Store {
     }
     cid = null;
     isBiliDm = false;
+    dmOffset = 0;
     getDanDanmaku(videoPageController.title, episodeFromTitle);
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =

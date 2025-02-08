@@ -31,6 +31,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleHove,
     required this.startHideTimer,
     required this.cancelHideTimer,
+    required this.showDmOffsetDialog,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -44,6 +45,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final FocusNode keyboardFocus;
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
+  final VoidCallback showDmOffsetDialog;
 
   @override
   State<SmallestPlayerItemPanel> createState() =>
@@ -558,23 +560,31 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                             ),
                           ),
                           MenuItemButton(
+                            onPressed: widget.showDmOffsetDialog,
+                            child: const Padding(
+                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: Text("弹幕调整"),
+                            ),
+                          ),
+                          MenuItemButton(
                             onPressed: () {
                               showModalBottomSheet(
-                                isScrollControlled: true,
-                                constraints: BoxConstraints(
-                                    maxHeight: 280,
-                                    maxWidth: (Utils.isDesktop() ||
-                                            Utils.isTablet())
-                                        ? MediaQuery.of(context).size.width *
-                                            9 /
-                                            16
-                                        : MediaQuery.of(context).size.width),
-                                clipBehavior: Clip.antiAlias,
-                                context: context,builder: (context) {
-                                return DanmakuSettingsSheet(
-                                    danmakuController:
-                                        playerController.danmakuController);
-                              });
+                                  isScrollControlled: true,
+                                  constraints: BoxConstraints(
+                                      maxHeight: 280,
+                                      maxWidth: (Utils.isDesktop() ||
+                                              Utils.isTablet())
+                                          ? MediaQuery.of(context).size.width *
+                                              9 /
+                                              16
+                                          : MediaQuery.of(context).size.width),
+                                  clipBehavior: Clip.antiAlias,
+                                  context: context,
+                                  builder: (context) {
+                                    return DanmakuSettingsSheet(
+                                        danmakuController:
+                                            playerController.danmakuController);
+                                  });
                             },
                             child: const Padding(
                               padding: EdgeInsets.fromLTRB(0, 10, 10, 10),

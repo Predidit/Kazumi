@@ -13,7 +13,7 @@ class Api {
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest'; 
   // Github镜像
-  static const String gitMirror = 'https://mirror.ghproxy.com/';
+  static const String gitMirror = 'https://ghfast.top/';
   // 每日放送
   static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
   // Bangumi 主页

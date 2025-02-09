@@ -114,10 +114,6 @@
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build Flutter for Android
             run: flutter build apk --split-per-abi
             shell: bash
@@ -159,13 +155,6 @@
               distribution: 'temurin'
               java-version: '18'
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace "kvpx7qkqjh", "$env:DANDANAPI_APPID" | Set-Content -Path 'lib/utils/mortis.dart'
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace "rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax", "$env:DANDANAPI_KEY" | Set-Content -Path 'lib/utils/mortis.dart'
           - run: flutter build windows  
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
@@ -224,10 +213,6 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build IPA
             run: |
               flutter build ios --release --no-codesign
@@ -258,10 +243,6 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - run: flutter build macos --release
           - name: Create DMG
             run: |
@@ -309,11 +290,6 @@
               flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
-            shell: bash
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
             shell: bash
           - name: Build Flutter for Linux
             run: flutter build linux

@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:kazumi/modules/bili_bangumi/info.dart';
 import 'package:kazumi/modules/bili_dm/dm.pb.dart';
+import 'package:kazumi/modules/bili_search/result.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -145,7 +147,9 @@ class DanmakuRequest {
     return danmakus;
   }
 
-  static Future getBiliDanmaku(dynamic cid, int segmentIndex) async {
+  // bili弹幕
+  static Future<DmSegMobileReply> getBiliDanmaku(
+      dynamic cid, int segmentIndex) async {
     final response = await Request().get(
       '${Api.biliApiBaseUrl}${Api.biliWebDanmaku}',
       queryParameters: {
@@ -166,5 +170,59 @@ class DanmakuRequest {
     } catch (e) {
       return DmSegMobileReply();
     }
+  }
+
+  // bili分类搜索
+  // 番剧：media_bangumi,
+  // 影视：media_ft
+  static Future<SearchMBangumiModel?> biliSearchByType({
+    required bool isBangumi,
+    required String keyword,
+    required page,
+    required String? cookie,
+  }) async {
+    var reqData = {
+      'search_type': isBangumi ? 'media_bangumi' : 'media_ft',
+      'keyword': keyword,
+      'page': page,
+    };
+    var res = await Request().get(
+      '${Api.biliApiBaseUrl}${Api.biliSearchByType}',
+      queryParameters: reqData,
+      options: Options(
+        headers: {'cookie': cookie},
+      ),
+    );
+    try {
+      if (res.data['code'] == 0) {
+        return SearchMBangumiModel.fromJson(res.data['data']);
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'bili error searching: $isBangumi, $e');
+    }
+    return null;
+  }
+
+  static Future<BangumiInfoModel?> getBiliBangumiInfo({
+    dynamic seasonId,
+    required String? cookie,
+  }) async {
+    final dynamic res = await Request().get(
+      '${Api.biliApiBaseUrl}${Api.biliBangumiInfo}',
+      queryParameters: {
+        'season_id': seasonId,
+      },
+      options: Options(
+        headers: {'cookie': cookie},
+      ),
+    );
+    try {
+      if (res.data['code'] == 0) {
+        return BangumiInfoModel.fromJson(res.data['result']);
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'getBiliBangumiInfo: $e');
+    }
+    return null;
   }
 }

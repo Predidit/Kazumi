@@ -40,7 +40,12 @@ class Api {
 
   // bilibili
   static const String biliApiBaseUrl = 'https://api.bilibili.com';
+  // web弹幕
   static const String biliWebDanmaku = '/x/v2/dm/web/seg.so';
+  // 分类搜索
+  static const String biliSearchByType = '/x/web-interface/search/type';
+  // pgc
+  static const String biliBangumiInfo = '/pgc/view/web/season';
 
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {

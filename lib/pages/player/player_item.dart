@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/modules/bili_dm/dm.pb.dart';
+import 'package:kazumi/pages/player/bili_search_dialog.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -410,6 +411,22 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  void showBiliDmSearchDialog(String keyword) async {
+    KazumiDialog.dismiss();
+    KazumiDialog.show(
+      builder: (context) => BiliSearchDialog(
+        keyword: keyword,
+        onChangeDm: (cid) {
+          playerController
+            ..danDanmakus.clear()
+            ..requestedSeg.clear()
+            ..cid = cid
+            ..getBiliDanmaku();
+        },
+      ),
+    );
+  }
+
   void showDanmakuSearchDialog(String keyword) async {
     KazumiDialog.dismiss();
     KazumiDialog.showLoading(msg: '弹幕检索中');
@@ -430,6 +447,7 @@ class _PlayerItemState extends State<PlayerItem>
     }
     await KazumiDialog.show(builder: (context) {
       return Dialog(
+        clipBehavior: Clip.hardEdge,
         child: ListView(
           shrinkWrap: true,
           children: danmakuSearchResponse.animes.map((danmakuInfo) {
@@ -454,6 +472,7 @@ class _PlayerItemState extends State<PlayerItem>
                 }
                 KazumiDialog.show(builder: (context) {
                   return Dialog(
+                    clipBehavior: Clip.hardEdge,
                     child: ListView(
                       shrinkWrap: true,
                       children: danmakuEpisodeResponse.episodes.map((episode) {
@@ -533,32 +552,23 @@ class _PlayerItemState extends State<PlayerItem>
     KazumiDialog.show(
       builder: (context) {
         final TextEditingController searchTextController =
-            TextEditingController(
-                text: playerController.isBiliDm
-                    ? playerController.cid?.toString()
-                    : videoPageController.title);
+            TextEditingController(text: videoPageController.title);
         Color dmStateColor() => playerController.isBiliDm
             ? Theme.of(context).colorScheme.secondary
             : Theme.of(context).colorScheme.onSurfaceVariant;
         return AlertDialog(
-          title: Text(playerController.isBiliDm ? 'Bili弹幕' : '弹幕检索'),
+          title: const Text('弹幕检索'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                autofocus: true,
                 controller: searchTextController,
-                decoration: InputDecoration(
-                  hintText: playerController.isBiliDm ? '番剧cid' : '番剧名',
+                decoration: const InputDecoration(
+                  hintText: '番剧名',
                 ),
                 onSubmitted: (keyword) {
                   if (playerController.isBiliDm) {
-                    KazumiDialog.dismiss();
-                    playerController
-                      ..danDanmakus.clear()
-                      ..requestedSeg.clear()
-                      ..cid = int.tryParse(keyword)
-                      ..getBiliDanmaku();
+                    showBiliDmSearchDialog(keyword);
                   } else {
                     showDanmakuSearchDialog(keyword);
                   }
@@ -604,12 +614,7 @@ class _PlayerItemState extends State<PlayerItem>
             TextButton(
               onPressed: () {
                 if (playerController.isBiliDm) {
-                  KazumiDialog.dismiss();
-                  playerController
-                    ..danDanmakus.clear()
-                    ..requestedSeg.clear()
-                    ..cid = int.tryParse(searchTextController.text)
-                    ..getBiliDanmaku();
+                  showBiliDmSearchDialog(searchTextController.text);
                 } else {
                   showDanmakuSearchDialog(searchTextController.text);
                 }

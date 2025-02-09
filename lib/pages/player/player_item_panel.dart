@@ -34,7 +34,6 @@ class PlayerItemPanel extends StatefulWidget {
     required this.sendDanmaku,
     required this.startHideTimer,
     required this.cancelHideTimer,
-    required this.showDmOffsetDialog,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -50,7 +49,6 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
   final void Function(String) sendDanmaku;
-  final VoidCallback showDmOffsetDialog;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -664,13 +662,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                               child: const Padding(
                                 padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
                                 child: Text("弹幕切换"),
-                              ),
-                            ),
-                            MenuItemButton(
-                              onPressed: widget.showDmOffsetDialog,
-                              child: const Padding(
-                                padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                child: Text("弹幕调整"),
                               ),
                             ),
                             MenuItemButton(

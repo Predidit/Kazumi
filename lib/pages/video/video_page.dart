@@ -18,6 +18,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
@@ -149,6 +150,9 @@ class _VideoPageState extends State<VideoPage>
     _videoURLSubscription.cancel();
     _logSubscription.cancel();
     playerController.dispose();
+    if (!Utils.isDesktop()) {
+      ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
+    }
     infoController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     super.dispose();

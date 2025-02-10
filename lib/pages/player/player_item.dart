@@ -799,9 +799,7 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    ((Utils.isDesktop() && !videoPageController.isPip) ||
-                            Utils.isTablet() ||
-                            videoPageController.isFullscreen)
+                    (MediaQuery.of(context).size.width >= 600)
                         ? PlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,

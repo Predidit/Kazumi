@@ -151,7 +151,9 @@ class _VideoPageState extends State<VideoPage>
     _logSubscription.cancel();
     playerController.dispose();
     if (!Utils.isDesktop()) {
-      ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
+      try {
+        ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
+      } catch (_) {}
     }
     infoController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();

@@ -31,11 +31,13 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleHove,
     required this.startHideTimer,
     required this.cancelHideTimer,
+    required this.handleDanmaku,
   });
 
   final void Function(BuildContext) onBackPressed;
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
+  final void Function() handleDanmaku;
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
@@ -61,15 +63,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   final InfoController infoController = Modular.get<InfoController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
-
-  void _handleDanmaku() {
-    if (playerController.danDanmakus.isEmpty) {
-      widget.showDanmakuSwitch();
-      return;
-    }
-    playerController.danmakuController.onClear();
-    playerController.danmakuOn = !playerController.danmakuOn;
-  }
 
   void showVideoInfo() async {
     String currentDemux = await Utils.getCurrentDemux();
@@ -408,8 +401,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                             ? Icons.subtitles_rounded
                             : Icons.subtitles_off_rounded),
                         onPressed: () {
-                          _handleDanmaku();
-                          setState(() {});
+                          widget.handleDanmaku();
                         },
                         tooltip: playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
                       ),

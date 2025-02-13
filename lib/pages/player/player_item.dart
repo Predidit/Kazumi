@@ -167,14 +167,23 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  void _handleDanmaku() {
+  void handleDanmaku() {
+    danmakuController.clear();
+    // if true, turn off danmaku.
+    if (playerController.danmakuOn) {
+      setState(() {
+        playerController.danmakuOn = false;
+      });
+      return;
+    }
+    // if false and empty, show dialog.
     if (playerController.danDanmakus.isEmpty) {
       showDanmakuSwitch();
       return;
     }
-    danmakuController.clear();
+    // turn on danmaku.
     setState(() {
-      playerController.danmakuOn = !playerController.danmakuOn;
+      playerController.danmakuOn = true;
     });
   }
 
@@ -692,7 +701,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 // D键盘被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.keyD) {
-                                  _handleDanmaku();
+                                  handleDanmaku();
                                 }
                               } else if (event is KeyRepeatEvent) {
                                 // 右方向键长按
@@ -815,6 +824,7 @@ class _PlayerItemState extends State<PlayerItem>
                             sendDanmaku: widget.sendDanmaku,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            handleDanmaku: handleDanmaku,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -829,6 +839,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleHove: _handleHove,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            handleDanmaku: handleDanmaku,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

@@ -34,6 +34,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.sendDanmaku,
     required this.startHideTimer,
     required this.cancelHideTimer,
+    required this.handleDanmaku,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -48,6 +49,7 @@ class PlayerItemPanel extends StatefulWidget {
   final FocusNode keyboardFocus;
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
+  final void Function() handleDanmaku;
   final void Function(String) sendDanmaku;
 
   @override
@@ -82,15 +84,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     } catch (e) {
       KazumiDialog.showToast(message: '截图失败：$e');
     }
-  }
-
-  void _handleDanmaku() {
-    if (playerController.danDanmakus.isEmpty) {
-      widget.showDanmakuSwitch();
-      return;
-    }
-    playerController.danmakuController.onClear();
-    playerController.danmakuOn = !playerController.danmakuOn;
   }
 
   Widget get danmakuTextField {
@@ -859,8 +852,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                   : Icons
                                                       .subtitles_off_rounded),
                                               onPressed: () {
-                                                _handleDanmaku();
-                                                setState(() {});
+                                                widget.handleDanmaku();
                                               },
                                               tooltip:
                                                   playerController.danmakuOn
@@ -918,8 +910,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                       ? Icons.subtitles_rounded
                                       : Icons.subtitles_off_rounded),
                                   onPressed: () {
-                                    _handleDanmaku();
-                                    setState(() {});
+                                    widget.handleDanmaku();
                                   },
                                   tooltip: playerController.danmakuOn
                                       ? '关闭弹幕(d)'

@@ -39,8 +39,10 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   void setPreventClose() async {
-    await windowManager.setPreventClose(true);
-    setState(() {});
+    if (Utils.isDesktop()) {
+      await windowManager.setPreventClose(true);
+      setState(() {});
+    }
   }
 
   @override
@@ -278,7 +280,6 @@ class _AppWidgetState extends State<AppWidget>
         );
       },
     );
-    Modular.setObservers([KazumiDialog.observer]);
 
     // 强制设置高帧率
     if (Platform.isAndroid) {

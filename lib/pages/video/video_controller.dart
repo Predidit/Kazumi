@@ -86,7 +86,9 @@ abstract class _VideoPageController with Store {
   }
 
   void isDesktopFullscreen() async {
-    isFullscreen = await windowManager.isFullScreen();
+    if (Utils.isDesktop()) {
+      isFullscreen = await windowManager.isFullScreen();
+    }
   }
 
   void handleOnEnterFullScreen() async {

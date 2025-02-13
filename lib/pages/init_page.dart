@@ -122,6 +122,9 @@ class _InitPageState extends State<InitPage> {
       // setDynamic here to avoid white screen flash when themeMode is dark.
       themeProvider.setDynamic(
           setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
+      // Workaround. Put this in app_widget will throw exception.
+      Modular.setObservers([KazumiDialog.observer]);
+      // Navigate to popular_page
       Modular.to.navigate('/tab/popular/');
     }
   }

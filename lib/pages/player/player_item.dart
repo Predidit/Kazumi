@@ -65,7 +65,6 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
   final CollectController collectController = Modular.get<CollectController>();
-  late DanmakuController danmakuController;
 
   // 1. 在看
   // 2. 想看
@@ -112,7 +111,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.didChangeAppLifecycleState(state);
     try {
       if (playerController.playerPlaying) {
-        danmakuController.resume();
+        playerController.danmakuController.resume();
       }
     } catch (_) {}
   }
@@ -172,7 +171,7 @@ class _PlayerItemState extends State<PlayerItem>
       showDanmakuSwitch();
       return;
     }
-    danmakuController.clear();
+    playerController.danmakuController.clear();
     setState(() {
       playerController.danmakuOn = !playerController.danmakuOn;
     });
@@ -182,7 +181,7 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       playerController.lockPanel = false;
     }
-    danmakuController.clear();
+    playerController.danmakuController.clear();
     if (webDavEnable && webDavEnableHistory) {
       var webDav = WebDav();
       webDav.updateHistory();
@@ -232,8 +231,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    danmakuController.updateOption(
-      danmakuController.option.copyWith(duration: _duration ~/ speed),
+    playerController.danmakuController.updateOption(
+      playerController.danmakuController.option.copyWith(duration: _duration ~/ speed),
     );
   }
 
@@ -308,7 +307,7 @@ class _PlayerItemState extends State<PlayerItem>
                       playerController.playerPlaying &&
                       !playerController.playerBuffering &&
                       playerController.danmakuOn
-                  ? danmakuController.addDanmaku(DanmakuContentItem(
+                  ? playerController.danmakuController.addDanmaku(DanmakuContentItem(
                       danmaku.message,
                       color: danmaku.color,
                       type: danmaku.type == 4
@@ -482,7 +481,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void onWindowRestore() {
-    danmakuController.onClear();
+    playerController.danmakuController.onClear();
   }
 
   @override
@@ -672,7 +671,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   if (videoPageController.isFullscreen &&
                                       !Utils.isTablet()) {
                                     try {
-                                      danmakuController.onClear();
+                                      playerController.danmakuController.onClear();
                                     } catch (_) {}
                                     Utils.exitFullScreen();
                                     videoPageController.isFullscreen =
@@ -781,7 +780,6 @@ class _PlayerItemState extends State<PlayerItem>
                       child: DanmakuScreen(
                         key: _danmuKey,
                         createdController: (DanmakuController e) {
-                          danmakuController = e;
                           playerController.danmakuController = e;
                         },
                         option: DanmakuOption(

@@ -114,6 +114,9 @@
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
+          - name: Print Flutter version
+            run: flutter doctor -v
+            shell: bash
           - name: Build Flutter for Android
             run: flutter build apk --split-per-abi
             shell: bash

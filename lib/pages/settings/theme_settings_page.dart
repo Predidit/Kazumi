@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/palette_card.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -53,6 +54,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorSchemeSeed: color,
+      progressIndicatorTheme: progressIndicatorTheme2024,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -60,6 +62,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
@@ -72,6 +75,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorSchemeSeed: Colors.green,
+      progressIndicatorTheme: progressIndicatorTheme2024,
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -79,6 +83,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: Colors.green,
+        progressIndicatorTheme: progressIndicatorTheme2024,
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );

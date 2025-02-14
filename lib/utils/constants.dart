@@ -10,6 +10,14 @@ class StyleString {
   static const double aspectRatio = 16 / 10;
 }
 
+const ProgressIndicatorThemeData progressIndicatorTheme2024 =
+    ProgressIndicatorThemeData(
+  // This flag is deprecated since 3.29 but not default to false yet. Keep
+  // it to false so we have the latest M3 style process indicator.
+  // ignore: deprecated_member_use
+  year2023: false,
+);
+
 // 随机UA列表
 const List<String> userAgentsList = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',

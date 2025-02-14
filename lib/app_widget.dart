@@ -15,6 +15,7 @@ import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -236,15 +237,18 @@ class _AppWidgetState extends State<AppWidget>
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
     var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: color);
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorSchemeSeed: color,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+    );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
       notify: false,

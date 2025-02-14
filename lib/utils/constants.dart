@@ -30,7 +30,7 @@ const ProgressIndicatorThemeData progressIndicatorTheme2024 =
 /// * iPhone 16: 393 x 852
 /// * iPad Pro 11-inch: 834 x 1210
 /// * HW MATE60 Pro: 387.7 x 836.9
-/// * OHOS in floating window: 387.7 x 218.1
+/// * OHOS in floating window: 387.7 x 631.7 or 218.1
 class LayoutBreakpoint {
   static const Map<String, double> compact = {'width': 600, 'height': 480};
   static const Map<String, double> medium = {'width': 840, 'height': 900};

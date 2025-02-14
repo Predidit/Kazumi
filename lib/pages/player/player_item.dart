@@ -490,6 +490,28 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
+  /// Used to decide which panel is used.
+  /// It's too complicated to write these in conditional sentence.
+  /// * true: use [PlayerItemPanel]
+  /// * false: use [SmallestPlayerItemPanel]
+  bool needFullPanel(BuildContext context) {
+    // windows too small, workaround for ohos floating window
+    if (MediaQuery.sizeOf(context).width < LayoutBreakpoint.compact['width']!) {
+      return false;
+    }
+    // in desktop pip mode
+    if (videoPageController.isPip) {
+      return false;
+    }
+    // does not meet Google's phone landscape height or tablet landscape width requirements.
+    if (MediaQuery.sizeOf(context).height >
+            LayoutBreakpoint.compact['height']! &&
+        MediaQuery.sizeOf(context).width < LayoutBreakpoint.medium['width']!) {
+      return false;
+    }
+    return true;
+  }
+
   @override
   void onWindowRestore() {
     playerController.danmakuController.onClear();
@@ -809,12 +831,7 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    // 如果不是画中画模式，且符合平板全屏宽度或手机全屏高度时使用完整面板
-                    ((MediaQuery.sizeOf(context).width >
-                                    LayoutBreakpoint.medium['width']! ||
-                                MediaQuery.sizeOf(context).height <
-                                    LayoutBreakpoint.compact['height']!) &&
-                            !videoPageController.isPip)
+                    (needFullPanel(context))
                         ? PlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,

@@ -186,7 +186,6 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-
   void _handleFullscreenChange(BuildContext context) async {
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       playerController.lockPanel = false;
@@ -242,7 +241,8 @@ class _PlayerItemState extends State<PlayerItem>
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
     playerController.danmakuController.updateOption(
-      playerController.danmakuController.option.copyWith(duration: _duration ~/ speed),
+      playerController.danmakuController.option
+          .copyWith(duration: _duration ~/ speed),
     );
   }
 
@@ -317,14 +317,14 @@ class _PlayerItemState extends State<PlayerItem>
                       playerController.playerPlaying &&
                       !playerController.playerBuffering &&
                       playerController.danmakuOn
-                  ? playerController.danmakuController.addDanmaku(DanmakuContentItem(
-                      danmaku.message,
-                      color: danmaku.color,
-                      type: danmaku.type == 4
-                          ? DanmakuItemType.bottom
-                          : (danmaku.type == 5
-                              ? DanmakuItemType.top
-                              : DanmakuItemType.scroll)))
+                  ? playerController.danmakuController.addDanmaku(
+                      DanmakuContentItem(danmaku.message,
+                          color: danmaku.color,
+                          type: danmaku.type == 4
+                              ? DanmakuItemType.bottom
+                              : (danmaku.type == 5
+                                  ? DanmakuItemType.top
+                                  : DanmakuItemType.scroll)))
                   : null);
         });
       }
@@ -681,7 +681,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   if (videoPageController.isFullscreen &&
                                       !Utils.isTablet()) {
                                     try {
-                                      playerController.danmakuController.onClear();
+                                      playerController.danmakuController
+                                          .onClear();
                                     } catch (_) {}
                                     Utils.exitFullScreen();
                                     videoPageController.isFullscreen =
@@ -807,7 +808,8 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    (MediaQuery.of(context).size.width >= 600)
+                    (MediaQuery.of(context).size.width >
+                            MediaQuery.sizeOf(context).height)
                         ? PlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,

@@ -29,6 +29,7 @@ class _AppWidgetState extends State<AppWidget>
   Box setting = GStorage.setting;
 
   final TrayManager trayManager = TrayManager.instance;
+  bool showingExitDialog = false;
 
   @override
   void initState() {
@@ -88,7 +89,11 @@ class _AppWidgetState extends State<AppWidget>
         windowManager.hide();
         break;
       default:
-        KazumiDialog.show(builder: (context) {
+        if (showingExitDialog) return;
+        showingExitDialog = true;
+        KazumiDialog.show(onDismiss: () {
+          showingExitDialog = false;
+        }, builder: (context) {
           bool saveExitBehavior = false; // 下次不再询问？
 
           return AlertDialog(

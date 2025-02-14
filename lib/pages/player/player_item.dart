@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -808,8 +809,12 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    (MediaQuery.of(context).size.width >
-                            MediaQuery.sizeOf(context).height)
+                    // 如果不是画中画模式，且符合平板全屏宽度或手机全屏高度时使用完整面板
+                    ((MediaQuery.sizeOf(context).width >
+                                    LayoutBreakpoint.medium['width']! ||
+                                MediaQuery.sizeOf(context).height <
+                                    LayoutBreakpoint.compact['height']!) &&
+                            !videoPageController.isPip)
                         ? PlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,

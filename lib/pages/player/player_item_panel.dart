@@ -709,7 +709,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 position: bottomOffsetAnimation,
                 child: SafeArea(
                   top: false,
-                  bottom: true,
+                  bottom: videoPageController.isFullscreen,
                   left: false,
                   right: false,
                   child: MouseRegion(

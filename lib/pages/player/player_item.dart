@@ -503,7 +503,7 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isPip) {
       return false;
     }
-    // does not meet Google's phone landscape height or tablet landscape width requirements.
+    // does not meet Google's phone landscape height and tablet landscape width requirements.
     if (MediaQuery.sizeOf(context).height >
             LayoutBreakpoint.compact['height']! &&
         MediaQuery.sizeOf(context).width < LayoutBreakpoint.medium['width']!) {

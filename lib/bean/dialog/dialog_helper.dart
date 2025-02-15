@@ -131,7 +131,11 @@ class KazumiDialogObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    _removeCurrentSnackBar(previousRoute);
+    /// workaround for #533
+    /// we can't remove snackbar when push a new route
+    /// otherwise, framework will throw an exception, and can't be caught
+    /// need other way to remove snackbar here
+    // _removeCurrentSnackBar(previousRoute);
     if (_isKazumiDialogRoute(route)) {
       _kazumiDialogRoutes.add(route);
       currentContext = route.navigator?.context;

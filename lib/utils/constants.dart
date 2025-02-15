@@ -18,6 +18,24 @@ const ProgressIndicatorThemeData progressIndicatorTheme2024 =
   year2023: false,
 );
 
+/// Layout breakpoint according to google:
+/// https://developer.android.com/develop/ui/compose/layouts/adaptive/use-window-size-classes.
+///
+/// **It's only a suggestion since not every device meet the breakpoint requirement.
+/// You need to build layout with some more judgements.**
+///
+/// Some example device(portrait) width x height:
+///
+/// * iPhone SE3: 375 x 667
+/// * iPhone 16: 393 x 852
+/// * iPad Pro 11-inch: 834 x 1210
+/// * HW MATE60 Pro: 387.7 x 836.9
+/// * OHOS in floating window: 387.7 x 631.7 or 218.1
+class LayoutBreakpoint {
+  static const Map<String, double> compact = {'width': 600, 'height': 480};
+  static const Map<String, double> medium = {'width': 840, 'height': 900};
+}
+
 // 随机UA列表
 const List<String> userAgentsList = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',

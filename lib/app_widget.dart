@@ -41,8 +41,10 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   void setPreventClose() async {
-    await windowManager.setPreventClose(true);
-    setState(() {});
+    if (Utils.isDesktop()) {
+      await windowManager.setPreventClose(true);
+      setState(() {});
+    }
   }
 
   @override

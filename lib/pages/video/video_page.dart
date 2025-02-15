@@ -32,7 +32,7 @@ class VideoPage extends StatefulWidget {
 }
 
 class _VideoPageState extends State<VideoPage>
-    with SingleTickerProviderStateMixin, WindowListener {
+    with TickerProviderStateMixin, WindowListener {
   Box setting = GStorage.setting;
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
@@ -50,6 +50,7 @@ class _VideoPageState extends State<VideoPage>
   late GridObserverController observerController;
   late AnimationController animation;
   late Animation<Offset> _rightOffsetAnimation;
+  late TabController tabController;
 
   // 当前播放列表
   late int currentRoad;
@@ -73,6 +74,7 @@ class _VideoPageState extends State<VideoPage>
     windowManager.addListener(this);
     // Check fullscreen when enter video page
     // in case user use system controls to enter fullscreen outside video page
+    tabController = TabController(length: 2, vsync: this);
     videoPageController.isDesktopFullscreen();
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
@@ -155,6 +157,7 @@ class _VideoPageState extends State<VideoPage>
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
+    infoController.episodeInfo.reset();
     infoController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     super.dispose();
@@ -200,6 +203,14 @@ class _VideoPageState extends State<VideoPage>
     clearLogs();
     hideDebugConsole();
     videoPageController.loading = true;
+    infoController.episodeInfo.reset();
+    infoController.episodeCommentsList.clear();
+    // Query comments when tab is visible
+    // We need lazy load comments to avoid unnecessary API requests
+    // so we only query comments when the tab is visible rather than video is loaded
+    if (tabController.index == 1) {
+      infoController.queryBangumiEpisodeCommentsByID(infoController.bangumiItem.id, episode);
+    }
     await playerController.stop();
     await videoPageController.changeEpisode(episode,
         currentRoad: currentRoad, offset: offset);
@@ -800,6 +811,7 @@ class _VideoPageState extends State<VideoPage>
             Row(
               children: [
                 TabBar(
+                  controller: tabController,
                   dividerHeight: 0,
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
@@ -873,6 +885,7 @@ class _VideoPageState extends State<VideoPage>
             Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
             Expanded(
               child: TabBarView(
+                controller: tabController,
                 children: [
                   GridViewObserver(
                     controller: observerController,

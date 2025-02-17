@@ -32,7 +32,7 @@ class _InfoPageState extends State<InfoPage>
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
   late TabController tabController;
-
+  final Map<String, Map<String,int>> pluginToEpisodesNum = {};
   /// Concurrent query manager
   late QueryManager queryManager;
 
@@ -46,13 +46,23 @@ class _InfoPageState extends State<InfoPage>
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();
-    queryManager.querySource(popularController.keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
+    tabController.addListener(() {
+      onPluginChange();
+    });
+    queryManager.querySource(popularController.keyword).then((_) {
+      if(mounted){
+        onPluginChange(first: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    tabController.removeListener(() {
+      onPluginChange();
+    });
     queryManager.cancel();
     infoController.characterList.clear();
     infoController.commentsList.clear();
@@ -176,49 +186,7 @@ class _InfoPageState extends State<InfoPage>
                           ))
                       .toList(),
                 ),
-                Expanded(
-                  child: Observer(
-                    builder: (context) => TabBarView(
-                      controller: tabController,
-                      children: List.generate(
-                          pluginsController.pluginList.length, (pluginIndex) {
-                        var plugin = pluginsController.pluginList[pluginIndex];
-                        var cardList = <Widget>[];
-                        for (var searchResponse
-                            in infoController.pluginSearchResponseList) {
-                          if (searchResponse.pluginName == plugin.name) {
-                            for (var searchItem in searchResponse.data) {
-                              cardList.add(Card(
-                                color: Colors.transparent,
-                                child: ListTile(
-                                  tileColor: Colors.transparent,
-                                  title: Text(searchItem.name),
-                                  onTap: () async {
-                                    KazumiDialog.showLoading(msg: '获取中');
-                                    videoPageController.currentPlugin = plugin;
-                                    videoPageController.title = searchItem.name;
-                                    videoPageController.src = searchItem.src;
-                                    try {
-                                      await infoController.queryRoads(
-                                          searchItem.src, plugin.name);
-                                      KazumiDialog.dismiss();
-                                      Modular.to.pushNamed('/video/');
-                                    } catch (e) {
-                                      KazumiLogger()
-                                          .log(Level.error, e.toString());
-                                      KazumiDialog.dismiss();
-                                    }
-                                  },
-                                ),
-                              ));
-                            }
-                          }
-                        }
-                        return ListView(children: cardList);
-                      }),
-                    ),
-                  ),
-                )
+                pluginTabBarView(),
               ],
             ),
             floatingActionButton: FloatingActionButton(
@@ -242,5 +210,80 @@ class _InfoPageState extends State<InfoPage>
         ],
       ),
     );
+  }
+
+  Widget pluginTabBarView() {
+    return Expanded(
+      child: Observer(
+        builder: (context) => TabBarView(
+          controller: tabController,
+          children:
+              List.generate(pluginsController.pluginList.length, (pluginIndex) {
+            var plugin = pluginsController.pluginList[pluginIndex];
+            var cardList = <Widget>[];
+            for (var searchResponse
+                in infoController.pluginSearchResponseList) {
+              if (searchResponse.pluginName == plugin.name) {
+                for (var searchItem in searchResponse.data) {
+                  final num = pluginToEpisodesNum.containsKey(plugin.name) &&
+                          pluginToEpisodesNum[plugin.name]!
+                              .containsKey(searchItem.src)
+                      ? pluginToEpisodesNum[plugin.name]![searchItem.src]
+                      : 0;
+                  cardList.add(Card(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      tileColor: Colors.transparent,
+                      title: Text('${searchItem.name}  (${num==0?"loading...":num})'),
+                      onTap: () async {
+                        KazumiDialog.showLoading(msg: '获取中');
+                        videoPageController.currentPlugin = plugin;
+                        videoPageController.title = searchItem.name;
+                        videoPageController.src = searchItem.src;
+                        try {
+                          await infoController.queryRoads(
+                              searchItem.src, plugin.name);
+                          KazumiDialog.dismiss();
+                          Modular.to.pushNamed('/video/');
+                        } catch (e) {
+                          KazumiLogger().log(Level.error, e.toString());
+                          KazumiDialog.dismiss();
+                        }
+                      },
+                    ),
+                  ));
+                }
+              }
+            }
+            return ListView(children: cardList);
+          }),
+        ),
+      ),
+    );
+  }
+
+  Future<void> onPluginChange({first = false}) async {
+    if (tabController.indexIsChanging||first) {
+      var pluginIndex = tabController.index;
+      var plugin = pluginsController.pluginList[pluginIndex];
+      var name = plugin.name;
+      if (!pluginToEpisodesNum.containsKey(name)) {
+        Map<String, int> episodesNumList = {};
+        pluginToEpisodesNum[name] = episodesNumList;
+        for (var searchResponse in infoController.pluginSearchResponseList) {
+          if (searchResponse.pluginName == plugin.name) {
+            for (var searchItem in searchResponse.data) {
+              final num =
+                  await infoController.getEpisodesNum(searchItem.src, name);
+              if (mounted) {
+                episodesNumList[searchItem.src] = num;
+                setState(() {});
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
   }
 }

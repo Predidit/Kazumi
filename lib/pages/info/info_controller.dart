@@ -1,5 +1,6 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -55,6 +56,21 @@ abstract class _InfoController with Store {
     });
   }
 
+  Future<int> getEpisodesNum(String url, String pluginName) async {
+    final PluginsController pluginsController =
+        Modular.get<PluginsController>();
+    List<Road> roads = [];
+    for (Plugin plugin in pluginsController.pluginList) {
+      if (plugin.name == pluginName) {
+        roads = await plugin.querychapterRoads(url);
+        break;
+      }
+    }
+    return roads.isNotEmpty && roads[0].data.isNotEmpty
+        ? roads[0].data.length
+        : 0;
+  }
+
   Future<void> queryRoads(String url, String pluginName) async {
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
@@ -65,6 +81,7 @@ abstract class _InfoController with Store {
       if (plugin.name == pluginName) {
         videoPageController.roadList
             .addAll(await plugin.querychapterRoads(url));
+        break;
       }
     }
     KazumiLogger()

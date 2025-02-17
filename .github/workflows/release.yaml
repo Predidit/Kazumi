@@ -52,7 +52,10 @@
             run: flutter build apk --split-per-abi
             shell: bash
           - name: Package android build output
-            run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
+            run: |
+              cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
+              cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Kazumi_android_${env:tag}_armv7.apk
+              cp build/app/outputs/flutter-apk/app-x86_64-release.apk Kazumi_android_${env:tag}_x86_64.apk
             shell: bash
 
           - name: Upload android outputs

@@ -54,10 +54,10 @@ class BangumiItem {
       id: json['id'],
       type: json['type'] ?? 2,
       name: json['name'] ?? '',
-      nameCn: (json['name_cn'] ?? '') == '' ? (json['name'] ?? '') : json['name_cn'],
+      nameCn: (json['name_cn'] ?? '') == '' ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN']) : json['name_cn'],
       summary: json['summary'] ?? '',
-      airDate: json['air_date'] ?? json ['date'],
-      airWeekday: json['air_weekday'] ?? Utils.dateStringToWeekday(json ['date']) ?? 1,
+      airDate: json['air_date'] ?? json ['date'] ?? '',
+      airWeekday: json['air_weekday'] ?? Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
       // rating: Rating.fromJson(json['rating']),
       rank: json['rating']['rank'] ?? json['rank'] ?? 0,
       images: Map<String, String>.from(json['images'] ?? {

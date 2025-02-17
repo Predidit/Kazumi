@@ -27,6 +27,7 @@ class Api {
   // 从条目ID获取剧集ID
   static const String bangumiEpisodeByID = 'https://api.bgm.tv/v0/episodes?subject_id=';
   // Next条目API
+  static const String bangumiTrendsNext = 'https://next.bgm.tv/p1/trending/subjects';
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
   static const String bangumiEpisodeByIDNext = 'https://next.bgm.tv/p1/episodes/';
   // 弹弹Play

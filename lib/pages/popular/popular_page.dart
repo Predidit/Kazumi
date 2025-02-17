@@ -41,7 +41,7 @@ class _PopularPageState extends State<PopularPage>
     super.initState();
     scrollController.addListener(scrollListener);
     if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiListFeed();
+      popularController.queryBangumiFeed();
     }
     popularController.isSearching = popularController.searchKeyword.isNotEmpty;
     showSearchBar = popularController.searchKeyword.isNotEmpty;
@@ -68,7 +68,11 @@ class _PopularPageState extends State<PopularPage>
         !popularController.isLoadingMore) {
       if (popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular is loading more');
-        popularController.queryBangumiListFeed();
+        if (popularController.currentTag != '') {
+          popularController.queryBangumiList();
+        } else {
+          popularController.queryBangumiFeed();
+        }
       }
     }
   }
@@ -99,7 +103,7 @@ class _PopularPageState extends State<PopularPage>
         },
         child: RefreshIndicator(
           onRefresh: () async {
-            await popularController.queryBangumiListFeedByRefresh();
+            await popularController.queryBangumiByRefresh();
           },
           child: Scaffold(
               appBar: SysAppBar(
@@ -140,8 +144,8 @@ class _PopularPageState extends State<PopularPage>
                             setState(() {
                               showSearchBar = false;
                             });
-                            await popularController
-                                .queryBangumiListFeedByTag('');
+                            popularController.setCurrentTag('');
+                            await popularController.queryBangumiFeed(type: 'init');
                           } else {
                             popularController.setSearchKeyword('');
                             setState(() {
@@ -213,7 +217,7 @@ class _PopularPageState extends State<PopularPage>
                                 return HttpError(
                                   errMsg: '什么都没有找到 (´;ω;`)',
                                   fn: () {
-                                    popularController.queryBangumiListFeed();
+                                    popularController.queryBangumiList();
                                   },
                                 );
                               }
@@ -320,8 +324,8 @@ class _PopularPageState extends State<PopularPage>
                             child: Text(filter),
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
-                              await popularController
-                                  .queryBangumiListFeedByTag('');
+                              popularController.setCurrentTag('');
+                              await popularController.queryBangumiFeed(type: 'init');
                             },
                           )
                         : FilledButton.tonal(
@@ -333,8 +337,8 @@ class _PopularPageState extends State<PopularPage>
                               setState(() {
                                 showSearchBar = false;
                               });
-                              await popularController
-                                  .queryBangumiListFeedByTag(filter);
+                              popularController.setCurrentTag(filter);
+                              await popularController.queryBangumiList(type: 'init');
                             },
                           ),
                   ),
@@ -343,26 +347,6 @@ class _PopularPageState extends State<PopularPage>
             ),
           ),
         ),
-        // Tooltip(
-        //   message: '重设列表',
-        //   child: IconButton(
-        //     icon: const Icon(Icons.clear_all),
-        //     onPressed: () async {
-        //       if (popularController.currentTag != '') {
-        //         setState(() {
-        //           popularController.currentTag = '';
-        //           searchLoading = true;
-        //         });
-        //         await popularController.queryBangumiListFeed(
-        //           tag: popularController.currentTag,
-        //         );
-        //         setState(() {
-        //           searchLoading = false;
-        //         });
-        //       }
-        //     },
-        //   ),
-        // )
       ],
     );
   }
@@ -393,7 +377,8 @@ class _PopularPageState extends State<PopularPage>
         if (t != '') {
           await popularController.queryBangumi(popularController.searchKeyword);
         } else {
-          await popularController.queryBangumiListFeedByTag('');
+          popularController.setCurrentTag('');
+          await popularController.queryBangumiFeed(type: 'init');
         }
       },
     );

@@ -43,7 +43,8 @@ class BangumiHTTP {
   // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
   // because the air date is the launch date of the anime, it is usually a few days before the start of the season
   // So we usually use the start of the season month -1 and the end of the season month -1
-  static Future<List<List<BangumiItem>>> getCalendarBySearch(List<String> dateRange, int limit, int offset) async {
+  static Future<List<List<BangumiItem>>> getCalendarBySearch(
+      List<String> dateRange, int limit, int offset) async {
     List<BangumiItem> bangumiList = [];
     List<List<BangumiItem>> bangumiCalendar = [];
     var params = <String, dynamic>{
@@ -91,7 +92,8 @@ class BangumiHTTP {
     return bangumiCalendar;
   }
 
-  static Future<List<BangumiItem>> getBangumiList({int rank = 2, String tag = ''}) async {
+  static Future<List<BangumiItem>> getBangumiList(
+      {int rank = 2, String tag = ''}) async {
     List<BangumiItem> bangumiList = [];
     late Map<String, dynamic> params;
     if (tag == '') {
@@ -112,13 +114,14 @@ class BangumiHTTP {
         "filter": {
           "type": [2],
           "tag": [tag],
-          "rank": [">${rank * 2}", "<=99999"],
+          "rank": [">$rank", "<=99999"],
           "nsfw": false
         },
       };
     }
     try {
-      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
+      final res = await Request().post(
+          Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -132,6 +135,33 @@ class BangumiHTTP {
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'Resolve bangumi list failed ${e.toString()}');
+    }
+    return bangumiList;
+  }
+
+  static Future<List<BangumiItem>> getBangumiTrendsList(
+      {int type = 2, int limit = 20, int offset = 0}) async {
+    List<BangumiItem> bangumiList = [];
+    var params = <String, dynamic>{
+      'type': type,
+      'limit': limit,
+      'offset': offset,
+    };
+    try {
+      final res = await Request().get(Api.bangumiTrendsNext,
+          data: params,
+          options: Options(
+              headers: bangumiHTTPHeader, contentType: 'application/json'));
+      final jsonData = res.data;
+      final jsonList = jsonData['data'];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          bangumiList.add(BangumiItem.fromJson(jsonItem['subject']));
+        }
+      }
+    } catch (e) {
+      KazumiLogger().log(
+          Level.error, 'Resolve bangumi trends list failed ${e.toString()}');
     }
     return bangumiList;
   }
@@ -151,7 +181,8 @@ class BangumiHTTP {
     };
 
     try {
-      final res = await Request().post(Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
+      final res = await Request().post(
+          Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));
@@ -191,7 +222,8 @@ class BangumiHTTP {
   static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
     EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
+      final res = await Request().get(
+          '${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
@@ -202,10 +234,12 @@ class BangumiHTTP {
     return episodeInfo;
   }
 
-  static Future<CommentResponse> getBangumiCommentsByID(int id, {int offset = 0}) async {
+  static Future<CommentResponse> getBangumiCommentsByID(int id,
+      {int offset = 0}) async {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiInfoByIDNext}$id/comments?offset=$offset&limit=20',
+      final res = await Request().get(
+          '${Api.bangumiInfoByIDNext}$id/comments?offset=$offset&limit=20',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
@@ -216,20 +250,23 @@ class BangumiHTTP {
     return commentResponse;
   }
 
-  static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(int id) async {
-    EpisodeCommentResponse commentResponse = EpisodeCommentResponse.fromTemplate();
+  static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(
+      int id) async {
+    EpisodeCommentResponse commentResponse =
+        EpisodeCommentResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiEpisodeByIDNext}$id/comments',
+      final res = await Request().get(
+          '${Api.bangumiEpisodeByIDNext}$id/comments',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi episode comments failed ${e.toString()}');
+      KazumiLogger().log(Level.error,
+          'Resolve bangumi episode comments failed ${e.toString()}');
     }
     return commentResponse;
   }
-  
+
   static Future<CharacterResponse> getCharatersByID(int id) async {
     CharacterResponse characterResponse = CharacterResponse.fromTemplate();
     try {
@@ -238,8 +275,8 @@ class BangumiHTTP {
       final jsonData = res.data;
       characterResponse = CharacterResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi characters failed ${e.toString()}');
+      KazumiLogger().log(
+          Level.error, 'Resolve bangumi characters failed ${e.toString()}');
     }
     return characterResponse;
   }

@@ -38,30 +38,6 @@ abstract class _InfoController with Store {
   @observable
   var characterList = ObservableList<CharacterItem>();
 
-  /// 移动到 query_manager.dart 以解决可能的内存泄漏
-  // querySource(String keyword) async {
-  //   final PluginsController pluginsController =
-  //       Modular.get<PluginsController>();
-  //   pluginSearchResponseList.clear();
-
-  //   for (Plugin plugin in pluginsController.pluginList) {
-  //     pluginSearchStatus[plugin.name] = 'pending';
-  //   }
-
-  //   var controller = StreamController();
-  //   for (Plugin plugin in pluginsController.pluginList) {
-  //     plugin.queryBangumi(keyword).then((result) {
-  //       pluginSearchStatus[plugin.name] = 'success';
-  //       controller.add(result);
-  //     }).catchError((error) {
-  //       pluginSearchStatus[plugin.name] = 'error';
-  //     });
-  //   }
-  //   await for (var result in controller.stream) {
-  //     pluginSearchResponseList.add(result);
-  //   }
-  // }
-
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
       if (value != null) {
@@ -71,6 +47,8 @@ abstract class _InfoController with Store {
           bangumiItem.summary = value.summary;
           bangumiItem.tags = value.tags;
           bangumiItem.rank = value.rank;
+          bangumiItem.airDate = value.airDate;
+          bangumiItem.airWeekday = value.airWeekday;
         }
         collectController.updateLocalCollect(bangumiItem);
       }

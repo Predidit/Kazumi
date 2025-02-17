@@ -24,7 +24,7 @@ class _CollectPageState extends State<CollectPage>
     with SingleTickerProviderStateMixin {
   final CollectController collectController = Modular.get<CollectController>();
   late NavigationBarState navigationBarState;
-  TabController? controller;
+  TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
   Box setting = GStorage.setting;
@@ -38,9 +38,15 @@ class _CollectPageState extends State<CollectPage>
   void initState() {
     super.initState();
     collectController.loadCollectibles();
-    controller = TabController(vsync: this, length: tabs.length);
+    tabController = TabController(vsync: this, length: tabs.length);
       navigationBarState =
           Provider.of<NavigationBarState>(context, listen: false);
+  }
+
+  @override
+  void dispose() {
+    tabController?.dispose();
+    super.dispose();
   }
 
   final List<Tab> tabs = const <Tab>[
@@ -67,7 +73,7 @@ class _CollectPageState extends State<CollectPage>
             needTopOffset: false,
             toolbarHeight: 104,
             bottom: TabBar(
-              controller: controller,
+              controller: tabController,
               tabs: tabs,
               indicatorColor: Theme.of(context).colorScheme.primary,
             ),
@@ -125,7 +131,7 @@ class _CollectPageState extends State<CollectPage>
   Widget renderBody(Orientation orientation) {
     if (collectController.collectibles.isNotEmpty) {
       return TabBarView(
-        controller: controller,
+        controller: tabController,
         children: contentGrid(collectController.collectibles, orientation),
       );
     } else {

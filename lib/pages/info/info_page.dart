@@ -57,6 +57,7 @@ class _InfoPageState extends State<InfoPage>
     infoController.characterList.clear();
     infoController.commentsList.clear();
     videoPageController.currentEpisode = 1;
+    tabController.dispose();
     super.dispose();
   }
 

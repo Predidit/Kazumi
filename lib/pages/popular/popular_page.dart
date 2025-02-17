@@ -39,17 +39,7 @@ class _PopularPageState extends State<PopularPage>
   @override
   void initState() {
     super.initState();
-    scrollController.addListener(() {
-      popularController.scrollOffset = scrollController.offset;
-      if (scrollController.position.pixels >=
-              scrollController.position.maxScrollExtent - 200 &&
-          !popularController.isLoadingMore) {
-        if (popularController.searchKeyword == '') {
-          KazumiLogger().log(Level.info, 'Popular is loading more');
-          popularController.queryBangumiListFeed();
-        } else {}
-      }
-    });
+    scrollController.addListener(scrollListener);
     if (popularController.bangumiList.isEmpty) {
       popularController.queryBangumiListFeed();
     }
@@ -67,8 +57,20 @@ class _PopularPageState extends State<PopularPage>
   void dispose() {
     popularController.isSearching = false;
     _focusNode.dispose();
-    scrollController.removeListener(() {});
+    scrollController.removeListener(scrollListener);
     super.dispose();
+  }
+
+  void scrollListener() {
+    popularController.scrollOffset = scrollController.offset;
+    if (scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent - 200 &&
+        !popularController.isLoadingMore) {
+      if (popularController.searchKeyword == '') {
+        KazumiLogger().log(Level.info, 'Popular is loading more');
+        popularController.queryBangumiListFeed();
+      }
+    }
   }
 
   void onBackPressed(BuildContext context) {

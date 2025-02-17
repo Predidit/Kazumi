@@ -25,19 +25,25 @@ class _TimelinePageState extends State<TimelinePage>
       Modular.get<TimelineController>();
   bool showingTimeMachineDialog = false;
   late NavigationBarState navigationBarState;
-  TabController? controller;
+  TabController? tabController;
 
   @override
   void initState() {
     super.initState();
     int weekday = DateTime.now().weekday - 1;
-    controller =
+    tabController =
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
+  }
+
+  @override
+  void dispose() {
+    tabController?.dispose();
+    super.dispose();
   }
 
   void onBackPressed(BuildContext context) {
@@ -97,7 +103,7 @@ class _TimelinePageState extends State<TimelinePage>
               needTopOffset: false,
               toolbarHeight: 104,
               bottom: TabBar(
-                controller: controller,
+                controller: tabController,
                 tabs: tabs,
                 indicatorColor: Theme.of(context).colorScheme.primary,
               ),
@@ -174,7 +180,7 @@ class _TimelinePageState extends State<TimelinePage>
   Widget renderBody(Orientation orientation) {
     if (timelineController.bangumiCalendar.isNotEmpty) {
       return TabBarView(
-        controller: controller,
+        controller: tabController,
         children: contentGrid(timelineController.bangumiCalendar, orientation),
       );
     } else {

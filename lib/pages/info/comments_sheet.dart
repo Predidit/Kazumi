@@ -85,6 +85,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   void dispose() {
+    scrollController.removeListener(scrollListener);
     scrollController.dispose();
     super.dispose();
   }

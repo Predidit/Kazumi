@@ -17,7 +17,6 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   final HistoryController historyController = Modular.get<HistoryController>();
-  TabController? controller;
 
   /// show delete button
   bool showDelete = false;

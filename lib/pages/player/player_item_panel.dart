@@ -507,7 +507,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           (Utils.isDesktop() || !videoPageController.isFullscreen)
               ? Container()
               : Positioned(
-                  right: 0,
+                  right: MediaQuery.of(context).padding.right,
                   top: 0,
                   bottom: 0,
                   child: SlideTransition(
@@ -543,11 +543,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     ),
                   ),
                 ),
-          // 自定义顶部组件
-          Positioned(
+            // 自定义顶部组件
+            Positioned(
             top: 0,
-            left: 0,
-            right: 0,
+            left: MediaQuery.of(context).padding.left,
+            right: MediaQuery.of(context).padding.right,
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(
@@ -701,8 +701,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           // 自定义播放器底部组件
           Positioned(
             bottom: 0,
-            left: 0,
-            right: 0,
+            left: MediaQuery.of(context).padding.left,
+            right: MediaQuery.of(context).padding.right,
             child: Visibility(
               visible: !playerController.lockPanel,
               child: SlideTransition(

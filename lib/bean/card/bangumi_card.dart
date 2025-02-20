@@ -42,13 +42,9 @@ class BangumiCardV extends StatelessWidget {
               return;
             }
             infoController.bangumiItem = bangumiItem;
-            if (!popularController.isSearching) {
-              popularController.keyword = bangumiItem.nameCn == ''
-                  ? bangumiItem.name
-                  : (bangumiItem.nameCn);
-            } else {
-              popularController.keyword = popularController.searchKeyword;
-            }
+            popularController.keyword = bangumiItem.nameCn == ''
+                ? bangumiItem.name
+                : (bangumiItem.nameCn);
             Modular.to.pushNamed('/info/');
           },
           child: Column(

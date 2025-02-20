@@ -74,8 +74,8 @@ class _VideoPageState extends State<VideoPage>
     windowManager.addListener(this);
     // Check fullscreen when enter video page
     // in case user use system controls to enter fullscreen outside video page
-    tabController = TabController(length: 2, vsync: this);
     videoPageController.isDesktopFullscreen();
+    tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 100),
@@ -206,12 +206,6 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.loading = true;
     infoController.episodeInfo.reset();
     infoController.episodeCommentsList.clear();
-    // Query comments when tab is visible
-    // We need lazy load comments to avoid unnecessary API requests
-    // so we only query comments when the tab is visible rather than video is loaded
-    if (tabController.index == 1) {
-      infoController.queryBangumiEpisodeCommentsByID(infoController.bangumiItem.id, episode);
-    }
     await playerController.stop();
     await videoPageController.changeEpisode(episode,
         currentRoad: currentRoad, offset: offset);
@@ -897,7 +891,10 @@ class _VideoPageState extends State<VideoPage>
                       ],
                     ),
                   ),
-                  EpisodeCommentsSheet(episode: episodeNum),
+                  EpisodeInfo(
+                    episode: episodeNum,
+                    child: EpisodeCommentsSheet(),
+                  ),
                 ],
               ),
             ),

@@ -14,6 +14,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,13 @@ void main() async {
   } catch (_) {
     runApp(MaterialApp(
         title: '初始化失败',
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [
+          Locale.fromSubtags(
+              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
+        ],
+        locale: const Locale.fromSubtags(
+            languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
         builder: (context, child) {
           return const StorageErrorPage();
         }));

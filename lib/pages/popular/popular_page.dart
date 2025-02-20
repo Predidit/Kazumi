@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/pages/error/http_error.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter/services.dart';
@@ -43,7 +43,6 @@ class _PopularPageState extends State<PopularPage>
     if (popularController.bangumiList.isEmpty) {
       popularController.queryBangumiFeed();
     }
-    popularController.isSearching = popularController.searchKeyword.isNotEmpty;
     showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
 
@@ -55,7 +54,6 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   void dispose() {
-    popularController.isSearching = false;
     _focusNode.dispose();
     scrollController.removeListener(scrollListener);
     super.dispose();
@@ -145,7 +143,8 @@ class _PopularPageState extends State<PopularPage>
                               showSearchBar = false;
                             });
                             popularController.setCurrentTag('');
-                            await popularController.queryBangumiFeed(type: 'init');
+                            await popularController.queryBangumiFeed(
+                                type: 'init');
                           } else {
                             popularController.setSearchKeyword('');
                             setState(() {
@@ -214,11 +213,16 @@ class _PopularPageState extends State<PopularPage>
                             sliver: Observer(builder: (context) {
                               if (popularController.bangumiList.isEmpty &&
                                   popularController.isTimeOut) {
-                                return HttpError(
-                                  errMsg: '什么都没有找到 (´;ω;`)',
-                                  fn: () {
-                                    popularController.queryBangumiList();
-                                  },
+                                return SliverToBoxAdapter(
+                                  child: SizedBox(
+                                    height: 400,
+                                    child: GeneralErrorWidget(
+                                      errMsg: '什么都没有找到 (´;ω;`)',
+                                      fn: () {
+                                        popularController.queryBangumiList();
+                                      },
+                                    ),
+                                  ),
                                 );
                               }
                               if (popularController.bangumiList.isEmpty &&
@@ -325,7 +329,8 @@ class _PopularPageState extends State<PopularPage>
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
                               popularController.setCurrentTag('');
-                              await popularController.queryBangumiFeed(type: 'init');
+                              await popularController.queryBangumiFeed(
+                                  type: 'init');
                             },
                           )
                         : FilledButton.tonal(
@@ -338,7 +343,8 @@ class _PopularPageState extends State<PopularPage>
                                 showSearchBar = false;
                               });
                               popularController.setCurrentTag(filter);
-                              await popularController.queryBangumiList(type: 'init');
+                              await popularController.queryBangumiList(
+                                  type: 'init');
                             },
                           ),
                   ),

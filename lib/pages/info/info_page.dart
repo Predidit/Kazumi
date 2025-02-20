@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -42,11 +43,12 @@ class _InfoPageState extends State<InfoPage>
     // Because the gap between different bangumi API reponse is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
-    if (infoController.bangumiItem.summary == '' || infoController.bangumiItem.tags.isEmpty) {
+    if (infoController.bangumiItem.summary == '' ||
+        infoController.bangumiItem.tags.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();
-    queryManager.querySource(popularController.keyword);
+    queryManager.queryAllSource(popularController.keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
   }
@@ -68,6 +70,28 @@ class _InfoPageState extends State<InfoPage>
     } catch (e) {
       KazumiLogger().log(Level.error, e.toString());
     }
+  }
+
+  void showAliasSearchDialog(String pluginName) {
+    if (infoController.bangumiItem.alias.isEmpty) {
+      KazumiDialog.showToast(message: '无可用别名');
+      return;
+    }
+    KazumiDialog.show(builder: (context) {
+      return Dialog(
+          child: ListView(
+        shrinkWrap: true,
+        children: infoController.bangumiItem.alias
+            .map((alias) => ListTile(
+                  title: Text(alias),
+                  onTap: () {
+                    KazumiDialog.dismiss();
+                    queryManager.querySource(alias, pluginName);
+                  },
+                ))
+            .toList(),
+      ));
+    });
   }
 
   @override
@@ -214,7 +238,37 @@ class _InfoPageState extends State<InfoPage>
                             }
                           }
                         }
-                        return ListView(children: cardList);
+                        return infoController.pluginSearchStatus[plugin.name] ==
+                                'pending'
+                            ? const Center(child: CircularProgressIndicator())
+                            : (infoController.pluginSearchStatus[plugin.name] ==
+                                    'error'
+                                ? GeneralErrorWidget(
+                                    errMsg:
+                                        '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                    btnText: '重试',
+                                    fn: () {
+                                      queryManager.querySource(
+                                          popularController.keyword,
+                                          plugin.name);
+                                    })
+                                : cardList.isEmpty
+                                    ? (infoController
+                                            .bangumiItem.alias.isNotEmpty
+                                        ? GeneralErrorWidget(
+                                            errMsg:
+                                                '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+                                            btnText: '别名检索',
+                                            fn: () {
+                                              showAliasSearchDialog(
+                                                  plugin.name);
+                                            })
+                                        : GeneralErrorWidget(
+                                            errMsg:
+                                                '${plugin.name} 无结果 左右滑动以切换到其他视频来源',
+                                            showButton: false,
+                                          ))
+                                    : ListView(children: cardList));
                       }),
                     ),
                   ),

@@ -62,6 +62,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (infoController.episodeCommentsList.isEmpty) {
+        // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();
       }
     });

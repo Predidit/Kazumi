@@ -23,6 +23,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playResume;
   late bool showPlayerError;
   late bool privateMode;
+  late bool playerDebugMode;
 
   @override
   void initState() {
@@ -36,6 +37,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
     showPlayerError =
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
+    playerDebugMode =
+        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -116,12 +119,24 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     SettingsTile.switchTile(
                       onToggle: (value) async {
                         showPlayerError = value ?? !showPlayerError;
-                        await setting.put(SettingBoxKey.showPlayerError, showPlayerError);
+                        await setting.put(
+                            SettingBoxKey.showPlayerError, showPlayerError);
                         setState(() {});
                       },
                       title: const Text('错误提示'),
                       description: const Text('显示播放器内部错误提示'),
                       initialValue: showPlayerError,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        playerDebugMode = value ?? !playerDebugMode;
+                        await setting.put(
+                            SettingBoxKey.playerDebugMode, playerDebugMode);
+                        setState(() {});
+                      },
+                      title: const Text('调试模式'),
+                      description: const Text('记录播放器内部日志'),
+                      initialValue: playerDebugMode,
                     ),
                     SettingsTile.switchTile(
                       onToggle: (value) async {

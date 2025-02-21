@@ -239,5 +239,6 @@ class SettingBoxKey {
       showWindowButton = 'showWindowButton',
       useDynamicColor = 'useDynamicColor',
       exitBehavior = 'exitBehavior',
+      playerDebugMode = 'playerDebugMode',
       defaultSuperResolutionType = 'defaultSuperResolutionType';
 }

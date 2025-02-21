@@ -80,6 +80,7 @@ dependencies:
   material_color_utilities: any
   path: any
   screen_brightness_platform_interface: any
+  synchronized: any
   antlr4: ^4.13.2
   webview_windows:
     git:

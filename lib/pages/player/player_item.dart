@@ -29,6 +29,7 @@ import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
+import 'package:kazumi/bean/widget/text_display.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
 class PlayerItem extends StatefulWidget {
@@ -92,6 +93,9 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late int _danmakuFontWeight;
+
+  // 硬件解码
+  late bool haEnable;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -490,6 +494,60 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
+  void showVideoInfo() async {
+    String currentDemux = await Utils.getCurrentDemux();
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('视频详情'),
+        content: SelectableText.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
+              TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
+              TextSpan(text: '解复用器: $currentDemux\n'),
+              const TextSpan(text: '资源地址: '),
+              TextSpan(
+                text: playerController.videoUrl,
+              ),
+            ],
+          ),
+          style: Theme.of(context).textTheme.bodyLarge!,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+                showPlayerLogsDialog();
+              },
+              child: Text('调试信息')),
+          TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
+        ],
+      );
+    });
+  }
+
+  void showPlayerLogsDialog() {
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('调试信息'),
+        content: SizedBox(
+            height: 400,
+            width: 400,
+            child: TextDisplayWidget(logLines: playerController.playerLog)),
+        actions: [
+          TextButton(onPressed: () {
+            Clipboard.setData(ClipboardData(text: playerController.playerLog.toString()));
+            KazumiDialog.showToast(message: '已复制到剪贴板');
+          }, child: const Text('复制到剪贴板')),
+          TextButton(
+            onPressed: KazumiDialog.dismiss,
+            child: const Text('取消'),
+          ),
+        ],
+      );
+    });
+  }
+
   /// Used to decide which panel is used.
   /// It's too complicated to write these in conditional sentence.
   /// * true: use [PlayerItemPanel]
@@ -562,6 +620,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
@@ -845,6 +904,7 @@ class _PlayerItemState extends State<PlayerItem>
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
                             handleDanmaku: handleDanmaku,
+                            showVideoInfo: showVideoInfo,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -860,6 +920,7 @@ class _PlayerItemState extends State<PlayerItem>
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
                             handleDanmaku: handleDanmaku,
+                            showVideoInfo: showVideoInfo,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

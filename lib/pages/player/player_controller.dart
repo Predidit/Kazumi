@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -104,6 +105,7 @@ abstract class _PlayerController with Store {
   late String hardwareDecoder;
   bool lowMemoryMode = false;
   bool autoPlay = true;
+  bool playerDebugMode = false;
   int forwardTime = 80;
 
   // 播放器实时状态
@@ -115,6 +117,11 @@ abstract class _PlayerController with Store {
   Duration get playerBuffer => mediaPlayer.state.buffer;
   Duration get playerDuration => mediaPlayer.state.duration;
 
+  // 播放器内部日志
+  List<String> playerLog = [];
+  // 播放器日志订阅
+  StreamSubscription<PlayerLog>? playerLogSubscription;
+
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
     playing = false;
@@ -125,7 +132,7 @@ abstract class _PlayerController with Store {
     duration = Duration.zero;
     completed = false;
     try {
-      mediaPlayer.dispose();
+      await dispose();
     } catch (_) {}
     int episodeFromTitle = 0;
     try {
@@ -168,16 +175,13 @@ abstract class _PlayerController with Store {
     autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    KazumiLogger().log(
-        Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
+    playerDebugMode = setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
       userAgent = videoPageController.currentPlugin.userAgent;
     }
-    KazumiLogger().log(Level.info, 'media_kit UA: $userAgent');
     String referer = videoPageController.currentPlugin.referer;
-    KazumiLogger().log(Level.info, 'media_kit Referer: $referer');
     var httpHeaders = {
       'user-agent': userAgent,
       if (referer.isNotEmpty) 'referer': referer,
@@ -186,8 +190,20 @@ abstract class _PlayerController with Store {
     mediaPlayer = Player(
       configuration: PlayerConfiguration(
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+        osc: false,
+        logLevel: MPVLogLevel.info,
       ),
     );
+
+    // 记录播放器内部日志
+    playerLog.clear();
+    await playerLogSubscription?.cancel();
+    playerLogSubscription = mediaPlayer.stream.log.listen((event) {
+      playerLog.add(event.toString());
+      if (playerDebugMode) {
+        KazumiLogger().simpleLog(event.toString());
+      }
+    });
 
     var pp = mediaPlayer.platform as NativePlayer;
     await pp.setProperty("af", "scaletempo2=max-speed=8");
@@ -316,6 +332,9 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> dispose() async {
+    try {
+      await playerLogSubscription?.cancel();
+    } catch (_) {}
     try {
       await mediaPlayer.dispose();
     } catch (_) {}

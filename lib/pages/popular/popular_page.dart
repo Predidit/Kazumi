@@ -184,7 +184,7 @@ class _PopularPageState extends State<PopularPage>
                   SizedBox(
                     height: showTagFilter ? 50 : 0,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
+                      padding: EdgeInsets.zero,
                       child: tagFilter(),
                     ),
                   ),

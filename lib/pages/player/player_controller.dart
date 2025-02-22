@@ -28,6 +28,7 @@ abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
+
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
@@ -35,16 +36,16 @@ abstract class _PlayerController with Store {
   @observable
   bool danmakuOn = false;
 
-  // 视频比例类型
-  // 1. AUTO
-  // 2. COVER
-  // 3. FILL
+  /// 视频比例类型
+  /// 1. AUTO
+  /// 2. COVER
+  /// 3. FILL
   @observable
   int aspectRatioType = 1;
 
-  // 视频超分
-  // 1. OFF
-  // 2. Anime4K
+  /// 视频超分
+  /// 1. OFF
+  /// 2. Anime4K
   @observable
   int superResolutionType = 1;
 
@@ -76,8 +77,10 @@ abstract class _PlayerController with Store {
 
   // 视频地址
   String videoUrl = '';
+
   // DanDanPlay 弹幕ID
   int bangumiID = 0;
+
   // 播放器实体
   late Player mediaPlayer;
   late VideoController videoController;
@@ -110,16 +113,23 @@ abstract class _PlayerController with Store {
 
   // 播放器实时状态
   bool get playerPlaying => mediaPlayer.state.playing;
+
   bool get playerBuffering => mediaPlayer.state.buffering;
+
   bool get playerCompleted => mediaPlayer.state.completed;
+
   double get playerVolume => mediaPlayer.state.volume;
+
   Duration get playerPosition => mediaPlayer.state.position;
+
   Duration get playerBuffer => mediaPlayer.state.buffer;
+
   Duration get playerDuration => mediaPlayer.state.duration;
 
-  // 播放器内部日志
+  /// 播放器内部日志
   List<String> playerLog = [];
-  // 播放器日志订阅
+
+  /// 播放器日志订阅
   StreamSubscription<PlayerLog>? playerLogSubscription;
 
   Future<void> init(String url, {int offset = 0}) async {
@@ -151,14 +161,13 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
+      await setVolume(volume);
     } else {
+      // mobile is using system volume, don't setVolume here,
+      // or iOS will mute if system volume is too low (#732)
       await FlutterVolumeController.getVolume().then((value) {
         volume = (value ?? 0.0) * 100;
       });
-    }
-    await setVolume(volume);
-    if (Platform.isIOS) {
-      FlutterVolumeController.updateShowSystemUI(true);
     }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
@@ -175,7 +184,8 @@ abstract class _PlayerController with Store {
     autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    playerDebugMode = setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    playerDebugMode =
+        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {

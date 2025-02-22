@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -28,6 +29,7 @@ class InfoPage extends StatefulWidget {
 class _InfoPageState extends State<InfoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
+  final CollectController collectController = Modular.get<CollectController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -73,6 +75,10 @@ class _InfoPageState extends State<InfoPage>
   }
 
   void showAliasSearchDialog(String pluginName) {
+    if (infoController.bangumiItem.alias.isEmpty) {
+      KazumiDialog.showToast(message: '无可用别名，试试手动检索');
+      return;
+    }
     final aliasNotifier =
         ValueNotifier<List<String>>(infoController.bangumiItem.alias);
     KazumiDialog.show(builder: (context) {
@@ -113,6 +119,12 @@ class _InfoPageState extends State<InfoPage>
                                   KazumiDialog.dismiss();
                                   aliasList.removeAt(index);
                                   aliasNotifier.value = List.from(aliasList);
+                                  collectController.updateLocalCollect(
+                                      infoController.bangumiItem);
+                                  if (aliasList.isEmpty) {
+                                    // pop whole dialog when empty
+                                    Navigator.of(context).pop();
+                                  }
                                 },
                                 child: const Text('确认'),
                               ),
@@ -166,6 +178,8 @@ class _InfoPageState extends State<InfoPage>
               onPressed: () {
                 if (textController.text != '') {
                   infoController.bangumiItem.alias.add(textController.text);
+                  collectController
+                      .updateLocalCollect(infoController.bangumiItem);
                   KazumiDialog.dismiss();
                   queryManager.querySource(textController.text, pluginName);
                 }

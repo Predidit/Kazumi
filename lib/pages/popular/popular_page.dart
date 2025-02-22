@@ -106,7 +106,8 @@ class _PopularPageState extends State<PopularPage>
           child: Scaffold(
               appBar: SysAppBar(
                 needTopOffset: false,
-                leadingWidth: 66, // default 56 + 10
+                // default 56 + 10
+                leadingWidth: 66,
                 leading: (navigationBarState.isBottom)
                     ? Row(
                         children: [
@@ -218,9 +219,15 @@ class _PopularPageState extends State<PopularPage>
                                     height: 400,
                                     child: GeneralErrorWidget(
                                       errMsg: '什么都没有找到 (´;ω;`)',
-                                      fn: () {
-                                        popularController.queryBangumiList();
-                                      },
+                                      actions: [
+                                        GeneralErrorButton(
+                                          onPressed: () {
+                                            popularController
+                                                .queryBangumiList();
+                                          },
+                                          text: '点击重试',
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );

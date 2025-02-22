@@ -16,10 +16,14 @@ class StorageErrorPage extends StatelessWidget {
       body: Center(
         child: GeneralErrorWidget(
           errMsg: '存储初始化错误: 检测到一个Kazumi实例已在运行, 请勿重复启动该程序。(0x02)',
-          btnText: '退出程序',
-          fn: () {
-            exit(0);
-          },
+          actions: [
+            GeneralErrorButton(
+              onPressed: () {
+                exit(0);
+              },
+              text: '退出程序',
+            ),
+          ],
         ),
       ),
     );

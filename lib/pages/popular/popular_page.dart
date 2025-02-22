@@ -300,7 +300,6 @@ class _PopularPageState extends State<PopularPage>
       '搞笑',
       '奇幻',
       '百合',
-      '异世界',
       '恋爱',
       '悬疑',
       '热血',
@@ -309,6 +308,7 @@ class _PopularPageState extends State<PopularPage>
       '轻改',
       '偶像',
       '治愈',
+      '异世界',
     ];
 
     final ScrollController tagScrollController = ScrollController();

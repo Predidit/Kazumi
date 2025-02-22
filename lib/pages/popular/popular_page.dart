@@ -183,10 +183,7 @@ class _PopularPageState extends State<PopularPage>
                 children: [
                   SizedBox(
                     height: showTagFilter ? 50 : 0,
-                    child: Padding(
-                      padding: EdgeInsets.zero,
-                      child: tagFilter(),
-                    ),
+                    child: tagFilter(),
                   ),
                   Expanded(
                     child: CustomScrollView(

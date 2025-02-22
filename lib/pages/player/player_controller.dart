@@ -206,6 +206,10 @@ abstract class _PlayerController with Store {
     });
 
     var pp = mediaPlayer.platform as NativePlayer;
+    // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
+    // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
+    // 该设置可以在所有平台上正确启用双重缓存
+    await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
     await pp.setProperty("af", "scaletempo2=max-speed=8");
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");

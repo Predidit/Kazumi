@@ -17,6 +17,7 @@ import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:screen_pixel/screen_pixel.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -492,6 +493,11 @@ class Utils {
 
   static bool isSameSeason(DateTime d1, DateTime d2) {
     return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
+  }
+
+  static Future<String> getPlayerTempPath() async {
+    final directory = await getTemporaryDirectory();
+    return directory.path;
   }
 
   static String buildShadersAbsolutePath(

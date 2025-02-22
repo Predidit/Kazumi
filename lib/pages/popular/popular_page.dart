@@ -106,7 +106,8 @@ class _PopularPageState extends State<PopularPage>
           child: Scaffold(
               appBar: SysAppBar(
                 needTopOffset: false,
-                leadingWidth: 66, // default 56 + 10
+                // default 56 + 10
+                leadingWidth: 66,
                 leading: (navigationBarState.isBottom)
                     ? Row(
                         children: [
@@ -182,10 +183,7 @@ class _PopularPageState extends State<PopularPage>
                 children: [
                   SizedBox(
                     height: showTagFilter ? 50 : 0,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
-                      child: tagFilter(),
-                    ),
+                    child: tagFilter(),
                   ),
                   Expanded(
                     child: CustomScrollView(
@@ -218,9 +216,15 @@ class _PopularPageState extends State<PopularPage>
                                     height: 400,
                                     child: GeneralErrorWidget(
                                       errMsg: '什么都没有找到 (´;ω;`)',
-                                      fn: () {
-                                        popularController.queryBangumiList();
-                                      },
+                                      actions: [
+                                        GeneralErrorButton(
+                                          onPressed: () {
+                                            popularController
+                                                .queryBangumiList();
+                                          },
+                                          text: '点击重试',
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -296,7 +300,6 @@ class _PopularPageState extends State<PopularPage>
       '搞笑',
       '奇幻',
       '百合',
-      '异世界',
       '恋爱',
       '悬疑',
       '热血',
@@ -305,6 +308,7 @@ class _PopularPageState extends State<PopularPage>
       '轻改',
       '偶像',
       '治愈',
+      '异世界',
     ];
 
     final ScrollController tagScrollController = ScrollController();

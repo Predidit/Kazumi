@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -28,6 +29,7 @@ class InfoPage extends StatefulWidget {
 class _InfoPageState extends State<InfoPage>
     with SingleTickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
+  final CollectController collectController = Modular.get<CollectController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -74,24 +76,122 @@ class _InfoPageState extends State<InfoPage>
 
   void showAliasSearchDialog(String pluginName) {
     if (infoController.bangumiItem.alias.isEmpty) {
-      KazumiDialog.showToast(message: '无可用别名');
+      KazumiDialog.showToast(message: '无可用别名，试试手动检索');
       return;
     }
+    final aliasNotifier =
+        ValueNotifier<List<String>>(infoController.bangumiItem.alias);
     KazumiDialog.show(builder: (context) {
       return Dialog(
-          child: ListView(
-        shrinkWrap: true,
-        children: infoController.bangumiItem.alias
-            .map((alias) => ListTile(
+        clipBehavior: Clip.antiAlias,
+        child: ValueListenableBuilder<List<String>>(
+          valueListenable: aliasNotifier,
+          builder: (context, aliasList, child) {
+            return ListView(
+              shrinkWrap: true,
+              children: aliasList.asMap().entries.map((entry) {
+                final index = entry.key;
+                final alias = entry.value;
+                return ListTile(
                   title: Text(alias),
+                  trailing: IconButton(
+                    onPressed: () {
+                      KazumiDialog.show(
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('删除确认'),
+                            content: const Text('删除后无法恢复，确认要永久删除这个别名吗？'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  KazumiDialog.dismiss();
+                                },
+                                child: Text(
+                                  '取消',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  KazumiDialog.dismiss();
+                                  aliasList.removeAt(index);
+                                  aliasNotifier.value = List.from(aliasList);
+                                  collectController.updateLocalCollect(
+                                      infoController.bangumiItem);
+                                  if (aliasList.isEmpty) {
+                                    // pop whole dialog when empty
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                                child: const Text('确认'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    icon: Icon(Icons.delete),
+                  ),
                   onTap: () {
                     KazumiDialog.dismiss();
                     queryManager.querySource(alias, pluginName);
                   },
-                ))
-            .toList(),
-      ));
+                );
+              }).toList(),
+            );
+          },
+        ),
+      );
     });
+  }
+
+  void showCustomSearchDialog(String pluginName) {
+    KazumiDialog.show(
+      builder: (context) {
+        final TextEditingController textController = TextEditingController();
+        return AlertDialog(
+          title: const Text('输入别名'),
+          content: TextField(
+            controller: textController,
+            onSubmitted: (keyword) {
+              if (textController.text != '') {
+                infoController.bangumiItem.alias.add(textController.text);
+                KazumiDialog.dismiss();
+                queryManager.querySource(textController.text, pluginName);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+              },
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                if (textController.text != '') {
+                  infoController.bangumiItem.alias.add(textController.text);
+                  collectController
+                      .updateLocalCollect(infoController.bangumiItem);
+                  KazumiDialog.dismiss();
+                  queryManager.querySource(textController.text, pluginName);
+                }
+              },
+              child: const Text(
+                '确认',
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -246,28 +346,40 @@ class _InfoPageState extends State<InfoPage>
                                 ? GeneralErrorWidget(
                                     errMsg:
                                         '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                                    btnText: '重试',
-                                    fn: () {
-                                      queryManager.querySource(
-                                          popularController.keyword,
-                                          plugin.name);
-                                    })
+                                    actions: [
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          queryManager.querySource(
+                                              popularController.keyword,
+                                              plugin.name);
+                                        },
+                                        text: '重试',
+                                      ),
+                                    ],
+                                  )
                                 : cardList.isEmpty
-                                    ? (infoController
-                                            .bangumiItem.alias.isNotEmpty
-                                        ? GeneralErrorWidget(
-                                            errMsg:
-                                                '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-                                            btnText: '别名检索',
-                                            fn: () {
+                                    ? GeneralErrorWidget(
+                                        errMsg:
+                                            '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+                                        actions: [
+                                          GeneralErrorButton(
+                                            onPressed: () {
                                               showAliasSearchDialog(
-                                                  plugin.name);
-                                            })
-                                        : GeneralErrorWidget(
-                                            errMsg:
-                                                '${plugin.name} 无结果 左右滑动以切换到其他视频来源',
-                                            showButton: false,
-                                          ))
+                                                plugin.name,
+                                              );
+                                            },
+                                            text: '别名检索',
+                                          ),
+                                          GeneralErrorButton(
+                                            onPressed: () {
+                                              showCustomSearchDialog(
+                                                plugin.name,
+                                              );
+                                            },
+                                            text: '手动检索',
+                                          ),
+                                        ],
+                                      )
                                     : ListView(children: cardList));
                       }),
                     ),

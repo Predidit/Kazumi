@@ -57,6 +57,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
 class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   Box setting = GStorage.setting;
   late bool haEnable;
+  late List<double> PlaySpeedList;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
@@ -136,6 +137,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    PlaySpeedList = setting.get(SettingBoxKey.PlaySpeedList, defaultValue: defaultPlaySpeedList_L);
   }
 
   Widget forwardIcon() {
@@ -452,7 +454,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                           SubmenuButton(
                             menuChildren: [
                               for (final double i
-                                  in defaultPlaySpeedList) ...<MenuItemButton>[
+                                  in PlaySpeedList) ...<MenuItemButton>[
                                 MenuItemButton(
                                   onPressed: () async {
                                     await widget.setPlaybackSpeed(i);

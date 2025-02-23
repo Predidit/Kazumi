@@ -107,7 +107,7 @@ const List<String> mpvAnime4KShadersLite = [
 ];
 
 // 可选播放倍速
-const List<double> defaultPlaySpeedList = [
+List<double> defaultPlaySpeedList_L = [
   0.25,
   0.5,
   0.75,

@@ -24,6 +24,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool showPlayerError;
   late bool privateMode;
   late bool playerDebugMode;
+  late List<double> PlaySpeedList;
 
   @override
   void initState() {
@@ -39,6 +40,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    PlaySpeedList =
+        setting.get(SettingBoxKey.PlaySpeedList, defaultValue: defaultPlaySpeedList_L);
+    
   }
 
   void onBackPressed(BuildContext context) {
@@ -161,7 +165,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                             content: StatefulBuilder(builder:
                                 (BuildContext context, StateSetter setState) {
                               final List<double> playSpeedList;
-                              playSpeedList = defaultPlaySpeedList;
+                              playSpeedList = PlaySpeedList;
                               return Wrap(
                                 spacing: 8,
                                 runSpacing: Utils.isDesktop() ? 8 : 0,
@@ -206,6 +210,67 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                                   KazumiDialog.dismiss();
                                 },
                                 child: const Text('默认设置'),
+                              ),
+                              
+                              TextButton(
+                                onPressed: () async {
+                                  double newSpeed = defaultPlaySpeed;
+                                  
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('添加倍速'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Text('输入你想要的视频倍速，例如：1.0'),
+                                            const SizedBox(height: 12),
+                                            TextField(
+                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                              decoration: InputDecoration(
+                                                labelText: '自定义倍速',
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(6.0),
+                                                ),
+                                              ),
+                                              onChanged: (value) {
+                                                final parsed = double.tryParse(value);
+                                                if (parsed != null && parsed > 0) {
+                                                  newSpeed = parsed;
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('取消'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () {
+                                              PlaySpeedList.add(newSpeed);
+                                              updateDefaultPlaySpeed(newSpeed);
+
+                                              setting.put(
+                                                SettingBoxKey.PlaySpeedList, 
+                                                PlaySpeedList
+                                              );
+                                              
+                                              setState(() {});
+
+                                              Navigator.pop(context);
+                                            },
+                                            child: const Text('确认添加'),
+                                          )
+                                        ],
+                                      );
+                                    },
+                                  );
+                                  KazumiDialog.dismiss();
+                                },
+                                child: const Text('添加倍速'),
                               ),
                             ],
                           );

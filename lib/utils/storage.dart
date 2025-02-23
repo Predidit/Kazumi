@@ -203,6 +203,7 @@ class SettingBoxKey {
       autoUpdate = 'autoUpdate',
       alwaysOntop = 'alwaysOntop',
       defaultPlaySpeed = 'defaultPlaySpeed',
+      PlaySpeedList = 'PlaySpeedList',
       danmakuEnhance = 'danmakuEnhance',
       danmakuBorder = 'danmakuBorder',
       danmakuOpacity = 'danmakuOpacity',

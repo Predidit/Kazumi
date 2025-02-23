@@ -61,6 +61,7 @@ class PlayerItemPanel extends StatefulWidget {
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
   Box setting = GStorage.setting;
   late bool haEnable;
+  late List<double> PlaySpeedList;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
@@ -172,7 +173,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             spacing: 8,
             runSpacing: Utils.isDesktop() ? 8 : 0,
             children: [
-              for (final double i in defaultPlaySpeedList) ...<Widget>[
+              
+              for (final double i in PlaySpeedList) ...<Widget>[
                 if (i == currentSpeed)
                   FilledButton(
                     onPressed: () async {
@@ -283,6 +285,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    PlaySpeedList =
+        setting.get(SettingBoxKey.PlaySpeedList, defaultValue: defaultPlaySpeedList_L);
   }
 
   Widget forwardIcon() {
@@ -1023,7 +1027,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 },
                                 menuChildren: [
                                   for (final double i
-                                      in defaultPlaySpeedList) ...<MenuItemButton>[
+                                      in PlaySpeedList) ...<MenuItemButton>[
                                     MenuItemButton(
                                       onPressed: () async {
                                         await widget.setPlaybackSpeed(i);

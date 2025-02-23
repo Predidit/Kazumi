@@ -236,7 +236,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                                               ),
                                               onChanged: (value) {
                                                 final parsed = double.tryParse(value);
-                                                if (parsed != null && parsed > 0) {
+                                                if (parsed != null && parsed > 0 && parsed < 5) {
                                                   newSpeed = parsed;
                                                 }
                                               },

@@ -23,11 +23,11 @@ const ProgressIndicatorThemeData progressIndicatorTheme2024 =
 /// the native transition method from failing
 const PageTransitionsTheme pageTransitionsTheme2024 = PageTransitionsTheme(
   builders: {
-    TargetPlatform.android: ZoomPageTransitionsBuilder(),
-    TargetPlatform.iOS: ZoomPageTransitionsBuilder(),
-    TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-    TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
-    TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+    TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+    TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+    TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+    TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
   },
 );
 

@@ -20,6 +20,9 @@ abstract class _PopularController with Store {
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
+  @observable
+  ObservableList<BangumiItem> trendList = ObservableList.of([]);
+
   double scrollOffset = 0.0;
 
   @observable
@@ -36,19 +39,23 @@ abstract class _PopularController with Store {
     currentTag = s;
   }
 
-  Future<bool> queryBangumiFeed({String type = 'add'}) async {
+  void clearBangumiList() {
+    bangumiList.clear();
+  }
+
+  Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
-      bangumiList.clear();
+      trendList.clear();
     }
     isLoadingMore = true;
     var result =
-        await BangumiHTTP.getBangumiTrendsList(offset: bangumiList.length);
-    bangumiList.addAll(result);
+        await BangumiHTTP.getBangumiTrendsList(offset: trendList.length);
+    trendList.addAll(result);
     isLoadingMore = false;
-    return true;
+    isTimeOut = trendList.isEmpty;
   }
 
-  Future<bool> queryBangumiList({String type = 'add'}) async {
+  Future<void> queryBangumiByTag({String type = 'add'}) async {
     if (type == 'init') {
       bangumiList.clear();
     }
@@ -56,30 +63,19 @@ abstract class _PopularController with Store {
     int randomNumber = Random().nextInt(8000) + 1;
     var tag = currentTag;
     var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
-    if (currentTag == tag) {
-      bangumiList.addAll(result);
-      isLoadingMore = false;
-      isTimeOut = bangumiList.isEmpty;
-      return true;
-    }
-    return false;
+    bangumiList.addAll(result);
+    isLoadingMore = false;
+    isTimeOut = bangumiList.isEmpty;
   }
 
-  Future<bool> queryBangumiByRefresh() async {
-    if (currentTag.isEmpty) {
-      return await queryBangumiFeed(type: 'init');
-    }
-    return await queryBangumiList(type: 'init');
-  }
-
-  Future<void> queryBangumi(String keyword) async {
+  Future<void> searchBangumi(String keyword) async {
     currentTag = '';
     isLoadingMore = true;
     if (RegExp(r'^[0-9]+$').hasMatch(keyword)) {
       // 纯数字时调用ID查询
       final id = int.parse(keyword);
       final BangumiItem? item = await BangumiHTTP.getBangumiInfoByID(id);
-      
+
       bangumiList.clear();
       if (item != null) {
         bangumiList.add(item); // 单个结果转为列表
@@ -91,5 +87,6 @@ abstract class _PopularController with Store {
       bangumiList.addAll(result);
     }
     isLoadingMore = false;
+    isTimeOut = bangumiList.isEmpty;
   }
 }

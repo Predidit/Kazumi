@@ -40,8 +40,8 @@ class _PopularPageState extends State<PopularPage>
   void initState() {
     super.initState();
     scrollController.addListener(scrollListener);
-    if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiFeed();
+    if (popularController.trendList.isEmpty) {
+      popularController.queryBangumiByTrend();
     }
     showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
@@ -67,9 +67,9 @@ class _PopularPageState extends State<PopularPage>
       if (popularController.searchKeyword == '') {
         KazumiLogger().log(Level.info, 'Popular is loading more');
         if (popularController.currentTag != '') {
-          popularController.queryBangumiList();
+          popularController.queryBangumiByTag();
         } else {
-          popularController.queryBangumiFeed();
+          popularController.queryBangumiByTrend();
         }
       }
     }
@@ -99,170 +99,154 @@ class _PopularPageState extends State<PopularPage>
           }
           onBackPressed(context);
         },
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await popularController.queryBangumiByRefresh();
-          },
-          child: Scaffold(
-              appBar: SysAppBar(
-                needTopOffset: false,
-                // default 56 + 10
-                leadingWidth: 66,
-                leading: (navigationBarState.isBottom)
-                    ? Row(
-                        children: [
-                          const SizedBox(
-                            width: 10,
+        child: Scaffold(
+          appBar: SysAppBar(
+            needTopOffset: false,
+            // default 56 + 10
+            leadingWidth: 66,
+            leading: (navigationBarState.isBottom)
+                ? Row(
+                    children: [
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      ClipOval(
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () {
+                            Modular.to.pushNamed('/settings/history');
+                          },
+                          child: Image.asset(
+                            'assets/images/logo/logo_android.png',
                           ),
-                          ClipOval(
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                Modular.to.pushNamed('/settings/history');
-                              },
-                              child: Image.asset(
-                                'assets/images/logo/logo_android.png',
-                              ),
-                            ),
-                          )
-                        ],
+                        ),
                       )
-                    : null,
-                backgroundColor: Colors.transparent,
-                actions: [
-                  IconButton(
-                      onPressed: () async {
-                        if (!showSearchBar) {
-                          setState(() {
-                            showSearchBar = true;
-                          });
-                          _focusNode.requestFocus();
-                        } else {
-                          if (popularController.searchKeyword == '') {
-                            _focusNode.unfocus();
-                            setState(() {
-                              showSearchBar = false;
-                            });
-                            popularController.setCurrentTag('');
-                            await popularController.queryBangumiFeed(
-                                type: 'init');
-                          } else {
-                            popularController.setSearchKeyword('');
-                            setState(() {
-                              showSearchBar = true;
-                            });
-                            _focusNode.requestFocus();
+                    ],
+                  )
+                : null,
+            backgroundColor: Colors.transparent,
+            actions: [
+              IconButton(
+                  onPressed: () async {
+                    if (!showSearchBar) {
+                      setState(() {
+                        showSearchBar = true;
+                      });
+                      _focusNode.requestFocus();
+                    } else {
+                      if (popularController.searchKeyword == '') {
+                        _focusNode.unfocus();
+                        setState(() {
+                          showSearchBar = false;
+                        });
+                        popularController.setCurrentTag('');
+                        popularController.clearBangumiList();
+                      } else {
+                        popularController.setSearchKeyword('');
+                        setState(() {
+                          showSearchBar = true;
+                        });
+                        _focusNode.requestFocus();
+                      }
+                    }
+                  },
+                  icon: showSearchBar
+                      ? const Icon(Icons.close)
+                      : const Icon(Icons.search))
+            ],
+            title: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onPanStart: (_) => windowManager.startDragging(),
+                    child: Container(),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
+                  child: Visibility(
+                    visible: showSearchBar,
+                    child: searchBar(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: Column(
+            children: [
+              SizedBox(
+                height: showTagFilter ? 50 : 0,
+                child: tagFilter(),
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  controller: scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Observer(
+                        builder: (_) => Padding(
+                          padding: const EdgeInsets.only(
+                              top: 0, bottom: 10, left: 0),
+                          child: popularController.isLoadingMore
+                              ? const LinearProgressIndicator()
+                              : const SizedBox(
+                                  height: 4.0,
+                                ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                            StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                        sliver: Observer(builder: (context) {
+                          if (popularController.isTimeOut) {
+                            return SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: 400,
+                                child: GeneralErrorWidget(
+                                  errMsg: '什么都没有找到 (´;ω;`)',
+                                  actions: [
+                                    GeneralErrorButton(
+                                      onPressed: () {
+                                        if (popularController.searchKeyword !=
+                                            '') {
+                                          popularController.searchBangumi(
+                                              popularController.searchKeyword);
+                                        } else if (popularController
+                                            .trendList.isEmpty) {
+                                          popularController
+                                              .queryBangumiByTrend();
+                                        } else {
+                                          popularController.queryBangumiByTag();
+                                        }
+                                      },
+                                      text: '点击重试',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
                           }
-                        }
-                      },
-                      icon: showSearchBar
-                          ? const Icon(Icons.close)
-                          : const Icon(Icons.search))
-                ],
-                title: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onPanStart: (_) => windowManager.startDragging(),
-                        child: Container(),
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
-                      child: Visibility(
-                        visible: showSearchBar,
-                        child: searchBar(),
-                      ),
-                    ),
+                          return contentGrid(
+                              popularController.bangumiList.isEmpty &&
+                                      !popularController.isLoadingMore
+                                  ? popularController.trendList
+                                  : popularController.bangumiList,
+                              orientation);
+                        })),
                   ],
                 ),
               ),
-              body: Column(
-                children: [
-                  SizedBox(
-                    height: showTagFilter ? 50 : 0,
-                    child: tagFilter(),
-                  ),
-                  Expanded(
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Observer(
-                            builder: (_) => Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 0, bottom: 10, left: 0),
-                              child: popularController.isLoadingMore
-                                  ? const LinearProgressIndicator()
-                                  : const SizedBox(
-                                      height: 4.0,
-                                    ),
-                            ),
-                          ),
-                        ),
-                        SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                                StyleString.cardSpace,
-                                0,
-                                StyleString.cardSpace,
-                                0),
-                            sliver: Observer(builder: (context) {
-                              if (popularController.bangumiList.isEmpty &&
-                                  popularController.isTimeOut) {
-                                return SliverToBoxAdapter(
-                                  child: SizedBox(
-                                    height: 400,
-                                    child: GeneralErrorWidget(
-                                      errMsg: '什么都没有找到 (´;ω;`)',
-                                      actions: [
-                                        GeneralErrorButton(
-                                          onPressed: () {
-                                            popularController
-                                                .queryBangumiList();
-                                          },
-                                          text: '点击重试',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-                              if (popularController.bangumiList.isEmpty &&
-                                  !popularController.isTimeOut) {
-                                return SliverToBoxAdapter(
-                                  child: SizedBox(
-                                      height:
-                                          (MediaQuery.of(context).size.height /
-                                              2),
-                                      child: const Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          CircularProgressIndicator(),
-                                        ],
-                                      )),
-                                );
-                              }
-                              return contentGrid(
-                                  popularController.bangumiList, orientation);
-                            })),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              floatingActionButton: FloatingActionButton(
-                onPressed: () {
-                  scrollController.jumpTo(0.0);
-                },
-                child: const Icon(Icons.arrow_upward),
-              )
-              // backgroundColor: themedata.colorScheme.primaryContainer,
-              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              scrollController.jumpTo(0.0);
+            },
+            child: const Icon(Icons.arrow_upward),
+          ),
+          // backgroundColor: themedata.colorScheme.primaryContainer,
         ),
       );
     });
@@ -333,8 +317,7 @@ class _PopularPageState extends State<PopularPage>
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
                               popularController.setCurrentTag('');
-                              await popularController.queryBangumiFeed(
-                                  type: 'init');
+                              popularController.clearBangumiList();
                             },
                           )
                         : FilledButton.tonal(
@@ -347,7 +330,7 @@ class _PopularPageState extends State<PopularPage>
                                 showSearchBar = false;
                               });
                               popularController.setCurrentTag(filter);
-                              await popularController.queryBangumiList(
+                              await popularController.queryBangumiByTag(
                                   type: 'init');
                             },
                           ),
@@ -385,10 +368,11 @@ class _PopularPageState extends State<PopularPage>
       onSubmitted: (t) async {
         popularController.setSearchKeyword(t);
         if (t != '') {
-          await popularController.queryBangumi(popularController.searchKeyword);
+          await popularController
+              .searchBangumi(popularController.searchKeyword);
         } else {
           popularController.setCurrentTag('');
-          await popularController.queryBangumiFeed(type: 'init');
+          popularController.clearBangumiList();
         }
       },
     );

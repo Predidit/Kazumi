@@ -140,7 +140,7 @@ class BangumiHTTP {
   }
 
   static Future<List<BangumiItem>> getBangumiTrendsList(
-      {int type = 2, int limit = 20, int offset = 0}) async {
+      {int type = 2, int limit = 24, int offset = 0}) async {
     List<BangumiItem> bangumiList = [];
     var params = <String, dynamic>{
       'type': type,

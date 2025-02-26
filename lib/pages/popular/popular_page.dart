@@ -229,7 +229,8 @@ class _PopularPageState extends State<PopularPage>
                             );
                           }
                           return contentGrid(
-                              popularController.bangumiList.isEmpty
+                              popularController.bangumiList.isEmpty &&
+                                      !popularController.isLoadingMore
                                   ? popularController.trendList
                                   : popularController.bangumiList,
                               orientation);

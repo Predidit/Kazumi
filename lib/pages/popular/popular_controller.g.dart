@@ -41,6 +41,22 @@ mixin _$PopularController on _PopularController, Store {
     });
   }
 
+  late final _$trendListAtom =
+      Atom(name: '_PopularController.trendList', context: context);
+
+  @override
+  ObservableList<BangumiItem> get trendList {
+    _$trendListAtom.reportRead();
+    return super.trendList;
+  }
+
+  @override
+  set trendList(ObservableList<BangumiItem> value) {
+    _$trendListAtom.reportWrite(value, super.trendList, () {
+      super.trendList = value;
+    });
+  }
+
   late final _$isLoadingMoreAtom =
       Atom(name: '_PopularController.isLoadingMore', context: context);
 
@@ -78,6 +94,7 @@ mixin _$PopularController on _PopularController, Store {
     return '''
 currentTag: ${currentTag},
 bangumiList: ${bangumiList},
+trendList: ${trendList},
 isLoadingMore: ${isLoadingMore},
 isTimeOut: ${isTimeOut}
     ''';

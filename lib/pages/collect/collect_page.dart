@@ -39,8 +39,8 @@ class _CollectPageState extends State<CollectPage>
     super.initState();
     collectController.loadCollectibles();
     tabController = TabController(vsync: this, length: tabs.length);
-      navigationBarState =
-          Provider.of<NavigationBarState>(context, listen: false);
+    navigationBarState =
+        Provider.of<NavigationBarState>(context, listen: false);
   }
 
   @override
@@ -118,11 +118,9 @@ class _CollectPageState extends State<CollectPage>
                     width: 32, height: 32, child: CircularProgressIndicator())
                 : const Icon(Icons.cloud_sync),
           ),
-          body: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
-              child: Observer(builder: (context) {
-                return renderBody(orientation);
-              })),
+          body: Observer(builder: (context) {
+            return renderBody(orientation);
+          }),
         ),
       );
     });
@@ -157,61 +155,64 @@ class _CollectPageState extends State<CollectPage>
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
       gridViewList.add(
-        CustomScrollView(
-          slivers: [
-            SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                mainAxisSpacing: StyleString.cardSpace - 2,
-                crossAxisSpacing: StyleString.cardSpace,
-                crossAxisCount: crossCount,
-                mainAxisExtent:
-                    MediaQuery.of(context).size.width / crossCount / 0.65 +
-                        MediaQuery.textScalerOf(context).scale(32.0),
+        Padding(
+          padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
+          child: CustomScrollView(
+            slivers: [
+              SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  mainAxisSpacing: StyleString.cardSpace - 2,
+                  crossAxisSpacing: StyleString.cardSpace,
+                  crossAxisCount: crossCount,
+                  mainAxisExtent:
+                      MediaQuery.of(context).size.width / crossCount / 0.65 +
+                          MediaQuery.textScalerOf(context).scale(32.0),
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    return collectedBangumiRenderItem.isNotEmpty
+                        ? Stack(
+                            children: [
+                              BangumiCardV(
+                                bangumiItem: collectedBangumiRenderItem[index]
+                                    .bangumiItem,
+                                canTap: !showDelete,
+                              ),
+                              Positioned(
+                                right: 5,
+                                bottom: 5,
+                                child: showDelete
+                                    ? Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .secondaryContainer,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: CollectButton(
+                                          bangumiItem:
+                                              collectedBangumiRenderItem[index]
+                                                  .bangumiItem,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSecondaryContainer,
+                                        ),
+                                      )
+                                    : Container(),
+                              ),
+                            ],
+                          )
+                        : null;
+                  },
+                  childCount: collectedBangumiRenderItem.isNotEmpty
+                      ? collectedBangumiRenderItem.length
+                      : 10,
+                ),
               ),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  return collectedBangumiRenderItem.isNotEmpty
-                      ? Stack(
-                          children: [
-                            BangumiCardV(
-                              bangumiItem:
-                                  collectedBangumiRenderItem[index].bangumiItem,
-                              canTap: !showDelete,
-                            ),
-                            Positioned(
-                              right: 5,
-                              bottom: 5,
-                              child: showDelete
-                                  ? Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .secondaryContainer,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: CollectButton(
-                                        bangumiItem:
-                                            collectedBangumiRenderItem[index]
-                                                .bangumiItem,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSecondaryContainer,
-                                      ),
-                                    )
-                                  : Container(),
-                            ),
-                          ],
-                        )
-                      : null;
-                },
-                childCount: collectedBangumiRenderItem.isNotEmpty
-                    ? collectedBangumiRenderItem.length
-                    : 10,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }

@@ -12,6 +12,8 @@ abstract class _PopularController with Store {
   final ScrollController scrollController = ScrollController();
 
   String keyword = '';
+
+  @observable
   String searchKeyword = '';
 
   @observable

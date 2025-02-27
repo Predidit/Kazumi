@@ -9,6 +9,22 @@ part of 'popular_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$PopularController on _PopularController, Store {
+  late final _$searchKeywordAtom =
+      Atom(name: '_PopularController.searchKeyword', context: context);
+
+  @override
+  String get searchKeyword {
+    _$searchKeywordAtom.reportRead();
+    return super.searchKeyword;
+  }
+
+  @override
+  set searchKeyword(String value) {
+    _$searchKeywordAtom.reportWrite(value, super.searchKeyword, () {
+      super.searchKeyword = value;
+    });
+  }
+
   late final _$currentTagAtom =
       Atom(name: '_PopularController.currentTag', context: context);
 
@@ -92,6 +108,7 @@ mixin _$PopularController on _PopularController, Store {
   @override
   String toString() {
     return '''
+searchKeyword: ${searchKeyword},
 currentTag: ${currentTag},
 bangumiList: ${bangumiList},
 trendList: ${trendList},

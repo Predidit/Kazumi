@@ -9,7 +9,6 @@ import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/request/query_manager.dart';
@@ -33,8 +32,8 @@ class _InfoPageState extends State<InfoPage>
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  final PopularController popularController = Modular.get<PopularController>();
   late TabController tabController;
+  late String keyword;
 
   /// Concurrent query manager
   late QueryManager queryManager;
@@ -46,11 +45,15 @@ class _InfoPageState extends State<InfoPage>
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.tags.isEmpty || infoController.bangumiItem.ratingScore == 0.0) {
+        infoController.bangumiItem.tags.isEmpty ||
+        infoController.bangumiItem.ratingScore == 0.0) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
+    keyword = infoController.bangumiItem.nameCn == ''
+        ? infoController.bangumiItem.name
+        : infoController.bangumiItem.nameCn;
     queryManager = QueryManager();
-    queryManager.queryAllSource(popularController.keyword);
+    queryManager.queryAllSource(keyword);
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
   }
@@ -350,8 +353,7 @@ class _InfoPageState extends State<InfoPage>
                                       GeneralErrorButton(
                                         onPressed: () {
                                           queryManager.querySource(
-                                              popularController.keyword,
-                                              plugin.name);
+                                              keyword, plugin.name);
                                         },
                                         text: '重试',
                                       ),

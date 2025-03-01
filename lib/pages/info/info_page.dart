@@ -31,7 +31,7 @@ class _InfoPageState extends State<InfoPage>
   final InfoController infoController = Modular.get<InfoController>();
   final CollectController collectController = Modular.get<CollectController>();
   final VideoPageController videoPageController =
-  Modular.get<VideoPageController>();
+      Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final PopularController popularController = Modular.get<PopularController>();
   late TabController tabController;
@@ -46,7 +46,8 @@ class _InfoPageState extends State<InfoPage>
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.tags.isEmpty || infoController.bangumiItem.ratingScore == 0.0) {
+        infoController.bangumiItem.tags.isEmpty ||
+        infoController.bangumiItem.ratingScore == 0.0) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();
@@ -80,7 +81,7 @@ class _InfoPageState extends State<InfoPage>
       return;
     }
     final aliasNotifier =
-    ValueNotifier<List<String>>(infoController.bangumiItem.alias);
+        ValueNotifier<List<String>>(infoController.bangumiItem.alias);
     KazumiDialog.show(builder: (context) {
       return Dialog(
         clipBehavior: Clip.antiAlias,
@@ -263,41 +264,41 @@ class _InfoPageState extends State<InfoPage>
                   controller: tabController,
                   tabs: pluginsController.pluginList
                       .map((plugin) => Observer(
-                    builder: (context) => Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          plugin.name,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium!
-                                  .fontSize,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface),
-                        ),
-                        const SizedBox(width: 5.0),
-                        Container(
-                          width: 8.0,
-                          height: 8.0,
-                          decoration: BoxDecoration(
-                            color: infoController.pluginSearchStatus[
-                            plugin.name] ==
-                                'success'
-                                ? Colors.green
-                                : (infoController.pluginSearchStatus[
-                            plugin.name] ==
-                                'pending')
-                                ? Colors.grey
-                                : Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ))
+                            builder: (context) => Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  plugin.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium!
+                                          .fontSize,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface),
+                                ),
+                                const SizedBox(width: 5.0),
+                                Container(
+                                  width: 8.0,
+                                  height: 8.0,
+                                  decoration: BoxDecoration(
+                                    color: infoController.pluginSearchStatus[
+                                                plugin.name] ==
+                                            'success'
+                                        ? Colors.green
+                                        : (infoController.pluginSearchStatus[
+                                                    plugin.name] ==
+                                                'pending')
+                                            ? Colors.grey
+                                            : Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ))
                       .toList(),
                 ),
                 Expanded(
@@ -309,7 +310,7 @@ class _InfoPageState extends State<InfoPage>
                         var plugin = pluginsController.pluginList[pluginIndex];
                         var cardList = <Widget>[];
                         for (var searchResponse
-                        in infoController.pluginSearchResponseList) {
+                            in infoController.pluginSearchResponseList) {
                           if (searchResponse.pluginName == plugin.name) {
                             for (var searchItem in searchResponse.data) {
                               cardList.add(Card(
@@ -339,48 +340,48 @@ class _InfoPageState extends State<InfoPage>
                           }
                         }
                         return infoController.pluginSearchStatus[plugin.name] ==
-                            'pending'
+                                'pending'
                             ? const Center(child: CircularProgressIndicator())
                             : (infoController.pluginSearchStatus[plugin.name] ==
-                            'error'
-                            ? GeneralErrorWidget(
-                          errMsg:
-                          '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                          actions: [
-                            GeneralErrorButton(
-                              onPressed: () {
-                                queryManager.querySource(
-                                    popularController.keyword,
-                                    plugin.name);
-                              },
-                              text: '重试',
-                            ),
-                          ],
-                        )
-                            : cardList.isEmpty
-                            ? GeneralErrorWidget(
-                          errMsg:
-                          '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-                          actions: [
-                            GeneralErrorButton(
-                              onPressed: () {
-                                showAliasSearchDialog(
-                                  plugin.name,
-                                );
-                              },
-                              text: '别名检索',
-                            ),
-                            GeneralErrorButton(
-                              onPressed: () {
-                                showCustomSearchDialog(
-                                  plugin.name,
-                                );
-                              },
-                              text: '手动检索',
-                            ),
-                          ],
-                        )
-                            : ListView(children: cardList));
+                                    'error'
+                                ? GeneralErrorWidget(
+                                    errMsg:
+                                        '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                    actions: [
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          queryManager.querySource(
+                                              popularController.keyword,
+                                              plugin.name);
+                                        },
+                                        text: '重试',
+                                      ),
+                                    ],
+                                  )
+                                : cardList.isEmpty
+                                    ? GeneralErrorWidget(
+                                        errMsg:
+                                            '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+                                        actions: [
+                                          GeneralErrorButton(
+                                            onPressed: () {
+                                              showAliasSearchDialog(
+                                                plugin.name,
+                                              );
+                                            },
+                                            text: '别名检索',
+                                          ),
+                                          GeneralErrorButton(
+                                            onPressed: () {
+                                              showCustomSearchDialog(
+                                                plugin.name,
+                                              );
+                                            },
+                                            text: '手动检索',
+                                          ),
+                                        ],
+                                      )
+                                    : ListView(children: cardList));
                       }),
                     ),
                   ),

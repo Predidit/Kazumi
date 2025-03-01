@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -160,6 +161,14 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final svgString = danmakuOnSvg.replaceFirst(
+        '#00AEEC',
+        Theme.of(context)
+            .colorScheme
+            .primary
+            .toARGB32()
+            .toRadixString(16)
+            .substring(2));
     return Observer(builder: (context) {
       return Stack(
         alignment: Alignment.center,
@@ -369,9 +378,15 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       // 弹幕开关
                       IconButton(
                         color: Colors.white,
-                        icon: Icon(playerController.danmakuOn
-                            ? Icons.subtitles_rounded
-                            : Icons.subtitles_off_rounded),
+                        icon: playerController.danmakuOn
+                            ? SvgPicture.string(
+                                svgString,
+                                height: 24,
+                              )
+                            : SvgPicture.asset(
+                                'assets/images/danmaku_off.svg',
+                                height: 24,
+                              ),
                         onPressed: () {
                           widget.handleDanmaku();
                         },
@@ -534,11 +549,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                                             16
                                         : MediaQuery.of(context).size.width),
                                 clipBehavior: Clip.antiAlias,
-                                context: context,builder: (context) {
-                                return DanmakuSettingsSheet(
-                                    danmakuController:
-                                        playerController.danmakuController);
-                              });
+                                context: context,
+                                builder: (context) {
+                                  return DanmakuSettingsSheet(
+                                      danmakuController:
+                                          playerController.danmakuController);
+                                },
+                              );
                             },
                             child: const Padding(
                               padding: EdgeInsets.fromLTRB(0, 10, 10, 10),

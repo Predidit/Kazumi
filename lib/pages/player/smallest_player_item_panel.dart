@@ -161,7 +161,14 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final svgString = Utils.danmakuOnSvg(Theme.of(context).colorScheme.primary);
+    final svgString = danmakuOnSvg.replaceFirst(
+        '#00AEEC',
+        Theme.of(context)
+            .colorScheme
+            .primary
+            .toARGB32()
+            .toRadixString(16)
+            .substring(2));
     return Observer(builder: (context) {
       return Stack(
         alignment: Alignment.center,

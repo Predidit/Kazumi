@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/palette_card.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -27,6 +28,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
+  late bool showWindowButton;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
 
@@ -40,6 +42,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
     useDynamicColor =
         setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
+    showWindowButton =
+        setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
@@ -50,6 +54,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorSchemeSeed: color,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -57,6 +63,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
@@ -69,6 +77,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorSchemeSeed: Colors.green,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -76,6 +86,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         useMaterial3: true,
         brightness: Brightness.light,
         colorSchemeSeed: Colors.green,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
@@ -275,18 +287,33 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     ),
                   ],
                 ),
-                SettingsSection(
-                  bottomInfo: const Text('仅安卓可以修改'),
-                  tiles: [
-                    SettingsTile.navigation(
-                      enabled: Platform.isAndroid,
-                      onPressed: (_) async {
-                        Modular.to.pushNamed('/settings/theme/display');
-                      },
-                      title: const Text('屏幕帧率'),
-                    ),
-                  ],
-                ),
+                if (Utils.isDesktop())
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile.switchTile(
+                        onToggle: (value) async {
+                          showWindowButton = value ?? !showWindowButton;
+                          await setting.put(
+                              SettingBoxKey.showWindowButton, showWindowButton);
+                          setState(() {});
+                        },
+                        title: const Text('使用系统标题栏'),
+                        description: const Text('重启应用生效'),
+                        initialValue: showWindowButton,
+                      ),
+                    ],
+                  ),
+                if (Platform.isAndroid)
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile.navigation(
+                        onPressed: (_) async {
+                          Modular.to.pushNamed('/settings/theme/display');
+                        },
+                        title: const Text('屏幕帧率'),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

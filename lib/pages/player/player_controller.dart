@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -27,6 +28,7 @@ abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
+
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
@@ -34,16 +36,16 @@ abstract class _PlayerController with Store {
   @observable
   bool danmakuOn = false;
 
-  // 视频比例类型
-  // 1. AUTO
-  // 2. COVER
-  // 3. FILL
+  /// 视频比例类型
+  /// 1. AUTO
+  /// 2. COVER
+  /// 3. FILL
   @observable
   int aspectRatioType = 1;
 
-  // 视频超分
-  // 1. OFF
-  // 2. Anime4K
+  /// 视频超分
+  /// 1. OFF
+  /// 2. Anime4K
   @observable
   int superResolutionType = 1;
 
@@ -75,8 +77,10 @@ abstract class _PlayerController with Store {
 
   // 视频地址
   String videoUrl = '';
+
   // DanDanPlay 弹幕ID
   int bangumiID = 0;
+
   // 播放器实体
   late Player mediaPlayer;
   late VideoController videoController;
@@ -104,16 +108,29 @@ abstract class _PlayerController with Store {
   late String hardwareDecoder;
   bool lowMemoryMode = false;
   bool autoPlay = true;
+  bool playerDebugMode = false;
   int forwardTime = 80;
 
   // 播放器实时状态
   bool get playerPlaying => mediaPlayer.state.playing;
+
   bool get playerBuffering => mediaPlayer.state.buffering;
+
   bool get playerCompleted => mediaPlayer.state.completed;
+
   double get playerVolume => mediaPlayer.state.volume;
+
   Duration get playerPosition => mediaPlayer.state.position;
+
   Duration get playerBuffer => mediaPlayer.state.buffer;
+
   Duration get playerDuration => mediaPlayer.state.duration;
+
+  /// 播放器内部日志
+  List<String> playerLog = [];
+
+  /// 播放器日志订阅
+  StreamSubscription<PlayerLog>? playerLogSubscription;
 
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
@@ -125,7 +142,7 @@ abstract class _PlayerController with Store {
     duration = Duration.zero;
     completed = false;
     try {
-      mediaPlayer.dispose();
+      await dispose();
     } catch (_) {}
     int episodeFromTitle = 0;
     try {
@@ -144,14 +161,13 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
+      await setVolume(volume);
     } else {
+      // mobile is using system volume, don't setVolume here,
+      // or iOS will mute if system volume is too low (#732)
       await FlutterVolumeController.getVolume().then((value) {
         volume = (value ?? 0.0) * 100;
       });
-    }
-    await setVolume(volume);
-    if (Platform.isIOS) {
-      FlutterVolumeController.updateShowSystemUI(true);
     }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
@@ -168,16 +184,14 @@ abstract class _PlayerController with Store {
     autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    KazumiLogger().log(
-        Level.info, 'media_kit decoder: 硬件解码: $hAenable 解码器: $hardwareDecoder');
+    playerDebugMode =
+        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
       userAgent = videoPageController.currentPlugin.userAgent;
     }
-    KazumiLogger().log(Level.info, 'media_kit UA: $userAgent');
     String referer = videoPageController.currentPlugin.referer;
-    KazumiLogger().log(Level.info, 'media_kit Referer: $referer');
     var httpHeaders = {
       'user-agent': userAgent,
       if (referer.isNotEmpty) 'referer': referer,
@@ -186,10 +200,26 @@ abstract class _PlayerController with Store {
     mediaPlayer = Player(
       configuration: PlayerConfiguration(
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
+        osc: false,
+        logLevel: MPVLogLevel.info,
       ),
     );
 
+    // 记录播放器内部日志
+    playerLog.clear();
+    await playerLogSubscription?.cancel();
+    playerLogSubscription = mediaPlayer.stream.log.listen((event) {
+      playerLog.add(event.toString());
+      if (playerDebugMode) {
+        KazumiLogger().simpleLog(event.toString());
+      }
+    });
+
     var pp = mediaPlayer.platform as NativePlayer;
+    // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
+    // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
+    // 该设置可以在所有平台上正确启用双重缓存
+    await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
     await pp.setProperty("af", "scaletempo2=max-speed=8");
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
@@ -316,6 +346,9 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> dispose() async {
+    try {
+      await playerLogSubscription?.cancel();
+    } catch (_) {}
     try {
       await mediaPlayer.dispose();
     } catch (_) {}

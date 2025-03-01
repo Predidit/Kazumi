@@ -54,17 +54,24 @@
 
 ## 下载
 
-通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载。
+通过本页面 [release](https://github.com/Predidit/Kazumi/releases) 选项卡下载：
 
 <a href="https://github.com/Predidit/Kazumi/releases">
   <img src="static/svg/get_it_on_github.svg" alt="Get it on Github" width="200"/>
 </a>
 
+对于安卓用户，可以从 F-Droid 安装：
+
+<a href="https://f-droid.org/packages/com.predidit.kazumi">
+  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en-us.svg"
+  alt="Get it on F-Droid" width="200">
+</a>
+
 对于 GNU/Linux 用户，可以从 Flathub 安装：
 
-<span style="display:inline-block; width:5px;"></span>
+&nbsp;&nbsp;
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
-  <img src="https://flathub.org/api/badge?locale=en" alt="Get it on Flathub" width="180"/>
+  <img src="https://flathub.org/api/badge?svg&locale=en" alt="Get it on Flathub" width="175"/>
 </a>
 
 对于 Arch Linux 用户，可以从 AUR 软件库安装：

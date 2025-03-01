@@ -8,6 +8,7 @@ import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:window_manager/window_manager.dart';
 
 part 'video_controller.g.dart';
 
@@ -23,19 +24,19 @@ abstract class _VideoPageController with Store {
   @observable
   int currentRoad = 0;
 
-  // 全屏状态
+  /// 全屏状态
   @observable
   bool isFullscreen = false;
 
-  // PIP状态
+  /// 画中画状态
   @observable
   bool isPip = false;
 
-  // 播放列表显示状态
+  /// 播放列表显示状态
   @observable
   bool showTabBody = true;
 
-  // 上次观看位置
+  /// 上次观看位置
   @observable
   int historyOffset = 0;
 
@@ -82,5 +83,20 @@ abstract class _VideoPageController with Store {
   void exitFullScreen() {
     isFullscreen = false;
     Utils.exitFullScreen();
+  }
+
+  void isDesktopFullscreen() async {
+    if (Utils.isDesktop()) {
+      isFullscreen = await windowManager.isFullScreen();
+    }
+  }
+
+  void handleOnEnterFullScreen() async {
+    isFullscreen = true;
+    showTabBody = false;
+  }
+
+  void handleOnExitFullScreen() async {
+    isFullscreen = false;
   }
 }

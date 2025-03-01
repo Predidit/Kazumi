@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {
   const ScaffoldMenu({super.key});
+
   @override
   State<ScaffoldMenu> createState() => _ScaffoldMenu();
 }
@@ -15,7 +17,9 @@ class NavigationBarState extends ChangeNotifier {
   bool _isBottom = false;
 
   int get selectedIndex => _selectedIndex;
+
   bool get isHide => _isHide;
+
   bool get isBottom => _isBottom;
 
   void updateSelectedIndex(int pageIndex) {
@@ -99,7 +103,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return Scaffold(
       body: Row(
         children: [
-          SafeArea(
+          EmbeddedNativeControlArea(
             child: Visibility(
               visible: !state.isHide,
               child: NavigationRail(

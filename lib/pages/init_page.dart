@@ -33,9 +33,9 @@ class _InitPageState extends State<InitPage> {
   void initState() {
     _pluginInit();
     _webDavInit();
-    _update();
     _migrateStorage();
     _loadShaders();
+    _update();
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
   }
@@ -191,11 +191,11 @@ class _InitPageState extends State<InitPage> {
   Future<void> _update() async {
     // Don't check update when there is no plugin.
     // We will progress init workflow instead.
+    await Future.delayed(const Duration(seconds: 1));
     if (pluginsController.pluginList.isNotEmpty) {
       bool autoUpdate =
           setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
       if (autoUpdate) {
-        await Future.delayed(const Duration(seconds: 1));
         Modular.get<MyController>().checkUpdata(type: 'auto');
       }
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -22,8 +23,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('超分辨率'),
+      appBar: const SysAppBar(
+        title: Text('超分辨率'),
       ),
       body: Center(
         child: SizedBox(

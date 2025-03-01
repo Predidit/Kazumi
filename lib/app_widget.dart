@@ -15,6 +15,7 @@ import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -24,21 +25,32 @@ class AppWidget extends StatefulWidget {
 }
 
 class _AppWidgetState extends State<AppWidget>
-    with TrayListener, WidgetsBindingObserver {
+    with TrayListener, WidgetsBindingObserver, WindowListener {
   Box setting = GStorage.setting;
 
   final TrayManager trayManager = TrayManager.instance;
+  bool showingExitDialog = false;
 
   @override
   void initState() {
     trayManager.addListener(this);
+    windowManager.addListener(this);
+    setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+  }
+
+  void setPreventClose() async {
+    if (Utils.isDesktop()) {
+      await windowManager.setPreventClose(true);
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
+    windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -60,6 +72,80 @@ class _AppWidgetState extends State<AppWidget>
         windowManager.show();
       case 'exit':
         exit(0);
+    }
+  }
+
+  /// 处理窗口关闭事件，
+  /// 需要使用 `windowManager.close()` 来触发，`exit(0)` 会直接退出程序
+  @override
+  void onWindowClose() {
+    final setting = GStorage.setting;
+    final exitBehavior =
+        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+
+    switch (exitBehavior) {
+      case 0:
+        exit(0);
+      case 1:
+        KazumiDialog.dismiss();
+        windowManager.hide();
+        break;
+      default:
+        if (showingExitDialog) return;
+        showingExitDialog = true;
+        KazumiDialog.show(onDismiss: () {
+          showingExitDialog = false;
+        }, builder: (context) {
+          bool saveExitBehavior = false; // 下次不再询问？
+
+          return AlertDialog(
+            title: const Text('退出确认'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('您想要退出 Kazumi 吗？'),
+                const SizedBox(height: 24),
+                StatefulBuilder(builder: (context, setState) {
+                  onChanged(value) {
+                    saveExitBehavior = value ?? false;
+                    setState(() {});
+                  }
+
+                  return Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    children: [
+                      Checkbox(value: saveExitBehavior, onChanged: onChanged),
+                      const Text('下次不再询问'),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 0);
+                    }
+                    exit(0);
+                  },
+                  child: const Text('退出 Kazumi')),
+              TextButton(
+                  onPressed: () async {
+                    if (saveExitBehavior) {
+                      await setting.put(SettingBoxKey.exitBehavior, 1);
+                    }
+                    KazumiDialog.dismiss();
+                    windowManager.hide();
+                  },
+                  child: const Text('最小化至托盘')),
+              const TextButton(
+                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
+            ],
+          );
+        });
     }
   }
 
@@ -160,14 +246,17 @@ class _AppWidgetState extends State<AppWidget>
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        colorSchemeSeed: color);
+        colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: color,
-      ),
+          useMaterial3: true,
+          brightness: Brightness.light,
+          colorSchemeSeed: color,
+          progressIndicatorTheme: progressIndicatorTheme2024,
+          pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
       notify: false,
     );
@@ -175,12 +264,22 @@ class _AppWidgetState extends State<AppWidget>
       builder: (theme, darkTheme) {
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
-            ThemeData(colorScheme: theme, brightness: Brightness.light),
+            ThemeData(
+                colorScheme: theme,
+                brightness: Brightness.light,
+                progressIndicatorTheme: progressIndicatorTheme2024,
+                pageTransitionsTheme: pageTransitionsTheme2024),
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
-                    colorScheme: darkTheme, brightness: Brightness.dark))
+                    colorScheme: darkTheme,
+                    brightness: Brightness.dark,
+                    progressIndicatorTheme: progressIndicatorTheme2024,
+                    pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
-                    colorScheme: darkTheme, brightness: Brightness.dark),
+                    colorScheme: darkTheme,
+                    brightness: Brightness.dark,
+                    progressIndicatorTheme: progressIndicatorTheme2024,
+                    pageTransitionsTheme: pageTransitionsTheme2024),
             notify: false,
           );
         }

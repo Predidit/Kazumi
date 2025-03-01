@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -6,10 +7,23 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 
-class EpisodeCommentsSheet extends StatefulWidget {
-  const EpisodeCommentsSheet({super.key, required this.episode});
+class EpisodeInfo extends InheritedWidget {
+  /// This widget receives changes of episode and notify it's child,
+  /// trigger [didChangeDependencies] of it's child.
+  const EpisodeInfo({super.key, required this.episode, required super.child});
 
   final int episode;
+
+  @override
+  bool updateShouldNotify(covariant InheritedWidget oldWidget) => true;
+
+  static EpisodeInfo? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<EpisodeInfo>();
+  }
+}
+
+class EpisodeCommentsSheet extends StatefulWidget {
+  const EpisodeCommentsSheet({super.key});
 
   @override
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
@@ -17,37 +31,42 @@ class EpisodeCommentsSheet extends StatefulWidget {
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   final infoController = Modular.get<InfoController>();
-  bool isLoading = false;
   bool commentsQueryTimeout = false;
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  /// episode input by [showEpisodeSelection]
+  int ep = 0;
 
   @override
   void initState() {
     super.initState();
-    if (infoController.episodeCommentsList.isEmpty) {
-      setState(() {
-        isLoading = true;
-      });
-      loadComments(widget.episode);
-    }
   }
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    infoController
+    await infoController
         .queryBangumiEpisodeCommentsByID(infoController.bangumiItem.id, episode)
         .then((_) {
       if (infoController.episodeCommentsList.isEmpty && mounted) {
         setState(() {
           commentsQueryTimeout = true;
-          isLoading = false;
-        });
-      }
-      if (infoController.episodeCommentsList.isNotEmpty && mounted) {
-        setState(() {
-          isLoading = false;
         });
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    ep = 0;
+    // wait until currentState is not null
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (infoController.episodeCommentsList.isEmpty) {
+        // trigger RefreshIndicator onRefresh and show animation
+        _refreshIndicatorKey.currentState?.show();
+      }
+    });
+    super.didChangeDependencies();
   }
 
   @override
@@ -57,19 +76,19 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Widget get episodeCommentsBody {
     return CustomScrollView(
-      // Scrollbars' movement is not linear so hide it.
-      scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),
+      scrollBehavior: const ScrollBehavior().copyWith(
+        // Scrollbars' movement is not linear so hide it.
+        scrollbars: false,
+        // Enable mouse drag to refresh
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.touch,
+        },
+      ),
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
           sliver: Observer(builder: (context) {
-            if (isLoading) {
-              return const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
             if (commentsQueryTimeout) {
               return const SliverFillRemaining(
                 child: Center(
@@ -187,14 +206,11 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                   KazumiDialog.showToast(message: '请输入集数');
                   return;
                 }
-                final ep = int.tryParse(textController.text) ?? 0;
+                ep = int.tryParse(textController.text) ?? 0;
                 if (ep == 0) {
                   return;
                 }
-                setState(() {
-                  isLoading = true;
-                });
-                loadComments(ep);
+                _refreshIndicatorKey.currentState?.show();
                 KazumiDialog.dismiss();
               },
               child: const Text('刷新'),
@@ -207,10 +223,18 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final int episode = EpisodeInfo.of(context)!.episode;
     return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [commentsInfo, Expanded(child: episodeCommentsBody)],
+      body: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [commentsInfo, Expanded(child: episodeCommentsBody)],
+        ),
+        onRefresh: () async {
+          await loadComments(ep == 0 ? episode : ep);
+          setState(() {});
+        },
       ),
     );
   }

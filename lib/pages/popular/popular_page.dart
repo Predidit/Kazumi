@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/pages/error/http_error.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter/services.dart';
@@ -39,21 +39,10 @@ class _PopularPageState extends State<PopularPage>
   @override
   void initState() {
     super.initState();
-    scrollController.addListener(() {
-      popularController.scrollOffset = scrollController.offset;
-      if (scrollController.position.pixels >=
-              scrollController.position.maxScrollExtent - 200 &&
-          !popularController.isLoadingMore) {
-        if (popularController.searchKeyword == '') {
-          KazumiLogger().log(Level.info, 'Popular is loading more');
-          popularController.queryBangumiListFeed();
-        } else {}
-      }
-    });
-    if (popularController.bangumiList.isEmpty) {
-      popularController.queryBangumiListFeed();
+    scrollController.addListener(scrollListener);
+    if (popularController.trendList.isEmpty) {
+      popularController.queryBangumiByTrend();
     }
-    popularController.isSearching = popularController.searchKeyword.isNotEmpty;
     showSearchBar = popularController.searchKeyword.isNotEmpty;
   }
 
@@ -65,10 +54,25 @@ class _PopularPageState extends State<PopularPage>
 
   @override
   void dispose() {
-    popularController.isSearching = false;
     _focusNode.dispose();
-    scrollController.removeListener(() {});
+    scrollController.removeListener(scrollListener);
     super.dispose();
+  }
+
+  void scrollListener() {
+    popularController.scrollOffset = scrollController.offset;
+    if (scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent - 200 &&
+        !popularController.isLoadingMore) {
+      if (popularController.searchKeyword == '') {
+        KazumiLogger().log(Level.info, 'Popular is loading more');
+        if (popularController.currentTag != '') {
+          popularController.queryBangumiByTag();
+        } else {
+          popularController.queryBangumiByTrend();
+        }
+      }
+    }
   }
 
   void onBackPressed(BuildContext context) {
@@ -95,159 +99,153 @@ class _PopularPageState extends State<PopularPage>
           }
           onBackPressed(context);
         },
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await popularController.queryBangumiListFeedByRefresh();
-          },
-          child: Scaffold(
-              appBar: SysAppBar(
-                leadingWidth: 66, // default 56 + 10
-                leading: (navigationBarState.isBottom)
-                    ? Row(
-                        children: [
-                          const SizedBox(
-                            width: 10,
+        child: Scaffold(
+          appBar: SysAppBar(
+            needTopOffset: false,
+            // default 56 + 10
+            leadingWidth: 66,
+            leading: (navigationBarState.isBottom)
+                ? Row(
+                    children: [
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      ClipOval(
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () {
+                            Modular.to.pushNamed('/settings/history');
+                          },
+                          child: Image.asset(
+                            'assets/images/logo/logo_android.png',
                           ),
-                          ClipOval(
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                Modular.to.pushNamed('/settings/history');
-                              },
-                              child: Image.asset(
-                                'assets/images/logo/logo_android.png',
-                              ),
-                            ),
-                          )
-                        ],
+                        ),
                       )
-                    : null,
-                backgroundColor: Colors.transparent,
-                actions: [
-                  IconButton(
-                      onPressed: () async {
-                        if (!showSearchBar) {
-                          setState(() {
-                            showSearchBar = true;
-                          });
-                          _focusNode.requestFocus();
-                        } else {
-                          if (popularController.searchKeyword == '') {
-                            _focusNode.unfocus();
-                            setState(() {
-                              showSearchBar = false;
-                            });
-                            await popularController
-                                .queryBangumiListFeedByTag('');
-                          } else {
-                            popularController.setSearchKeyword('');
-                            setState(() {
-                              showSearchBar = true;
-                            });
-                            _focusNode.requestFocus();
+                    ],
+                  )
+                : null,
+            backgroundColor: Colors.transparent,
+            actions: [
+              IconButton(
+                  onPressed: () async {
+                    if (!showSearchBar) {
+                      setState(() {
+                        showSearchBar = true;
+                      });
+                      _focusNode.requestFocus();
+                    } else {
+                      if (popularController.searchKeyword == '') {
+                        _focusNode.unfocus();
+                        setState(() {
+                          showSearchBar = false;
+                        });
+                        popularController.setCurrentTag('');
+                        popularController.clearBangumiList();
+                      } else {
+                        popularController.setSearchKeyword('');
+                        setState(() {
+                          showSearchBar = true;
+                        });
+                        _focusNode.requestFocus();
+                      }
+                    }
+                  },
+                  icon: showSearchBar
+                      ? const Icon(Icons.close)
+                      : const Icon(Icons.search))
+            ],
+            title: Stack(
+              children: [
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onPanStart: (_) => windowManager.startDragging(),
+                    child: Container(),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
+                  child: Visibility(
+                    visible: showSearchBar,
+                    child: searchBar(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: Column(
+            children: [
+              SizedBox(
+                height: showTagFilter ? 50 : 0,
+                child: tagFilter(),
+              ),
+              Expanded(
+                child: CustomScrollView(
+                  controller: scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Observer(
+                        builder: (_) => Padding(
+                          padding: const EdgeInsets.only(
+                              top: 0, bottom: 10, left: 0),
+                          child: popularController.isLoadingMore
+                              ? const LinearProgressIndicator()
+                              : const SizedBox(
+                                  height: 4.0,
+                                ),
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                            StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                        sliver: Observer(builder: (context) {
+                          if (popularController.isTimeOut) {
+                            return SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: 400,
+                                child: GeneralErrorWidget(
+                                  errMsg: '什么都没有找到 (´;ω;`)',
+                                  actions: [
+                                    GeneralErrorButton(
+                                      onPressed: () {
+                                        if (popularController.searchKeyword !=
+                                            '') {
+                                          popularController.searchBangumi(
+                                              popularController.searchKeyword);
+                                        } else if (popularController
+                                            .trendList.isEmpty) {
+                                          popularController
+                                              .queryBangumiByTrend();
+                                        } else {
+                                          popularController.queryBangumiByTag();
+                                        }
+                                      },
+                                      text: '点击重试',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
                           }
-                        }
-                      },
-                      icon: showSearchBar
-                          ? const Icon(Icons.close)
-                          : const Icon(Icons.search))
-                ],
-                title: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onPanStart: (_) => windowManager.startDragging(),
-                        child: Container(),
-                      ),
-                    ),
-                    Padding(
-                      padding:
-                          EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
-                      child: Visibility(
-                        visible: showSearchBar,
-                        child: searchBar(),
-                      ),
-                    ),
+                          return contentGrid(
+                              (popularController.currentTag == '' && popularController.searchKeyword == '')
+                                  ? popularController.trendList
+                                  : popularController.bangumiList,
+                              orientation);
+                        })),
                   ],
                 ),
               ),
-              body: Column(
-                children: [
-                  SizedBox(
-                    height: showTagFilter ? 50 : 0,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 0, 14, 0),
-                      child: tagFilter(),
-                    ),
-                  ),
-                  Expanded(
-                    child: CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Observer(
-                            builder: (_) => Padding(
-                              padding: const EdgeInsets.only(
-                                  top: 0, bottom: 10, left: 0),
-                              child: popularController.isLoadingMore
-                                  ? const LinearProgressIndicator()
-                                  : const SizedBox(
-                                      height: 4.0,
-                                    ),
-                            ),
-                          ),
-                        ),
-                        SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                                StyleString.cardSpace,
-                                0,
-                                StyleString.cardSpace,
-                                0),
-                            sliver: Observer(builder: (context) {
-                              if (popularController.bangumiList.isEmpty &&
-                                  popularController.isTimeOut) {
-                                return HttpError(
-                                  errMsg: '什么都没有找到 (´;ω;`)',
-                                  fn: () {
-                                    popularController.queryBangumiListFeed();
-                                  },
-                                );
-                              }
-                              if (popularController.bangumiList.isEmpty &&
-                                  !popularController.isTimeOut) {
-                                return SliverToBoxAdapter(
-                                  child: SizedBox(
-                                      height:
-                                          (MediaQuery.of(context).size.height /
-                                              2),
-                                      child: const Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          CircularProgressIndicator(),
-                                        ],
-                                      )),
-                                );
-                              }
-                              return contentGrid(
-                                  popularController.bangumiList, orientation);
-                            })),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              floatingActionButton: FloatingActionButton(
-                onPressed: () {
-                  scrollController.jumpTo(0.0);
-                },
-                child: const Icon(Icons.arrow_upward),
-              )
-              // backgroundColor: themedata.colorScheme.primaryContainer,
-              ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              scrollController.jumpTo(0.0);
+            },
+            child: const Icon(Icons.arrow_upward),
+          ),
+          // backgroundColor: themedata.colorScheme.primaryContainer,
         ),
       );
     });
@@ -285,7 +283,6 @@ class _PopularPageState extends State<PopularPage>
       '搞笑',
       '奇幻',
       '百合',
-      '异世界',
       '恋爱',
       '悬疑',
       '热血',
@@ -294,6 +291,7 @@ class _PopularPageState extends State<PopularPage>
       '轻改',
       '偶像',
       '治愈',
+      '异世界',
     ];
 
     final ScrollController tagScrollController = ScrollController();
@@ -317,8 +315,8 @@ class _PopularPageState extends State<PopularPage>
                             child: Text(filter),
                             onPressed: () async {
                               scrollController.jumpTo(0.0);
-                              await popularController
-                                  .queryBangumiListFeedByTag('');
+                              popularController.setCurrentTag('');
+                              popularController.clearBangumiList();
                             },
                           )
                         : FilledButton.tonal(
@@ -330,8 +328,9 @@ class _PopularPageState extends State<PopularPage>
                               setState(() {
                                 showSearchBar = false;
                               });
-                              await popularController
-                                  .queryBangumiListFeedByTag(filter);
+                              popularController.setCurrentTag(filter);
+                              await popularController.queryBangumiByTag(
+                                  type: 'init');
                             },
                           ),
                   ),
@@ -340,26 +339,6 @@ class _PopularPageState extends State<PopularPage>
             ),
           ),
         ),
-        // Tooltip(
-        //   message: '重设列表',
-        //   child: IconButton(
-        //     icon: const Icon(Icons.clear_all),
-        //     onPressed: () async {
-        //       if (popularController.currentTag != '') {
-        //         setState(() {
-        //           popularController.currentTag = '';
-        //           searchLoading = true;
-        //         });
-        //         await popularController.queryBangumiListFeed(
-        //           tag: popularController.currentTag,
-        //         );
-        //         setState(() {
-        //           searchLoading = false;
-        //         });
-        //       }
-        //     },
-        //   ),
-        // )
       ],
     );
   }
@@ -388,9 +367,11 @@ class _PopularPageState extends State<PopularPage>
       onSubmitted: (t) async {
         popularController.setSearchKeyword(t);
         if (t != '') {
-          await popularController.queryBangumi(popularController.searchKeyword);
+          await popularController
+              .searchBangumi(popularController.searchKeyword);
         } else {
-          await popularController.queryBangumiListFeedByTag('');
+          popularController.setCurrentTag('');
+          popularController.clearBangumiList();
         }
       },
     );

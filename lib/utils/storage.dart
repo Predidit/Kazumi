@@ -236,7 +236,9 @@ class SettingBoxKey {
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd',
       lowMemoryMode = 'lowMemoryMode',
+      showWindowButton = 'showWindowButton',
       useDynamicColor = 'useDynamicColor',
       exitBehavior = 'exitBehavior',
+      playerDebugMode = 'playerDebugMode',
       defaultSuperResolutionType = 'defaultSuperResolutionType';
 }

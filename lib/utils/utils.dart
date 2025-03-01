@@ -1,23 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:crypto/crypto.dart';
 import 'dart:math';
-import 'package:dio/dio.dart';
-import 'package:hive/hive.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/material.dart';
-import 'package:kazumi/request/api.dart';
-import 'package:screen_pixel/screen_pixel.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:logger/logger.dart';
+
+import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:path/path.dart' as path;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
+import 'package:kazumi/request/api.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/mortis.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:logger/logger.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:screen_pixel/screen_pixel.dart';
+import 'package:window_manager/window_manager.dart';
 
 class Utils {
   static final Random random = Random();
@@ -347,6 +349,7 @@ class Utils {
     return false;
   }
 
+  // Deprecated
   static Future<void> enterWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
@@ -358,6 +361,7 @@ class Utils {
     }
   }
 
+  // Deprecated
   static Future<void> exitWindowsFullscreen() async {
     if (Platform.isWindows) {
       const platform = MethodChannel('com.predidit.kazumi/intent');
@@ -371,11 +375,11 @@ class Utils {
 
   // 进入全屏显示
   static Future<void> enterFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isWindows) {
-      await enterWindowsFullscreen();
-      return;
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
+    // if (Platform.isWindows) {
+    //   await enterWindowsFullscreen();
+    //   return;
+    // }
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       await windowManager.setFullScreen(true);
       return;
     }
@@ -396,10 +400,10 @@ class Utils {
 
   //退出全屏显示
   static Future<void> exitFullScreen({bool lockOrientation = true}) async {
-    if (Platform.isWindows) {
-      await exitWindowsFullscreen();
-    }
-    if (Platform.isLinux || Platform.isMacOS) {
+    // if (Platform.isWindows) {
+    //   await exitWindowsFullscreen();
+    // }
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       await windowManager.setFullScreen(false);
     }
     late SystemUiMode mode = SystemUiMode.edgeToEdge;
@@ -476,7 +480,6 @@ class Utils {
   // 进入桌面设备小窗模式
   static Future<void> enterDesktopPIPWindow() async {
     await windowManager.setAlwaysOnTop(true);
-    await windowManager.setResizable(false);
     await windowManager.setSize(const Size(480, 270));
   }
 
@@ -484,13 +487,17 @@ class Utils {
   static Future<void> exitDesktopPIPWindow() async {
     bool isLowResolution = await Utils.isLowResolution();
     await windowManager.setAlwaysOnTop(false);
-    await windowManager.setResizable(true);
     await windowManager.setSize(isLowResolution ? const Size(800, 600) : const Size(1280, 860));
     await windowManager.center();
   }
 
   static bool isSameSeason(DateTime d1, DateTime d2) {
     return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
+  }
+
+  static Future<String> getPlayerTempPath() async {
+    final directory = await getTemporaryDirectory();
+    return directory.path;
   }
 
   static String buildShadersAbsolutePath(

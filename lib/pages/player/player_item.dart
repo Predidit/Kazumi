@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -28,6 +29,7 @@ import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
+import 'package:kazumi/bean/widget/text_display.dart';
 import 'package:mobx/mobx.dart' as mobx;
 
 class PlayerItem extends StatefulWidget {
@@ -65,7 +67,6 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final InfoController infoController = Modular.get<InfoController>();
   final CollectController collectController = Modular.get<CollectController>();
-  late DanmakuController danmakuController;
 
   // 1. 在看
   // 2. 想看
@@ -93,6 +94,9 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuDanDanSource;
   late int _danmakuFontWeight;
 
+  // 硬件解码
+  late bool haEnable;
+
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
@@ -112,7 +116,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.didChangeAppLifecycleState(state);
     try {
       if (playerController.playerPlaying) {
-        danmakuController.resume();
+        playerController.danmakuController.resume();
       }
     } catch (_) {}
   }
@@ -130,7 +134,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap() {
-    if (Utils.isDesktop()) {
+    if (Utils.isDesktop() && !videoPageController.isPip) {
       handleFullscreen();
     } else {
       playerController.playOrPause();
@@ -167,14 +171,23 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  void _handleDanmaku() {
+  void handleDanmaku() {
+    playerController.danmakuController.clear();
+    // if true, turn off danmaku.
+    if (playerController.danmakuOn) {
+      setState(() {
+        playerController.danmakuOn = false;
+      });
+      return;
+    }
+    // if false and empty, show dialog.
     if (playerController.danDanmakus.isEmpty) {
       showDanmakuSwitch();
       return;
     }
-    danmakuController.clear();
+    // turn on danmaku.
     setState(() {
-      playerController.danmakuOn = !playerController.danmakuOn;
+      playerController.danmakuOn = true;
     });
   }
 
@@ -182,7 +195,7 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       playerController.lockPanel = false;
     }
-    danmakuController.clear();
+    playerController.danmakuController.clear();
     if (webDavEnable && webDavEnableHistory) {
       var webDav = WebDav();
       webDav.updateHistory();
@@ -232,8 +245,9 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    danmakuController.updateOption(
-      danmakuController.option.copyWith(duration: _duration ~/ speed),
+    playerController.danmakuController.updateOption(
+      playerController.danmakuController.option
+          .copyWith(duration: _duration ~/ speed),
     );
   }
 
@@ -308,14 +322,14 @@ class _PlayerItemState extends State<PlayerItem>
                       playerController.playerPlaying &&
                       !playerController.playerBuffering &&
                       playerController.danmakuOn
-                  ? danmakuController.addDanmaku(DanmakuContentItem(
-                      danmaku.message,
-                      color: danmaku.color,
-                      type: danmaku.type == 4
-                          ? DanmakuItemType.bottom
-                          : (danmaku.type == 5
-                              ? DanmakuItemType.top
-                              : DanmakuItemType.scroll)))
+                  ? playerController.danmakuController.addDanmaku(
+                      DanmakuContentItem(danmaku.message,
+                          color: danmaku.color,
+                          type: danmaku.type == 4
+                              ? DanmakuItemType.bottom
+                              : (danmaku.type == 5
+                                  ? DanmakuItemType.top
+                                  : DanmakuItemType.scroll)))
                   : null);
         });
       }
@@ -480,9 +494,85 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
+  void showVideoInfo() async {
+    String currentDemux = await Utils.getCurrentDemux();
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('视频详情'),
+        content: SelectableText.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
+              TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
+              TextSpan(text: '解复用器: $currentDemux\n'),
+              const TextSpan(text: '资源地址: '),
+              TextSpan(
+                text: playerController.videoUrl,
+              ),
+            ],
+          ),
+          style: Theme.of(context).textTheme.bodyLarge!,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+                showPlayerLogsDialog();
+              },
+              child: Text('调试信息')),
+          TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
+        ],
+      );
+    });
+  }
+
+  void showPlayerLogsDialog() {
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('调试信息'),
+        content: SizedBox(
+            height: 400,
+            width: 400,
+            child: TextDisplayWidget(logLines: playerController.playerLog)),
+        actions: [
+          TextButton(onPressed: () {
+            Clipboard.setData(ClipboardData(text: playerController.playerLog.toString()));
+            KazumiDialog.showToast(message: '已复制到剪贴板');
+          }, child: const Text('复制到剪贴板')),
+          TextButton(
+            onPressed: KazumiDialog.dismiss,
+            child: const Text('取消'),
+          ),
+        ],
+      );
+    });
+  }
+
+  /// Used to decide which panel is used.
+  /// It's too complicated to write these in conditional sentence.
+  /// * true: use [PlayerItemPanel]
+  /// * false: use [SmallestPlayerItemPanel]
+  bool needFullPanel(BuildContext context) {
+    // windows too small, workaround for ohos floating window
+    if (MediaQuery.sizeOf(context).width < LayoutBreakpoint.compact['width']!) {
+      return false;
+    }
+    // in desktop pip mode
+    if (videoPageController.isPip) {
+      return false;
+    }
+    // does not meet Google's phone landscape height and tablet landscape width requirements.
+    if (MediaQuery.sizeOf(context).height >
+            LayoutBreakpoint.compact['height']! &&
+        MediaQuery.sizeOf(context).width < LayoutBreakpoint.medium['width']!) {
+      return false;
+    }
+    return true;
+  }
+
   @override
   void onWindowRestore() {
-    danmakuController.onClear();
+    playerController.danmakuController.onClear();
   }
 
   @override
@@ -530,6 +620,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
@@ -559,9 +650,6 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.brightnessSeeking = false;
     playerController.volumeSeeking = false;
     playerController.canHidePlayerPanel = true;
-    // Reset danmaku state
-    infoController.episodeCommentsList.clear();
-    infoController.episodeInfo.reset();
     super.dispose();
   }
 
@@ -672,7 +760,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   if (videoPageController.isFullscreen &&
                                       !Utils.isTablet()) {
                                     try {
-                                      danmakuController.onClear();
+                                      playerController.danmakuController
+                                          .onClear();
                                     } catch (_) {}
                                     Utils.exitFullScreen();
                                     videoPageController.isFullscreen =
@@ -685,12 +774,14 @@ class _PlayerItemState extends State<PlayerItem>
                                 // F键被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.keyF) {
-                                  handleFullscreen();
+                                  if (!videoPageController.isPip) {
+                                    handleFullscreen();
+                                  }
                                 }
                                 // D键盘被按下
                                 if (event.logicalKey ==
                                     LogicalKeyboardKey.keyD) {
-                                  _handleDanmaku();
+                                  handleDanmaku();
                                 }
                               } else if (event is KeyRepeatEvent) {
                                 // 右方向键长按
@@ -779,7 +870,6 @@ class _PlayerItemState extends State<PlayerItem>
                       child: DanmakuScreen(
                         key: _danmuKey,
                         createdController: (DanmakuController e) {
-                          danmakuController = e;
                           playerController.danmakuController = e;
                         },
                         option: DanmakuOption(
@@ -797,9 +887,7 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 播放器控制面板
-                    ((Utils.isDesktop() && !videoPageController.isPip) ||
-                            Utils.isTablet() ||
-                            videoPageController.isFullscreen)
+                    (needFullPanel(context))
                         ? PlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,
@@ -815,6 +903,8 @@ class _PlayerItemState extends State<PlayerItem>
                             sendDanmaku: widget.sendDanmaku,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            handleDanmaku: handleDanmaku,
+                            showVideoInfo: showVideoInfo,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -829,6 +919,8 @@ class _PlayerItemState extends State<PlayerItem>
                             handleHove: _handleHove,
                             startHideTimer: startHideTimer,
                             cancelHideTimer: cancelHideTimer,
+                            handleDanmaku: handleDanmaku,
+                            showVideoInfo: showVideoInfo,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

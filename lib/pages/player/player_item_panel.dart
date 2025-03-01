@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -9,7 +10,7 @@ import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings_window.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -33,6 +34,8 @@ class PlayerItemPanel extends StatefulWidget {
     required this.sendDanmaku,
     required this.startHideTimer,
     required this.cancelHideTimer,
+    required this.handleDanmaku,
+    required this.showVideoInfo,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -47,7 +50,9 @@ class PlayerItemPanel extends StatefulWidget {
   final FocusNode keyboardFocus;
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
+  final void Function() handleDanmaku;
   final void Function(String) sendDanmaku;
+  final void Function() showVideoInfo;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -81,15 +86,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     } catch (e) {
       KazumiDialog.showToast(message: '截图失败：$e');
     }
-  }
-
-  void _handleDanmaku() {
-    if (playerController.danDanmakus.isEmpty) {
-      widget.showDanmakuSwitch();
-      return;
-    }
-    playerController.danmakuController.onClear();
-    playerController.danmakuOn = !playerController.danmakuOn;
   }
 
   Widget get danmakuTextField {
@@ -162,36 +158,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
       ),
     );
-  }
-
-  void showVideoInfo() async {
-    String currentDemux = await Utils.getCurrentDemux();
-    KazumiDialog.show(
-        // onDismiss: () {
-        //   _focusNode.requestFocus();
-        // },
-        builder: (context) {
-      return AlertDialog(
-        title: const Text('视频详情'),
-        content: SelectableText.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
-              TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
-              TextSpan(text: '解复用器: $currentDemux\n'),
-              const TextSpan(text: '资源地址: '),
-              TextSpan(
-                text: playerController.videoUrl,
-              ),
-            ],
-          ),
-          style: Theme.of(context).textTheme.bodyLarge!,
-        ),
-        actions: const [
-          TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
-        ],
-      );
-    });
   }
 
   // 选择倍速
@@ -518,34 +484,40 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   bottom: 0,
                   child: SlideTransition(
                     position: leftOffsetAnimation,
-                    child: Column(
-                      children: [
-                        const Spacer(),
-                        (playerController.lockPanel)
-                            ? Container()
-                            : IconButton(
-                                icon: const Icon(
-                                  Icons.photo_camera_outlined,
-                                  color: Colors.white,
+                    child: SafeArea(
+                      top: false,
+                      bottom: false,
+                      left: videoPageController.isFullscreen,
+                      right: videoPageController.isFullscreen,
+                      child: Column(
+                        children: [
+                          const Spacer(),
+                          (playerController.lockPanel)
+                              ? Container()
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.photo_camera_outlined,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    _handleScreenshot();
+                                  },
                                 ),
-                                onPressed: () {
-                                  _handleScreenshot();
-                                },
-                              ),
-                        IconButton(
-                          icon: Icon(
-                            playerController.lockPanel
-                                ? Icons.lock_outline
-                                : Icons.lock_open,
-                            color: Colors.white,
+                          IconButton(
+                            icon: Icon(
+                              playerController.lockPanel
+                                  ? Icons.lock_outline
+                                  : Icons.lock_open,
+                              color: Colors.white,
+                            ),
+                            onPressed: () {
+                              playerController.lockPanel =
+                                  !playerController.lockPanel;
+                            },
                           ),
-                          onPressed: () {
-                            playerController.lockPanel =
-                                !playerController.lockPanel;
-                          },
-                        ),
-                        const Spacer(),
-                      ],
+                          const Spacer(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -558,135 +530,153 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               visible: !playerController.lockPanel,
               child: SlideTransition(
                 position: topOffsetAnimation,
-                child: MouseRegion(
-                  cursor: (videoPageController.isFullscreen &&
-                          !playerController.showVideoController)
-                      ? SystemMouseCursors.none
-                      : SystemMouseCursors.basic,
-                  onEnter: (_) {
-                    widget.cancelHideTimer();
-                  },
-                  onExit: (_) {
-                    widget.cancelHideTimer();
-                    widget.startHideTimer();
-                  },
-                  child: Row(
-                    children: [
-                      IconButton(
-                        color: Colors.white,
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        onPressed: () {
-                          widget.onBackPressed(context);
-                        },
-                      ),
-                      (videoPageController.isFullscreen || Utils.isDesktop())
-                          ? Text(
-                              ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
-                              style: TextStyle(
+                child: EmbeddedNativeControlArea(
+                  requireOffset: !videoPageController.isFullscreen,
+                  child: SafeArea(
+                    top: false,
+                    bottom: false,
+                    left: videoPageController.isFullscreen,
+                    right: videoPageController.isFullscreen,
+                    child: MouseRegion(
+                      cursor: (videoPageController.isFullscreen &&
+                              !playerController.showVideoController)
+                          ? SystemMouseCursors.none
+                          : SystemMouseCursors.basic,
+                      onEnter: (_) {
+                        widget.cancelHideTimer();
+                      },
+                      onExit: (_) {
+                        widget.cancelHideTimer();
+                        widget.startHideTimer();
+                      },
+                      child: Row(
+                        children: [
+                          IconButton(
+                            color: Colors.white,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            onPressed: () {
+                              widget.onBackPressed(context);
+                            },
+                          ),
+                          // 拖动条
+                          Expanded(
+                            child: dtb.DragToMoveArea(
+                              child: Text(
+                                ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode - 1]}]',
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: Theme.of(context)
                                       .textTheme
                                       .titleMedium!
-                                      .fontSize),
-                            )
-                          : Container(),
-                      // 拖动条
-                      const Expanded(
-                        child: dtb.DragToMoveArea(child: SizedBox(height: 40)),
-                      ),
-                      // 跳过
-                      forwardIcon(),
-                      if (Utils.isDesktop())
-                        IconButton(
-                            onPressed: () {
-                              if (videoPageController.isPip) {
-                                Utils.exitDesktopPIPWindow();
-                              } else {
-                                Utils.enterDesktopPIPWindow();
-                              }
-                              videoPageController.isPip = !videoPageController.isPip;
-                            },
-                            icon: const Icon(Icons.picture_in_picture, color: Colors.white)),
-                      // 追番
-                      CollectButton(
-                        bangumiItem: infoController.bangumiItem,
-                        onOpen: () {
-                          widget.cancelHideTimer();
-                          playerController.canHidePlayerPanel = false;
-                        },
-                        onClose: () {
-                          widget.cancelHideTimer();
-                          widget.startHideTimer();
-                          playerController.canHidePlayerPanel = true;
-                        },
-                      ),
-                      MenuAnchor(
-                        consumeOutsideTap: true,
-                        onOpen: () {
-                          widget.cancelHideTimer();
-                          playerController.canHidePlayerPanel = false;
-                        },
-                        onClose: () {
-                          widget.cancelHideTimer();
-                          widget.startHideTimer();
-                          playerController.canHidePlayerPanel = true;
-                        },
-                        builder: (BuildContext context,
-                            MenuController controller, Widget? child) {
-                          return IconButton(
-                            onPressed: () {
-                              if (controller.isOpen) {
-                                controller.close();
-                              } else {
-                                controller.open();
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.more_vert,
-                              color: Colors.white,
-                            ),
-                          );
-                        },
-                        menuChildren: [
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showDanmakuSwitch();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("弹幕切换"),
+                                      .fontSize,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           ),
-                          MenuItemButton(
-                            onPressed: () {
-                              showVideoInfo();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("视频详情"),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              bool needRestart = playerController.playing;
-                              playerController.pause();
-                              RemotePlay()
-                                  .castVideo(context,
-                                      videoPageController.currentPlugin.referer)
-                                  .whenComplete(() {
-                                if (needRestart) {
-                                  playerController.play();
+                          // 跳过
+                          forwardIcon(),
+                          if (Utils.isDesktop() &&
+                              !videoPageController.isFullscreen)
+                            IconButton(
+                              onPressed: () {
+                                if (videoPageController.isPip) {
+                                  Utils.exitDesktopPIPWindow();
+                                } else {
+                                  Utils.enterDesktopPIPWindow();
                                 }
-                              });
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("远程播放"),
+                                videoPageController.isPip =
+                                    !videoPageController.isPip;
+                              },
+                              icon: const Icon(
+                                Icons.picture_in_picture,
+                                color: Colors.white,
+                              ),
                             ),
+                          // 追番
+                          CollectButton(
+                            bangumiItem: infoController.bangumiItem,
+                            onOpen: () {
+                              widget.cancelHideTimer();
+                              playerController.canHidePlayerPanel = false;
+                            },
+                            onClose: () {
+                              widget.cancelHideTimer();
+                              widget.startHideTimer();
+                              playerController.canHidePlayerPanel = true;
+                            },
+                          ),
+                          MenuAnchor(
+                            consumeOutsideTap: true,
+                            onOpen: () {
+                              widget.cancelHideTimer();
+                              playerController.canHidePlayerPanel = false;
+                            },
+                            onClose: () {
+                              widget.cancelHideTimer();
+                              widget.startHideTimer();
+                              playerController.canHidePlayerPanel = true;
+                            },
+                            builder: (BuildContext context,
+                                MenuController controller, Widget? child) {
+                              return IconButton(
+                                onPressed: () {
+                                  if (controller.isOpen) {
+                                    controller.close();
+                                  } else {
+                                    controller.open();
+                                  }
+                                },
+                                icon: const Icon(
+                                  Icons.more_vert,
+                                  color: Colors.white,
+                                ),
+                              );
+                            },
+                            menuChildren: [
+                              MenuItemButton(
+                                onPressed: () {
+                                  widget.showDanmakuSwitch();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("弹幕切换"),
+                                ),
+                              ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  widget.showVideoInfo();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("视频详情"),
+                                ),
+                              ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  bool needRestart = playerController.playing;
+                                  playerController.pause();
+                                  RemotePlay()
+                                      .castVideo(
+                                          context,
+                                          videoPageController
+                                              .currentPlugin.referer)
+                                      .whenComplete(() {
+                                    if (needRestart) {
+                                      playerController.play();
+                                    }
+                                  });
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("远程播放"),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -703,9 +693,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                 position: bottomOffsetAnimation,
                 child: SafeArea(
                   top: false,
-                  bottom: true,
-                  left: false,
-                  right: false,
+                  bottom: videoPageController.isFullscreen,
+                  left: videoPageController.isFullscreen,
+                  right: videoPageController.isFullscreen,
                   child: MouseRegion(
                     cursor: (videoPageController.isFullscreen &&
                             !playerController.showVideoController)
@@ -846,8 +836,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                   : Icons
                                                       .subtitles_off_rounded),
                                               onPressed: () {
-                                                _handleDanmaku();
-                                                setState(() {});
+                                                widget.handleDanmaku();
                                               },
                                               tooltip:
                                                   playerController.danmakuOn
@@ -859,13 +848,33 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                               onPressed: () {
                                                 widget.keyboardFocus
                                                     .requestFocus();
-                                                KazumiDialog.show(
+                                                showModalBottomSheet(
+                                                    isScrollControlled: true,
+                                                    constraints: BoxConstraints(
+                                                        maxHeight: 280,
+                                                        maxWidth: (Utils
+                                                                    .isDesktop() ||
+                                                                Utils
+                                                                    .isTablet())
+                                                            ? MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                9 /
+                                                                16
+                                                            : MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width),
+                                                    clipBehavior:
+                                                        Clip.antiAlias,
+                                                    context: context,
                                                     builder: (context) {
-                                                  return DanmakuSettingsWindow(
-                                                      danmakuController:
-                                                          playerController
-                                                              .danmakuController);
-                                                });
+                                                      return DanmakuSettingsSheet(
+                                                          danmakuController:
+                                                              playerController
+                                                                  .danmakuController);
+                                                    });
                                               },
                                               color: Colors.white,
                                               icon: const Icon(
@@ -885,8 +894,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                       ? Icons.subtitles_rounded
                                       : Icons.subtitles_off_rounded),
                                   onPressed: () {
-                                    _handleDanmaku();
-                                    setState(() {});
+                                    widget.handleDanmaku();
                                   },
                                   tooltip: playerController.danmakuOn
                                       ? '关闭弹幕(d)'
@@ -896,11 +904,28 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   IconButton(
                                     tooltip: '弹幕设置',
                                     onPressed: () {
-                                      KazumiDialog.show(builder: (context) {
-                                        return DanmakuSettingsWindow(
-                                            danmakuController: playerController
-                                                .danmakuController);
-                                      });
+                                      showModalBottomSheet(
+                                          isScrollControlled: true,
+                                          constraints: BoxConstraints(
+                                              maxHeight: 280,
+                                              maxWidth: (Utils.isDesktop() ||
+                                                      Utils.isTablet())
+                                                  ? MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      9 /
+                                                      16
+                                                  : MediaQuery.of(context)
+                                                      .size
+                                                      .width),
+                                          clipBehavior: Clip.antiAlias,
+                                          context: context,
+                                          builder: (context) {
+                                            return DanmakuSettingsSheet(
+                                                danmakuController:
+                                                    playerController
+                                                        .danmakuController);
+                                          });
                                     },
                                     color: Colors.white,
                                     icon: const Icon(Icons.tune_rounded),

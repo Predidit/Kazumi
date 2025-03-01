@@ -16,11 +16,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.5.5+10505
+version: 1.5.9+10509
 
 environment:
   sdk: '>=3.3.4 <4.0.0'
-  flutter: 3.27.3
+  flutter: 3.29.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -62,20 +62,26 @@ dependencies:
   flutter_displaymode: ^0.6.0
 
   url_launcher: ^6.3.0
-  device_info_plus: ^10.1.2
+  device_info_plus: ^11.3.0
   window_manager: ^0.4.2
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.9.0
   canvas_danmaku: ^0.2.6
   webdav_client: ^1.2.2
-  tray_manager: ^0.2.3
+  tray_manager: ^0.3.2
   dlna_dart: ^0.0.8
   screen_pixel: ^0.0.3
   logger: ^2.4.0
   flutter_rating_bar: ^4.0.1
   scrollview_observer: ^1.22.0
   saver_gallery: ^4.0.0
+  html: any
+  material_color_utilities: any
+  path: any
+  screen_brightness_platform_interface: any
+  synchronized: any
+  antlr4: ^4.13.2
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
@@ -100,28 +106,7 @@ dependencies:
       ref: main
       path: ./libs/universal/media_kit_libs_video
 
-  html: any
-  material_color_utilities: any
-  path: any
-  screen_brightness_platform_interface: any
-  antlr4: ^4.13.2
-
 dependency_overrides:
-  media_kit:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: main
-      path: ./media_kit
-  media_kit_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: main
-      path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/Predidit/media-kit.git
-      ref: main
-      path: ./libs/universal/media_kit_libs_video
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
@@ -157,11 +142,11 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
   build_runner: ^2.4.6
   mobx_codegen: ^2.3.0
   hive_generator: ^2.0.0
-  flutter_launcher_icons: "^0.13.1"
+  flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.3
   msix: ^3.16.8
   

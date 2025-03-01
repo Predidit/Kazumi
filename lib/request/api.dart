@@ -1,6 +1,6 @@
 class Api {
   // 当前版本
-  static const String version = '1.5.5';
+  static const String version = '1.5.9';
   // 规则API级别
   static const int apiLevel = 3;
   // 项目主页
@@ -13,9 +13,9 @@ class Api {
   static const String latestApp =
       'https://api.github.com/repos/Predidit/Kazumi/releases/latest'; 
   // Github镜像
-  static const String gitMirror = 'https://mirror.ghproxy.com/';
+  static const String gitMirror = 'https://ghfast.top/';
   // 每日放送
-  static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
+  static const String bangumiCalendar = 'https://next.bgm.tv/p1/calendar';
   // Bangumi 主页
   static const String bangumiIndex = 'https://bangumi.tv/';
   // 番剧检索 (弃用)
@@ -29,7 +29,9 @@ class Api {
   // 从角色ID获取角色详情
   static const String bangumiCharacterByID = 'https://api.bgm.tv/v0/characters/';
   // Next条目API
+  static const String bangumiTrendsNext = 'https://next.bgm.tv/p1/trending/subjects';
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';
+  static const String bangumiEpisodeByIDNext = 'https://next.bgm.tv/p1/episodes/';
   // 弹弹Play
   static const String dandanIndex = 'https://www.dandanplay.com/';
   static const String dandanAPIDomain = 'https://api.dandanplay.net';

@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Added after flutter 3.29
+/android/app/.cxx/
+android/build/reports/problems/

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:hive/hive.dart';
@@ -19,6 +20,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   bool timeout = false;
   bool loading = false;
   late bool enableGitProxy;
+
   // 排序方式状态：false=按更新时间排序，true=按名称排序
   bool sortByName = false;
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -187,28 +189,24 @@ class _PluginShopPageState extends State<PluginShopPage> {
 
   Widget get timeoutWidget {
     return Center(
-        child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('啊咧（⊙.⊙） 无法访问远程仓库 ${enableGitProxy ? '镜像已启用' : '镜像已禁用'}'),
-        const SizedBox(
-          height: 10,
-        ),
-        FilledButton.tonal(
+      child: GeneralErrorWidget(
+        errMsg: '啊咧（⊙.⊙） 无法访问远程仓库\n${enableGitProxy ? '镜像已启用' : '镜像已禁用'}',
+        actions: [
+          GeneralErrorButton(
             onPressed: () {
               Modular.to.pushNamed('/settings/webdav/');
             },
-            child: Text(enableGitProxy ? '禁用镜像' : '启用镜像')),
-        const SizedBox(
-          height: 10,
-        ),
-        FilledButton.tonal(
+            text: enableGitProxy ? '禁用镜像' : '启用镜像',
+          ),
+          GeneralErrorButton(
             onPressed: () {
               _handleRefresh();
             },
-            child: const Text('刷新'))
-      ],
-    ));
+            text: '刷新',
+          ),
+        ],
+      ),
+    );
   }
 
   @override

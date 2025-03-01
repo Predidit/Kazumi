@@ -217,10 +217,14 @@ class BangumiHTTP {
 
   static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
     EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+    var params = <String, dynamic>{
+      'subject_id': id,
+      'offset': episode - 1,
+      'limit': 1
+    };
     try {
-      final res = await Request().get(
-          '${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
-          options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(Api.bangumiEpisodeByID,
+          data: params, options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {

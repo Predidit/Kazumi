@@ -134,7 +134,7 @@ class Plugin {
       };
       resp = await Request().post(postUri.toString(),
           options: Options(headers: httpHeaders),
-          extra: {'customError': '规则检索错误: $name 响应不符合预期'},
+          extra: {'customError': ''},
           data: queryParams,
           shouldRethrow: shouldRethrow);
     } else {
@@ -144,7 +144,7 @@ class Plugin {
       resp = await Request().get(queryURL,
           options: Options(headers: httpHeaders),
           shouldRethrow: shouldRethrow,
-          extra: {'customError': '规则检索错误: $name 响应不符合预期'});
+          extra: {'customError': ''});
     }
 
     var htmlString = resp.data.toString();

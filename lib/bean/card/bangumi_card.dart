@@ -4,7 +4,6 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 
@@ -26,8 +25,6 @@ class BangumiCardV extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final InfoController infoController = Modular.get<InfoController>();
-    final PopularController popularController =
-        Modular.get<PopularController>();
     return Card(
       elevation: 0,
       clipBehavior: Clip.hardEdge,
@@ -42,9 +39,6 @@ class BangumiCardV extends StatelessWidget {
               return;
             }
             infoController.bangumiItem = bangumiItem;
-            popularController.keyword = bangumiItem.nameCn == ''
-                ? bangumiItem.name
-                : (bangumiItem.nameCn);
             Modular.to.pushNamed('/info/');
           },
           child: Column(

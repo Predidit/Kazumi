@@ -18,15 +18,13 @@ class BangumiHTTP {
       var res = await Request().get(Api.bangumiCalendar,
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
-      for (int i = 1; i<=7; i++) {
+      for (int i = 1; i <= 7; i++) {
         List<BangumiItem> bangumiList = [];
         final jsonList = jsonData['$i'];
         for (dynamic jsonItem in jsonList) {
           try {
             BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem['subject']);
-            if (bangumiItem.nameCn != '') {
-              bangumiList.add(bangumiItem);
-            }
+            bangumiList.add(bangumiItem);
           } catch (_) {}
         }
         bangumiCalendar.add(bangumiList);

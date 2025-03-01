@@ -96,8 +96,8 @@ abstract class _InfoController with Store {
   
   Future<void> queryBangumiCharactersByID(int id) async {
     characterList.clear();
-    await BangumiHTTP.getCharatersByID(id).then((value) {
-      characterList.addAll(value.characterList);
+    await BangumiHTTP.getCharatersByBangumiID(id).then((value) {
+      characterList.addAll(value.charactersList);
     });
     Map<String, int> relationValue = {
       '主角': 1,

@@ -6,8 +6,9 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
-import 'package:kazumi/modules/characters/character_response.dart';
+import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/character/character_full_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -267,17 +268,32 @@ class BangumiHTTP {
     return commentResponse;
   }
 
-  static Future<CharacterResponse> getCharatersByID(int id) async {
-    CharacterResponse characterResponse = CharacterResponse.fromTemplate();
+  static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
+    CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
     try {
       final res = await Request().get('${Api.bangumiInfoByID}$id/characters',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
-      characterResponse = CharacterResponse.fromJson(jsonData);
+      charactersResponse = CharactersResponse.fromJson(jsonData);
     } catch (e) {
       KazumiLogger().log(
           Level.error, 'Resolve bangumi characters failed ${e.toString()}');
     }
-    return characterResponse;
+    return charactersResponse;
+  }
+
+  static Future<CharacterFullItem> getCharacterByCharacterID(int id) async {
+    CharacterFullItem characterFullItem = CharacterFullItem.fromTemplate();
+    try {
+      final res = await Request().get(
+          Api.formatUrl(Api.characterInfoByCharacterIDNext, [id]),
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      characterFullItem = CharacterFullItem.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve character info failed ${e.toString()}');
+    }
+    return characterFullItem;
   }
 }

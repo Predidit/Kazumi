@@ -15,7 +15,7 @@ class Api {
   // Github镜像
   static const String gitMirror = 'https://ghfast.top/';
   // 每日放送
-  static const String bangumiCalendar = 'https://api.bgm.tv/calendar';
+  static const String bangumiCalendar = 'https://next.bgm.tv/p1/calendar';
   // Bangumi 主页
   static const String bangumiIndex = 'https://bangumi.tv/';
   // 番剧检索 (弃用)

@@ -46,7 +46,7 @@ class _InfoPageState extends State<InfoPage>
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.tags.isEmpty) {
+        infoController.bangumiItem.tags.isEmpty || infoController.bangumiItem.ratingScore == 0.0) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     queryManager = QueryManager();

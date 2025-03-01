@@ -142,7 +142,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                     ),
                                 backgroundColor: Colors.transparent,
                               ),
-                              child: Text(widget.bangumiItem.airDate,
+                              child: Text(widget.bangumiItem.ratingScore.toString(),
                                   style: style),
                             ),
                             Utils.isCompact()

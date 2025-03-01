@@ -50,6 +50,7 @@ abstract class _InfoController with Store {
           bangumiItem.airDate = value.airDate;
           bangumiItem.airWeekday = value.airWeekday;
           bangumiItem.alias = value.alias;
+          bangumiItem.ratingScore = value.ratingScore;
         }
         collectController.updateLocalCollect(bangumiItem);
       }

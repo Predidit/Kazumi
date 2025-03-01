@@ -28,6 +28,8 @@ class BangumiItem {
   List<BangumiTag> tags;
   @HiveField(10, defaultValue: [])
   List<String> alias;
+  @HiveField(11, defaultValue: 0.0)
+  double ratingScore;
 
   BangumiItem(
       {required this.id,
@@ -40,7 +42,8 @@ class BangumiItem {
       required this.rank,
       required this.images,
       required this.tags,
-      required this.alias});
+      required this.alias,
+      required this.ratingScore});
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     List<String> parseBangumiAliases(Map<String, dynamic> jsonData) {
@@ -66,6 +69,7 @@ class BangumiItem {
       }
       return [];
     }
+
     List list = json['tags'] ?? [];
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
@@ -77,10 +81,9 @@ class BangumiItem {
             ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
             : json['name_cn'],
         summary: json['summary'] ?? '',
-        airDate: json['air_date'] ?? json['date'] ?? '',
-        airWeekday: json['air_weekday'] ??
-            Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
-        rank: json['rating']['rank'] ?? json['rank'] ?? 0,
+        airDate: json['date'] ?? '',
+        airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
+        rank: json['rating']['rank'] ?? 0,
         images: Map<String, String>.from(
           json['images'] ??
               {
@@ -92,6 +95,7 @@ class BangumiItem {
               },
         ),
         tags: tagList,
-        alias: bangumiAlias);
+        alias: bangumiAlias,
+        ratingScore: double.parse((json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)));
   }
 }

@@ -210,7 +210,30 @@ class _TimelinePageState extends State<TimelinePage>
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
                     return bangumiList.isNotEmpty
-                        ? BangumiCardV(bangumiItem: bangumiList[index])
+                        ? Stack(
+                            children: [
+                              BangumiCardV(bangumiItem: bangumiList[index]),
+                              Positioned(
+                                right: 4,
+                                top: 4,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 0),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .tertiaryContainer,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    bangumiList[index]
+                                        .ratingScore
+                                        .toStringAsFixed(1),
+                                  ),
+                                ),
+                              )
+                            ],
+                          )
                         : null;
                   },
                   childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,

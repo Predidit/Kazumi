@@ -728,7 +728,7 @@ class _VideoPageState extends State<VideoPage>
                               currentRoad ==
                                   videoPageController.currentRoad) ...<Widget>[
                             Image.asset(
-                              'assets/images/live.png',
+                              'assets/images/playing.gif',
                               color: Theme.of(context).colorScheme.primary,
                               height: 12,
                             ),

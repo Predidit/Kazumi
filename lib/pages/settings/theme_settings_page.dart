@@ -55,6 +55,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       brightness: Brightness.dark,
       colorSchemeSeed: color,
       progressIndicatorTheme: progressIndicatorTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -63,6 +64,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         brightness: Brightness.light,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
@@ -76,6 +78,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       brightness: Brightness.dark,
       colorSchemeSeed: Colors.green,
       progressIndicatorTheme: progressIndicatorTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024
     );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -84,6 +87,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         brightness: Brightness.light,
         colorSchemeSeed: Colors.green,
         progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024
       ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );

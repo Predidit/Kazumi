@@ -244,19 +244,19 @@ class _AppWidgetState extends State<AppWidget>
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
     var defaultDarkTheme = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorSchemeSeed: color,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-    );
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: color,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-      ),
+          useMaterial3: true,
+          brightness: Brightness.light,
+          colorSchemeSeed: color,
+          progressIndicatorTheme: progressIndicatorTheme2024,
+          pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
       notify: false,
     );
@@ -264,12 +264,22 @@ class _AppWidgetState extends State<AppWidget>
       builder: (theme, darkTheme) {
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
-            ThemeData(colorScheme: theme, brightness: Brightness.light),
+            ThemeData(
+                colorScheme: theme,
+                brightness: Brightness.light,
+                progressIndicatorTheme: progressIndicatorTheme2024,
+                pageTransitionsTheme: pageTransitionsTheme2024),
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
-                    colorScheme: darkTheme, brightness: Brightness.dark))
+                    colorScheme: darkTheme,
+                    brightness: Brightness.dark,
+                    progressIndicatorTheme: progressIndicatorTheme2024,
+                    pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
-                    colorScheme: darkTheme, brightness: Brightness.dark),
+                    colorScheme: darkTheme,
+                    brightness: Brightness.dark,
+                    progressIndicatorTheme: progressIndicatorTheme2024,
+                    pageTransitionsTheme: pageTransitionsTheme2024),
             notify: false,
           );
         }

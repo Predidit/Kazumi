@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
@@ -173,6 +174,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               }
             }).toList(),
           ),
+          selectionHeightStyle: ui.BoxHeightStyle.max,
         ),
       ],
     );

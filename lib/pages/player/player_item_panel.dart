@@ -309,7 +309,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   @override
   Widget build(BuildContext context) {
     final svgString = danmakuOnSvg.replaceFirst(
-        '#00AEEC',
+        '00AEEC',
         Theme.of(context)
             .colorScheme
             .primary

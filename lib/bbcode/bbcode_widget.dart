@@ -77,6 +77,9 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               if (e is BBCodeText) {
                 return TextSpan(
                   text: e.text,
+                  mouseCursor: (e.link != null || e.masked)
+                      ? SystemMouseCursors.click
+                      : SystemMouseCursors.text,
                   recognizer: TapGestureRecognizer()
                     ..onTap = (e.link != null || e.masked)
                         ? () {

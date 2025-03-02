@@ -80,7 +80,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   recognizer: TapGestureRecognizer()
                     ..onTap = (e.link != null || e.masked)
                         ? () {
-                            if (_isVisible && e.link != null) {
+                            if ((!e.masked || _isVisible) && e.link != null) {
                               launchUrl(Uri.parse(e.link!));
                             } else if (e.masked) {
                               setState(() {

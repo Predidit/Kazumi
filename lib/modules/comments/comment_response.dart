@@ -61,3 +61,31 @@ class EpisodeCommentResponse {
     };
   }
 }
+
+class CharacterCommentResponse {
+  List<CharacterCommentItem> commentList;
+
+  CharacterCommentResponse({
+    required this.commentList,
+  });
+
+  factory CharacterCommentResponse.fromJson(List<dynamic> json) {
+    List<CharacterCommentItem>? resCommentList =
+        (json as List?)?.map((i) => CharacterCommentItem.fromJson(i)).toList();
+    return CharacterCommentResponse(
+      commentList: resCommentList ?? <CharacterCommentItem>[],
+    );
+  }
+
+  factory CharacterCommentResponse.fromTemplate() {
+    return CharacterCommentResponse(
+      commentList: [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'list': commentList,
+    };
+  }
+}

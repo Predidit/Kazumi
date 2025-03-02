@@ -1,7 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/card/character_comments_card.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key, required this.characterID});
@@ -15,6 +18,8 @@ class CharacterPage extends StatefulWidget {
 class _CharacterPageState extends State<CharacterPage> {
   late CharacterFullItem characterFullItem;
   bool loadingCharacter = true;
+  List<CharacterCommentItem> commentsList = [];
+  bool loadingComments = true;
 
   Future<void> loadCharacter() async {
     setState(() {
@@ -29,11 +34,25 @@ class _CharacterPageState extends State<CharacterPage> {
     });
   }
 
+  Future<void> loadComments() async {
+    setState(() {
+      loadingComments = true;
+    });
+    await BangumiHTTP.getCharacterCommentsByCharacterID(widget.characterID)
+        .then((value) {
+      commentsList = value.commentList;
+    });
+    setState(() {
+      loadingComments = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       loadCharacter();
+      loadComments();
     });
   }
 
@@ -181,8 +200,60 @@ class _CharacterPageState extends State<CharacterPage> {
   }
 
   Widget get characterCommentsBody {
-    return const Center(
-      child: Text('施工中'),
+    return CustomScrollView(
+      scrollBehavior: const ScrollBehavior().copyWith(
+        // Scrollbars' movement is not linear so hide it.
+        scrollbars: false,
+        // Enable mouse drag to refresh
+        dragDevices: {
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.touch,
+        },
+      ),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          sliver: Builder(builder: (context) {
+            if (loadingComments) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+            if (commentsList.isEmpty) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: Text('空空如也'),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  // Fix scroll issue caused by height change of network images
+                  // by keeping loaded cards alive.
+                  return KeepAlive(
+                    keepAlive: true,
+                    child: IndexedSemantics(
+                      index: index,
+                      child: SelectionArea(
+                        child: CharacterCommentsCard(
+                          commentItem: commentsList[index],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                childCount: commentsList.length,
+                addAutomaticKeepAlives: false,
+                addRepaintBoundaries: false,
+                addSemanticIndexes: false,
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }

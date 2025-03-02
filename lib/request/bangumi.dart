@@ -268,6 +268,23 @@ class BangumiHTTP {
     return commentResponse;
   }
 
+  static Future<CharacterCommentResponse> getCharacterCommentsByCharacterID(
+      int id) async {
+    CharacterCommentResponse commentResponse =
+        CharacterCommentResponse.fromTemplate();
+    try {
+      final res = await Request().get(
+          '${Api.bangumiCharacterByIDNext}$id/comments',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      commentResponse = CharacterCommentResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger().log(Level.error,
+          'Resolve bangumi character comments failed ${e.toString()}');
+    }
+    return commentResponse;
+  }
+
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
     CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
     try {

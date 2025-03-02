@@ -40,6 +40,9 @@ class EpisodeCommentsCard extends StatelessWidget {
             BBCodeWidget(bbcode: commentItem.comment.comment),
             if (commentItem.replies.isNotEmpty)
               ListView.builder(
+                // Don't know why but ohos has bottom padding,
+                // needs to set to 0 manually.
+                padding: const EdgeInsets.only(bottom: 0),
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
                 itemCount: commentItem.replies.length,

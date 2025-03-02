@@ -30,9 +30,11 @@ class _CharacterPageState extends State<CharacterPage> {
         .then((character) {
       characterFullItem = character;
     });
-    setState(() {
-      loadingCharacter = false;
-    });
+    if (mounted) {
+      setState(() {
+        loadingCharacter = false;
+      });
+    }
   }
 
   Future<void> loadComments() async {
@@ -43,9 +45,11 @@ class _CharacterPageState extends State<CharacterPage> {
         .then((value) {
       commentsList = value.commentList;
     });
-    setState(() {
-      loadingComments = false;
-    });
+    if (mounted) {
+      setState(() {
+        loadingComments = false;
+      });
+    }
   }
 
   @override

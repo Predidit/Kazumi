@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -199,6 +200,7 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   Widget build(BuildContext context) {
+    final List<String> tabs = <String>['Tab 1', 'Tab 2'];
     return PopScope(
       canPop: true,
       child: Stack(
@@ -227,185 +229,276 @@ class _InfoPageState extends State<InfoPage>
               ),
             ),
           ),
-          Scaffold(
-            backgroundColor: Colors.transparent,
-            appBar: SysAppBar(
-              backgroundColor: Colors.transparent,
-              actions: [
-                IconButton(
-                    onPressed: () {
-                      int currentIndex = tabController.index;
-                      KazumiDialog.show(builder: (context) {
-                        return AlertDialog(
-                          title: const Text('退出确认'),
-                          content: const Text('您想要离开 Kazumi 并在浏览器中打开此视频源吗？'),
-                          actions: [
-                            TextButton(
-                                onPressed: () => KazumiDialog.dismiss(),
-                                child: const Text('取消')),
-                            TextButton(
-                                onPressed: () {
-                                  KazumiDialog.dismiss();
-                                  launchUrl(Uri.parse(pluginsController
-                                      .pluginList[currentIndex].baseUrl));
-                                },
-                                child: const Text('确认')),
-                          ],
-                        );
-                      });
-                    },
-                    icon: const Icon(Icons.open_in_browser))
-              ],
-            ),
-            body: Column(
-              children: [
-                BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-                TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.center,
-                  controller: tabController,
-                  tabs: pluginsController.pluginList
-                      .map((plugin) => Observer(
-                            builder: (context) => Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  plugin.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium!
-                                          .fontSize,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface),
+          EmbeddedNativeControlArea(
+            child: DefaultTabController(
+              length: tabs.length, // This is the number of tabs.
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: NestedScrollView(
+                  headerSliverBuilder:
+                      (BuildContext context, bool innerBoxIsScrolled) {
+                    return <Widget>[
+                      SliverOverlapAbsorber(
+                        handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
+                            context),
+                        sliver: SliverAppBar.medium(
+                          title: Hero(
+                            tag: '${infoController.bangumiItem.id}title',
+                            child: Text(
+                              infoController.bangumiItem.nameCn == ''
+                                  ? infoController.bangumiItem.name
+                                  : infoController.bangumiItem.nameCn,
+                            ),
+                          ),
+                          backgroundColor: Colors.transparent,
+                          forceMaterialTransparency: true,
+                          centerTitle: false,
+                          expandedHeight: 350.0,
+                          flexibleSpace: FlexibleSpaceBar(
+                            background: SafeArea(
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 60),
+                                    child: BangumiInfoCardV(
+                                        bangumiItem:
+                                            infoController.bangumiItem),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          forceElevated: innerBoxIsScrolled,
+                          bottom: TabBar(
+                            // These are the widgets to put in each tab in the tab bar.
+                            tabs: tabs
+                                .map((String name) => Tab(text: name))
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
+                  body: TabBarView(
+                    // These are the contents of the tab views, below the tabs.
+                    children: tabs.map((String name) {
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Builder(
+                          // This Builder is needed to provide a BuildContext that is
+                          // "inside" the NestedScrollView, so that
+                          // sliverOverlapAbsorberHandleFor() can find the
+                          // NestedScrollView.
+                          builder: (BuildContext context) {
+                            return CustomScrollView(
+                              // The "controller" and "primary" members should be left
+                              // unset, so that the NestedScrollView can control this
+                              // inner scroll view.
+                              // If the "controller" property is set, then this scroll
+                              // view will not be associated with the NestedScrollView.
+                              // The PageStorageKey should be unique to this ScrollView;
+                              // it allows the list to remember its scroll position when
+                              // the tab view is not on the screen.
+                              key: PageStorageKey<String>(name),
+                              slivers: <Widget>[
+                                SliverOverlapInjector(
+                                  // This is the flip side of the SliverOverlapAbsorber
+                                  // above.
+                                  handle: NestedScrollView
+                                      .sliverOverlapAbsorberHandleFor(context),
                                 ),
-                                const SizedBox(width: 5.0),
-                                Container(
-                                  width: 8.0,
-                                  height: 8.0,
-                                  decoration: BoxDecoration(
-                                    color: infoController.pluginSearchStatus[
-                                                plugin.name] ==
-                                            'success'
-                                        ? Colors.green
-                                        : (infoController.pluginSearchStatus[
-                                                    plugin.name] ==
-                                                'pending')
-                                            ? Colors.grey
-                                            : Colors.red,
-                                    shape: BoxShape.circle,
+                                SliverPadding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  // In this example, the inner scroll view has
+                                  // fixed-height list items, hence the use of
+                                  // SliverFixedExtentList. However, one could use any
+                                  // sliver widget here, e.g. SliverList or SliverGrid.
+                                  sliver: SliverFixedExtentList(
+                                    // The items in this example are fixed to 48 pixels
+                                    // high. This matches the Material Design spec for
+                                    // ListTile widgets.
+                                    itemExtent: 48.0,
+                                    delegate: SliverChildBuilderDelegate(
+                                      (BuildContext context, int index) {
+                                        // This builder is called for each child.
+                                        // In this example, we just number each list item.
+                                        return ListTile(
+                                            title: Text('Item $index'));
+                                      },
+                                      // The childCount of the SliverChildBuilderDelegate
+                                      // specifies how many children this inner list
+                                      // has. In this example, each tab has a list of
+                                      // exactly 30 items, but this is arbitrary.
+                                      childCount: 30,
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
-                          ))
-                      .toList(),
-                ),
-                Expanded(
-                  child: Observer(
-                    builder: (context) => TabBarView(
-                      controller: tabController,
-                      children: List.generate(
-                          pluginsController.pluginList.length, (pluginIndex) {
-                        var plugin = pluginsController.pluginList[pluginIndex];
-                        var cardList = <Widget>[];
-                        for (var searchResponse
-                            in infoController.pluginSearchResponseList) {
-                          if (searchResponse.pluginName == plugin.name) {
-                            for (var searchItem in searchResponse.data) {
-                              cardList.add(Card(
-                                color: Colors.transparent,
-                                child: ListTile(
-                                  tileColor: Colors.transparent,
-                                  title: Text(searchItem.name),
-                                  onTap: () async {
-                                    KazumiDialog.showLoading(msg: '获取中');
-                                    videoPageController.currentPlugin = plugin;
-                                    videoPageController.title = searchItem.name;
-                                    videoPageController.src = searchItem.src;
-                                    try {
-                                      await infoController.queryRoads(
-                                          searchItem.src, plugin.name);
-                                      KazumiDialog.dismiss();
-                                      Modular.to.pushNamed('/video/');
-                                    } catch (e) {
-                                      KazumiLogger()
-                                          .log(Level.error, e.toString());
-                                      KazumiDialog.dismiss();
-                                    }
-                                  },
-                                ),
-                              ));
-                            }
-                          }
-                        }
-                        return infoController.pluginSearchStatus[plugin.name] ==
-                                'pending'
-                            ? const Center(child: CircularProgressIndicator())
-                            : (infoController.pluginSearchStatus[plugin.name] ==
-                                    'error'
-                                ? GeneralErrorWidget(
-                                    errMsg:
-                                        '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                                    actions: [
-                                      GeneralErrorButton(
-                                        onPressed: () {
-                                          queryManager.querySource(
-                                              keyword, plugin.name);
-                                        },
-                                        text: '重试',
-                                      ),
-                                    ],
-                                  )
-                                : cardList.isEmpty
-                                    ? GeneralErrorWidget(
-                                        errMsg:
-                                            '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-                                        actions: [
-                                          GeneralErrorButton(
-                                            onPressed: () {
-                                              showAliasSearchDialog(
-                                                plugin.name,
-                                              );
-                                            },
-                                            text: '别名检索',
-                                          ),
-                                          GeneralErrorButton(
-                                            onPressed: () {
-                                              showCustomSearchDialog(
-                                                plugin.name,
-                                              );
-                                            },
-                                            text: '手动检索',
-                                          ),
-                                        ],
-                                      )
-                                    : ListView(children: cardList));
-                      }),
-                    ),
+                            );
+                          },
+                        ),
+                      );
+                    }).toList(),
                   ),
-                )
-              ],
+                ),
+              ),
             ),
-            floatingActionButton: FloatingActionButton(
-              child: const Icon(Icons.widgets_rounded),
-              onPressed: () async {
-                showModalBottomSheet(
-                    isScrollControlled: true,
-                    constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                        maxWidth: (Utils.isDesktop() || Utils.isTablet())
-                            ? MediaQuery.of(context).size.width * 9 / 16
-                            : MediaQuery.of(context).size.width),
-                    clipBehavior: Clip.antiAlias,
-                    context: context,
-                    builder: (context) {
-                      return const CommentsBottomSheet();
-                    });
-              },
-            ),
+            // Scaffold(
+            //   backgroundColor: Colors.transparent,
+            //   appBar: SysAppBar(
+            //     backgroundColor: Colors.transparent,
+            //   ),
+            //   body: Column(
+            //     children: [
+            //       BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+            //       TabBar(
+            //         isScrollable: true,
+            //         tabAlignment: TabAlignment.center,
+            //         controller: tabController,
+            //         tabs: pluginsController.pluginList
+            //             .map((plugin) => Observer(
+            //                   builder: (context) => Row(
+            //                     mainAxisSize: MainAxisSize.min,
+            //                     children: [
+            //                       Text(
+            //                         plugin.name,
+            //                         overflow: TextOverflow.ellipsis,
+            //                         style: TextStyle(
+            //                             fontSize: Theme.of(context)
+            //                                 .textTheme
+            //                                 .titleMedium!
+            //                                 .fontSize,
+            //                             color: Theme.of(context)
+            //                                 .colorScheme
+            //                                 .onSurface),
+            //                       ),
+            //                       const SizedBox(width: 5.0),
+            //                       Container(
+            //                         width: 8.0,
+            //                         height: 8.0,
+            //                         decoration: BoxDecoration(
+            //                           color: infoController.pluginSearchStatus[
+            //                                       plugin.name] ==
+            //                                   'success'
+            //                               ? Colors.green
+            //                               : (infoController.pluginSearchStatus[
+            //                                           plugin.name] ==
+            //                                       'pending')
+            //                                   ? Colors.grey
+            //                                   : Colors.red,
+            //                           shape: BoxShape.circle,
+            //                         ),
+            //                       ),
+            //                     ],
+            //                   ),
+            //                 ))
+            //             .toList(),
+            //       ),
+            //       Expanded(
+            //         child: Observer(
+            //           builder: (context) => TabBarView(
+            //             controller: tabController,
+            //             children: List.generate(
+            //                 pluginsController.pluginList.length, (pluginIndex) {
+            //               var plugin = pluginsController.pluginList[pluginIndex];
+            //               var cardList = <Widget>[];
+            //               for (var searchResponse
+            //                   in infoController.pluginSearchResponseList) {
+            //                 if (searchResponse.pluginName == plugin.name) {
+            //                   for (var searchItem in searchResponse.data) {
+            //                     cardList.add(Card(
+            //                       color: Colors.transparent,
+            //                       child: ListTile(
+            //                         tileColor: Colors.transparent,
+            //                         title: Text(searchItem.name),
+            //                         onTap: () async {
+            //                           KazumiDialog.showLoading(msg: '获取中');
+            //                           videoPageController.currentPlugin = plugin;
+            //                           videoPageController.title = searchItem.name;
+            //                           videoPageController.src = searchItem.src;
+            //                           try {
+            //                             await infoController.queryRoads(
+            //                                 searchItem.src, plugin.name);
+            //                             KazumiDialog.dismiss();
+            //                             Modular.to.pushNamed('/video/');
+            //                           } catch (e) {
+            //                             KazumiLogger()
+            //                                 .log(Level.error, e.toString());
+            //                             KazumiDialog.dismiss();
+            //                           }
+            //                         },
+            //                       ),
+            //                     ));
+            //                   }
+            //                 }
+            //               }
+            //               return infoController.pluginSearchStatus[plugin.name] ==
+            //                       'pending'
+            //                   ? const Center(child: CircularProgressIndicator())
+            //                   : (infoController.pluginSearchStatus[plugin.name] ==
+            //                           'error'
+            //                       ? GeneralErrorWidget(
+            //                           errMsg:
+            //                               '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+            //                           actions: [
+            //                             GeneralErrorButton(
+            //                               onPressed: () {
+            //                                 queryManager.querySource(
+            //                                     keyword, plugin.name);
+            //                               },
+            //                               text: '重试',
+            //                             ),
+            //                           ],
+            //                         )
+            //                       : cardList.isEmpty
+            //                           ? GeneralErrorWidget(
+            //                               errMsg:
+            //                                   '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+            //                               actions: [
+            //                                 GeneralErrorButton(
+            //                                   onPressed: () {
+            //                                     showAliasSearchDialog(
+            //                                       plugin.name,
+            //                                     );
+            //                                   },
+            //                                   text: '别名检索',
+            //                                 ),
+            //                                 GeneralErrorButton(
+            //                                   onPressed: () {
+            //                                     showCustomSearchDialog(
+            //                                       plugin.name,
+            //                                     );
+            //                                   },
+            //                                   text: '手动检索',
+            //                                 ),
+            //                               ],
+            //                             )
+            //                           : ListView(children: cardList));
+            //             }),
+            //           ),
+            //         ),
+            //       )
+            //     ],
+            //   ),
+            //   floatingActionButton: FloatingActionButton(
+            //     child: const Icon(Icons.widgets_rounded),
+            //     onPressed: () async {
+            //       showModalBottomSheet(
+            //           isScrollControlled: true,
+            //           constraints: BoxConstraints(
+            //               maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+            //               maxWidth: (Utils.isDesktop() || Utils.isTablet())
+            //                   ? MediaQuery.of(context).size.width * 9 / 16
+            //                   : MediaQuery.of(context).size.width),
+            //           clipBehavior: Clip.antiAlias,
+            //           context: context,
+            //           builder: (context) {
+            //             return const CommentsBottomSheet();
+            //           });
+            //     },
+            //   ),
+            // ),
           ),
         ],
       ),

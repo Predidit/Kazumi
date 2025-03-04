@@ -83,27 +83,15 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RichText(
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface),
-                      children: [
-                        TextSpan(
-                          text: widget.bangumiItem.nameCn == ''
-                              ? widget.bangumiItem.name
-                              : (widget.bangumiItem.nameCn),
-                          style: TextStyle(
-                            fontSize: MediaQuery.textScalerOf(context).scale(
-                                Theme.of(context)
-                                    .textTheme
-                                    .titleLarge!
-                                    .fontSize!),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  Hero(
+                    tag: '${widget.bangumiItem.id}title',
+                    child: Text(
+                      widget.bangumiItem.nameCn == ''
+                          ? widget.bangumiItem.name
+                          : (widget.bangumiItem.nameCn),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   Utils.isCompact() ? Container() : const SizedBox(height: 10),

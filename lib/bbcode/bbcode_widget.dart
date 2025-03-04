@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
@@ -75,12 +76,24 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
           TextSpan(
             children: bbcodeBaseListener.bbcode.map((e) {
               if (e is BBCodeText) {
+                Color? textColor = (!_isVisible && e.masked)
+                    ? Colors.transparent
+                    : (e.link != null)
+                        ? Colors.blue
+                        : (e.quoted)
+                            ? Theme.of(context).colorScheme.outline
+                            : (e.color != null)
+                                ? _parseColor(e.color!)
+                                : null;
                 return TextSpan(
                   text: e.text,
+                  mouseCursor: (e.link != null || e.masked)
+                      ? SystemMouseCursors.click
+                      : SystemMouseCursors.text,
                   recognizer: TapGestureRecognizer()
                     ..onTap = (e.link != null || e.masked)
                         ? () {
-                            if (_isVisible && e.link != null) {
+                            if ((!e.masked || _isVisible) && e.link != null) {
                               launchUrl(Uri.parse(e.link!));
                             } else if (e.masked) {
                               setState(() {
@@ -92,24 +105,17 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   style: TextStyle(
                     fontWeight: (e.bold) ? FontWeight.bold : null,
                     fontStyle: (e.italic) ? FontStyle.italic : null,
-                    decoration: (e.underline)
-                        ? TextDecoration.underline
-                        : (e.strikeThrough)
-                            ? TextDecoration.lineThrough
-                            : null,
+                    decoration: TextDecoration.combine([
+                      if (e.underline || e.link != null)
+                        TextDecoration.underline,
+                      if (e.strikeThrough) TextDecoration.lineThrough,
+                    ]),
+                    decorationColor: textColor,
                     fontSize: e.size.toDouble(),
-                    color: (!_isVisible && e.masked)
-                        ? Colors.transparent
-                        : (e.link != null)
-                            ? Colors.blue
-                            : (e.quoted)
-                                ? Theme.of(context).colorScheme.outline
-                                : (e.color != null)
-                                    ? _parseColor(e.color!)
-                                    : null,
-                    backgroundColor: (!_isVisible && e.masked)
-                        ? Theme.of(context).colorScheme.outline
-                        : null,
+                    color: textColor,
+                    backgroundColor:
+                        (!_isVisible && e.masked) ? Color(0xFF555555) : null,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 );
               } else if (e is BBCodeImg) {
@@ -168,6 +174,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               }
             }).toList(),
           ),
+          selectionHeightStyle: ui.BoxHeightStyle.max,
         ),
       ],
     );

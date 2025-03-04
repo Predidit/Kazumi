@@ -7,8 +7,9 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
-import 'package:kazumi/modules/characters/character_response.dart';
+import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/character/character_full_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -218,10 +219,14 @@ class BangumiHTTP {
 
   static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
     EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+    var params = <String, dynamic>{
+      'subject_id': id,
+      'offset': episode - 1,
+      'limit': 1
+    };
     try {
-      final res = await Request().get(
-          '${Api.bangumiEpisodeByID}$id&offset=${episode - 1}&limit=1',
-          options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(Api.bangumiEpisodeByID,
+          data: params, options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {
@@ -264,18 +269,50 @@ class BangumiHTTP {
     return commentResponse;
   }
 
-  static Future<CharacterResponse> getCharactersByID(int id) async {
-    CharacterResponse characterResponse = CharacterResponse.fromTemplate();
+  static Future<CharacterCommentResponse> getCharacterCommentsByCharacterID(
+      int id) async {
+    CharacterCommentResponse commentResponse =
+        CharacterCommentResponse.fromTemplate();
+    try {
+      final res = await Request().get(
+          '${Api.bangumiCharacterByIDNext}$id/comments',
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      commentResponse = CharacterCommentResponse.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger().log(Level.error,
+          'Resolve bangumi character comments failed ${e.toString()}');
+    }
+    return commentResponse;
+  }
+
+  static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
+    CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
     try {
       final res = await Request().get('${Api.bangumiInfoByID}$id/characters',
           options: Options(headers: bangumiHTTPHeader));
       final jsonData = res.data;
-      characterResponse = CharacterResponse.fromJson(jsonData);
+      charactersResponse = CharactersResponse.fromJson(jsonData);
     } catch (e) {
       KazumiLogger().log(
           Level.error, 'Resolve bangumi characters failed ${e.toString()}');
     }
-    return characterResponse;
+    return charactersResponse;
+  }
+
+  static Future<CharacterFullItem> getCharacterByCharacterID(int id) async {
+    CharacterFullItem characterFullItem = CharacterFullItem.fromTemplate();
+    try {
+      final res = await Request().get(
+          Api.formatUrl(Api.characterInfoByCharacterIDNext, [id]),
+          options: Options(headers: bangumiHTTPHeader));
+      final jsonData = res.data;
+      characterFullItem = CharacterFullItem.fromJson(jsonData);
+    } catch (e) {
+      KazumiLogger()
+          .log(Level.error, 'Resolve character info failed ${e.toString()}');
+    }
+    return characterFullItem;
   }
 
   static Future<CharacterExtraInfo> getCharactersExtraInfo(CharacterItem character) async {

@@ -3,13 +3,13 @@ import 'package:kazumi/bbcode/bbcode_widget.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/utils/utils.dart';
 
-class EpisodeCommentsCard extends StatelessWidget {
-  const EpisodeCommentsCard({
+class CharacterCommentsCard extends StatelessWidget {
+  const CharacterCommentsCard({
     super.key,
     required this.commentItem,
   });
 
-  final EpisodeCommentItem commentItem;
+  final CharacterCommentItem commentItem;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +40,7 @@ class EpisodeCommentsCard extends StatelessWidget {
             BBCodeWidget(bbcode: commentItem.comment.comment),
             if (commentItem.replies.isNotEmpty)
               ListView.builder(
-                // Don't know why but ohos has bottom padding,
+                // Don't know why but some device has bottom padding,
                 // needs to set to 0 manually.
                 padding: const EdgeInsets.only(bottom: 0),
                 physics: const NeverScrollableScrollPhysics(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -307,6 +308,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final svgString = danmakuOnSvg.replaceFirst(
+        '00AEEC',
+        Theme.of(context)
+            .colorScheme
+            .primary
+            .toARGB32()
+            .toRadixString(16)
+            .substring(2));
     return Observer(builder: (context) {
       return Stack(
         alignment: Alignment.center,
@@ -830,11 +839,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                           children: [
                                             IconButton(
                                               color: Colors.white,
-                                              icon: Icon(playerController
-                                                      .danmakuOn
-                                                  ? Icons.subtitles_rounded
-                                                  : Icons
-                                                      .subtitles_off_rounded),
+                                              icon: playerController.danmakuOn
+                                                  ? SvgPicture.string(
+                                                      svgString,
+                                                      height: 24,
+                                                    )
+                                                  : SvgPicture.asset(
+                                                      'assets/images/danmaku_off.svg',
+                                                      height: 24,
+                                                    ),
                                               onPressed: () {
                                                 widget.handleDanmaku();
                                               },
@@ -844,7 +857,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                       : '打开弹幕(d)',
                                             ),
                                             IconButton(
-                                              tooltip: '弹幕设置',
                                               onPressed: () {
                                                 widget.keyboardFocus
                                                     .requestFocus();
@@ -877,8 +889,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                     });
                                               },
                                               color: Colors.white,
-                                              icon: const Icon(
-                                                  Icons.tune_rounded),
+                                              icon: SvgPicture.asset(
+                                                'assets/images/danmaku_setting.svg',
+                                                height: 24,
+                                              ),
                                             ),
                                             if (isSpaceEnough) danmakuTextField,
                                           ],
@@ -890,9 +904,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                               if (!Utils.isDesktop()) ...[
                                 IconButton(
                                   color: Colors.white,
-                                  icon: Icon(playerController.danmakuOn
-                                      ? Icons.subtitles_rounded
-                                      : Icons.subtitles_off_rounded),
+                                  icon: playerController.danmakuOn
+                                      ? SvgPicture.string(
+                                          svgString,
+                                          height: 24,
+                                        )
+                                      : SvgPicture.asset(
+                                          'assets/images/danmaku_off.svg',
+                                          height: 24,
+                                        ),
                                   onPressed: () {
                                     widget.handleDanmaku();
                                   },
@@ -902,7 +922,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 ),
                                 if (playerController.danmakuOn) ...[
                                   IconButton(
-                                    tooltip: '弹幕设置',
                                     onPressed: () {
                                       showModalBottomSheet(
                                           isScrollControlled: true,
@@ -928,7 +947,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                           });
                                     },
                                     color: Colors.white,
-                                    icon: const Icon(Icons.tune_rounded),
+                                    icon: SvgPicture.asset(
+                                      'assets/images/danmaku_setting.svg',
+                                      height: 24,
+                                    ),
                                   ),
                                   Expanded(child: danmakuTextField),
                                 ],

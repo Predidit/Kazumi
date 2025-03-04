@@ -176,3 +176,60 @@ class EpisodeCommentItem {
     };
   }
 }
+
+class CharacterComment {
+  final User user;
+  final String comment;
+  final int createdAt;
+
+  CharacterComment({
+    required this.user,
+    required this.comment,
+    required this.createdAt,
+  });
+
+
+  factory CharacterComment.fromJson(Map<String, dynamic> json) {
+    return CharacterComment(
+      user: User.fromJson(json['user']),
+      comment: json['content'] ?? '',
+      createdAt: json['createdAt'] ?? 0,
+    );
+  }
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'user': user.toJson(),
+      'content': comment,
+      'createdAt': createdAt,
+    };
+  }
+}
+
+class CharacterCommentItem {
+  final CharacterComment comment;
+  final List<CharacterComment> replies;
+
+  CharacterCommentItem({
+    required this.comment,
+    required this.replies
+  });
+
+  factory CharacterCommentItem.fromJson(Map<String, dynamic> json) {
+    var list = json['replies'] as List;
+    List<CharacterComment> tempList =
+        list.map((i) => CharacterComment.fromJson(i)).toList();
+    return CharacterCommentItem(
+      comment: CharacterComment.fromJson(json),
+      replies: tempList
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'comment': comment.toJson(),
+      'list': replies,
+    };
+  }
+}

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -203,305 +204,302 @@ class _InfoPageState extends State<InfoPage>
     final List<String> tabs = <String>['Tab 1', 'Tab 2'];
     return PopScope(
       canPop: true,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                color: Theme.of(context).brightness == Brightness.light
-                    ? Colors.white
-                    : Colors.black,
-                child: Opacity(
-                  opacity: 0.2,
-                  child: LayoutBuilder(builder: (context, boxConstraints) {
-                    return ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                      child: NetworkImgLayer(
-                        src: infoController.bangumiItem.images['large'] ?? '',
-                        width: boxConstraints.maxWidth,
-                        height: boxConstraints.maxHeight,
-                        fadeInDuration: const Duration(milliseconds: 0),
-                        fadeOutDuration: const Duration(milliseconds: 0),
+      child: DefaultTabController(
+        length: tabs.length, // This is the number of tabs.
+        child: Scaffold(
+          body: NestedScrollView(
+            headerSliverBuilder:
+                (BuildContext context, bool innerBoxIsScrolled) {
+              return <Widget>[
+                SliverOverlapAbsorber(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  sliver: SliverAppBar.medium(
+                    title: EmbeddedNativeControlArea(
+                      child: Text(
+                        infoController.bangumiItem.nameCn == ''
+                            ? infoController.bangumiItem.name
+                            : infoController.bangumiItem.nameCn,
                       ),
-                    );
-                  }),
-                ),
-              ),
-            ),
-          ),
-          EmbeddedNativeControlArea(
-            child: DefaultTabController(
-              length: tabs.length, // This is the number of tabs.
-              child: Scaffold(
-                backgroundColor: Colors.transparent,
-                body: NestedScrollView(
-                  headerSliverBuilder:
-                      (BuildContext context, bool innerBoxIsScrolled) {
-                    return <Widget>[
-                      SliverOverlapAbsorber(
-                        handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                            context),
-                        sliver: SliverAppBar.medium(
-                          title: Hero(
-                            tag: '${infoController.bangumiItem.id}title',
-                            child: Text(
-                              infoController.bangumiItem.nameCn == ''
-                                  ? infoController.bangumiItem.name
-                                  : infoController.bangumiItem.nameCn,
-                            ),
-                          ),
-                          backgroundColor: Colors.transparent,
-                          forceMaterialTransparency: true,
-                          centerTitle: false,
-                          expandedHeight: 350.0,
-                          flexibleSpace: FlexibleSpaceBar(
-                            background: SafeArea(
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 60),
-                                    child: BangumiInfoCardV(
-                                        bangumiItem:
-                                            infoController.bangumiItem),
+                    ),
+                    automaticallyImplyLeading: false,
+                    leading: EmbeddedNativeControlArea(child: BackButton()),
+                    toolbarHeight: kToolbarHeight + 28,
+                    stretch: true,
+                    centerTitle: false,
+                    expandedHeight: 430.0,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Stack(
+                        children: [
+                          if (!Platform.isLinux)
+                            Positioned.fill(
+                              bottom: kTextTabBarHeight,
+                              child: IgnorePointer(
+                                child: Container(
+                                  color: Theme.of(context)
+                                      .appBarTheme
+                                      .backgroundColor,
+                                  child: Opacity(
+                                    opacity: 0.2,
+                                    child: LayoutBuilder(
+                                        builder: (context, boxConstraints) {
+                                      return ImageFiltered(
+                                        imageFilter: ImageFilter.blur(
+                                            sigmaX: 15.0, sigmaY: 15.0),
+                                        child: NetworkImgLayer(
+                                          src: infoController.bangumiItem
+                                                  .images['large'] ??
+                                              '',
+                                          width: boxConstraints.maxWidth,
+                                          height: boxConstraints.maxHeight,
+                                          fadeInDuration:
+                                              const Duration(milliseconds: 0),
+                                          fadeOutDuration:
+                                              const Duration(milliseconds: 0),
+                                        ),
+                                      );
+                                    }),
                                   ),
-                                ],
+                                ),
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 80),
+                            child: BangumiInfoCardV(
+                                bangumiItem: infoController.bangumiItem),
+                          ),
+                        ],
+                      ),
+                    ),
+                    forceElevated: innerBoxIsScrolled,
+                    bottom: TabBar(
+                      // These are the widgets to put in each tab in the tab bar.
+                      tabs: tabs.map((String name) => Tab(text: name)).toList(),
+                    ),
+                  ),
+                ),
+              ];
+            },
+            body: TabBarView(
+              // These are the contents of the tab views, below the tabs.
+              children: tabs.map((String name) {
+                return SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: Builder(
+                    // This Builder is needed to provide a BuildContext that is
+                    // "inside" the NestedScrollView, so that
+                    // sliverOverlapAbsorberHandleFor() can find the
+                    // NestedScrollView.
+                    builder: (BuildContext context) {
+                      return CustomScrollView(
+                        // The "controller" and "primary" members should be left
+                        // unset, so that the NestedScrollView can control this
+                        // inner scroll view.
+                        // If the "controller" property is set, then this scroll
+                        // view will not be associated with the NestedScrollView.
+                        // The PageStorageKey should be unique to this ScrollView;
+                        // it allows the list to remember its scroll position when
+                        // the tab view is not on the screen.
+                        key: PageStorageKey<String>(name),
+                        slivers: <Widget>[
+                          SliverOverlapInjector(
+                            // This is the flip side of the SliverOverlapAbsorber
+                            // above.
+                            handle:
+                                NestedScrollView.sliverOverlapAbsorberHandleFor(
+                                    context),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.all(8.0),
+                            // In this example, the inner scroll view has
+                            // fixed-height list items, hence the use of
+                            // SliverFixedExtentList. However, one could use any
+                            // sliver widget here, e.g. SliverList or SliverGrid.
+                            sliver: SliverFixedExtentList(
+                              // The items in this example are fixed to 48 pixels
+                              // high. This matches the Material Design spec for
+                              // ListTile widgets.
+                              itemExtent: 48.0,
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  // This builder is called for each child.
+                                  // In this example, we just number each list item.
+                                  return ListTile(title: Text('Item $index'));
+                                },
+                                // The childCount of the SliverChildBuilderDelegate
+                                // specifies how many children this inner list
+                                // has. In this example, each tab has a list of
+                                // exactly 30 items, but this is arbitrary.
+                                childCount: 30,
                               ),
                             ),
                           ),
-                          forceElevated: innerBoxIsScrolled,
-                          bottom: TabBar(
-                            // These are the widgets to put in each tab in the tab bar.
-                            tabs: tabs
-                                .map((String name) => Tab(text: name))
-                                .toList(),
-                          ),
-                        ),
-                      ),
-                    ];
-                  },
-                  body: TabBarView(
-                    // These are the contents of the tab views, below the tabs.
-                    children: tabs.map((String name) {
-                      return SafeArea(
-                        top: false,
-                        bottom: false,
-                        child: Builder(
-                          // This Builder is needed to provide a BuildContext that is
-                          // "inside" the NestedScrollView, so that
-                          // sliverOverlapAbsorberHandleFor() can find the
-                          // NestedScrollView.
-                          builder: (BuildContext context) {
-                            return CustomScrollView(
-                              // The "controller" and "primary" members should be left
-                              // unset, so that the NestedScrollView can control this
-                              // inner scroll view.
-                              // If the "controller" property is set, then this scroll
-                              // view will not be associated with the NestedScrollView.
-                              // The PageStorageKey should be unique to this ScrollView;
-                              // it allows the list to remember its scroll position when
-                              // the tab view is not on the screen.
-                              key: PageStorageKey<String>(name),
-                              slivers: <Widget>[
-                                SliverOverlapInjector(
-                                  // This is the flip side of the SliverOverlapAbsorber
-                                  // above.
-                                  handle: NestedScrollView
-                                      .sliverOverlapAbsorberHandleFor(context),
-                                ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  // In this example, the inner scroll view has
-                                  // fixed-height list items, hence the use of
-                                  // SliverFixedExtentList. However, one could use any
-                                  // sliver widget here, e.g. SliverList or SliverGrid.
-                                  sliver: SliverFixedExtentList(
-                                    // The items in this example are fixed to 48 pixels
-                                    // high. This matches the Material Design spec for
-                                    // ListTile widgets.
-                                    itemExtent: 48.0,
-                                    delegate: SliverChildBuilderDelegate(
-                                      (BuildContext context, int index) {
-                                        // This builder is called for each child.
-                                        // In this example, we just number each list item.
-                                        return ListTile(
-                                            title: Text('Item $index'));
-                                      },
-                                      // The childCount of the SliverChildBuilderDelegate
-                                      // specifies how many children this inner list
-                                      // has. In this example, each tab has a list of
-                                      // exactly 30 items, but this is arbitrary.
-                                      childCount: 30,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                        ],
                       );
-                    }).toList(),
+                    },
                   ),
-                ),
-              ),
+                );
+              }).toList(),
             ),
-            // Scaffold(
-            //   backgroundColor: Colors.transparent,
-            //   appBar: SysAppBar(
-            //     backgroundColor: Colors.transparent,
-            //   ),
-            //   body: Column(
-            //     children: [
-            //       BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
-            //       TabBar(
-            //         isScrollable: true,
-            //         tabAlignment: TabAlignment.center,
-            //         controller: tabController,
-            //         tabs: pluginsController.pluginList
-            //             .map((plugin) => Observer(
-            //                   builder: (context) => Row(
-            //                     mainAxisSize: MainAxisSize.min,
-            //                     children: [
-            //                       Text(
-            //                         plugin.name,
-            //                         overflow: TextOverflow.ellipsis,
-            //                         style: TextStyle(
-            //                             fontSize: Theme.of(context)
-            //                                 .textTheme
-            //                                 .titleMedium!
-            //                                 .fontSize,
-            //                             color: Theme.of(context)
-            //                                 .colorScheme
-            //                                 .onSurface),
-            //                       ),
-            //                       const SizedBox(width: 5.0),
-            //                       Container(
-            //                         width: 8.0,
-            //                         height: 8.0,
-            //                         decoration: BoxDecoration(
-            //                           color: infoController.pluginSearchStatus[
-            //                                       plugin.name] ==
-            //                                   'success'
-            //                               ? Colors.green
-            //                               : (infoController.pluginSearchStatus[
-            //                                           plugin.name] ==
-            //                                       'pending')
-            //                                   ? Colors.grey
-            //                                   : Colors.red,
-            //                           shape: BoxShape.circle,
-            //                         ),
-            //                       ),
-            //                     ],
-            //                   ),
-            //                 ))
-            //             .toList(),
-            //       ),
-            //       Expanded(
-            //         child: Observer(
-            //           builder: (context) => TabBarView(
-            //             controller: tabController,
-            //             children: List.generate(
-            //                 pluginsController.pluginList.length, (pluginIndex) {
-            //               var plugin = pluginsController.pluginList[pluginIndex];
-            //               var cardList = <Widget>[];
-            //               for (var searchResponse
-            //                   in infoController.pluginSearchResponseList) {
-            //                 if (searchResponse.pluginName == plugin.name) {
-            //                   for (var searchItem in searchResponse.data) {
-            //                     cardList.add(Card(
-            //                       color: Colors.transparent,
-            //                       child: ListTile(
-            //                         tileColor: Colors.transparent,
-            //                         title: Text(searchItem.name),
-            //                         onTap: () async {
-            //                           KazumiDialog.showLoading(msg: '获取中');
-            //                           videoPageController.currentPlugin = plugin;
-            //                           videoPageController.title = searchItem.name;
-            //                           videoPageController.src = searchItem.src;
-            //                           try {
-            //                             await infoController.queryRoads(
-            //                                 searchItem.src, plugin.name);
-            //                             KazumiDialog.dismiss();
-            //                             Modular.to.pushNamed('/video/');
-            //                           } catch (e) {
-            //                             KazumiLogger()
-            //                                 .log(Level.error, e.toString());
-            //                             KazumiDialog.dismiss();
-            //                           }
-            //                         },
-            //                       ),
-            //                     ));
-            //                   }
-            //                 }
-            //               }
-            //               return infoController.pluginSearchStatus[plugin.name] ==
-            //                       'pending'
-            //                   ? const Center(child: CircularProgressIndicator())
-            //                   : (infoController.pluginSearchStatus[plugin.name] ==
-            //                           'error'
-            //                       ? GeneralErrorWidget(
-            //                           errMsg:
-            //                               '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-            //                           actions: [
-            //                             GeneralErrorButton(
-            //                               onPressed: () {
-            //                                 queryManager.querySource(
-            //                                     keyword, plugin.name);
-            //                               },
-            //                               text: '重试',
-            //                             ),
-            //                           ],
-            //                         )
-            //                       : cardList.isEmpty
-            //                           ? GeneralErrorWidget(
-            //                               errMsg:
-            //                                   '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-            //                               actions: [
-            //                                 GeneralErrorButton(
-            //                                   onPressed: () {
-            //                                     showAliasSearchDialog(
-            //                                       plugin.name,
-            //                                     );
-            //                                   },
-            //                                   text: '别名检索',
-            //                                 ),
-            //                                 GeneralErrorButton(
-            //                                   onPressed: () {
-            //                                     showCustomSearchDialog(
-            //                                       plugin.name,
-            //                                     );
-            //                                   },
-            //                                   text: '手动检索',
-            //                                 ),
-            //                               ],
-            //                             )
-            //                           : ListView(children: cardList));
-            //             }),
-            //           ),
-            //         ),
-            //       )
-            //     ],
-            //   ),
-            //   floatingActionButton: FloatingActionButton(
-            //     child: const Icon(Icons.widgets_rounded),
-            //     onPressed: () async {
-            //       showModalBottomSheet(
-            //           isScrollControlled: true,
-            //           constraints: BoxConstraints(
-            //               maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-            //               maxWidth: (Utils.isDesktop() || Utils.isTablet())
-            //                   ? MediaQuery.of(context).size.width * 9 / 16
-            //                   : MediaQuery.of(context).size.width),
-            //           clipBehavior: Clip.antiAlias,
-            //           context: context,
-            //           builder: (context) {
-            //             return const CommentsBottomSheet();
-            //           });
-            //     },
-            //   ),
-            // ),
           ),
-        ],
+        ),
       ),
+      // Scaffold(
+      //   backgroundColor: Colors.transparent,
+      //   appBar: SysAppBar(
+      //     backgroundColor: Colors.transparent,
+      //   ),
+      //   body: Column(
+      //     children: [
+      //       BangumiInfoCardV(bangumiItem: infoController.bangumiItem),
+      //       TabBar(
+      //         isScrollable: true,
+      //         tabAlignment: TabAlignment.center,
+      //         controller: tabController,
+      //         tabs: pluginsController.pluginList
+      //             .map((plugin) => Observer(
+      //                   builder: (context) => Row(
+      //                     mainAxisSize: MainAxisSize.min,
+      //                     children: [
+      //                       Text(
+      //                         plugin.name,
+      //                         overflow: TextOverflow.ellipsis,
+      //                         style: TextStyle(
+      //                             fontSize: Theme.of(context)
+      //                                 .textTheme
+      //                                 .titleMedium!
+      //                                 .fontSize,
+      //                             color: Theme.of(context)
+      //                                 .colorScheme
+      //                                 .onSurface),
+      //                       ),
+      //                       const SizedBox(width: 5.0),
+      //                       Container(
+      //                         width: 8.0,
+      //                         height: 8.0,
+      //                         decoration: BoxDecoration(
+      //                           color: infoController.pluginSearchStatus[
+      //                                       plugin.name] ==
+      //                                   'success'
+      //                               ? Colors.green
+      //                               : (infoController.pluginSearchStatus[
+      //                                           plugin.name] ==
+      //                                       'pending')
+      //                                   ? Colors.grey
+      //                                   : Colors.red,
+      //                           shape: BoxShape.circle,
+      //                         ),
+      //                       ),
+      //                     ],
+      //                   ),
+      //                 ))
+      //             .toList(),
+      //       ),
+      //       Expanded(
+      //         child: Observer(
+      //           builder: (context) => TabBarView(
+      //             controller: tabController,
+      //             children: List.generate(
+      //                 pluginsController.pluginList.length, (pluginIndex) {
+      //               var plugin = pluginsController.pluginList[pluginIndex];
+      //               var cardList = <Widget>[];
+      //               for (var searchResponse
+      //                   in infoController.pluginSearchResponseList) {
+      //                 if (searchResponse.pluginName == plugin.name) {
+      //                   for (var searchItem in searchResponse.data) {
+      //                     cardList.add(Card(
+      //                       color: Colors.transparent,
+      //                       child: ListTile(
+      //                         tileColor: Colors.transparent,
+      //                         title: Text(searchItem.name),
+      //                         onTap: () async {
+      //                           KazumiDialog.showLoading(msg: '获取中');
+      //                           videoPageController.currentPlugin = plugin;
+      //                           videoPageController.title = searchItem.name;
+      //                           videoPageController.src = searchItem.src;
+      //                           try {
+      //                             await infoController.queryRoads(
+      //                                 searchItem.src, plugin.name);
+      //                             KazumiDialog.dismiss();
+      //                             Modular.to.pushNamed('/video/');
+      //                           } catch (e) {
+      //                             KazumiLogger()
+      //                                 .log(Level.error, e.toString());
+      //                             KazumiDialog.dismiss();
+      //                           }
+      //                         },
+      //                       ),
+      //                     ));
+      //                   }
+      //                 }
+      //               }
+      //               return infoController.pluginSearchStatus[plugin.name] ==
+      //                       'pending'
+      //                   ? const Center(child: CircularProgressIndicator())
+      //                   : (infoController.pluginSearchStatus[plugin.name] ==
+      //                           'error'
+      //                       ? GeneralErrorWidget(
+      //                           errMsg:
+      //                               '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+      //                           actions: [
+      //                             GeneralErrorButton(
+      //                               onPressed: () {
+      //                                 queryManager.querySource(
+      //                                     keyword, plugin.name);
+      //                               },
+      //                               text: '重试',
+      //                             ),
+      //                           ],
+      //                         )
+      //                       : cardList.isEmpty
+      //                           ? GeneralErrorWidget(
+      //                               errMsg:
+      //                                   '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+      //                               actions: [
+      //                                 GeneralErrorButton(
+      //                                   onPressed: () {
+      //                                     showAliasSearchDialog(
+      //                                       plugin.name,
+      //                                     );
+      //                                   },
+      //                                   text: '别名检索',
+      //                                 ),
+      //                                 GeneralErrorButton(
+      //                                   onPressed: () {
+      //                                     showCustomSearchDialog(
+      //                                       plugin.name,
+      //                                     );
+      //                                   },
+      //                                   text: '手动检索',
+      //                                 ),
+      //                               ],
+      //                             )
+      //                           : ListView(children: cardList));
+      //             }),
+      //           ),
+      //         ),
+      //       )
+      //     ],
+      //   ),
+      //   floatingActionButton: FloatingActionButton(
+      //     child: const Icon(Icons.widgets_rounded),
+      //     onPressed: () async {
+      //       showModalBottomSheet(
+      //           isScrollControlled: true,
+      //           constraints: BoxConstraints(
+      //               maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+      //               maxWidth: (Utils.isDesktop() || Utils.isTablet())
+      //                   ? MediaQuery.of(context).size.width * 9 / 16
+      //                   : MediaQuery.of(context).size.width),
+      //           clipBehavior: Clip.antiAlias,
+      //           context: context,
+      //           builder: (context) {
+      //             return const CommentsBottomSheet();
+      //           });
+      //     },
+      //   ),
+      // ),
     );
   }
 }

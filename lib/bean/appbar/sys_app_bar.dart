@@ -58,34 +58,55 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       }
       acs.add(const SizedBox(width: 8));
     }
-    return EmbeddedNativeControlArea(
-      requireOffset: needTopOffset,
-      child: GestureDetector(
-        // behavior: HitTestBehavior.translucent,
-        onPanStart: (_) =>
-            (Utils.isDesktop()) ? windowManager.startDragging() : null,
-        child: AppBar(
-          toolbarHeight: preferredSize.height,
-          scrolledUnderElevation: 0.0,
-          title: title,
-          centerTitle: Platform.isIOS ? true : false,
-          actions: acs,
-          leading: leading,
-          leadingWidth: leadingWidth,
-          backgroundColor: backgroundColor,
-          elevation: elevation,
-          shape: shape,
-          bottom: bottom,
-          forceMaterialTransparency: Platform.isMacOS ? true : false,
-          systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness:
-                Theme.of(context).brightness == Brightness.light
-                    ? Brightness.dark
-                    : Brightness.light,
-            systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarDividerColor: Colors.transparent,
-          ),
+    return GestureDetector(
+      onPanStart: (_) =>
+          (Utils.isDesktop()) ? windowManager.startDragging() : null,
+      child: AppBar(
+        toolbarHeight: preferredSize.height,
+        scrolledUnderElevation: 0.0,
+        title: title != null
+            ? EmbeddedNativeControlArea(
+                requireOffset: needTopOffset,
+                child: title!,
+              )
+            : null,
+        centerTitle: Platform.isIOS ? true : false,
+        actions: acs.map((e) {
+          return EmbeddedNativeControlArea(
+            requireOffset: needTopOffset,
+            child: e,
+          );
+        }).toList(),
+        leading: leading != null
+            ? EmbeddedNativeControlArea(
+                requireOffset: needTopOffset,
+                child: leading!,
+              )
+            : Navigator.canPop(context)
+                ? EmbeddedNativeControlArea(
+                    requireOffset: needTopOffset,
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      icon: Icon(Icons.arrow_back),
+                    ),
+                  )
+                : null,
+        leadingWidth: leadingWidth,
+        backgroundColor: backgroundColor,
+        elevation: elevation,
+        shape: shape,
+        bottom: bottom,
+        automaticallyImplyLeading: false,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness:
+              Theme.of(context).brightness == Brightness.light
+                  ? Brightness.dark
+                  : Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarDividerColor: Colors.transparent,
         ),
       ),
     );

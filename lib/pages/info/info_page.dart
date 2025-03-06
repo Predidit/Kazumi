@@ -34,7 +34,6 @@ class _InfoPageState extends State<InfoPage>
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  final ScrollController scrollController = ScrollController();
   late TabController tabController;
   late String keyword;
 
@@ -209,7 +208,6 @@ class _InfoPageState extends State<InfoPage>
         length: tabs.length, // This is the number of tabs.
         child: Scaffold(
           body: NestedScrollView(
-            controller: scrollController,
             headerSliverBuilder:
                 (BuildContext context, bool innerBoxIsScrolled) {
               return <Widget>[
@@ -286,6 +284,7 @@ class _InfoPageState extends State<InfoPage>
                     bottom: TabBar(
                       // These are the widgets to put in each tab in the tab bar.
                       tabs: tabs.map((String name) => Tab(text: name)).toList(),
+                      dividerHeight: 0,
                     ),
                   ),
                 ),

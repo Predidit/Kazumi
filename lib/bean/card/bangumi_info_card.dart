@@ -21,7 +21,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
     TextStyle style =
         TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
     return SizedBox(
-      height: 300,
+      height: 350,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

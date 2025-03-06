@@ -237,7 +237,7 @@ class _InfoPageState extends State<InfoPage>
                     toolbarHeight: kToolbarHeight + 22,
                     stretch: true,
                     centerTitle: false,
-                    expandedHeight: 430.0,
+                    expandedHeight: 350 + kTextTabBarHeight + kToolbarHeight + 30,
                     collapsedHeight: kTextTabBarHeight + kToolbarHeight + 22,
                     flexibleSpace: FlexibleSpaceBar(
                       background: Stack(
@@ -275,7 +275,7 @@ class _InfoPageState extends State<InfoPage>
                               ),
                             ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 80, 16, 8),
+                            padding: const EdgeInsets.fromLTRB(16, 78, 16, 0),
                             child: BangumiInfoCardV(
                                 bangumiItem: infoController.bangumiItem),
                           ),

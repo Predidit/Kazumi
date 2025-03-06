@@ -34,6 +34,7 @@ class _InfoPageState extends State<InfoPage>
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final ScrollController scrollController = ScrollController();
   late TabController tabController;
   late String keyword;
 
@@ -208,6 +209,7 @@ class _InfoPageState extends State<InfoPage>
         length: tabs.length, // This is the number of tabs.
         child: Scaffold(
           body: NestedScrollView(
+            controller: scrollController,
             headerSliverBuilder:
                 (BuildContext context, bool innerBoxIsScrolled) {
               return <Widget>[
@@ -223,11 +225,20 @@ class _InfoPageState extends State<InfoPage>
                       ),
                     ),
                     automaticallyImplyLeading: false,
-                    leading: EmbeddedNativeControlArea(child: BackButton()),
-                    toolbarHeight: kToolbarHeight + 28,
+                    scrolledUnderElevation: 0.0,
+                    leading: EmbeddedNativeControlArea(
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.maybePop(context);
+                        },
+                        icon: Icon(Icons.arrow_back),
+                      ),
+                    ),
+                    toolbarHeight: kToolbarHeight + 22,
                     stretch: true,
                     centerTitle: false,
                     expandedHeight: 430.0,
+                    collapsedHeight: kTextTabBarHeight + kToolbarHeight + 22,
                     flexibleSpace: FlexibleSpaceBar(
                       background: Stack(
                         children: [
@@ -264,7 +275,7 @@ class _InfoPageState extends State<InfoPage>
                               ),
                             ),
                           Padding(
-                            padding: const EdgeInsets.only(top: 80),
+                            padding: const EdgeInsets.fromLTRB(24, 80, 24, 8),
                             child: BangumiInfoCardV(
                                 bangumiItem: infoController.bangumiItem),
                           ),

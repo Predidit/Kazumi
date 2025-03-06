@@ -21,166 +21,158 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
     TextStyle style =
         TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
     return SizedBox(
-      height: Utils.isCompact() ? 240 : 300,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-            StyleString.safeSpace, 7, StyleString.safeSpace, 7),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: StyleString.imgRadius,
-                topRight: StyleString.imgRadius,
-                bottomLeft: StyleString.imgRadius,
-                bottomRight: StyleString.imgRadius,
-              ),
-              child: AspectRatio(
-                aspectRatio: 0.65,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  final double maxWidth = boxConstraints.maxWidth;
-                  final double maxHeight = boxConstraints.maxHeight;
-                  return Hero(
-                    transitionOnUserGestures: true,
-                    tag: widget.bangumiItem.id,
-                    child: Stack(
-                      children: [
-                        NetworkImgLayer(
-                          src: widget.bangumiItem.images['large'] ?? '',
-                          width: maxWidth,
-                          height: maxHeight,
-                          fadeInDuration: const Duration(milliseconds: 0),
-                          fadeOutDuration: const Duration(milliseconds: 0),
-                        ),
-                        Positioned(
-                          right: 5,
-                          bottom: 5,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
-                              shape: BoxShape.circle,
-                            ),
-                            child: CollectButton(
-                              bangumiItem: widget.bangumiItem,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Hero(
-                    tag: '${widget.bangumiItem.id}title',
-                    child: Text(
-                      widget.bangumiItem.nameCn == ''
-                          ? widget.bangumiItem.name
-                          : (widget.bangumiItem.nameCn),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+      height: 300,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.bangumiItem.nameCn == ''
+                ? widget.bangumiItem.name
+                : (widget.bangumiItem.nameCn),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          SizedBox(height: 16),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: StyleString.imgRadius,
+                    topRight: StyleString.imgRadius,
+                    bottomLeft: StyleString.imgRadius,
+                    bottomRight: StyleString.imgRadius,
                   ),
-                  Utils.isCompact() ? Container() : const SizedBox(height: 10),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  child: AspectRatio(
+                    aspectRatio: 0.65,
+                    child: LayoutBuilder(builder: (context, boxConstraints) {
+                      final double maxWidth = boxConstraints.maxWidth;
+                      final double maxHeight = boxConstraints.maxHeight;
+                      return Hero(
+                        transitionOnUserGestures: true,
+                        tag: widget.bangumiItem.id,
+                        child: Stack(
                           children: [
-                            FilledButton.tonal(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                side: const BorderSide(
-                                    // width: 2,
-                                    ),
-                                backgroundColor: Colors.transparent,
-                              ),
-                              child: Text('#${widget.bangumiItem.rank}',
-                                  style: style),
+                            NetworkImgLayer(
+                              src: widget.bangumiItem.images['large'] ?? '',
+                              width: maxWidth,
+                              height: maxHeight,
+                              fadeInDuration: const Duration(milliseconds: 0),
+                              fadeOutDuration: const Duration(milliseconds: 0),
                             ),
-                            Utils.isCompact()
-                                ? Container()
-                                : const SizedBox(height: 7),
-                            FilledButton.tonal(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                            Positioned(
+                              right: 5,
+                              bottom: 5,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .secondaryContainer,
+                                  shape: BoxShape.circle,
                                 ),
-                                side: const BorderSide(
-                                    // width: 2,
-                                    ),
-                                backgroundColor: Colors.transparent,
+                                child: CollectButton(
+                                  bangumiItem: widget.bangumiItem,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer,
+                                ),
                               ),
-                              child: Text(
-                                  widget.bangumiItem.ratingScore.toString(),
-                                  style: style),
                             ),
-                            Utils.isCompact()
-                                ? Container()
-                                : const SizedBox(height: 7),
-                            Utils.isCompact()
-                                ? Container()
-                                : FilledButton.tonal(
-                                    onPressed: () {},
-                                    style: OutlinedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      side: const BorderSide(
-                                          // width: 2,
-                                          ),
-                                      backgroundColor: Colors.transparent,
-                                    ),
-                                    child: Text(
-                                        widget.bangumiItem.type == 2
-                                            ? '番剧'
-                                            : '其他',
-                                        style: style),
-                                  ),
                           ],
                         ),
-                        Utils.isCompact()
-                            ? Container()
-                            : const SizedBox(width: 10),
-                        // why there will overflow in the bottom?
-                        Utils.isCompact()
-                            ? Container()
-                            : Expanded(
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    widget.bangumiItem.summary,
-                                    style: style,
-                                    softWrap: true,
-                                  ),
-                                ),
-                              ),
-                      ],
-                    ),
+                      );
+                    }),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Utils.isCompact()
+                          ? Container()
+                          : const SizedBox(height: 10),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                FilledButton.tonal(
+                                  onPressed: () {},
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    side: const BorderSide(
+                                        // width: 2,
+                                        ),
+                                    backgroundColor: Colors.transparent,
+                                  ),
+                                  child: Text('#${widget.bangumiItem.rank}',
+                                      style: style),
+                                ),
+                                Utils.isCompact()
+                                    ? Container()
+                                    : const SizedBox(height: 7),
+                                FilledButton.tonal(
+                                  onPressed: () {},
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    side: const BorderSide(
+                                        // width: 2,
+                                        ),
+                                    backgroundColor: Colors.transparent,
+                                  ),
+                                  child: Text(
+                                      widget.bangumiItem.ratingScore.toString(),
+                                      style: style),
+                                ),
+                                Utils.isCompact()
+                                    ? Container()
+                                    : const SizedBox(height: 7),
+                                Utils.isCompact()
+                                    ? Container()
+                                    : FilledButton.tonal(
+                                        onPressed: () {},
+                                        style: OutlinedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          side: const BorderSide(
+                                              // width: 2,
+                                              ),
+                                          backgroundColor: Colors.transparent,
+                                        ),
+                                        child: Text(
+                                            widget.bangumiItem.type == 2
+                                                ? '番剧'
+                                                : '其他',
+                                            style: style),
+                                      ),
+                              ],
+                            ),
+                            Utils.isCompact()
+                                ? Container()
+                                : const SizedBox(width: 10),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

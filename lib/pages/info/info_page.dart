@@ -275,7 +275,7 @@ class _InfoPageState extends State<InfoPage>
                               ),
                             ),
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 80, 24, 8),
+                            padding: const EdgeInsets.fromLTRB(16, 80, 16, 8),
                             child: BangumiInfoCardV(
                                 bangumiItem: infoController.bangumiItem),
                           ),

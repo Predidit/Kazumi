@@ -3,12 +3,14 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -201,7 +203,7 @@ class _InfoPageState extends State<InfoPage>
 
   @override
   Widget build(BuildContext context) {
-    final List<String> tabs = <String>['Tab 1', 'Tab 2'];
+    final List<String> tabs = <String>['概览', '吐槽', '角色', '制作人员'];
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -232,17 +234,26 @@ class _InfoPageState extends State<InfoPage>
                         icon: Icon(Icons.arrow_back),
                       ),
                     ),
+                    actions: [
+                      if (innerBoxIsScrolled)
+                        CollectButton(bangumiItem: infoController.bangumiItem,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      SizedBox(width: 8),
+                    ],
                     toolbarHeight: kToolbarHeight + 22,
                     stretch: true,
                     centerTitle: false,
-                    expandedHeight: 350 + kTextTabBarHeight + kToolbarHeight + 30,
+                    expandedHeight:
+                        350 + kTextTabBarHeight + kToolbarHeight + 30,
                     collapsedHeight: kTextTabBarHeight + kToolbarHeight + 22,
                     flexibleSpace: FlexibleSpaceBar(
+                      collapseMode: CollapseMode.pin,
                       background: Stack(
                         children: [
                           if (!Platform.isLinux)
                             Positioned.fill(
-                              bottom: kTextTabBarHeight,
+                              bottom: kTextTabBarHeight + 8,
                               child: IgnorePointer(
                                 child: Container(
                                   color: Theme.of(context)
@@ -282,76 +293,94 @@ class _InfoPageState extends State<InfoPage>
                     ),
                     forceElevated: innerBoxIsScrolled,
                     bottom: TabBar(
-                      // These are the widgets to put in each tab in the tab bar.
-                      tabs: tabs.map((String name) => Tab(text: name)).toList(),
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.center,
                       dividerHeight: 0,
+                      controller: tabController,
+                      tabs: tabs.map((name) => Tab(text: name)).toList(),
                     ),
                   ),
                 ),
               ];
             },
             body: TabBarView(
-              // These are the contents of the tab views, below the tabs.
-              children: tabs.map((String name) {
-                return SafeArea(
-                  top: false,
-                  bottom: false,
-                  child: Builder(
-                    // This Builder is needed to provide a BuildContext that is
-                    // "inside" the NestedScrollView, so that
-                    // sliverOverlapAbsorberHandleFor() can find the
-                    // NestedScrollView.
-                    builder: (BuildContext context) {
-                      return CustomScrollView(
-                        // The "controller" and "primary" members should be left
-                        // unset, so that the NestedScrollView can control this
-                        // inner scroll view.
-                        // If the "controller" property is set, then this scroll
-                        // view will not be associated with the NestedScrollView.
-                        // The PageStorageKey should be unique to this ScrollView;
-                        // it allows the list to remember its scroll position when
-                        // the tab view is not on the screen.
-                        key: PageStorageKey<String>(name),
-                        slivers: <Widget>[
-                          SliverOverlapInjector(
-                            // This is the flip side of the SliverOverlapAbsorber
-                            // above.
-                            handle:
-                                NestedScrollView.sliverOverlapAbsorberHandleFor(
-                                    context),
-                          ),
-                          SliverPadding(
-                            padding: const EdgeInsets.all(8.0),
-                            // In this example, the inner scroll view has
-                            // fixed-height list items, hence the use of
-                            // SliverFixedExtentList. However, one could use any
-                            // sliver widget here, e.g. SliverList or SliverGrid.
-                            sliver: SliverFixedExtentList(
-                              // The items in this example are fixed to 48 pixels
-                              // high. This matches the Material Design spec for
-                              // ListTile widgets.
-                              itemExtent: 48.0,
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  // This builder is called for each child.
-                                  // In this example, we just number each list item.
-                                  return ListTile(title: Text('Item $index'));
-                                },
-                                // The childCount of the SliverChildBuilderDelegate
-                                // specifies how many children this inner list
-                                // has. In this example, each tab has a list of
-                                // exactly 30 items, but this is arbitrary.
-                                childCount: 30,
+              children: tabs.map((name) {
+                return Builder(
+                  // This Builder is needed to provide a BuildContext that is
+                  // "inside" the NestedScrollView, so that
+                  // sliverOverlapAbsorberHandleFor() can find the
+                  // NestedScrollView.
+                  builder: (BuildContext context) {
+                    return CustomScrollView(
+                      // The PageStorageKey should be unique to this ScrollView;
+                      // it allows the list to remember its scroll position when
+                      // the tab view is not on the screen.
+                      key: PageStorageKey<String>(name),
+                      slivers: <Widget>[
+                        SliverOverlapInjector(
+                          handle:
+                              NestedScrollView.sliverOverlapAbsorberHandleFor(
+                                  context),
+                        ),
+                        SliverToBoxAdapter(
+                          child: SelectionArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: SingleChildScrollView(
+                                child:
+                                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(infoController.bangumiItem.summary),
+                                  Text(infoController.bangumiItem.summary),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                      spacing: 8.0,
+                                      runSpacing: Utils.isDesktop() ? 8 : 0,
+                                      children: List<Widget>.generate(
+                                          infoController.bangumiItem.tags.length, (int index) {
+                                        return Chip(
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text('${infoController.bangumiItem.tags[index].name} '),
+                                              Text(
+                                                '${infoController.bangumiItem.tags[index].count}',
+                                                style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.primary),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList())
+                                ]),
                               ),
                             ),
                           ),
-                        ],
-                      );
-                    },
-                  ),
+                        )
+                      ],
+                    );
+                  },
                 );
               }).toList(),
             ),
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: Text('开始观看'),
+            onPressed: () async {
+              showModalBottomSheet(
+                isScrollControlled: true,
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                    maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                        ? MediaQuery.of(context).size.width * 9 / 16
+                        : MediaQuery.of(context).size.width),
+                clipBehavior: Clip.antiAlias,
+                context: context,
+                builder: (context) {
+                  return const SourceSheet();
+                },
+              );
+            },
           ),
         ),
       ),

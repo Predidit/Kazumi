@@ -30,20 +30,24 @@ class BangumiItem {
   List<String> alias;
   @HiveField(11, defaultValue: 0.0)
   double ratingScore;
+  @HiveField(12, defaultValue: 0)
+  int votes;
 
-  BangumiItem(
-      {required this.id,
-      required this.type,
-      required this.name,
-      required this.nameCn,
-      required this.summary,
-      required this.airDate,
-      required this.airWeekday,
-      required this.rank,
-      required this.images,
-      required this.tags,
-      required this.alias,
-      required this.ratingScore});
+  BangumiItem({
+    required this.id,
+    required this.type,
+    required this.name,
+    required this.nameCn,
+    required this.summary,
+    required this.airDate,
+    required this.airWeekday,
+    required this.rank,
+    required this.images,
+    required this.tags,
+    required this.alias,
+    required this.ratingScore,
+    required this.votes,
+  });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     List<String> parseBangumiAliases(Map<String, dynamic> jsonData) {
@@ -74,28 +78,31 @@ class BangumiItem {
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
     return BangumiItem(
-        id: json['id'],
-        type: json['type'] ?? 2,
-        name: json['name'] ?? '',
-        nameCn: (json['name_cn'] ?? '') == ''
-            ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
-            : json['name_cn'],
-        summary: json['summary'] ?? '',
-        airDate: json['date'] ?? '',
-        airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
-        rank: json['rating']['rank'] ?? 0,
-        images: Map<String, String>.from(
-          json['images'] ??
-              {
-                "large": json['image'],
-                "common": "",
-                "medium": "",
-                "small": "",
-                "grid": ""
-              },
-        ),
-        tags: tagList,
-        alias: bangumiAlias,
-        ratingScore: double.parse((json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)));
+      id: json['id'],
+      type: json['type'] ?? 2,
+      name: json['name'] ?? '',
+      nameCn: (json['name_cn'] ?? '') == ''
+          ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
+          : json['name_cn'],
+      summary: json['summary'] ?? '',
+      airDate: json['date'] ?? '',
+      airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
+      rank: json['rating']['rank'] ?? 0,
+      images: Map<String, String>.from(
+        json['images'] ??
+            {
+              "large": json['image'],
+              "common": "",
+              "medium": "",
+              "small": "",
+              "grid": ""
+            },
+      ),
+      tags: tagList,
+      alias: bangumiAlias,
+      ratingScore: double.parse(
+          (json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)),
+      votes: json['rating']['total'] ?? 0,
+    );
   }
 }

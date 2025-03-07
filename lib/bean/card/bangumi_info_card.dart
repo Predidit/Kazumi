@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 
@@ -62,113 +62,82 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               fadeInDuration: const Duration(milliseconds: 0),
                               fadeOutDuration: const Duration(milliseconds: 0),
                             ),
-                            Positioned(
-                              right: 5,
-                              bottom: 5,
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .secondaryContainer,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: CollectButton(
-                                  bangumiItem: widget.bangumiItem,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSecondaryContainer,
-                                ),
-                              ),
-                            ),
                           ],
                         ),
                       );
                     }),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+                Padding(
+                  padding: const EdgeInsets.only(left: 24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Utils.isCompact()
-                          ? Container()
-                          : const SizedBox(height: 10),
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                FilledButton.tonal(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    side: const BorderSide(
-                                        // width: 2,
-                                        ),
-                                    backgroundColor: Colors.transparent,
-                                  ),
-                                  child: Text('#${widget.bangumiItem.rank}',
-                                      style: style),
-                                ),
-                                Utils.isCompact()
-                                    ? Container()
-                                    : const SizedBox(height: 7),
-                                FilledButton.tonal(
-                                  onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    side: const BorderSide(
-                                        // width: 2,
-                                        ),
-                                    backgroundColor: Colors.transparent,
-                                  ),
-                                  child: Text(
-                                      widget.bangumiItem.ratingScore.toString(),
-                                      style: style),
-                                ),
-                                Utils.isCompact()
-                                    ? Container()
-                                    : const SizedBox(height: 7),
-                                Utils.isCompact()
-                                    ? Container()
-                                    : FilledButton.tonal(
-                                        onPressed: () {},
-                                        style: OutlinedButton.styleFrom(
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          side: const BorderSide(
-                                              // width: 2,
-                                              ),
-                                          backgroundColor: Colors.transparent,
-                                        ),
-                                        child: Text(
-                                            widget.bangumiItem.type == 2
-                                                ? '番剧'
-                                                : '其他',
-                                            style: style),
-                                      ),
-                              ],
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '放送开始:',
+                          ),
+                          Text(
+                            widget.bangumiItem.airDate,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            Utils.isCompact()
-                                ? Container()
-                                : const SizedBox(width: 10),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '${widget.bangumiItem.votes} 人评分:',
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                '${widget.bangumiItem.ratingScore}',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              RatingBarIndicator(
+                                itemCount: 5,
+                                rating:
+                                    widget.bangumiItem.ratingScore.toDouble() /
+                                        2,
+                                itemBuilder: (context, index) => Icon(
+                                  Icons.star_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                itemSize: 20.0,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Bangumi Ranked:',
+                          ),
+                          Text(
+                            '#${widget.bangumiItem.rank}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      CollectButton(
+                        bangumiItem: widget.bangumiItem,
+                        isExtended: true,
                       ),
                     ],
                   ),
                 ),
+                // ),
               ],
             ),
           ),

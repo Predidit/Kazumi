@@ -50,7 +50,7 @@ class _InfoPageState extends State<InfoPage>
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' ||
         infoController.bangumiItem.tags.isEmpty ||
-        infoController.bangumiItem.ratingScore == 0.0) {
+        infoController.bangumiItem.votes == 0) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     keyword = infoController.bangumiItem.nameCn == ''
@@ -236,9 +236,19 @@ class _InfoPageState extends State<InfoPage>
                     ),
                     actions: [
                       if (innerBoxIsScrolled)
-                        CollectButton(bangumiItem: infoController.bangumiItem,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        CollectButton(
+                          bangumiItem: infoController.bangumiItem,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
+                      IconButton(
+                        onPressed: () {
+                          launchUrl(
+                            Uri.parse(
+                                'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
+                          );
+                        },
+                        icon: const Icon(Icons.open_in_browser),
+                      ),
                       SizedBox(width: 8),
                     ],
                     toolbarHeight: kToolbarHeight + 22,
@@ -327,31 +337,37 @@ class _InfoPageState extends State<InfoPage>
                             child: Padding(
                               padding: const EdgeInsets.all(10.0),
                               child: SingleChildScrollView(
-                                child:
-                                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(infoController.bangumiItem.summary),
-                                  Text(infoController.bangumiItem.summary),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                      spacing: 8.0,
-                                      runSpacing: Utils.isDesktop() ? 8 : 0,
-                                      children: List<Widget>.generate(
-                                          infoController.bangumiItem.tags.length, (int index) {
-                                        return Chip(
-                                          label: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text('${infoController.bangumiItem.tags[index].name} '),
-                                              Text(
-                                                '${infoController.bangumiItem.tags[index].count}',
-                                                style: TextStyle(
-                                                    color: Theme.of(context).colorScheme.primary),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(infoController.bangumiItem.summary),
+                                      Text(infoController.bangumiItem.summary),
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                          spacing: 8.0,
+                                          runSpacing: Utils.isDesktop() ? 8 : 0,
+                                          children: List<Widget>.generate(
+                                              infoController.bangumiItem.tags
+                                                  .length, (int index) {
+                                            return Chip(
+                                              label: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                      '${infoController.bangumiItem.tags[index].name} '),
+                                                  Text(
+                                                    '${infoController.bangumiItem.tags[index].count}',
+                                                    style: TextStyle(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .primary),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList())
-                                ]),
+                                            );
+                                          }).toList())
+                                    ]),
                               ),
                             ),
                           ),

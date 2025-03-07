@@ -8,12 +8,14 @@ class CollectButton extends StatefulWidget {
     super.key,
     required this.bangumiItem,
     this.color = Colors.white,
+    this.isExtended = false,
     this.onOpen,
     this.onClose,
   });
 
   final BangumiItem bangumiItem;
   final Color color;
+  final bool isExtended;
   final void Function()? onOpen;
   final void Function()? onClose;
 
@@ -78,19 +80,43 @@ class _CollectButtonState extends State<CollectButton> {
       onOpen: widget.onOpen,
       builder:
           (BuildContext context, MenuController controller, Widget? child) {
-        return IconButton(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          icon: Icon(
-            getIconByInt(collectType),
-            color: widget.color,
-          ),
-        );
+        if (widget.isExtended) {
+          return FilledButton.icon(
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: Padding(
+              padding: EdgeInsets.only(top: 8, bottom: 8, left: 4),
+              child: Icon(
+                getIconByInt(collectType),
+              ),
+            ),
+            label: Padding(
+              padding: EdgeInsets.only(top: 8, bottom: 8),
+              child: Text(
+                getTypeStringByInt(collectType),
+              ),
+            ),
+          );
+        } else {
+          return IconButton(
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: Icon(
+              getIconByInt(collectType),
+              color: widget.color,
+            ),
+          );
+        }
       },
       menuChildren: List<MenuItemButton>.generate(
         6,

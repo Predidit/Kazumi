@@ -5,6 +5,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -204,6 +206,8 @@ class _InfoPageState extends State<InfoPage>
   @override
   Widget build(BuildContext context) {
     final List<String> tabs = <String>['概览', '吐槽', '角色', '制作人员'];
+    final bool showWindowButton = GStorage.setting
+        .get(SettingBoxKey.showWindowButton, defaultValue: false);
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -236,34 +240,49 @@ class _InfoPageState extends State<InfoPage>
                     ),
                     actions: [
                       if (innerBoxIsScrolled)
-                        CollectButton(
-                          bangumiItem: infoController.bangumiItem,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        EmbeddedNativeControlArea(
+                          child: CollectButton(
+                            bangumiItem: infoController.bangumiItem,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      IconButton(
-                        onPressed: () {
-                          launchUrl(
-                            Uri.parse(
-                                'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
-                          );
-                        },
-                        icon: const Icon(Icons.open_in_browser),
+                      EmbeddedNativeControlArea(
+                        child: IconButton(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse(
+                                  'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
+                            );
+                          },
+                          icon: const Icon(Icons.open_in_browser),
+                        ),
                       ),
                       SizedBox(width: 8),
                     ],
-                    toolbarHeight: kToolbarHeight + 22,
+                    toolbarHeight: (Platform.isMacOS && showWindowButton)
+                        ? kToolbarHeight + 22
+                        : kToolbarHeight,
                     stretch: true,
                     centerTitle: false,
-                    expandedHeight:
-                        350 + kTextTabBarHeight + kToolbarHeight + 30,
-                    collapsedHeight: kTextTabBarHeight + kToolbarHeight + 22,
+                    expandedHeight: (Platform.isMacOS && showWindowButton)
+                        ? 350 + kTextTabBarHeight + kToolbarHeight + 22
+                        : 350 + kTextTabBarHeight + kToolbarHeight,
+                    collapsedHeight: (Platform.isMacOS && showWindowButton)
+                        ? kTextTabBarHeight +
+                            kToolbarHeight +
+                            MediaQuery.paddingOf(context).top +
+                            22
+                        : kTextTabBarHeight +
+                            kToolbarHeight +
+                            MediaQuery.paddingOf(context).top,
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
                       background: Stack(
                         children: [
                           if (!Platform.isLinux)
                             Positioned.fill(
-                              bottom: kTextTabBarHeight + 8,
+                              bottom: kTextTabBarHeight,
                               child: IgnorePointer(
                                 child: Container(
                                   color: Theme.of(context)
@@ -272,31 +291,40 @@ class _InfoPageState extends State<InfoPage>
                                   child: Opacity(
                                     opacity: 0.2,
                                     child: LayoutBuilder(
-                                        builder: (context, boxConstraints) {
-                                      return ImageFiltered(
-                                        imageFilter: ImageFilter.blur(
-                                            sigmaX: 15.0, sigmaY: 15.0),
-                                        child: NetworkImgLayer(
-                                          src: infoController.bangumiItem
-                                                  .images['large'] ??
-                                              '',
-                                          width: boxConstraints.maxWidth,
-                                          height: boxConstraints.maxHeight,
-                                          fadeInDuration:
-                                              const Duration(milliseconds: 0),
-                                          fadeOutDuration:
-                                              const Duration(milliseconds: 0),
-                                        ),
-                                      );
-                                    }),
+                                      builder: (context, boxConstraints) {
+                                        return ImageFiltered(
+                                          imageFilter: ImageFilter.blur(
+                                              sigmaX: 15.0, sigmaY: 15.0),
+                                          child: NetworkImgLayer(
+                                            src: infoController.bangumiItem
+                                                    .images['large'] ??
+                                                '',
+                                            width: boxConstraints.maxWidth,
+                                            height: boxConstraints.maxHeight,
+                                            fadeInDuration:
+                                                const Duration(milliseconds: 0),
+                                            fadeOutDuration:
+                                                const Duration(milliseconds: 0),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 78, 16, 0),
-                            child: BangumiInfoCardV(
-                                bangumiItem: infoController.bangumiItem),
+                          SafeArea(
+                            left: false,
+                            right: false,
+                            bottom: false,
+                            child: EmbeddedNativeControlArea(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16, kToolbarHeight, 16, 0),
+                                child: BangumiInfoCardV(
+                                    bangumiItem: infoController.bangumiItem),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -387,7 +415,8 @@ class _InfoPageState extends State<InfoPage>
                 isScrollControlled: true,
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                    maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                    maxWidth: (MediaQuery.sizeOf(context).width >=
+                            LayoutBreakpoint.medium['width']!)
                         ? MediaQuery.of(context).size.width * 9 / 16
                         : MediaQuery.of(context).size.width),
                 clipBehavior: Clip.antiAlias,

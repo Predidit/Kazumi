@@ -18,8 +18,6 @@ class BangumiInfoCardV extends StatefulWidget {
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   @override
   Widget build(BuildContext context) {
-    TextStyle style =
-        TextStyle(fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize);
     return SizedBox(
       height: 350,
       child: Column(
@@ -38,41 +36,44 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: StyleString.imgRadius,
-                    topRight: StyleString.imgRadius,
-                    bottomLeft: StyleString.imgRadius,
-                    bottomRight: StyleString.imgRadius,
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 0.65,
-                    child: LayoutBuilder(builder: (context, boxConstraints) {
-                      final double maxWidth = boxConstraints.maxWidth;
-                      final double maxHeight = boxConstraints.maxHeight;
-                      return Hero(
-                        transitionOnUserGestures: true,
-                        tag: widget.bangumiItem.id,
-                        child: Stack(
-                          children: [
-                            NetworkImgLayer(
-                              src: widget.bangumiItem.images['large'] ?? '',
-                              width: maxWidth,
-                              height: maxHeight,
-                              fadeInDuration: const Duration(milliseconds: 0),
-                              fadeOutDuration: const Duration(milliseconds: 0),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
+                Flexible(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: StyleString.imgRadius,
+                      topRight: StyleString.imgRadius,
+                      bottomLeft: StyleString.imgRadius,
+                      bottomRight: StyleString.imgRadius,
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 0.65,
+                      child: LayoutBuilder(builder: (context, boxConstraints) {
+                        final double maxWidth = boxConstraints.maxWidth;
+                        final double maxHeight = boxConstraints.maxHeight;
+                        return Hero(
+                          transitionOnUserGestures: true,
+                          tag: widget.bangumiItem.id,
+                          child: Stack(
+                            children: [
+                              NetworkImgLayer(
+                                src: widget.bangumiItem.images['large'] ?? '',
+                                width: maxWidth,
+                                height: maxHeight,
+                                fadeInDuration: const Duration(milliseconds: 0),
+                                fadeOutDuration:
+                                    const Duration(milliseconds: 0),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 24),
+                SizedBox(width: 16),
+                Flexible(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,14 +131,16 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                           ),
                         ],
                       ),
-                      CollectButton(
-                        bangumiItem: widget.bangumiItem,
-                        isExtended: true,
+                      SizedBox(
+                        width: 120,
+                        height: 40,
+                        child: CollectButton.extend(
+                          bangumiItem: widget.bangumiItem,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                // ),
               ],
             ),
           ),

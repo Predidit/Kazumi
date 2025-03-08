@@ -4,18 +4,30 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 class CollectButton extends StatefulWidget {
-  const CollectButton({
+  CollectButton({
     super.key,
     required this.bangumiItem,
     this.color = Colors.white,
-    this.isExtended = false,
     this.onOpen,
     this.onClose,
-  });
+  }) {
+    isExtended = false;
+  }
+
+  CollectButton.extend({
+    super.key,
+    required this.bangumiItem,
+    this.color = Colors.white,
+    // this.isExtended = false,
+    this.onOpen,
+    this.onClose,
+  }) {
+    isExtended = true;
+  }
 
   final BangumiItem bangumiItem;
   final Color color;
-  final bool isExtended;
+  late final bool isExtended;
   final void Function()? onOpen;
   final void Function()? onClose;
 
@@ -89,18 +101,8 @@ class _CollectButtonState extends State<CollectButton> {
                 controller.open();
               }
             },
-            icon: Padding(
-              padding: EdgeInsets.only(top: 8, bottom: 8, left: 4),
-              child: Icon(
-                getIconByInt(collectType),
-              ),
-            ),
-            label: Padding(
-              padding: EdgeInsets.only(top: 8, bottom: 8),
-              child: Text(
-                getTypeStringByInt(collectType),
-              ),
-            ),
+            icon: Icon(getIconByInt(collectType)),
+            label: Text(getTypeStringByInt(collectType)),
           );
         } else {
           return IconButton(

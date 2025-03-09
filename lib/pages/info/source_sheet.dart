@@ -235,111 +235,102 @@ class _SourceSheetState extends State<SourceSheet>
                 IconButton(
                   onPressed: () {
                     int currentIndex = widget.tabController.index;
-                    KazumiDialog.show(builder: (context) {
-                      return AlertDialog(
-                        title: const Text('退出确认'),
-                        content: const Text('您想要离开 Kazumi 并在浏览器中打开此视频源吗？'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => KazumiDialog.dismiss(),
-                              child: const Text('取消')),
-                          TextButton(
-                              onPressed: () {
-                                KazumiDialog.dismiss();
-                                launchUrl(Uri.parse(pluginsController
-                                    .pluginList[currentIndex].baseUrl));
-                              },
-                              child: const Text('确认')),
-                        ],
-                      );
-                    });
+                    launchUrl(Uri.parse(pluginsController
+                        .pluginList[currentIndex].searchURL
+                        .replaceFirst('@keyword', keyword)));
                   },
                   icon: const Icon(Icons.open_in_browser),
                 ),
                 const SizedBox(width: 4),
               ],
             ),
-            const Divider(height: 0),
+            const Divider(height: 1),
             Expanded(
               child: Observer(
                 builder: (context) => TabBarView(
                   controller: widget.tabController,
-                  children: List.generate(
-                      pluginsController.pluginList.length, (pluginIndex) {
+                  children: List.generate(pluginsController.pluginList.length,
+                      (pluginIndex) {
                     var plugin = pluginsController.pluginList[pluginIndex];
                     var cardList = <Widget>[];
                     for (var searchResponse
-                    in infoController.pluginSearchResponseList) {
+                        in infoController.pluginSearchResponseList) {
                       if (searchResponse.pluginName == plugin.name) {
                         for (var searchItem in searchResponse.data) {
-                          cardList.add(Card(
-                            color: Colors.transparent,
-                            child: ListTile(
-                              tileColor: Colors.transparent,
-                              title: Text(searchItem.name),
-                              onTap: () async {
-                                KazumiDialog.showLoading(msg: '获取中');
-                                videoPageController.currentPlugin = plugin;
-                                videoPageController.title = searchItem.name;
-                                videoPageController.src = searchItem.src;
-                                try {
-                                  await infoController.queryRoads(
-                                      searchItem.src, plugin.name);
-                                  KazumiDialog.dismiss();
-                                  Modular.to.pushNamed('/video/');
-                                } catch (e) {
-                                  KazumiLogger()
-                                      .log(Level.error, e.toString());
-                                  KazumiDialog.dismiss();
-                                }
-                              },
+                          cardList.add(
+                            Card(
+                              elevation: 0,
+                              margin: const EdgeInsets.only(
+                                  left: 10, right: 10, top: 10),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () async {
+                                  KazumiDialog.showLoading(msg: '获取中');
+                                  videoPageController.currentPlugin = plugin;
+                                  videoPageController.title = searchItem.name;
+                                  videoPageController.src = searchItem.src;
+                                  try {
+                                    await infoController.queryRoads(
+                                        searchItem.src, plugin.name);
+                                    KazumiDialog.dismiss();
+                                    Modular.to.pushNamed('/video/');
+                                  } catch (e) {
+                                    KazumiLogger()
+                                        .log(Level.error, e.toString());
+                                    KazumiDialog.dismiss();
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Text(searchItem.name),
+                                ),
+                              ),
                             ),
-                          ));
+                          );
                         }
                       }
                     }
                     return infoController.pluginSearchStatus[plugin.name] ==
-                        'pending'
+                            'pending'
                         ? const Center(child: CircularProgressIndicator())
                         : (infoController.pluginSearchStatus[plugin.name] ==
-                        'error'
-                        ? GeneralErrorWidget(
-                      errMsg:
-                      '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                      actions: [
-                        GeneralErrorButton(
-                          onPressed: () {
-                            queryManager.querySource(
-                                keyword, plugin.name);
-                          },
-                          text: '重试',
-                        ),
-                      ],
-                    )
-                        : cardList.isEmpty
-                        ? GeneralErrorWidget(
-                      errMsg:
-                      '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-                      actions: [
-                        GeneralErrorButton(
-                          onPressed: () {
-                            showAliasSearchDialog(
-                              plugin.name,
-                            );
-                          },
-                          text: '别名检索',
-                        ),
-                        GeneralErrorButton(
-                          onPressed: () {
-                            showCustomSearchDialog(
-                              plugin.name,
-                            );
-                          },
-                          text: '手动检索',
-                        ),
-                      ],
-                    )
-                        : ListView(children: cardList));
+                                'error'
+                            ? GeneralErrorWidget(
+                                errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                actions: [
+                                  GeneralErrorButton(
+                                    onPressed: () {
+                                      queryManager.querySource(
+                                          keyword, plugin.name);
+                                    },
+                                    text: '重试',
+                                  ),
+                                ],
+                              )
+                            : cardList.isEmpty
+                                ? GeneralErrorWidget(
+                                    errMsg:
+                                        '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+                                    actions: [
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          showAliasSearchDialog(
+                                            plugin.name,
+                                          );
+                                        },
+                                        text: '别名检索',
+                                      ),
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          showCustomSearchDialog(
+                                            plugin.name,
+                                          );
+                                        },
+                                        text: '手动检索',
+                                      ),
+                                    ],
+                                  )
+                                : ListView(children: cardList));
                   }),
                 ),
               ),

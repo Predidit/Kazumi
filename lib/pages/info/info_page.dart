@@ -281,12 +281,17 @@ class _InfoPageState extends State<InfoPage>
               showModalBottomSheet(
                 isScrollControlled: true,
                 constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+                    maxHeight: (MediaQuery.sizeOf(context).height >=
+                            LayoutBreakpoint.compact['height']!)
+                        ? MediaQuery.of(context).size.height * 3 / 4
+                        : MediaQuery.of(context).size.height,
                     maxWidth: (MediaQuery.sizeOf(context).width >=
                             LayoutBreakpoint.medium['width']!)
                         ? MediaQuery.of(context).size.width * 9 / 16
                         : MediaQuery.of(context).size.width),
                 clipBehavior: Clip.antiAlias,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                showDragHandle: true,
                 context: context,
                 builder: (context) {
                   return SourceSheet(tabController: tabController);

@@ -50,6 +50,7 @@ class _VideoPageState extends State<VideoPage>
   late GridObserverController observerController;
   late AnimationController animation;
   late Animation<Offset> _rightOffsetAnimation;
+  late Animation<double> _maskOpacityAnimation;
   late TabController tabController;
 
   // 当前播放列表
@@ -78,7 +79,7 @@ class _VideoPageState extends State<VideoPage>
     tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 120),
       vsync: this,
     );
     _rightOffsetAnimation = Tween<Offset>(
@@ -86,7 +87,14 @@ class _VideoPageState extends State<VideoPage>
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
       parent: animation,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,
+    ));
+    _maskOpacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeIn,
     ));
     videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
@@ -229,7 +237,7 @@ class _VideoPageState extends State<VideoPage>
 
   void closeTabBodyAnimated() {
     animation.reverse();
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 120), () {
       videoPageController.showTabBody = false;
     });
     keyboardFocus.requestFocus();
@@ -403,12 +411,27 @@ class _VideoPageState extends State<VideoPage>
 
                     // when is wideScreen, show tabBody on the right side with SlideTransition
                     if (isWideScreen && videoPageController.showTabBody) ...[
-                      GestureDetector(
-                        onTap: closeTabBodyAnimated,
-                        child: Container(
-                          color: Colors.black38,
-                          width: double.infinity,
-                          height: double.infinity,
+                      FadeTransition(
+                        opacity: _maskOpacityAnimation,
+                        child: GestureDetector(
+                          onTap: closeTabBodyAnimated,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  /// Don't use Colors.black.withValues(alpha: 0x80) here,
+                                  /// You will get completely black background on some android devices.
+                                  /// Seems that it's a bug of flutter impeller. (flutter v3.29.2)
+                                  Colors.black.withOpacity(0.5),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                            width: double.infinity,
+                            height: double.infinity,
+                          ),
                         ),
                       ),
                       SlideTransition(

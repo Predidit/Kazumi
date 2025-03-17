@@ -421,10 +421,7 @@ class _VideoPageState extends State<VideoPage>
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                                 colors: [
-                                  /// Don't use Colors.black.withValues(alpha: 0x80) here,
-                                  /// You will get completely black background on some android devices.
-                                  /// Seems that it's a bug of flutter impeller. (flutter v3.29.2)
-                                  Colors.black.withOpacity(0.5),
+                                  Colors.black.withValues(alpha: 0.5),
                                   Colors.transparent,
                                 ],
                               ),

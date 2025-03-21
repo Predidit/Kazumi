@@ -43,7 +43,14 @@ body:
     attributes:
       label: 日志信息
       description: 请在 “我的 - 关于 - 错误日志” 界面复制错误日志，并粘贴在这里。
-      render: shell
+      value: |
+        <details open><summary>Log</summary>
+
+        ```shell
+        [在此处粘贴你的日志]
+        ```
+
+        </details>
     validations:
       required: true
   - type: checkboxes

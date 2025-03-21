@@ -10,8 +10,10 @@
           - ready_for_review
         paths-ignore:
           - 'static/**'
-          - 'README.md'
+          - '**.md'
           - '.gitignore'
+          - '.github/ISSUE_TEMPLATE/**'
+          - 'fastlane/**'
       workflow_dispatch:
         inputs:
           logLevel:

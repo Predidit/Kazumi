@@ -4,9 +4,11 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:logger/logger.dart';
 
 class ApiInterceptor extends Interceptor {
   static Box setting = GStorage.setting;
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     // Github mirror
@@ -28,11 +30,11 @@ class ApiInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     String url = err.requestOptions.uri.toString();
-    if (!url.contains('heartBeat') && err.requestOptions.extra['customError'] != '') {
+    if (!url.contains('heartBeat') &&
+        err.requestOptions.extra['customError'] != '') {
       if (err.requestOptions.extra['customError'] == null) {
-        KazumiDialog.showToast(
-          message: await dioError(err),
-        );
+        final errCode = await dioError(err);
+        Logger().log(Level.error, errCode);
       } else {
         KazumiDialog.showToast(
           message: err.requestOptions.extra['customError'],

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -19,6 +20,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/utils/syncplay.dart';
 
 part 'player_controller.g.dart';
 
@@ -27,6 +29,7 @@ class PlayerController = _PlayerController with _$PlayerController;
 abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final InfoController infoController = Modular.get<InfoController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
 
   // 弹幕控制
@@ -35,6 +38,9 @@ abstract class _PlayerController with Store {
   Map<int, List<Danmaku>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
+
+  // 一起看控制器
+  SyncplayClient? syncplayController;
 
   /// 视频比例类型
   /// 1. AUTO
@@ -142,7 +148,7 @@ abstract class _PlayerController with Store {
     duration = Duration.zero;
     completed = false;
     try {
-      await dispose();
+      await dispose(disposeSyncPlayController: false);
     } catch (_) {}
     int episodeFromTitle = 0;
     try {
@@ -172,6 +178,9 @@ abstract class _PlayerController with Store {
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
+    if (syncplayController?.isConnected ?? false) {
+      setSyncPlayPlayingBangumi();
+    }
   }
 
   Future<Player> createVideoController({int offset = 0}) async {
@@ -345,7 +354,13 @@ abstract class _PlayerController with Store {
     playing = true;
   }
 
-  Future<void> dispose() async {
+  Future<void> dispose({bool disposeSyncPlayController = true}) async {
+    if (disposeSyncPlayController) {
+      try {
+        await syncplayController?.disconnect();
+        syncplayController = null;
+      } catch (_) {}
+    }
     try {
       await playerLogSubscription?.cancel();
     } catch (_) {}
@@ -398,6 +413,67 @@ abstract class _PlayerController with Store {
           danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
       danmakuList.add(element);
       danDanmakus[element.time.toInt()] = danmakuList;
+    }
+  }
+
+  Future<void> createSyncPlayRoom(String room, String username) async {
+    await syncplayController?.disconnect();
+    syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
+    try {
+      await syncplayController!.connect();
+      syncplayController!.onMessage.listen(
+        (message) {
+          if (message is SetMessage) {
+            print('SyncPlay: Filename changed: ${message.name}');
+          }
+          if (message is StateMessage) {
+            print('SyncPlay: Position updated: ${message.position}');
+          }
+          if (message is HelloMessage) {
+            print('SyncPlay: Hello message received: ${message.username}');
+          }
+        },
+        onError: (error) {
+          print('SyncPlay: error: ${error.message}');
+        },
+      );
+      await syncplayController!.sendMessage(HelloMessage(
+        username: username,
+        version: '1.7.0',
+        room: room,
+      ));
+      await setSyncPlayPlayingBangumi();
+    } catch (e) {
+      print('SyncPlay: error: $e');
+    }
+  }
+
+  Future<void> setSyncPlayPlayingBangumi() async {
+    await syncplayController!.sendMessage(SetMessage(
+        duration: 14400,
+        name:
+            "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
+        size: 220514438));
+  }
+
+  Future<void> sendSyncPlayTestMessage() async {
+    if (syncplayController == null) {
+      print('SyncPlay: please create a room first');
+      KazumiDialog.showToast(message: 'SyncPlay: please create a room first');
+      return;
+    }
+    if (!syncplayController!.isConnected) {
+      print('SyncPlay: Socket is closed, please create or join a room again');
+      KazumiDialog.showToast(
+          message:
+              'SyncPlay: Socket is closed, please create or join a room again');
+      return;
+    }
+    try {
+      await syncplayController!
+          .sendMessage(StateMessage(position: 55, paused: false));
+    } catch (e) {
+      print('Error: $e');
     }
   }
 }

@@ -214,6 +214,79 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     });
   }
 
+  void showSyncPlayRoomCreateDialog() {
+    final formKey = GlobalKey<FormState>();
+    final TextEditingController roomController = TextEditingController();
+    final TextEditingController usernameController = TextEditingController();
+    KazumiDialog.show(builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('创建房间'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: roomController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '房间号',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '请输入房间号';
+                  }
+                  final regex = RegExp(r'^[0-9]{6,10}$');
+                  if (!regex.hasMatch(value)) {
+                    return '房间号需要6到10位数字';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: usernameController,
+                decoration: const InputDecoration(
+                  labelText: '用户名',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '请输入用户名';
+                  }
+                  final regex = RegExp(r'^[a-zA-Z]{4,12}$');
+                  if (!regex.hasMatch(value)) {
+                    return '用户名必须为4到12位英文字符';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              KazumiDialog.dismiss();
+            },
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                debugPrint('SyncPlay: room: ${roomController.text}');
+                debugPrint('SyncPlay: username: ${usernameController.text}');
+                KazumiDialog.dismiss();
+                playerController.createSyncPlayRoom(
+                    roomController.text, usernameController.text);
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      );
+    });
+  }
+
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
       String input = "";
@@ -956,6 +1029,58 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 ],
                                 if (!playerController.danmakuOn) const Spacer(),
                               ],
+                              /// 一起看 (未完成)
+                              // MenuAnchor(
+                              //   consumeOutsideTap: true,
+                              //   onOpen: () {
+                              //     widget.cancelHideTimer();
+                              //     playerController.canHidePlayerPanel = false;
+                              //   },
+                              //   onClose: () {
+                              //     widget.cancelHideTimer();
+                              //     widget.startHideTimer();
+                              //     playerController.canHidePlayerPanel = true;
+                              //   },
+                              //   builder: (BuildContext context,
+                              //       MenuController controller, Widget? child) {
+                              //     return TextButton(
+                              //       onPressed: () {
+                              //         if (controller.isOpen) {
+                              //           controller.close();
+                              //         } else {
+                              //           controller.open();
+                              //         }
+                              //       },
+                              //       child: const Text(
+                              //         '一起看',
+                              //         style: TextStyle(color: Colors.white),
+                              //       ),
+                              //     );
+                              //   },
+                              //   menuChildren: [
+                              //     MenuItemButton(
+                              //       onPressed: () {
+                              //         showSyncPlayRoomCreateDialog();
+                              //       },
+                              //       child: const Padding(
+                              //         padding:
+                              //             EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              //         child: Text("创建房间"),
+                              //       ),
+                              //     ),
+                              //     MenuItemButton(
+                              //       onPressed: () async {
+                              //         await playerController
+                              //             .sendSyncPlayTestMessage();
+                              //       },
+                              //       child: const Padding(
+                              //         padding:
+                              //             EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              //         child: Text("发送测试消息"),
+                              //       ),
+                              //     ),
+                              //   ],
+                              // ),
                               // 超分辨率
                               MenuAnchor(
                                 consumeOutsideTap: true,

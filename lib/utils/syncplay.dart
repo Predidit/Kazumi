@@ -62,24 +62,47 @@ class HelloMessage extends SyncplayMessage {
 class StateMessage extends SyncplayMessage {
   final double position;
   final bool paused;
+  final bool doSeek;
+  final String setBy;
+
+  // syncplay controll message
+  final bool clientAck;
+  final bool serverAck;
+
+  // latency calculation
+  double? latencyCalculation;
 
   StateMessage({
     required this.position,
     required this.paused,
+    required this.setBy,
+    this.doSeek = false,
+    this.clientAck = false,
+    this.serverAck = false,
+    this.latencyCalculation,
   });
 
   @override
   Map<String, dynamic> toJson() => {
         'State': {
+          if (clientAck || serverAck)
+            'ignoringOnTheFly': {
+              if (clientAck) 'client': 1,
+              if (serverAck) 'server': 1,
+            },
           'ping': {
             'clientRtt': 0,
             'clientLatencyCalculation':
                 DateTime.now().millisecondsSinceEpoch / 1000.0,
             // 'latencyCalculation':
             //     DateTime.now().millisecondsSinceEpoch / 1000.0,
+            if (latencyCalculation != null)
+              'latencyCalculation': latencyCalculation,
             'playstate': {
               'position': position,
               'paused': paused,
+              'setBy': setBy,
+              'doSeek': doSeek,
             },
           }
         },
@@ -89,6 +112,10 @@ class StateMessage extends SyncplayMessage {
     return StateMessage(
       position: json['State']['playstate']['position']?.toDouble() ?? 0.0,
       paused: json['State']['playstate']['paused'] ?? true,
+      setBy: json['State']['playstate']['setBy'] ?? '',
+      doSeek: json['State']['playstate']['doSeek'] ?? false,
+      latencyCalculation:
+          json['State']['ping']['clientLatencyCalculation']?.toDouble() ?? 0.0,
     );
   }
 }
@@ -97,11 +124,15 @@ class SetMessage extends SyncplayMessage {
   final double duration;
   final String name;
   final int size;
+  final String setBy;
+  final String room;
 
   SetMessage({
     required this.duration,
     required this.name,
     required this.size,
+    required this.setBy,
+    required this.room,
   });
 
   @override
@@ -111,23 +142,42 @@ class SetMessage extends SyncplayMessage {
             'duration': duration,
             'name': name,
             'size': size,
+          },
+          "user": {
+            setBy: {
+              "room": {"name": room},
+            },
           }
         },
       };
 
   static SetMessage fromJson(Map<String, dynamic> json) {
-    var fileData = json['Set']?['file'];
+    var userData = json['Set']?['user'];
+    if (userData == null) {
+      return SetMessage(
+        duration: 0.0,
+        name: '',
+        size: 0,
+        setBy: '',
+        room: '',
+      );
+    }
+    var fileData = userData[userData.keys.first]?['file'];
     if (fileData == null) {
       return SetMessage(
         duration: 0.0,
         name: '',
         size: 0,
+        setBy: '',
+        room: '',
       );
     }
     return SetMessage(
       duration: fileData['duration']?.toDouble() ?? 0.0,
       name: fileData['name'] ?? '',
       size: fileData['size'] ?? 0,
+      setBy: userData.keys.first,
+      room: userData[userData.keys.first]['room']['name'] ?? '',
     );
   }
 }
@@ -136,11 +186,19 @@ class SyncplayClient {
   final String _host;
   final int _port;
   Socket? _socket;
+  String? _username;
+  String? _currentRoom;
+  double _currentPositon = 0.0;
+  bool _isPaused = true;
+  bool _isLocked = false;
   StreamController<SyncplayMessage>? _messageController =
       StreamController.broadcast();
   Timer? _heartbeatTimer;
+  double? _lastLatencyCalculation;
 
   bool get isConnected => _socket != null;
+  String? get username => _username;
+  String? get currentRoom => _currentRoom;
   Stream<SyncplayMessage> get onMessage {
     _messageController ??= StreamController.broadcast();
     return _messageController!.stream;
@@ -166,6 +224,18 @@ class SyncplayClient {
       throw SyncplayConnectionException(
           'SyncPlay: connection failed: ${e.message}');
     }
+  }
+
+  void setPosition(double position) {
+    _currentPositon = position;
+  }
+
+  void setPaused(bool paused) {
+    _isPaused = paused;
+  }
+
+  void setLocked(bool locked) {
+    _isLocked = locked;
   }
 
   void _setupSocketHandlers() {
@@ -200,7 +270,12 @@ class SyncplayClient {
           try {
             print('SyncPlay: received message: $jsonStr');
             final message = _parseMessage(json.decode(jsonStr));
-            _messageController?.add(message);
+            if (!_isLocked) {
+              _messageController?.add(message);
+            } else {
+              print(
+                  'SyncPlay: received message is blocked due to unsolved message, not adding: ${message.toJson()}');
+            }
           } catch (e) {
             _messageController?.addError(
               SyncplayProtocolException(
@@ -225,6 +300,13 @@ class SyncplayClient {
     if (json.containsKey('Hello')) {
       return HelloMessage.fromJson(json);
     } else if (json.containsKey('State')) {
+      if (json['State'].containsKey('ignoringOnTheFly')) {
+        sendSyncPlaySyncRequestAck();
+      }
+      if (json['State'].containsKey('ping')) {
+        _lastLatencyCalculation =
+            json['State']['ping']['clientLatencyCalculation']?.toDouble();
+      }
       return StateMessage.fromJson(json);
     } else if (json.containsKey('Set')) {
       return SetMessage.fromJson(json);
@@ -233,7 +315,77 @@ class SyncplayClient {
     }
   }
 
-  Future<void> sendMessage(SyncplayMessage message) async {
+  Future<void> joinRoom(String room, String username) async {
+    if (_socket == null) {
+      throw SyncplayConnectionException('SyncPlay: not connected to server');
+    }
+    await sendMessage(HelloMessage(
+      username: username,
+      version: '1.7.0',
+      room: room,
+    ));
+    _username = username;
+    _currentRoom = room;
+  }
+
+  Future<void> setSyncPlayPlaying(
+      String bangumiName, double duration, int size) async {
+    if (_socket == null) {
+      throw SyncplayConnectionException('SyncPlay: not connected to server');
+    }
+    if (_currentRoom == null || _username == null) {
+      throw SyncplayProtocolException('SyncPlay: not in a room');
+    }
+    await sendMessage(SetMessage(
+        duration: duration,
+        name: bangumiName,
+        size: size,
+        setBy: _username ?? '',
+        room: _currentRoom ?? ''));
+  }
+
+  Future<void> sendSyncPlaySyncRequest() async {
+    if (_socket == null) {
+      throw SyncplayConnectionException('SyncPlay: not connected to server');
+    }
+    if (_currentRoom == null || _username == null) {
+      throw SyncplayProtocolException('SyncPlay: not in a room');
+    }
+    await sendMessage(StateMessage(
+        position: _currentPositon,
+        paused: _isPaused,
+        setBy: _username ?? '',
+        doSeek: true,
+        latencyCalculation: _lastLatencyCalculation,
+        clientAck: true));
+    setLocked(true);
+  }
+
+  Future<void> sendSyncPlaySyncRequestAck() async {
+    if (_socket == null) {
+      throw SyncplayConnectionException('SyncPlay: not connected to server');
+    }
+    if (_currentRoom == null || _username == null) {
+      throw SyncplayProtocolException('SyncPlay: not in a room');
+    }
+    await sendMessage(
+        StateMessage(
+            position: _currentPositon,
+            paused: _isPaused,
+            setBy: _username ?? '',
+            latencyCalculation: _lastLatencyCalculation,
+            serverAck: true),
+        force: true);
+    setLocked(false);
+  }
+
+  Future<void> sendMessage(SyncplayMessage message,
+      {bool force = false}) async {
+    if (_isLocked && !force) {
+      print(
+          'SyncPlay: sending message is blocked due to unsolved message, not sending: ${message.toJson()}');
+      return;
+    }
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
     print('SyncPlay: sending message: $jsonStr');
@@ -248,7 +400,11 @@ class SyncplayClient {
   }
 
   SyncplayMessage _createHeartbeat() {
-    return StateMessage(position: 0.0, paused: true);
+    return StateMessage(
+        position: _currentPositon,
+        paused: _isPaused,
+        latencyCalculation: _lastLatencyCalculation,
+        setBy: _username ?? '');
   }
 
   Future<void> disconnect() async {
@@ -259,5 +415,10 @@ class SyncplayClient {
     _heartbeatTimer = null;
     await _socket?.close();
     _socket = null;
+    _currentRoom = null;
+    _username = null;
+    _currentPositon = 0.0;
+    _isPaused = true;
+    _lastLatencyCalculation = null;
   }
 }

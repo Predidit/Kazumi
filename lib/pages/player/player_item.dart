@@ -380,6 +380,8 @@ class _PlayerItemState extends State<PlayerItem>
         widget.changeEpisode(videoPageController.currentEpisode + 1,
             currentRoad: videoPageController.currentRoad);
       }
+      // 一起去看相关
+      playerController.setSyncPlayCurrentPosition();
     });
   }
 

@@ -339,6 +339,10 @@ abstract class _PlayerController with Store {
   Future<void> seek(Duration duration) async {
     currentPosition = duration;
     danmakuController.clear();
+    if (syncplayController != null) {
+      setSyncPlayCurrentPosition();
+      requestSyncPlaySync();
+    }
     await mediaPlayer.seek(duration);
   }
 
@@ -346,12 +350,20 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer.pause();
     playing = false;
+    if (syncplayController != null) {
+      setSyncPlayCurrentPosition();
+      await requestSyncPlaySync();
+    }
   }
 
   Future<void> play() async {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
+    if (syncplayController != null) {
+      setSyncPlayCurrentPosition();
+      await requestSyncPlaySync();
+    }
   }
 
   Future<void> dispose({bool disposeSyncPlayController = true}) async {
@@ -424,10 +436,14 @@ abstract class _PlayerController with Store {
       syncplayController!.onMessage.listen(
         (message) {
           if (message is SetMessage) {
-            print('SyncPlay: Filename changed: ${message.name}');
+            if (message.name != '') {
+              print(
+                  'SyncPlay: Filename changed by ${message.setBy}: ${message.name}');
+            }
           }
           if (message is StateMessage) {
-            print('SyncPlay: Position updated: ${message.position}');
+            print(
+                'SyncPlay: Position updated by ${message.setBy}: ${message.position}');
           }
           if (message is HelloMessage) {
             print('SyncPlay: Hello message received: ${message.username}');
@@ -437,23 +453,31 @@ abstract class _PlayerController with Store {
           print('SyncPlay: error: ${error.message}');
         },
       );
-      await syncplayController!.sendMessage(HelloMessage(
-        username: username,
-        version: '1.7.0',
-        room: room,
-      ));
+      await syncplayController!.joinRoom(room, username);
       await setSyncPlayPlayingBangumi();
     } catch (e) {
       print('SyncPlay: error: $e');
     }
   }
 
+  void setSyncPlayCurrentPosition() {
+    if (syncplayController == null) {
+      return;
+    }
+    syncplayController!.setPaused(!playing);
+    syncplayController!
+        .setPosition(currentPosition.inMilliseconds.toDouble() / 1000);
+  }
+
   Future<void> setSyncPlayPlayingBangumi() async {
-    await syncplayController!.sendMessage(SetMessage(
-        duration: 14400,
-        name:
-            "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
-        size: 220514438));
+    await syncplayController!.setSyncPlayPlaying(
+        "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
+        14400,
+        220514438);
+  }
+
+  Future<void> requestSyncPlaySync() async {
+    await syncplayController!.sendSyncPlaySyncRequest();
   }
 
   Future<void> sendSyncPlayTestMessage() async {
@@ -470,8 +494,8 @@ abstract class _PlayerController with Store {
       return;
     }
     try {
-      await syncplayController!
-          .sendMessage(StateMessage(position: 55, paused: false));
+      await syncplayController!.sendMessage(
+          StateMessage(position: 55, paused: false, setBy: 'test'));
     } catch (e) {
       print('Error: $e');
     }

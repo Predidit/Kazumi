@@ -62,7 +62,7 @@ class HelloMessage extends SyncplayMessage {
 class StateMessage extends SyncplayMessage {
   final double position;
   final bool paused;
-  final bool doSeek;
+  final bool? doSeek;
   final String setBy;
 
   // syncplay controll message
@@ -77,7 +77,7 @@ class StateMessage extends SyncplayMessage {
     required this.position,
     required this.paused,
     required this.setBy,
-    this.doSeek = false,
+    this.doSeek,
     this.clientAck = false,
     this.serverAck = false,
     required this.clientLatencyCalculation,
@@ -103,7 +103,7 @@ class StateMessage extends SyncplayMessage {
               'position': position,
               'paused': paused,
               'setBy': setBy,
-              'doSeek': doSeek,
+              if (doSeek != null) 'doSeek': doSeek,
             },
           }
         },
@@ -271,7 +271,7 @@ class SyncplayClient {
           final jsonStr = buffer.substring(startIndex, endIndex + 1);
           try {
             print(
-                'SyncPlay: received message [${DateTime.now().millisecondsSinceEpoch / 1000.0}]: $jsonStr');
+                'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
             final message = _parseMessage(json.decode(jsonStr));
             if (!_isLocked) {
               _messageController?.add(message);
@@ -358,9 +358,10 @@ class SyncplayClient {
         position: _currentPositon,
         paused: _isPaused,
         setBy: _username ?? '',
-        doSeek: true,
+        doSeek: null,
         latencyCalculation: _lastLatencyCalculation,
-        clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
+        clientLatencyCalculation:
+            DateTime.now().millisecondsSinceEpoch / 1000.0,
         clientAck: true));
     setLocked(true);
   }
@@ -378,7 +379,8 @@ class SyncplayClient {
             paused: _isPaused,
             setBy: _username ?? '',
             latencyCalculation: _lastLatencyCalculation,
-            clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
+            clientLatencyCalculation:
+                DateTime.now().millisecondsSinceEpoch / 1000.0,
             serverAck: true),
         force: true);
     setLocked(false);
@@ -394,7 +396,7 @@ class SyncplayClient {
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
     print(
-        'SyncPlay: sending message [${DateTime.now().millisecondsSinceEpoch / 1000.0}]: $jsonStr');
+        'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
     _socket?.write('$jsonStr\r\n');
   }
 
@@ -410,7 +412,8 @@ class SyncplayClient {
         position: _currentPositon,
         paused: _isPaused,
         latencyCalculation: _lastLatencyCalculation,
-        clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
+        clientLatencyCalculation:
+            DateTime.now().millisecondsSinceEpoch / 1000.0,
         setBy: _username ?? '');
   }
 

@@ -204,13 +204,13 @@ class _PlayerItemState extends State<PlayerItem>
 
   void handleProgressBarDragStart(ThumbDragDetails details) {
     playerTimer?.cancel();
-    playerController.pause();
+    playerController.pause(enableSync: false);
     hideTimer?.cancel();
     playerController.showVideoController = true;
   }
 
   void handleProgressBarDragEnd() {
-    playerController.play();
+    playerController.play(enableSync: false);
     startHideTimer();
     playerTimer = getPlayerTimer();
   }
@@ -943,7 +943,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   (DragUpdateDetails details) {
                                 playerController.showSeekTime = true;
                                 playerTimer?.cancel();
-                                playerController.pause();
+                                playerController.pause(enableSync: false);
                                 final double scale =
                                     180000 / MediaQuery.sizeOf(context).width;
                                 int ms = (playerController
@@ -957,7 +957,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     Duration(milliseconds: ms);
                               },
                               onHorizontalDragEnd: (_) {
-                                playerController.play();
+                                playerController.play(enableSync: false);
                                 playerController
                                     .seek(playerController.currentPosition);
                                 playerController.canHidePlayerPanel = true;

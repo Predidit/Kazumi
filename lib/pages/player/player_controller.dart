@@ -339,28 +339,28 @@ abstract class _PlayerController with Store {
   Future<void> seek(Duration duration) async {
     currentPosition = duration;
     danmakuController.clear();
-    if (syncplayController != null) {
-      setSyncPlayCurrentPosition();
-      requestSyncPlaySync();
-    }
     await mediaPlayer.seek(duration);
-  }
-
-  Future<void> pause() async {
-    danmakuController.pause();
-    await mediaPlayer.pause();
-    playing = false;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       await requestSyncPlaySync();
     }
   }
 
-  Future<void> play() async {
+  Future<void> pause({bool enableSync = true}) async {
+    danmakuController.pause();
+    await mediaPlayer.pause();
+    playing = false;
+    if (syncplayController != null && enableSync) {
+      setSyncPlayCurrentPosition();
+      await requestSyncPlaySync();
+    }
+  }
+
+  Future<void> play({bool enableSync = true}) async {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
-    if (syncplayController != null) {
+    if (syncplayController != null && enableSync) {
       setSyncPlayCurrentPosition();
       await requestSyncPlaySync();
     }

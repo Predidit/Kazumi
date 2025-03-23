@@ -494,8 +494,13 @@ abstract class _PlayerController with Store {
       return;
     }
     try {
-      await syncplayController!.sendMessage(
-          StateMessage(position: 55, paused: false, setBy: 'test'));
+      await syncplayController!.sendMessage(StateMessage(
+        position: 55,
+        paused: false,
+        setBy: 'test',
+        clientLatencyCalculation:
+            DateTime.now().millisecondsSinceEpoch / 1000.0,
+      ));
     } catch (e) {
       print('Error: $e');
     }

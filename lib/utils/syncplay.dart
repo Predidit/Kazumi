@@ -70,6 +70,7 @@ class StateMessage extends SyncplayMessage {
   final bool serverAck;
 
   // latency calculation
+  double clientLatencyCalculation;
   double? latencyCalculation;
 
   StateMessage({
@@ -79,6 +80,7 @@ class StateMessage extends SyncplayMessage {
     this.doSeek = false,
     this.clientAck = false,
     this.serverAck = false,
+    required this.clientLatencyCalculation,
     this.latencyCalculation,
   });
 
@@ -92,8 +94,7 @@ class StateMessage extends SyncplayMessage {
             },
           'ping': {
             'clientRtt': 0,
-            'clientLatencyCalculation':
-                DateTime.now().millisecondsSinceEpoch / 1000.0,
+            'clientLatencyCalculation': clientLatencyCalculation,
             // 'latencyCalculation':
             //     DateTime.now().millisecondsSinceEpoch / 1000.0,
             if (latencyCalculation != null)
@@ -114,8 +115,9 @@ class StateMessage extends SyncplayMessage {
       paused: json['State']['playstate']['paused'] ?? true,
       setBy: json['State']['playstate']['setBy'] ?? '',
       doSeek: json['State']['playstate']['doSeek'] ?? false,
+      clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
       latencyCalculation:
-          json['State']['ping']['clientLatencyCalculation']?.toDouble() ?? 0.0,
+          json['State']['ping']['latencyCalculation']?.toDouble() ?? 0.0,
     );
   }
 }
@@ -268,7 +270,8 @@ class SyncplayClient {
 
           final jsonStr = buffer.substring(startIndex, endIndex + 1);
           try {
-            print('SyncPlay: received message: $jsonStr');
+            print(
+                'SyncPlay: received message [${DateTime.now().millisecondsSinceEpoch / 1000.0}]: $jsonStr');
             final message = _parseMessage(json.decode(jsonStr));
             if (!_isLocked) {
               _messageController?.add(message);
@@ -305,7 +308,7 @@ class SyncplayClient {
       }
       if (json['State'].containsKey('ping')) {
         _lastLatencyCalculation =
-            json['State']['ping']['clientLatencyCalculation']?.toDouble();
+            json['State']['ping']['latencyCalculation']?.toDouble();
       }
       return StateMessage.fromJson(json);
     } else if (json.containsKey('Set')) {
@@ -357,6 +360,7 @@ class SyncplayClient {
         setBy: _username ?? '',
         doSeek: true,
         latencyCalculation: _lastLatencyCalculation,
+        clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
         clientAck: true));
     setLocked(true);
   }
@@ -374,6 +378,7 @@ class SyncplayClient {
             paused: _isPaused,
             setBy: _username ?? '',
             latencyCalculation: _lastLatencyCalculation,
+            clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
             serverAck: true),
         force: true);
     setLocked(false);
@@ -388,7 +393,8 @@ class SyncplayClient {
     }
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
-    print('SyncPlay: sending message: $jsonStr');
+    print(
+        'SyncPlay: sending message [${DateTime.now().millisecondsSinceEpoch / 1000.0}]: $jsonStr');
     _socket?.write('$jsonStr\r\n');
   }
 
@@ -404,6 +410,7 @@ class SyncplayClient {
         position: _currentPositon,
         paused: _isPaused,
         latencyCalculation: _lastLatencyCalculation,
+        clientLatencyCalculation: DateTime.now().millisecondsSinceEpoch / 1000.0,
         setBy: _username ?? '');
   }
 

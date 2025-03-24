@@ -1027,58 +1027,75 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 ],
                                 if (!playerController.danmakuOn) const Spacer(),
                               ],
+
                               /// 一起看 (未完成)
-                              // MenuAnchor(
-                              //   consumeOutsideTap: true,
-                              //   onOpen: () {
-                              //     widget.cancelHideTimer();
-                              //     playerController.canHidePlayerPanel = false;
-                              //   },
-                              //   onClose: () {
-                              //     widget.cancelHideTimer();
-                              //     widget.startHideTimer();
-                              //     playerController.canHidePlayerPanel = true;
-                              //   },
-                              //   builder: (BuildContext context,
-                              //       MenuController controller, Widget? child) {
-                              //     return TextButton(
-                              //       onPressed: () {
-                              //         if (controller.isOpen) {
-                              //           controller.close();
-                              //         } else {
-                              //           controller.open();
-                              //         }
-                              //       },
-                              //       child: const Text(
-                              //         '一起看',
-                              //         style: TextStyle(color: Colors.white),
-                              //       ),
-                              //     );
-                              //   },
-                              //   menuChildren: [
-                              //     MenuItemButton(
-                              //       onPressed: () {
-                              //         showSyncPlayRoomCreateDialog();
-                              //       },
-                              //       child: const Padding(
-                              //         padding:
-                              //             EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              //         child: Text("创建房间"),
-                              //       ),
-                              //     ),
-                              //     MenuItemButton(
-                              //       onPressed: () async {
-                              //         await playerController
-                              //             .sendSyncPlayTestMessage();
-                              //       },
-                              //       child: const Padding(
-                              //         padding:
-                              //             EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              //         child: Text("发送测试消息"),
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
+                              MenuAnchor(
+                                consumeOutsideTap: true,
+                                onOpen: () {
+                                  widget.cancelHideTimer();
+                                  playerController.canHidePlayerPanel = false;
+                                },
+                                onClose: () {
+                                  widget.cancelHideTimer();
+                                  widget.startHideTimer();
+                                  playerController.canHidePlayerPanel = true;
+                                },
+                                builder: (BuildContext context,
+                                    MenuController controller, Widget? child) {
+                                  return TextButton(
+                                    onPressed: () {
+                                      if (controller.isOpen) {
+                                        controller.close();
+                                      } else {
+                                        controller.open();
+                                      }
+                                    },
+                                    child: const Text(
+                                      '一起看',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  );
+                                },
+                                menuChildren: [
+                                  MenuItemButton(
+                                    child: Padding(
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                      child: Text(
+                                          "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
+                                    ),
+                                  ),
+                                  MenuItemButton(
+                                    child: Padding(
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                      child: Text(
+                                          "网络延时: ${playerController.syncplayClientRtt}ms"),
+                                    ),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () {
+                                      showSyncPlayRoomCreateDialog();
+                                    },
+                                    child: const Padding(
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                      child: Text("加入房间"),
+                                    ),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () async {
+                                      await playerController
+                                          .sendSyncPlayTestMessage();
+                                    },
+                                    child: const Padding(
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                      child: Text("强制同步"),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               // 超分辨率
                               MenuAnchor(
                                 consumeOutsideTap: true,

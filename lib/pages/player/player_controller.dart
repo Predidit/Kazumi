@@ -41,6 +41,10 @@ abstract class _PlayerController with Store {
 
   // 一起看控制器
   SyncplayClient? syncplayController;
+  @observable
+  String syncplayRoom = '';
+  @observable
+  int syncplayClientRtt = 0;
 
   /// 视频比例类型
   /// 1. AUTO
@@ -336,13 +340,15 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future<void> seek(Duration duration) async {
+  Future<void> seek(Duration duration, {bool enableSync = true}) async {
     currentPosition = duration;
     danmakuController.clear();
     await mediaPlayer.seek(duration);
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      await requestSyncPlaySync();
+      if (enableSync) {
+        await requestSyncPlaySync();
+      }
     }
   }
 
@@ -350,9 +356,11 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer.pause();
     playing = false;
-    if (syncplayController != null && enableSync) {
+    if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      await requestSyncPlaySync();
+      if (enableSync) {
+        await requestSyncPlaySync();
+      }
     }
   }
 
@@ -360,15 +368,19 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer.play();
     playing = true;
-    if (syncplayController != null && enableSync) {
+    if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      await requestSyncPlaySync();
+      if (enableSync) {
+        await requestSyncPlaySync();
+      }
     }
   }
 
   Future<void> dispose({bool disposeSyncPlayController = true}) async {
     if (disposeSyncPlayController) {
       try {
+        syncplayRoom = '';
+        syncplayClientRtt = 0;
         await syncplayController?.disconnect();
         syncplayController = null;
       } catch (_) {}
@@ -441,17 +453,64 @@ abstract class _PlayerController with Store {
           print('SyncPlay: error: ${error.message}');
         },
       );
+      syncplayController!.onRoomMessage.listen(
+        (message) {
+          if (message['type'] == 'init') {
+            if (message['username'] == '') {
+              KazumiDialog.showToast(
+                  message: '您是当前房间中的唯一用户',
+                  duration: const Duration(seconds: 5));
+              setSyncPlayPlayingBangumi();
+            } else {
+              KazumiDialog.showToast(
+                  message: '您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
+            }
+          }
+          if (message['type'] == 'left') {
+            KazumiDialog.showToast(
+                message: '${message['username']} 离开了房间',
+                duration: const Duration(seconds: 5));
+          }
+          if (message['type'] == 'joined') {
+            KazumiDialog.showToast(
+                message: '${message['username']} 加入了房间',
+                duration: const Duration(seconds: 5));
+          }
+        },
+      );
       syncplayController!.onFileChangedMessage.listen(
         (message) {
-          print('SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
+          print(
+              'SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
         },
       );
       syncplayController!.onPositionChangedMessage.listen(
         (message) {
-          print('SyncPlay: position changed by ${message['setBy']}: ${message['calculatedPositon']} position: ${message['position']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
+          print(
+              'SyncPlay: position changed by ${message['setBy']}: ${message['calculatedPositon']} position: ${message['position']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
+          syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
+          if ((currentPosition.inMilliseconds -
+                      (message['calculatedPositon'].toDouble() * 1000).toInt())
+                  .abs() >
+              3000) {
+            seek(
+                Duration(
+                    milliseconds:
+                        (message['calculatedPositon'].toDouble() * 1000)
+                            .toInt()),
+                enableSync: false);
+          }
+          if (message['paused'] != playing) {
+            if (message['paused']) {
+              pause(enableSync: false);
+            } else {
+              play(enableSync: false);
+            }
+          }
         },
       );
       await syncplayController!.joinRoom(room, username);
+      syncplayRoom = room;
     } catch (e) {
       print('SyncPlay: error: $e');
     }
@@ -481,13 +540,6 @@ abstract class _PlayerController with Store {
     if (syncplayController == null) {
       print('SyncPlay: please create a room first');
       KazumiDialog.showToast(message: 'SyncPlay: please create a room first');
-      return;
-    }
-    if (!syncplayController!.isConnected) {
-      print('SyncPlay: Socket is closed, please create or join a room again');
-      KazumiDialog.showToast(
-          message:
-              'SyncPlay: Socket is closed, please create or join a room again');
       return;
     }
     try {

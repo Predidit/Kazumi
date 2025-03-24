@@ -172,6 +172,8 @@ class SyncplayClient {
   bool _isLocked = false;
   StreamController<Map<String, dynamic>>? _generalMessageController =
       StreamController.broadcast();
+  StreamController<Map<String, dynamic>>? _roomMessageController =
+      StreamController.broadcast();
   StreamController<Map<String, dynamic>>? _flieChangedMessageController =
       StreamController.broadcast();
   StreamController<Map<String, dynamic>>? _positionChangedMessageController =
@@ -196,6 +198,11 @@ class SyncplayClient {
   Stream<Map<String, dynamic>> get onGeneralMessage {
     _generalMessageController ??= StreamController.broadcast();
     return _generalMessageController!.stream;
+  }
+
+  Stream<Map<String, dynamic>> get onRoomMessage {
+    _roomMessageController ??= StreamController.broadcast();
+    return _roomMessageController!.stream;
   }
 
   Stream<Map<String, dynamic>> get onFileChangedMessage {
@@ -278,8 +285,8 @@ class SyncplayClient {
 
           final jsonStr = buffer.substring(startIndex, endIndex + 1);
           try {
-            // print(
-            //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
+            print(
+                'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
             _handleMessage(json.decode(jsonStr));
           } catch (e) {
             _generalMessageController?.addError(
@@ -327,7 +334,8 @@ class SyncplayClient {
         if (json['State']['ping'].containsKey('serverRtt')) {
           _serverRtt = json['State']['ping']['serverRtt']?.toDouble() ?? 0.0;
         }
-        _updateClientRttAndFd(json['State']["ping"]["clientLatencyCalculation"], _serverRtt);
+        _updateClientRttAndFd(
+            json['State']["ping"]["clientLatencyCalculation"], _serverRtt);
       }
       if (json['State'].containsKey('ignoringOnTheFly')) {
         sendSyncPlaySyncRequestAck();
@@ -340,7 +348,10 @@ class SyncplayClient {
         return;
       }
       _positionChangedMessageController?.add({
-        'calculatedPositon': (json['State']['playstate']['paused'] ?? true) ? (json['State']['playstate']['position']?.toDouble() ?? 0.0) : ((json['State']['playstate']['position']?.toDouble() ?? 0.0) + _fd),
+        'calculatedPositon': (json['State']['playstate']['paused'] ?? true)
+            ? (json['State']['playstate']['position']?.toDouble() ?? 0.0)
+            : ((json['State']['playstate']['position']?.toDouble() ?? 0.0) +
+                _fd),
         'position': json['State']['playstate']['position']?.toDouble() ?? 0.0,
         'paused': json['State']['playstate']['paused'] ?? true,
         'setBy': json['State']['playstate']['setBy'] ?? '',
@@ -351,6 +362,24 @@ class SyncplayClient {
       });
       return;
     } else if (json.containsKey('Set')) {
+      if (json['Set'].containsKey('playlistIndex')) {
+        _roomMessageController?.add({
+          'type': 'init',
+          'username': json['Set']['playlistIndex']['user'] ?? '',
+        });
+        return;
+      }
+      if (json['Set'].containsKey('user')) {
+        Map<String, dynamic> userMap = data['Set']['user'];
+        userMap.forEach((username, details) {
+          var event = details['event'].keys.first ?? 'unknown';
+          _roomMessageController?.add({
+            'type': event,
+            'username': username,
+          });
+        });
+        return;
+      }
       if (!json['Set'].containsKey('file')) {
         return;
       }
@@ -358,12 +387,8 @@ class SyncplayClient {
         return;
       }
       _flieChangedMessageController?.add({
-        'duration': json['Set']['file']['duration']?.toDouble() ?? 0.0,
         'name': json['Set']['file']['name'] ?? '',
-        'size': json['Set']['file']['size'] ?? 0,
-        'setBy': json['Set']['user'].keys.first ?? 'sysytem',
-        'room': json['Set']['user'][json['Set']['user'].keys.first]['room']
-            ['name'],
+        'setBy': json['Set']['user'].keys.first ?? '',
       });
       return;
     } else {
@@ -458,6 +483,8 @@ class SyncplayClient {
     print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
     await _generalMessageController?.close();
     _generalMessageController = null;
+    await _roomMessageController?.close();
+    _roomMessageController = null;
     await _flieChangedMessageController?.close();
     _flieChangedMessageController = null;
     await _positionChangedMessageController?.close();
@@ -487,8 +514,8 @@ class SyncplayClient {
     }
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
-    // print(
-    //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
+    print(
+        'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
     _socket?.write('$jsonStr\r\n');
   }
 

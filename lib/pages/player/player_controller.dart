@@ -433,28 +433,25 @@ abstract class _PlayerController with Store {
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
     try {
       await syncplayController!.connect();
-      syncplayController!.onMessage.listen(
+      syncplayController!.onGeneralMessage.listen(
         (message) {
-          if (message is SetMessage) {
-            if (message.name != '') {
-              print(
-                  'SyncPlay: Filename changed by ${message.setBy}: ${message.name}');
-            }
-          }
-          if (message is StateMessage) {
-            print(
-                'SyncPlay: Position updated by ${message.setBy}: ${message.position}');
-          }
-          if (message is HelloMessage) {
-            print('SyncPlay: Hello message received: ${message.username}');
-          }
+          print('SyncPlay: general message: ${message.toString()}');
         },
         onError: (error) {
           print('SyncPlay: error: ${error.message}');
         },
       );
+      syncplayController!.onFileChangedMessage.listen(
+        (message) {
+          print('SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
+        },
+      );
+      syncplayController!.onPositionChangedMessage.listen(
+        (message) {
+          print('SyncPlay: position changed by ${message['setBy']}: ${message['calculatedPositon']} position: ${message['position']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
+        },
+      );
       await syncplayController!.joinRoom(room, username);
-      await setSyncPlayPlayingBangumi();
     } catch (e) {
       print('SyncPlay: error: $e');
     }
@@ -494,13 +491,7 @@ abstract class _PlayerController with Store {
       return;
     }
     try {
-      await syncplayController!.sendMessage(StateMessage(
-        position: 55,
-        paused: false,
-        setBy: 'test',
-        clientLatencyCalculation:
-            DateTime.now().millisecondsSinceEpoch / 1000.0,
-      ));
+      await setSyncPlayPlayingBangumi();
     } catch (e) {
       print('Error: $e');
     }

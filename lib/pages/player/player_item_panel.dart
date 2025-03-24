@@ -273,8 +273,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           TextButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                debugPrint('SyncPlay: room: ${roomController.text}');
-                debugPrint('SyncPlay: username: ${usernameController.text}');
                 KazumiDialog.dismiss();
                 playerController.createSyncPlayRoom(
                     roomController.text, usernameController.text);

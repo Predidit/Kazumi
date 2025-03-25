@@ -275,7 +275,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               if (formKey.currentState!.validate()) {
                 KazumiDialog.dismiss();
                 playerController.createSyncPlayRoom(
-                    roomController.text, usernameController.text);
+                    roomController.text, usernameController.text, widget.changeEpisode);
               }
             },
             child: const Text('确定'),
@@ -1085,13 +1085,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   ),
                                   MenuItemButton(
                                     onPressed: () async {
-                                      await playerController
-                                          .sendSyncPlayTestMessage();
+                                      await playerController.exitSyncPlayRoom();
                                     },
                                     child: const Padding(
                                       padding:
                                           EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text("强制同步"),
+                                      child: Text("断开连接"),
                                     ),
                                   ),
                                 ],

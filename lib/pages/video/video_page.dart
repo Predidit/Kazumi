@@ -357,7 +357,6 @@ class _VideoPageState extends State<VideoPage>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        debugPrint("checkPoint: didPop: $didPop");
         if (didPop) {
           return;
         }

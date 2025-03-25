@@ -57,11 +57,11 @@ class StateMessage extends SyncplayMessage {
   final double position;
   final bool paused;
   final bool? doSeek;
-  final String setBy;
+  final String? setBy;
 
   // syncplay controll message
-  final bool clientAck;
-  final bool serverAck;
+  final int? clientAck;
+  final int? serverAck;
 
   // latency calculation
   double clientLatencyCalculation;
@@ -71,10 +71,10 @@ class StateMessage extends SyncplayMessage {
   StateMessage({
     required this.position,
     required this.paused,
-    required this.setBy,
+    this.setBy,
     this.doSeek,
-    this.clientAck = false,
-    this.serverAck = false,
+    this.clientAck,
+    this.serverAck,
     required this.clientLatencyCalculation,
     this.latencyCalculation,
     this.clientRtt = 0.0,
@@ -83,10 +83,10 @@ class StateMessage extends SyncplayMessage {
   @override
   Map<String, dynamic> toJson() => {
         'State': {
-          if (clientAck || serverAck)
+          if (clientAck != null || serverAck != null)
             'ignoringOnTheFly': {
-              if (clientAck) 'client': 1,
-              if (serverAck) 'server': 1,
+              if (clientAck != null) 'client': clientAck,
+              if (serverAck != null) 'server': serverAck,
             },
           'ping': {
             'clientRtt': clientRtt,
@@ -97,8 +97,8 @@ class StateMessage extends SyncplayMessage {
           'playstate': {
             'position': position,
             'paused': paused,
-            'setBy': setBy,
-            if (doSeek != null) 'doSeek': doSeek,
+            if (setBy != null) 'setBy': setBy,
+            'doSeek': doSeek,
           },
         },
       };
@@ -167,6 +167,7 @@ class SyncplayClient {
   Socket? _socket;
   String? _username;
   String? _currentRoom;
+  String? _currentFileName;
   double _currentPositon = 0.0;
   bool _isPaused = true;
   bool _isLocked = false;
@@ -190,6 +191,7 @@ class SyncplayClient {
   bool get isConnected => _socket != null;
   String? get username => _username;
   String? get currentRoom => _currentRoom;
+  String? get currentFileName => _currentFileName;
   double get clientRtt => _clientRtt;
   double get serverRtt => _serverRtt;
   double get avgRtt => _avrRtt;
@@ -312,7 +314,7 @@ class SyncplayClient {
     if (json.containsKey('Hello')) {
       if (json['Hello'].containsKey('room') &&
           json['Hello']['room'].containsKey('name')) {
-        _setLocked(false);
+        // _setLocked(false);
         _username = json['Hello']['username'];
         _currentRoom = json['Hello']['room']['name'];
         print(
@@ -338,7 +340,12 @@ class SyncplayClient {
             json['State']["ping"]["clientLatencyCalculation"], _serverRtt);
       }
       if (json['State'].containsKey('ignoringOnTheFly')) {
-        sendSyncPlaySyncRequestAck();
+        _setLocked(true);
+        _sendSyncPlaySyncRequestAck(
+            json['State']['playstate']['position']?.toDouble() ?? 0.0,
+            json['State']['playstate']['paused'] ?? true,
+            null,
+            json['State']['playstate']['doSeek']);
         return;
       }
       if (!json['State'].containsKey('playstate')) {
@@ -367,30 +374,34 @@ class SyncplayClient {
           'type': 'init',
           'username': json['Set']['playlistIndex']['user'] ?? '',
         });
+        _setLocked(false);
         return;
       }
       if (json['Set'].containsKey('user')) {
         Map<String, dynamic> userMap = data['Set']['user'];
         userMap.forEach((username, details) {
+          if (!details.containsKey('event')) {
+            return;
+          }
           var event = details['event'].keys.first ?? 'unknown';
           _roomMessageController?.add({
             'type': event,
             'username': username,
           });
         });
-        return;
+        for (var username in userMap.keys) {
+          var userData = userMap[username];
+          if (userData is Map && userData.containsKey('file')) {
+            var fileData = userData['file'];
+            var fileName = fileData['name'];
+            _currentFileName = fileName;
+            _flieChangedMessageController?.add({
+              'name': fileName,
+              'setBy': username,
+            });
+          }
+        }
       }
-      if (!json['Set'].containsKey('file')) {
-        return;
-      }
-      if (_isLocked) {
-        return;
-      }
-      _flieChangedMessageController?.add({
-        'name': json['Set']['file']['name'] ?? '',
-        'setBy': json['Set']['user'].keys.first ?? '',
-      });
-      return;
     } else {
       throw SyncplayProtocolException('SyncPlay: unknown message ty');
     }
@@ -435,15 +446,16 @@ class SyncplayClient {
     await _sendMessage(StateMessage(
         position: _currentPositon,
         paused: _isPaused,
-        setBy: _username ?? '',
+        setBy: null,
         doSeek: null,
         clientLatencyCalculation:
             DateTime.now().millisecondsSinceEpoch / 1000.0,
-        clientAck: true));
+        clientAck: 1));
     _setLocked(true);
   }
 
-  Future<void> sendSyncPlaySyncRequestAck() async {
+  Future<void> _sendSyncPlaySyncRequestAck(
+      double position, bool paused, String? username, bool? doSeek) async {
     if (_socket == null) {
       throw SyncplayConnectionException('SyncPlay: not connected to server');
     }
@@ -452,13 +464,14 @@ class SyncplayClient {
     }
     await _sendMessage(
         StateMessage(
-            position: _currentPositon,
-            paused: _isPaused,
-            setBy: _username ?? '',
+            position: position,
+            paused: paused,
+            doSeek: doSeek,
+            setBy: username,
             latencyCalculation: _lastLatencyCalculation,
             clientLatencyCalculation:
                 DateTime.now().millisecondsSinceEpoch / 1000.0,
-            serverAck: true),
+            serverAck: 1),
         force: true);
     _setLocked(false);
   }
@@ -470,13 +483,17 @@ class SyncplayClient {
     if (_currentRoom == null || _username == null) {
       throw SyncplayProtocolException('SyncPlay: not in a room');
     }
-    await _sendMessage(SetMessage(
-      setJoined: true,
-      room: _currentRoom,
-    ));
-    await _sendMessage(SetMessage(
-      setReady: true,
-    ));
+    await _sendMessage(
+        SetMessage(
+          setJoined: true,
+          room: _currentRoom,
+        ),
+        force: true);
+    await _sendMessage(
+        SetMessage(
+          setReady: true,
+        ),
+        force: true);
   }
 
   Future<void> disconnect() async {
@@ -491,10 +508,13 @@ class SyncplayClient {
     _positionChangedMessageController = null;
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
-    await _socket?.close();
+    try {
+      await _socket?.close();
+    } catch (_) {}
     _socket = null;
     _currentRoom = null;
     _username = null;
+    _currentFileName = null;
     _currentPositon = 0.0;
     _isPaused = true;
     _lastLatencyCalculation = null;

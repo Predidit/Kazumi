@@ -183,7 +183,9 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
-      setSyncPlayPlayingBangumi();
+      if (syncplayController!.currentFileName != "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
+        setSyncPlayPlayingBangumi();
+      }
     }
   }
 
@@ -261,7 +263,7 @@ abstract class _PlayerController with Store {
         KazumiDialog.showToast(
             message: '播放器内部错误 ${event.toString()} $videoUrl',
             duration: const Duration(seconds: 5),
-            showUndoButton: true);
+            showActionButton: true);
       }
       KazumiLogger().log(
           Level.error, 'Player intent error: ${event.toString()} $videoUrl');
@@ -358,9 +360,9 @@ abstract class _PlayerController with Store {
     playing = false;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      if (enableSync) {
-        await requestSyncPlaySync();
-      }
+      // if (enableSync) {
+      //   await requestSyncPlaySync();
+      // }
     }
   }
 
@@ -370,9 +372,9 @@ abstract class _PlayerController with Store {
     playing = true;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      if (enableSync) {
-        await requestSyncPlaySync();
-      }
+      // if (enableSync) {
+      //   await requestSyncPlaySync();
+      // }
     }
   }
 
@@ -440,7 +442,8 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future<void> createSyncPlayRoom(String room, String username) async {
+  Future<void> createSyncPlayRoom(
+      String room, String username, Function changeEpisode) async {
     await syncplayController?.disconnect();
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
     try {
@@ -451,6 +454,17 @@ abstract class _PlayerController with Store {
         },
         onError: (error) {
           print('SyncPlay: error: ${error.message}');
+          if (error is SyncplayConnectionException) {
+            exitSyncPlayRoom();
+            KazumiDialog.showToast(
+              message: 'SyncPlay: 同步中断 ${error.message}',
+              duration: const Duration(seconds: 5),
+              showActionButton: true,
+              actionLabel: '重新连接',
+              onActionPressed: () =>
+                  createSyncPlayRoom(room, username, changeEpisode),
+            );
+          }
         },
       );
       syncplayController!.onRoomMessage.listen(
@@ -482,30 +496,59 @@ abstract class _PlayerController with Store {
         (message) {
           print(
               'SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
+          RegExp regExp = RegExp(r'(\d+)\[(\d+)\]');
+          Match? match = regExp.firstMatch(message['name']);
+          if (match != null) {
+            int bangumiID = int.tryParse(match.group(1) ?? '0') ?? 0;
+            int episode = int.tryParse(match.group(2) ?? '0') ?? 0;
+            if (bangumiID != 0 &&
+                episode != 0 &&
+                episode != videoPageController.currentEpisode) {
+              KazumiDialog.showToast(
+                  message:
+                      'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到第 $episode 话',
+                  duration: const Duration(seconds: 3));
+              changeEpisode(episode,
+                  currentRoad: videoPageController.currentRoad);
+            }
+          }
         },
       );
       syncplayController!.onPositionChangedMessage.listen(
         (message) {
+          syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
           print(
               'SyncPlay: position changed by ${message['setBy']}: ${message['calculatedPositon']} position: ${message['position']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
-          syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
+          if (message['setBy'] == syncplayController!.username) {
+            return;
+          }
+          if (message['paused'] != !playing) {
+            if (message['paused']) {
+              if (message['position'] != 0) {
+                KazumiDialog.showToast(
+                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 暂停了播放',
+                    duration: const Duration(seconds: 3));
+                pause(enableSync: false);
+              }
+            } else {
+              if (message['position'] != 0) {
+                KazumiDialog.showToast(
+                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 开始了播放',
+                    duration: const Duration(seconds: 3));
+                play(enableSync: false);
+              }
+            }
+          }
           if ((currentPosition.inMilliseconds -
                       (message['calculatedPositon'].toDouble() * 1000).toInt())
                   .abs() >
-              3000) {
+              1500) {
             seek(
                 Duration(
                     milliseconds:
                         (message['calculatedPositon'].toDouble() * 1000)
                             .toInt()),
                 enableSync: false);
-          }
-          if (message['paused'] != playing) {
-            if (message['paused']) {
-              pause(enableSync: false);
-            } else {
-              play(enableSync: false);
-            }
           }
         },
       );
@@ -536,16 +579,13 @@ abstract class _PlayerController with Store {
     await syncplayController!.sendSyncPlaySyncRequest();
   }
 
-  Future<void> sendSyncPlayTestMessage() async {
+  Future<void> exitSyncPlayRoom() async {
     if (syncplayController == null) {
-      print('SyncPlay: please create a room first');
-      KazumiDialog.showToast(message: 'SyncPlay: please create a room first');
       return;
     }
-    try {
-      await setSyncPlayPlayingBangumi();
-    } catch (e) {
-      print('Error: $e');
-    }
+    await syncplayController!.disconnect();
+    syncplayController = null;
+    syncplayRoom = '';
+    syncplayClientRtt = 0;
   }
 }

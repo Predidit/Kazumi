@@ -183,8 +183,10 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
-      if (syncplayController!.currentFileName != "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
-        setSyncPlayPlayingBangumi();
+      if (syncplayController!.currentFileName !=
+          "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
+        setSyncPlayPlayingBangumi(
+            forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
     }
   }
@@ -349,7 +351,7 @@ abstract class _PlayerController with Store {
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
-        await requestSyncPlaySync();
+        await requestSyncPlaySync(doSeek: true);
       }
     }
   }
@@ -360,9 +362,9 @@ abstract class _PlayerController with Store {
     playing = false;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      // if (enableSync) {
-      //   await requestSyncPlaySync();
-      // }
+      if (enableSync) {
+        await requestSyncPlaySync();
+      }
     }
   }
 
@@ -372,9 +374,9 @@ abstract class _PlayerController with Store {
     playing = true;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
-      // if (enableSync) {
-      //   await requestSyncPlaySync();
-      // }
+      if (enableSync) {
+        await requestSyncPlaySync();
+      }
     }
   }
 
@@ -518,10 +520,10 @@ abstract class _PlayerController with Store {
         (message) {
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
           print(
-              'SyncPlay: position changed by ${message['setBy']}: ${message['calculatedPositon']} position: ${message['position']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
-          if (message['setBy'] == syncplayController!.username) {
-            return;
-          }
+              'SyncPlay: position changed by ${message['setBy']}: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] calculatedPosition ${message['calculatedPositon']} position: ${message['position']} doSeek: ${message['doSeek']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
+          // if (message['setBy'] == syncplayController!.username) {
+          //   return;
+          // }
           if (message['paused'] != !playing) {
             if (message['paused']) {
               if (message['position'] != 0) {
@@ -539,10 +541,13 @@ abstract class _PlayerController with Store {
               }
             }
           }
-          if ((currentPosition.inMilliseconds -
-                      (message['calculatedPositon'].toDouble() * 1000).toInt())
-                  .abs() >
-              1500) {
+          if ((((playerPosition.inMilliseconds -
+                              (message['calculatedPositon'].toDouble() * 1000)
+                                  .toInt())
+                          .abs() >
+                      1000) ||
+                  message['doSeek']) &&
+              duration.inMilliseconds > 0) {
             seek(
                 Duration(
                     milliseconds:
@@ -559,24 +564,35 @@ abstract class _PlayerController with Store {
     }
   }
 
-  void setSyncPlayCurrentPosition() {
+  void setSyncPlayCurrentPosition(
+      {bool? forceSyncPlaying, double? forceSyncPosition}) {
     if (syncplayController == null) {
       return;
     }
-    syncplayController!.setPaused(!playing);
-    syncplayController!
-        .setPosition(currentPosition.inMilliseconds.toDouble() / 1000);
+    forceSyncPlaying ??= playing;
+    syncplayController!.setPaused(!forceSyncPlaying);
+    syncplayController!.setPosition((forceSyncPosition ??
+        (((currentPosition.inMilliseconds - playerPosition.inMilliseconds)
+                    .abs() >
+                2000)
+            ? currentPosition.inMilliseconds.toDouble() / 1000
+            : playerPosition.inMilliseconds.toDouble() / 1000)));
   }
 
-  Future<void> setSyncPlayPlayingBangumi() async {
+  Future<void> setSyncPlayPlayingBangumi(
+      {bool? forceSyncPlaying, double? forceSyncPosition}) async {
     await syncplayController!.setSyncPlayPlaying(
         "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
         14400,
         220514438);
+    setSyncPlayCurrentPosition(
+        forceSyncPlaying: forceSyncPlaying,
+        forceSyncPosition: forceSyncPosition);
+    await requestSyncPlaySync();
   }
 
-  Future<void> requestSyncPlaySync() async {
-    await syncplayController!.sendSyncPlaySyncRequest();
+  Future<void> requestSyncPlaySync({bool? doSeek}) async {
+    await syncplayController!.sendSyncPlaySyncRequest(doSeek: doSeek);
   }
 
   Future<void> exitSyncPlayRoom() async {

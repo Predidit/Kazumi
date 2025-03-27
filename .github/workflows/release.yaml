@@ -78,7 +78,7 @@
           - name: Enable Git longpaths
             run: git config --system core.longpaths true
           - name: Set up Flutter
-            uses: subosito/flutter-action@v2
+            uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
@@ -202,7 +202,7 @@
                   unixodbc-dev libpq-dev libxxhash-dev libaom-dev              
             shell: bash
           - name: Set up Flutter
-            uses: subosito/flutter-action@v2
+            uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
@@ -285,7 +285,7 @@
           - name: Echo build progress
             run: echo "Kazumi_ios_${{ env.tag }}.ipa build progress"
           - name: Set up Flutter
-            uses: subosito/flutter-action@v2
+            uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
@@ -321,7 +321,7 @@
           - name: Echo build progress
             run: echo "Kazumi_macos_${{ env.tag }}.dmg build progress"
           - name: Set up Flutter
-            uses: subosito/flutter-action@v2
+            uses: subosito/flutter-action@v2.16.0
             with:
               channel: stable
               flutter-version-file: pubspec.yaml

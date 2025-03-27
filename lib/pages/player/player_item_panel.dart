@@ -37,6 +37,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.cancelHideTimer,
     required this.handleDanmaku,
     required this.showVideoInfo,
+    required this.showSyncPlayRoomCreateDialog,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -54,6 +55,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleDanmaku;
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
+  final void Function() showSyncPlayRoomCreateDialog;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -208,77 +210,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               KazumiDialog.dismiss();
             },
             child: const Text('默认速度'),
-          ),
-        ],
-      );
-    });
-  }
-
-  void showSyncPlayRoomCreateDialog() {
-    final formKey = GlobalKey<FormState>();
-    final TextEditingController roomController = TextEditingController();
-    final TextEditingController usernameController = TextEditingController();
-    KazumiDialog.show(builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('创建房间'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: roomController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '房间号',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入房间号';
-                  }
-                  final regex = RegExp(r'^[0-9]{6,10}$');
-                  if (!regex.hasMatch(value)) {
-                    return '房间号需要6到10位数字';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '请输入用户名';
-                  }
-                  final regex = RegExp(r'^[a-zA-Z]{4,12}$');
-                  if (!regex.hasMatch(value)) {
-                    return '用户名必须为4到12位英文字符';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              KazumiDialog.dismiss();
-            },
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                KazumiDialog.dismiss();
-                playerController.createSyncPlayRoom(
-                    roomController.text, usernameController.text, widget.changeEpisode);
-              }
-            },
-            child: const Text('确定'),
           ),
         ],
       );
@@ -738,7 +669,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   playerController.pause();
                                   RemotePlay()
                                       .castVideo(
-                                          context,
+                                          playerController.videoUrl,
                                           videoPageController
                                               .currentPlugin.referer)
                                       .whenComplete(() {
@@ -749,9 +680,62 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 },
                                 child: const Padding(
                                   padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("远程播放"),
+                                  child: Text("远程投屏"),
                                 ),
                               ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  playerController.lanunchExternalPlayer();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("外部播放"),
+                                ),
+                              ),
+                              SubmenuButton(
+                                  menuChildren: [
+                                    MenuItemButton(
+                                      child: Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text(
+                                            "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
+                                      ),
+                                    ),
+                                    MenuItemButton(
+                                      child: Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text(
+                                            "网络延时: ${playerController.syncplayClientRtt}ms"),
+                                      ),
+                                    ),
+                                    MenuItemButton(
+                                      onPressed: () {
+                                        widget.showSyncPlayRoomCreateDialog();
+                                      },
+                                      child: const Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text("加入房间"),
+                                      ),
+                                    ),
+                                    MenuItemButton(
+                                      onPressed: () async {
+                                        await playerController
+                                            .exitSyncPlayRoom();
+                                      },
+                                      child: const Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text("断开连接"),
+                                      ),
+                                    ),
+                                  ],
+                                  child: const Padding(
+                                      padding:
+                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                      child: Text("一起看"))),
                             ],
                           ),
                         ],
@@ -1027,74 +1011,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 ],
                                 if (!playerController.danmakuOn) const Spacer(),
                               ],
-
-                              /// 一起看 (未完成)
-                              MenuAnchor(
-                                consumeOutsideTap: true,
-                                onOpen: () {
-                                  widget.cancelHideTimer();
-                                  playerController.canHidePlayerPanel = false;
-                                },
-                                onClose: () {
-                                  widget.cancelHideTimer();
-                                  widget.startHideTimer();
-                                  playerController.canHidePlayerPanel = true;
-                                },
-                                builder: (BuildContext context,
-                                    MenuController controller, Widget? child) {
-                                  return TextButton(
-                                    onPressed: () {
-                                      if (controller.isOpen) {
-                                        controller.close();
-                                      } else {
-                                        controller.open();
-                                      }
-                                    },
-                                    child: const Text(
-                                      '一起看',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  );
-                                },
-                                menuChildren: [
-                                  MenuItemButton(
-                                    child: Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text(
-                                          "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
-                                    ),
-                                  ),
-                                  MenuItemButton(
-                                    child: Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text(
-                                          "网络延时: ${playerController.syncplayClientRtt}ms"),
-                                    ),
-                                  ),
-                                  MenuItemButton(
-                                    onPressed: () {
-                                      showSyncPlayRoomCreateDialog();
-                                    },
-                                    child: const Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text("加入房间"),
-                                    ),
-                                  ),
-                                  MenuItemButton(
-                                    onPressed: () async {
-                                      await playerController.exitSyncPlayRoom();
-                                    },
-                                    child: const Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text("断开连接"),
-                                    ),
-                                  ),
-                                ],
-                              ),
                               // 超分辨率
                               MenuAnchor(
                                 consumeOutsideTap: true,

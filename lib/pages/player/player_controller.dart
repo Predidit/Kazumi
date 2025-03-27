@@ -21,6 +21,8 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/utils/syncplay.dart';
+import 'package:kazumi/utils/external_player.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 part 'player_controller.g.dart';
 
@@ -441,6 +443,55 @@ abstract class _PlayerController with Store {
           danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
       danmakuList.add(element);
       danDanmakus[element.time.toInt()] = danmakuList;
+    }
+  }
+
+  void lanunchExternalPlayer() async {
+    String referer = videoPageController.currentPlugin.referer;
+    if ((Platform.isAndroid || Platform.isWindows) && referer.isEmpty) {
+      if (await ExternalPlayer.launchURLWithMIME(videoUrl, 'video/mp4')) {
+        KazumiDialog.dismiss();
+        KazumiDialog.showToast(
+          message: '尝试唤起外部播放器',
+        );
+      } else {
+        KazumiDialog.showToast(
+          message: '唤起外部播放器失败',
+        );
+      }
+    } else if (Platform.isMacOS || Platform.isIOS) {
+      if (await ExternalPlayer.launchURLWithReferer(videoUrl, referer)) {
+        KazumiDialog.dismiss();
+        KazumiDialog.showToast(
+          message: '尝试唤起外部播放器',
+        );
+      } else {
+        KazumiDialog.showToast(
+          message: '唤起外部播放器失败',
+        );
+      }
+    } else if (Platform.isLinux && referer.isEmpty) {
+      KazumiDialog.dismiss();
+      if (await canLaunchUrlString(videoUrl)) {
+        launchUrlString(videoUrl);
+        KazumiDialog.showToast(
+          message: '尝试唤起外部播放器',
+        );
+      } else {
+        KazumiDialog.showToast(
+          message: '无法使用外部播放器',
+        );
+      }
+    } else {
+      if (referer.isEmpty) {
+        KazumiDialog.showToast(
+          message: '暂不支持该设备',
+        );
+      } else {
+        KazumiDialog.showToast(
+          message: '暂不支持该规则',
+        );
+      }
     }
   }
 

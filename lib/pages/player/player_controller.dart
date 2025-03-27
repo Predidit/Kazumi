@@ -525,22 +525,22 @@ abstract class _PlayerController with Store {
           if (message['type'] == 'init') {
             if (message['username'] == '') {
               KazumiDialog.showToast(
-                  message: '您是当前房间中的唯一用户',
+                  message: 'SyncPlay: 您是当前房间中的唯一用户',
                   duration: const Duration(seconds: 5));
               setSyncPlayPlayingBangumi();
             } else {
               KazumiDialog.showToast(
-                  message: '您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
+                  message: 'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
             }
           }
           if (message['type'] == 'left') {
             KazumiDialog.showToast(
-                message: '${message['username']} 离开了房间',
+                message: 'SyncPlay: ${message['username']} 离开了房间',
                 duration: const Duration(seconds: 5));
           }
           if (message['type'] == 'joined') {
             KazumiDialog.showToast(
-                message: '${message['username']} 加入了房间',
+                message: 'SyncPlay: ${message['username']} 加入了房间',
                 duration: const Duration(seconds: 5));
           }
         },

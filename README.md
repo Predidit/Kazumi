@@ -48,6 +48,7 @@
 - [x] 无线投屏 (DLNA)
 - [x] 外部播放器播放
 - [x] 超分辨率
+- [x] 一起看
 - [ ] 番剧下载
 - [ ] 番剧更新提醒
 - [ ] 还有更多 (/・ω・＼) 
@@ -166,6 +167,8 @@ A: 本项目编译需要良好的网络环境, 除了由Google托管的Flutter�
 特别感谢 [Bangumi](https://bangumi.tv/) 本项目使用了 Bangumi 开放API 以提供番剧元数据。
 
 特别感谢 [Anime4K](https://github.com/bloc97/Anime4K) 本项目使用 Anime4K 进行实时超分。
+
+特别感谢 [SyncPlay](https://github.com/Syncplay/syncplay) 本项目使用 SyncPlay 协议并通过 SyncPlay 公共服务器实现一起看功能。
 
 感谢 [media-kit](https://github.com/media-kit/media-kit) 本项目跨平台媒体播放能力来自 media-kit
 

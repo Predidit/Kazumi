@@ -631,7 +631,7 @@ abstract class _PlayerController with Store {
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
     await syncplayController!.setSyncPlayPlaying(
         "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
-        14400,
+        10800,
         220514438);
     setSyncPlayCurrentPosition(
         forceSyncPlaying: forceSyncPlaying,

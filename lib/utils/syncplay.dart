@@ -241,15 +241,14 @@ class SyncplayClient {
       print('SyncPlay: connected to Syncplay server: $_host:$_port');
       _setupSocketHandlers();
     } on SocketException catch (e) {
-      throw SyncplayConnectionException(
-          'SyncPlay: connection failed: ${e.message}');
+      _generalMessageController?.addError(
+        SyncplayConnectionException(
+            'SyncPlay: connection failed: ${e.message}'),
+      );
     }
   }
 
   Future<void> joinRoom(String room, String username) async {
-    if (_socket == null) {
-      throw SyncplayConnectionException('SyncPlay: not connected to server');
-    }
     print('SyncPlay: joining room: $room as $username');
     await _sendMessage(HelloMessage(
       username: username,
@@ -260,11 +259,11 @@ class SyncplayClient {
 
   Future<void> setSyncPlayPlaying(
       String bangumiName, double duration, int size) async {
-    if (_socket == null) {
-      throw SyncplayConnectionException('SyncPlay: not connected to server');
-    }
     if (_currentRoom == null || _username == null) {
-      throw SyncplayProtocolException('SyncPlay: not in a room');
+      _generalMessageController?.addError(
+        SyncplayProtocolException(
+            'SyncPlay: set playing bangumi failed, not in a room'),
+      );
     }
     await _sendMessage(SetMessage(
         duration: duration,
@@ -387,9 +386,6 @@ class SyncplayClient {
       });
       return;
     } else if (json.containsKey('State')) {
-      // if (!json['State'].containsKey('playstate')) {
-      //   return;
-      // }
       if (json['State'].containsKey('ping')) {
         _lastLatencyCalculation =
             json['State']['ping']['latencyCalculation']?.toDouble();
@@ -470,16 +466,17 @@ class SyncplayClient {
         }
       }
     } else {
-      throw SyncplayProtocolException('SyncPlay: unknown message ty');
+      _generalMessageController?.addError(
+        SyncplayProtocolException('SyncPlay: unknown message type'),
+      );
     }
   }
 
   Future<void> _setReady() async {
-    if (_socket == null) {
-      throw SyncplayConnectionException('SyncPlay: not connected to server');
-    }
     if (_currentRoom == null || _username == null) {
-      throw SyncplayProtocolException('SyncPlay: not in a room');
+      _generalMessageController?.addError(
+        SyncplayProtocolException('SyncPlay: set ready failed, not in a room'),
+      );
     }
     await _sendMessage(
       SetMessage(
@@ -495,6 +492,11 @@ class SyncplayClient {
   }
 
   Future<void> _sendMessage(SyncplayMessage message) async {
+    if (_socket == null) {
+      _generalMessageController?.addError(
+        SyncplayConnectionException('SyncPlay: not connected to server'),
+      );
+    }
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
     // print(

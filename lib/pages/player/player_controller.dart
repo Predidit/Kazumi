@@ -521,9 +521,6 @@ abstract class _PlayerController with Store {
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
           print(
               'SyncPlay: position changed by ${message['setBy']}: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] calculatedPosition ${message['calculatedPositon']} position: ${message['position']} doSeek: ${message['doSeek']} paused: ${message['paused']} clientRtt: ${message['clientRtt']} serverRtt: ${message['serverRtt']} fd: ${message['fd']}');
-          // if (message['setBy'] == syncplayController!.username) {
-          //   return;
-          // }
           if (message['paused'] != !playing) {
             if (message['paused']) {
               if (message['position'] != 0) {

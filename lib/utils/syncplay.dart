@@ -349,8 +349,8 @@ class SyncplayClient {
 
           final jsonStr = buffer.substring(startIndex, endIndex + 1);
           try {
-            print(
-                'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
+            // print(
+            //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] received message: $jsonStr');
             _handleMessage(json.decode(jsonStr));
           } catch (e) {
             _generalMessageController?.addError(
@@ -411,8 +411,10 @@ class SyncplayClient {
         }
       }
       if (_clientIgnoringOnTheFly == 0) {
-        _currentPositon =
-            json['State']['playstate']['position']?.toDouble() ?? 0.0;
+        _currentPositon = (json['State']['playstate']['paused'] ?? true)
+            ? (json['State']['playstate']['position']?.toDouble() ?? 0.0)
+            : ((json['State']['playstate']['position']?.toDouble() ?? 0.0) +
+                _fd);
         _isPaused = json['State']['playstate']['paused'] ?? true;
         _positionChangedMessageController?.add({
           'calculatedPositon': (json['State']['playstate']['paused'] ?? true)
@@ -430,8 +432,8 @@ class SyncplayClient {
         });
       }
       _sendState(
-        position: json['State']['playstate']['position']?.toDouble() ?? 0.0,
-        paused: json['State']['playstate']['paused'] ?? true,
+        position: _currentPositon,
+        paused: _isPaused,
       );
       return;
     } else if (json.containsKey('Set')) {
@@ -495,8 +497,8 @@ class SyncplayClient {
   Future<void> _sendMessage(SyncplayMessage message) async {
     final json = message.toJson();
     final jsonStr = jsonEncode(json);
-    print(
-        'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
+    // print(
+    //     'SyncPlay: [${DateTime.now().millisecondsSinceEpoch / 1000.0}] sending message: $jsonStr');
     _socket?.write('$jsonStr\r\n');
   }
 

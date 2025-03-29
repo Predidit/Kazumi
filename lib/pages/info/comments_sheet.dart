@@ -139,32 +139,35 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 itemCount: infoController.commentsList.length + 1,
                 itemBuilder: (context, index) {
                   if (index == infoController.commentsList.length) {
-                    return InkWell(
-                      onTap: () {
-                        if (!commentsIsLoading) {
-                          setState(() {
-                            commentsIsLoading = true;
-                          });
-                          loadMoreComments(
-                              offset: infoController.commentsList.length);
-                        }
-                      },
-                      child: SizedBox(
-                        height: 50,
-                        child: Center(
-                          child: commentsIsLoading
-                              ? const SizedBox(
-                                  height: 32,
-                                  width: 32,
-                                  child: CircularProgressIndicator(),
-                                )
-                              : Text(
-                                  '点击加载更多',
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: () {
+                          if (!commentsIsLoading) {
+                            setState(() {
+                              commentsIsLoading = true;
+                            });
+                            loadMoreComments(
+                                offset: infoController.commentsList.length);
+                          }
+                        },
+                        child: SizedBox(
+                          height: 50,
+                          child: Center(
+                            child: commentsIsLoading
+                                ? const SizedBox(
+                                    height: 32,
+                                    width: 32,
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : Text(
+                                    '点击加载更多',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
                       ),
                     );

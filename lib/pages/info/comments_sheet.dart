@@ -16,7 +16,6 @@ class CommentsBottomSheet extends StatefulWidget {
 }
 
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
-  late ScrollController scrollController;
   final infoController = Modular.get<InfoController>();
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
@@ -31,21 +30,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     }
     if (infoController.characterList.isEmpty) {
       loadCharacters();
-    }
-    scrollController = ScrollController();
-    scrollController.addListener(scrollListener);
-  }
-
-  void scrollListener() {
-    if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200 &&
-        !commentsIsLoading &&
-        mounted) {
-      setState(() {
-        commentsIsLoading = true;
-      });
-      loadMoreComments(offset: infoController.commentsList.length);
-      KazumiLogger().log(Level.info, 'Popular is loading more');
     }
   }
 
@@ -85,119 +69,236 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   void dispose() {
-    scrollController.removeListener(scrollListener);
-    scrollController.dispose();
     super.dispose();
   }
 
   Widget get infoBody {
-    return SelectionArea(
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: SingleChildScrollView(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(infoController.bangumiItem.summary),
-            const SizedBox(height: 8),
-            Wrap(
-                spacing: 8.0,
-                runSpacing: Utils.isDesktop() ? 8 : 0,
-                children: List<Widget>.generate(
-                    infoController.bangumiItem.tags.length, (int index) {
-                  return Chip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('${infoController.bangumiItem.tags[index].name} '),
-                        Text(
-                          '${infoController.bangumiItem.tags[index].count}',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary),
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 1000),
+        child: SelectionArea(
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(infoController.bangumiItem.summary),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8.0,
+                    runSpacing: Utils.isDesktop() ? 8 : 0,
+                    children: List<Widget>.generate(
+                        infoController.bangumiItem.tags.length, (int index) {
+                      return Chip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                                '${infoController.bangumiItem.tags[index].name} '),
+                            Text(
+                              '${infoController.bangumiItem.tags[index].count}',
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                }).toList())
-          ]),
+                      );
+                    }).toList(),
+                  )
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget get commentsListBody {
-    return SelectionArea(
-        child: Padding(
-      padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 0.0),
-      child: Observer(builder: (context) {
-        if (infoController.commentsList.isEmpty && !commentsQueryTimeout) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (commentsQueryTimeout) {
-          return const Center(
-            child: Text('空空如也'),
-          );
-        }
-        return ListView.builder(
-            controller: scrollController,
-            itemCount: infoController.commentsList.length,
-            itemBuilder: (context, index) {
-              return CommentsCard(
-                  commentItem: infoController.commentsList[index]);
-            });
-      }),
-    ));
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 1000),
+        child: SelectionArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 0.0),
+            child: Observer(builder: (context) {
+              if (infoController.commentsList.isEmpty &&
+                  !commentsQueryTimeout) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (commentsQueryTimeout) {
+                return const Center(
+                  child: Text('空空如也'),
+                );
+              }
+              return ListView.separated(
+                shrinkWrap: true,
+                itemCount: infoController.commentsList.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == infoController.commentsList.length) {
+                    return InkWell(
+                      onTap: () {
+                        if (!commentsIsLoading) {
+                          setState(() {
+                            commentsIsLoading = true;
+                          });
+                          loadMoreComments(
+                              offset: infoController.commentsList.length);
+                        }
+                      },
+                      child: SizedBox(
+                        height: 50,
+                        child: Center(
+                          child: commentsIsLoading
+                              ? const SizedBox(
+                                  height: 32,
+                                  width: 32,
+                                  child: CircularProgressIndicator(),
+                                )
+                              : Text(
+                                  '点击加载更多',
+                                  style: TextStyle(
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    );
+                  }
+                  return CommentsCard(
+                    commentItem: infoController.commentsList[index],
+                  );
+                },
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider(thickness: 0.5);
+                },
+              );
+            }),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget get charactersListBody {
-    return SelectionArea(
-        child: Padding(
-      padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 4.0),
-      child: Observer(builder: (context) {
-        if (infoController.characterList.isEmpty && !charactersQueryTimeout) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-        if (charactersQueryTimeout) {
-          return const Center(
-            child: Text('空空如也'),
-          );
-        }
-        return ListView.builder(
-            itemCount: infoController.characterList.length,
-            itemBuilder: (context, index) {
-              return CharacterCard(
-                  characterItem: infoController.characterList[index]);
-            });
-      }),
-    ));
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 1000),
+        child: SelectionArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 4.0),
+            child: Observer(builder: (context) {
+              if (infoController.characterList.isEmpty &&
+                  !charactersQueryTimeout) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (charactersQueryTimeout) {
+                return const Center(
+                  child: Text('空空如也'),
+                );
+              }
+              return ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: infoController.characterList.length,
+                  itemBuilder: (context, index) {
+                    return CharacterCard(
+                      characterItem: infoController.characterList[index],
+                    );
+                  });
+            }),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Column(
-          children: [
-            const TabBar(
-              tabs: [
-                Tab(text: '详情'),
-                Tab(text: '吐槽箱'),
-                Tab(text: '声优表'),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [infoBody, commentsListBody, charactersListBody],
+    return TabBarView(
+      children: [
+        Builder(
+          // This Builder is needed to provide a BuildContext that is
+          // "inside" the NestedScrollView, so that
+          // sliverOverlapAbsorberHandleFor() can find the
+          // NestedScrollView.
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
               ),
-            ),
-          ],
+              // The PageStorageKey should be unique to this ScrollView;
+              // it allows the list to remember its scroll position when
+              // the tab view is not on the screen.
+              key: PageStorageKey<String>('概览'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(child: infoBody),
+              ],
+            );
+          },
         ),
-      ),
+        Builder(
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
+              ),
+              key: PageStorageKey<String>('吐槽'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                // SliverFillRemaining(child: Expanded(child:  commentsListBody))
+                SliverToBoxAdapter(child: commentsListBody),
+              ],
+            );
+          },
+        ),
+        Builder(
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
+              ),
+              key: PageStorageKey<String>('角色'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(child: charactersListBody),
+              ],
+            );
+          },
+        ),
+        Builder(
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
+              ),
+              key: PageStorageKey<String>('制作人员'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverToBoxAdapter(child: infoBody),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }

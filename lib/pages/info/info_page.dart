@@ -148,39 +148,47 @@ class _InfoPageState extends State<InfoPage>
                       collapseMode: CollapseMode.pin,
                       background: Stack(
                         children: [
-                          if (!Platform.isLinux)
-                            Positioned.fill(
-                              bottom: kTextTabBarHeight,
-                              child: IgnorePointer(
-                                child: Container(
-                                  color: Theme.of(context)
-                                      .appBarTheme
-                                      .backgroundColor,
-                                  child: Opacity(
-                                    opacity: 0.2,
-                                    child: LayoutBuilder(
-                                      builder: (context, boxConstraints) {
-                                        return ImageFiltered(
-                                          imageFilter: ImageFilter.blur(
-                                              sigmaX: 15.0, sigmaY: 15.0),
-                                          child: NetworkImgLayer(
-                                            src: infoController.bangumiItem
-                                                    .images['large'] ??
-                                                '',
-                                            width: boxConstraints.maxWidth,
-                                            height: boxConstraints.maxHeight,
-                                            fadeInDuration:
-                                                const Duration(milliseconds: 0),
-                                            fadeOutDuration:
-                                                const Duration(milliseconds: 0),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
+                          Positioned.fill(
+                            bottom: kTextTabBarHeight,
+                            child: IgnorePointer(
+                              child: Opacity(
+                                opacity: 0.4,
+                                child: LayoutBuilder(
+                                  builder: (context, boxConstraints) {
+                                    return ImageFiltered(
+                                      imageFilter: ImageFilter.blur(
+                                          sigmaX: 15.0, sigmaY: 15.0),
+                                      child: ShaderMask(
+                                        shaderCallback: (Rect bounds) {
+                                          return const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Colors.white,
+                                              Colors.transparent,
+                                            ],
+                                            stops: [0.7, 1],
+                                          ).createShader(bounds);
+                                        },
+                                        // blendMode: BlendMode.dstOut,
+                                        child: NetworkImgLayer(
+                                          src: infoController.bangumiItem
+                                                  .images['large'] ??
+                                              '',
+                                          width: boxConstraints.maxWidth,
+                                          height: boxConstraints.maxHeight,
+                                          fadeInDuration:
+                                              const Duration(milliseconds: 0),
+                                          fadeOutDuration:
+                                              const Duration(milliseconds: 0),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
+                          ),
                           SafeArea(
                             left: false,
                             right: false,
@@ -208,71 +216,7 @@ class _InfoPageState extends State<InfoPage>
                 ),
               ];
             },
-            body: TabBarView(
-              children: tabs.map((name) {
-                return Builder(
-                  // This Builder is needed to provide a BuildContext that is
-                  // "inside" the NestedScrollView, so that
-                  // sliverOverlapAbsorberHandleFor() can find the
-                  // NestedScrollView.
-                  builder: (BuildContext context) {
-                    return CustomScrollView(
-                      // The PageStorageKey should be unique to this ScrollView;
-                      // it allows the list to remember its scroll position when
-                      // the tab view is not on the screen.
-                      key: PageStorageKey<String>(name),
-                      slivers: <Widget>[
-                        SliverOverlapInjector(
-                          handle:
-                              NestedScrollView.sliverOverlapAbsorberHandleFor(
-                                  context),
-                        ),
-                        SliverToBoxAdapter(
-                          child: SelectionArea(
-                            child: Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: SingleChildScrollView(
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(infoController.bangumiItem.summary),
-                                      Text(infoController.bangumiItem.summary),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                          spacing: 8.0,
-                                          runSpacing: Utils.isDesktop() ? 8 : 0,
-                                          children: List<Widget>.generate(
-                                              infoController.bangumiItem.tags
-                                                  .length, (int index) {
-                                            return Chip(
-                                              label: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                      '${infoController.bangumiItem.tags[index].name} '),
-                                                  Text(
-                                                    '${infoController.bangumiItem.tags[index].count}',
-                                                    style: TextStyle(
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primary),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList())
-                                    ]),
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    );
-                  },
-                );
-              }).toList(),
-            ),
+            body: Expanded(child: CommentsBottomSheet()),
           ),
           floatingActionButton: FloatingActionButton.extended(
             icon: const Icon(Icons.play_arrow_rounded),

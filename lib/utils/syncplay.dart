@@ -130,12 +130,10 @@ class SetMessage extends SyncplayMessage {
     if (setJoined != null && room != null && username != null) {
       return {
         "Set": {
-          "user": {
-            username: {
-              "room": {"name": room},
-              "event": {"joined": true}
-            }
-          }
+          room: {
+            "room": {"name": room},
+            "event": {"joined": true}
+          },
         }
       };
     }
@@ -163,6 +161,17 @@ class SetMessage extends SyncplayMessage {
       },
     };
   }
+}
+
+class ChatMessage extends SyncplayMessage {
+  final String message;
+
+  ChatMessage({
+    required this.message,
+  });
+
+  @override
+  Map<String, dynamic> toJson() => {'Chat': message};
 }
 
 class TLSMessage extends SyncplayMessage {
@@ -193,6 +202,8 @@ class SyncplayClient {
   StreamController<Map<String, dynamic>>? _generalMessageController =
       StreamController.broadcast();
   StreamController<Map<String, dynamic>>? _roomMessageController =
+      StreamController.broadcast();
+  StreamController<Map<String, dynamic>>? _chatMessageController =
       StreamController.broadcast();
   StreamController<Map<String, dynamic>>? _flieChangedMessageController =
       StreamController.broadcast();
@@ -228,6 +239,11 @@ class SyncplayClient {
   Stream<Map<String, dynamic>> get onRoomMessage {
     _roomMessageController ??= StreamController.broadcast();
     return _roomMessageController!.stream;
+  }
+
+  Stream<Map<String, dynamic>> get onChatMessage {
+    _chatMessageController ??= StreamController.broadcast();
+    return _chatMessageController!.stream;
   }
 
   Stream<Map<String, dynamic>> get onFileChangedMessage {
@@ -286,6 +302,19 @@ class SyncplayClient {
     ));
   }
 
+  Future<void> sendChatMessage(String message) async {
+    if (_currentRoom == null || _username == null) {
+      _generalMessageController?.addError(
+        SyncplayProtocolException(
+            'SyncPlay: send chat message failed, not in a room'),
+      );
+      return;
+    }
+    await _sendMessage(ChatMessage(
+      message: message,
+    ));
+  }
+
   Future<void> setSyncPlayPlaying(
       String bangumiName, double duration, int size) async {
     if (_currentRoom == null || _username == null) {
@@ -293,6 +322,7 @@ class SyncplayClient {
         SyncplayProtocolException(
             'SyncPlay: set playing bangumi failed, not in a room'),
       );
+      return;
     }
     await _sendMessage(SetMessage(
         duration: duration,
@@ -317,6 +347,8 @@ class SyncplayClient {
     _generalMessageController = null;
     await _roomMessageController?.close();
     _roomMessageController = null;
+    await _chatMessageController?.close();
+    _chatMessageController = null;
     await _flieChangedMessageController?.close();
     _flieChangedMessageController = null;
     await _positionChangedMessageController?.close();
@@ -436,7 +468,8 @@ class SyncplayClient {
         'room': json['Hello']['room']['name'],
       });
       return;
-    } else if (json.containsKey('State')) {
+    }
+    if (json.containsKey('State')) {
       if (json['State'].containsKey('ping')) {
         _lastLatencyCalculation =
             json['State']['ping']['latencyCalculation']?.toDouble();
@@ -483,7 +516,8 @@ class SyncplayClient {
         paused: _isPaused,
       );
       return;
-    } else if (json.containsKey('Set')) {
+    }
+    if (json.containsKey('Set')) {
       if (json['Set'].containsKey('playlistIndex')) {
         _roomMessageController?.add({
           'type': 'init',
@@ -516,11 +550,21 @@ class SyncplayClient {
           }
         }
       }
-    } else {
-      _generalMessageController?.addError(
-        SyncplayProtocolException('SyncPlay: unknown message type'),
-      );
+      return;
     }
+    if (json.containsKey('Chat')) {
+      if (json['Chat'].containsKey('message') &&
+          json['Chat'].containsKey('username')) {
+        _chatMessageController?.add({
+          'message': json['Chat']['message'],
+          'username': json['Chat']['username'],
+        });
+      }
+      return;
+    }
+    _generalMessageController?.addError(
+      SyncplayProtocolException('SyncPlay: unknown message type'),
+    );
   }
 
   Future<void> _setReady() async {
@@ -528,6 +572,7 @@ class SyncplayClient {
       _generalMessageController?.addError(
         SyncplayProtocolException('SyncPlay: set ready failed, not in a room'),
       );
+      return;
     }
     await _sendMessage(
       SetMessage(
@@ -548,6 +593,7 @@ class SyncplayClient {
       _generalMessageController?.addError(
         SyncplayConnectionException('SyncPlay: not connected to server'),
       );
+      return;
     }
     final json = message.toJson();
     final jsonStr = jsonEncode(json);

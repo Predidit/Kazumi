@@ -567,6 +567,15 @@ abstract class _PlayerController with Store {
           }
         },
       );
+      syncplayController!.onChatMessage.listen(
+        (message) {
+          if (message['username'] != username) {
+            KazumiDialog.showToast(
+                message: 'SyncPlay: ${message['username']} 说: ${message['message']}',
+                duration: const Duration(seconds: 5));
+          }
+        },
+      );
       syncplayController!.onPositionChangedMessage.listen(
         (message) {
           syncplayClientRtt = (message['clientRtt'].toDouble() * 1000).toInt();
@@ -641,6 +650,13 @@ abstract class _PlayerController with Store {
 
   Future<void> requestSyncPlaySync({bool? doSeek}) async {
     await syncplayController!.sendSyncPlaySyncRequest(doSeek: doSeek);
+  }
+
+  Future<void> sendSyncPlayChatMessage(String message) async {
+    if (syncplayController == null) {
+      return;
+    }
+    await syncplayController!.sendChatMessage(message);
   }
 
   Future<void> exitSyncPlayRoom() async {

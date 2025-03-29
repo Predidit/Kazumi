@@ -1,90 +1,26 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dlna_dart/dlna.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:url_launcher/url_launcher_string.dart';
-
-import '../pages/player/player_controller.dart';
 
 class RemotePlay {
-  // 注意：仍需开发 iOS/Linux 设备的远程播放功能。
-  // 在 Windows 设备上，对于其他可能的实现，使用 scheme 的方案没有效果。VLC / PotPlayer 等主流播放器更倾向于使用 CLI 命令。
-  // 可行的 iOS 处理代码，请参见 ios/Runner/AppDelegate.swift 的注释部分。
-
-  static const platform = MethodChannel('com.predidit.kazumi/intent');
-
-  Future<void> castVideo(BuildContext context, String referer) async {
+  Future<void> castVideo(String video, String referer) async {
     final searcher = DLNAManager();
     final dlna = await searcher.start();
-    final String video = Modular.get<PlayerController>().videoUrl;
     List<Widget> dlnaDevice = [];
-    await KazumiDialog.show(builder: (context) {
+    await KazumiDialog.show(builder: (BuildContext context) {
       return StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
-          title: const Text('远程播放'),
+          title: const Text('远程投屏'),
           content: SingleChildScrollView(
             child: Column(
               children: dlnaDevice,
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () async {
-                if ((Platform.isAndroid ||
-                    Platform.isWindows) && referer.isEmpty) {
-                  if (await _launchURLWithMIME(video, 'video/mp4')) {
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(
-                      message: '尝试唤起外部播放器',
-                    );
-                  } else {
-                    KazumiDialog.showToast(
-                      message: '唤起外部播放器失败',
-                    );
-                  }
-                } else if (Platform.isMacOS || Platform.isIOS) {
-                  if (await _launchURLWithReferer(video, referer)) {
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(
-                      message: '尝试唤起外部播放器',
-                    );
-                  } else {
-                    KazumiDialog.showToast(
-                      message: '唤起外部播放器失败',
-                    );
-                  }
-                } else if (Platform.isLinux && referer.isEmpty) {
-                  KazumiDialog.dismiss();
-                  if (await canLaunchUrlString(video)) {
-                    launchUrlString(video);
-                    KazumiDialog.showToast(
-                      message: '尝试唤起外部播放器',
-                    );
-                  } else {
-                    KazumiDialog.showToast(
-                      message: '无法使用外部播放器',
-                    );
-                  }
-                } else {
-                  if (referer.isEmpty) {
-                    KazumiDialog.showToast(
-                      message: '暂不支持该设备',
-                    );
-                  } else {
-                    KazumiDialog.showToast(
-                      message: '暂不支持该规则',
-                    );
-                  }
-                }
-              },
-              child: const Text('外部播放'),
-            ),
             const SizedBox(width: 20),
             TextButton(
               onPressed: () {
@@ -174,30 +110,6 @@ class RemotePlay {
         return const Icon(Icons.camera_enhance_outlined);
       default:
         return const Icon(Icons.question_mark);
-    }
-  }
-
-  Future<bool> _launchURLWithMIME(String url, String mimeType) async {
-    try {
-      await platform.invokeMethod(
-          'openWithMime', <String, String>{'url': url, 'mimeType': mimeType});
-      return true;
-    } on PlatformException catch (e) {
-      KazumiLogger()
-          .log(Level.error, "Failed to open with mime: '${e.message}'.");
-      return false;
-    }
-  }
-
-  Future<bool> _launchURLWithReferer(String url, String referer) async {
-    try {
-      await platform.invokeMethod(
-          'openWithReferer', <String, String>{'url': url, 'referer': referer});
-      return true;
-    } on PlatformException catch (e) {
-      KazumiLogger()
-          .log(Level.error, "Failed to open with referer: '${e.message}'.");
-      return false;
     }
   }
 }

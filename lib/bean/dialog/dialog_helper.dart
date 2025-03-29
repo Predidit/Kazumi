@@ -42,7 +42,9 @@ class KazumiDialog {
   static void showToast({
     required String message,
     BuildContext? context,
-    bool showUndoButton = false,
+    bool showActionButton = false,
+    String? actionLabel,
+    Function()? onActionPressed,
     Duration duration = const Duration(seconds: 2),
   }) {
     final ctx = context ?? observer.scaffoldContext;
@@ -54,10 +56,13 @@ class KazumiDialog {
             SnackBar(
               content: Text(message),
               duration: duration,
-              action: showUndoButton
+              action: showActionButton
                   ? SnackBarAction(
-                      label: 'Dismiss',
-                      onPressed: () {},
+                      label: actionLabel ?? 'Dismiss',
+                      onPressed: () {
+                        onActionPressed?.call();
+                        ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
+                      },
                     )
                   : null,
             ),

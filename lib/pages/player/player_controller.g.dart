@@ -41,6 +41,38 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$syncplayRoomAtom =
+      Atom(name: '_PlayerController.syncplayRoom', context: context);
+
+  @override
+  String get syncplayRoom {
+    _$syncplayRoomAtom.reportRead();
+    return super.syncplayRoom;
+  }
+
+  @override
+  set syncplayRoom(String value) {
+    _$syncplayRoomAtom.reportWrite(value, super.syncplayRoom, () {
+      super.syncplayRoom = value;
+    });
+  }
+
+  late final _$syncplayClientRttAtom =
+      Atom(name: '_PlayerController.syncplayClientRtt', context: context);
+
+  @override
+  int get syncplayClientRtt {
+    _$syncplayClientRttAtom.reportRead();
+    return super.syncplayClientRtt;
+  }
+
+  @override
+  set syncplayClientRtt(int value) {
+    _$syncplayClientRttAtom.reportWrite(value, super.syncplayClientRtt, () {
+      super.syncplayClientRtt = value;
+    });
+  }
+
   late final _$aspectRatioTypeAtom =
       Atom(name: '_PlayerController.aspectRatioType', context: context);
 
@@ -382,6 +414,8 @@ mixin _$PlayerController on _PlayerController, Store {
     return '''
 danDanmakus: ${danDanmakus},
 danmakuOn: ${danmakuOn},
+syncplayRoom: ${syncplayRoom},
+syncplayClientRtt: ${syncplayClientRtt},
 aspectRatioType: ${aspectRatioType},
 superResolutionType: ${superResolutionType},
 volume: ${volume},

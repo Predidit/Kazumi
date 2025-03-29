@@ -34,6 +34,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.cancelHideTimer,
     required this.handleDanmaku,
     required this.showVideoInfo,
+    required this.showSyncPlayRoomCreateDialog,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -49,6 +50,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
   final void Function() showVideoInfo;
+  final void Function() showSyncPlayRoomCreateDialog;
 
   @override
   State<SmallestPlayerItemPanel> createState() =>
@@ -527,6 +529,44 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               child: Text("超分辨率"),
                             ),
                           ),
+                          SubmenuButton(
+                              menuChildren: [
+                                MenuItemButton(
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                    child: Text(
+                                        "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
+                                  ),
+                                ),
+                                MenuItemButton(
+                                  child: Padding(
+                                    padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                    child: Text(
+                                        "网络延时: ${playerController.syncplayClientRtt}ms"),
+                                  ),
+                                ),
+                                MenuItemButton(
+                                  onPressed: () {
+                                    widget.showSyncPlayRoomCreateDialog();
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                    child: Text("加入房间"),
+                                  ),
+                                ),
+                                MenuItemButton(
+                                  onPressed: () async {
+                                    await playerController.exitSyncPlayRoom();
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                    child: Text("断开连接"),
+                                  ),
+                                ),
+                              ],
+                              child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("一起看"))),
                           MenuItemButton(
                             onPressed: () {
                               widget.showDanmakuSwitch();
@@ -576,7 +616,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               bool needRestart = playerController.playing;
                               playerController.pause();
                               RemotePlay()
-                                  .castVideo(context,
+                                  .castVideo(playerController.videoUrl,
                                       videoPageController.currentPlugin.referer)
                                   .whenComplete(() {
                                 if (needRestart) {
@@ -586,7 +626,16 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                             },
                             child: const Padding(
                               padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                              child: Text("远程播放"),
+                              child: Text("远程投屏"),
+                            ),
+                          ),
+                          MenuItemButton(
+                            onPressed: () {
+                              playerController.lanunchExternalPlayer();
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                              child: Text("外部播放"),
                             ),
                           ),
                         ],

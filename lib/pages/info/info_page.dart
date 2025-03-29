@@ -134,8 +134,8 @@ class _InfoPageState extends State<InfoPage>
                     stretch: true,
                     centerTitle: false,
                     expandedHeight: (Platform.isMacOS && showWindowButton)
-                        ? 350 + kTextTabBarHeight + kToolbarHeight + 22
-                        : 350 + kTextTabBarHeight + kToolbarHeight,
+                        ? 308 + kTextTabBarHeight + kToolbarHeight + 22
+                        : 308 + kTextTabBarHeight + kToolbarHeight,
                     collapsedHeight: (Platform.isMacOS && showWindowButton)
                         ? kTextTabBarHeight +
                             kToolbarHeight +
@@ -167,7 +167,7 @@ class _InfoPageState extends State<InfoPage>
                                               Colors.white,
                                               Colors.transparent,
                                             ],
-                                            stops: [0.7, 1],
+                                            stops: [0.8, 1],
                                           ).createShader(bounds);
                                         },
                                         // blendMode: BlendMode.dstOut,

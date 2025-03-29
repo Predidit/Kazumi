@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
@@ -17,6 +18,7 @@ class CommentsBottomSheet extends StatefulWidget {
 
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final infoController = Modular.get<InfoController>();
+  final maxWidth = 950.0;
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
@@ -75,7 +77,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   Widget get infoBody {
     return Center(
       child: Container(
-        constraints: BoxConstraints(maxWidth: 1000),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: SelectionArea(
           child: Padding(
             padding: const EdgeInsets.all(10.0),
@@ -116,108 +118,163 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Widget get commentsListBody {
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: 1000),
-        child: SelectionArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 0.0),
-            child: Observer(builder: (context) {
-              if (infoController.commentsList.isEmpty &&
-                  !commentsQueryTimeout) {
-                return const Center(
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: PageStorageKey<String>('吐槽'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            if (infoController.commentsList.isEmpty && commentsIsLoading)
+              const SliverFillRemaining(
+                child: Center(
                   child: CircularProgressIndicator(),
-                );
-              }
-              if (commentsQueryTimeout) {
-                return const Center(
-                  child: Text('空空如也'),
-                );
-              }
-              return ListView.separated(
-                shrinkWrap: true,
+                ),
+              ),
+            if (commentsQueryTimeout)
+              SliverFillRemaining(
+                child: GeneralErrorWidget(
+                  errMsg: '获取失败，请重试',
+                  actions: [
+                    GeneralErrorButton(
+                      onPressed: () {
+                        setState(() {
+                          commentsIsLoading = true;
+                          commentsQueryTimeout = false;
+                        });
+                        loadMoreComments(
+                            offset: infoController.commentsList.length);
+                      },
+                      text: '重试',
+                    ),
+                  ],
+                ),
+              ),
+            if (infoController.commentsList.isNotEmpty)
+              SliverList.separated(
                 itemCount: infoController.commentsList.length + 1,
                 itemBuilder: (context, index) {
                   if (index == infoController.commentsList.length) {
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: InkWell(
-                        onTap: () {
-                          if (!commentsIsLoading) {
-                            setState(() {
-                              commentsIsLoading = true;
-                            });
-                            loadMoreComments(
-                                offset: infoController.commentsList.length);
-                          }
-                        },
-                        child: SizedBox(
-                          height: 50,
-                          child: Center(
-                            child: commentsIsLoading
-                                ? const SizedBox(
-                                    height: 32,
-                                    width: 32,
-                                    child: CircularProgressIndicator(),
-                                  )
-                                : Text(
-                                    '点击加载更多',
-                                    style: TextStyle(
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
+                    return Center(
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () {
+                              if (!commentsIsLoading) {
+                                setState(() {
+                                  commentsIsLoading = true;
+                                });
+                                loadMoreComments(
+                                    offset: infoController.commentsList.length);
+                              }
+                            },
+                            child: SizedBox(
+                              height: 50,
+                              child: Center(
+                                child: commentsIsLoading
+                                    ? const SizedBox(
+                                        height: 32,
+                                        width: 32,
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : Text(
+                                        '点击加载更多',
+                                        style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                      ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     );
                   }
-                  return CommentsCard(
-                    commentItem: infoController.commentsList[index],
+                  return Center(
+                    child: Container(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: CommentsCard(
+                        commentItem: infoController.commentsList[index],
+                      ),
+                    ),
                   );
                 },
                 separatorBuilder: (BuildContext context, int index) {
-                  return Divider(thickness: 0.5);
+                  return Center(
+                    child: Container(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: Divider(thickness: 0.5, indent: 10, endIndent: 10),
+                    ),
+                  );
                 },
-              );
-            }),
-          ),
-        ),
-      ),
+              ),
+          ],
+        );
+      },
     );
   }
 
   Widget get charactersListBody {
-    return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: 1000),
-        child: SelectionArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 4.0),
-            child: Observer(builder: (context) {
-              if (infoController.characterList.isEmpty &&
-                  !charactersQueryTimeout) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              }
-              if (charactersQueryTimeout) {
-                return const Center(
-                  child: Text('空空如也'),
-                );
-              }
-              return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: infoController.characterList.length,
-                  itemBuilder: (context, index) {
-                    return CharacterCard(
-                      characterItem: infoController.characterList[index],
-                    );
-                  });
-            }),
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
           ),
-        ),
-      ),
+          key: PageStorageKey<String>('角色'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            if (infoController.characterList.isEmpty && charactersIsLoading)
+              const SliverFillRemaining(
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            if (charactersQueryTimeout)
+              SliverFillRemaining(
+                child: GeneralErrorWidget(
+                  errMsg: '获取失败，请重试',
+                  actions: [
+                    GeneralErrorButton(
+                      onPressed: () {
+                        setState(() {
+                          charactersIsLoading = true;
+                          charactersQueryTimeout = false;
+                        });
+                        loadCharacters();
+                      },
+                      text: '重试',
+                    ),
+                  ],
+                ),
+              ),
+            if (infoController.characterList.isNotEmpty)
+              SliverList.builder(
+                itemCount: infoController.characterList.length,
+                itemBuilder: (context, index) {
+                  return Center(
+                    child: Container(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: CharacterCard(
+                        characterItem: infoController.characterList[index],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -249,41 +306,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             );
           },
         ),
-        Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('吐槽'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                // SliverFillRemaining(child: Expanded(child:  commentsListBody))
-                SliverToBoxAdapter(child: commentsListBody),
-              ],
-            );
-          },
-        ),
-        Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('角色'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                SliverToBoxAdapter(child: charactersListBody),
-              ],
-            );
-          },
-        ),
+        commentsListBody,
+        charactersListBody,
         Builder(
           builder: (BuildContext context) {
             return CustomScrollView(
@@ -296,7 +320,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   handle:
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
-                SliverToBoxAdapter(child: infoBody),
+                SliverFillRemaining(
+                  child: Center(child: Text('施工中')),
+                ),
               ],
             );
           },

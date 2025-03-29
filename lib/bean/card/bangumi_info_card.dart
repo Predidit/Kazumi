@@ -19,7 +19,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 350,
+      height: 300,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

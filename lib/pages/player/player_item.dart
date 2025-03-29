@@ -559,7 +559,7 @@ class _PlayerItemState extends State<PlayerItem>
     final TextEditingController usernameController = TextEditingController();
     KazumiDialog.show(builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('创建房间'),
+        title: const Text('加入房间'),
         content: Form(
           key: formKey,
           child: Column(

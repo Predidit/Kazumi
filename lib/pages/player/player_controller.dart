@@ -496,14 +496,14 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> createSyncPlayRoom(
-      String room, String username, Function changeEpisode) async {
+      String room, String username, Function changeEpisode, {bool enableTLS = false}) async {
     await syncplayController?.disconnect();
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
     try {
-      await syncplayController!.connect();
+      await syncplayController!.connect(enableTLS: enableTLS);
       syncplayController!.onGeneralMessage.listen(
         (message) {
-          print('SyncPlay: general message: ${message.toString()}');
+          // print('SyncPlay: general message: ${message.toString()}');
         },
         onError: (error) {
           print('SyncPlay: error: ${error.message}');

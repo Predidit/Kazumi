@@ -624,6 +624,119 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  // 定时关闭
+  Timer? closeTimer;
+  int timeToClose = 0;
+  int remainingTime = 0;
+
+  void startCloseTimer() {
+    closeTimer?.cancel();
+    remainingTime = timeToClose;
+
+    closeTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (remainingTime > 1) {
+        remainingTime--;
+      } else {
+        timer.cancel();
+        playerController.pause();
+        showTimeReset();
+      }
+    });
+  }
+
+  void showTimeReset() {
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("定时结束"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [Text("定时已结束，重置时间吗？", style: TextStyle(fontSize: 17))],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                startCloseTimer();
+                playerController.play();
+                KazumiDialog.dismiss();
+              },
+              child: Text('重置'),
+            ),
+            TextButton(
+              onPressed: () {
+                KazumiDialog.dismiss();
+              },
+              child: Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showTimeToClose() {
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("定时关闭"),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: () {
+                  timeToClose = 15 * 60;
+                  startCloseTimer();
+                  KazumiDialog.dismiss();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.transparent,
+                ),
+                child: Text("15分"),
+              ),
+              TextButton(
+                onPressed: () {
+                  timeToClose = 30 * 60;
+                  startCloseTimer();
+                  KazumiDialog.dismiss();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.transparent,
+                ),
+                child: Text("30分"),
+              ),
+              TextButton(
+                onPressed: () {
+                  timeToClose = 60 * 60;
+                  startCloseTimer();
+                  KazumiDialog.dismiss();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.transparent,
+                ),
+                child: Text("1小时"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                closeTimer?.cancel();
+                closeTimer = null;
+                timeToClose = 0;
+                remainingTime = 0;
+                KazumiDialog.dismiss();
+              },
+              child: Text('取消定时'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Used to decide which panel is used.
   /// It's too complicated to write these in conditional sentence.
   /// * true: use [PlayerItemPanel]
@@ -983,6 +1096,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
+                            showTimeToClose: showTimeToClose,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -1001,6 +1115,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
+                            showTimeToClose: showTimeToClose,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

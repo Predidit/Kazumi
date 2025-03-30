@@ -16,6 +16,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:window_manager/window_manager.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -121,6 +122,8 @@ class _InfoPageState extends State<InfoPage>
                           icon: const Icon(Icons.open_in_browser),
                         ),
                       ),
+                      if (!showWindowButton)
+                        CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),
                     ],
                     toolbarHeight: (Platform.isMacOS && showWindowButton)

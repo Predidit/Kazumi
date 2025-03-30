@@ -1,8 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
@@ -92,6 +90,9 @@ class _InfoTabViewState extends State<InfoTabView> {
                 child: SelectableText(
                   infoController.bangumiItem.summary,
                   textAlign: TextAlign.start,
+                  scrollBehavior: const ScrollBehavior().copyWith(
+                    scrollbars: false,
+                  ),
                   scrollPhysics: NeverScrollableScrollPhysics(),
                   selectionHeightStyle: ui.BoxHeightStyle.max,
                 ),

@@ -40,10 +40,10 @@ class _InfoPageState extends State<InfoPage>
     // Because the gap between different bangumi API reponse is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
-    // if (infoController.bangumiItem.summary == '' ||
-    //     infoController.bangumiItem.votesCount.isEmpty) {
+    if (infoController.bangumiItem.summary == '' ||
+        infoController.bangumiItem.votesCount.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id);
-    // }
+    }
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
   }

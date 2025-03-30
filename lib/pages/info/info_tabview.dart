@@ -6,14 +6,14 @@ import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/utils/utils.dart';
 
-class CommentsBottomSheet extends StatefulWidget {
-  const CommentsBottomSheet({super.key});
+class InfoTabView extends StatefulWidget {
+  const InfoTabView({super.key});
 
   @override
-  State<CommentsBottomSheet> createState() => _CommentsBottomSheetState();
+  State<InfoTabView> createState() => _InfoTabViewState();
 }
 
-class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
+class _InfoTabViewState extends State<InfoTabView> {
   final infoController = Modular.get<InfoController>();
   final maxWidth = 950.0;
   bool commentsIsLoading = false;
@@ -282,6 +282,25 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         ),
         commentsListBody,
         charactersListBody,
+        Builder(
+          builder: (BuildContext context) {
+            return CustomScrollView(
+              scrollBehavior: const ScrollBehavior().copyWith(
+                scrollbars: false,
+              ),
+              key: PageStorageKey<String>('评论'),
+              slivers: <Widget>[
+                SliverOverlapInjector(
+                  handle:
+                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                ),
+                SliverFillRemaining(
+                  child: Center(child: Text('施工中')),
+                ),
+              ],
+            );
+          },
+        ),
         Builder(
           builder: (BuildContext context) {
             return CustomScrollView(

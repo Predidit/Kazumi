@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
@@ -120,103 +117,80 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   Widget get commentsListBody {
     return Builder(
       builder: (BuildContext context) {
-        return CustomScrollView(
-          scrollBehavior: const ScrollBehavior().copyWith(
-            scrollbars: false,
-          ),
-          key: PageStorageKey<String>('吐槽'),
-          slivers: <Widget>[
-            SliverOverlapInjector(
-              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+        return NotificationListener<ScrollEndNotification>(
+          onNotification: (scrollEnd) {
+            final metrics = scrollEnd.metrics;
+            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
+              if (!commentsIsLoading) {
+                setState(() {
+                  commentsIsLoading = true;
+                });
+                loadMoreComments(offset: infoController.commentsList.length);
+              }
+            }
+            return true;
+          },
+          child: CustomScrollView(
+            scrollBehavior: const ScrollBehavior().copyWith(
+              scrollbars: false,
             ),
-            if (infoController.commentsList.isEmpty && commentsIsLoading)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+            key: PageStorageKey<String>('吐槽'),
+            slivers: <Widget>[
+              SliverOverlapInjector(
+                handle:
+                    NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
-            if (commentsQueryTimeout)
-              SliverFillRemaining(
-                child: GeneralErrorWidget(
-                  errMsg: '获取失败，请重试',
-                  actions: [
-                    GeneralErrorButton(
-                      onPressed: () {
-                        setState(() {
-                          commentsIsLoading = true;
-                          commentsQueryTimeout = false;
-                        });
-                        loadMoreComments(
-                            offset: infoController.commentsList.length);
-                      },
-                      text: '重试',
-                    ),
-                  ],
+              if (infoController.commentsList.isEmpty && commentsIsLoading)
+                const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
-              ),
-            if (infoController.commentsList.isNotEmpty)
-              SliverList.separated(
-                itemCount: infoController.commentsList.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == infoController.commentsList.length) {
+              if (commentsQueryTimeout)
+                SliverFillRemaining(
+                  child: GeneralErrorWidget(
+                    errMsg: '获取失败，请重试',
+                    actions: [
+                      GeneralErrorButton(
+                        onPressed: () {
+                          setState(() {
+                            commentsIsLoading = true;
+                            commentsQueryTimeout = false;
+                          });
+                          loadMoreComments(
+                              offset: infoController.commentsList.length);
+                        },
+                        text: '重试',
+                      ),
+                    ],
+                  ),
+                ),
+              if (infoController.commentsList.isNotEmpty)
+                SliverList.separated(
+                  addAutomaticKeepAlives: false,
+                  itemCount: infoController.commentsList.length,
+                  itemBuilder: (context, index) {
                     return Center(
                       child: Container(
                         constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () {
-                              if (!commentsIsLoading) {
-                                setState(() {
-                                  commentsIsLoading = true;
-                                });
-                                loadMoreComments(
-                                    offset: infoController.commentsList.length);
-                              }
-                            },
-                            child: SizedBox(
-                              height: 50,
-                              child: Center(
-                                child: commentsIsLoading
-                                    ? const SizedBox(
-                                        height: 32,
-                                        width: 32,
-                                        child: CircularProgressIndicator(),
-                                      )
-                                    : Text(
-                                        '点击加载更多',
-                                        style: TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ),
+                        child: CommentsCard(
+                          commentItem: infoController.commentsList[index],
                         ),
                       ),
                     );
-                  }
-                  return Center(
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: CommentsCard(
-                        commentItem: infoController.commentsList[index],
+                  },
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Center(
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child:
+                            Divider(thickness: 0.5, indent: 10, endIndent: 10),
                       ),
-                    ),
-                  );
-                },
-                separatorBuilder: (BuildContext context, int index) {
-                  return Center(
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: Divider(thickness: 0.5, indent: 10, endIndent: 10),
-                    ),
-                  );
-                },
-              ),
-          ],
+                    );
+                  },
+                ),
+            ],
+          ),
         );
       },
     );

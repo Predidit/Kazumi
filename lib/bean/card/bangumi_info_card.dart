@@ -22,18 +22,18 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
   Widget get voteBarChart {
     return Flexible(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '  评分透视:',
           ),
+          SizedBox(height: 16),
           AspectRatio(
             aspectRatio: 2,
             child: BarChart(
               duration: Duration(milliseconds: 80),
               BarChartData(
-                alignment: BarChartAlignment.spaceEvenly,
+                // alignment: BarChartAlignment.spaceEvenly,
                 borderData: FlBorderData(show: false),
                 gridData: FlGridData(show: false),
                 barTouchData: BarTouchData(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
@@ -39,11 +40,10 @@ class _InfoPageState extends State<InfoPage>
     // Because the gap between different bangumi API reponse is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data containes images url, update them will cause the image to reload and flicker
-    if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.tags.isEmpty ||
-        infoController.bangumiItem.votes == 0) {
-      queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
-    }
+    // if (infoController.bangumiItem.summary == '' ||
+    //     infoController.bangumiItem.votesCount.isEmpty) {
+      queryBangumiInfoByID(infoController.bangumiItem.id);
+    // }
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
   }
@@ -117,12 +117,13 @@ class _InfoPageState extends State<InfoPage>
                             launchUrl(
                               Uri.parse(
                                   'https://bangumi.tv/subject/${infoController.bangumiItem.id}'),
+                              mode: LaunchMode.externalApplication,
                             );
                           },
-                          icon: const Icon(Icons.open_in_browser),
+                          icon: const Icon(Icons.open_in_browser_rounded),
                         ),
                       ),
-                      if (!showWindowButton)
+                      if (!showWindowButton && Utils.isDesktop())
                         CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),
                     ],

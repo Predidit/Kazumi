@@ -1,5 +1,8 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
@@ -20,6 +23,8 @@ class _InfoTabViewState extends State<InfoTabView> {
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
   bool charactersQueryTimeout = false;
+  bool fullIntro = false;
+  bool fullTag = false;
 
   @override
   void initState() {
@@ -74,40 +79,77 @@ class _InfoTabViewState extends State<InfoTabView> {
   Widget get infoBody {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Container(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: SelectionArea(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(infoController.bangumiItem.summary),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: Utils.isDesktop() ? 8 : 0,
-                    children: List<Widget>.generate(
-                        infoController.bangumiItem.tags.length, (int index) {
-                      return Chip(
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                                '${infoController.bangumiItem.tags[index].name} '),
-                            Text(
-                              '${infoController.bangumiItem.tags[index].count}',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  )
-                ],
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width > maxWidth
+              ? maxWidth
+              : MediaQuery.sizeOf(context).width - 32,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: fullIntro ? null : 120,
+                child: SelectableText(
+                  infoController.bangumiItem.summary,
+                  textAlign: TextAlign.start,
+                  scrollPhysics: NeverScrollableScrollPhysics(),
+                  selectionHeightStyle: ui.BoxHeightStyle.max,
+                ),
               ),
-            ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    fullIntro = !fullIntro;
+                  });
+                },
+                child: Text(
+                  fullIntro ? '加载更少' : '加载更多',
+                  style: TextStyle(
+                    decoration: TextDecoration.underline,
+                    color: Theme.of(context).hintColor,
+                    decorationColor: Theme.of(context).hintColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: Utils.isDesktop() ? 8 : 0,
+                children: List<Widget>.generate(
+                    fullTag ? infoController.bangumiItem.tags.length : 13,
+                    (int index) {
+                  if (!fullTag && index == 12) {
+                    return ActionChip(
+                      label: Text(
+                        '更多 +',
+                        style: TextStyle(color: Theme.of(context).hintColor),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          fullTag = !fullTag;
+                        });
+                      },
+                    );
+                  }
+                  return ActionChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${infoController.bangumiItem.tags[index].name} '),
+                        Text(
+                          '${infoController.bangumiItem.tags[index].count}',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      // TODO: Search with selected tag.
+                    },
+                  );
+                }).toList(),
+              )
+            ],
           ),
         ),
       ),
@@ -171,20 +213,30 @@ class _InfoTabViewState extends State<InfoTabView> {
                   itemCount: infoController.commentsList.length,
                   itemBuilder: (context, index) {
                     return Center(
-                      child: Container(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: CommentsCard(
-                          commentItem: infoController.commentsList[index],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SizedBox(
+                          width: MediaQuery.sizeOf(context).width > maxWidth
+                              ? maxWidth
+                              : MediaQuery.sizeOf(context).width - 32,
+                          child: CommentsCard(
+                            commentItem: infoController.commentsList[index],
+                          ),
                         ),
                       ),
                     );
                   },
                   separatorBuilder: (BuildContext context, int index) {
                     return Center(
-                      child: Container(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child:
-                            Divider(thickness: 0.5, indent: 10, endIndent: 10),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: SizedBox(
+                          width: MediaQuery.sizeOf(context).width > maxWidth
+                              ? maxWidth
+                              : MediaQuery.sizeOf(context).width - 32,
+                          child: Divider(
+                              thickness: 0.5, indent: 10, endIndent: 10),
+                        ),
                       ),
                     );
                   },
@@ -237,10 +289,15 @@ class _InfoTabViewState extends State<InfoTabView> {
                 itemCount: infoController.characterList.length,
                 itemBuilder: (context, index) {
                   return Center(
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: CharacterCard(
-                        characterItem: infoController.characterList[index],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: CharacterCard(
+                          characterItem: infoController.characterList[index],
+                        ),
                       ),
                     ),
                   );

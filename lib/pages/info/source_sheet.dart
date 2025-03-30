@@ -235,11 +235,14 @@ class _SourceSheetState extends State<SourceSheet>
                 IconButton(
                   onPressed: () {
                     int currentIndex = widget.tabController.index;
-                    launchUrl(Uri.parse(pluginsController
-                        .pluginList[currentIndex].searchURL
-                        .replaceFirst('@keyword', keyword)));
+                    launchUrl(
+                      Uri.parse(pluginsController
+                          .pluginList[currentIndex].searchURL
+                          .replaceFirst('@keyword', keyword)),
+                      mode: LaunchMode.externalApplication,
+                    );
                   },
-                  icon: const Icon(Icons.open_in_browser),
+                  icon: const Icon(Icons.open_in_browser_rounded),
                 ),
                 const SizedBox(width: 4),
               ],

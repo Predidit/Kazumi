@@ -83,6 +83,7 @@ dependencies:
   synchronized: any
   flutter_svg: ^2.0.17
   antlr4: ^4.13.2
+  fl_chart: ^0.70.2
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

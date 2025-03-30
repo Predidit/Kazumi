@@ -4,6 +4,7 @@ import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
@@ -16,10 +17,102 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
+  int touchedIndex = -1;
+
+  Widget get voteBarChart {
+    return Flexible(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '  评分透视:',
+          ),
+          AspectRatio(
+            aspectRatio: 2,
+            child: BarChart(
+              duration: Duration(milliseconds: 80),
+              BarChartData(
+                alignment: BarChartAlignment.spaceEvenly,
+                borderData: FlBorderData(show: false),
+                gridData: FlGridData(show: false),
+                barTouchData: BarTouchData(
+                  touchCallback: (FlTouchEvent event, barTouchResponse) {
+                    setState(() {
+                      if (!event.isInterestedForInteractions ||
+                          barTouchResponse == null ||
+                          barTouchResponse.spot == null) {
+                        touchedIndex = -1;
+                        return;
+                      }
+                      touchedIndex =
+                          barTouchResponse.spot!.touchedBarGroupIndex;
+                    });
+                  },
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) =>
+                        Theme.of(context).colorScheme.inverseSurface,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      var percentage =
+                          widget.bangumiItem.votesCount[groupIndex] /
+                              widget.bangumiItem.votes *
+                              100;
+                      return BarTooltipItem(
+                        '${percentage.toStringAsFixed(2)}% (${widget.bangumiItem.votesCount[groupIndex]}人)',
+                        TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onInverseSurface),
+                      );
+                    },
+                  ),
+                ),
+                barGroups: List<BarChartGroupData>.generate(
+                  10,
+                  (i) => BarChartGroupData(
+                    x: i + 1,
+                    barRods: [
+                      BarChartRodData(
+                        toY: widget.bangumiItem.votesCount[i].toDouble(),
+                        color: touchedIndex == i
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).hintColor,
+                        width: 20,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(5)),
+                      )
+                    ],
+                    // showingTooltipIndicators: [0],
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) => SideTitleWidget(
+                        meta: meta,
+                        space: 10,
+                        child: Text(value.toInt().toString()),
+                      ),
+                    ),
+                  ),
+                  topTitles: const AxisTitles(),
+                  leftTitles: const AxisTitles(),
+                  rightTitles: const AxisTitles(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       height: 300,
+      constraints: BoxConstraints(maxWidth: 950),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,6 +234,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     ],
                   ),
                 ),
+                if (MediaQuery.sizeOf(context).width >=
+                    LayoutBreakpoint.compact['width']!)
+                  voteBarChart,
               ],
             ),
           ),

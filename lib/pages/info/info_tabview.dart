@@ -73,11 +73,11 @@ class _InfoTabViewState extends State<InfoTabView> {
 
   Widget get infoBody {
     return Center(
-      child: Container(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SelectionArea(
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Container(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: SelectionArea(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

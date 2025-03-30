@@ -189,11 +189,15 @@ class _InfoPageState extends State<InfoPage>
                             right: false,
                             bottom: false,
                             child: EmbeddedNativeControlArea(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16, kToolbarHeight, 16, 0),
-                                child: BangumiInfoCardV(
-                                    bangumiItem: infoController.bangumiItem),
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      16, kToolbarHeight, 16, 0),
+                                  child: BangumiInfoCardV(
+                                    bangumiItem: infoController.bangumiItem,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

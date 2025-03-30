@@ -32,6 +32,8 @@ class BangumiItem {
   double ratingScore;
   @HiveField(12, defaultValue: 0)
   int votes;
+  @HiveField(13, defaultValue: [])
+  List<int> votesCount;
 
   BangumiItem({
     required this.id,
@@ -47,6 +49,7 @@ class BangumiItem {
     required this.alias,
     required this.ratingScore,
     required this.votes,
+    required this.votesCount,
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -74,9 +77,26 @@ class BangumiItem {
       return [];
     }
 
+    List<int> parseBangumiVoteCount(Map<String, dynamic> jsonData) {
+      if (!jsonData.containsKey('rating')) {
+        return [];
+      }
+      final json = jsonData['rating']['count'];
+      // For api.bgm.tv
+      if (json is Map<String, dynamic>) {
+        return List<int>.generate(10, (i) => json['${i+1}'] as int);
+      }
+      // For next.bgm.tv
+      if (json is List<dynamic>) {
+        return json.map((e) => e as int).toList();
+      }
+      return [];
+    }
+
     List list = json['tags'] ?? [];
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
+    List<int> voteList = parseBangumiVoteCount(json);
     return BangumiItem(
       id: json['id'],
       type: json['type'] ?? 2,
@@ -103,6 +123,7 @@ class BangumiItem {
       ratingScore: double.parse(
           (json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)),
       votes: json['rating']['total'] ?? 0,
+      votesCount: voteList,
     );
   }
 }

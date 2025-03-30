@@ -63,6 +63,7 @@ class _PopularPageState extends State<PopularPage>
   void dispose() {
     _focusNode.dispose();
     scrollController.removeListener(scrollListener);
+    searchController.dispose();
     super.dispose();
   }
 

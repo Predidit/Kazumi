@@ -32,6 +32,7 @@ class _PopularPageState extends State<PopularPage>
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
+  late TextEditingController searchController;
 
   @override
   bool get wantKeepAlive => true;
@@ -44,6 +45,12 @@ class _PopularPageState extends State<PopularPage>
       popularController.queryBangumiByTrend();
     }
     showSearchBar = popularController.searchKeyword.isNotEmpty;
+    searchController =
+        TextEditingController(text: popularController.searchKeyword);
+
+    searchController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -56,6 +63,7 @@ class _PopularPageState extends State<PopularPage>
   void dispose() {
     _focusNode.dispose();
     scrollController.removeListener(scrollListener);
+    searchController.dispose();
     super.dispose();
   }
 
@@ -134,24 +142,18 @@ class _PopularPageState extends State<PopularPage>
                       });
                       _focusNode.requestFocus();
                     } else {
-                      if (popularController.searchKeyword == '') {
-                        _focusNode.unfocus();
-                        setState(() {
-                          showSearchBar = false;
-                        });
-                        popularController.setCurrentTag('');
-                        popularController.clearBangumiList();
-                      } else {
-                        popularController.setSearchKeyword('');
-                        setState(() {
-                          showSearchBar = true;
-                        });
-                        _focusNode.requestFocus();
-                      }
+                      _focusNode.unfocus();
+                      setState(() {
+                        showSearchBar = false;
+                      });
+                      popularController.setCurrentTag('');
+                      popularController.clearBangumiList();
+                      popularController.setSearchKeyword('');
+                      searchController.clear();
                     }
                   },
                   icon: showSearchBar
-                      ? const Icon(Icons.close)
+                      ? const Text("取消")
                       : const Icon(Icons.search))
             ],
             title: Stack(
@@ -229,7 +231,8 @@ class _PopularPageState extends State<PopularPage>
                             );
                           }
                           return contentGrid(
-                              (popularController.currentTag == '' && popularController.searchKeyword == '')
+                              (popularController.currentTag == '' &&
+                                      popularController.searchKeyword == '')
                                   ? popularController.trendList
                                   : popularController.bangumiList,
                               orientation);
@@ -345,20 +348,29 @@ class _PopularPageState extends State<PopularPage>
 
   Widget searchBar() {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final TextEditingController controller = TextEditingController();
-    controller.text = popularController.searchKeyword;
     return TextField(
-      controller: controller,
+      controller: searchController,
       focusNode: _focusNode,
       cursorColor: Theme.of(context).colorScheme.primary,
       decoration: InputDecoration(
         floatingLabelBehavior: FloatingLabelBehavior.never,
-        labelText: popularController.searchKeyword,
         alignLabelWithHint: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         border: const OutlineInputBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
+        suffixIcon: searchController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.cancel),
+                onPressed: () {
+                  searchController.clear();
+                  popularController.setSearchKeyword('');
+                  _focusNode.unfocus();
+                  popularController.setCurrentTag('');
+                  popularController.clearBangumiList();
+                },
+              )
+            : null,
       ),
       style: TextStyle(color: isLight ? Colors.black87 : Colors.white70),
       onChanged: (_) {

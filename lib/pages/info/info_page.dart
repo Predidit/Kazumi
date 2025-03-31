@@ -147,47 +147,48 @@ class _InfoPageState extends State<InfoPage>
                       collapseMode: CollapseMode.pin,
                       background: Stack(
                         children: [
-                          Positioned.fill(
-                            bottom: kTextTabBarHeight,
-                            child: IgnorePointer(
-                              child: Opacity(
-                                opacity: 0.4,
-                                child: LayoutBuilder(
-                                  builder: (context, boxConstraints) {
-                                    return ImageFiltered(
-                                      imageFilter: ImageFilter.blur(
-                                          sigmaX: 15.0, sigmaY: 15.0),
-                                      child: ShaderMask(
-                                        shaderCallback: (Rect bounds) {
-                                          return const LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                              Colors.white,
-                                              Colors.transparent,
-                                            ],
-                                            stops: [0.8, 1],
-                                          ).createShader(bounds);
-                                        },
-                                        // blendMode: BlendMode.dstOut,
-                                        child: NetworkImgLayer(
-                                          src: infoController.bangumiItem
-                                                  .images['large'] ??
-                                              '',
-                                          width: boxConstraints.maxWidth,
-                                          height: boxConstraints.maxHeight,
-                                          fadeInDuration:
-                                              const Duration(milliseconds: 0),
-                                          fadeOutDuration:
-                                              const Duration(milliseconds: 0),
+                          if (!infoController.isLoading)
+                            Positioned.fill(
+                              bottom: kTextTabBarHeight,
+                              child: IgnorePointer(
+                                child: Opacity(
+                                  opacity: 0.4,
+                                  child: LayoutBuilder(
+                                    builder: (context, boxConstraints) {
+                                      return ImageFiltered(
+                                        imageFilter: ImageFilter.blur(
+                                            sigmaX: 15.0, sigmaY: 15.0),
+                                        child: ShaderMask(
+                                          shaderCallback: (Rect bounds) {
+                                            return const LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.white,
+                                                Colors.transparent,
+                                              ],
+                                              stops: [0.8, 1],
+                                            ).createShader(bounds);
+                                          },
+                                          // blendMode: BlendMode.dstOut,
+                                          child: NetworkImgLayer(
+                                            src: infoController.bangumiItem
+                                                    .images['large'] ??
+                                                '',
+                                            width: boxConstraints.maxWidth,
+                                            height: boxConstraints.maxHeight,
+                                            fadeInDuration:
+                                                const Duration(milliseconds: 0),
+                                            fadeOutDuration:
+                                                const Duration(milliseconds: 0),
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           SafeArea(
                             left: false,
                             right: false,

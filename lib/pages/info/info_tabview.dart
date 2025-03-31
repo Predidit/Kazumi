@@ -86,84 +86,128 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                height: fullIntro ? null : 120,
-                child: SelectableText(
-                  infoController.bangumiItem.summary,
-                  textAlign: TextAlign.start,
-                  scrollBehavior: const ScrollBehavior().copyWith(
-                    scrollbars: false,
-                  ),
-                  scrollPhysics: NeverScrollableScrollPhysics(),
-                  selectionHeightStyle: ui.BoxHeightStyle.max,
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    fullIntro = !fullIntro;
-                  });
-                },
-                child: Text(
-                  fullIntro ? '加载更少' : '加载更多',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    color: Theme.of(context).disabledColor,
-                    decorationColor: Theme.of(context).disabledColor,
-                  ),
-                ),
-              ),
+              // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
+              // only show expand button when line > 7
+              LayoutBuilder(builder: (context, constraints) {
+                final span = TextSpan(text: infoController.bangumiItem.summary);
+                final tp =
+                    TextPainter(text: span, textDirection: TextDirection.ltr);
+                tp.layout(maxWidth: constraints.maxWidth);
+                final numLines = tp.computeLineMetrics().length;
+                if (numLines > 7) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        height: fullIntro ? null : 120,
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: SelectableText(
+                          infoController.bangumiItem.summary,
+                          textAlign: TextAlign.start,
+                          scrollBehavior: const ScrollBehavior().copyWith(
+                            scrollbars: false,
+                          ),
+                          scrollPhysics: NeverScrollableScrollPhysics(),
+                          selectionHeightStyle: ui.BoxHeightStyle.max,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            fullIntro = !fullIntro;
+                          });
+                        },
+                        child: Text(fullIntro ? '加载更少' : '加载更多'),
+                      ),
+                    ],
+                  );
+                } else {
+                  return SelectableText(
+                    infoController.bangumiItem.summary,
+                    textAlign: TextAlign.start,
+                    scrollBehavior: const ScrollBehavior().copyWith(
+                      scrollbars: false,
+                    ),
+                    scrollPhysics: NeverScrollableScrollPhysics(),
+                    selectionHeightStyle: ui.BoxHeightStyle.max,
+                  );
+                }
+              }),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: Utils.isDesktop() ? 8 : 0,
+                children: List<Widget>.generate(
+                    fullTag || infoController.bangumiItem.tags.length < 13
+                        ? infoController.bangumiItem.tags.length
+                        : 13, (int index) {
+                  if (!fullTag && index == 12) {
+                    return ActionChip(
+                      label: Text(
+                        '更多 +',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          fullTag = !fullTag;
+                        });
+                      },
+                    );
+                  }
+                  return ActionChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${infoController.bangumiItem.tags[index].name} '),
+                        Text(
+                          '${infoController.bangumiItem.tags[index].count}',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ],
+                    ),
+                    onPressed: () {
+                      // TODO: Search with selected tag.
+                    },
+                  );
+                }).toList(),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget get infoBodyBone {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width > maxWidth
+              ? maxWidth
+              : MediaQuery.sizeOf(context).width - 32,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Skeletonizer.zone(child: Bone.multiText(lines: 7)),
               const SizedBox(height: 16),
               if (infoController.isLoading)
                 Skeletonizer.zone(
-                  child: Row(
+                  child: Wrap(
+                    spacing: 8.0,
+                    runSpacing: 8.0,
                     children: [
-                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
-                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
-                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
-                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
+                      Bone.button(uniRadius: 8, height: 32),
+                      Bone.button(uniRadius: 8, height: 32),
+                      Bone.button(uniRadius: 8, height: 32),
+                      Bone.button(uniRadius: 8, height: 32),
                     ],
                   ),
                 ),
-              if (!infoController.isLoading)
-                Wrap(
-                  spacing: 8.0,
-                  runSpacing: Utils.isDesktop() ? 8 : 0,
-                  children: List<Widget>.generate(
-                      fullTag ? infoController.bangumiItem.tags.length : 13,
-                      (int index) {
-                    if (!fullTag && index == 12) {
-                      return ActionChip(
-                        label: Text(
-                          '更多 +',
-                          style: TextStyle(color: Theme.of(context).hintColor),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            fullTag = !fullTag;
-                          });
-                        },
-                      );
-                    }
-                    return ActionChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                              '${infoController.bangumiItem.tags[index].name} '),
-                          Text(
-                            '${infoController.bangumiItem.tags[index].count}',
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary),
-                          ),
-                        ],
-                      ),
-                      onPressed: () {
-                        // TODO: Search with selected tag.
-                      },
-                    );
-                  }).toList(),
-                )
             ],
           ),
         ),
@@ -379,7 +423,9 @@ class _InfoTabViewState extends State<InfoTabView> {
                   handle:
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
-                SliverToBoxAdapter(child: infoBody),
+                SliverToBoxAdapter(
+                  child: infoController.isLoading ? infoBodyBone : infoBody,
+                ),
               ],
             );
           },

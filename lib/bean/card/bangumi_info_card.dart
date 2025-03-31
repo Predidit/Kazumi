@@ -79,7 +79,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         toY: widget.bangumiItem.votesCount[i].toDouble(),
                         color: touchedIndex == i
                             ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).hintColor,
+                            : Theme.of(context).disabledColor,
                         width: 20,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(5)),

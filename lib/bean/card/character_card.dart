@@ -4,24 +4,15 @@ import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/pages/info/character_page.dart';
 
 class CharacterCard extends StatelessWidget {
-  CharacterCard({
+  const CharacterCard({
     super.key,
     required this.characterItem,
-  }) {
-    isPreview = false;
-  }
-
-  CharacterCard.preview({
-    super.key,
-    required this.characterItem,
-  }) {
-    isPreview = true;
-  }
+  });
 
   final CharacterItem characterItem;
-  late final bool isPreview;
 
-  Widget buildFullCharacters(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
         backgroundImage: NetworkImage(characterItem.avator.grid),
@@ -51,17 +42,5 @@ class CharacterCard extends StatelessWidget {
             });
       },
     );
-  }
-
-  Widget buildPreviewCharacters(BuildContext context) {
-    return Column(children: []);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (isPreview) {
-      return buildPreviewCharacters(context);
-    }
-    return buildFullCharacters(context);
   }
 }

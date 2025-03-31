@@ -86,6 +86,8 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('简介', style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
               // only show expand button when line > 7
               LayoutBuilder(builder: (context, constraints) {
@@ -136,6 +138,8 @@ class _InfoTabViewState extends State<InfoTabView> {
                 }
               }),
               const SizedBox(height: 16),
+              Text('标签', style: TextStyle(fontSize: 18)),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
                 runSpacing: Utils.isDesktop() ? 8 : 0,
@@ -182,6 +186,7 @@ class _InfoTabViewState extends State<InfoTabView> {
     );
   }
 
+  /// Bone for Skeleton Loader
   Widget get infoBodyBone {
     return Center(
       child: Padding(
@@ -193,19 +198,19 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 50)),
+              const SizedBox(height: 8),
               Skeletonizer.zone(child: Bone.multiText(lines: 7)),
               const SizedBox(height: 16),
+              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 50)),
+              const SizedBox(height: 8),
               if (infoController.isLoading)
                 Skeletonizer.zone(
                   child: Wrap(
                     spacing: 8.0,
                     runSpacing: 8.0,
-                    children: [
-                      Bone.button(uniRadius: 8, height: 32),
-                      Bone.button(uniRadius: 8, height: 32),
-                      Bone.button(uniRadius: 8, height: 32),
-                      Bone.button(uniRadius: 8, height: 32),
-                    ],
+                    children: List.generate(
+                        4, (_) => Bone.button(uniRadius: 8, height: 32)),
                   ),
                 ),
             ],
@@ -444,6 +449,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                   handle:
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
+                // TODO: 评论区
                 SliverFillRemaining(
                   child: Center(child: Text('施工中')),
                 ),
@@ -463,6 +469,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                   handle:
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
+                // TODO: 制作人员
                 SliverFillRemaining(
                   child: Center(child: Text('施工中')),
                 ),

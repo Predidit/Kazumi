@@ -22,6 +22,8 @@ abstract class _InfoController with Store {
   final CollectController collectController = Modular.get<CollectController>();
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+
+  @observable
   bool isLoading = false;
 
   @observable

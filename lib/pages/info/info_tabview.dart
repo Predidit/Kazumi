@@ -106,14 +106,16 @@ class _InfoTabViewState extends State<InfoTabView> {
                         width: MediaQuery.sizeOf(context).width > maxWidth
                             ? maxWidth
                             : MediaQuery.sizeOf(context).width - 32,
-                        child: SelectableText(
-                          infoController.bangumiItem.summary,
-                          textAlign: TextAlign.start,
-                          scrollBehavior: const ScrollBehavior().copyWith(
+                        child: ScrollConfiguration(
+                          behavior: const ScrollBehavior().copyWith(
                             scrollbars: false,
                           ),
-                          scrollPhysics: NeverScrollableScrollPhysics(),
-                          selectionHeightStyle: ui.BoxHeightStyle.max,
+                          child: SelectableText(
+                            infoController.bangumiItem.summary,
+                            textAlign: TextAlign.start,
+                            scrollPhysics: NeverScrollableScrollPhysics(),
+                            selectionHeightStyle: ui.BoxHeightStyle.max,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -127,14 +129,16 @@ class _InfoTabViewState extends State<InfoTabView> {
                     ],
                   );
                 } else {
-                  return SelectableText(
-                    infoController.bangumiItem.summary,
-                    textAlign: TextAlign.start,
-                    scrollBehavior: const ScrollBehavior().copyWith(
+                  return ScrollConfiguration(
+                    behavior: const ScrollBehavior().copyWith(
                       scrollbars: false,
                     ),
-                    scrollPhysics: NeverScrollableScrollPhysics(),
-                    selectionHeightStyle: ui.BoxHeightStyle.max,
+                    child: SelectableText(
+                      infoController.bangumiItem.summary,
+                      textAlign: TextAlign.start,
+                      scrollPhysics: NeverScrollableScrollPhysics(),
+                      selectionHeightStyle: ui.BoxHeightStyle.max,
+                    ),
                   );
                 }
               }),

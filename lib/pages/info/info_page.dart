@@ -219,7 +219,7 @@ class _InfoPageState extends State<InfoPage>
                 ),
               ];
             },
-            body: Expanded(child: InfoTabView()),
+            body: InfoTabView(),
           ),
           floatingActionButton: FloatingActionButton.extended(
             icon: const Icon(Icons.play_arrow_rounded),

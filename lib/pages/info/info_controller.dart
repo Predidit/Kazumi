@@ -22,6 +22,7 @@ abstract class _InfoController with Store {
   final CollectController collectController = Modular.get<CollectController>();
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+  bool isLoading = false;
 
   @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
@@ -39,6 +40,7 @@ abstract class _InfoController with Store {
   var characterList = ObservableList<CharacterItem>();
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
+    isLoading = true;
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
       if (value != null) {
         if (type == "init") {
@@ -54,6 +56,7 @@ abstract class _InfoController with Store {
           bangumiItem.votes = value.votes;
         }
         collectController.updateLocalCollect(bangumiItem);
+        isLoading = false;
       }
     });
   }

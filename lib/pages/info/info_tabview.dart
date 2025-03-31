@@ -6,6 +6,7 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({super.key});
@@ -107,49 +108,62 @@ class _InfoTabViewState extends State<InfoTabView> {
                   fullIntro ? '加载更少' : '加载更多',
                   style: TextStyle(
                     decoration: TextDecoration.underline,
-                    color: Theme.of(context).hintColor,
-                    decorationColor: Theme.of(context).hintColor,
+                    color: Theme.of(context).disabledColor,
+                    decorationColor: Theme.of(context).disabledColor,
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 8.0,
-                runSpacing: Utils.isDesktop() ? 8 : 0,
-                children: List<Widget>.generate(
-                    fullTag ? infoController.bangumiItem.tags.length : 13,
-                    (int index) {
-                  if (!fullTag && index == 12) {
+              if (infoController.isLoading)
+                Skeletonizer.zone(
+                  child: Row(
+                    children: [
+                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
+                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
+                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
+                      Bone.button(uniRadius: 8, height: 32, indentEnd: 8),
+                    ],
+                  ),
+                ),
+              if (!infoController.isLoading)
+                Wrap(
+                  spacing: 8.0,
+                  runSpacing: Utils.isDesktop() ? 8 : 0,
+                  children: List<Widget>.generate(
+                      fullTag ? infoController.bangumiItem.tags.length : 13,
+                      (int index) {
+                    if (!fullTag && index == 12) {
+                      return ActionChip(
+                        label: Text(
+                          '更多 +',
+                          style: TextStyle(color: Theme.of(context).hintColor),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            fullTag = !fullTag;
+                          });
+                        },
+                      );
+                    }
                     return ActionChip(
-                      label: Text(
-                        '更多 +',
-                        style: TextStyle(color: Theme.of(context).hintColor),
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                              '${infoController.bangumiItem.tags[index].name} '),
+                          Text(
+                            '${infoController.bangumiItem.tags[index].count}',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary),
+                          ),
+                        ],
                       ),
                       onPressed: () {
-                        setState(() {
-                          fullTag = !fullTag;
-                        });
+                        // TODO: Search with selected tag.
                       },
                     );
-                  }
-                  return ActionChip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('${infoController.bangumiItem.tags[index].name} '),
-                        Text(
-                          '${infoController.bangumiItem.tags[index].count}',
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary),
-                        ),
-                      ],
-                    ),
-                    onPressed: () {
-                      // TODO: Search with selected tag.
-                    },
-                  );
-                }).toList(),
-              )
+                  }).toList(),
+                )
             ],
           ),
         ),
@@ -183,33 +197,46 @@ class _InfoTabViewState extends State<InfoTabView> {
                 handle:
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
-              if (infoController.commentsList.isEmpty && commentsIsLoading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              if (commentsQueryTimeout)
-                SliverFillRemaining(
-                  child: GeneralErrorWidget(
-                    errMsg: '获取失败，请重试',
-                    actions: [
-                      GeneralErrorButton(
-                        onPressed: () {
-                          setState(() {
-                            commentsIsLoading = true;
-                            commentsQueryTimeout = false;
-                          });
-                          loadMoreComments(
-                              offset: infoController.commentsList.length);
-                        },
-                        text: '重试',
-                      ),
-                    ],
-                  ),
-                ),
-              if (infoController.commentsList.isNotEmpty)
-                SliverList.separated(
+              SliverLayoutBuilder(builder: (context, _) {
+                if (infoController.commentsList.isEmpty && commentsIsLoading) {
+                  return SliverList.builder(
+                    itemCount: 4,
+                    itemBuilder: (context, _) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width > maxWidth
+                                ? maxWidth
+                                : MediaQuery.sizeOf(context).width - 32,
+                            child: CommentsCard.bone(),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+                if (commentsQueryTimeout) {
+                  return SliverFillRemaining(
+                    child: GeneralErrorWidget(
+                      errMsg: '获取失败，请重试',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: () {
+                            setState(() {
+                              commentsIsLoading = true;
+                              commentsQueryTimeout = false;
+                            });
+                            loadMoreComments(
+                                offset: infoController.commentsList.length);
+                          },
+                          text: '重试',
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return SliverList.separated(
                   addAutomaticKeepAlives: false,
                   itemCount: infoController.commentsList.length,
                   itemBuilder: (context, index) {
@@ -241,7 +268,8 @@ class _InfoTabViewState extends State<InfoTabView> {
                       ),
                     );
                   },
-                ),
+                );
+              })
             ],
           ),
         );
@@ -261,32 +289,49 @@ class _InfoTabViewState extends State<InfoTabView> {
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
-            if (infoController.characterList.isEmpty && charactersIsLoading)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            if (charactersQueryTimeout)
-              SliverFillRemaining(
-                child: GeneralErrorWidget(
-                  errMsg: '获取失败，请重试',
-                  actions: [
-                    GeneralErrorButton(
-                      onPressed: () {
-                        setState(() {
-                          charactersIsLoading = true;
-                          charactersQueryTimeout = false;
-                        });
-                        loadCharacters();
-                      },
-                      text: '重试',
-                    ),
-                  ],
-                ),
-              ),
-            if (infoController.characterList.isNotEmpty)
-              SliverList.builder(
+            SliverLayoutBuilder(builder: (context, _) {
+              if (infoController.characterList.isEmpty && charactersIsLoading) {
+                return SliverList.builder(
+                  itemCount: 4,
+                  itemBuilder: (context, _) {
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: Skeletonizer.zone(
+                          child: ListTile(
+                            leading: Bone.circle(size: 36),
+                            title: Bone.text(width: 100),
+                            subtitle: Bone.text(width: 80),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+              if (charactersQueryTimeout) {
+                return SliverFillRemaining(
+                  child: GeneralErrorWidget(
+                    errMsg: '获取失败，请重试',
+                    actions: [
+                      GeneralErrorButton(
+                        onPressed: () {
+                          setState(() {
+                            charactersIsLoading = true;
+                            charactersQueryTimeout = false;
+                          });
+                          loadCharacters();
+                        },
+                        text: '重试',
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return SliverList.builder(
                 itemCount: infoController.characterList.length,
                 itemBuilder: (context, index) {
                   return Center(
@@ -303,7 +348,8 @@ class _InfoTabViewState extends State<InfoTabView> {
                     ),
                   );
                 },
-              ),
+              );
+            }),
           ],
         );
       },

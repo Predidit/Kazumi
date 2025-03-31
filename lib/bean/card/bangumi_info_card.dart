@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
@@ -17,6 +20,7 @@ class BangumiInfoCardV extends StatefulWidget {
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
+  final InfoController infoController = Modular.get<InfoController>();
   int touchedIndex = -1;
 
   Widget get voteBarChart {
@@ -164,78 +168,97 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 ),
                 SizedBox(width: 16),
                 Flexible(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '放送开始:',
-                          ),
-                          Text(
-                            widget.bangumiItem.airDate,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                  child: Skeletonizer(
+                    enabled: infoController.isLoading,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '放送开始:',
                             ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            '${widget.bangumiItem.votes} 人评分:',
-                          ),
-                          Row(
-                            children: [
+                            Text(
+                              widget.bangumiItem.airDate == ''
+                                  ? '2000-11-11' // Skeleton Loader 占位符
+                                  : widget.bangumiItem.airDate,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              '${widget.bangumiItem.votes} 人评分:',
+                            ),
+                            if (infoController.isLoading)
+                              // Skeleton Loader 占位符
                               Text(
-                                '${widget.bangumiItem.ratingScore}',
+                                '10.0 ********',
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              RatingBarIndicator(
-                                itemCount: 5,
-                                rating:
-                                    widget.bangumiItem.ratingScore.toDouble() /
+                            if (!infoController.isLoading)
+                              Row(
+                                children: [
+                                  Text(
+                                    '${widget.bangumiItem.ratingScore}',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  RatingBarIndicator(
+                                    itemCount: 5,
+                                    rating: widget.bangumiItem.ratingScore
+                                            .toDouble() /
                                         2,
-                                itemBuilder: (context, index) => Icon(
-                                  Icons.star_rounded,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                itemSize: 20.0,
+                                    itemBuilder: (context, index) => Icon(
+                                      Icons.star_rounded,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                    ),
+                                    itemSize: 20.0,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Bangumi Ranked:',
-                          ),
-                          Text(
-                            '#${widget.bangumiItem.rank}',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                            SizedBox(height: 8),
+                            Text(
+                              'Bangumi Ranked:',
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        width: 120,
-                        height: 40,
-                        child: CollectButton.extend(
-                          bangumiItem: widget.bangumiItem,
+                            Text(
+                              '#${widget.bangumiItem.rank}',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        SizedBox(
+                          width: 120,
+                          height: 40,
+                          child: CollectButton.extend(
+                            bangumiItem: widget.bangumiItem,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 if (MediaQuery.sizeOf(context).width >=
-                    LayoutBreakpoint.compact['width']!)
+                        LayoutBreakpoint.compact['width']! &&
+                    !infoController.isLoading)
                   voteBarChart,
               ],
             ),

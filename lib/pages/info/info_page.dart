@@ -42,7 +42,7 @@ class _InfoPageState extends State<InfoPage>
     // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
     if (infoController.bangumiItem.summary == '' ||
         infoController.bangumiItem.votesCount.isEmpty) {
-      queryBangumiInfoByID(infoController.bangumiItem.id);
+      queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     tabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
@@ -147,6 +147,7 @@ class _InfoPageState extends State<InfoPage>
                       collapseMode: CollapseMode.pin,
                       background: Stack(
                         children: [
+                          // No background image when loading to make loading looks better
                           if (!infoController.isLoading)
                             Positioned.fill(
                               bottom: kTextTabBarHeight,
@@ -170,7 +171,6 @@ class _InfoPageState extends State<InfoPage>
                                               stops: [0.8, 1],
                                             ).createShader(bounds);
                                           },
-                                          // blendMode: BlendMode.dstOut,
                                           child: NetworkImgLayer(
                                             src: infoController.bangumiItem
                                                     .images['large'] ??
@@ -201,6 +201,7 @@ class _InfoPageState extends State<InfoPage>
                                       16, kToolbarHeight, 16, 0),
                                   child: BangumiInfoCardV(
                                     bangumiItem: infoController.bangumiItem,
+                                    isLoading: infoController.isLoading,
                                   ),
                                 ),
                               ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -7,20 +6,23 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 
 // 视频卡片 - 水平布局
 class BangumiInfoCardV extends StatefulWidget {
-  const BangumiInfoCardV({super.key, required this.bangumiItem});
+  const BangumiInfoCardV({
+    super.key,
+    required this.bangumiItem,
+    required this.isLoading,
+  });
 
   final BangumiItem bangumiItem;
+  final bool isLoading;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
 }
 
 class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
-  final InfoController infoController = Modular.get<InfoController>();
   int touchedIndex = -1;
 
   Widget get voteBarChart {
@@ -169,7 +171,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 SizedBox(width: 16),
                 Flexible(
                   child: Skeletonizer(
-                    enabled: infoController.isLoading,
+                    enabled: widget.isLoading,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +196,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             Text(
                               '${widget.bangumiItem.votes} 人评分:',
                             ),
-                            if (infoController.isLoading)
+                            if (widget.isLoading)
                               // Skeleton Loader 占位符
                               Text(
                                 '10.0 ********',
@@ -204,7 +206,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                            if (!infoController.isLoading)
+                            if (!widget.isLoading)
                               Row(
                                 children: [
                                   Text(
@@ -258,7 +260,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                 ),
                 if (MediaQuery.sizeOf(context).width >=
                         LayoutBreakpoint.compact['width']! &&
-                    !infoController.isLoading)
+                    !widget.isLoading)
                   voteBarChart,
               ],
             ),

@@ -30,20 +30,27 @@ class BangumiItem {
   List<String> alias;
   @HiveField(11, defaultValue: 0.0)
   double ratingScore;
+  @HiveField(12, defaultValue: 0)
+  int votes;
+  @HiveField(13, defaultValue: [])
+  List<int> votesCount;
 
-  BangumiItem(
-      {required this.id,
-      required this.type,
-      required this.name,
-      required this.nameCn,
-      required this.summary,
-      required this.airDate,
-      required this.airWeekday,
-      required this.rank,
-      required this.images,
-      required this.tags,
-      required this.alias,
-      required this.ratingScore});
+  BangumiItem({
+    required this.id,
+    required this.type,
+    required this.name,
+    required this.nameCn,
+    required this.summary,
+    required this.airDate,
+    required this.airWeekday,
+    required this.rank,
+    required this.images,
+    required this.tags,
+    required this.alias,
+    required this.ratingScore,
+    required this.votes,
+    required this.votesCount,
+  });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
     List<String> parseBangumiAliases(Map<String, dynamic> jsonData) {
@@ -70,32 +77,53 @@ class BangumiItem {
       return [];
     }
 
+    List<int> parseBangumiVoteCount(Map<String, dynamic> jsonData) {
+      if (!jsonData.containsKey('rating')) {
+        return [];
+      }
+      final json = jsonData['rating']['count'];
+      // For api.bgm.tv
+      if (json is Map<String, dynamic>) {
+        return List<int>.generate(10, (i) => json['${i+1}'] as int);
+      }
+      // For next.bgm.tv
+      if (json is List<dynamic>) {
+        return json.map((e) => e as int).toList();
+      }
+      return [];
+    }
+
     List list = json['tags'] ?? [];
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
+    List<int> voteList = parseBangumiVoteCount(json);
     return BangumiItem(
-        id: json['id'],
-        type: json['type'] ?? 2,
-        name: json['name'] ?? '',
-        nameCn: (json['name_cn'] ?? '') == ''
-            ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
-            : json['name_cn'],
-        summary: json['summary'] ?? '',
-        airDate: json['date'] ?? '',
-        airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
-        rank: json['rating']['rank'] ?? 0,
-        images: Map<String, String>.from(
-          json['images'] ??
-              {
-                "large": json['image'],
-                "common": "",
-                "medium": "",
-                "small": "",
-                "grid": ""
-              },
-        ),
-        tags: tagList,
-        alias: bangumiAlias,
-        ratingScore: double.parse((json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)));
+      id: json['id'],
+      type: json['type'] ?? 2,
+      name: json['name'] ?? '',
+      nameCn: (json['name_cn'] ?? '') == ''
+          ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
+          : json['name_cn'],
+      summary: json['summary'] ?? '',
+      airDate: json['date'] ?? '',
+      airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
+      rank: json['rating']['rank'] ?? 0,
+      images: Map<String, String>.from(
+        json['images'] ??
+            {
+              "large": json['image'],
+              "common": "",
+              "medium": "",
+              "small": "",
+              "grid": ""
+            },
+      ),
+      tags: tagList,
+      alias: bangumiAlias,
+      ratingScore: double.parse(
+          (json['rating']['score'] ?? 0.0).toDouble().toStringAsFixed(1)),
+      votes: json['rating']['total'] ?? 0,
+      votesCount: voteList,
+    );
   }
 }

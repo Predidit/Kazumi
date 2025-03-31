@@ -24,6 +24,9 @@ abstract class _InfoController with Store {
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
 
   @observable
+  bool isLoading = false;
+
+  @observable
   var pluginSearchResponseList = ObservableList<PluginSearchResponse>();
 
   @observable
@@ -39,6 +42,7 @@ abstract class _InfoController with Store {
   var characterList = ObservableList<CharacterItem>();
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
+    isLoading = true;
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
       if (value != null) {
         if (type == "init") {
@@ -51,8 +55,11 @@ abstract class _InfoController with Store {
           bangumiItem.airWeekday = value.airWeekday;
           bangumiItem.alias = value.alias;
           bangumiItem.ratingScore = value.ratingScore;
+          bangumiItem.votes = value.votes;
+          bangumiItem.votesCount = value.votesCount;
         }
         collectController.updateLocalCollect(bangumiItem);
+        isLoading = false;
       }
     });
   }

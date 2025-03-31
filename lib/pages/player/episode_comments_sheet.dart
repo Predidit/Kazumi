@@ -83,6 +83,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         dragDevices: {
           PointerDeviceKind.mouse,
           PointerDeviceKind.touch,
+          PointerDeviceKind.trackpad
         },
       ),
       slivers: [

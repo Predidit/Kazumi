@@ -101,6 +101,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       SizedBox(
+                        // make intro expandable
                         height: fullIntro ? null : 120,
                         width: MediaQuery.sizeOf(context).width > maxWidth
                             ? maxWidth
@@ -148,6 +149,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                         ? infoController.bangumiItem.tags.length
                         : 13, (int index) {
                   if (!fullTag && index == 12) {
+                    // make tag expandable
                     return ActionChip(
                       label: Text(
                         '更多 +',

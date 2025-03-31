@@ -26,8 +26,6 @@ class Api {
   static const String bangumiInfoByID = 'https://api.bgm.tv/v0/subjects/';
   // 从条目ID获取剧集ID
   static const String bangumiEpisodeByID = 'https://api.bgm.tv/v0/episodes';
-  // 从角色ID获取角色详情
-  static const String bangumiCharacterByID = 'https://api.bgm.tv/v0/characters/';
   // Next条目API
   static const String bangumiTrendsNext = 'https://next.bgm.tv/p1/trending/subjects';
   static const String bangumiInfoByIDNext = 'https://next.bgm.tv/p1/subjects/';

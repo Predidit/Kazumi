@@ -1,4 +1,3 @@
-import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -313,19 +312,5 @@ class BangumiHTTP {
           .log(Level.error, 'Resolve character info failed ${e.toString()}');
     }
     return characterFullItem;
-  }
-
-  static Future<CharacterExtraInfo> getCharactersExtraInfo(CharacterItem character) async {
-    CharacterExtraInfo characterExtraInfo = CharacterExtraInfo(nameCn: '', summary: '');
-    try {
-      final res = await Request().get('${Api.bangumiCharacterByID}${character.id}',
-          options: Options(headers: bangumiHTTPHeader));
-      final jsonData = res.data;
-      characterExtraInfo = CharacterExtraInfo.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi character extra info failed ${e.toString()}');
-    }
-    return characterExtraInfo;
   }
 }

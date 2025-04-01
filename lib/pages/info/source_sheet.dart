@@ -34,23 +34,23 @@ class _SourceSheetState extends State<SourceSheet>
   late String keyword;
 
   /// Concurrent query manager
-  late QueryManager queryManager;
+  QueryManager? queryManager;
 
   @override
   void initState() {
     keyword = infoController.bangumiItem.nameCn == ''
         ? infoController.bangumiItem.name
         : infoController.bangumiItem.nameCn;
-    queryManager = QueryManager();
     if (infoController.pluginSearchResponseList.isEmpty) {
-      queryManager.queryAllSource(keyword);
+      queryManager = QueryManager();
+      queryManager?.queryAllSource(keyword);
     }
     super.initState();
   }
 
   @override
   void dispose() {
-    queryManager.cancel();
+    queryManager?.cancel();
     super.dispose();
   }
 
@@ -117,7 +117,7 @@ class _SourceSheetState extends State<SourceSheet>
                   ),
                   onTap: () {
                     KazumiDialog.dismiss();
-                    queryManager.querySource(alias, pluginName);
+                    queryManager?.querySource(alias, pluginName);
                   },
                 );
               }).toList(),
@@ -140,7 +140,7 @@ class _SourceSheetState extends State<SourceSheet>
               if (textController.text != '') {
                 infoController.bangumiItem.alias.add(textController.text);
                 KazumiDialog.dismiss();
-                queryManager.querySource(textController.text, pluginName);
+                queryManager?.querySource(textController.text, pluginName);
               }
             },
           ),
@@ -161,7 +161,7 @@ class _SourceSheetState extends State<SourceSheet>
                   collectController
                       .updateLocalCollect(infoController.bangumiItem);
                   KazumiDialog.dismiss();
-                  queryManager.querySource(textController.text, pluginName);
+                  queryManager?.querySource(textController.text, pluginName);
                 }
               },
               child: const Text(
@@ -303,7 +303,7 @@ class _SourceSheetState extends State<SourceSheet>
                                 actions: [
                                   GeneralErrorButton(
                                     onPressed: () {
-                                      queryManager.querySource(
+                                      queryManager?.querySource(
                                           keyword, plugin.name);
                                     },
                                     text: '重试',

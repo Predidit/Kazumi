@@ -667,15 +667,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                               ),
                               MenuItemButton(
                                 onPressed: () {
-                                  widget.showTimeToClose();
-                                },
-                                child: const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("定时关闭"),
-                                ),
-                              ),
-                              MenuItemButton(
-                                onPressed: () {
                                   bool needRestart = playerController.playing;
                                   playerController.pause();
                                   RemotePlay()
@@ -701,6 +692,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 child: const Padding(
                                   padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
                                   child: Text("外部播放"),
+                                ),
+                              ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  widget.showTimeToClose();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("定时关闭"),
                                 ),
                               ),
                               SubmenuButton(

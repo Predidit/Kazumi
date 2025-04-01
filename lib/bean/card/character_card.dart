@@ -28,7 +28,6 @@ class CharacterCard extends StatelessWidget {
       trailing: Text(characterItem.relation),
       onTap: () {
         showModalBottomSheet(
-            barrierColor: Colors.transparent,
             isScrollControlled: true,
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 3 / 4,

@@ -752,7 +752,7 @@ packages:
     description:
       path: media_kit
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -761,7 +761,7 @@ packages:
     description:
       path: "libs/android/media_kit_libs_android_video"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -770,7 +770,7 @@ packages:
     description:
       path: "libs/ios/media_kit_libs_ios_video"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -779,7 +779,7 @@ packages:
     description:
       path: "libs/linux/media_kit_libs_linux"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -788,7 +788,7 @@ packages:
     description:
       path: "libs/macos/media_kit_libs_macos_video"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -797,7 +797,7 @@ packages:
     description:
       path: "libs/universal/media_kit_libs_video"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -806,7 +806,7 @@ packages:
     description:
       path: "libs/windows/media_kit_libs_windows_video"
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -815,7 +815,7 @@ packages:
     description:
       path: media_kit_video
       ref: main
-      resolved-ref: d8eb365f7e957020f68309214e142fc527b855c7
+      resolved-ref: "509fab795495e0eddc439044740d1db964d41336"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"
@@ -911,18 +911,18 @@ packages:
     dependency: transitive
     description:
       name: package_info_plus
-      sha256: "67eae327b1b0faf761964a1d2e5d323c797f3799db0e85aa232db8d9e922bc35"
+      sha256: "7976bfe4c583170d6cdc7077e3237560b364149fcd268b5f53d95a991963b191"
       url: "https://pub.dev"
     source: hosted
-    version: "8.2.1"
+    version: "8.3.0"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
       name: package_info_plus_platform_interface
-      sha256: "205ec83335c2ab9107bbba3f8997f9356d72ca3c715d2f038fc773d0366b4c76"
+      sha256: "6c935fb612dff8e3cc9632c2b301720c77450a126114126ffaafe28d2e87956c"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.0"
+    version: "3.2.0"
   path:
     dependency: "direct main"
     description:
@@ -1095,10 +1095,10 @@ packages:
     dependency: transitive
     description:
       name: screen_brightness_android
-      sha256: ff9141bed547db02233e7dd88f990ab01973a0c8a8c04ddb855c7b072f33409a
+      sha256: "6ba1b5812f66c64e9e4892be2d36ecd34210f4e0da8bdec6a2ea34f1aa42683e"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.0"
+    version: "2.1.1"
   screen_brightness_ios:
     dependency: transitive
     description:
@@ -1508,10 +1508,10 @@ packages:
     dependency: transitive
     description:
       name: wakelock_plus
-      sha256: "36c88af0b930121941345306d259ec4cc4ecca3b151c02e3a9e71aede83c615e"
+      sha256: b90fbcc8d7bdf3b883ea9706d9d76b9978cb1dfa4351fcc8014d6ec31a493354
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.10"
+    version: "1.2.11"
   wakelock_plus_platform_interface:
     dependency: transitive
     description:

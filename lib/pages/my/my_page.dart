@@ -63,6 +63,14 @@ class _MyPageState extends State<MyPage> {
                       title: const Text('规则管理'),
                       description: const Text('管理番剧资源规则'),
                     ),
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/download/');
+                      },
+                      leading: const Icon(Icons.download_done_rounded),
+                      title: const Text('已下载剧集'),
+                      description: const Text('查看和管理已下载的视频'),
+                    ),
                   ],
                 ),
                 SettingsSection(

@@ -23,6 +23,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/widget/download_button.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -768,6 +769,17 @@ class _VideoPageState extends State<VideoPage>
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
                           )),
+                          // 添加下载按钮
+                          SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: DownloadButton(
+                              bangumiItem: infoController.bangumiItem,
+                              episodeIndex: count0 - 1,
+                              roadIndex: currentRoad,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
                           const SizedBox(width: 2),
                         ],
                       ),

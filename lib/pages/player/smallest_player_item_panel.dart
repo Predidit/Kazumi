@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/widget/download_button.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive/hive.dart';
@@ -397,6 +398,21 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       // 追番
                       CollectButton(
                         bangumiItem: infoController.bangumiItem,
+                        onOpen: () {
+                          widget.cancelHideTimer();
+                          playerController.canHidePlayerPanel = false;
+                        },
+                        onClose: () {
+                          widget.cancelHideTimer();
+                          widget.startHideTimer();
+                          playerController.canHidePlayerPanel = true;
+                        },
+                      ),
+                      // 下载
+                      DownloadButton(
+                        bangumiItem: infoController.bangumiItem,
+                        episodeIndex: videoPageController.currentEpisode - 1,
+                        roadIndex: videoPageController.currentRoad,
                         onOpen: () {
                           widget.cancelHideTimer();
                           playerController.canHidePlayerPanel = false;

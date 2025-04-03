@@ -118,11 +118,11 @@ class _InfoTabViewState extends State<InfoTabView> {
                         child: SelectableText(
                           infoController.bangumiItem.summary,
                           textAlign: TextAlign.start,
-                          scrollPhysics: NeverScrollableScrollPhysics(),
-                          selectionHeightStyle: ui.BoxHeightStyle.max,
                           scrollBehavior: const ScrollBehavior().copyWith(
                             scrollbars: false,
                           ),
+                          scrollPhysics: NeverScrollableScrollPhysics(),
+                          selectionHeightStyle: ui.BoxHeightStyle.max,
                         ),
                       ),
                       TextButton(

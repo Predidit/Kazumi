@@ -115,15 +115,13 @@ class _InfoTabViewState extends State<InfoTabView> {
                         width: MediaQuery.sizeOf(context).width > maxWidth
                             ? maxWidth
                             : MediaQuery.sizeOf(context).width - 32,
-                        child: ScrollConfiguration(
-                          behavior: const ScrollBehavior().copyWith(
+                        child: SelectableText(
+                          infoController.bangumiItem.summary,
+                          textAlign: TextAlign.start,
+                          scrollPhysics: NeverScrollableScrollPhysics(),
+                          selectionHeightStyle: ui.BoxHeightStyle.max,
+                          scrollBehavior: const ScrollBehavior().copyWith(
                             scrollbars: false,
-                          ),
-                          child: SelectableText(
-                            infoController.bangumiItem.summary,
-                            textAlign: TextAlign.start,
-                            scrollPhysics: NeverScrollableScrollPhysics(),
-                            selectionHeightStyle: ui.BoxHeightStyle.max,
                           ),
                         ),
                       ),

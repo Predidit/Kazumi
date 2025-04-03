@@ -192,8 +192,6 @@ class _InfoPageState extends State<InfoPage>
                                 ),
                               ),
                             SafeArea(
-                              left: false,
-                              right: false,
                               bottom: false,
                               child: EmbeddedNativeControlArea(
                                 child: Align(

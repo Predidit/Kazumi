@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -87,15 +86,7 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SelectableText(
-                infoController.bangumiItem.nameCn == ''
-                    ? infoController.bangumiItem.name
-                    : infoController.bangumiItem.nameCn,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.start,
-                scrollPhysics: NeverScrollableScrollPhysics(),
-                selectionHeightStyle: ui.BoxHeightStyle.max,
-              ),
+              Text('简介', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
               // only show expand button when line > 7
@@ -145,10 +136,7 @@ class _InfoTabViewState extends State<InfoTabView> {
                 }
               }),
               const SizedBox(height: 16),
-              Text(
-                '标签',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text('标签', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
@@ -209,7 +197,7 @@ class _InfoTabViewState extends State<InfoTabView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 100)),
+              Skeletonizer.zone(child: Bone.text(fontSize: 18, width: 50)),
               const SizedBox(height: 8),
               Skeletonizer.zone(child: Bone.multiText(lines: 7)),
               const SizedBox(height: 16),

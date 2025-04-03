@@ -126,7 +126,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
             widget.bangumiItem.nameCn == ''
                 ? widget.bangumiItem.name
                 : (widget.bangumiItem.nameCn),
-            maxLines: 4,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.headlineSmall,
           ),

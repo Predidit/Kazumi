@@ -130,9 +130,6 @@ class _InfoTabViewState extends State<InfoTabView> {
                   return SelectableText(
                     infoController.bangumiItem.summary,
                     textAlign: TextAlign.start,
-                    scrollBehavior: const ScrollBehavior().copyWith(
-                      scrollbars: false,
-                    ),
                     scrollPhysics: NeverScrollableScrollPhysics(),
                     selectionHeightStyle: ui.BoxHeightStyle.max,
                   );
@@ -253,14 +250,18 @@ class _InfoTabViewState extends State<InfoTabView> {
                   return SliverList.builder(
                     itemCount: 4,
                     itemBuilder: (context, _) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: SizedBox(
-                            width: MediaQuery.sizeOf(context).width > maxWidth
-                                ? maxWidth
-                                : MediaQuery.sizeOf(context).width - 32,
-                            child: CommentsCard.bone(),
+                      return SafeArea(
+                        top: false,
+                        bottom: false,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: SizedBox(
+                              width: MediaQuery.sizeOf(context).width > maxWidth
+                                  ? maxWidth
+                                  : MediaQuery.sizeOf(context).width - 32,
+                              child: CommentsCard.bone(),
+                            ),
                           ),
                         ),
                       );
@@ -291,30 +292,38 @@ class _InfoTabViewState extends State<InfoTabView> {
                   addAutomaticKeepAlives: false,
                   itemCount: infoController.commentsList.length,
                   itemBuilder: (context, index) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: SizedBox(
-                          width: MediaQuery.sizeOf(context).width > maxWidth
-                              ? maxWidth
-                              : MediaQuery.sizeOf(context).width - 32,
-                          child: CommentsCard(
-                            commentItem: infoController.commentsList[index],
+                    return SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width > maxWidth
+                                ? maxWidth
+                                : MediaQuery.sizeOf(context).width - 32,
+                            child: CommentsCard(
+                              commentItem: infoController.commentsList[index],
+                            ),
                           ),
                         ),
                       ),
                     );
                   },
                   separatorBuilder: (BuildContext context, int index) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: SizedBox(
-                          width: MediaQuery.sizeOf(context).width > maxWidth
-                              ? maxWidth
-                              : MediaQuery.sizeOf(context).width - 32,
-                          child: Divider(
-                              thickness: 0.5, indent: 10, endIndent: 10),
+                    return SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: SizedBox(
+                            width: MediaQuery.sizeOf(context).width > maxWidth
+                                ? maxWidth
+                                : MediaQuery.sizeOf(context).width - 32,
+                            child: Divider(
+                                thickness: 0.5, indent: 10, endIndent: 10),
+                          ),
                         ),
                       ),
                     );
@@ -431,7 +440,11 @@ class _InfoTabViewState extends State<InfoTabView> {
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 ),
                 SliverToBoxAdapter(
-                  child: infoController.isLoading ? infoBodyBone : infoBody,
+                  child: SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: infoController.isLoading ? infoBodyBone : infoBody,
+                  ),
                 ),
               ],
             );

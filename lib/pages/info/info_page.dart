@@ -322,9 +322,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
-                commentsIsLoading: commentsIsLoading,
-                charactersIsLoading: charactersIsLoading,
-                staffIsLoading: staffIsLoading,
                 commentsQueryTimeout: commentsQueryTimeout,
                 charactersQueryTimeout: charactersQueryTimeout,
                 staffQueryTimeout: staffQueryTimeout,

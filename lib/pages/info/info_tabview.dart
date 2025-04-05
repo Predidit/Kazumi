@@ -42,6 +42,7 @@ class _InfoTabViewState extends State<InfoTabView> {
         .then((_) {
       if (infoController.characterList.isEmpty && mounted) {
         setState(() {
+          charactersIsLoading = false;
           charactersQueryTimeout = true;
         });
       }
@@ -59,6 +60,7 @@ class _InfoTabViewState extends State<InfoTabView> {
         .then((_) {
       if (infoController.commentsList.isEmpty && mounted) {
         setState(() {
+          commentsIsLoading = false;
           commentsQueryTimeout = true;
         });
       }

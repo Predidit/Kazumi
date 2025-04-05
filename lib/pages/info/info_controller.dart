@@ -13,6 +13,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
+import 'package:kazumi/modules/staff/staff_item.dart';
 
 part 'info_controller.g.dart';
 
@@ -40,6 +41,9 @@ abstract class _InfoController with Store {
   
   @observable
   var characterList = ObservableList<CharacterItem>();
+
+  @observable
+  var staffList = ObservableList<StaffFullItem>();
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
@@ -119,5 +123,13 @@ abstract class _InfoController with Store {
       KazumiDialog.showToast(message: '$e');
     }
     KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');
+  }
+
+  Future<void> queryBangumiStaffsByID(int id) async {
+    staffList.clear();
+    await BangumiHTTP.getBangumiStaffByID(id).then((value) {
+      staffList.addAll(value.data);
+    });
+    KazumiLogger().log(Level.info, '已加载制作人员列表长度 ${staffList.length}');
   }
 }

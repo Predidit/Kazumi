@@ -27,8 +27,7 @@ class InfoPage extends StatefulWidget {
   State<InfoPage> createState() => _InfoPageState();
 }
 
-class _InfoPageState extends State<InfoPage>
-    with TickerProviderStateMixin {
+class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
@@ -40,6 +39,8 @@ class _InfoPageState extends State<InfoPage>
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
   bool charactersQueryTimeout = false;
+  bool staffIsLoading = false;
+  bool staffQueryTimeout = false;
 
   Future<void> loadCharacters() async {
     if (charactersIsLoading) return;
@@ -59,6 +60,29 @@ class _InfoPageState extends State<InfoPage>
       if (infoController.characterList.isNotEmpty && mounted) {
         setState(() {
           charactersIsLoading = false;
+        });
+      }
+    });
+  }
+
+  Future<void> loadStaff() async {
+    if (staffIsLoading) return;
+    setState(() {
+      staffIsLoading = true;
+      staffQueryTimeout = false;
+    });
+    infoController
+        .queryBangumiStaffsByID(infoController.bangumiItem.id)
+        .then((_) {
+      if (infoController.staffList.isEmpty && mounted) {
+        setState(() {
+          staffIsLoading = false;
+          staffQueryTimeout = true;
+        });
+      }
+      if (infoController.staffList.isNotEmpty && mounted) {
+        setState(() {
+          staffIsLoading = false;
         });
       }
     });
@@ -101,7 +125,6 @@ class _InfoPageState extends State<InfoPage>
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: 5, vsync: this);
     infoTabController.addListener(() {
-      if (infoTabController.indexIsChanging) return;
       int index = infoTabController.index;
       if (index == 1 &&
           infoController.commentsList.isEmpty &&
@@ -113,6 +136,9 @@ class _InfoPageState extends State<InfoPage>
           !charactersIsLoading) {
         loadCharacters();
       }
+      if (index == 4 && infoController.staffList.isEmpty && !staffIsLoading) {
+        loadStaff();
+      }
     });
   }
 
@@ -120,6 +146,7 @@ class _InfoPageState extends State<InfoPage>
   void dispose() {
     infoController.characterList.clear();
     infoController.commentsList.clear();
+    infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.currentEpisode = 1;
     sourceTabController.dispose();
@@ -291,23 +318,25 @@ class _InfoPageState extends State<InfoPage>
                 ),
               ];
             },
-            body: Observer(
-              builder: (context) {
-                return InfoTabView(
-                  tabController: infoTabController,
-                  bangumiItem: infoController.bangumiItem,
-                  commentsIsLoading: commentsIsLoading,
-                  charactersIsLoading: charactersIsLoading,
-                  commentsQueryTimeout: commentsQueryTimeout,
-                  charactersQueryTimeout: charactersQueryTimeout,
-                  loadMoreComments: loadMoreComments,
-                  loadCharacters: loadCharacters,
-                  commentsList: infoController.commentsList,
-                  characterList: infoController.characterList,
-                  isLoading: infoController.isLoading,
-                );
-              }
-            ),
+            body: Observer(builder: (context) {
+              return InfoTabView(
+                tabController: infoTabController,
+                bangumiItem: infoController.bangumiItem,
+                commentsIsLoading: commentsIsLoading,
+                charactersIsLoading: charactersIsLoading,
+                staffIsLoading: staffIsLoading,
+                commentsQueryTimeout: commentsQueryTimeout,
+                charactersQueryTimeout: charactersQueryTimeout,
+                staffQueryTimeout: staffQueryTimeout,
+                loadMoreComments: loadMoreComments,
+                loadCharacters: loadCharacters,
+                loadStaff: loadStaff,
+                commentsList: infoController.commentsList,
+                characterList: infoController.characterList,
+                staffList: infoController.staffList,
+                isLoading: infoController.isLoading,
+              );
+            }),
           ),
           floatingActionButton: FloatingActionButton.extended(
             icon: const Icon(Icons.play_arrow_rounded),

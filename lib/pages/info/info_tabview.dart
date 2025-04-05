@@ -3,38 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
+import 'package:kazumi/bean/card/staff_card.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/staff/staff_item.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
     super.key,
     required this.commentsIsLoading,
     required this.charactersIsLoading,
+    required this.staffIsLoading,
     required this.commentsQueryTimeout,
     required this.charactersQueryTimeout,
+    required this.staffQueryTimeout,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
+    required this.loadStaff,
     required this.bangumiItem,
     required this.commentsList,
     required this.characterList,
+    required this.staffList,
     required this.isLoading,
   });
 
   final bool commentsIsLoading;
   final bool charactersIsLoading;
+  final bool staffIsLoading;
   final bool commentsQueryTimeout;
   final bool charactersQueryTimeout;
+  final bool staffQueryTimeout;
   final TabController tabController;
   final Future<void> Function({int offset}) loadMoreComments;
   final Future<void> Function() loadCharacters;
+  final Future<void> Function() loadStaff;
   final BangumiItem bangumiItem;
   final List<CommentItem> commentsList;
   final List<CharacterItem> characterList;
+  final List<StaffFullItem> staffList;
   final bool isLoading;
 
   @override
@@ -198,8 +208,7 @@ class _InfoTabViewState extends State<InfoTabView>
           onNotification: (scrollEnd) {
             final metrics = scrollEnd.metrics;
             if (metrics.pixels >= metrics.maxScrollExtent - 200) {
-              widget.loadMoreComments(
-                  offset: widget.commentsList.length);
+              widget.loadMoreComments(offset: widget.commentsList.length);
             }
             return true;
           },
@@ -214,8 +223,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverLayoutBuilder(builder: (context, _) {
-                if (widget.commentsList.isEmpty &&
-                    widget.commentsIsLoading) {
+                if (widget.commentsList.isEmpty && widget.commentsIsLoading) {
                   return SliverList.builder(
                     itemCount: 4,
                     itemBuilder: (context, _) {
@@ -302,6 +310,81 @@ class _InfoTabViewState extends State<InfoTabView>
     );
   }
 
+  Widget get staffListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: PageStorageKey<String>('制作人员'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(builder: (context, _) {
+              if (widget.staffList.isEmpty && widget.staffIsLoading) {
+                return SliverList.builder(
+                  itemCount: 8,
+                  itemBuilder: (context, _) {
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: Skeletonizer.zone(
+                          child: ListTile(
+                            leading: Bone.circle(size: 36),
+                            title: Bone.text(width: 100),
+                            subtitle: Bone.text(width: 80),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
+              if (widget.staffQueryTimeout) {
+                return SliverFillRemaining(
+                  child: GeneralErrorWidget(
+                    errMsg: '获取失败，请重试',
+                    actions: [
+                      GeneralErrorButton(
+                        onPressed: () {
+                          widget.loadStaff();
+                        },
+                        text: '重试',
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return SliverList.builder(
+                itemCount: widget.staffList.length,
+                itemBuilder: (context, index) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SizedBox(
+                        width: MediaQuery.sizeOf(context).width > maxWidth
+                            ? maxWidth
+                            : MediaQuery.sizeOf(context).width - 32,
+                        child: StaffCard(
+                          staffFullItem: widget.staffList[index],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
   Widget get charactersListBody {
     return Builder(
       builder: (BuildContext context) {
@@ -315,8 +398,7 @@ class _InfoTabViewState extends State<InfoTabView>
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
             ),
             SliverLayoutBuilder(builder: (context, _) {
-              if (widget.characterList.isEmpty &&
-                  widget.charactersIsLoading) {
+              if (widget.characterList.isEmpty && widget.charactersIsLoading) {
                 return SliverList.builder(
                   itemCount: 4,
                   itemBuilder: (context, _) {
@@ -435,26 +517,7 @@ class _InfoTabViewState extends State<InfoTabView>
             );
           },
         ),
-        Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              key: PageStorageKey<String>('制作人员'),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle:
-                      NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                ),
-                // TODO: 制作人员
-                SliverFillRemaining(
-                  child: Center(child: Text('施工中')),
-                ),
-              ],
-            );
-          },
-        ),
+        staffListBody,
       ],
     );
   }

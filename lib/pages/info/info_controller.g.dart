@@ -106,6 +106,22 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$staffListAtom =
+      Atom(name: '_InfoController.staffList', context: context);
+
+  @override
+  ObservableList<StaffFullItem> get staffList {
+    _$staffListAtom.reportRead();
+    return super.staffList;
+  }
+
+  @override
+  set staffList(ObservableList<StaffFullItem> value) {
+    _$staffListAtom.reportWrite(value, super.staffList, () {
+      super.staffList = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
@@ -114,7 +130,8 @@ pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
 commentsList: ${commentsList},
 episodeCommentsList: ${episodeCommentsList},
-characterList: ${characterList}
+characterList: ${characterList},
+staffList: ${staffList}
     ''';
   }
 }

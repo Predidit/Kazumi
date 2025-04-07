@@ -190,6 +190,7 @@ msix_config:
   logo_path: assets/images/logo/logo_rounded.png
   sign_msix: false
   install_certificate: false
+  build_windows: false
 
 # The following section is specific to Flutter packages.
 flutter:

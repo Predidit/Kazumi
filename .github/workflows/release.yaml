@@ -95,16 +95,7 @@
             run: |
               (Get-Content -Path 'lib/utils/mortis.dart') -replace "kvpx7qkqjh", "$env:DANDANAPI_APPID" | Set-Content -Path 'lib/utils/mortis.dart'
               (Get-Content -Path 'lib/utils/mortis.dart') -replace "rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax", "$env:DANDANAPI_KEY" | Set-Content -Path 'lib/utils/mortis.dart'
-          - run: flutter build windows
-          # - name: Download FFmpeg Assets
-          #   uses: dsaltares/fetch-gh-release-asset@master
-          #   with:
-          #     repo: 'Predidit/avbuild'
-          #     version: 'tags/1.1.0'
-          #     file: 'ffmpeg_windows_x64.zip'
-          #     token: ${{ secrets.GITHUB_TOKEN }}
-          # - run: Remove-Item -Path build/windows/x64/runner/Release/ffmpeg-7.dll -Force
-          # - run: Expand-Archive -LiteralPath ffmpeg_windows_x64.zip -DestinationPath build/windows/x64/runner/Release      
+          - run: flutter build windows   
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
           - name: Upload windows outputs
             uses: actions/upload-artifact@v4
@@ -114,6 +105,32 @@
               path: |
                 Kazumi_windows_*.zip
 
+          # Sign Zip
+          - run: New-Item -Path "build/windows/zip_signed_output" -ItemType Directory
+          - name: sign windows zip
+            uses: signpath/github-action-submit-signing-request@v1.1
+            with:
+              api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+              organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
+              project-slug: 'Kazumi'
+              signing-policy-slug: 'release-signing'
+              artifact-configuration-slug: 'Packet'
+              github-artifact-id: '${{ steps.unsigned-windows-zip-artifacts.outputs.artifact-id }}'
+              wait-for-completion: true
+              output-artifact-directory: 'build/windows/zip_signed_output'
+          
+          - name: Upload windows zip signed ouputs
+            uses: actions/upload-artifact@v4
+            id: signed-windows-zip-artifacts
+            with:
+              name: windows_zip_signed_outputs
+              path: build/windows/zip_signed_output/*.zip
+              
+          # Replace Unpacked Artifact with Signed Artifact
+          - name: Replace Unpacked Artifact with Signed Artifact
+            run: Expand-Archive -Path "build/windows/zip_signed_output/Kazumi_windows_${env:tag}.zip" -DestinationPath "build/windows/x64/runner/Release" -Force
+          
+          # Build Unsigned MSIX
           - name: Build unsigned msix
             run: dart run msix:create
           - name: Upload windows msix ouputs
@@ -144,27 +161,6 @@
             with:
               name: windows_msix_signed_outputs
               path: build/windows/msix_signed_output/*.msix
-
-          # Sign Zip
-          - run: New-Item -Path "build/windows/zip_signed_output" -ItemType Directory
-          - name: sign windows zip
-            uses: signpath/github-action-submit-signing-request@v1.1
-            with:
-              api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-              organization-id: 'fa047255-4772-4be1-b14f-5cfa62635877'
-              project-slug: 'Kazumi'
-              signing-policy-slug: 'release-signing'
-              artifact-configuration-slug: 'Packet'
-              github-artifact-id: '${{ steps.unsigned-windows-zip-artifacts.outputs.artifact-id }}'
-              wait-for-completion: true
-              output-artifact-directory: 'build/windows/zip_signed_output'
-          
-          - name: Upload windows zip signed ouputs
-            uses: actions/upload-artifact@v4
-            id: signed-windows-zip-artifacts
-            with:
-              name: windows_zip_signed_outputs
-              path: build/windows/zip_signed_output/*.zip
 
       flutter-build-linux:
         name: "Release for Linux"

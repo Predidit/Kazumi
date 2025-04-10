@@ -3,10 +3,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -27,12 +26,10 @@ class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
   bool showTagFilter = true;
-  bool showSearchBar = false;
   late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
-  late TextEditingController searchController;
 
   @override
   bool get wantKeepAlive => true;
@@ -44,13 +41,6 @@ class _PopularPageState extends State<PopularPage>
     if (popularController.trendList.isEmpty) {
       popularController.queryBangumiByTrend();
     }
-    showSearchBar = popularController.searchKeyword.isNotEmpty;
-    searchController =
-        TextEditingController(text: popularController.searchKeyword);
-
-    searchController.addListener(() {
-      setState(() {});
-    });
   }
 
   @override
@@ -63,7 +53,6 @@ class _PopularPageState extends State<PopularPage>
   void dispose() {
     _focusNode.dispose();
     scrollController.removeListener(scrollListener);
-    searchController.dispose();
     super.dispose();
   }
 
@@ -72,13 +61,11 @@ class _PopularPageState extends State<PopularPage>
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
-      if (popularController.searchKeyword == '') {
-        KazumiLogger().log(Level.info, 'Popular is loading more');
-        if (popularController.currentTag != '') {
-          popularController.queryBangumiByTag();
-        } else {
-          popularController.queryBangumiByTrend();
-        }
+      KazumiLogger().log(Level.info, 'Popular is loading more');
+      if (popularController.currentTag != '') {
+        popularController.queryBangumiByTag();
+      } else {
+        popularController.queryBangumiByTrend();
       }
     }
   }
@@ -135,44 +122,15 @@ class _PopularPageState extends State<PopularPage>
             backgroundColor: Colors.transparent,
             actions: [
               IconButton(
-                  onPressed: () async {
-                    if (!showSearchBar) {
-                      setState(() {
-                        showSearchBar = true;
-                      });
-                      _focusNode.requestFocus();
-                    } else {
-                      _focusNode.unfocus();
-                      setState(() {
-                        showSearchBar = false;
-                      });
-                      popularController.setCurrentTag('');
-                      popularController.clearBangumiList();
-                      popularController.setSearchKeyword('');
-                      searchController.clear();
-                    }
+                  onPressed: () {
+                    Modular.to.pushNamed('/search/');
                   },
-                  icon: showSearchBar
-                      ? const Text("取消")
-                      : const Icon(Icons.search))
+                  icon: const Icon(Icons.search))
             ],
-            title: Stack(
-              children: [
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onPanStart: (_) => windowManager.startDragging(),
-                    child: Container(),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: (Utils.isDesktop()) ? 8 : 0),
-                  child: Visibility(
-                    visible: showSearchBar,
-                    child: searchBar(),
-                  ),
-                ),
-              ],
+            title: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanStart: (_) => windowManager.startDragging(),
+              child: Container(),
             ),
           ),
           body: Column(
@@ -201,7 +159,7 @@ class _PopularPageState extends State<PopularPage>
                     SliverPadding(
                         padding: const EdgeInsets.fromLTRB(
                             StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                        sliver: Observer(builder: (context) {
+                        sliver: Observer(builder: (_) {
                           if (popularController.isTimeOut) {
                             return SliverToBoxAdapter(
                               child: SizedBox(
@@ -211,11 +169,7 @@ class _PopularPageState extends State<PopularPage>
                                   actions: [
                                     GeneralErrorButton(
                                       onPressed: () {
-                                        if (popularController.searchKeyword !=
-                                            '') {
-                                          popularController.searchBangumi(
-                                              popularController.searchKeyword);
-                                        } else if (popularController
+                                        if (popularController
                                             .trendList.isEmpty) {
                                           popularController
                                               .queryBangumiByTrend();
@@ -231,8 +185,7 @@ class _PopularPageState extends State<PopularPage>
                             );
                           }
                           return contentGrid(
-                              (popularController.currentTag == '' &&
-                                      popularController.searchKeyword == '')
+                              (popularController.currentTag == '')
                                   ? popularController.trendList
                                   : popularController.bangumiList,
                               orientation);
@@ -327,10 +280,6 @@ class _PopularPageState extends State<PopularPage>
                             onPressed: () async {
                               _focusNode.unfocus();
                               scrollController.jumpTo(0.0);
-                              popularController.setSearchKeyword('');
-                              setState(() {
-                                showSearchBar = false;
-                              });
                               popularController.setCurrentTag(filter);
                               await popularController.queryBangumiByTag(
                                   type: 'init');
@@ -343,49 +292,6 @@ class _PopularPageState extends State<PopularPage>
           ),
         ),
       ],
-    );
-  }
-
-  Widget searchBar() {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    return TextField(
-      controller: searchController,
-      focusNode: _focusNode,
-      cursorColor: Theme.of(context).colorScheme.primary,
-      decoration: InputDecoration(
-        floatingLabelBehavior: FloatingLabelBehavior.never,
-        alignLabelWithHint: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8)),
-        ),
-        suffixIcon: searchController.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.cancel),
-                onPressed: () {
-                  searchController.clear();
-                  popularController.setSearchKeyword('');
-                  _focusNode.unfocus();
-                  popularController.setCurrentTag('');
-                  popularController.clearBangumiList();
-                },
-              )
-            : null,
-      ),
-      style: TextStyle(color: isLight ? Colors.black87 : Colors.white70),
-      onChanged: (_) {
-        scrollController.jumpTo(0.0);
-      },
-      onSubmitted: (t) async {
-        popularController.setSearchKeyword(t);
-        if (t != '') {
-          await popularController
-              .searchBangumi(popularController.searchKeyword);
-        } else {
-          popularController.setCurrentTag('');
-          popularController.clearBangumiList();
-        }
-      },
     );
   }
 }

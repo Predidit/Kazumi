@@ -164,7 +164,7 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword, {List<String> tags = const [], int offset = 0}) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
@@ -172,7 +172,7 @@ class BangumiHTTP {
       'sort': 'rank',
       "filter": {
         "type": [2],
-        "tag": [],
+        "tag": tags,
         "rank": [">0", "<=99999"],
         "nsfw": false
       },
@@ -180,7 +180,7 @@ class BangumiHTTP {
 
     try {
       final res = await Request().post(
-          Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
+          Api.formatUrl(Api.bangumiRankSearch, [20, offset]),
           data: params,
           options: Options(
               headers: bangumiHTTPHeader, contentType: 'application/json'));

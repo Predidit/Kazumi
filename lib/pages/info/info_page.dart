@@ -114,6 +114,11 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    infoController.characterList.clear();
+    infoController.commentsList.clear();
+    infoController.staffList.clear();
+    infoController.pluginSearchResponseList.clear();
+    videoPageController.currentEpisode = 1;
     // Because the gap between different bangumi API response is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker

@@ -15,10 +15,12 @@ class BangumiCardV extends StatelessWidget {
     this.canTap = true,
     this.longPress,
     this.longPressEnd,
+    this.enableHero = true,
   });
 
   final BangumiItem bangumiItem;
   final bool canTap;
+  final bool enableHero;
   final Function()? longPress;
   final Function()? longPressEnd;
 
@@ -56,15 +58,21 @@ class BangumiCardV extends StatelessWidget {
                   child: LayoutBuilder(builder: (context, boxConstraints) {
                     final double maxWidth = boxConstraints.maxWidth;
                     final double maxHeight = boxConstraints.maxHeight;
-                    return Hero(
-                      transitionOnUserGestures: true,
-                      tag: bangumiItem.id,
-                      child: NetworkImgLayer(
-                        src: bangumiItem.images['large'] ?? '',
-                        width: maxWidth,
-                        height: maxHeight,
-                      ),
-                    );
+                    return enableHero
+                        ? Hero(
+                            transitionOnUserGestures: true,
+                            tag: bangumiItem.id,
+                            child: NetworkImgLayer(
+                              src: bangumiItem.images['large'] ?? '',
+                              width: maxWidth,
+                              height: maxHeight,
+                            ),
+                          )
+                        : NetworkImgLayer(
+                            src: bangumiItem.images['large'] ?? '',
+                            width: maxWidth,
+                            height: maxHeight,
+                          );
                   }),
                 ),
               ),

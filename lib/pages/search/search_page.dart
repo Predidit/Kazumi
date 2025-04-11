@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
@@ -18,8 +17,9 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
-  final SearchPageController searchPageController =
-      Modular.get<SearchPageController>();
+  /// Don't use modular singleton here. We may have multiple search pages.
+  /// Use a new instance of SearchPageController for each search page.
+  final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
   @override
@@ -39,7 +39,8 @@ class _SearchPageState extends State<SearchPage> {
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
         !searchPageController.isLoading &&
-        searchController.text != '' && searchPageController.bangumiList.length >= 20) {
+        searchController.text != '' &&
+        searchPageController.bangumiList.length >= 20) {
       debugPrint('Search results is loading more');
       searchPageController.searchBangumi(searchController.text, type: 'add');
     }
@@ -129,6 +130,7 @@ class _SearchPageState extends State<SearchPage> {
                   itemBuilder: (context, index) {
                     return searchPageController.bangumiList.isNotEmpty
                         ? BangumiCardV(
+                            enableHero: false,
                             bangumiItem:
                                 searchPageController.bangumiList[index])
                         : Container();

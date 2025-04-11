@@ -41,22 +41,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
-  late final _$searchKeywordAtom =
-      Atom(name: '_SearchPageController.searchKeyword', context: context);
-
-  @override
-  String get searchKeyword {
-    _$searchKeywordAtom.reportRead();
-    return super.searchKeyword;
-  }
-
-  @override
-  set searchKeyword(String value) {
-    _$searchKeywordAtom.reportWrite(value, super.searchKeyword, () {
-      super.searchKeyword = value;
-    });
-  }
-
   late final _$bangumiListAtom =
       Atom(name: '_SearchPageController.bangumiList', context: context);
 
@@ -78,7 +62,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return '''
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
-searchKeyword: ${searchKeyword},
 bangumiList: ${bangumiList}
     ''';
   }

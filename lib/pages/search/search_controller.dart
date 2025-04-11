@@ -15,9 +15,6 @@ abstract class _SearchPageController with Store {
   bool isTimeOut = false;
 
   @observable
-  String searchKeyword = '';
-
-  @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
   Future<void> searchBangumi(String input, {String type = 'add'}) async {

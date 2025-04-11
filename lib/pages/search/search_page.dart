@@ -5,6 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -54,8 +55,8 @@ class _SearchPageState extends State<SearchPage> {
       }
     });
     return Scaffold(
-      appBar: AppBar(
-        forceMaterialTransparency: true,
+      appBar: SysAppBar(
+        backgroundColor: Colors.transparent,
         title: const Text("搜索"),
       ),
       body: Column(

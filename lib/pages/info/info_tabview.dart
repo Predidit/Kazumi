@@ -151,7 +151,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     ),
                     onPressed: () {
                       Modular.to.popAndPushNamed(
-                          '/search/${widget.bangumiItem.tags[index].name}', forRoot: true);
+                          '/search/${widget.bangumiItem.tags[index].name}');
                     },
                   );
                 }).toList(),

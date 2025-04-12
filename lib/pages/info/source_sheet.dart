@@ -16,9 +16,11 @@ class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
     required this.tabController,
+    required this.infoController,
   });
 
   final TabController tabController;
+  final InfoController infoController;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
@@ -26,7 +28,6 @@ class SourceSheet extends StatefulWidget {
 
 class _SourceSheetState extends State<SourceSheet>
     with SingleTickerProviderStateMixin {
-  final infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final CollectController collectController = Modular.get<CollectController>();
@@ -38,11 +39,11 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   void initState() {
-    keyword = infoController.bangumiItem.nameCn == ''
-        ? infoController.bangumiItem.name
-        : infoController.bangumiItem.nameCn;
-    if (infoController.pluginSearchResponseList.isEmpty) {
-      queryManager = QueryManager();
+    keyword = widget.infoController.bangumiItem.nameCn == ''
+        ? widget.infoController.bangumiItem.name
+        : widget.infoController.bangumiItem.nameCn;
+    if (widget.infoController.pluginSearchResponseList.isEmpty) {
+      queryManager = QueryManager(infoController: widget.infoController);
       queryManager?.queryAllSource(keyword);
     }
     super.initState();
@@ -55,12 +56,12 @@ class _SourceSheetState extends State<SourceSheet>
   }
 
   void showAliasSearchDialog(String pluginName) {
-    if (infoController.bangumiItem.alias.isEmpty) {
+    if (widget.infoController.bangumiItem.alias.isEmpty) {
       KazumiDialog.showToast(message: '无可用别名，试试手动检索');
       return;
     }
     final aliasNotifier =
-        ValueNotifier<List<String>>(infoController.bangumiItem.alias);
+        ValueNotifier<List<String>>(widget.infoController.bangumiItem.alias);
     KazumiDialog.show(builder: (context) {
       return Dialog(
         clipBehavior: Clip.antiAlias,
@@ -100,7 +101,7 @@ class _SourceSheetState extends State<SourceSheet>
                                   aliasList.removeAt(index);
                                   aliasNotifier.value = List.from(aliasList);
                                   collectController.updateLocalCollect(
-                                      infoController.bangumiItem);
+                                      widget.infoController.bangumiItem);
                                   if (aliasList.isEmpty) {
                                     // pop whole dialog when empty
                                     Navigator.of(context).pop();
@@ -138,7 +139,8 @@ class _SourceSheetState extends State<SourceSheet>
             controller: textController,
             onSubmitted: (keyword) {
               if (textController.text != '') {
-                infoController.bangumiItem.alias.add(textController.text);
+                widget.infoController.bangumiItem.alias
+                    .add(textController.text);
                 KazumiDialog.dismiss();
                 queryManager?.querySource(textController.text, pluginName);
               }
@@ -157,9 +159,10 @@ class _SourceSheetState extends State<SourceSheet>
             TextButton(
               onPressed: () {
                 if (textController.text != '') {
-                  infoController.bangumiItem.alias.add(textController.text);
+                  widget.infoController.bangumiItem.alias
+                      .add(textController.text);
                   collectController
-                      .updateLocalCollect(infoController.bangumiItem);
+                      .updateLocalCollect(widget.infoController.bangumiItem);
                   KazumiDialog.dismiss();
                   queryManager?.querySource(textController.text, pluginName);
                 }
@@ -212,11 +215,13 @@ class _SourceSheetState extends State<SourceSheet>
                                     width: 8.0,
                                     height: 8.0,
                                     decoration: BoxDecoration(
-                                      color: infoController.pluginSearchStatus[
+                                      color: widget.infoController
+                                                      .pluginSearchStatus[
                                                   plugin.name] ==
                                               'success'
                                           ? Colors.green
-                                          : (infoController.pluginSearchStatus[
+                                          : (widget.infoController
+                                                          .pluginSearchStatus[
                                                       plugin.name] ==
                                                   'pending')
                                               ? Colors.grey
@@ -257,7 +262,7 @@ class _SourceSheetState extends State<SourceSheet>
                     var plugin = pluginsController.pluginList[pluginIndex];
                     var cardList = <Widget>[];
                     for (var searchResponse
-                        in infoController.pluginSearchResponseList) {
+                        in widget.infoController.pluginSearchResponseList) {
                       if (searchResponse.pluginName == plugin.name) {
                         for (var searchItem in searchResponse.data) {
                           cardList.add(
@@ -269,11 +274,13 @@ class _SourceSheetState extends State<SourceSheet>
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () async {
                                   KazumiDialog.showLoading(msg: '获取中');
+                                  videoPageController.bangumiItem =
+                                      widget.infoController.bangumiItem;
                                   videoPageController.currentPlugin = plugin;
                                   videoPageController.title = searchItem.name;
                                   videoPageController.src = searchItem.src;
                                   try {
-                                    await infoController.queryRoads(
+                                    await videoPageController.queryRoads(
                                         searchItem.src, plugin.name);
                                     KazumiDialog.dismiss();
                                     Modular.to.pushNamed('/video/');
@@ -293,10 +300,12 @@ class _SourceSheetState extends State<SourceSheet>
                         }
                       }
                     }
-                    return infoController.pluginSearchStatus[plugin.name] ==
+                    return widget.infoController
+                                .pluginSearchStatus[plugin.name] ==
                             'pending'
                         ? const Center(child: CircularProgressIndicator())
-                        : (infoController.pluginSearchStatus[plugin.name] ==
+                        : (widget.infoController
+                                    .pluginSearchStatus[plugin.name] ==
                                 'error'
                             ? GeneralErrorWidget(
                                 errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',

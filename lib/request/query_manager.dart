@@ -6,7 +6,11 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 
 class QueryManager {
-  final InfoController infoController = Modular.get<InfoController>();
+  QueryManager({
+    required this.infoController,
+  });
+
+  final InfoController infoController;
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late StreamController _controller;
   bool _isCancelled = false;

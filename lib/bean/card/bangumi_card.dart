@@ -3,7 +3,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/utils.dart';
 
@@ -26,7 +25,6 @@ class BangumiCardV extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final InfoController infoController = Modular.get<InfoController>();
     return Card(
       elevation: 0,
       clipBehavior: Clip.hardEdge,
@@ -40,8 +38,7 @@ class BangumiCardV extends StatelessWidget {
               );
               return;
             }
-            infoController.bangumiItem = bangumiItem;
-            Modular.to.pushNamed('/info/');
+            Modular.to.pushNamed('/info/', arguments: bangumiItem);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

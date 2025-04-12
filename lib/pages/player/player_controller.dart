@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -31,7 +30,6 @@ class PlayerController = _PlayerController with _$PlayerController;
 abstract class _PlayerController with Store {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-  final InfoController infoController = Modular.get<InfoController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
 
   // 弹幕控制
@@ -186,7 +184,7 @@ abstract class _PlayerController with Store {
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
-          "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
+          "${videoPageController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
         setSyncPlayPlayingBangumi(
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
@@ -639,7 +637,7 @@ abstract class _PlayerController with Store {
   Future<void> setSyncPlayPlayingBangumi(
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
     await syncplayController!.setSyncPlayPlaying(
-        "${infoController.bangumiItem.id}[${videoPageController.currentEpisode}]",
+        "${videoPageController.bangumiItem.id}[${videoPageController.currentEpisode}]",
         10800,
         220514438);
     setSyncPlayCurrentPosition(

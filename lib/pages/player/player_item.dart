@@ -21,7 +21,6 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -65,7 +64,6 @@ class _PlayerItemState extends State<PlayerItem>
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  final InfoController infoController = Modular.get<InfoController>();
   final CollectController collectController = Modular.get<CollectController>();
 
   // 1. 在看
@@ -359,7 +357,7 @@ class _PlayerItemState extends State<PlayerItem>
             videoPageController.currentEpisode,
             videoPageController.currentRoad,
             videoPageController.currentPlugin.name,
-            infoController.bangumiItem,
+            videoPageController.bangumiItem,
             playerController.playerPosition,
             videoPageController.src,
             videoPageController.roadList[videoPageController.currentRoad]
@@ -731,7 +729,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   Widget build(BuildContext context) {
-    collectType = collectController.getCollectType(infoController.bangumiItem);
+    collectType = collectController.getCollectType(videoPageController.bangumiItem);
     return Observer(
       builder: (context) {
         return ClipRect(

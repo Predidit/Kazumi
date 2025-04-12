@@ -3,7 +3,6 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
@@ -34,7 +33,6 @@ class VideoPage extends StatefulWidget {
 class _VideoPageState extends State<VideoPage>
     with TickerProviderStateMixin, WindowListener {
   Box setting = GStorage.setting;
-  final InfoController infoController = Modular.get<InfoController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
@@ -102,7 +100,7 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     var progress = historyController.lastWatching(
-        infoController.bangumiItem, videoPageController.currentPlugin.name);
+        videoPageController.bangumiItem, videoPageController.currentPlugin.name);
     if (progress != null) {
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
@@ -165,8 +163,8 @@ class _VideoPageState extends State<VideoPage>
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
-    infoController.episodeInfo.reset();
-    infoController.episodeCommentsList.clear();
+    videoPageController.episodeInfo.reset();
+    videoPageController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     tabController.dispose();
     super.dispose();
@@ -212,8 +210,8 @@ class _VideoPageState extends State<VideoPage>
     clearWebviewLog();
     hideDebugConsole();
     videoPageController.loading = true;
-    infoController.episodeInfo.reset();
-    infoController.episodeCommentsList.clear();
+    videoPageController.episodeInfo.reset();
+    videoPageController.episodeCommentsList.clear();
     await playerController.stop();
     await videoPageController.changeEpisode(episode,
         currentRoad: currentRoad, offset: offset);

@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 
 class EpisodeInfo extends InheritedWidget {
   /// This widget receives changes of episode and notify it's child,
@@ -30,7 +30,8 @@ class EpisodeCommentsSheet extends StatefulWidget {
 }
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
-  final infoController = Modular.get<InfoController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
   bool commentsQueryTimeout = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
@@ -45,10 +46,10 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await infoController
-        .queryBangumiEpisodeCommentsByID(infoController.bangumiItem.id, episode)
+    await videoPageController.queryBangumiEpisodeCommentsByID(
+            videoPageController.bangumiItem.id, episode)
         .then((_) {
-      if (infoController.episodeCommentsList.isEmpty && mounted) {
+      if (videoPageController.episodeCommentsList.isEmpty && mounted) {
         setState(() {
           commentsQueryTimeout = true;
         });
@@ -61,7 +62,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     ep = 0;
     // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (infoController.episodeCommentsList.isEmpty) {
+      if (videoPageController.episodeCommentsList.isEmpty) {
         // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();
       }
@@ -109,13 +110,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                       child: SelectionArea(
                         child: EpisodeCommentsCard(
                           commentItem:
-                              infoController.episodeCommentsList[index],
+                              videoPageController.episodeCommentsList[index],
                         ),
                       ),
                     ),
                   );
                 },
-                childCount: infoController.episodeCommentsList.length,
+                childCount: videoPageController.episodeCommentsList.length,
                 addAutomaticKeepAlives: false,
                 addRepaintBoundaries: false,
                 addSemanticIndexes: false,
@@ -139,15 +140,15 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.name}',
+                    '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.outline)),
                 Text(
-                    (infoController.episodeInfo.nameCn != '')
-                        ? '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.nameCn}'
-                        : '${infoController.episodeInfo.readType()}.${infoController.episodeInfo.episode} ${infoController.episodeInfo.name}',
+                    (videoPageController.episodeInfo.nameCn != '')
+                        ? '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.nameCn}'
+                        : '${videoPageController.episodeInfo.readType()}.${videoPageController.episodeInfo.episode} ${videoPageController.episodeInfo.name}',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         fontSize: 12,

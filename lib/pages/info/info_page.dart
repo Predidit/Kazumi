@@ -20,6 +20,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -193,10 +194,16 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                   sliver: SliverAppBar.medium(
                     title: EmbeddedNativeControlArea(
-                      child: Text(
-                        infoController.bangumiItem.nameCn == ''
-                            ? infoController.bangumiItem.name
-                            : infoController.bangumiItem.nameCn,
+                      child: dtb.DragToMoveArea(
+                        child: Container(
+                          width: double.infinity,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            infoController.bangumiItem.nameCn == ''
+                                ? infoController.bangumiItem.name
+                                : infoController.bangumiItem.nameCn,
+                          ),
+                        ),
                       ),
                     ),
                     automaticallyImplyLeading: false,

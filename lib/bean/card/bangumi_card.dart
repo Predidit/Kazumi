@@ -12,16 +12,12 @@ class BangumiCardV extends StatelessWidget {
     super.key,
     required this.bangumiItem,
     this.canTap = true,
-    this.longPress,
-    this.longPressEnd,
     this.enableHero = true,
   });
 
   final BangumiItem bangumiItem;
   final bool canTap;
   final bool enableHero;
-  final Function()? longPress;
-  final Function()? longPressEnd;
 
   @override
   Widget build(BuildContext context) {

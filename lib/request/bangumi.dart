@@ -164,16 +164,16 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword, {List<String> tags = const [], int offset = 0}) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword, {List<String> tags = const [], int offset = 0, String sort = 'heat'}) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
       'keyword': keyword,
-      'sort': 'rank',
+      'sort': sort,
       "filter": {
         "type": [2],
         "tag": tags,
-        "rank": [">0", "<=99999"],
+        "rank": (sort == 'rank') ? [">0", "<=99999"] : [">=0", "<=99999"],
         "nsfw": false
       },
     };

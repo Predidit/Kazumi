@@ -17,6 +17,17 @@ abstract class _SearchPageController with Store {
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
 
+  /// Avaliable sort parameters:
+  /// 1. heat
+  /// 2. match
+  /// 3. rank
+  /// 4. score
+  String attachSortParams(String input, String sort) {
+    SearchParser parser = SearchParser(input);
+    String newInput = parser.updateSort(sort);
+    return newInput;
+  }
+
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
     if (type != 'add') {
       bangumiList.clear();
@@ -26,6 +37,7 @@ abstract class _SearchPageController with Store {
     SearchParser parser = SearchParser(input);
     String? idString = parser.parseId();
     String? tag = parser.parseTag();
+    String? sort = parser.parseSort();
     String keywords = parser.parseKeywords();
     if (idString != null) {
       final id = int.tryParse(idString);
@@ -38,7 +50,7 @@ abstract class _SearchPageController with Store {
       }
     }
     var result =
-        await BangumiHTTP.bangumiSearch(keywords, tags: [if (tag != null) tag], offset: bangumiList.length);
+        await BangumiHTTP.bangumiSearch(keywords, tags: [if (tag != null) tag], offset: bangumiList.length, sort: sort ?? 'heat');
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;

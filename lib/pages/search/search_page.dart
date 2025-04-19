@@ -17,6 +17,7 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
+
   /// Don't use modular singleton here. We may have multiple search pages.
   /// Use a new instance of SearchPageController for each search page.
   final SearchPageController searchPageController = SearchPageController();
@@ -46,6 +47,54 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
+  void showSortSwitcher() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Wrap(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('按热度排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    searchController.text = searchPageController
+                        .attachSortParams(searchController.text, 'heat');
+                    searchPageController.searchBangumi(searchController.text,
+                        type: 'init');
+                  },
+                ),
+                ListTile(
+                  title: const Text('按评分排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    searchController.text = searchPageController
+                        .attachSortParams(searchController.text, 'rank');
+                    searchPageController.searchBangumi(searchController.text,
+                        type: 'init');
+                  },
+                ),
+                ListTile(
+                  title: const Text('按匹配程度排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    searchController.text = searchPageController
+                        .attachSortParams(searchController.text, 'match');
+                    searchPageController.searchBangumi(searchController.text,
+                        type: 'init');
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,6 +108,13 @@ class _SearchPageState extends State<SearchPage> {
       appBar: SysAppBar(
         backgroundColor: Colors.transparent,
         title: const Text("搜索"),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showSortSwitcher();
+        },
+        icon: const Icon(Icons.sort),
+        label: const Text("排序方式"),
       ),
       body: Column(
         children: [

@@ -74,9 +74,9 @@ class WebviewItemControllerImpel
         }
       }
     });
-    await webviewController!.addJavaScriptChannel('IframeRedictBridge',
+    await webviewController!.addJavaScriptChannel('IframeRedirectBridge',
         onMessageReceived: (JavaScriptMessage message) {
-      logEventController.add('Redict to: ${message.message}');
+      logEventController.add('Redirect to: ${message.message}');
       if (!useNativePlayer) {
         Future.delayed(const Duration(seconds: 2), () {
           isIframeLoaded = true;
@@ -141,7 +141,7 @@ class WebviewItemControllerImpel
         .removeJavaScriptChannel('VideoBridgeDebug')
         .catchError((_) {});
     await webviewController!
-        .removeJavaScriptChannel('IframeRedictBridge')
+        .removeJavaScriptChannel('IframeRedirectBridge')
         .catchError((_) {});
     await webviewController!.loadRequest(Uri.parse('about:blank'));
     await webviewController!.clearCache();
@@ -164,7 +164,7 @@ class WebviewItemControllerImpel
           JSBridgeDebug.postMessage(src);
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-              IframeRedictBridge.postMessage(src);
+              IframeRedirectBridge.postMessage(src);
               break; 
           }
       }

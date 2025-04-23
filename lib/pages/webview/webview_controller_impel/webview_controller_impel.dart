@@ -161,7 +161,9 @@ class WebviewItemControllerImpel
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
-          JSBridgeDebug.postMessage(src);
+          if (src) {
+            JSBridgeDebug.postMessage(src);
+          }
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               IframeRedirectBridge.postMessage(src);
@@ -224,7 +226,7 @@ class WebviewItemControllerImpel
           this.addEventListener("load", () => {
               try {
                   let content = this.responseText;
-                  if (content.trim().startsWith("#EXTM3U")) {
+                  if (content.trim().startsWith("#EXTM3U") && args[1] !== null && args[1] !== undefined) {
                       VideoBridgeDebug.postMessage(args[1]);
                   };
               } catch { }
@@ -243,7 +245,6 @@ class WebviewItemControllerImpel
               iframe_r_text.call(this).then((text) => {
                 resolve(text);
                 if (text.trim().startsWith("#EXTM3U")) {
-                  console.log(this.url);
                   VideoBridgeDebug.postMessage(this.url);
                 }
               }).catch(reject);
@@ -255,7 +256,7 @@ class WebviewItemControllerImpel
             this.addEventListener("load", () => {
               try {
                 let content = this.responseText;
-                if (content.trim().startsWith("#EXTM3U")) {
+                if (content.trim().startsWith("#EXTM3U") && args[1] !== null && args[1] !== undefined) {
                   console.log(args[1]);
                   VideoBridgeDebug.postMessage(args[1]);
                 };
@@ -309,7 +310,10 @@ class WebviewItemControllerImpel
       window.addEventListener("message", function(event) {
         if (event.data) {
           if (event.data.message && event.data.message.startsWith('videoMessage:')) {
-            VideoBridgeDebug.postMessage(event.data.message.replace(/^videoMessage:/, ''));
+            const msg = event.data.message.replace(/^videoMessage:/, '');
+            if (msg !== null && msg !== undefined && msg !== "") {
+                VideoBridgeDebug.postMessage(msg);
+            }
           }
         }
       });
@@ -321,18 +325,4 @@ class WebviewItemControllerImpel
     String desktopUserAgent = Utils.getRandomUA();
     await webviewController!.setUserAgent(desktopUserAgent);
   }
-
-  // 弃用
-  // 全屏监听
-  // Future<void> addFullscreenListener() async {
-  //   await webviewController!.runJavaScript('''
-  //     document.addEventListener('fullscreenchange', () => {
-  //           if (document.fullscreenElement) {
-  //               FullscreenBridgeDebug.postMessage('enteredFullscreen');
-  //           } else {
-  //               FullscreenBridgeDebug.postMessage('exitedFullscreen');
-  //           }
-  //       });
-  //   ''');
-  // }
 }

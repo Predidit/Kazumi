@@ -154,7 +154,9 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
-          window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
+          if (src) {
+            window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
+          }
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               window.webkit.messageHandlers.msgToNative.postMessage('iframeRedirectMessage:' + src);

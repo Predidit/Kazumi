@@ -157,7 +157,9 @@ class WebviewWindowsItemControllerImpel
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
-          window.chrome.webview.postMessage('iframeMessage:' + src);
+          if (src) {
+            window.chrome.webview.postMessage('iframeMessage:' + src);
+          }
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('googlesyndication.com') && !src.includes('adtrafficquality') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
               window.chrome.webview.postMessage('iframeRedirectMessage:' + src);

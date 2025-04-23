@@ -51,6 +51,10 @@ class WebviewItemControllerImpel
           'If there is audio but no video, please report it to the rule developer.');
       if ((message.message.contains('http') ||
               message.message.startsWith('//')) &&
+          !message.message.contains('googleads') &&
+          !message.message.contains('googlesyndication.com') &&
+          !message.message.contains('prestrain.html') &&
+          !message.message.contains('prestrain%2Ehtml') &&
           currentUrl != message.message) {
         logEventController.add('Parsing video source ${message.message}');
         currentUrl = Uri.encodeFull(message.message);
@@ -64,14 +68,19 @@ class WebviewItemControllerImpel
           logEventController.add(
               'Loading video source ${Utils.decodeVideoSource(currentUrl)}');
           unloadPage();
-          videoParserEventController.add((Utils.decodeVideoSource(currentUrl), offset));
+          videoParserEventController
+              .add((Utils.decodeVideoSource(currentUrl), offset));
         }
-        if (!useNativePlayer) {
-          Future.delayed(const Duration(seconds: 2), () {
-            isIframeLoaded = true;
-            videoLoadingEventController.add(false);
-          });
-        }
+      }
+    });
+    await webviewController!.addJavaScriptChannel('IframeRedictBridge',
+        onMessageReceived: (JavaScriptMessage message) {
+      logEventController.add('Redict to: ${message.message}');
+      if (!useNativePlayer) {
+        Future.delayed(const Duration(seconds: 2), () {
+          isIframeLoaded = true;
+          videoLoadingEventController.add(false);
+        });
       }
     });
     if (!useLegacyParser) {
@@ -130,6 +139,9 @@ class WebviewItemControllerImpel
     await webviewController!
         .removeJavaScriptChannel('VideoBridgeDebug')
         .catchError((_) {});
+    await webviewController!
+        .removeJavaScriptChannel('IframeRedictBridge')
+        .catchError((_) {});
     await webviewController!.loadRequest(Uri.parse('about:blank'));
     await webviewController!.clearCache();
     ifrmaeParserTimer?.cancel();
@@ -148,9 +160,10 @@ class WebviewItemControllerImpel
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
+          JSBridgeDebug.postMessage(src);
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-              JSBridgeDebug.postMessage(src);
+              IframeRedictBridge.postMessage(src);
               break; 
           }
       }

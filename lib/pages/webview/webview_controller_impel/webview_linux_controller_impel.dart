@@ -93,7 +93,11 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
             .add('Callback received: ${Uri.decodeFull(messageItem)}');
         logEventController.add(
             'If there is audio but no video, please report it to the rule developer.');
-        if (messageItem.contains('http') || messageItem.startsWith('//')) {
+        if ((messageItem.contains('http') || messageItem.startsWith('//')) &&
+            !messageItem.contains('googleads') &&
+            !messageItem.contains('googlesyndication.com') &&
+            !messageItem.contains('prestrain.html') &&
+            !messageItem.contains('prestrain%2Ehtml')) {
           logEventController.add('Parsing video source $messageItem');
           if (Utils.decodeVideoSource(messageItem) !=
                   Uri.encodeFull(messageItem) &&
@@ -108,12 +112,18 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
             videoParserEventController
                 .add((Utils.decodeVideoSource(messageItem), offset));
           }
-          if (!useNativePlayer) {
-            Future.delayed(const Duration(seconds: 2), () {
-              isIframeLoaded = true;
-              videoLoadingEventController.add(false);
-            });
-          }
+        }
+      }
+      if (message.contains('iframeRedirectMessage:')) {
+        String messageItem =
+            Uri.encodeFull(message.replaceFirst('iframeRedirectMessage:', ''));
+        logEventController
+            .add('Redirect to ${Utils.decodeVideoSource(messageItem)}');
+        if (!useNativePlayer) {
+          Future.delayed(const Duration(seconds: 2), () {
+            isIframeLoaded = true;
+            videoLoadingEventController.add(false);
+          });
         }
       }
       if (message.contains('videoMessage:')) {
@@ -143,10 +153,11 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
       for (var i = 0; i < iframes.length; i++) {
           var iframe = iframes[i];
           var src = iframe.getAttribute('src');
+          window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
 
           if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-              window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
               window.location.href = src;
+              window.webkit.messageHandlers.msgToNative.postMessage('iframeRedirectMessage:' + src);
               break; 
           }
       }

@@ -245,8 +245,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
               iframe_r_text.call(this).then((text) => {
                 resolve(text);
                 if (text.trim().startsWith("#EXTM3U")) {
-                  console.log(this.url);
-                  window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + this.url);
+                  window.parent.postMessage('videoMessage:' + this.url);
                 }
               }).catch(reject);
             });
@@ -258,8 +257,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
               try {
                 let content = this.responseText;
                 if (content.trim().startsWith("#EXTM3U")) {
-                  console.log(args[1]);
-                  window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + args[1]);
+                  window.parent.postMessage('videoMessage:' + args[1]);
                 };
               } catch { }
             });

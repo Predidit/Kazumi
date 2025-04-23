@@ -224,7 +224,15 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
               } catch { }
           });
           return _open.apply(this, args);
-      } 
+      }
+
+      window.addEventListener("message", function(event) {
+        if (event.data) {
+          if (event.data.message && event.data.message.startsWith('videoMessage:')) {
+            window.webkit.messageHandlers.msgToNative.postMessage(event.data.message);
+          }
+        }
+      });     
 
       function injectIntoIframe(iframe) {
         try {

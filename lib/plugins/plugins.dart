@@ -4,6 +4,7 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
 import 'package:logger/logger.dart';
+import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
@@ -72,7 +73,7 @@ class Plugin {
 
   factory Plugin.fromTemplate() {
     return Plugin(
-        api: '1',
+        api: Api.apiLevel.toString(),
         type: 'anime',
         name: '',
         version: '',

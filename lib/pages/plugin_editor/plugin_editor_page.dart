@@ -184,7 +184,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         child: const Icon(Icons.save),
         onPressed: () async {
           plugin.api = apiController.text;
-          plugin.type = apiController.text;
+          plugin.type = typeController.text;
           plugin.name = nameController.text;
           plugin.version = versionController.text;
           plugin.userAgent = userAgentController.text;

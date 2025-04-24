@@ -76,9 +76,6 @@ abstract class _VideoPageController with Store {
     } else {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
-    if (urlItem.startsWith('http://')) {
-      urlItem = urlItem.replaceFirst('http', 'https');
-    }
     final webviewItemController = Modular.get<WebviewItemController>();
     await webviewItemController.loadUrl(
         urlItem, currentPlugin.useNativePlayer, currentPlugin.useLegacyParser,

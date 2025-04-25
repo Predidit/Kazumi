@@ -8,8 +8,22 @@ import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/utils/string_match.dart';
 
 class DanmakuRequest {
+
+  // 从标题列表中获取番剧ID
+  static Future<int> getBangumiIDByTitles(List<String> titleList) async {
+    int minAnimeId = 100000;
+    for (var title in titleList) {
+      int bangumiID = await getBangumiID(title);
+      if (bangumiID != minAnimeId) {
+        return bangumiID;
+      }
+    }
+    return minAnimeId;
+  }
+
   //获取弹弹Play集合，需要进一步处理
   static Future<int> getBangumiID(String title) async {
     DanmakuSearchResponse danmakuSearchResponse =
@@ -19,8 +33,11 @@ class DanmakuRequest {
     int minAnimeId = 100000;
     for (var anime in danmakuSearchResponse.animes) {
       int animeId = anime.animeId;
-      if (animeId < minAnimeId && animeId >= 2) {
+      String animeTitle = anime.animeTitle;
+      double similarity = calculateSimilarity(animeTitle, title);
+      if (animeId < minAnimeId && animeId >= 2 && similarity > 0.9) {
         minAnimeId = animeId;
+        KazumiLogger().log(Level.debug, '匹配番剧弹幕 $title --- $animeTitle 相似度: $similarity');
       }
     }
     return minAnimeId;

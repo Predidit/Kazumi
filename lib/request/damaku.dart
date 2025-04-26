@@ -8,8 +8,22 @@ import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/utils/string_match.dart';
 
 class DanmakuRequest {
+
+  // 从标题列表中获取番剧ID
+  static Future<int> getBangumiIDByTitles(List<String> titleList) async {
+    int minAnimeId = 100000;
+    for (var title in titleList) {
+      int bangumiID = await getBangumiID(title);
+      if (bangumiID != minAnimeId) {
+        return bangumiID;
+      }
+    }
+    return minAnimeId;
+  }
+
   //获取弹弹Play集合，需要进一步处理
   static Future<int> getBangumiID(String title) async {
     DanmakuSearchResponse danmakuSearchResponse =
@@ -17,13 +31,30 @@ class DanmakuRequest {
 
     // 保留此判断以防止错误匹配
     int minAnimeId = 100000;
+    int bestAnimeId = minAnimeId;
+    double maxSimilarity = 0;
+
     for (var anime in danmakuSearchResponse.animes) {
       int animeId = anime.animeId;
-      if (animeId < minAnimeId && animeId >= 2) {
-        minAnimeId = animeId;
+      if (animeId >= minAnimeId || animeId < 2) {
+        continue;
+      }
+
+      String animeTitle = anime.animeTitle;
+      double similarity = calculateSimilarity(animeTitle, title);
+      if (similarity == 1) {
+        KazumiLogger().log(Level.debug, '完全匹配番剧弹幕 $title');
+        return animeId;
+      }
+
+      if (similarity > maxSimilarity) {
+        maxSimilarity = similarity;
+        bestAnimeId = animeId;
+        KazumiLogger().log(Level.debug, '匹配番剧弹幕 $title --- $animeTitle 相似度: $similarity');
       }
     }
-    return minAnimeId;
+
+    return bestAnimeId;
   }
 
   //从BangumiID获取分集ID
@@ -130,8 +161,7 @@ class DanmakuRequest {
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
-    final res = await Request().get(
-        endPoint,
+    final res = await Request().get(endPoint,
         data: withRelated,
         options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});

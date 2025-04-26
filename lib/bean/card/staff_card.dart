@@ -13,7 +13,9 @@ class StaffCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage: staffFullItem.staff.images?.grid == null ? null : NetworkImage(staffFullItem.staff.images!.grid),
+        backgroundImage: staffFullItem.staff.images?.grid == null
+            ? NetworkImage('https://bangumi.tv/img/info_only.png')
+            : NetworkImage(staffFullItem.staff.images!.grid),
       ),
       title: Text(
         staffFullItem.staff.name,

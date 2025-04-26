@@ -15,7 +15,9 @@ class CharacterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage: NetworkImage(characterItem.avator.grid),
+        backgroundImage: characterItem.avator.grid.isEmpty
+            ? NetworkImage('https://bangumi.tv/img/info_only.png')
+            : NetworkImage(characterItem.avator.grid),
       ),
       title: Text(
         characterItem.name,

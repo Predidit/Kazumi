@@ -398,6 +398,11 @@ abstract class _PlayerController with Store {
     try {
       await mediaPlayer.dispose();
     } catch (_) {}
+
+    // // 清理定时关闭的定时器和ValueNotifier
+    // closeTimer?.cancel();
+    // closeTimer = null;
+    // showCountDown.dispose();
   }
 
   Future<void> stop() async {
@@ -497,7 +502,8 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> createSyncPlayRoom(
-      String room, String username, Function changeEpisode, {bool enableTLS = false}) async {
+      String room, String username, Function changeEpisode,
+      {bool enableTLS = false}) async {
     await syncplayController?.disconnect();
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
     try {
@@ -531,7 +537,8 @@ abstract class _PlayerController with Store {
               setSyncPlayPlayingBangumi();
             } else {
               KazumiDialog.showToast(
-                  message: 'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
+                  message:
+                      'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
             }
           }
           if (message['type'] == 'left') {
@@ -572,7 +579,8 @@ abstract class _PlayerController with Store {
         (message) {
           if (message['username'] != username) {
             KazumiDialog.showToast(
-                message: 'SyncPlay: ${message['username']} 说: ${message['message']}',
+                message:
+                    'SyncPlay: ${message['username']} 说: ${message['message']}',
                 duration: const Duration(seconds: 5));
           }
         },
@@ -668,5 +676,42 @@ abstract class _PlayerController with Store {
     syncplayController = null;
     syncplayRoom = '';
     syncplayClientRtt = 0;
+  }
+
+  // 定时关闭
+  bool isCloseTimerEnabled = false;
+  Timer? closeTimer;
+  int timeToClose = 0;
+  int remainingTime = 0;
+  final ValueNotifier<String> showCountDown = ValueNotifier<String>("");
+  VoidCallback? onShowTimeReset;
+
+  String formatTime(int seconds) {
+    Duration duration = Duration(seconds: seconds);
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String hours = twoDigits(duration.inHours);
+    String minutes = twoDigits(duration.inMinutes.remainder(60));
+    String secs = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$secs";
+  }
+
+  void startCloseTimer() {
+    closeTimer?.cancel();
+    remainingTime = timeToClose;
+    isCloseTimerEnabled = true;
+    showCountDown.value = formatTime(remainingTime - 1);
+    closeTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (remainingTime > 1) {
+        remainingTime--;
+        showCountDown.value = formatTime(remainingTime - 1);
+      } else {
+        pause();
+        timer.cancel();
+        isCloseTimerEnabled = false;
+        if (onShowTimeReset != null) {
+          onShowTimeReset!();
+        }
+      }
+    });
   }
 }

@@ -37,6 +37,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleDanmaku,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
+    required this.showTimeToClose,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -55,6 +56,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
+  final void Function() showTimeToClose;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -688,6 +690,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 child: const Padding(
                                   padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
                                   child: Text("外部播放"),
+                                ),
+                              ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  widget.showTimeToClose();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  child: Text("定时关闭"),
                                 ),
                               ),
                               SubmenuButton(

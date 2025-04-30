@@ -622,6 +622,282 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  // 定时关闭
+  void showTimeReset() {
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("定时结束"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [Text("定时已结束，重置时间吗？", style: TextStyle(fontSize: 17))],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                playerController.startCloseTimer();
+                playerController.play();
+                KazumiDialog.dismiss();
+                KazumiDialog.showToast(message: '定时已重置');
+              },
+              child: Text('重置'),
+            ),
+            TextButton(
+              onPressed: () {
+                playerController.timeToClose = 0;
+                playerController.remainingTime = 0;
+                KazumiDialog.dismiss();
+                KazumiDialog.showToast(message: '定时已取消');
+              },
+              child: Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showTimeToClose() {
+    List<String> timeHH = [
+      "00",
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+      "06",
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12",
+    ];
+    List<String> timeMM = [
+      "00",
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+      "06",
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12",
+      "13",
+      "14",
+      "15",
+      "16",
+      "17",
+      "18",
+      "19",
+      "20",
+      "21",
+      "22",
+      "23",
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34",
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+    ];
+    final FixedExtentScrollController controllerHH =
+        FixedExtentScrollController(
+      initialItem: 2,
+    );
+    final FixedExtentScrollController controllerMM =
+        FixedExtentScrollController(
+      initialItem: 30,
+    );
+    int customTimeHH = 2;
+    int customTimeMM = 30;
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("定时关闭"),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            ValueListenableBuilder<String>(
+              valueListenable: playerController.showCountDown,
+              builder: (context, showCountDown, child) {
+                return Text(
+                  playerController.isCloseTimerEnabled
+                      ? "定时剩余：$showCountDown"
+                      : "定时未启动",
+                  style: const TextStyle(fontSize: 17),
+                );
+              },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    playerController.timeToClose = 15 * 60;
+                    playerController.startCloseTimer();
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(message: '定时已启动');
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  child: Text("15分", style: const TextStyle(fontSize: 17)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    playerController.timeToClose = 30 * 60;
+                    playerController.startCloseTimer();
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(message: '定时已启动');
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  child: Text("30分", style: const TextStyle(fontSize: 17)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    playerController.timeToClose = 60 * 60;
+                    playerController.startCloseTimer();
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(message: '定时已启动');
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    backgroundColor: Colors.transparent,
+                  ),
+                  child: Text("1小时", style: const TextStyle(fontSize: 17)),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 50,
+                  height: 60,
+                  child: ListWheelScrollView.useDelegate(
+                    controller: controllerHH,
+                    itemExtent: 30,
+                    physics: const FixedExtentScrollPhysics(),
+                    onSelectedItemChanged: (index) {
+                      customTimeHH = int.parse(timeHH[index]);
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      builder: (context, index) {
+                        return Center(
+                          child: Text(
+                            timeHH[index],
+                            style: const TextStyle(
+                              fontSize: 17,
+                              color: Colors.green,
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: timeHH.length,
+                    ),
+                  ),
+                ),
+                Text("小时", style: const TextStyle(fontSize: 13)),
+                SizedBox(
+                  width: 50,
+                  height: 60,
+                  child: ListWheelScrollView.useDelegate(
+                    controller: controllerMM,
+                    itemExtent: 30,
+                    physics: const FixedExtentScrollPhysics(),
+                    onSelectedItemChanged: (index) {
+                      customTimeMM = int.parse(timeMM[index]);
+                    },
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      builder: (context, index) {
+                        return Center(
+                          child: Text(
+                            timeMM[index],
+                            style: const TextStyle(
+                              fontSize: 17,
+                              color: Colors.green,
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: timeMM.length,
+                    ),
+                  ),
+                ),
+                Text("分钟", style: const TextStyle(fontSize: 13)),
+              ],
+            ),
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (customTimeHH == 0 && customTimeMM == 0) {
+                  KazumiDialog.showToast(message: '定时未设置');
+                  return;
+                }
+                playerController.timeToClose =
+                    customTimeHH * 60 * 60 + customTimeMM * 60;
+                playerController.startCloseTimer();
+                KazumiDialog.dismiss();
+                KazumiDialog.showToast(message: '定时已启动');
+              },
+              child: Text('使用自定义定时'),
+            ),
+            TextButton(
+              onPressed: () {
+                playerController.closeTimer?.cancel();
+                playerController.closeTimer = null;
+                playerController.isCloseTimerEnabled = false;
+                playerController.timeToClose = 0;
+                playerController.remainingTime = 0;
+                KazumiDialog.dismiss();
+                KazumiDialog.showToast(message: '定时已取消');
+              },
+              child: Text('取消定时'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   /// Used to decide which panel is used.
   /// It's too complicated to write these in conditional sentence.
   /// * true: use [PlayerItemPanel]
@@ -698,6 +974,9 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
+
+    // 定时关闭的回调
+    playerController.onShowTimeReset = showTimeReset;
   }
 
   @override
@@ -724,6 +1003,8 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.brightnessSeeking = false;
     playerController.volumeSeeking = false;
     playerController.canHidePlayerPanel = true;
+    // 定时关闭
+    playerController.onShowTimeReset = null;
     super.dispose();
   }
 
@@ -981,6 +1262,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
+                            showTimeToClose: showTimeToClose,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -999,6 +1281,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
+                            showTimeToClose: showTimeToClose,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

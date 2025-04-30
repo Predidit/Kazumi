@@ -154,7 +154,7 @@ class Plugin {
     htmlElement.queryXPath(searchList).nodes.forEach((element) {
       try {
         SearchItem searchItem = SearchItem(
-          name: element.queryXPath(searchName).node!.text ?? '',
+          name: element.queryXPath(searchName).node!.text?.trim() ?? '',
           src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
         );
         searchItems.add(searchItem);

@@ -79,7 +79,7 @@ class Plugin {
         version: '',
         muliSources: true,
         useWebview: true,
-        useNativePlayer: false,
+        useNativePlayer: true,
         usePost: false,
         useLegacyParser: false,
         userAgent: '',

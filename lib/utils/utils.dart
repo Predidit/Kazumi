@@ -465,11 +465,6 @@ class Utils {
     await SystemChrome.setPreferredOrientations([]);
   }
 
-  // 获取当前解复用器
-  static Future<String> getCurrentDemux() async {
-    return 'MPV';
-  }
-
   static String getSeasonStringByMonth(int month) {
     if (month <= 3) return '冬';
     if (month <= 6) return '春';

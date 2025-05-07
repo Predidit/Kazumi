@@ -136,6 +136,22 @@ abstract class _PlayerController with Store {
 
   Duration get playerDuration => mediaPlayer.state.duration;
 
+  int? get playerWidth => mediaPlayer.state.width;
+
+  int? get playerHeight => mediaPlayer.state.height;
+
+  String get playerVideoParams => mediaPlayer.state.videoParams.toString();
+
+  String get playerAudioParams => mediaPlayer.state.audioParams.toString();
+
+  String get playerPlaylist => mediaPlayer.state.playlist.toString();
+
+  String get playerAudioTracks => mediaPlayer.state.track.audio.toString();
+
+  String get playerVideoTracks => mediaPlayer.state.track.video.toString();
+
+  String get playerAudioBitrate => mediaPlayer.state.audioBitrate.toString();
+
   /// 播放器内部日志
   List<String> playerLog = [];
 
@@ -166,7 +182,11 @@ abstract class _PlayerController with Store {
       episodeFromTitle = videoPageController.currentEpisode;
     }
 
-    List<String> titleList = [videoPageController.title, videoPageController.bangumiItem.nameCn, videoPageController.bangumiItem.name].where((title) => title.isNotEmpty).toList();
+    List<String> titleList = [
+      videoPageController.title,
+      videoPageController.bangumiItem.nameCn,
+      videoPageController.bangumiItem.name
+    ].where((title) => title.isNotEmpty).toList();
     // 根据标题列表获取弹幕,优先级: 视频源标题 > 番剧中文名 > 番剧日文名
     getDanDanmaku(titleList, episodeFromTitle);
     mediaPlayer = await createVideoController(offset: offset);
@@ -497,7 +517,8 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> createSyncPlayRoom(
-      String room, String username, Function changeEpisode, {bool enableTLS = false}) async {
+      String room, String username, Function changeEpisode,
+      {bool enableTLS = false}) async {
     await syncplayController?.disconnect();
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
     try {
@@ -531,7 +552,8 @@ abstract class _PlayerController with Store {
               setSyncPlayPlayingBangumi();
             } else {
               KazumiDialog.showToast(
-                  message: 'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
+                  message:
+                      'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
             }
           }
           if (message['type'] == 'left') {
@@ -572,7 +594,8 @@ abstract class _PlayerController with Store {
         (message) {
           if (message['username'] != username) {
             KazumiDialog.showToast(
-                message: 'SyncPlay: ${message['username']} 说: ${message['message']}',
+                message:
+                    'SyncPlay: ${message['username']} 说: ${message['message']}',
                 duration: const Duration(seconds: 5));
           }
         },

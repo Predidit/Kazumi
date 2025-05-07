@@ -494,61 +494,162 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  void showVideoInfo() async {
-    String currentDemux = await Utils.getCurrentDemux();
-    KazumiDialog.show(builder: (context) {
-      return AlertDialog(
-        title: const Text('视频详情'),
-        content: SelectableText.rich(
-          TextSpan(
-            children: [
-              TextSpan(text: '规则: ${videoPageController.currentPlugin.name}\n'),
-              TextSpan(text: '硬件解码: ${haEnable ? '启用' : '禁用'}\n'),
-              TextSpan(text: '解复用器: $currentDemux\n'),
-              const TextSpan(text: '资源地址: '),
-              TextSpan(
-                text: playerController.videoUrl,
-              ),
-            ],
-          ),
-          style: Theme.of(context).textTheme.bodyLarge!,
+  Widget get videoInfoBody {
+    return ListView(
+      children: [
+        ListTile(
+          title: const Text("Source"),
+          subtitle: Text(playerController.videoUrl),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(text: playerController.videoUrl),
+            );
+          },
         ),
-        actions: [
-          TextButton(
-              onPressed: () {
-                KazumiDialog.dismiss();
-                showPlayerLogsDialog();
-              },
-              child: Text('调试信息')),
-          TextButton(onPressed: KazumiDialog.dismiss, child: Text('取消')),
-        ],
-      );
-    });
+        ListTile(
+          title: const Text("Resolution"),
+          subtitle: Text(
+              '${playerController.playerWidth}x${playerController.playerHeight}'),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "Resolution\n${playerController.playerWidth}x${playerController.playerHeight}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("VideoParams"),
+          subtitle: Text(playerController.playerVideoParams.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "VideoParams\n${playerController.playerVideoParams.toString()}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioParams"),
+          subtitle: Text(playerController.playerAudioParams.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "AudioParams\n${playerController.playerAudioParams.toString()}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("Media"),
+          subtitle: Text(playerController.playerPlaylist.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text: "Media\n${playerController.playerPlaylist.toString()}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioTrack"),
+          subtitle: Text(playerController.playerAudioTracks.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "AudioTrack\n${playerController.playerAudioTracks.toString()}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("VideoTrack"),
+          subtitle: Text(playerController.playerVideoTracks.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "VideoTrack\n${playerController.playerVideoTracks.toString()}",
+              ),
+            );
+          },
+        ),
+        ListTile(
+          title: const Text("AudioBitrate"),
+          subtitle: Text(playerController.playerAudioBitrate.toString()),
+          onTap: () {
+            Clipboard.setData(
+              ClipboardData(
+                text:
+                    "AudioBitrate\n${playerController.playerAudioBitrate.toString()}",
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 
-  void showPlayerLogsDialog() {
-    KazumiDialog.show(builder: (context) {
-      return AlertDialog(
-        title: const Text('调试信息'),
-        content: SizedBox(
-            height: 400,
-            width: 400,
-            child: TextDisplayWidget(logLines: playerController.playerLog)),
-        actions: [
-          TextButton(
-              onPressed: () {
-                Clipboard.setData(
-                    ClipboardData(text: playerController.playerLog.toString()));
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-              },
-              child: const Text('复制到剪贴板')),
-          TextButton(
-            onPressed: KazumiDialog.dismiss,
-            child: const Text('取消'),
-          ),
-        ],
-      );
-    });
+  Widget get videoDebugLogBody {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0),
+        child: TextDisplayWidget(logLines: playerController.playerLog),
+      ),
+      floatingActionButton: FloatingActionButton(
+          child: const Icon(Icons.copy),
+          onPressed: () {
+            Clipboard.setData(
+              ClipboardData(text: playerController.playerLog.join('\n')),
+            );
+          }),
+    );
+  }
+
+  void showVideoInfo() async {
+    showModalBottomSheet(
+        isScrollControlled: true,
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+            maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                ? MediaQuery.of(context).size.width * 9 / 16
+                : MediaQuery.of(context).size.width),
+        clipBehavior: Clip.antiAlias,
+        context: context,
+        builder: (context) {
+          return DefaultTabController(
+            length: 2,
+            child: Scaffold(
+              body: Column(
+                children: [
+                  const PreferredSize(
+                    preferredSize: Size.fromHeight(kToolbarHeight),
+                    child: Material(
+                      child: TabBar(
+                        tabs: [
+                          Tab(text: '状态'),
+                          Tab(text: '日志'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        videoInfoBody,
+                        videoDebugLogBody,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
   }
 
   void showSyncPlayRoomCreateDialog() {
@@ -729,7 +830,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   Widget build(BuildContext context) {
-    collectType = collectController.getCollectType(videoPageController.bangumiItem);
+    collectType =
+        collectController.getCollectType(videoPageController.bangumiItem);
     return Observer(
       builder: (context) {
         return ClipRect(

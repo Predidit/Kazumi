@@ -517,7 +517,10 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> createSyncPlayRoom(
-      String room, String username, Function changeEpisode,
+      String room,
+      String username,
+      Future<void> Function(int episode, {int currentRoad, int offset})
+          changeEpisode,
       {bool enableTLS = false}) async {
     await syncplayController?.disconnect();
     syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);

@@ -30,7 +30,7 @@ abstract class _InfoController with Store {
 
   @observable
   var commentsList = ObservableList<CommentItem>();
-  
+
   @observable
   var characterList = ObservableList<CharacterItem>();
 
@@ -69,7 +69,7 @@ abstract class _InfoController with Store {
     });
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
   }
-  
+
   Future<void> queryBangumiCharactersByID(int id) async {
     characterList.clear();
     await BangumiHTTP.getCharatersByBangumiID(id).then((value) {
@@ -79,11 +79,14 @@ abstract class _InfoController with Store {
       '主角': 1,
       '配角': 2,
       '客串': 3,
-      '未知': 4,
     };
+
     try {
-      characterList.sort((a, b) =>
-          relationValue[a.relation]!.compareTo(relationValue[b.relation]!));
+      characterList.sort((a, b) {
+        int valueA = relationValue[a.relation] ?? 4;
+        int valueB = relationValue[b.relation] ?? 4;
+        return valueA.compareTo(valueB);
+      });
     } catch (e) {
       KazumiDialog.showToast(message: '$e');
     }

@@ -122,6 +122,18 @@ class _SearchPageState extends State<SearchPage> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             child: SearchAnchor.bar(
               searchController: searchController,
+              barElevation: WidgetStateProperty<double>.fromMap(
+                <WidgetStatesConstraint, double>{WidgetState.any: 0},
+              ),
+              viewElevation: 0,
+              viewLeading: IconButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.arrow_back),
+              ),
+              isFullScreen: MediaQuery.sizeOf(context).width <
+                  LayoutBreakpoint.compact['width']!,
               suggestionsBuilder: (context, controller) => <Widget>[
                 Container(
                   height: 400,

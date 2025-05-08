@@ -165,6 +165,17 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   ],
                 ),
                 SettingsSection(
+                  title: const Text('弹幕屏蔽'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        Modular.to.pushNamed('/settings/danmaku/shield');
+                      },
+                      title: const Text('关键词屏蔽'),
+                    ),
+                  ],
+                ),
+                SettingsSection(
                   title: const Text('弹幕显示'),
                   tiles: [
                     SettingsTile.navigation(
@@ -179,7 +190,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                                 runSpacing: Utils.isDesktop() ? 8 : 0,
                                 children: [
                                   for (final double i
-                                  in danAreaList) ...<Widget>[
+                                      in danAreaList) ...<Widget>[
                                     if (i == defaultDanmakuArea) ...<Widget>[
                                       FilledButton(
                                         onPressed: () async {

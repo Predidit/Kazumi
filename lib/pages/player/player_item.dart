@@ -30,6 +30,7 @@ import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:kazumi/bean/widget/text_display.dart';
 import 'package:mobx/mobx.dart' as mobx;
+import 'package:kazumi/pages/my/my_controller.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -65,6 +66,7 @@ class _PlayerItemState extends State<PlayerItem>
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
+  final MyController myController = Modular.get<MyController>();
 
   // 1. 在看
   // 2. 想看
@@ -319,7 +321,7 @@ class _PlayerItemState extends State<PlayerItem>
               () => mounted &&
                       playerController.playerPlaying &&
                       !playerController.playerBuffering &&
-                      playerController.danmakuOn
+                      playerController.danmakuOn && !myController.isDanmakuBlocked(danmaku.message)
                   ? playerController.danmakuController.addDanmaku(
                       DanmakuContentItem(danmaku.message,
                           color: danmaku.color,

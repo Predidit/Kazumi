@@ -26,6 +26,7 @@ class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final CollectController collectController = Modular.get<CollectController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
+  final MyController myController = Modular.get<MyController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
 
@@ -35,6 +36,7 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     _migrateStorage();
     _loadShaders();
+    _loadDanmakuShield();
     _update();
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     super.initState();
@@ -47,6 +49,10 @@ class _InitPageState extends State<InitPage> {
 
   Future<void> _loadShaders() async {
     await shadersController.copyShadersToExternalDirectory();
+  }
+
+  Future<void> _loadDanmakuShield() async {
+    myController.loadShieldList();
   }
 
   Future<void> _webDavInit() async {

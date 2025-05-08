@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
@@ -14,6 +15,21 @@ class DanmakuSettingsSheet extends StatefulWidget {
 
 class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
   Box setting = GStorage.setting;
+
+  void showDanmakuShieldSheet() {
+    showModalBottomSheet(
+        isScrollControlled: true,
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+            maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                ? MediaQuery.of(context).size.width * 9 / 16
+                : MediaQuery.of(context).size.width),
+        clipBehavior: Clip.antiAlias,
+        context: context,
+        builder: (context) {
+          return DanmakuShieldSettings();
+        });
+  }
 
   Widget get danmakuFontSettingsBody {
     return ListView(
@@ -124,6 +140,12 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               setting.put(SettingBoxKey.danmakuBottom, !value);
             },
           ),
+        ),
+        ListTile(
+          title: const Text('关键词屏蔽'),
+          onTap: () {
+            showDanmakuShieldSheet();
+          },
         ),
       ],
     );

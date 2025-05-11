@@ -119,7 +119,7 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
             child: SearchAnchor.bar(
               searchController: searchController,
               barElevation: WidgetStateProperty<double>.fromMap(
@@ -175,6 +175,7 @@ class _SearchPageState extends State<SearchPage> {
               }
               return GridView.builder(
                 controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   mainAxisSpacing: StyleString.cardSpace - 2,
                   crossAxisSpacing: StyleString.cardSpace,
@@ -195,13 +196,9 @@ class _SearchPageState extends State<SearchPage> {
                     : 10,
                 itemBuilder: (context, index) {
                   return searchPageController.bangumiList.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          child: BangumiCardV(
-                            enableHero: false,
-                            bangumiItem:
-                                searchPageController.bangumiList[index],
-                          ),
+                      ? BangumiCardV(
+                          enableHero: false,
+                          bangumiItem: searchPageController.bangumiList[index],
                         )
                       : Container();
                 },

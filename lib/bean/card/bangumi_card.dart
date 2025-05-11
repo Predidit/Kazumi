@@ -23,7 +23,7 @@ class BangumiCardV extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      clipBehavior: Clip.hardEdge,
+      clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
       child: GestureDetector(
         child: InkWell(

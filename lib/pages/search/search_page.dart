@@ -119,9 +119,21 @@ class _SearchPageState extends State<SearchPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
             child: SearchAnchor.bar(
               searchController: searchController,
+              barElevation: WidgetStateProperty<double>.fromMap(
+                <WidgetStatesConstraint, double>{WidgetState.any: 0},
+              ),
+              viewElevation: 0,
+              viewLeading: IconButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: Icon(Icons.arrow_back),
+              ),
+              isFullScreen: MediaQuery.sizeOf(context).width <
+                  LayoutBreakpoint.compact['width']!,
               suggestionsBuilder: (context, controller) => <Widget>[
                 Container(
                   height: 400,
@@ -136,65 +148,63 @@ class _SearchPageState extends State<SearchPage> {
             ),
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Observer(builder: (context) {
-                if (searchPageController.isTimeOut) {
-                  return Center(
-                    child: SizedBox(
-                      height: 400,
-                      child: GeneralErrorWidget(
-                        errMsg: '什么都没有找到 (´;ω;`)',
-                        actions: [
-                          GeneralErrorButton(
-                            onPressed: () {
-                              searchPageController.searchBangumi(
-                                  searchController.text,
-                                  type: 'init');
-                            },
-                            text: '点击重试',
-                          ),
-                        ],
-                      ),
+            child: Observer(builder: (context) {
+              if (searchPageController.isTimeOut) {
+                return Center(
+                  child: SizedBox(
+                    height: 400,
+                    child: GeneralErrorWidget(
+                      errMsg: '什么都没有找到 (´;ω;`)',
+                      actions: [
+                        GeneralErrorButton(
+                          onPressed: () {
+                            searchPageController.searchBangumi(
+                                searchController.text,
+                                type: 'init');
+                          },
+                          text: '点击重试',
+                        ),
+                      ],
                     ),
-                  );
-                }
-                if (searchPageController.isLoading &&
-                    searchPageController.bangumiList.isEmpty) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                return GridView.builder(
-                  controller: scrollController,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    mainAxisSpacing: StyleString.cardSpace - 2,
-                    crossAxisSpacing: StyleString.cardSpace,
-                    crossAxisCount: MediaQuery.of(context).orientation !=
-                            Orientation.portrait
-                        ? 6
-                        : 3,
-                    mainAxisExtent: MediaQuery.of(context).size.width /
-                            (MediaQuery.of(context).orientation !=
-                                    Orientation.portrait
-                                ? 6
-                                : 3) /
-                            0.65 +
-                        MediaQuery.textScalerOf(context).scale(32.0),
                   ),
-                  itemCount: searchPageController.bangumiList.isNotEmpty
-                      ? searchPageController.bangumiList.length
-                      : 10,
-                  itemBuilder: (context, index) {
-                    return searchPageController.bangumiList.isNotEmpty
-                        ? BangumiCardV(
-                            enableHero: false,
-                            bangumiItem:
-                                searchPageController.bangumiList[index])
-                        : Container();
-                  },
                 );
-              }),
-            ),
-          )
+              }
+              if (searchPageController.isLoading &&
+                  searchPageController.bangumiList.isEmpty) {
+                return Center(child: CircularProgressIndicator());
+              }
+              return GridView.builder(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  mainAxisSpacing: StyleString.cardSpace - 2,
+                  crossAxisSpacing: StyleString.cardSpace,
+                  crossAxisCount:
+                      MediaQuery.of(context).orientation != Orientation.portrait
+                          ? 6
+                          : 3,
+                  mainAxisExtent: MediaQuery.of(context).size.width /
+                          (MediaQuery.of(context).orientation !=
+                                  Orientation.portrait
+                              ? 6
+                              : 3) /
+                          0.65 +
+                      MediaQuery.textScalerOf(context).scale(32.0),
+                ),
+                itemCount: searchPageController.bangumiList.isNotEmpty
+                    ? searchPageController.bangumiList.length
+                    : 10,
+                itemBuilder: (context, index) {
+                  return searchPageController.bangumiList.isNotEmpty
+                      ? BangumiCardV(
+                          enableHero: false,
+                          bangumiItem: searchPageController.bangumiList[index],
+                        )
+                      : Container();
+                },
+              );
+            }),
+          ),
         ],
       ),
     );

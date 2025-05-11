@@ -21,6 +21,7 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
   final TextEditingController webDavPasswordController =
       TextEditingController();
   Box setting = GStorage.setting;
+  bool passwordVisible = false;
 
   @override
   void initState() {
@@ -60,8 +61,21 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
                 const SizedBox(height: 20),
                 TextField(
                   controller: webDavPasswordController,
-                  decoration: const InputDecoration(
-                      labelText: 'Password', border: OutlineInputBorder()),
+                  obscureText: !passwordVisible,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      onPressed: () {
+                        setState(() {
+                          passwordVisible = !passwordVisible;
+                        });
+                      },
+                      icon: Icon(passwordVisible
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded),
+                    ),
+                  ),
                 ),
                 // const SizedBox(height: 20),
                 // ExpansionTile(

@@ -99,25 +99,17 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: StyleString.imgRadius,
-                  topRight: StyleString.imgRadius,
-                  bottomLeft: StyleString.imgRadius,
-                  bottomRight: StyleString.imgRadius,
-                ),
-                child: AspectRatio(
-                  aspectRatio: 0.65,
-                  child: LayoutBuilder(builder: (context, boxConstraints) {
-                    final double maxWidth = boxConstraints.maxWidth;
-                    final double maxHeight = boxConstraints.maxHeight;
-                    return NetworkImgLayer(
-                      src: widget.historyItem.bangumiItem.images['large'] ?? '',
-                      width: maxWidth,
-                      height: maxHeight,
-                    );
-                  }),
-                ),
+              AspectRatio(
+                aspectRatio: 0.65,
+                child: LayoutBuilder(builder: (context, boxConstraints) {
+                  final double maxWidth = boxConstraints.maxWidth;
+                  final double maxHeight = boxConstraints.maxHeight;
+                  return NetworkImgLayer(
+                    src: widget.historyItem.bangumiItem.images['large'] ?? '',
+                    width: maxWidth,
+                    height: maxHeight,
+                  );
+                }),
               ),
               const SizedBox(width: 15),
               Expanded(

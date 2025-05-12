@@ -136,36 +136,23 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: StyleString.imgRadius,
-                      topRight: StyleString.imgRadius,
-                      bottomLeft: StyleString.imgRadius,
-                      bottomRight: StyleString.imgRadius,
-                    ),
-                    child: AspectRatio(
-                      aspectRatio: 0.65,
-                      child: LayoutBuilder(builder: (context, boxConstraints) {
-                        final double maxWidth = boxConstraints.maxWidth;
-                        final double maxHeight = boxConstraints.maxHeight;
-                        return Hero(
-                          transitionOnUserGestures: true,
-                          tag: widget.bangumiItem.id,
-                          child: Stack(
-                            children: [
-                              NetworkImgLayer(
-                                src: widget.bangumiItem.images['large'] ?? '',
-                                width: maxWidth,
-                                height: maxHeight,
-                                fadeInDuration: const Duration(milliseconds: 0),
-                                fadeOutDuration:
-                                    const Duration(milliseconds: 0),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
+                  child: AspectRatio(
+                    aspectRatio: 0.65,
+                    child: LayoutBuilder(builder: (context, boxConstraints) {
+                      final double maxWidth = boxConstraints.maxWidth;
+                      final double maxHeight = boxConstraints.maxHeight;
+                      return Hero(
+                        transitionOnUserGestures: true,
+                        tag: widget.bangumiItem.id,
+                        child: NetworkImgLayer(
+                          src: widget.bangumiItem.images['large'] ?? '',
+                          width: maxWidth,
+                          height: maxHeight,
+                          fadeInDuration: const Duration(milliseconds: 0),
+                          fadeOutDuration: const Duration(milliseconds: 0),
+                        ),
+                      );
+                    }),
                   ),
                 ),
                 SizedBox(width: 16),

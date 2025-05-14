@@ -49,7 +49,7 @@ abstract class _MyController with Store {
       KazumiDialog.showToast(message: '请输入关键词');
       return;
     }
-    if (item.length > 20) {
+    if (item.length > 64) {
       KazumiDialog.showToast(message: '关键词过长');
       return;
     }

@@ -8,7 +8,6 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
 

@@ -503,6 +503,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("Source"),
           subtitle: Text(playerController.videoUrl),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(text: playerController.videoUrl),
             );
@@ -513,6 +514,7 @@ class _PlayerItemState extends State<PlayerItem>
           subtitle: Text(
               '${playerController.playerWidth}x${playerController.playerHeight}'),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:
@@ -525,6 +527,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("VideoParams"),
           subtitle: Text(playerController.playerVideoParams.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:
@@ -537,6 +540,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("AudioParams"),
           subtitle: Text(playerController.playerAudioParams.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:
@@ -549,6 +553,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("Media"),
           subtitle: Text(playerController.playerPlaylist.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text: "Media\n${playerController.playerPlaylist.toString()}",
@@ -560,6 +565,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("AudioTrack"),
           subtitle: Text(playerController.playerAudioTracks.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:
@@ -572,6 +578,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("VideoTrack"),
           subtitle: Text(playerController.playerVideoTracks.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:
@@ -584,6 +591,7 @@ class _PlayerItemState extends State<PlayerItem>
           title: const Text("AudioBitrate"),
           subtitle: Text(playerController.playerAudioBitrate.toString()),
           onTap: () {
+            KazumiDialog.showToast(message: '已复制到剪贴板');
             Clipboard.setData(
               ClipboardData(
                 text:

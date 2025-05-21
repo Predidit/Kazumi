@@ -273,6 +273,7 @@ abstract class _PlayerController with Store {
     videoController = VideoController(
       mediaPlayer,
       configuration: VideoControllerConfiguration(
+        enableHardwareAcceleration: hAenable,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,
       ),

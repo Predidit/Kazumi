@@ -96,7 +96,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       showTitles: true,
                       reservedSize: 30,
                       getTitlesWidget: (value, meta) => SideTitleWidget(
-                        axisSide: AxisSide.bottom,
+                        meta: meta,
                         space: 10,
                         child: Text(value.toInt().toString()),
                       ),

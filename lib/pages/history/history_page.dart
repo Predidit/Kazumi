@@ -63,44 +63,42 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
-    return OrientationBuilder(builder: (context, orientation) {
-      return Observer(builder: (context) {
-        return PopScope(
-          canPop: true,
-          onPopInvokedWithResult: (bool didPop, Object? result) async {
-            onBackPressed(context);
-          },
-          child: Scaffold(
-            appBar: SysAppBar(
-              title: const Text('历史记录'),
-              actions: [
-                IconButton(
-                    onPressed: () {
-                      setState(() {
-                        showDelete = !showDelete;
-                      });
-                    },
-                    icon: showDelete
-                        ? const Icon(Icons.edit_outlined)
-                        : const Icon(Icons.edit))
-              ],
-            ),
-            body: renderBody(orientation),
-            floatingActionButton: FloatingActionButton(
-              child: const Icon(Icons.clear_all),
-              onPressed: () {
-                showHistoryClearDialog();
-              },
-            ),
+    return Observer(builder: (context) {
+      return PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (bool didPop, Object? result) async {
+          onBackPressed(context);
+        },
+        child: Scaffold(
+          appBar: SysAppBar(
+            title: const Text('历史记录'),
+            actions: [
+              IconButton(
+                  onPressed: () {
+                    setState(() {
+                      showDelete = !showDelete;
+                    });
+                  },
+                  icon: showDelete
+                      ? const Icon(Icons.edit_outlined)
+                      : const Icon(Icons.edit))
+            ],
           ),
-        );
-      });
+          body: renderBody,
+          floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.clear_all),
+            onPressed: () {
+              showHistoryClearDialog();
+            },
+          ),
+        ),
+      );
     });
   }
 
-  Widget renderBody(Orientation orientation) {
+  Widget get renderBody {
     if (historyController.histories.isNotEmpty) {
-      return contentGrid(orientation);
+      return contentGrid;
     } else {
       return const Center(
         child: Text('没有找到历史记录 (´;ω;`)'),
@@ -108,8 +106,14 @@ class _HistoryPageState extends State<HistoryPage>
     }
   }
 
-  Widget contentGrid(Orientation orientation) {
-    int crossCount = (orientation != Orientation.portrait) ? 3 : 1;
+  Widget get contentGrid {
+    int crossCount = 1;
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+      crossCount = 2;
+    }
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+      crossCount = 3;
+    }
 
     return CustomScrollView(
       slivers: [

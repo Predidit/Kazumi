@@ -150,14 +150,31 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
               ),
               Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CollectButton(
-                    onClose: () {
-                      FocusScope.of(context).unfocus();
-                    },
-                    bangumiItem: widget.historyItem.bangumiItem,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
+                  if (!widget.showDelete) ...[
+                    CollectButton(
+                      onClose: () {
+                        FocusScope.of(context).unfocus();
+                      },
+                      bangumiItem: widget.historyItem.bangumiItem,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.open_in_new,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      tooltip: '番剧详情',
+                      onPressed: () {
+                        Modular.to.pushNamed(
+                          '/info/',
+                          arguments: widget.historyItem.bangumiItem,
+                        );
+                      },
+                    ),
+                  ],
                   if (widget.showDelete)
                     IconButton(
                       icon: Icon(
@@ -168,7 +185,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                       onPressed: () {
                         historyController.deleteHistory(widget.historyItem);
                       },
-                    )
+                    ),
                 ],
               ),
             ],

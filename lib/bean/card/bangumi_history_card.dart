@@ -94,7 +94,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
           }
         },
         child: Padding(
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(6),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -110,12 +110,12 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                   );
                 }),
               ),
-              const SizedBox(width: 15),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       widget.historyItem.bangumiItem.nameCn == ''
                           ? widget.historyItem.bangumiItem.name
@@ -128,34 +128,21 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                       maxLines: 1,
                     ),
                     const SizedBox(height: 12),
-                    // 测试 因为API问题评分功能搁置
                     Wrap(
                       spacing: 4,
                       runSpacing: 4,
                       children: [
                         propertyChip(
-                          title: '番剧源',
+                          title: '来源',
                           value: widget.historyItem.adapterName,
+                          showTitle: true,
                         ),
                         propertyChip(
-                          title: '上次看到',
+                          title: '看到',
                           value: widget.historyItem.lastWatchEpisodeName.isEmpty
                               ? '第${widget.historyItem.lastWatchEpisode}话'
                               : widget.historyItem.lastWatchEpisodeName,
-                        ),
-                        propertyChip(
-                          title: '排名',
-                          value: widget.historyItem.bangumiItem.rank.toString(),
                           showTitle: true,
-                        ),
-                        // 只有 '番剧'
-                        // propertyChip(
-                        //   title: '种类',
-                        //   value: widget.historyItem.bangumiItem.type == 2 ? '番剧' : '其他',
-                        // ),
-                        propertyChip(
-                          title: '首播',
-                          value: widget.historyItem.bangumiItem.airDate,
                         ),
                       ],
                     )

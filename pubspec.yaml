@@ -20,7 +20,7 @@ version: 1.7.2+10702
 
 environment:
   sdk: '>=3.3.4 <4.0.0'
-  flutter: 3.32.1
+  flutter: 3.32.2
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions

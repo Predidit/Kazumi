@@ -49,6 +49,13 @@ class Utils {
     return randomElement;
   }
 
+  static String getRandomAcceptedLanguage() {
+    final random = Random();
+    String randomElement =
+        acceptLanguageList[random.nextInt(acceptLanguageList.length)];
+    return randomElement;
+  }
+
   static Future<Map<String, double>?> getScreenInfo() async {
     final screenPixelPlugin = ScreenPixel();
     Map<String, double>? screenResolution;
@@ -482,7 +489,8 @@ class Utils {
   static Future<void> exitDesktopPIPWindow() async {
     bool isLowResolution = await Utils.isLowResolution();
     await windowManager.setAlwaysOnTop(false);
-    await windowManager.setSize(isLowResolution ? const Size(800, 600) : const Size(1280, 860));
+    await windowManager.setSize(
+        isLowResolution ? const Size(800, 600) : const Size(1280, 860));
     await windowManager.center();
   }
 

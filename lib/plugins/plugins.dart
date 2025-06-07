@@ -7,6 +7,7 @@ import 'package:logger/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class Plugin {
   String api;
@@ -132,6 +133,8 @@ class Plugin {
       var httpHeaders = {
         'referer': '$baseUrl/',
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
       };
       resp = await Request().post(postUri.toString(),
           options: Options(headers: httpHeaders),
@@ -141,6 +144,8 @@ class Plugin {
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
       };
       resp = await Request().get(queryURL,
           options: Options(headers: httpHeaders),
@@ -181,6 +186,8 @@ class Plugin {
     }
     var httpHeaders = {
       'referer': '$baseUrl/',
+      'Accept-Language': Utils.getRandomAcceptedLanguage(),
+      'Connection': 'keep-alive',
     };
     try {
       var resp =

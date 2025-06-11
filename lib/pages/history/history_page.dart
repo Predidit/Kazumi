@@ -84,7 +84,7 @@ class _HistoryPageState extends State<HistoryPage>
                       : const Icon(Icons.edit))
             ],
           ),
-          body: renderBody,
+          body: SafeArea(bottom: false, child: renderBody),
           floatingActionButton: FloatingActionButton(
             child: const Icon(Icons.clear_all),
             onPressed: () {

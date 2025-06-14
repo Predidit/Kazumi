@@ -139,7 +139,9 @@ class BBCodeBaseListener implements BBCodeListener {
       case 'photo':
       case 'IMG':
       case 'img':
-        if (bbcode.isNotEmpty && bbcode[bbCodeTag.img!] is BBCodeText) {
+        if (bbCodeTag.img! < bbcode.length &&
+            bbcode.isNotEmpty &&
+            bbcode[bbCodeTag.img!] is BBCodeText) {
           bbcode[bbCodeTag.img!] =
               BBCodeImg(imageUrl: bbcode[bbCodeTag.img!].text);
         }

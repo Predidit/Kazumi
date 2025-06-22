@@ -61,24 +61,35 @@
   <img src="static/svg/get_it_on_github.svg" alt="Get it on Github" width="200"/>
 </a>
 
-对于安卓用户，可以从 F-Droid 安装：
+### Android
 
 <a href="https://f-droid.org/packages/com.predidit.kazumi">
   <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en-us.svg"
   alt="Get it on F-Droid" width="200">
 </a>
 
-对于 GNU/Linux 用户，可以从 Flathub 安装：
+### GNU/Linux
 
 &nbsp;&nbsp;
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
   <img src="https://flathub.org/api/badge?svg&locale=en" alt="Get it on Flathub" width="175"/>
 </a>
 
-对于 Arch Linux 用户，可以从 AUR 软件库安装：
+#### Arch Linux
+
+可以从 [AUR](http://aur.archlinux.org) 或 [archlinuxcn](https://github.com/archlinuxcn/repo) 安装。
+
+##### AUR
 
 ```bash
-yay -S kazumi
+[yay/paru] -S kazumi # 从源码构建
+[yay/paru] -S kazumi-bin # 二进制包
+```
+
+##### archlinuxcn
+
+```bash
+sudo pacman -S kazumi
 ```
 
 ## 贡献

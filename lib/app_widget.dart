@@ -16,6 +16,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/bean/appbar/safe_mediaquery_warpper.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -320,6 +321,6 @@ class _AppWidgetState extends State<AppWidget>
       }
     }
 
-    return app;
+    return SafeMediaQueryWrapper(child: app);
   }
 }

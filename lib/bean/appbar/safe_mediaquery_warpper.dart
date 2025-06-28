@@ -12,7 +12,7 @@ class SafeMediaQueryWrapper extends StatelessWidget {
     super.key,
     required this.child,
     this.defaultTopPadding = 25,
-    this.defaultBottomPadding = 35,
+    this.defaultBottomPadding = 0,
   });
 
   @override

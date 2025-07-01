@@ -63,6 +63,17 @@ const List<String> userAgentsList = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
 ];
 
+// 默认 SyncPlay 服务器列表
+const List<String> defaultSyncPlayEndPoints = [
+  'syncplay.pl:8995',
+  'syncplay.pl:8996',
+  'syncplay.pl:8997',
+  'syncplay.pl:8998',
+  'syncplay.pl:8999',
+];
+
+const String defaultSyncPlayEndPoint = 'syncplay.pl:8996';
+
 // 随机HTTP请求头accept-language字段列表
 const List<String> acceptLanguageList = [
   'zh-CN,zh;q=0.9',

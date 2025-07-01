@@ -242,5 +242,6 @@ class SettingBoxKey {
       useDynamicColor = 'useDynamicColor',
       exitBehavior = 'exitBehavior',
       playerDebugMode = 'playerDebugMode',
+      syncPlayEndPoint = 'syncPlayEndPoint',
       defaultSuperResolutionType = 'defaultSuperResolutionType';
 }

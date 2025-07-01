@@ -523,7 +523,27 @@ abstract class _PlayerController with Store {
           changeEpisode,
       {bool enableTLS = false}) async {
     await syncplayController?.disconnect();
-    syncplayController = SyncplayClient(host: 'syncplay.pl', port: 8995);
+    final String syncPlayEndPoint = setting.get(SettingBoxKey.syncPlayEndPoint,
+        defaultValue: defaultSyncPlayEndPoint);
+    String syncPlayEndPointHost = '';
+    int syncPlayEndPointPort = 0;
+    debugPrint('SyncPlay: 连接到服务器 $syncPlayEndPoint');
+    try {
+      final parts = syncPlayEndPoint.split(':');
+      if (parts.length == 2) {
+        syncPlayEndPointHost = parts[0];
+        syncPlayEndPointPort = int.parse(parts[1]);
+      }
+    } catch (_) {}
+    if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
+      KazumiDialog.showToast(
+        message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
+      );
+      KazumiLogger().log(Level.error, 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint');
+      return;
+    }
+    syncplayController =
+        SyncplayClient(host: syncPlayEndPointHost, port: syncPlayEndPointPort);
     try {
       await syncplayController!.connect(enableTLS: enableTLS);
       syncplayController!.onGeneralMessage.listen(

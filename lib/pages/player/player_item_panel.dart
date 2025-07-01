@@ -37,6 +37,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleDanmaku,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
+    required this.showSyncPlayEndPointSwitchDialog,
   });
 
   final void Function(BuildContext) onBackPressed;
@@ -55,6 +56,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
+  final void Function() showSyncPlayEndPointSwitchDialog;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
@@ -716,6 +718,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                         padding:
                                             EdgeInsets.fromLTRB(0, 10, 10, 10),
                                         child: Text("加入房间"),
+                                      ),
+                                    ),
+                                    MenuItemButton(
+                                      onPressed: () {
+                                        widget.showSyncPlayEndPointSwitchDialog();
+                                      },
+                                      child: const Padding(
+                                        padding:
+                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text("切换服务器"),
                                       ),
                                     ),
                                     MenuItemButton(

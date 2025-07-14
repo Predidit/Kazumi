@@ -43,7 +43,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
           min: 10,
           max: Utils.isCompact() ? 32 : 48,
           divisions: Utils.isCompact() ? 22 : 38,
-          label: widget.danmakuController.option.fontSize.toString(),
+          label: widget.danmakuController.option.fontSize.toStringAsFixed(1),
           onChanged: (value) {
             setState(() => widget.danmakuController.updateOption(
                   widget.danmakuController.option.copyWith(

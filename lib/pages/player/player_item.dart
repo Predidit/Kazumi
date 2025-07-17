@@ -192,9 +192,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreenChange(BuildContext context) async {
-    if (!Utils.isTablet()) {
-      playerController.lockPanel = false;
-    }
+    playerController.lockPanel = false;
     playerController.danmakuController.clear();
     if (webDavEnable && webDavEnableHistory) {
       var webDav = WebDav();

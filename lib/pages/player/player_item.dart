@@ -192,7 +192,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleFullscreenChange(BuildContext context) async {
-    if (videoPageController.isFullscreen && !Utils.isTablet()) {
+    if (!Utils.isTablet()) {
       playerController.lockPanel = false;
     }
     playerController.danmakuController.clear();

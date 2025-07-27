@@ -124,6 +124,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         if (!WebDav().initialized && webDavEnable) {
                           WebDav().init();
                         }
+                        if (!webDavEnable) {
+                          webDavEnableHistory = false;
+                          await setting.put(SettingBoxKey.webDavEnableHistory, false);
+                        }
                         await setting.put(
                             SettingBoxKey.webDavEnable, webDavEnable);
                         setState(() {});

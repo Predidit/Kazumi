@@ -243,5 +243,6 @@ class SettingBoxKey {
       exitBehavior = 'exitBehavior',
       playerDebugMode = 'playerDebugMode',
       syncPlayEndPoint = 'syncPlayEndPoint',
+      androidEnableOpenSLES = 'androidEnableOpenSLES',
       defaultSuperResolutionType = 'defaultSuperResolutionType';
 }

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -19,6 +20,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   Box setting = GStorage.setting;
   late double defaultPlaySpeed;
   late bool hAenable;
+  late bool androidEnableOpenSLES;
   late bool lowMemoryMode;
   late bool playResume;
   late bool showPlayerError;
@@ -31,6 +33,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     defaultPlaySpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    androidEnableOpenSLES =
+        setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
@@ -96,6 +100,19 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       description: const Text('禁用高级缓存以减少内存占用'),
                       initialValue: lowMemoryMode,
                     ),
+                    if (Platform.isAndroid) ...[
+                      SettingsTile.switchTile(
+                        onToggle: (value) async {
+                          androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
+                          await setting.put(
+                              SettingBoxKey.androidEnableOpenSLES, androidEnableOpenSLES);
+                          setState(() {});
+                        },
+                        title: const Text('低延迟音频'),
+                        description: const Text('启用OpenSLES音频输出以降低延时'),
+                        initialValue: androidEnableOpenSLES,
+                      ),
+                    ],
                     SettingsTile.navigation(
                       onPressed: (_) async {
                         Modular.to.pushNamed('/settings/player/super');

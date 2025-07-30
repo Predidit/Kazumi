@@ -205,7 +205,6 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
-    setAspectRatioType(aspectRatioType);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
@@ -355,14 +354,6 @@ abstract class _PlayerController with Store {
     }
   }
 
-   Future<void> setAspectRatioType(int aspectRatioType) async {
-    this.aspectRatioType = aspectRatioType;
-    try {
-      mediaPlayer.setAspectRatioType(aspectRatioType);
-    } catch (e) {
-      KazumiLogger().log(Level.error, '设置裁切方式失败 ${e.toString()}');
-    }
-  } 
 
   Future<void> setVolume(double value) async {
     value = value.clamp(0.0, 100.0);

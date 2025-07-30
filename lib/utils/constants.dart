@@ -241,14 +241,9 @@ const String danmakuOnSvg = '''
     </svg>
     ''';
 
-//可选默认裁切方式
-const List<int> defaultAspectRatioTypeList = [
-  1, // 自动
-  2, // 裁切填充
-  3, // 拉伸填充
-];
-const List<String> aspectRatioTypeNameList = [
-  '自动',
-  '裁切填充',
-  '拉伸填充',
-];
+//可选默认视频比例
+const Map<int, String> aspectRatioTypeMap = {
+  1 : "自动",
+  2 : "裁切填充",
+  3 : "拉伸填充",
+};

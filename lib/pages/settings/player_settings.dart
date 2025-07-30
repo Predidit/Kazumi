@@ -240,43 +240,33 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       title: const Text('默认倍速'),
                       value: Text('$defaultPlaySpeed'),
                     ),
-                  ],
-                ),
-                SettingsSection(
-                  tiles: [
                     SettingsTile.navigation(
                       onPressed: (_) async {
                         KazumiDialog.show(builder: (context) {
                           return AlertDialog(
-                            title: const Text('默认裁切方式'),
+                            title: const Text('默认视频比例'),
                             content: StatefulBuilder(
                               builder: (BuildContext context, StateSetter setState) {
-                                final List<int> aspectRatioTypeList = [1, 2, 3];
-                                final List<String> aspectRatioTypeNameList = [
-                                  '自动',
-                                  '裁切填充',
-                                  '拉伸填充'
-                                ];
                                 return Wrap(
                                   spacing: 8,
                                   runSpacing: Utils.isDesktop() ? 8 : 0,
                                   children: [
-                                    for (final int i in aspectRatioTypeList) ...<Widget>[
-                                      if (i == defaultAspectRatioType) ...<Widget>[
+                                    for (final entry in aspectRatioTypeMap.entries) ...<Widget>[
+                                      if (entry.key == defaultAspectRatioType) ...<Widget>[
                                         FilledButton(
                                           onPressed: () async {
-                                            updateDefaultAspectRatioType(i);
+                                            updateDefaultAspectRatioType(entry.key);
                                             KazumiDialog.dismiss();
                                           },
-                                          child: Text(aspectRatioTypeNameList[i - 1]),
+                                          child: Text(entry.value),
                                         ),
                                       ] else ...[
                                         FilledButton.tonal(
                                           onPressed: () async {
-                                            updateDefaultAspectRatioType(i);
+                                            updateDefaultAspectRatioType(entry.key);
                                             KazumiDialog.dismiss();
                                           },
-                                          child: Text(aspectRatioTypeNameList[i - 1]),
+                                          child: Text(entry.value),
                                         ),
                                       ]
                                     ]
@@ -304,14 +294,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                           );
                         });
                       },
-                      title: const Text('默认裁切方式'),
-                      value: Text(
-                        defaultAspectRatioType == 1
-                            ? '自动'
-                            : defaultAspectRatioType == 2
-                                ? '裁切填充'
-                                : '拉伸填充',
-                      ),
+                      title: const Text('默认视频比例'),
+                      value: Text(aspectRatioTypeMap[defaultAspectRatioType] ?? '自动'),
                     ),
                   ],
                 ),

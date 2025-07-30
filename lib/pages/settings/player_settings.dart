@@ -19,6 +19,7 @@ class PlayerSettingsPage extends StatefulWidget {
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   Box setting = GStorage.setting;
   late double defaultPlaySpeed;
+  late int defaultAspectRatioType;
   late bool hAenable;
   late bool androidEnableOpenSLES;
   late bool lowMemoryMode;
@@ -32,6 +33,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     super.initState();
     defaultPlaySpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    defaultAspectRatioType =
+        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     androidEnableOpenSLES =
         setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
@@ -56,6 +59,12 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
+  void updateDefaultAspectRatioType(int type) {
+    setting.put(SettingBoxKey.defaultAspectRatioType, type);
+    setState(() {
+      defaultAspectRatioType = type;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
@@ -230,6 +239,79 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       },
                       title: const Text('默认倍速'),
                       value: Text('$defaultPlaySpeed'),
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('默认裁切方式'),
+                            content: StatefulBuilder(
+                              builder: (BuildContext context, StateSetter setState) {
+                                final List<int> aspectRatioTypeList = [1, 2, 3];
+                                final List<String> aspectRatioTypeNameList = [
+                                  '自动',
+                                  '裁切填充',
+                                  '拉伸填充'
+                                ];
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: Utils.isDesktop() ? 8 : 0,
+                                  children: [
+                                    for (final int i in aspectRatioTypeList) ...<Widget>[
+                                      if (i == defaultAspectRatioType) ...<Widget>[
+                                        FilledButton(
+                                          onPressed: () async {
+                                            updateDefaultAspectRatioType(i);
+                                            KazumiDialog.dismiss();
+                                          },
+                                          child: Text(aspectRatioTypeNameList[i - 1]),
+                                        ),
+                                      ] else ...[
+                                        FilledButton.tonal(
+                                          onPressed: () async {
+                                            updateDefaultAspectRatioType(i);
+                                            KazumiDialog.dismiss();
+                                          },
+                                          child: Text(aspectRatioTypeNameList[i - 1]),
+                                        ),
+                                      ]
+                                    ]
+                                  ],
+                                );
+                              },
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () => KazumiDialog.dismiss(),
+                                child: Text(
+                                  '取消',
+                                  style: TextStyle(
+                                      color: Theme.of(context).colorScheme.outline),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  updateDefaultAspectRatioType(1); // 默认恢复自动
+                                  KazumiDialog.dismiss();
+                                },
+                                child: const Text('默认设置'),
+                              ),
+                            ],
+                          );
+                        });
+                      },
+                      title: const Text('默认裁切方式'),
+                      value: Text(
+                        defaultAspectRatioType == 1
+                            ? '自动'
+                            : defaultAspectRatioType == 2
+                                ? '裁切填充'
+                                : '拉伸填充',
+                      ),
                     ),
                   ],
                 ),

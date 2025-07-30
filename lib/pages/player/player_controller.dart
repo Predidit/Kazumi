@@ -192,6 +192,8 @@ abstract class _PlayerController with Store {
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    aspectRatioType =
+        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
       await setVolume(volume);
@@ -203,6 +205,7 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
+    setAspectRatioType(aspectRatioType);
     KazumiLogger().log(Level.info, 'VideoURL初始化完成');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
@@ -351,6 +354,15 @@ abstract class _PlayerController with Store {
       KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
   }
+
+   Future<void> setAspectRatioType(int aspectRatioType) async {
+    this.aspectRatioType = aspectRatioType;
+    try {
+      mediaPlayer.setAspectRatioType(aspectRatioType);
+    } catch (e) {
+      KazumiLogger().log(Level.error, '设置裁切方式失败 ${e.toString()}');
+    }
+  } 
 
   Future<void> setVolume(double value) async {
     value = value.clamp(0.0, 100.0);

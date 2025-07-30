@@ -1162,32 +1162,23 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     tooltip: '视频比例',
                                   );
                                 },
-                                menuChildren: List<MenuItemButton>.generate(
-                                  3,
-                                  (int index) => MenuItemButton(
-                                    onPressed: () => playerController
-                                        .aspectRatioType = index + 1,
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          0, 10, 10, 10),
-                                      child: Text(
-                                        index + 1 == 1
-                                            ? '自动'
-                                            : index + 1 == 2
-                                                ? '裁切填充'
-                                                : '拉伸填充',
-                                        style: TextStyle(
-                                            color: index + 1 ==
-                                                    playerController
-                                                        .aspectRatioType
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                : null),
+                                menuChildren: [
+                                  for (final entry in aspectRatioTypeMap.entries)
+                                    MenuItemButton(
+                                      onPressed: () => playerController.aspectRatioType = entry.key,
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        child: Text(
+                                          entry.value,
+                                          style: TextStyle(
+                                            color: entry.key == playerController.aspectRatioType
+                                                ? Theme.of(context).colorScheme.primary
+                                                : null,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
+                                ],
                               ),
                               (!videoPageController.isFullscreen &&
                                       !Utils.isTablet() &&

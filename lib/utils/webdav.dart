@@ -40,12 +40,19 @@ class WebDav {
     );
     client.setHeaders({'accept-charset': 'utf-8'});
     try {
-      // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
-      await client.mkdir('/kazumiSync');
-      initialized = true;
-      KazumiLogger().log(Level.info, 'webDav backup directory create success');
-    } catch (_) {
-      KazumiLogger().log(Level.error, 'webDav backup directory create failed');
+      await client.ping();
+      try {
+        // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
+        await client.mkdir('/kazumiSync');
+        initialized = true;
+        KazumiLogger().log(Level.info, 'webDav backup directory create success');
+      } catch (_) {
+        KazumiLogger().log(Level.error, 'webDav backup directory create failed');
+        rethrow;
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
+      rethrow;
     }
   }
 
@@ -69,15 +76,18 @@ class WebDav {
 
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
-      return;
+      KazumiLogger().log(Level.warning, 'History is currently syncing');
+      throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     try {
       await update('histories');
     } catch (e) {
       KazumiLogger().log(Level.error, 'webDav update history failed $e');
+      rethrow;
+    } finally {
+      isHistorySyncing = false;
     }
-    isHistorySyncing = false;
   }
 
   Future<void> updateCollectibles() async {
@@ -92,7 +102,8 @@ class WebDav {
 
   Future<void> downloadAndPatchHistory() async {
     if (isHistorySyncing) {
-      return;
+      KazumiLogger().log(Level.warning, 'History is currently syncing');
+      throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     String fileName = 'histories.tmp';
@@ -112,8 +123,10 @@ class WebDav {
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'webDav download and patch history failed $e');
+      rethrow;
+    } finally {
+      isHistorySyncing = false;
     }
-    isHistorySyncing = false;
   }
 
   Future<void> downloadCollectibles() async {
@@ -180,6 +193,11 @@ class WebDav {
   }
 
   Future<void> ping() async {
-    await client.ping();
+    try {
+      await client.ping();
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
+      rethrow;
+    }
   }
 }

@@ -108,7 +108,9 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: main
       path: ./libs/universal/media_kit_libs_video
-  flutter_inappwebview: ^6.1.5
+  flutter_inappwebview_platform_interface: ^1.3.0+1
+  flutter_inappwebview_ios: ^1.1.2
+  flutter_inappwebview_macos: ^1.1.2
 
 dependency_overrides:
   media_kit_libs_linux:

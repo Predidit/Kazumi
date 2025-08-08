@@ -2,10 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
 class WebviewAppleItemControllerImpel
-    extends WebviewItemController<InAppWebViewController> {
+    extends WebviewItemController<PlatformInAppWebViewController> {
   Timer? loadingMonitorTimer;
 
   @override
@@ -28,13 +28,12 @@ class WebviewAppleItemControllerImpel
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
 
     loadingMonitorTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (isVideoSourceLoaded) {
+      if (isVideoSourceLoaded || isIframeLoaded) {
         timer.cancel();
       } else {
         count++;
         if (count >= 15) {
           timer.cancel();
-          isIframeLoaded = true;
 
           logEventController.add('clear');
           logEventController.add('解析视频资源超时');
@@ -241,7 +240,7 @@ class WebviewAppleItemControllerImpel
   @override
   Future<void> unloadPage() async {
     loadingMonitorTimer?.cancel();
-    await InAppWebViewController.clearAllCache();
+    await webviewController!.clearAllCache();
     await webviewController!
         .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
   }

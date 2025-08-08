@@ -7,6 +7,7 @@ import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_pla
 class WebviewAppleItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
   Timer? loadingMonitorTimer;
+  bool hasInjectedScripts = false;
 
   @override
   Future<void> init() async {
@@ -17,8 +18,11 @@ class WebviewAppleItemControllerImpel
   Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
       {int offset = 0}) async {
     await unloadPage();
-    addJavaScriptHandlers(useNativePlayer, useLegacyParser);
-    await addUserScripts(useNativePlayer, useLegacyParser);
+    if (!hasInjectedScripts) {
+      addJavaScriptHandlers(useNativePlayer, useLegacyParser);
+      await addUserScripts(useNativePlayer, useLegacyParser);
+      hasInjectedScripts = true;
+    }
     count = 0;
     this.offset = offset;
     isIframeLoaded = false;

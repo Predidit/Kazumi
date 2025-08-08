@@ -28,13 +28,12 @@ class WebviewAppleItemControllerImpel
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
 
     loadingMonitorTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (isVideoSourceLoaded) {
+      if (isVideoSourceLoaded || isIframeLoaded) {
         timer.cancel();
       } else {
         count++;
         if (count >= 15) {
           timer.cancel();
-          isIframeLoaded = true;
 
           logEventController.add('clear');
           logEventController.add('解析视频资源超时');

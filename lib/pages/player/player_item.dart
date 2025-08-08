@@ -210,6 +210,7 @@ class _PlayerItemState extends State<PlayerItem>
   void handleProgressBarDragEnd() {
     playerController.play(enableSync: false);
     startHideTimer();
+    playerTimer?.cancel();
     playerTimer = getPlayerTimer();
   }
 
@@ -1278,6 +1279,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   hideTimer?.cancel();
                                   startHideTimer();
                                 }
+                                playerTimer?.cancel();
                                 playerTimer = getPlayerTimer();
                                 playerController.showSeekTime = false;
                               },

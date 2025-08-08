@@ -1,9 +1,9 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
 class WebviewAppleItemImpel extends StatefulWidget {
   const WebviewAppleItemImpel({super.key});
@@ -20,8 +20,15 @@ class _WebviewAppleItemImpelState extends State<WebviewAppleItemImpel> {
     super.initState();
   }
 
-  Widget get compositeView {
-    return InAppWebView(
+  @override
+  void dispose() {
+    webviewAppleItemController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PlatformInAppWebViewWidget(PlatformInAppWebViewWidgetCreationParams(
       initialUserScripts: UnmodifiableListView<UserScript>([
         UserScript(
           source: '''
@@ -126,17 +133,6 @@ class _WebviewAppleItemImpelState extends State<WebviewAppleItemImpel> {
         debugPrint(
             '[WebView] Error: ${error.toString()} - Request: ${request.url}');
       },
-    );
-  }
-
-  @override
-  void dispose() {
-    webviewAppleItemController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return compositeView;
+    )).build(context);
   }
 }

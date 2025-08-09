@@ -19,6 +19,7 @@ enum InstallationType {
   linuxTar, // Kazumi_linux_1.7.5_amd64.tar.gz
   macosDmg, // Kazumi_macos_1.7.5.dmg
   androidApk, // Kazumi_android_1.7.5.apk
+  ios, // iOS App
   unknown,
 }
 
@@ -53,7 +54,6 @@ class UpdateInfo {
   }
 }
 
-
 class AutoUpdater {
   static final AutoUpdater _instance = AutoUpdater._internal();
 
@@ -81,6 +81,9 @@ class AutoUpdater {
       } else if (Platform.isMacOS) {
         // macOS 平台支持 DMG
         availableTypes.add(InstallationType.macosDmg);
+      } else if (Platform.isIOS) {
+        // iOS 平台通过 Github
+        availableTypes.add(InstallationType.ios);
       } else if (Platform.isAndroid) {
         // Android 平台支持 APK
         availableTypes.add(InstallationType.androidApk);
@@ -184,7 +187,7 @@ class AutoUpdater {
                   ),
                 ],
                 const SizedBox(height: 8),
-                if (!Platform.isLinux) ...[
+                if (!Platform.isLinux && !Platform.isIOS) ...[
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -219,7 +222,7 @@ class AutoUpdater {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outline
-                                          .withOpacity(0.3),
+                                          .withValues(alpha: 0.3),
                                     ),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
@@ -294,22 +297,13 @@ class AutoUpdater {
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                // Linux 系统直接跳转到 Release 页面
-                if (Platform.isLinux) {
-                  String releaseUrl = updateInfo.releaseNotes;
-                  if (releaseUrl.isEmpty) {
-                    releaseUrl = Api.latestApp;
-                  }
-                  launchUrl(Uri.parse(releaseUrl),
-                      mode: LaunchMode.externalApplication);
-                  return;
-                }
-                if (updateInfo.availableInstallationTypes.length == 1) {
+                // 直接使用第一个可用的安装类型
+                if (updateInfo.availableInstallationTypes.isNotEmpty) {
                   _downloadUpdateWithType(
                       updateInfo, updateInfo.availableInstallationTypes.first);
                 }
               },
-              child: Text(Platform.isLinux ? '立即更新' : '立即更新'),
+              child: const Text('立即更新'),
             ),
           ],
         );
@@ -332,6 +326,8 @@ class AutoUpdater {
         return 'macOS DMG 镜像';
       case InstallationType.androidApk:
         return 'Android APK';
+      case InstallationType.ios:
+        return 'iOS ipa';
       case InstallationType.unknown:
         return '未知安装类型';
     }
@@ -341,6 +337,18 @@ class AutoUpdater {
   Future<void> _downloadUpdateWithType(
       UpdateInfo updateInfo, InstallationType selectedType) async {
     try {
+      // iOS 和 Linux 直接跳转到 Release 页面
+      if (selectedType == InstallationType.ios ||
+          selectedType == InstallationType.linuxDeb ||
+          selectedType == InstallationType.linuxTar) {
+        String releaseUrl = updateInfo.releaseNotes;
+        if (releaseUrl.isEmpty) {
+          releaseUrl = Api.latestApp;
+        }
+        launchUrl(Uri.parse(releaseUrl), mode: LaunchMode.externalApplication);
+        return;
+      }
+
       final downloadUrl =
           await _getDownloadUrlForType(updateInfo.assets, selectedType);
       if (downloadUrl.isEmpty) {
@@ -680,14 +688,14 @@ class AutoUpdater {
         return ['windows', '.msix'];
       case InstallationType.windowsPortable:
         return ['windows', '.zip'];
-      case InstallationType.linuxDeb:
-        return ['linux', 'amd64.deb'];
-      case InstallationType.linuxTar:
-        return ['linux', 'amd64.tar.gz'];
       case InstallationType.macosDmg:
         return ['macos', '.dmg'];
       case InstallationType.androidApk:
         return ['android', '.apk'];
+      // 以下类型直接跳转到 GitHub Release 页面，不需要下载文件
+      case InstallationType.linuxDeb:
+      case InstallationType.linuxTar:
+      case InstallationType.ios:
       case InstallationType.unknown:
         return [];
     }
@@ -726,4 +734,3 @@ class AutoUpdater {
     }
   }
 }
-

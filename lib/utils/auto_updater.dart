@@ -7,16 +7,94 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// 安装类型枚举
+enum InstallationType {
+  windowsMsix, // Kazumi_windows_1.7.5.msix
+  windowsPortable, // Kazumi_windows_1.7.5.zip
+  linuxDeb, // Kazumi_linux_1.7.5_amd64.deb
+  linuxTar, // Kazumi_linux_1.7.5_amd64.tar.gz
+  macosDmg, // Kazumi_macos_1.7.5.dmg
+  androidApk, // Kazumi_android_1.7.5.apk
+  unknown,
+}
+
+/// 更新信息类
+class UpdateInfo {
+  final String version;
+  final String description;
+  final String downloadUrl;
+  final String releaseNotes;
+  final String publishedAt;
+  final InstallationType? installationType;
+  final List<InstallationType> availableInstallationTypes;
+  final List<dynamic> assets;
+
+  UpdateInfo({
+    required this.version,
+    required this.description,
+    required this.downloadUrl,
+    required this.releaseNotes,
+    required this.publishedAt,
+    this.installationType,
+    this.availableInstallationTypes = const [],
+    this.assets = const [],
+  });
+
+  /// 获取默认的安装类型（第一个可用类型）
+  InstallationType get recommendedInstallationType {
+    if (availableInstallationTypes.isNotEmpty) {
+      return availableInstallationTypes.first;
+    }
+    return installationType ?? InstallationType.unknown;
+  }
+}
+
+
 class AutoUpdater {
   static final AutoUpdater _instance = AutoUpdater._internal();
+
   factory AutoUpdater() => _instance;
+
   AutoUpdater._internal();
 
   final Dio _dio = Dio();
+
   Box get setting => GStorage.setting;
+
+  /// 检测所有可能的安装类型
+  Future<List<InstallationType>> _detectAvailableInstallationTypes() async {
+    List<InstallationType> availableTypes = [];
+
+    try {
+      if (Platform.isWindows) {
+        // Windows 平台支持 MSIX 和 ZIP 便携版
+        availableTypes.add(InstallationType.windowsMsix);
+        availableTypes.add(InstallationType.windowsPortable);
+      } else if (Platform.isLinux) {
+        // Linux 平台支持 DEB 和 TAR.GZ
+        availableTypes.add(InstallationType.linuxDeb);
+        availableTypes.add(InstallationType.linuxTar);
+      } else if (Platform.isMacOS) {
+        // macOS 平台支持 DMG
+        availableTypes.add(InstallationType.macosDmg);
+      } else if (Platform.isAndroid) {
+        // Android 平台支持 APK
+        availableTypes.add(InstallationType.androidApk);
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.warning, '检测安装类型失败: ${e.toString()}');
+    }
+
+    if (availableTypes.isEmpty) {
+      availableTypes.add(InstallationType.unknown);
+    }
+
+    return availableTypes;
+  }
 
   /// 检查是否有新版本可用
   Future<UpdateInfo?> checkForUpdates() async {
@@ -32,12 +110,19 @@ class AutoUpdater {
       final currentVersion = Api.version;
 
       if (_shouldUpdate(currentVersion, remoteVersion)) {
+        final availableTypes = await _detectAvailableInstallationTypes();
+
         return UpdateInfo(
           version: remoteVersion,
           description: data['body'] ?? '发现新版本',
-          downloadUrl: _getDownloadUrl(data['assets'] ?? []),
+          downloadUrl: '',
+          // 将在用户选择安装类型后填充
           releaseNotes: data['html_url'] ?? '',
           publishedAt: data['published_at'] ?? '',
+          installationType: availableTypes.first,
+          // 保持兼容性
+          availableInstallationTypes: availableTypes,
+          assets: data['assets'] ?? [],
         );
       }
 
@@ -98,6 +183,82 @@ class AutoUpdater {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
+                const SizedBox(height: 8),
+                if (!Platform.isLinux) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '选择安装类型:',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        ...updateInfo.availableInstallationTypes.map((type) {
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(4),
+                                onTap: () {
+                                  KazumiDialog.dismiss();
+                                  _downloadUpdateWithType(updateInfo, type);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline
+                                          .withOpacity(0.3),
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.download,
+                                        size: 16,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _getInstallationTypeDescription(type),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outline,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -133,19 +294,79 @@ class AutoUpdater {
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                if (updateInfo.downloadUrl.isNotEmpty) {
-                  _downloadUpdate(updateInfo);
-                } else {
-                  launchUrl(Uri.parse(updateInfo.releaseNotes),
+                // Linux 系统直接跳转到 Release 页面
+                if (Platform.isLinux) {
+                  String releaseUrl = updateInfo.releaseNotes;
+                  if (releaseUrl.isEmpty) {
+                    releaseUrl = Api.latestApp;
+                  }
+                  launchUrl(Uri.parse(releaseUrl),
                       mode: LaunchMode.externalApplication);
+                  return;
+                }
+                if (updateInfo.availableInstallationTypes.length == 1) {
+                  _downloadUpdateWithType(
+                      updateInfo, updateInfo.availableInstallationTypes.first);
                 }
               },
-              child: const Text('立即更新'),
+              child: Text(Platform.isLinux ? '立即更新' : '立即更新'),
             ),
           ],
         );
       },
     );
+  }
+
+  /// 获取安装类型的描述
+  String _getInstallationTypeDescription(InstallationType type) {
+    switch (type) {
+      case InstallationType.windowsMsix:
+        return 'Windows MSIX 包';
+      case InstallationType.windowsPortable:
+        return 'Windows 便携版 (ZIP)';
+      case InstallationType.linuxDeb:
+        return 'Linux DEB 包';
+      case InstallationType.linuxTar:
+        return 'Linux TAR 包';
+      case InstallationType.macosDmg:
+        return 'macOS DMG 镜像';
+      case InstallationType.androidApk:
+        return 'Android APK';
+      case InstallationType.unknown:
+        return '未知安装类型';
+    }
+  }
+
+  /// 根据选择的类型下载更新
+  Future<void> _downloadUpdateWithType(
+      UpdateInfo updateInfo, InstallationType selectedType) async {
+    try {
+      final downloadUrl =
+          await _getDownloadUrlForType(updateInfo.assets, selectedType);
+      if (downloadUrl.isEmpty) {
+        KazumiDialog.showToast(
+            message:
+                '没有找到 ${_getInstallationTypeDescription(selectedType)} 的下载链接');
+        return;
+      }
+
+      // 创建一个临时的 UpdateInfo 对象用于下载
+      final downloadInfo = UpdateInfo(
+        version: updateInfo.version,
+        description: updateInfo.description,
+        downloadUrl: downloadUrl,
+        releaseNotes: updateInfo.releaseNotes,
+        publishedAt: updateInfo.publishedAt,
+        installationType: selectedType,
+        availableInstallationTypes: [selectedType],
+        assets: updateInfo.assets,
+      );
+
+      _downloadUpdate(downloadInfo);
+    } catch (e) {
+      KazumiDialog.showToast(message: '下载失败: ${e.toString()}');
+      KazumiLogger().log(Level.error, '下载更新失败: ${e.toString()}');
+    }
   }
 
   /// 下载更新
@@ -157,6 +378,7 @@ class AutoUpdater {
 
     // 显示下载进度对话框
     KazumiDialog.show(
+      clickMaskDismiss: false,
       builder: (context) {
         return AlertDialog(
           title: const Text('正在下载更新'),
@@ -193,10 +415,9 @@ class AutoUpdater {
     try {
       final downloadPath =
           await _downloadFile(updateInfo.downloadUrl, updateInfo.version);
-      KazumiDialog.dismiss();
 
-      // 下载完成，询问是否安装
-      _showInstallDialog(downloadPath, updateInfo.version);
+      // 不自动关闭对话框，而是显示下载完成状态
+      _showDownloadCompleteDialog(downloadPath, updateInfo);
     } catch (e) {
       KazumiDialog.dismiss();
 
@@ -256,64 +477,11 @@ class AutoUpdater {
     _cancelToken?.cancel();
   }
 
-  /// 下载文件
-  Future<String> _downloadFile(String url, String version) async {
-    final fileName = _getFileNameFromUrl(url, version);
-    String filePath;
+  /// 显示下载完成对话框
+  void _showDownloadCompleteDialog(String filePath, UpdateInfo updateInfo) {
+    // 替换当前的下载进度对话框内容
+    KazumiDialog.dismiss();
 
-    // 根据平台选择合适的下载目录
-    if (Platform.isMacOS || Platform.isLinux) {
-      // 使用临时目录，避免权限问题
-      final tempDir = await getTemporaryDirectory();
-      filePath = '${tempDir.path}/$fileName';
-    } else if (Platform.isWindows) {
-      // Windows 尝试使用下载目录，失败则使用临时目录
-      try {
-        final downloadDir = await getDownloadsDirectory();
-        filePath =
-            '${downloadDir?.path ?? (await getTemporaryDirectory()).path}/$fileName';
-      } catch (e) {
-        final tempDir = await getTemporaryDirectory();
-        filePath = '${tempDir.path}/$fileName';
-      }
-    } else if (Platform.isAndroid) {
-      // Android 使用应用文档目录
-      try {
-        final appDocDir = await getApplicationDocumentsDirectory();
-        final downloadPath = '${appDocDir.path}/downloads';
-        final downloadDir = Directory(downloadPath);
-        if (!await downloadDir.exists()) {
-          await downloadDir.create(recursive: true);
-        }
-        filePath = '$downloadPath/$fileName';
-      } catch (e) {
-        final tempDir = await getTemporaryDirectory();
-        filePath = '${tempDir.path}/$fileName';
-      }
-    } else {
-      // 其他平台使用临时目录
-      final tempDir = await getTemporaryDirectory();
-      filePath = '${tempDir.path}/$fileName';
-    }
-
-    _cancelToken = CancelToken();
-
-    await _dio.download(
-      url,
-      filePath,
-      cancelToken: _cancelToken,
-      onReceiveProgress: (received, total) {
-        if (total > 0) {
-          _downloadProgress.value = received / total;
-        }
-      },
-    );
-
-    return filePath;
-  }
-
-  /// 显示安装对话框
-  void _showInstallDialog(String filePath, String version) {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
@@ -322,7 +490,27 @@ class AutoUpdater {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('新版本 $version 已下载完成，是否立即安装？'),
+              Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('新版本 ${updateInfo.version} 已下载完成'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '⚠️ 安装过程中应用将会退出',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -367,7 +555,8 @@ class AutoUpdater {
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
-                _installUpdate(filePath);
+                _installUpdate(
+                    filePath, updateInfo.recommendedInstallationType);
               },
               child: const Text('立即安装'),
             ),
@@ -377,33 +566,63 @@ class AutoUpdater {
     );
   }
 
+  /// 下载文件
+  Future<String> _downloadFile(String url, String version) async {
+    final fileName = _getFileNameFromUrl(url, version);
+
+    // 统一使用临时目录，系统会在合适的时候进行清理
+    final tempDir = await getTemporaryDirectory();
+    final filePath = '${tempDir.path}/$fileName';
+
+    _cancelToken = CancelToken();
+
+    await _dio.download(
+      url,
+      filePath,
+      cancelToken: _cancelToken,
+      onReceiveProgress: (received, total) {
+        if (total > 0) {
+          _downloadProgress.value = received / total;
+        }
+      },
+    );
+
+    return filePath;
+  }
+
   /// 安装更新
-  void _installUpdate(String filePath) async {
+  void _installUpdate(
+      String filePath, InstallationType installationType) async {
     try {
+      // 显示准备退出的提示
+      KazumiDialog.showToast(message: '准备安装更新，应用即将退出...');
+
+      await Future.delayed(const Duration(seconds: 2));
+
       if (Platform.isWindows) {
-        await Process.start('explorer.exe', [filePath], runInShell: true);
-      } else if (Platform.isMacOS) {
-        await Process.start('open', [filePath]);
-      } else if (Platform.isLinux) {
-        if (filePath.endsWith('.AppImage')) {
-          await Process.start('chmod', ['+x', filePath]);
-          await Process.start(filePath, []);
+        if (installationType == InstallationType.windowsMsix) {
+          await Process.start('powershell',
+              ['-Command', 'Add-AppxPackage', '-Path', '"$filePath"'],
+              runInShell: true);
         } else {
-          await Process.start('xdg-open', [filePath]);
+          await Process.start('explorer.exe', [filePath], runInShell: true);
+        }
+      } else if (Platform.isMacOS) {
+        if (filePath.endsWith('.dmg')) {
+          await Process.start('open', [filePath]);
+          exit(0);
         }
       } else if (Platform.isAndroid) {
-        await Process.start('am', [
-          'start',
-          '-t',
-          'application/vnd.android.package-archive',
-          '-d',
-          'file://$filePath'
-        ]);
+        final result = await OpenFilex.open(filePath);
+        if (result.type != ResultType.done) {
+          KazumiDialog.showToast(message: '无法打开安装文件: ${result.message}');
+          return;
+        }
       }
-
-      KazumiDialog.showToast(message: '正在启动安装程序...');
+      await Future.delayed(const Duration(seconds: 1));
+      exit(0);
     } catch (e) {
-      KazumiDialog.showToast(message: '启动安装程序失败');
+      KazumiDialog.showToast(message: '启动安装程序失败: ${e.toString()}');
       KazumiLogger().log(Level.error, '启动安装程序失败: ${e.toString()}');
     }
   }
@@ -430,63 +649,48 @@ class AutoUpdater {
 
   /// 判断是否需要更新
   bool _shouldUpdate(String currentVersion, String remoteVersion) {
-    // 移除版本号前的 'v' 前缀
-    final current = currentVersion.replaceFirst('v', '');
-    final remote = remoteVersion.replaceFirst('v', '');
-
-    final currentParts = current.split('.').map(int.parse).toList();
-    final remoteParts = remote.split('.').map(int.parse).toList();
-
-    // 确保版本号格式一致
-    while (currentParts.length < 3) {
-      currentParts.add(0);
-    }
-    while (remoteParts.length < 3) {
-      remoteParts.add(0);
-    }
-
-    for (int i = 0; i < 3; i++) {
-      if (remoteParts[i] > currentParts[i]) {
-        return true;
-      } else if (remoteParts[i] < currentParts[i]) {
-        return false;
-      }
-    }
-
-    return false;
+    return currentVersion != remoteVersion;
   }
 
-  /// 获取合适的下载链接
-  String _getDownloadUrl(List<dynamic> assets) {
-    if (assets.isEmpty) return '';
-
-    String platform = '';
-    if (Platform.isWindows) {
-      platform = 'windows';
-    } else if (Platform.isMacOS) {
-      platform = 'macos';
-    } else if (Platform.isLinux) {
-      platform = 'linux';
-    } else if (Platform.isAndroid) {
-      platform = 'android';
-    }
+  /// 根据安装类型获取下载链接
+  Future<String> _getDownloadUrlForType(
+      List<dynamic> assets, InstallationType type) async {
+    final patterns = _getFilePatterns(type);
 
     for (final asset in assets) {
       final name = asset['name'] as String? ?? '';
       final downloadUrl = asset['browser_download_url'] as String? ?? '';
 
-      if (name.toLowerCase().contains(platform.toLowerCase()) &&
-          downloadUrl.isNotEmpty) {
-        return downloadUrl;
+      for (final pattern in patterns) {
+        if (name.toLowerCase().contains(pattern.toLowerCase()) &&
+            downloadUrl.isNotEmpty) {
+          return downloadUrl;
+        }
       }
     }
 
-    // 如果没找到平台特定的文件，返回第一个下载链接
-    if (assets.isNotEmpty) {
-      return assets.first['browser_download_url'] as String? ?? '';
-    }
-
     return '';
+  }
+
+  /// 获取合适的下载链接
+  /// 根据安装类型获取文件名模式
+  List<String> _getFilePatterns(InstallationType installationType) {
+    switch (installationType) {
+      case InstallationType.windowsMsix:
+        return ['windows', '.msix'];
+      case InstallationType.windowsPortable:
+        return ['windows', '.zip'];
+      case InstallationType.linuxDeb:
+        return ['linux', 'amd64.deb'];
+      case InstallationType.linuxTar:
+        return ['linux', 'amd64.tar.gz'];
+      case InstallationType.macosDmg:
+        return ['macos', '.dmg'];
+      case InstallationType.androidApk:
+        return ['android', '.apk'];
+      case InstallationType.unknown:
+        return [];
+    }
   }
 
   /// 从URL获取文件名
@@ -523,19 +727,3 @@ class AutoUpdater {
   }
 }
 
-/// 更新信息类
-class UpdateInfo {
-  final String version;
-  final String description;
-  final String downloadUrl;
-  final String releaseNotes;
-  final String publishedAt;
-
-  UpdateInfo({
-    required this.version,
-    required this.description,
-    required this.downloadUrl,
-    required this.releaseNotes,
-    required this.publishedAt,
-  });
-}

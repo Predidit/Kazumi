@@ -11,24 +11,10 @@ import 'package:kazumi/request/request.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:upgrader/upgrader.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-
-const appcastURL =
-    'https://raw.githubusercontent.com/Predidit/Kazumi/main/assets/appcast.xml';
-final upgrader = Upgrader(
-  // debugDisplayAlways: true,
-  // debugLogging: true,
-  storeController: UpgraderStoreController(
-    onAndroid: () => UpgraderAppcastStore(appcastURL: appcastURL),
-    onMacOS: () => UpgraderAppcastStore(appcastURL: appcastURL),
-    onWindows: () => UpgraderAppcastStore(appcastURL: appcastURL),
-    onLinux: () => UpgraderAppcastStore(appcastURL: appcastURL),
-  ),
-);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

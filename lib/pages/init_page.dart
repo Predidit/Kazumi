@@ -204,7 +204,7 @@ class _InitPageState extends State<InitPage> {
       bool autoUpdate =
           setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
       if (autoUpdate) {
-        Modular.get<MyController>().checkUpdata(type: 'auto');
+        Modular.get<MyController>().checkUpdate(type: 'auto');
       }
     }
   }

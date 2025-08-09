@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:kazumi/pages/webview/webview_item_impel/webview_android_item_impel.dart';
 import 'package:kazumi/pages/webview/webview_item_impel/webview_item_impel.dart';
 import 'package:kazumi/pages/webview/webview_item_impel/webview_windows_item_impel.dart';
 import 'package:kazumi/pages/webview/webview_item_impel/webview_linux_item_impel.dart';
@@ -28,6 +29,9 @@ Widget get webviewUniversal {
   }
   if (Platform.isMacOS || Platform.isIOS) {
     return const WebviewAppleItemImpel();
+  }
+  if (Platform.isAndroid) {
+    return const WebviewAndroidItemImpel();
   }
   return const WebviewItemImpel();
 }

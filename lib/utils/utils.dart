@@ -20,9 +20,23 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:screen_pixel/screen_pixel.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
 class Utils {
   static final Random random = Random();
+
+  static bool? _isDocumentStartScriptSupported;
+
+  /// 检查 Android WebView 是否支持 DOCUMENT_START_SCRIPT 特性
+  static Future<void> checkWebViewFeatureSupport() async {
+    if (Platform.isAndroid) {
+      _isDocumentStartScriptSupported = await PlatformWebViewFeature.static()
+          .isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT);
+    }
+  }
+
+  static bool get isDocumentStartScriptSupported =>
+      _isDocumentStartScriptSupported ?? false;
 
   static Future<bool> isLowResolution() async {
     if (Platform.isMacOS) {

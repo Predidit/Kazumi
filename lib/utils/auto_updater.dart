@@ -6,6 +6,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -112,7 +113,7 @@ class AutoUpdater {
       final remoteVersion = data['tag_name'] as String;
       final currentVersion = Api.version;
 
-      if (_shouldUpdate(currentVersion, remoteVersion)) {
+      if (Utils.needUpdate(currentVersion, remoteVersion)) {
         final availableTypes = await _detectAvailableInstallationTypes();
 
         return UpdateInfo(
@@ -182,7 +183,7 @@ class AutoUpdater {
                 if (updateInfo.publishedAt.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '发布时间: ${_formatDate(updateInfo.publishedAt)}',
+                    '发布时间: ${Utils.formatDate(updateInfo.publishedAt)}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -609,9 +610,12 @@ class AutoUpdater {
 
       if (Platform.isWindows) {
         if (installationType == InstallationType.windowsMsix) {
-          await Process.start('powershell',
-              ['-Command', 'Add-AppxPackage', '-Path', '"$filePath"'],
-              runInShell: true);
+          final Uri fileUri = Uri.file(filePath);
+          if (await canLaunchUrl(fileUri)) {
+            await launchUrl(fileUri);
+          } else {
+            throw 'Could not launch $fileUri';
+          }
         } else {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
@@ -653,11 +657,6 @@ class AutoUpdater {
       KazumiDialog.showToast(message: '无法打开文件管理器');
       KazumiLogger().log(Level.warning, '打开文件管理器失败: ${e.toString()}');
     }
-  }
-
-  /// 判断是否需要更新
-  bool _shouldUpdate(String currentVersion, String remoteVersion) {
-    return currentVersion != remoteVersion;
   }
 
   /// 根据安装类型获取下载链接
@@ -724,13 +723,5 @@ class AutoUpdater {
     return 'Kazumi-$version$extension';
   }
 
-  /// 格式化日期
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateString;
-    }
-  }
+
 }

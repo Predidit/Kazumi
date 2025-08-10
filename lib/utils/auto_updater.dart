@@ -579,9 +579,40 @@ class AutoUpdater {
   Future<String> _downloadFile(String url, String version) async {
     final fileName = _getFileNameFromUrl(url, version);
 
-    // 统一使用临时目录，系统会在合适的时候进行清理
+    // 统一使用临时目录
     final tempDir = await getTemporaryDirectory();
     final filePath = '${tempDir.path}/$fileName';
+    final file = File(filePath);
+
+    // 检查文件是否已存在
+    if (await file.exists()) {
+      try {
+        // 获取远程文件大小来验证本地文件是否完整
+        final headResponse = await _dio.head(url);
+        final remoteSize =
+            int.tryParse(headResponse.headers.value('content-length') ?? '0') ??
+                0;
+        final localSize = await file.length();
+
+        if (remoteSize > 0 && localSize == remoteSize) {
+          // 文件已存在且大小匹配，直接返回
+          KazumiLogger().log(Level.info, '文件已存在且完整，跳过下载: $filePath');
+          _downloadProgress.value = 1.0;
+          return filePath;
+        } else if (localSize > 0) {
+          // 文件存在但不完整，删除后重新下载
+          KazumiLogger().log(
+              Level.info, '检测到不完整文件 (本地: $localSize, 远程: $remoteSize)，删除后重新下载');
+          await file.delete();
+        }
+      } catch (e) {
+        // 如果获取远程文件信息失败，删除本地文件重新下载
+        KazumiLogger().log(Level.warning, '无法验证文件完整性，删除后重新下载: ${e.toString()}');
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+    }
 
     _cancelToken = CancelToken();
 
@@ -722,6 +753,4 @@ class AutoUpdater {
     }
     return 'Kazumi-$version$extension';
   }
-
-
 }

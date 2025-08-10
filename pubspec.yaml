@@ -111,6 +111,8 @@ dependencies:
   flutter_inappwebview_ios: ^1.1.2
   flutter_inappwebview_macos: ^1.1.2
   flutter_inappwebview_android: ^1.1.3
+  upgrader: ^11.4.0
+  open_filex: ^4.7.0
 
 dependency_overrides:
   media_kit_libs_linux:

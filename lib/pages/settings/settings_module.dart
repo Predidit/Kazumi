@@ -8,6 +8,7 @@ import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/decoder_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
+import 'package:kazumi/pages/settings/update_page.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 
 class SettingsModule extends Module {
@@ -22,6 +23,7 @@ class SettingsModule extends Module {
     r.child("/player/decoder", child: (_) => const DecoderSettings());
     // r.child("/other", child: (_) => const OtherSettingsPage());
     r.child("/player/super", child: (_) => const SuperResolutionSettings());
+    r.child("/update", child: (_) => const UpdatePage());
     r.module("/webdav", module: WebDavModule());
     r.module("/about", module: AboutModule());
     r.module("/plugin", module: PluginModule());

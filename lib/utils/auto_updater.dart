@@ -359,6 +359,10 @@ class AutoUpdater {
         return;
       }
 
+      // 获取文件的 SHA256 哈希值用于验证
+      final expectedHash =
+          _getFileHashFromAssets(updateInfo.assets, downloadUrl);
+
       // 创建一个临时的 UpdateInfo 对象用于下载
       final downloadInfo = UpdateInfo(
         version: updateInfo.version,
@@ -371,7 +375,7 @@ class AutoUpdater {
         assets: updateInfo.assets,
       );
 
-      _downloadUpdate(downloadInfo);
+      _downloadUpdate(downloadInfo, expectedHash);
     } catch (e) {
       KazumiDialog.showToast(message: '下载失败: ${e.toString()}');
       KazumiLogger().log(Level.error, '下载更新失败: ${e.toString()}');
@@ -379,7 +383,8 @@ class AutoUpdater {
   }
 
   /// 下载更新
-  Future<void> _downloadUpdate(UpdateInfo updateInfo) async {
+  Future<void> _downloadUpdate(
+      UpdateInfo updateInfo, String expectedHash) async {
     if (updateInfo.downloadUrl.isEmpty) {
       KazumiDialog.showToast(message: '没有找到合适的下载链接');
       return;
@@ -422,8 +427,8 @@ class AutoUpdater {
     );
 
     try {
-      final downloadPath =
-          await _downloadFile(updateInfo.downloadUrl, updateInfo.version);
+      final downloadPath = await _downloadFile(
+          updateInfo.downloadUrl, updateInfo.version, expectedHash);
 
       // 不自动关闭对话框，而是显示下载完成状态
       _showDownloadCompleteDialog(downloadPath, updateInfo);
@@ -439,6 +444,8 @@ class AutoUpdater {
         errorMessage = '磁盘空间不足';
       } else if (e.toString().contains('Network')) {
         errorMessage = '网络连接错误';
+      } else if (e.toString().contains('文件完整性验证失败')) {
+        errorMessage = '文件完整性验证失败，可能是网络传输错误';
       }
 
       KazumiDialog.show(
@@ -466,7 +473,7 @@ class AutoUpdater {
                 onPressed: () {
                   KazumiDialog.dismiss();
                   // 重新尝试下载
-                  _downloadUpdate(updateInfo);
+                  _downloadUpdate(updateInfo, expectedHash);
                 },
                 child: const Text('重试'),
               ),
@@ -576,7 +583,8 @@ class AutoUpdater {
   }
 
   /// 下载文件
-  Future<String> _downloadFile(String url, String version) async {
+  Future<String> _downloadFile(
+      String url, String version, String expectedHash) async {
     final fileName = _getFileNameFromUrl(url, version);
 
     // 统一使用临时目录
@@ -587,27 +595,22 @@ class AutoUpdater {
     // 检查文件是否已存在
     if (await file.exists()) {
       try {
-        // 获取远程文件大小来验证本地文件是否完整
-        final headResponse = await _dio.head(url);
-        final remoteSize =
-            int.tryParse(headResponse.headers.value('content-length') ?? '0') ??
-                0;
-        final localSize = await file.length();
-
-        if (remoteSize > 0 && localSize == remoteSize) {
-          // 文件已存在且大小匹配，直接返回
-          KazumiLogger().log(Level.info, '文件已存在且完整，跳过下载: $filePath');
+        //使用哈希验证文件完整性
+        final localHash = await Utils.calculateFileHash(file);
+        if (localHash == expectedHash) {
+          // 文件已存在且哈希匹配，直接返回
+          KazumiLogger().log(Level.info, '文件已存在且哈希验证通过，跳过下载: $filePath');
           _downloadProgress.value = 1.0;
           return filePath;
-        } else if (localSize > 0) {
-          // 文件存在但不完整，删除后重新下载
-          KazumiLogger().log(
-              Level.info, '检测到不完整文件 (本地: $localSize, 远程: $remoteSize)，删除后重新下载');
+        } else {
+          // 文件存在但哈希不匹配，删除后重新下载
+          KazumiLogger().log(Level.info,
+              '检测到文件哈希不匹配 (本地: $localHash, 期望: $expectedHash)，删除后重新下载');
           await file.delete();
         }
       } catch (e) {
-        // 如果获取远程文件信息失败，删除本地文件重新下载
-        KazumiLogger().log(Level.warning, '无法验证文件完整性，删除后重新下载: ${e.toString()}');
+        // 验证过程中出错，删除文件重新下载
+        KazumiLogger().log(Level.warning, '文件验证失败，删除后重新下载: ${e.toString()}');
         if (await file.exists()) {
           await file.delete();
         }
@@ -626,6 +629,15 @@ class AutoUpdater {
         }
       },
     );
+
+    // 下载完成后验证文件哈希
+    final downloadedHash = await Utils.calculateFileHash(file);
+    if (downloadedHash != expectedHash) {
+      // 哈希不匹配，删除文件并抛出异常
+      await file.delete();
+      throw Exception('文件完整性验证失败: 期望 $expectedHash，实际 $downloadedHash');
+    }
+    KazumiLogger().log(Level.info, '文件下载完成，哈希验证通过: $filePath');
 
     return filePath;
   }
@@ -752,5 +764,19 @@ class AutoUpdater {
       extension = '.apk';
     }
     return 'Kazumi-$version$extension';
+  }
+
+  /// 从 assets 中获取文件的哈希值
+  String _getFileHashFromAssets(List<dynamic> assets, String downloadUrl) {
+    for (final asset in assets) {
+      final assetDownloadUrl = asset['browser_download_url'] as String? ?? '';
+      if (assetDownloadUrl == downloadUrl) {
+        final digest = asset['digest'] as String? ?? '';
+        if (digest.isNotEmpty && digest.startsWith('sha256:')) {
+          return digest.substring(7); // 移除 "sha256:" 前缀
+        }
+      }
+    }
+    return '';
   }
 }

@@ -258,13 +258,6 @@ class _AboutPageState extends State<AboutPage> {
                     ),
                     SettingsTile.navigation(
                       onPressed: (_) {
-                        Modular.to.pushNamed('/settings/update');
-                      },
-                      title: const Text('更新设置'),
-                      description: const Text('检查更新、下载安装新版本'),
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
                         myController.checkUpdate();
                       },
                       title: const Text('检查更新'),

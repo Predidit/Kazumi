@@ -27,7 +27,12 @@ class _HistoryPageState extends State<HistoryPage>
     historyController.init();
   }
 
-  void onBackPressed(BuildContext context) {}
+  void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
+  }
 
   void showHistoryClearDialog() {
     KazumiDialog.show(

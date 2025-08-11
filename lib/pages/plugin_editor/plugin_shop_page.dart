@@ -26,7 +26,10 @@ class _PluginShopPageState extends State<PluginShopPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
 
   void onBackPressed(BuildContext context) {
-    // Navigator.of(context).pop();
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
   }
 
   @override

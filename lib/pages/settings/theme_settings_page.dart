@@ -47,25 +47,28 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
-  void onBackPressed(BuildContext context) {}
+  void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
+  }
 
   void setTheme(Color? color) {
     var defaultDarkTheme = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorSchemeSeed: color,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-      pageTransitionsTheme: pageTransitionsTheme2024
-    );
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: color,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: color,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024
-      ),
+          useMaterial3: true,
+          brightness: Brightness.light,
+          colorSchemeSeed: color,
+          progressIndicatorTheme: progressIndicatorTheme2024,
+          pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = color?.value.toRadixString(16) ?? 'default';
@@ -74,21 +77,19 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   void resetTheme() {
     var defaultDarkTheme = ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorSchemeSeed: Colors.green,
-      progressIndicatorTheme: progressIndicatorTheme2024,
-      pageTransitionsTheme: pageTransitionsTheme2024
-    );
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: Colors.green,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.light,
-        colorSchemeSeed: Colors.green,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024
-      ),
+          useMaterial3: true,
+          brightness: Brightness.light,
+          colorSchemeSeed: Colors.green,
+          progressIndicatorTheme: progressIndicatorTheme2024,
+          pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';

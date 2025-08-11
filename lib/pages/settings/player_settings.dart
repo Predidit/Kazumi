@@ -49,7 +49,10 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    // Navigator.of(context).pop();
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
   }
 
   void updateDefaultPlaySpeed(double speed) {
@@ -65,6 +68,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
       defaultAspectRatioType = type;
     });
   }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {});
@@ -112,9 +116,10 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     if (Platform.isAndroid) ...[
                       SettingsTile.switchTile(
                         onToggle: (value) async {
-                          androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
-                          await setting.put(
-                              SettingBoxKey.androidEnableOpenSLES, androidEnableOpenSLES);
+                          androidEnableOpenSLES =
+                              value ?? !androidEnableOpenSLES;
+                          await setting.put(SettingBoxKey.androidEnableOpenSLES,
+                              androidEnableOpenSLES);
                           setState(() {});
                         },
                         title: const Text('低延迟音频'),
@@ -246,16 +251,20 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                           return AlertDialog(
                             title: const Text('默认视频比例'),
                             content: StatefulBuilder(
-                              builder: (BuildContext context, StateSetter setState) {
+                              builder:
+                                  (BuildContext context, StateSetter setState) {
                                 return Wrap(
                                   spacing: 8,
                                   runSpacing: Utils.isDesktop() ? 8 : 0,
                                   children: [
-                                    for (final entry in aspectRatioTypeMap.entries) ...<Widget>[
-                                      if (entry.key == defaultAspectRatioType) ...<Widget>[
+                                    for (final entry in aspectRatioTypeMap
+                                        .entries) ...<Widget>[
+                                      if (entry.key ==
+                                          defaultAspectRatioType) ...<Widget>[
                                         FilledButton(
                                           onPressed: () async {
-                                            updateDefaultAspectRatioType(entry.key);
+                                            updateDefaultAspectRatioType(
+                                                entry.key);
                                             KazumiDialog.dismiss();
                                           },
                                           child: Text(entry.value),
@@ -263,7 +272,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                                       ] else ...[
                                         FilledButton.tonal(
                                           onPressed: () async {
-                                            updateDefaultAspectRatioType(entry.key);
+                                            updateDefaultAspectRatioType(
+                                                entry.key);
                                             KazumiDialog.dismiss();
                                           },
                                           child: Text(entry.value),
@@ -280,7 +290,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                                 child: Text(
                                   '取消',
                                   style: TextStyle(
-                                      color: Theme.of(context).colorScheme.outline),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline),
                                 ),
                               ),
                               TextButton(
@@ -295,7 +307,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         });
                       },
                       title: const Text('默认视频比例'),
-                      value: Text(aspectRatioTypeMap[defaultAspectRatioType] ?? '自动'),
+                      value: Text(
+                          aspectRatioTypeMap[defaultAspectRatioType] ?? '自动'),
                     ),
                   ],
                 ),

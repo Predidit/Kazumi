@@ -66,7 +66,10 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   }
 
   void onBackPressed(BuildContext context) {
-    // Navigator.of(context).pop();
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
   }
 
   void updateDanmakuArea(double i) async {

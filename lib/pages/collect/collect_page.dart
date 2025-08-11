@@ -30,6 +30,10 @@ class _CollectPageState extends State<CollectPage>
   Box setting = GStorage.setting;
 
   void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }

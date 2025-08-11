@@ -71,6 +71,10 @@ class _PopularPageState extends State<PopularPage>
   }
 
   void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
     if (_lastPressedAt == null ||
         DateTime.now().difference(_lastPressedAt!) >
             const Duration(seconds: 2)) {

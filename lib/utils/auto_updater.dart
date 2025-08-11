@@ -521,7 +521,7 @@ class AutoUpdater {
               ),
               const SizedBox(height: 12),
               Text(
-                '⚠️ 安装过程中应用将会退出',
+                '安装过程中应用将会退出',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.error,
                   fontSize: 12,

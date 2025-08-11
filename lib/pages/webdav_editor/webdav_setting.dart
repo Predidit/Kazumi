@@ -30,7 +30,12 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
   }
 
-  void onBackPressed(BuildContext context) {}
+  void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
+  }
 
   Future<void> checkWebDav() async {
     var webDavURL =
@@ -140,7 +145,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         }
                         if (!webDavEnable) {
                           webDavEnableHistory = false;
-                          await setting.put(SettingBoxKey.webDavEnableHistory, false);
+                          await setting.put(
+                              SettingBoxKey.webDavEnableHistory, false);
                         }
                         await setting.put(
                             SettingBoxKey.webDavEnable, webDavEnable);

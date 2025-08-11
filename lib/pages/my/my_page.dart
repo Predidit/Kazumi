@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:provider/provider.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -16,6 +17,10 @@ class _MyPageState extends State<MyPage> {
   late NavigationBarState navigationBarState;
 
   void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }

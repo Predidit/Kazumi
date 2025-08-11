@@ -23,7 +23,6 @@ class _TimelinePageState extends State<TimelinePage>
     with SingleTickerProviderStateMixin {
   final TimelineController timelineController =
       Modular.get<TimelineController>();
-  bool showingTimeMachineDialog = false;
   late NavigationBarState navigationBarState;
   TabController? tabController;
 
@@ -47,7 +46,7 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   void onBackPressed(BuildContext context) {
-    if (showingTimeMachineDialog) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
       KazumiDialog.dismiss();
       return;
     }
@@ -110,10 +109,7 @@ class _TimelinePageState extends State<TimelinePage>
               title: InkWell(
                 child: Text(timelineController.seasonString),
                 onTap: () {
-                  showingTimeMachineDialog = true;
-                  KazumiDialog.show(onDismiss: () {
-                    showingTimeMachineDialog = false;
-                  }, builder: (context) {
+                  KazumiDialog.show(builder: (context) {
                     final currDate = DateTime.now();
                     final years =
                         List.generate(20, (index) => currDate.year - index);

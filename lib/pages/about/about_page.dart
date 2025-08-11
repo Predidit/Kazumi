@@ -41,7 +41,12 @@ class _AboutPageState extends State<AboutPage> {
     _getCacheSize();
   }
 
-  void onBackPressed(BuildContext context) {}
+  void onBackPressed(BuildContext context) {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
+  }
 
   Future<Directory> _getCacheDir() async {
     Directory tempDir = await getTemporaryDirectory();

@@ -100,7 +100,8 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     var progress = historyController.lastWatching(
-        videoPageController.bangumiItem, videoPageController.currentPlugin.name);
+        videoPageController.bangumiItem,
+        videoPageController.currentPlugin.name);
     if (progress != null) {
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
@@ -242,6 +243,10 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void onBackPressed(BuildContext context) async {
+    if (KazumiDialog.observer.hasKazumiDialog) {
+      KazumiDialog.dismiss();
+      return;
+    }
     if (videoPageController.isPip) {
       Utils.exitDesktopPIPWindow();
       videoPageController.isPip = false;

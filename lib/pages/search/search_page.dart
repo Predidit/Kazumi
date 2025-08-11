@@ -120,33 +120,36 @@ class _SearchPageState extends State<SearchPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-            child: SearchAnchor.bar(
-              searchController: searchController,
-              barElevation: WidgetStateProperty<double>.fromMap(
-                <WidgetStatesConstraint, double>{WidgetState.any: 0},
-              ),
-              viewElevation: 0,
-              viewLeading: IconButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                icon: Icon(Icons.arrow_back),
-              ),
-              isFullScreen: MediaQuery.sizeOf(context).width <
-                  LayoutBreakpoint.compact['width']!,
-              suggestionsBuilder: (context, controller) => <Widget>[
-                Container(
-                  height: 400,
-                  alignment: Alignment.center,
-                  child: Text("无可用搜索建议，回车以直接检索"),
+            child: FocusScope(
+              descendantsAreFocusable: false,
+              child: SearchAnchor.bar(
+                searchController: searchController,
+                barElevation: WidgetStateProperty<double>.fromMap(
+                  <WidgetStatesConstraint, double>{WidgetState.any: 0},
                 ),
-              ],
-              onSubmitted: (value) {
-                searchPageController.searchBangumi(value, type: 'init');
-                if (searchController.isOpen) {
-                  searchController.closeView(value);
-                }
-              },
+                viewElevation: 0,
+                viewLeading: IconButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  icon: Icon(Icons.arrow_back),
+                ),
+                isFullScreen: MediaQuery.sizeOf(context).width <
+                    LayoutBreakpoint.compact['width']!,
+                suggestionsBuilder: (context, controller) => <Widget>[
+                  Container(
+                    height: 400,
+                    alignment: Alignment.center,
+                    child: Text("无可用搜索建议，回车以直接检索"),
+                  ),
+                ],
+                onSubmitted: (value) {
+                  searchPageController.searchBangumi(value, type: 'init');
+                  if (searchController.isOpen) {
+                    searchController.closeView(value);
+                  }
+                },
+              ),
             ),
           ),
           Expanded(

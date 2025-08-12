@@ -155,7 +155,9 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         }
                         await setting.put(
                             SettingBoxKey.webDavEnable, webDavEnable);
-                        setState(() {});
+                        if (mounted) {
+                          setState(() {});
+                        }
                       },
                       title: const Text('WEBDAV同步'),
                       initialValue: webDavEnable,

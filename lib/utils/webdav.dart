@@ -58,10 +58,12 @@ class WebDav {
 
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
+    await File('${directory.path}/hive/$boxName.hive')
+          .copy('${directory.path}/hive/$boxName.hive.tmp');
     try {
       await client.remove('/kazumiSync/$boxName.tmp.cache');
     } catch (_) {}
-    await client.writeFromFile('${directory.path}/hive/$boxName.hive',
+    await client.writeFromFile('${directory.path}/hive/$boxName.hive.tmp',
         '/kazumiSync/$boxName.tmp.cache', onProgress: (c, t) {
       // print(c / t);
     });
@@ -72,6 +74,9 @@ class WebDav {
     }
     await client.rename(
         '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
+    try {
+      await File('${directory.path}/hive/$boxName.hive.tmp').delete();
+    } catch (_) {}
   }
 
   Future<void> updateHistory() async {

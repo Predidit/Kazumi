@@ -141,7 +141,13 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       onToggle: (value) async {
                         webDavEnable = value ?? !webDavEnable;
                         if (!WebDav().initialized && webDavEnable) {
-                          WebDav().init();
+                          try{
+                            await WebDav().init();
+                          } catch (e) {
+                            webDavEnable = false;
+                            KazumiDialog.showToast(message: 'WEBDAV初始化失败 $e');
+                            return;
+                          }  
                         }
                         if (!webDavEnable) {
                           webDavEnableHistory = false;

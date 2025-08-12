@@ -45,10 +45,6 @@ abstract class _PlayerController with Store {
   @observable
   int syncplayClientRtt = 0;
 
-  // WebDAV状态
-  @observable
-  bool isWebDavUploading = false;
-
   /// 视频比例类型
   /// 1. AUTO
   /// 2. COVER

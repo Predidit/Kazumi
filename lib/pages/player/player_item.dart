@@ -193,26 +193,20 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> _uploadHistoryToWebDav() async {
     if (webDavEnable && webDavEnableHistory) {
-      if(!playerController.isWebDavUploading){
         try {
-          playerController.isWebDavUploading = true;
           var webDav = WebDav();
-          await webDav.ping();
           await webDav.updateHistory();
         } catch (e) {
           KazumiLogger().log(Level.error, 'webDav update history failed $e');
-        } finally {
-          playerController.isWebDavUploading = false;
         }
-      }
     }
   }
 
   void _handleFullscreenChange(BuildContext context) async {
     playerController.lockPanel = false;
     playerController.danmakuController.clear();
-    
-    _uploadHistoryToWebDav();
+
+    await _uploadHistoryToWebDav();
 
   }
 
@@ -371,7 +365,7 @@ class _PlayerItemState extends State<PlayerItem>
       }
       // 历史记录相关
       if (playerController.playerPlaying && !videoPageController.loading) {
-        if (!playerController.isWebDavUploading){
+        if (!WebDav().isHistorySyncing){
           historyController.updateHistory(
             videoPageController.currentEpisode,
             videoPageController.currentRoad,

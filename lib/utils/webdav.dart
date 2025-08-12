@@ -86,7 +86,8 @@ class WebDav {
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
-      throw Exception('History is currently syncing');
+      //throw Exception('History is currently syncing');
+      return;
     }
     isHistorySyncing = true;
     try {

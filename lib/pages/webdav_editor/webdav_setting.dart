@@ -146,7 +146,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                           } catch (e) {
                             webDavEnable = false;
                             KazumiDialog.showToast(message: 'WEBDAV初始化失败 $e');
-                            return;
                           }  
                         }
                         if (!webDavEnable) {

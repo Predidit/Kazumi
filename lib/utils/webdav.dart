@@ -32,6 +32,10 @@ class WebDav {
         setting.get(SettingBoxKey.webDavUsername, defaultValue: '');
     webDavPassword =
         setting.get(SettingBoxKey.webDavPassword, defaultValue: '');
+    if (webDavURL.isEmpty) {
+      //KazumiLogger().log(Level.warning, 'WebDAV URL is not set');
+      throw Exception('请先填写WebDAV URL');
+    }
     client = webdav.newClient(
       webDavURL,
       user: webDavUsername,
@@ -58,10 +62,12 @@ class WebDav {
 
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
+    await File('${directory.path}/hive/$boxName.hive')
+          .copy('${directory.path}/hive/$boxName.hive.tmp');
     try {
       await client.remove('/kazumiSync/$boxName.tmp.cache');
     } catch (_) {}
-    await client.writeFromFile('${directory.path}/hive/$boxName.hive',
+    await client.writeFromFile('${directory.path}/hive/$boxName.hive.tmp',
         '/kazumiSync/$boxName.tmp.cache', onProgress: (c, t) {
       // print(c / t);
     });
@@ -72,12 +78,16 @@ class WebDav {
     }
     await client.rename(
         '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
+    try {
+      await File('${directory.path}/hive/$boxName.hive.tmp').delete();
+    } catch (_) {}
   }
 
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
-      throw Exception('History is currently syncing');
+      //throw Exception('History is currently syncing');
+      return;
     }
     isHistorySyncing = true;
     try {

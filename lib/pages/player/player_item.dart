@@ -191,13 +191,23 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
+  Future<void> _uploadHistoryToWebDav() async {
+    if (webDavEnable && webDavEnableHistory) {
+        try {
+          var webDav = WebDav();
+          await webDav.updateHistory();
+        } catch (e) {
+          KazumiLogger().log(Level.error, 'webDav update history failed $e');
+        }
+    }
+  }
+
   void _handleFullscreenChange(BuildContext context) async {
     playerController.lockPanel = false;
     playerController.danmakuController.clear();
-    if (webDavEnable && webDavEnableHistory) {
-      var webDav = WebDav();
-      webDav.updateHistory();
-    }
+
+    await _uploadHistoryToWebDav();
+
   }
 
   void handleProgressBarDragStart(ThumbDragDetails details) {
@@ -355,7 +365,8 @@ class _PlayerItemState extends State<PlayerItem>
       }
       // 历史记录相关
       if (playerController.playerPlaying && !videoPageController.loading) {
-        historyController.updateHistory(
+        if (!WebDav().isHistorySyncing){
+          historyController.updateHistory(
             videoPageController.currentEpisode,
             videoPageController.currentRoad,
             videoPageController.currentPlugin.name,
@@ -364,6 +375,7 @@ class _PlayerItemState extends State<PlayerItem>
             videoPageController.src,
             videoPageController.roadList[videoPageController.currentRoad]
                 .identifier[videoPageController.currentEpisode - 1]);
+        }
       }
       // 自动播放下一集
       if (playerController.completed &&

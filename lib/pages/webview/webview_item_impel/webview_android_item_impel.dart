@@ -48,13 +48,15 @@ class _WebviewAndroidItemImpelState extends State<WebviewAndroidItemImpel> {
         webviewAndroidItemController.init();
       },
       onLoadStart: (controller, url) async {
-        debugPrint('[WebView] Started loading: $url');
+        webviewAndroidItemController.logEventController
+            .add('started loading: $url');
         if (url.toString() != 'about:blank') {
           await webviewAndroidItemController.onLoadStart();
         }
       },
       onLoadStop: (controller, url) {
-        debugPrint('[WebView] Loading completed: $url');
+        webviewAndroidItemController.logEventController
+            .add('loading completed: $url');
       },
     )).build(context);
   }

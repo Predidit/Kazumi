@@ -116,10 +116,12 @@ class _WebviewAppleItemImpelState extends State<WebviewAppleItemImpel> {
         webviewAppleItemController.init();
       },
       onLoadStart: (controller, url) {
-        debugPrint('[WebView] Started loading: $url');
+        webviewAppleItemController.logEventController
+            .add('started loading: $url');
       },
       onLoadStop: (controller, url) {
-        debugPrint('[WebView] Loading completed: $url');
+        webviewAppleItemController.logEventController
+            .add('loading completed: $url');
       },
       onConsoleMessage: (controller, consoleMessage) {
         debugPrint(

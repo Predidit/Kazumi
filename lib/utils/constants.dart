@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
-import 'package:kazumi/utils/utils.dart';
 
 class StyleString {
   static const double cardSpace = 8;

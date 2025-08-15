@@ -38,6 +38,17 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
     return SettingsList(
       sections: [
         SettingsSection(
+          title: const Text('弹幕屏蔽'),
+          tiles: [
+            SettingsTile.navigation(
+              onPressed: (_) {
+                showDanmakuShieldSheet();
+              },
+              title: const Text('关键词屏蔽'),
+            ),
+          ],
+        ),
+        SettingsSection(
           title: const Text('弹幕样式'),
           tiles: [
             SettingsTile(
@@ -140,17 +151,6 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               },
               title: const Text('滚动弹幕'),
               initialValue: !widget.danmakuController.option.hideScroll,
-            ),
-          ],
-        ),
-        SettingsSection(
-          title: const Text('弹幕屏蔽'),
-          tiles: [
-            SettingsTile.navigation(
-              onPressed: (_) {
-                showDanmakuShieldSheet();
-              },
-              title: const Text('关键词屏蔽'),
             ),
           ],
         ),

@@ -927,14 +927,10 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                 widget.keyboardFocus
                                                     .requestFocus();
                                                 showModalBottomSheet(
-                                                    backgroundColor: Theme.of(context)
-                                                                .colorScheme
-                                                                .brightness ==
-                                                            Brightness.light
-                                                        ? Theme.of(context)
-                                                            .colorScheme
-                                                            .surfaceContainerHigh
-                                                        : null,
+                                                    backgroundColor: Theme.of(
+                                                            context)
+                                                        .colorScheme
+                                                        .surface,
                                                     isScrollControlled: true,
                                                     constraints: BoxConstraints(
                                                         maxHeight:
@@ -943,15 +939,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                                     .height *
                                                                 3 /
                                                                 4,
-                                                        maxWidth: (Utils.isDesktop() ||
+                                                        maxWidth: (Utils
+                                                                    .isDesktop() ||
                                                                 Utils
                                                                     .isTablet())
-                                                            ? MediaQuery.of(context)
+                                                            ? MediaQuery.of(
+                                                                        context)
                                                                     .size
                                                                     .width *
                                                                 9 /
                                                                 16
-                                                            : MediaQuery.of(context)
+                                                            : MediaQuery.of(
+                                                                    context)
                                                                 .size
                                                                 .width),
                                                     clipBehavior:

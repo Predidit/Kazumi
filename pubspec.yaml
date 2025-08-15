@@ -20,7 +20,7 @@ version: 1.7.6+10706
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.32.8
+  flutter: 3.35.1
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -49,7 +49,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   cached_network_image: ^3.4.1
-  card_settings_ui: ^1.1.3
+  card_settings_ui: ^2.0.0
 
   # fvp: ^0.28.0
   # video_player: ^2.9.1
@@ -95,17 +95,17 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/universal/media_kit_libs_video
   flutter_inappwebview_platform_interface: ^1.3.0+1
   flutter_inappwebview_ios: ^1.1.2
@@ -118,27 +118,27 @@ dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: main
+      ref: ad84c59faa2b871926cb31516bdeec65d7676884
       path: ./libs/macos/media_kit_libs_macos_video
 
 dev_dependencies:

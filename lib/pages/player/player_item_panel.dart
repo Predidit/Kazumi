@@ -722,7 +722,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     ),
                                     MenuItemButton(
                                       onPressed: () {
-                                        widget.showSyncPlayEndPointSwitchDialog();
+                                        widget
+                                            .showSyncPlayEndPointSwitchDialog();
                                       },
                                       child: const Padding(
                                         padding:
@@ -928,7 +929,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                 showModalBottomSheet(
                                                     isScrollControlled: true,
                                                     constraints: BoxConstraints(
-                                                        maxHeight: 280,
+                                                        maxHeight:
+                                                            MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .height *
+                                                                3 /
+                                                                4,
                                                         maxWidth: (Utils
                                                                     .isDesktop() ||
                                                                 Utils
@@ -991,7 +998,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                       showModalBottomSheet(
                                           isScrollControlled: true,
                                           constraints: BoxConstraints(
-                                              maxHeight: 280,
+                                              maxHeight: MediaQuery.of(context)
+                                                      .size
+                                                      .height *
+                                                  3 /
+                                                  4,
                                               maxWidth: (Utils.isDesktop() ||
                                                       Utils.isTablet())
                                                   ? MediaQuery.of(context)
@@ -1163,16 +1174,23 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   );
                                 },
                                 menuChildren: [
-                                  for (final entry in aspectRatioTypeMap.entries)
+                                  for (final entry
+                                      in aspectRatioTypeMap.entries)
                                     MenuItemButton(
-                                      onPressed: () => playerController.aspectRatioType = entry.key,
+                                      onPressed: () => playerController
+                                          .aspectRatioType = entry.key,
                                       child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                        padding: const EdgeInsets.fromLTRB(
+                                            0, 10, 10, 10),
                                         child: Text(
                                           entry.value,
                                           style: TextStyle(
-                                            color: entry.key == playerController.aspectRatioType
-                                                ? Theme.of(context).colorScheme.primary
+                                            color: entry.key ==
+                                                    playerController
+                                                        .aspectRatioType
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
                                                 : null,
                                           ),
                                         ),

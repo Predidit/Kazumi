@@ -186,10 +186,10 @@ packages:
     dependency: "direct main"
     description:
       name: card_settings_ui
-      sha256: ee92c90366096c84e43a4e2942902b81d3ecd53e7c4643ab804d342d0469cb77
+      sha256: "69946704bf4e05830e4737645188f14420285063c8e15f82ef8f5708dba55df8"
       url: "https://pub.dev"
     source: hosted
-    version: "1.2.0"
+    version: "2.0.0"
   characters:
     dependency: transitive
     description:

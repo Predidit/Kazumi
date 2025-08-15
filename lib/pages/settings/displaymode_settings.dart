@@ -64,37 +64,33 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
-      body: Center(
-        child: SizedBox(
-          width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
-          child: (modes.isEmpty)
-              ? const CircularProgressIndicator()
-              : SettingsList(
-                  sections: [
-                    SettingsSection(
-                      title: const Text('没有生效? 重启app试试'),
-                      tiles: modes
-                          .map((e) => SettingsTile<DisplayMode>.radioTile(
-                                radioValue: e,
-                                groupValue: preferred,
-                                onChanged: (DisplayMode? newMode) async {
-                                  await FlutterDisplayMode.setPreferredMode(
-                                      newMode!);
-                                  await Future<dynamic>.delayed(
-                                    const Duration(milliseconds: 100),
-                                  );
-                                  await fetchAll();
-                                },
-                                title: e == DisplayMode.auto
-                                    ? const Text('自动')
-                                    : Text('$e${e == active ? "  [系统]" : ""}'),
-                              ))
-                          .toList(),
-                    ),
-                  ],
+      body: (modes.isEmpty)
+          ? const CircularProgressIndicator()
+          : SettingsList(
+              maxWidth: 1000,
+              sections: [
+                SettingsSection(
+                  title: const Text('没有生效? 重启app试试'),
+                  tiles: modes
+                      .map((e) => SettingsTile<DisplayMode>.radioTile(
+                            radioValue: e,
+                            groupValue: preferred,
+                            onChanged: (DisplayMode? newMode) async {
+                              await FlutterDisplayMode.setPreferredMode(
+                                  newMode!);
+                              await Future<dynamic>.delayed(
+                                const Duration(milliseconds: 100),
+                              );
+                              await fetchAll();
+                            },
+                            title: e == DisplayMode.auto
+                                ? const Text('自动')
+                                : Text('$e${e == active ? "  [系统]" : ""}'),
+                          ))
+                      .toList(),
                 ),
-        ),
-      ),
+              ],
+            ),
     );
   }
 }

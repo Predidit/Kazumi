@@ -590,7 +590,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               showModalBottomSheet(
                                 isScrollControlled: true,
                                 constraints: BoxConstraints(
-                                    maxHeight: 280,
+                                    maxHeight:
+                                        MediaQuery.of(context).size.height *
+                                            3 /
+                                            4,
                                     maxWidth: (Utils.isDesktop() ||
                                             Utils.isTablet())
                                         ? MediaQuery.of(context).size.width *

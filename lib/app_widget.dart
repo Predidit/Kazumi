@@ -247,6 +247,7 @@ class _AppWidgetState extends State<AppWidget>
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
+        sliderTheme: sliderTheme2024,
         pageTransitionsTheme: pageTransitionsTheme2024);
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
@@ -255,6 +256,7 @@ class _AppWidgetState extends State<AppWidget>
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
+          sliderTheme: sliderTheme2024,
           pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
       notify: false,
@@ -267,17 +269,20 @@ class _AppWidgetState extends State<AppWidget>
                 colorScheme: theme,
                 brightness: Brightness.light,
                 progressIndicatorTheme: progressIndicatorTheme2024,
+                sliderTheme: sliderTheme2024,
                 pageTransitionsTheme: pageTransitionsTheme2024),
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
+                    sliderTheme: sliderTheme2024,
                     pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
+                    sliderTheme: sliderTheme2024,
                     pageTransitionsTheme: pageTransitionsTheme2024),
             notify: false,
           );

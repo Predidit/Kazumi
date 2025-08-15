@@ -10,12 +10,18 @@ class StyleString {
   static const double aspectRatio = 16 / 10;
 }
 
+/// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
+/// it to false so we have the latest M3 style process indicator.
+/// ignore: deprecated_member_use
 const ProgressIndicatorThemeData progressIndicatorTheme2024 =
-    ProgressIndicatorThemeData(
-  // This flag is deprecated since 3.29 but not default to false yet. Keep
-  // it to false so we have the latest M3 style process indicator.
-  // ignore: deprecated_member_use
+    ProgressIndicatorThemeData(year2023: false);
+
+/// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
+/// it to false so we have the latest M3 style slider.
+/// ignore: deprecated_member_use
+const SliderThemeData sliderTheme2024 = SliderThemeData(
   year2023: false,
+  showValueIndicator: ShowValueIndicator.always,
 );
 
 /// The page transition method defined here is managed by flutter, and the native transition method of flutter is set here.
@@ -49,7 +55,7 @@ class LayoutBreakpoint {
   static const Map<String, double> medium = {'width': 840, 'height': 900};
 }
 
-// 随机UA列表
+/// 随机UA列表
 const List<String> userAgentsList = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
@@ -62,7 +68,7 @@ const List<String> userAgentsList = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0',
 ];
 
-// 默认 SyncPlay 服务器列表
+/// 默认 SyncPlay 服务器列表
 const List<String> defaultSyncPlayEndPoints = [
   'syncplay.pl:8995',
   'syncplay.pl:8996',
@@ -73,21 +79,21 @@ const List<String> defaultSyncPlayEndPoints = [
 
 const String defaultSyncPlayEndPoint = 'syncplay.pl:8996';
 
-// 随机HTTP请求头accept-language字段列表
+/// 随机HTTP请求头accept-language字段列表
 const List<String> acceptLanguageList = [
   'zh-CN,zh;q=0.9',
   'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
   'zh-CN,zh-TW;q=0.9,zh;q=0.8,en-US;q=0.7,en;q=0.6',
 ];
 
-// Bangumi API 文档要求的UA格式
+/// Bangumi API 文档要求的UA格式
 Map<String, String> bangumiHTTPHeader = {
   'user-agent':
       'Predidit/Kazumi/${Api.version} (Android) (https://github.com/Predidit/Kazumi)',
   'referer': '',
 };
 
-// 可选硬件解码器
+/// 可选硬件解码器
 const Map<String, String> hardwareDecodersList = {
   'auto': '启用任意可用解码器',
   'auto-safe': '启用最佳解码器',
@@ -116,7 +122,7 @@ const Map<String, String> hardwareDecodersList = {
   'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
 };
 
-// 超分辨率滤镜
+/// 超分辨率滤镜
 const List<String> mpvAnime4KShaders = [
   'Anime4K_Clamp_Highlights.glsl',
   'Anime4K_Restore_CNN_VL.glsl',
@@ -126,7 +132,7 @@ const List<String> mpvAnime4KShaders = [
   'Anime4K_Upscale_CNN_x2_M.glsl'
 ];
 
-// 超分辨率滤镜 (轻量)
+/// 超分辨率滤镜 (轻量)
 const List<String> mpvAnime4KShadersLite = [
   'Anime4K_Clamp_Highlights.glsl',
   'Anime4K_Restore_CNN_M.glsl',
@@ -137,7 +143,7 @@ const List<String> mpvAnime4KShadersLite = [
   'Anime4K_Upscale_CNN_x2_S.glsl'
 ];
 
-// 可选播放倍速
+/// 可选播放倍速
 const List<double> defaultPlaySpeedList = [
   0.25,
   0.5,
@@ -153,86 +159,6 @@ const List<double> defaultPlaySpeedList = [
   3.0,
 ];
 
-// 可选弹幕透明度
-const List<double> danOpacityList = [
-  0.1,
-  0.2,
-  0.3,
-  0.4,
-  0.5,
-  0.6,
-  0.7,
-  0.8,
-  0.9,
-  1.0,
-];
-
-// 可选弹幕字体大小
-final List<double> danFontList = [
-  10.0,
-  11.0,
-  12.0,
-  13.0,
-  14.0,
-  15.0,
-  16.0,
-  17.0,
-  18.0,
-  19.0,
-  20.0,
-  21.0,
-  22.0,
-  23.0,
-  24.0,
-  25.0,
-  26.0,
-  27.0,
-  28.0,
-  29.0,
-  30.0,
-  31.0,
-  32.0,
-  if (!Utils.isCompact()) ...[
-    33.0,
-    34.0,
-    35.0,
-    36.0,
-    37.0,
-    38.0,
-    39.0,
-    40.0,
-    41.0,
-    42.0,
-    43.0,
-    44.0,
-    45.0,
-    46.0,
-    47.0,
-    48.0,
-  ]
-];
-
-// 可选弹幕字体字重
-final List<int> danFontWeightList = [
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-];
-
-// 可选弹幕区域
-const List<double> danAreaList = [
-  0.25,
-  0.5,
-  0.75,
-  1.0,
-];
-
 const String danmakuOnSvg = '''
     <svg xmlns="http://www.w3.org/2000/svg" data-pointer="none" viewBox="0 0 24 24">
       <path fill="#FFFFFF" fill-rule="evenodd" d="M11.989 4.828c-.47 0-.975.004-1.515.012l-1.71-2.566a1.008 1.008 0 0 0-1.678 1.118l.999 1.5c-.681.018-1.403.04-2.164.068a4.013 4.013 0 0 0-3.83 3.44c-.165 1.15-.245 2.545-.245 4.185 0 1.965.115 3.67.35 5.116a4.012 4.012 0 0 0 3.763 3.363l.906.046c1.205.063 1.808.095 3.607.095a.988.988 0 0 0 0-1.975c-1.758 0-2.339-.03-3.501-.092l-.915-.047a2.037 2.037 0 0 1-1.91-1.708c-.216-1.324-.325-2.924-.325-4.798 0-1.563.076-2.864.225-3.904.14-.977.96-1.713 1.945-1.747 2.444-.087 4.465-.13 6.063-.131 1.598 0 3.62.044 6.064.13.96.034 1.71.81 1.855 1.814.075.524.113 1.962.141 3.065v.002c.01.342.017.65.025.88a.987.987 0 1 0 1.974-.068c-.008-.226-.016-.523-.025-.856v-.027c-.03-1.118-.073-2.663-.16-3.276-.273-1.906-1.783-3.438-3.74-3.507-.9-.032-1.743-.058-2.531-.078l1.05-1.46a1.008 1.008 0 0 0-1.638-1.177l-1.862 2.59c-.38-.004-.744-.007-1.088-.007h-.13Zm.521 4.775h-1.32v4.631h2.222v.847h-2.618v1.078h2.618l.003.678c.36.026.714.163 1.01.407h.11v-1.085h2.694v-1.078h-2.695v-.847H16.8v-4.63h-1.276a8.59 8.59 0 0 0 .748-1.42L15.183 7.8a14.232 14.232 0 0 1-.814 1.804h-1.518l.693-.308a8.862 8.862 0 0 0-.814-1.408l-1.045.352c.297.396.572.847.825 1.364Zm-4.18 3.564.154-1.485h1.98V8.294h-3.2v.98H9.33v1.43H7.472l-.308 3.453h2.277c0 1.166-.044 1.925-.12 2.277-.078.352-.386.528-.936.528-.308 0-.616-.022-.902-.055l.297 1.067.062.005c.285.02.551.04.818.04 1.001-.067 1.562-.419 1.694-1.057.11-.638.176-1.903.176-3.795h-2.2Zm7.458.11v-.858h-1.254v.858h1.254Zm-2.376-.858v.858h-1.199v-.858h1.2Zm-1.199-.946h1.2v-.902h-1.2v.902Zm2.321 0v-.902h1.254v.902h-1.254Z" clip-rule="evenodd"/>
@@ -240,9 +166,9 @@ const String danmakuOnSvg = '''
     </svg>
     ''';
 
-//可选默认视频比例
+/// 可选默认视频比例
 const Map<int, String> aspectRatioTypeMap = {
-  1 : "自动",
-  2 : "裁切填充",
-  3 : "拉伸填充",
+  1: "自动",
+  2: "裁切填充",
+  3: "拉伸填充",
 };

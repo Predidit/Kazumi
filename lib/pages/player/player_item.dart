@@ -193,12 +193,12 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> _uploadHistoryToWebDav() async {
     if (webDavEnable && webDavEnableHistory) {
-        try {
-          var webDav = WebDav();
-          await webDav.updateHistory();
-        } catch (e) {
-          KazumiLogger().log(Level.error, 'webDav update history failed $e');
-        }
+      try {
+        var webDav = WebDav();
+        await webDav.updateHistory();
+      } catch (e) {
+        KazumiLogger().log(Level.error, 'webDav update history failed $e');
+      }
     }
   }
 
@@ -207,7 +207,6 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.danmakuController.clear();
 
     await _uploadHistoryToWebDav();
-
   }
 
   void handleProgressBarDragStart(ThumbDragDetails details) {
@@ -365,16 +364,16 @@ class _PlayerItemState extends State<PlayerItem>
       }
       // 历史记录相关
       if (playerController.playerPlaying && !videoPageController.loading) {
-        if (!WebDav().isHistorySyncing){
+        if (!WebDav().isHistorySyncing) {
           historyController.updateHistory(
-            videoPageController.currentEpisode,
-            videoPageController.currentRoad,
-            videoPageController.currentPlugin.name,
-            videoPageController.bangumiItem,
-            playerController.playerPosition,
-            videoPageController.src,
-            videoPageController.roadList[videoPageController.currentRoad]
-                .identifier[videoPageController.currentEpisode - 1]);
+              videoPageController.currentEpisode,
+              videoPageController.currentRoad,
+              videoPageController.currentPlugin.name,
+              videoPageController.bangumiItem,
+              playerController.playerPosition,
+              videoPageController.src,
+              videoPageController.roadList[videoPageController.currentRoad]
+                  .identifier[videoPageController.currentEpisode - 1]);
         }
       }
       // 自动播放下一集

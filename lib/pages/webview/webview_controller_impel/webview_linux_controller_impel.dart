@@ -4,13 +4,12 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
 class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
-  
   bool bridgeInited = false;
 
   @override
   Future<void> init() async {
     webviewController ??= await WebviewWindow.create(
-      configuration: const CreateConfiguration(userScripts: [
+      configuration: const CreateConfiguration(headless: true, userScripts: [
         UserScript(
             source: blobScript,
             injectionTime: UserScriptInjectionTime.documentStart,

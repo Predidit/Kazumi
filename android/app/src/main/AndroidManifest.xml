@@ -3,7 +3,8 @@
         android:label="Kazumi"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:extractNativeLibs="true">
         <meta-data
              android:name="io.flutter.embedding.android.EnableImpeller"
              android:value="false" 

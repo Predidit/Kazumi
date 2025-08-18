@@ -48,6 +48,9 @@ class WebDav {
       try {
         // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
         await client.mkdir('/kazumiSync');
+        if (!await webDavLocalTempDirectory.exists()) {
+          await webDavLocalTempDirectory.create(recursive: true);
+        }
         initialized = true;
         KazumiLogger().log(Level.info, 'webDav backup directory create success');
       } catch (_) {
@@ -83,15 +86,60 @@ class WebDav {
     } catch (_) {}
   }
 
+  Future<void> _update(String boxName) async {
+    var directory = await getApplicationSupportDirectory();
+    final localFilePath = '${directory.path}/hive/$boxName.hive'; 
+    final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
+    final webDavDir = '/kazumiSync/$boxName/';
+    try {
+      await client.mkdir(webDavDir);
+    } catch (_) {}
+    final now = DateTime.now();
+    final dateString = "${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}";
+    final filename = '$boxName-$dateString.tmp';
+    final files = await client.readDir(webDavDir);
+    final historyFiles = files.where((file) => 
+      file.name != null && 
+      file.name!.startsWith(boxName) && 
+      file.name!.endsWith('.tmp')
+    ).toList();
+    String? oldFilePath;
+    for (var file in historyFiles) {
+      if (file.name != null && file.name!.startsWith('$boxName-$dateString')) {
+        oldFilePath = file.path;
+        break;
+      }
+    }
+    if (oldFilePath != null) {
+      await client.remove(oldFilePath);
+    }
+    if (historyFiles.length > 5) {
+      historyFiles.sort((a, b) => a.name!.compareTo(b.name!));
+      await client.remove(historyFiles.first.path!);
+    }
+    await File(localFilePath).copy(tempFilePath);
+    try {
+    await client.remove('$webDavDir$filename.cache');
+    } catch (_) {}
+    await client.writeFromFile(tempFilePath, '$webDavDir$filename.cache', onProgress: (c, t) {
+    // print(c / t);
+    });
+    await client.rename(
+      '$webDavDir$filename.cache', '$webDavDir$filename', true);
+    KazumiLogger().log(Level.info, 'Uploaded $filename to $webDavDir');
+    try {
+      await File(tempFilePath).delete();
+    } catch (_) {}
+  }
+
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
-      //throw Exception('History is currently syncing');
-      return;
+      throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     try {
-      await update('histories');
+      await _update('histories');
     } catch (e) {
       KazumiLogger().log(Level.error, 'webDav update history failed $e');
       rethrow;
@@ -110,25 +158,38 @@ class WebDav {
     }
   }
 
+  Future<void> _download(String boxName) async {
+    final webDavDir = '/kazumiSync/$boxName/';
+    final existingFile = File('${webDavLocalTempDirectory.path}/$boxName.tmp');
+    final files = await client.readDir(webDavDir);
+    final historyFiles = files.where((file) => 
+      file.name != null && 
+      file.name!.startsWith(boxName) && 
+      file.name!.endsWith('.tmp')
+    ).toList();
+    if (historyFiles.isEmpty) {
+      throw Exception('No data file found for $boxName');
+    }
+    historyFiles.sort((a, b) => b.name!.compareTo(a.name!));
+    final latestFile = historyFiles.first;
+    if (await existingFile.exists()) {
+      await existingFile.delete();
+    }
+    await client.read2File(latestFile.path!, existingFile.path, onProgress: (c, t) {
+      // print(c / t);
+    });
+  }
+
   Future<void> downloadAndPatchHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
       throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
-    String fileName = 'histories.tmp';
+    
     try {
-      if (!await webDavLocalTempDirectory.exists()) {
-        await webDavLocalTempDirectory.create(recursive: true);
-      }
-      final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-      if (await existingFile.exists()) {
-        await existingFile.delete();
-      }
-      await client.read2File('/kazumiSync/$fileName', existingFile.path,
-          onProgress: (c, t) {
-        // print(c / t);
-      });
+      await _download('histories');
+      final existingFile = File('${webDavLocalTempDirectory.path}/histories.tmp');
       await GStorage.patchHistory(existingFile.path);
     } catch (e) {
       KazumiLogger()
@@ -138,6 +199,35 @@ class WebDav {
       isHistorySyncing = false;
     }
   }
+
+  // Future<void> downloadAndPatchHistory() async {
+  //   if (isHistorySyncing) {
+  //     KazumiLogger().log(Level.warning, 'History is currently syncing');
+  //     throw Exception('History is currently syncing');
+  //   }
+  //   isHistorySyncing = true;
+  //   String fileName = 'histories.tmp';
+  //   try {
+  //     if (!await webDavLocalTempDirectory.exists()) {
+  //       await webDavLocalTempDirectory.create(recursive: true);
+  //     }
+  //     final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
+  //     if (await existingFile.exists()) {
+  //       await existingFile.delete();
+  //     }
+  //     await client.read2File('/kazumiSync/$fileName', existingFile.path,
+  //         onProgress: (c, t) {
+  //       // print(c / t);
+  //     });
+  //     await GStorage.patchHistory(existingFile.path);
+  //   } catch (e) {
+  //     KazumiLogger()
+  //         .log(Level.error, 'webDav download and patch history failed $e');
+  //     rethrow;
+  //   } finally {
+  //     isHistorySyncing = false;
+  //   }
+  // }
 
   Future<void> downloadCollectibles() async {
     String fileName = 'collectibles.tmp';

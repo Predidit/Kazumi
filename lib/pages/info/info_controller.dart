@@ -10,6 +10,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_subject_relations_item.dart';
 
 part 'info_controller.g.dart';
 
@@ -37,6 +38,8 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
+  List<BangumiSubjectRelationItem> bangumiSubjectRelationItem = [];
+
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
@@ -58,6 +61,11 @@ abstract class _InfoController with Store {
         isLoading = false;
       }
     });
+  }
+
+  Future<void> queryBangumiSubjectRelationItemByID(int id) async {
+    bangumiSubjectRelationItem = [];
+    bangumiSubjectRelationItem = await BangumiHTTP.getRelationById(id);
   }
 
   Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {

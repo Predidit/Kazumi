@@ -133,6 +133,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         infoController.bangumiItem.votesCount.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
+    queryBangumiSubjectRelationItemByID(infoController.bangumiItem.id);
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: 5, vsync: this);
@@ -159,6 +160,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.characterList.clear();
     infoController.commentsList.clear();
     infoController.staffList.clear();
+    infoController.bangumiSubjectRelationItem.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.currentEpisode = 1;
     sourceTabController.dispose();
@@ -169,6 +171,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     try {
       await infoController.queryBangumiInfoByID(id, type: type);
+      setState(() {});
+    } catch (e) {
+      KazumiLogger().log(Level.error, e.toString());
+    }
+  }
+
+  Future<void> queryBangumiSubjectRelationItemByID(int id) async {
+    try {
+      await infoController.queryBangumiSubjectRelationItemByID(id);
       setState(() {});
     } catch (e) {
       KazumiLogger().log(Level.error, e.toString());
@@ -340,6 +351,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
+                bangumiSubjectRelationItem:
+                    infoController.bangumiSubjectRelationItem,
                 commentsQueryTimeout: commentsQueryTimeout,
                 charactersQueryTimeout: charactersQueryTimeout,
                 staffQueryTimeout: staffQueryTimeout,

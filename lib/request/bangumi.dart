@@ -10,6 +10,7 @@ import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
+import 'package:kazumi/modules/bangumi/bangumi_subject_relations_item.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -327,5 +328,35 @@ class BangumiHTTP {
           .log(Level.error, 'Resolve character info failed ${e.toString()}');
     }
     return characterFullItem;
+  }
+
+  static Future<List<BangumiSubjectRelationItem>> getRelationById(
+      int id) async {
+    List<BangumiSubjectRelationItem> bangumiList = [];
+    try {
+      final res = await Request().get(
+        '${Api.bangumiInfoByID}$id/subjects',
+        options: Options(headers: bangumiHTTPHeader),
+      );
+      final jsonList = res.data;
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          try {
+            BangumiSubjectRelationItem bangumiSubjectRelationItem =
+                BangumiSubjectRelationItem.fromJson(jsonItem);
+            if (bangumiSubjectRelationItem.type == 2) {
+              bangumiList.add(bangumiSubjectRelationItem);
+            }
+          } catch (e) {
+            KazumiLogger().log(Level.error,
+                'Failed to parse Bangumi subject relation item ${e.toString()}');
+          }
+        }
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error,
+          'Failed to fetch relations for subject $id: ${e.toString()}');
+    }
+    return bangumiList;
   }
 }

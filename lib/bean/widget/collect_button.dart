@@ -90,8 +90,7 @@ class _CollectButtonState extends State<CollectButton> {
       onClose: widget.onClose,
       onOpen: widget.onOpen,
       crossAxisUnconstrained: false,
-      builder:
-          (BuildContext context, MenuController controller, Widget? child) {
+      builder: (_, MenuController controller, __) {
         if (widget.isExtended) {
           return FilledButton.icon(
             onPressed: () {

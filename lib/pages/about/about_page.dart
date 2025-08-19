@@ -23,7 +23,6 @@ class AboutPage extends StatefulWidget {
 
 class _AboutPageState extends State<AboutPage> {
   final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
-
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -33,6 +32,7 @@ class _AboutPageState extends State<AboutPage> {
   late bool autoUpdate;
   double _cacheSizeMB = -1;
   final MyController myController = Modular.get<MyController>();
+  final MenuController menuController = MenuController();
 
   @override
   void initState() {
@@ -130,7 +130,6 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
-    late MenuController menuController = MenuController();
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -206,9 +205,8 @@ class _AboutPageState extends State<AboutPage> {
                     title: const Text('关闭时'),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
-                      builder: (BuildContext context, MenuController controller,
-                          Widget? child) {
-                        menuController = controller;
+                      controller: menuController,
+                      builder: (_, __, ___) {
                         return Text(exitBehaviorTitles[exitBehavior]);
                       },
                       menuChildren: [

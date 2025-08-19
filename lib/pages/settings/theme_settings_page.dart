@@ -31,6 +31,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool showWindowButton;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
+  final MenuController menuController = MenuController();
 
   @override
   void initState() {
@@ -129,7 +130,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    late MenuController menuController = MenuController();
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -154,9 +154,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   title: const Text('深色模式'),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
-                    builder: (BuildContext context, MenuController controller,
-                        Widget? child) {
-                      menuController = controller;
+                    controller: menuController,
+                    builder: (_, __, ___) {
                       return Text(
                         defaultThemeMode == 'light'
                             ? '浅色'

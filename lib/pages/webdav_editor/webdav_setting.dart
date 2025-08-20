@@ -139,7 +139,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   onToggle: (value) async {
                     webDavEnable = value ?? !webDavEnable;
                     if (!WebDav().initialized && webDavEnable) {
-                      try{
+                      try {
                         await WebDav().init();
                       } catch (e) {
                         webDavEnable = false;
@@ -151,8 +151,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       await setting.put(
                           SettingBoxKey.webDavEnableHistory, false);
                     }
-                    await setting.put(
-                        SettingBoxKey.webDavEnable, webDavEnable);
+                    await setting.put(SettingBoxKey.webDavEnable, webDavEnable);
                     if (mounted) {
                       setState(() {});
                     }
@@ -167,8 +166,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       return;
                     }
                     webDavEnableHistory = value ?? !webDavEnableHistory;
-                    await setting.put(SettingBoxKey.webDavEnableHistory,
-                        webDavEnableHistory);
+                    await setting.put(
+                        SettingBoxKey.webDavEnableHistory, webDavEnableHistory);
                     setState(() {});
                   },
                   title: const Text('观看记录同步'),
@@ -179,10 +178,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   onPressed: (_) async {
                     Modular.to.pushNamed('/settings/webdav/editor');
                   },
-                  title: Text(
-                    'WEBDAV配置',
-                    style: Theme.of(context).textTheme.titleMedium!,
-                  ),
+                  title: const Text('WEBDAV配置'),
                 ),
               ],
             ),

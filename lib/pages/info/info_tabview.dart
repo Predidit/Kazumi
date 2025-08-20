@@ -162,15 +162,11 @@ class _InfoTabViewState extends State<InfoTabView>
               ),
               if (widget.bangumiSubjectRelationItem.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Text(
-                      '关联项目',
-                      style: TextStyle(
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '关联项目',
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(

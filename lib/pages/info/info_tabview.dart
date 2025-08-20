@@ -12,7 +12,6 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_subject_relations_item.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({

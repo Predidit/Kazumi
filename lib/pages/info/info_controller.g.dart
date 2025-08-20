@@ -106,6 +106,24 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
+  late final _$bangumiSubjectRelationItemAtom = Atom(
+      name: '_InfoController.bangumiSubjectRelationItem', context: context);
+
+  @override
+  ObservableList<BangumiSubjectRelationItem> get bangumiSubjectRelationItem {
+    _$bangumiSubjectRelationItemAtom.reportRead();
+    return super.bangumiSubjectRelationItem;
+  }
+
+  @override
+  set bangumiSubjectRelationItem(
+      ObservableList<BangumiSubjectRelationItem> value) {
+    _$bangumiSubjectRelationItemAtom
+        .reportWrite(value, super.bangumiSubjectRelationItem, () {
+      super.bangumiSubjectRelationItem = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
@@ -114,7 +132,8 @@ pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
 commentsList: ${commentsList},
 characterList: ${characterList},
-staffList: ${staffList}
+staffList: ${staffList},
+bangumiSubjectRelationItem: ${bangumiSubjectRelationItem}
     ''';
   }
 }

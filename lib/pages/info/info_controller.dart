@@ -38,7 +38,8 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
-  List<BangumiSubjectRelationItem> bangumiSubjectRelationItem = [];
+  @observable
+  var bangumiSubjectRelationItem = ObservableList<BangumiSubjectRelationItem>();
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
@@ -64,8 +65,12 @@ abstract class _InfoController with Store {
   }
 
   Future<void> queryBangumiSubjectRelationItemByID(int id) async {
-    bangumiSubjectRelationItem = [];
-    bangumiSubjectRelationItem = await BangumiHTTP.getRelationById(id);
+    bangumiSubjectRelationItem.clear();
+    await BangumiHTTP.getRelationById(id).then((v) {
+      bangumiSubjectRelationItem.addAll(v);
+    });
+    KazumiLogger()
+        .log(Level.info, '已加载关联列表数量 ${bangumiSubjectRelationItem.length}');
   }
 
   Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {

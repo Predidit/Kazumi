@@ -181,35 +181,35 @@ class _InfoTabViewState extends State<InfoTabView>
 
                       return Container(
                         width: 140,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        child: InkWell(
-                          onTap: () {
-                            BangumiItem bangumiItem = BangumiItem(
-                              id: item.id,
-                              type: 2,
-                              name: item.name,
-                              nameCn: item.nameCn,
-                              summary: '',
-                              airDate: '',
-                              airWeekday: 1,
-                              rank: 1,
-                              images: item.images,
-                              tags: [],
-                              alias: [],
-                              ratingScore: 0,
-                              votes: 0,
-                              votesCount: [],
-                            );
-                            Modular.to.pushNamed(
-                              '/info/',
-                              arguments: bangumiItem,
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                        margin: const EdgeInsets.only(left: 0, right: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              BangumiItem bangumiItem = BangumiItem(
+                                id: item.id,
+                                type: 2,
+                                name: item.name,
+                                nameCn: item.nameCn,
+                                summary: '',
+                                airDate: '',
+                                airWeekday: 1,
+                                rank: 1,
+                                images: item.images,
+                                tags: [],
+                                alias: [],
+                                ratingScore: 0,
+                                votes: 0,
+                                votesCount: [],
+                              );
+                              Modular.to.pushNamed(
+                                '/info/',
+                                arguments: bangumiItem,
+                              );
+                            },
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -217,14 +217,12 @@ class _InfoTabViewState extends State<InfoTabView>
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(12),
                                   ),
-                                  child: NetworkImgLayer(
-                                    src: item.images['large'] ?? '',
+                                  child: Ink.image(
+                                    image: NetworkImage(
+                                        item.images['large'] ?? ''),
                                     width: 140,
                                     height: 180,
-                                    fadeInDuration:
-                                        const Duration(milliseconds: 0),
-                                    fadeOutDuration:
-                                        const Duration(milliseconds: 0),
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                                 Padding(

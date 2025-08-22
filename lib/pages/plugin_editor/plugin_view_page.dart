@@ -36,6 +36,47 @@ class _PluginViewPageState extends State<PluginViewPage> {
     }
   }
 
+  void _handleAdd() {
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        // contentPadding: EdgeInsets.zero, // 设置为零以减小内边距
+        content: SingleChildScrollView(
+          // 使用可滚动的SingleChildScrollView包装Column
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
+            children: [
+              ListTile(
+                title: const Text('新建规则'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  Modular.to.pushNamed('/settings/plugin/editor',
+                      arguments: Plugin.fromTemplate());
+                },
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                title: const Text('从规则仓库导入'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  Modular.to.pushNamed('/settings/plugin/shop',
+                      arguments: Plugin.fromTemplate());
+                },
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                title: const Text('从剪贴板导入'),
+                onTap: () {
+                  KazumiDialog.dismiss();
+                  _showInputDialog();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   void _showInputDialog() {
     final TextEditingController textController = TextEditingController();
     KazumiDialog.show(builder: (context) {
@@ -169,67 +210,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 tooltip: '更新全部',
                 icon: const Icon(Icons.update),
               ),
-              MenuAnchor(
-                consumeOutsideTap: true,
-                builder: (BuildContext context, MenuController controller,
-                    Widget? child) {
-                  return IconButton(
-                    onPressed: () {
-                      if (controller.isOpen) {
-                        controller.close();
-                      } else {
-                        controller.open();
-                      }
-                    },
-                    tooltip: '添加规则',
-                    icon: const Icon(Icons.add),
-                  );
+              IconButton(
+                onPressed: () {
+                  _handleAdd();
                 },
-                menuChildren: [
-                  MenuItemButton(
-                    requestFocusOnHover: false,
-                    onPressed: () => Modular.to.pushNamed(
-                      '/settings/plugin/editor',
-                      arguments: Plugin.fromTemplate(),
-                    ),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('新建规则'),
-                      ),
-                    ),
-                  ),
-                  MenuItemButton(
-                    requestFocusOnHover: false,
-                    onPressed: () => Modular.to.pushNamed(
-                      '/settings/plugin/shop',
-                      arguments: Plugin.fromTemplate(),
-                    ),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('从规则仓库导入'),
-                      ),
-                    ),
-                  ),
-                  MenuItemButton(
-                    requestFocusOnHover: false,
-                    onPressed: () => _showInputDialog(),
-                    child: Container(
-                      height: 48,
-                      constraints: BoxConstraints(minWidth: 112),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('从剪切板导入'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                tooltip: '添加规则',
+                icon: const Icon(Icons.add),
+              )
             ],
           ],
         ),

@@ -7,8 +7,8 @@
 - Windows 10 及以上
 - MacOS 10.15 及以上
 - Linux (实验性)
-- iOS (需要自签名)
-- HarmonyOS NEXT (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要侧载)
+- iOS 13 及以上 (需要自签名)
+- HarmonyOS 5.0 及以上 (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要侧载)
 
 ## 屏幕截图 
 

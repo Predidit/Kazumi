@@ -326,9 +326,9 @@
           - name: Create DMG
             run: |
               mkdir -p build/dist
-              cp -a build/macos/Build/Products/Release/kazumi.app build/dist/
+              cp -a build/macos/Build/Products/Release/Kazumi.app build/dist/
               ln -s /Applications build/dist/Applications
-              hdiutil create -format UDZO -srcfolder build/dist -volname kazumi Kazumi_macos_${{ env.tag }}.dmg
+              hdiutil create -format UDZO -srcfolder build/dist -volname Kazumi Kazumi_macos_${{ env.tag }}.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:

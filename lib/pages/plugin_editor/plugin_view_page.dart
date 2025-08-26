@@ -392,10 +392,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               controller.open();
             }
           },
-          icon: const Icon(
-            Icons.more_vert,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.more_vert),
         );
       },
       menuChildren: [

@@ -649,18 +649,26 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 onPressed: () {
                                   widget.showDanmakuSwitch();
                                 },
-                                child: const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("弹幕切换"),
+                                child: Container(
+                                  height: 48,
+                                  constraints: BoxConstraints(minWidth: 112),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("弹幕切换"),
+                                  ),
                                 ),
                               ),
                               MenuItemButton(
                                 onPressed: () {
                                   widget.showVideoInfo();
                                 },
-                                child: const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("视频详情"),
+                                child: Container(
+                                  height: 48,
+                                  constraints: BoxConstraints(minWidth: 112),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("视频详情"),
+                                  ),
                                 ),
                               ),
                               MenuItemButton(
@@ -678,75 +686,106 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     }
                                   });
                                 },
-                                child: const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("远程投屏"),
+                                child: Container(
+                                  height: 48,
+                                  constraints: BoxConstraints(minWidth: 112),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("远程投屏"),
+                                  ),
                                 ),
                               ),
                               MenuItemButton(
                                 onPressed: () {
                                   playerController.lanunchExternalPlayer();
                                 },
-                                child: const Padding(
-                                  padding: EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                  child: Text("外部播放"),
+                                child: Container(
+                                  height: 48,
+                                  constraints: BoxConstraints(minWidth: 112),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("外部播放"),
+                                  ),
                                 ),
                               ),
                               SubmenuButton(
-                                  menuChildren: [
-                                    MenuItemButton(
-                                      child: Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                menuChildren: [
+                                  MenuItemButton(
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Text(
                                             "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
                                       ),
                                     ),
-                                    MenuItemButton(
-                                      child: Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  ),
+                                  MenuItemButton(
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Text(
                                             "网络延时: ${playerController.syncplayClientRtt}ms"),
                                       ),
                                     ),
-                                    MenuItemButton(
-                                      onPressed: () {
-                                        widget.showSyncPlayRoomCreateDialog();
-                                      },
-                                      child: const Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () {
+                                      widget.showSyncPlayRoomCreateDialog();
+                                    },
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Text("加入房间"),
                                       ),
                                     ),
-                                    MenuItemButton(
-                                      onPressed: () {
-                                        widget
-                                            .showSyncPlayEndPointSwitchDialog();
-                                      },
-                                      child: const Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () {
+                                      widget.showSyncPlayEndPointSwitchDialog();
+                                    },
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Text("切换服务器"),
                                       ),
                                     ),
-                                    MenuItemButton(
-                                      onPressed: () async {
-                                        await playerController
-                                            .exitSyncPlayRoom();
-                                      },
-                                      child: const Padding(
-                                        padding:
-                                            EdgeInsets.fromLTRB(0, 10, 10, 10),
+                                  ),
+                                  MenuItemButton(
+                                    onPressed: () async {
+                                      await playerController.exitSyncPlayRoom();
+                                    },
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
                                         child: Text("断开连接"),
                                       ),
                                     ),
-                                  ],
-                                  child: const Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(0, 10, 10, 10),
-                                      child: Text("一起看"))),
+                                  ),
+                                ],
+                                child: Container(
+                                  height: 48,
+                                  constraints: BoxConstraints(minWidth: 112),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("一起看"),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -927,10 +966,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                 widget.keyboardFocus
                                                     .requestFocus();
                                                 showModalBottomSheet(
-                                                    backgroundColor: Theme.of(
-                                                            context)
-                                                        .colorScheme
-                                                        .surface,
                                                     isScrollControlled: true,
                                                     constraints: BoxConstraints(
                                                         maxHeight:
@@ -1068,23 +1103,27 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   (int index) => MenuItemButton(
                                     onPressed: () =>
                                         playerController.setShader(index + 1),
-                                    child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          0, 10, 10, 10),
-                                      child: Text(
-                                        index + 1 == 1
-                                            ? '关闭'
-                                            : index + 1 == 2
-                                                ? '效率档'
-                                                : '质量档',
-                                        style: TextStyle(
-                                          color: playerController
-                                                      .superResolutionType ==
-                                                  index + 1
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                              : null,
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          index + 1 == 1
+                                              ? '关闭'
+                                              : index + 1 == 2
+                                                  ? '效率档'
+                                                  : '质量档',
+                                          style: TextStyle(
+                                            color: playerController
+                                                        .superResolutionType ==
+                                                    index + 1
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : null,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1129,19 +1168,24 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                       onPressed: () async {
                                         await widget.setPlaybackSpeed(i);
                                       },
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            0, 10, 10, 10),
-                                        child: Text(
-                                          '${i}x',
-                                          style: TextStyle(
+                                      child: Container(
+                                        height: 48,
+                                        constraints:
+                                            BoxConstraints(minWidth: 112),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            '${i}x',
+                                            style: TextStyle(
                                               color: i ==
                                                       playerController
                                                           .playerSpeed
                                                   ? Theme.of(context)
                                                       .colorScheme
                                                       .primary
-                                                  : null),
+                                                  : null,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1182,19 +1226,23 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     MenuItemButton(
                                       onPressed: () => playerController
                                           .aspectRatioType = entry.key,
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            0, 10, 10, 10),
-                                        child: Text(
-                                          entry.value,
-                                          style: TextStyle(
-                                            color: entry.key ==
-                                                    playerController
-                                                        .aspectRatioType
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                : null,
+                                      child: Container(
+                                        height: 48,
+                                        constraints:
+                                            BoxConstraints(minWidth: 112),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            entry.value,
+                                            style: TextStyle(
+                                              color: entry.key ==
+                                                      playerController
+                                                          .aspectRatioType
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                  : null,
+                                            ),
                                           ),
                                         ),
                                       ),

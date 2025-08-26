@@ -23,7 +23,6 @@ class AboutPage extends StatefulWidget {
 
 class _AboutPageState extends State<AboutPage> {
   final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
-
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -33,6 +32,7 @@ class _AboutPageState extends State<AboutPage> {
   late bool autoUpdate;
   double _cacheSizeMB = -1;
   final MyController myController = Modular.get<MyController>();
+  final MenuController menuController = MenuController();
 
   @override
   void initState() {
@@ -138,141 +138,152 @@ class _AboutPageState extends State<AboutPage> {
       child: Scaffold(
         appBar: const SysAppBar(title: Text('关于')),
         // backgroundColor: Colors.transparent,
-        body: Center(
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
-            child: SettingsList(
-              sections: [
-                SettingsSection(
-                  tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        Modular.to.pushNamed('/settings/about/license');
-                      },
-                      title: const Text('开源许可证'),
-                      description: const Text('查看所有开源许可证'),
-                    ),
-                  ],
-                ),
-                SettingsSection(
-                  title: const Text('外部链接'),
-                  tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        launchUrl(Uri.parse(Api.sourceUrl),
-                            mode: LaunchMode.externalApplication);
-                      },
-                      title: const Text('项目主页'),
-                      value: const Text('Github'),
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        launchUrl(Uri.parse(Api.iconUrl),
-                            mode: LaunchMode.externalApplication);
-                      },
-                      title: const Text('图标创作'),
-                      value: const Text('Pixiv'),
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        launchUrl(Uri.parse(Api.bangumiIndex),
-                            mode: LaunchMode.externalApplication);
-                      },
-                      title: const Text('番剧索引'),
-                      value: const Text('Bangumi'),
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        launchUrl(Uri.parse(Api.dandanIndex),
-                            mode: LaunchMode.externalApplication);
-                      },
-                      title: const Text('弹幕来源'),
-                      description: Text('ID: ${mortis['id']}'),
-                      value: const Text('DanDanPlay'),
-                    ),
-                  ],
-                ),
-                if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
-                  SettingsSection(
-                    title: const Text('默认行为'),
-                    tiles: [
-                      // if (Utils.isDesktop())
-                      SettingsTile.navigation(
-                        title: const Text('关闭时'),
-                        value: Text(exitBehaviorTitles[exitBehavior]),
-                        onPressed: (_) {
-                          KazumiDialog.show(builder: (context) {
-                            return SimpleDialog(
-                              clipBehavior: Clip.antiAlias,
-                              title: const Text('关闭时'),
-                              children: [
-                                for (int i = 0; i < 3; i++)
-                                  RadioListTile(
-                                    value: i,
-                                    groupValue: exitBehavior,
-                                    onChanged: (int? value) {
-                                      exitBehavior = value ?? 2;
-                                      setting.put(
-                                          SettingBoxKey.exitBehavior, value);
-                                      KazumiDialog.dismiss();
-                                      setState(() {});
-                                    },
-                                    title: Text(exitBehaviorTitles[i]),
-                                  ),
-                              ],
-                            );
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                SettingsSection(
-                  tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        Modular.to.pushNamed('/settings/about/logs');
-                      },
-                      title: const Text('错误日志'),
-                    ),
-                  ],
-                ),
-                SettingsSection(
-                  tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        _showCacheDialog();
-                      },
-                      title: const Text('清除缓存'),
-                      value: _cacheSizeMB == -1
-                          ? const Text('统计中...')
-                          : Text('${_cacheSizeMB.toStringAsFixed(2)}MB'),
-                    ),
-                  ],
-                ),
-                SettingsSection(
-                  title: const Text('应用更新'),
-                  tiles: [
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        autoUpdate = value ?? !autoUpdate;
-                        await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
-                        setState(() {});
-                      },
-                      title: const Text('自动更新'),
-                      initialValue: autoUpdate,
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        myController.checkUpdate();
-                      },
-                      title: const Text('检查更新'),
-                      value: const Text('当前版本 ${Api.version}'),
-                    ),
-                  ],
+        body: SettingsList(
+          maxWidth: 1000,
+          sections: [
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/about/license');
+                  },
+                  title: const Text('开源许可证'),
+                  description: const Text('查看所有开源许可证'),
                 ),
               ],
             ),
-          ),
+            SettingsSection(
+              title: const Text('外部链接'),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(Api.sourceUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: const Text('项目主页'),
+                  value: const Text('Github'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(Api.iconUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: const Text('图标创作'),
+                  value: const Text('Pixiv'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(Api.bangumiIndex),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: const Text('番剧索引'),
+                  value: const Text('Bangumi'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(Api.dandanIndex),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: const Text('弹幕来源'),
+                  description: Text('ID: ${mortis['id']}'),
+                  value: const Text('DanDanPlay'),
+                ),
+              ],
+            ),
+            if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+              SettingsSection(
+                title: const Text('默认行为'),
+                tiles: [
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      if (menuController.isOpen) {
+                        menuController.close();
+                      } else {
+                        menuController.open();
+                      }
+                    },
+                    title: const Text('关闭时'),
+                    value: MenuAnchor(
+                      consumeOutsideTap: true,
+                      controller: menuController,
+                      builder: (_, __, ___) {
+                        return Text(exitBehaviorTitles[exitBehavior]);
+                      },
+                      menuChildren: [
+                        for (int i = 0; i < 3; i++)
+                          MenuItemButton(
+                            requestFocusOnHover: false,
+                            onPressed: () {
+                              exitBehavior = i;
+                              setting.put(SettingBoxKey.exitBehavior, i);
+                              setState(() {});
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  exitBehaviorTitles[i],
+                                  style: TextStyle(
+                                    color: i == exitBehavior
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/about/logs');
+                  },
+                  title: const Text('错误日志'),
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    _showCacheDialog();
+                  },
+                  title: const Text('清除缓存'),
+                  value: _cacheSizeMB == -1
+                      ? const Text('统计中...')
+                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB'),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('应用更新'),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    autoUpdate = value ?? !autoUpdate;
+                    await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
+                    setState(() {});
+                  },
+                  title: const Text('自动更新'),
+                  initialValue: autoUpdate,
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    myController.checkUpdate();
+                  },
+                  title: const Text('检查更新'),
+                  value: const Text('当前版本 ${Api.version}'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

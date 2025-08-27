@@ -6,7 +6,6 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class PlayerSettingsPage extends StatefulWidget {

@@ -6,7 +6,6 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -27,6 +26,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool showPlayerError;
   late bool privateMode;
   late bool playerDebugMode;
+  final MenuController menuController = MenuController();
 
   @override
   void initState() {
@@ -71,7 +71,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -94,7 +93,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   initialValue: hAenable,
                 ),
                 SettingsTile.navigation(
-                  onPressed: (value) async {
+                  onPressed: (_) async {
                     await Modular.to.pushNamed('/settings/player/decoder');
                   },
                   title: const Text('硬件解码器'),
@@ -196,64 +195,45 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    KazumiDialog.show(builder: (context) {
-                      return AlertDialog(
-                        title: const Text('默认视频比例'),
-                        content: StatefulBuilder(
-                          builder:
-                              (BuildContext context, StateSetter setState) {
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: Utils.isDesktop() ? 8 : 0,
-                              children: [
-                                for (final entry
-                                    in aspectRatioTypeMap.entries) ...<Widget>[
-                                  if (entry.key ==
-                                      defaultAspectRatioType) ...<Widget>[
-                                    FilledButton(
-                                      onPressed: () async {
-                                        updateDefaultAspectRatioType(entry.key);
-                                        KazumiDialog.dismiss();
-                                      },
-                                      child: Text(entry.value),
-                                    ),
-                                  ] else ...[
-                                    FilledButton.tonal(
-                                      onPressed: () async {
-                                        updateDefaultAspectRatioType(entry.key);
-                                        KazumiDialog.dismiss();
-                                      },
-                                      child: Text(entry.value),
-                                    ),
-                                  ]
-                                ]
-                              ],
-                            );
-                          },
-                        ),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () => KazumiDialog.dismiss(),
-                            child: Text(
-                              '取消',
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.outline),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              updateDefaultAspectRatioType(1); // 默认恢复自动
-                              KazumiDialog.dismiss();
-                            },
-                            child: const Text('默认设置'),
-                          ),
-                        ],
-                      );
-                    });
+                    if (menuController.isOpen) {
+                      menuController.close();
+                    } else {
+                      menuController.open();
+                    }
                   },
                   title: const Text('默认视频比例'),
-                  value:
-                      Text(aspectRatioTypeMap[defaultAspectRatioType] ?? '自动'),
+                  value: MenuAnchor(
+                    consumeOutsideTap: true,
+                    controller: menuController,
+                    builder: (_, __, ___) {
+                      return Text(
+                        aspectRatioTypeMap[defaultAspectRatioType] ?? '自动',
+                      );
+                    },
+                    menuChildren: [
+                      for (final entry in aspectRatioTypeMap.entries)
+                        MenuItemButton(
+                          requestFocusOnHover: false,
+                          onPressed: () =>
+                              updateDefaultAspectRatioType(entry.key),
+                          child: Container(
+                            height: 48,
+                            constraints: BoxConstraints(minWidth: 112),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                entry.value,
+                                style: TextStyle(
+                                  color: entry.key == defaultAspectRatioType
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -18,7 +18,6 @@ class CollectButton extends StatefulWidget {
     super.key,
     required this.bangumiItem,
     this.color = Colors.white,
-    // this.isExtended = false,
     this.onOpen,
     this.onClose,
   }) {
@@ -90,8 +89,8 @@ class _CollectButtonState extends State<CollectButton> {
       consumeOutsideTap: true,
       onClose: widget.onClose,
       onOpen: widget.onOpen,
-      builder:
-          (BuildContext context, MenuController controller, Widget? child) {
+      crossAxisUnconstrained: false,
+      builder: (_, MenuController controller, __) {
         if (widget.isExtended) {
           return FilledButton.icon(
             onPressed: () {
@@ -129,23 +128,31 @@ class _CollectButtonState extends State<CollectButton> {
               setState(() {});
             }
           },
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 10, 10, 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(getIconByInt(index),
+          child: Container(
+            height: 48,
+            constraints: BoxConstraints(minWidth: 112),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    getIconByInt(index),
                     color: index == collectType
                         ? Theme.of(context).colorScheme.primary
-                        : null),
-                Text(
-                  ' ${getTypeStringByInt(index)}',
-                  style: TextStyle(
+                        : null,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    ' ${getTypeStringByInt(index)}',
+                    style: TextStyle(
                       color: index == collectType
                           ? Theme.of(context).colorScheme.primary
-                          : null),
-                ),
-              ],
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

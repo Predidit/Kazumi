@@ -20,7 +20,7 @@ version: 1.7.7+10707
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.35.1
+  flutter: 3.35.2
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -49,7 +49,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   cached_network_image: ^3.4.1
-  card_settings_ui: ^2.0.0
+  card_settings_ui: ^2.0.1
 
   # fvp: ^0.28.0
   # video_player: ^2.9.1

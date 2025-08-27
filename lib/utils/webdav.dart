@@ -12,6 +12,7 @@ class WebDav {
   late String webDavURL;
   late String webDavUsername;
   late String webDavPassword;
+  late String webDavPath;
   late Directory webDavLocalTempDirectory;
   late webdav.Client client;
 
@@ -32,6 +33,8 @@ class WebDav {
         setting.get(SettingBoxKey.webDavUsername, defaultValue: '');
     webDavPassword =
         setting.get(SettingBoxKey.webDavPassword, defaultValue: '');
+    webDavPath = 
+        setting.get(SettingBoxKey.webDavPath, defaultValue: '/kazumiSync');
     if (webDavURL.isEmpty) {
       //KazumiLogger().log(Level.warning, 'WebDAV URL is not set');
       throw Exception('请先填写WebDAV URL');
@@ -47,7 +50,7 @@ class WebDav {
       await client.ping();
       try {
         // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
-        await client.mkdir('/kazumiSync');
+        await client.mkdir(webDavPath);
         if (!await webDavLocalTempDirectory.exists()) {
           await webDavLocalTempDirectory.create(recursive: true);
         }
@@ -90,7 +93,7 @@ class WebDav {
     var directory = await getApplicationSupportDirectory();
     final localFilePath = '${directory.path}/hive/$boxName.hive'; 
     final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
-    final webDavDir = '/kazumiSync/$boxName/';
+    final webDavDir = '${checkPath(webDavPath)}$boxName/';
     try {
       await client.mkdir(webDavDir);
     } catch (_) {}
@@ -159,7 +162,7 @@ class WebDav {
   }
 
   Future<void> _download(String boxName) async {
-    final webDavDir = '/kazumiSync/$boxName/';
+    final webDavDir = '${checkPath(webDavPath)}$boxName/';
     final existingFile = File('${webDavLocalTempDirectory.path}/$boxName.tmp');
     final files = await client.readDir(webDavDir);
     final historyFiles = files.where((file) => 
@@ -199,35 +202,6 @@ class WebDav {
       isHistorySyncing = false;
     }
   }
-
-  // Future<void> downloadAndPatchHistory() async {
-  //   if (isHistorySyncing) {
-  //     KazumiLogger().log(Level.warning, 'History is currently syncing');
-  //     throw Exception('History is currently syncing');
-  //   }
-  //   isHistorySyncing = true;
-  //   String fileName = 'histories.tmp';
-  //   try {
-  //     if (!await webDavLocalTempDirectory.exists()) {
-  //       await webDavLocalTempDirectory.create(recursive: true);
-  //     }
-  //     final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-  //     if (await existingFile.exists()) {
-  //       await existingFile.delete();
-  //     }
-  //     await client.read2File('/kazumiSync/$fileName', existingFile.path,
-  //         onProgress: (c, t) {
-  //       // print(c / t);
-  //     });
-  //     await GStorage.patchHistory(existingFile.path);
-  //   } catch (e) {
-  //     KazumiLogger()
-  //         .log(Level.error, 'webDav download and patch history failed $e');
-  //     rethrow;
-  //   } finally {
-  //     isHistorySyncing = false;
-  //   }
-  // }
 
   Future<void> downloadCollectibles() async {
     String fileName = 'collectibles.tmp';
@@ -299,5 +273,9 @@ class WebDav {
       KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
       rethrow;
     }
+  }
+
+  String checkPath(String path) {
+    return path.endsWith('/') ? path : '$path/';
   }
 }

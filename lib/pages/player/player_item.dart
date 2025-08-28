@@ -196,9 +196,7 @@ class _PlayerItemState extends State<PlayerItem>
       try {
         var webDav = WebDav();
         await webDav.updateHistory();
-      } catch (e) {
-        KazumiLogger().log(Level.error, 'webDav update history failed $e');
-      }
+      } catch (_) {}
     }
   }
 

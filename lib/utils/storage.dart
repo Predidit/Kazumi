@@ -238,6 +238,7 @@ class SettingBoxKey {
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd',
+      webDavPath = 'webDavPath',
       lowMemoryMode = 'lowMemoryMode',
       showWindowButton = 'showWindowButton',
       useDynamicColor = 'useDynamicColor',

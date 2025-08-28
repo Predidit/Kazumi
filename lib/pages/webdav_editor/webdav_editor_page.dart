@@ -20,6 +20,8 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
       TextEditingController();
   final TextEditingController webDavPasswordController =
       TextEditingController();
+  final TextEditingController webDavPathController =
+      TextEditingController();  
   Box setting = GStorage.setting;
   bool passwordVisible = false;
 
@@ -32,6 +34,8 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
         setting.get(SettingBoxKey.webDavUsername, defaultValue: '');
     webDavPasswordController.text =
         setting.get(SettingBoxKey.webDavPassword, defaultValue: '');
+    webDavPathController.text =
+        setting.get(SettingBoxKey.webDavPath, defaultValue: '/kazumiSync');
   }
 
   @override
@@ -77,6 +81,12 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: webDavPathController,
+                  decoration: const InputDecoration(
+                      labelText: 'Path', border: OutlineInputBorder()),
+                ),
                 // const SizedBox(height: 20),
                 // ExpansionTile(
                 //   title: const Text('高级选项'),
@@ -95,6 +105,8 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
               SettingBoxKey.webDavUsername, webDavUsernameController.text);
           setting.put(
               SettingBoxKey.webDavPassword, webDavPasswordController.text);
+          setting.put(
+              SettingBoxKey.webDavPath, webDavPathController.text);
           var webDav = WebDav();
           try {
             await webDav.init();

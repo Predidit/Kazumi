@@ -13,6 +13,7 @@ class WebDav {
   late String webDavUsername;
   late String webDavPassword;
   late String webDavPath;
+  late bool webDavMigrated;
   late Directory webDavLocalTempDirectory;
   late webdav.Client client;
 
@@ -35,6 +36,8 @@ class WebDav {
         setting.get(SettingBoxKey.webDavPassword, defaultValue: '');
     webDavPath = 
         setting.get(SettingBoxKey.webDavPath, defaultValue: '/kazumiSync');
+    webDavMigrated = 
+        setting.get('webDavMigrated', defaultValue: false);
     if (webDavURL.isEmpty) {
       //KazumiLogger().log(Level.warning, 'WebDAV URL is not set');
       throw Exception('请先填写WebDAV URL');
@@ -63,6 +66,52 @@ class WebDav {
     } catch (e) {
       KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
       rethrow;
+    }
+    if(webDavMigrated == false) {
+      try {
+        await migrateWebDav('histories');
+        await migrateWebDav('collectibles');
+        await migrateWebDav('collectchanges');
+        await setting.put('webDavMigrated', true);
+      } catch (e) {
+        KazumiLogger().log(Level.error, 'WebDAV migration failed: $e');
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> migrateWebDav(String boxName) async {
+    const oldRoot = '/kazumiSync';
+    final srcFile = '$oldRoot/$boxName.tmp';
+    final targetDir = '${checkPath(webDavPath)}$boxName/';
+    const dateString = "2000_01_01";
+    final dstFile = '$targetDir$boxName-$dateString.tmp';
+
+    bool oldFileExists = false;
+    try {
+      final oldFiles = await client.readDir(oldRoot);
+      oldFileExists = oldFiles.any((file) => file.name == '$boxName.tmp');
+      if (!oldFileExists) {
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+    try {
+      final newFiles = await client.readDir(targetDir);
+      final alreadyMigrated = newFiles.any((file) => file.name?.startsWith(boxName) ?? false);
+      if (alreadyMigrated) {
+        return;
+      }
+    } catch (_) {}
+    try {
+      await client.mkdir(targetDir);
+    } catch (_) {}
+    try {
+      await client.rename(srcFile, dstFile, true);
+      KazumiLogger().log(Level.info, 'Migrated $srcFile to $dstFile');
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'Migration failed: $e');
     }
   }
 
@@ -148,6 +197,7 @@ class WebDav {
       file.name!.endsWith('.tmp')
     ).toList();
     if (historyFiles.isEmpty) {
+      KazumiLogger().log(Level.warning, 'No data file found for $boxName');
       throw Exception('No data file found for $boxName');
     }
     historyFiles.sort((a, b) => b.name!.compareTo(a.name!));

@@ -235,6 +235,7 @@ class SettingBoxKey {
       webDavEnable = 'webDavEnable',
       webDavEnableHistory = 'webDavEnableHistory',
       webDavEnableCollect = 'webDavEnableCollect',
+      webDavMigrated = 'webDavMigrated',
       webDavURL = 'webDavURL',
       webDavUsername = 'webDavUsername',
       webDavPassword = 'webDavPasswd',

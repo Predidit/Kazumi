@@ -47,7 +47,10 @@ class WebDav {
       await client.ping();
       try {
         // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
-        await client.mkdir('/kazumiSync');
+        await client.mkdir('/kazumiSync');    
+        if (!await webDavLocalTempDirectory.exists()) {
+          await webDavLocalTempDirectory.create(recursive: true);
+        }
         initialized = true;
         KazumiLogger().log(Level.info, 'webDav backup directory create success');
       } catch (_) {
@@ -62,32 +65,34 @@ class WebDav {
 
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
-    await File('${directory.path}/hive/$boxName.hive')
-          .copy('${directory.path}/hive/$boxName.hive.tmp');
+    final localFilePath = '${directory.path}/hive/$boxName.hive'; 
+    final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
+    final webDavPath = '/kazumiSync/$boxName.tmp';
+    await File(localFilePath)
+          .copy(tempFilePath);
     try {
-      await client.remove('/kazumiSync/$boxName.tmp.cache');
+      await client.remove('$webDavPath.cache');
     } catch (_) {}
-    await client.writeFromFile('${directory.path}/hive/$boxName.hive.tmp',
-        '/kazumiSync/$boxName.tmp.cache', onProgress: (c, t) {
+    await client.writeFromFile(tempFilePath,
+        '$webDavPath.cache', onProgress: (c, t) {
       // print(c / t);
     });
     try {
-      await client.remove('/kazumiSync/$boxName.tmp');
+      await client.remove(webDavPath);
     } catch (_) {
       KazumiLogger().log(Level.warning, 'webDav former backup file not exist');
     }
     await client.rename(
-        '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
+        '$webDavPath.cache', webDavPath, true);
     try {
-      await File('${directory.path}/hive/$boxName.hive.tmp').delete();
+      await File(tempFilePath).delete();
     } catch (_) {}
   }
 
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
-      //throw Exception('History is currently syncing');
-      return;
+      throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     try {
@@ -110,6 +115,18 @@ class WebDav {
     }
   }
 
+  Future<void> download(String boxName) async {
+    String fileName = '$boxName.tmp';
+    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
+    if (await existingFile.exists()) {
+      await existingFile.delete();
+    }
+    await client.read2File('/kazumiSync/$fileName', existingFile.path,
+        onProgress: (c, t) {
+      // print(c / t);
+    });
+  }
+
   Future<void> downloadAndPatchHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
@@ -118,17 +135,8 @@ class WebDav {
     isHistorySyncing = true;
     String fileName = 'histories.tmp';
     try {
-      if (!await webDavLocalTempDirectory.exists()) {
-        await webDavLocalTempDirectory.create(recursive: true);
-      }
       final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-      if (await existingFile.exists()) {
-        await existingFile.delete();
-      }
-      await client.read2File('/kazumiSync/$fileName', existingFile.path,
-          onProgress: (c, t) {
-        // print(c / t);
-      });
+      await download('histories');
       await GStorage.patchHistory(existingFile.path);
     } catch (e) {
       KazumiLogger()
@@ -139,47 +147,19 @@ class WebDav {
     }
   }
 
-  Future<void> downloadCollectibles() async {
-    String fileName = 'collectibles.tmp';
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
-    }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await client.read2File('/kazumiSync/$fileName', existingFile.path,
-        onProgress: (c, t) {
-      // print(c / t);
-    });
-  }
-
-  Future<void> downloadCollectChanges() async {
-    String fileName = 'collectChanges.tmp';
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
-    }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await client.read2File('/kazumiSync/$fileName', existingFile.path,
-        onProgress: (c, t) {
-      // print(c / t);
-    });
-  }
-
   Future<void> syncCollectibles() async {
     List<CollectedBangumi> remoteCollectibles = [];
     List<CollectedBangumiChange> remoteChanges = [];
 
     // muliti thread download
-    Future<void> collectiblesFuture = downloadCollectibles().catchError((e) {
+    Future<void> collectiblesFuture = download('collectibles').catchError((e) {
       KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
+      throw Exception('webDav download collectibles failed');
     });
-    Future<void> changesFuture = downloadCollectChanges().catchError((e) {
+    Future<void> changesFuture = download('collectchanges').catchError((e) {
       KazumiLogger()
           .log(Level.error, 'webDav download collect changes failed $e');
+      throw Exception('webDav download collect changes failed');
     });
     await Future.wait([collectiblesFuture, changesFuture]);
 
@@ -191,10 +171,11 @@ class WebDav {
       remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');
       remoteChanges = await GStorage.getCollectChangesFromFile(
-          '${webDavLocalTempDirectory.path}/collectChanges.tmp');
+          '${webDavLocalTempDirectory.path}/collectchanges.tmp');
     } catch (e) {
       KazumiLogger()
           .log(Level.error, 'webDav get collectibles from file failed $e');
+      throw Exception('webDav get collectibles from file failed'); 
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);

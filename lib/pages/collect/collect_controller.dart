@@ -101,7 +101,11 @@ abstract class _CollectController with Store {
     if (!flag) {
       return;
     }
-    await WebDav().syncCollectibles();
+    try {
+      await WebDav().syncCollectibles();
+    } catch (e){
+      KazumiDialog.showToast(message: 'WebDav同步失败 $e');
+    }
     loadCollectibles();
   }
 

@@ -210,7 +210,7 @@ class BangumiHTTP {
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
     try {
       final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiInfoByIDNext, [id]),
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
       );
       return BangumiItem.fromJson(res.data);
     } catch (e) {

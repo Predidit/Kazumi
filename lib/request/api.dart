@@ -21,6 +21,8 @@ class Api {
 
   /// bangumi API Domain
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
+  /// 番剧信息
+  static const String bangumiInfoByID = '/v0/subjects/{0}';
   /// 条目搜索
   static const String bangumiRankSearch = '/v0/search/subjects?limit={0}&offset={1}';
   /// 从条目ID获取角色信息

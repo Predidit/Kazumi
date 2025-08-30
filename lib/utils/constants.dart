@@ -90,6 +90,7 @@ Map<String, String> bangumiHTTPHeader = {
   'user-agent':
       'Predidit/Kazumi/${Api.version} (Android) (https://github.com/Predidit/Kazumi)',
   'referer': '',
+  'content-type': 'application/json'
 };
 
 /// 可选硬件解码器

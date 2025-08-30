@@ -6,6 +6,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/mortis.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class ApiInterceptor extends Interceptor {
   static Box setting = GStorage.setting;
@@ -29,6 +30,9 @@ class ApiInterceptor extends Interceptor {
         'X-Timestamp': timestamp,
         'X-Signature': Utils.generateDandanSignature(Uri.parse(options.path).path, timestamp),
       };
+    }
+    if (options.path.contains(Api.bangumiAPIDomain) || options.path.contains(Api.bangumiAPINextDomain)) {
+      options.headers = bangumiHTTPHeader;
     }
     handler.next(options);
   }

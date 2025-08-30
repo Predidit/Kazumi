@@ -11,6 +11,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_subject_relations_item.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -23,6 +24,7 @@ class InfoTabView extends StatefulWidget {
     required this.loadCharacters,
     required this.loadStaff,
     required this.bangumiItem,
+    required this.bangumiSubjectRelationItem,
     required this.commentsList,
     required this.characterList,
     required this.staffList,
@@ -37,6 +39,7 @@ class InfoTabView extends StatefulWidget {
   final Future<void> Function() loadCharacters;
   final Future<void> Function() loadStaff;
   final BangumiItem bangumiItem;
+  final List<BangumiSubjectRelationItem> bangumiSubjectRelationItem;
   final List<CommentItem> commentsList;
   final List<CharacterItem> characterList;
   final List<StaffFullItem> staffList;
@@ -155,7 +158,105 @@ class _InfoTabViewState extends State<InfoTabView>
                     },
                   );
                 }).toList(),
-              )
+              ),
+              if (widget.bangumiSubjectRelationItem.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '关联项目',
+                  style: TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 240,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.bangumiSubjectRelationItem.length,
+                    itemBuilder: (context, index) {
+                      final item = widget.bangumiSubjectRelationItem[index];
+                      final title = item.nameCn == '' ? item.name : item.nameCn;
+                      const style = TextStyle(fontWeight: FontWeight.w500);
+
+                      return Container(
+                        width: 140,
+                        margin: const EdgeInsets.only(left: 0, right: 8),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              BangumiItem bangumiItem = BangumiItem(
+                                id: item.id,
+                                type: 2,
+                                name: item.name,
+                                nameCn: item.nameCn,
+                                summary: '',
+                                airDate: '',
+                                airWeekday: 1,
+                                rank: 1,
+                                images: item.images,
+                                tags: [],
+                                alias: [],
+                                ratingScore: 0,
+                                votes: 0,
+                                votesCount: [],
+                              );
+                              Modular.to.pushNamed(
+                                '/info/',
+                                arguments: bangumiItem,
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12),
+                                  ),
+                                  child: Ink.image(
+                                    image: NetworkImage(
+                                        item.images['large'] ?? ''),
+                                    width: 140,
+                                    height: 180,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Center(
+                                    child: SizedBox(
+                                      height: 20,
+                                      child: Text(
+                                        title,
+                                        style: style,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: Center(
+                                    child: Text(
+                                      item.relation,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),

@@ -1,3 +1,6 @@
+// 计算两个字符串的编辑距离, 曾用于弹幕标题匹配
+// 由于 DanDanPlay 现在直接提供基于 bgmBangumiID 的弹幕反查，此方法已不再使用
+
 import 'dart:math';
 
 int levenshteinDistance(String s1, String s2) {

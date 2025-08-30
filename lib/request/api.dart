@@ -39,6 +39,7 @@ class Api {
   static const String dandanAPIComment = "/api/v2/comment/";
   static const String dandanAPISearch = "/api/v2/search/anime";
   static const String dandanAPIInfo = "/api/v2/bangumi/";
+  static const String dandanAPIInfoByBgmBangumiId = "/api/v2/bangumi/bgmtv/{0}";
 
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {

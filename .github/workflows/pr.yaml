@@ -248,10 +248,10 @@
           - name: Create DMG
             run: |
               npm install --global create-dmg
-              create-dmg build/macos/Build/Products/Release/Kazumi.app --no-version-in-filename
+              create-dmg build/macos/Build/Products/Release/Kazumi.app
             continue-on-error: true
           - name: Rename DMG
-            run: mv Kazumi.dmg Kazumi_macos_canary.dmg
+            run: mv Kazumi*.dmg Kazumi_macos_canary.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:

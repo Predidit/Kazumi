@@ -163,34 +163,21 @@ class WebDav {
       await updateCollectibles();
       return;
     }
-    // muliti thread download
-    Future<void> collectiblesFuture = download('collectibles').catchError((e) {
-      KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
-      throw Exception('webDav download collectibles failed');
-    });
-    Future<void> changesFuture = download('collectchanges').catchError((e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav download collect changes failed $e');
-      throw Exception('webDav download collect changes failed');
-    });
-    await Future.wait([collectiblesFuture, changesFuture]);
-
-
-    // we should block download changes when download collectibles failed
-    // download changes failed but collectibles success means remote files broken or newwork error
-    // we should force push local collectibles to remote to fix it
     try {
-      remoteCollectibles = await GStorage.getCollectiblesFromFile(
-          '${webDavLocalTempDirectory.path}/collectibles.tmp');
-      remoteChanges = await GStorage.getCollectChangesFromFile(
-          '${webDavLocalTempDirectory.path}/collectchanges.tmp');
-    } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav get collectibles from file failed $e');
-      throw Exception('webDav get collectibles from file failed'); 
-    }
-    if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
+      if (collectiblesExists) {
+        await download('collectibles');
+        remoteCollectibles = await GStorage.getCollectiblesFromFile(
+            '${webDavLocalTempDirectory.path}/collectibles.tmp');
+      }
+      if (changesExists) {
+        await download('collectchanges');
+        remoteChanges = await GStorage.getCollectChangesFromFile(
+            '${webDavLocalTempDirectory.path}/collectchanges.tmp');
+      }
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
+      rethrow;
     }
     await updateCollectibles();
   }

@@ -163,21 +163,38 @@ class WebDav {
       await updateCollectibles();
       return;
     }
+    
+    List<Future<void>> downloadFutures = [];
+    if (collectiblesExists) {
+      downloadFutures.add(download('collectibles').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
+        throw Exception('webDav download collectibles failed');
+      }));
+    }
+    if (changesExists) {
+      downloadFutures.add(download('collectchanges').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectchanges failed $e');
+        throw Exception('webDav download collectchanges failed');
+      }));
+    }
+    if (downloadFutures.isNotEmpty) {
+      await Future.wait(downloadFutures);
+    } 
     try {
       if (collectiblesExists) {
-        await download('collectibles');
         remoteCollectibles = await GStorage.getCollectiblesFromFile(
-            '${webDavLocalTempDirectory.path}/collectibles.tmp');
+          '${webDavLocalTempDirectory.path}/collectibles.tmp');
       }
       if (changesExists) {
-        await download('collectchanges');
         remoteChanges = await GStorage.getCollectChangesFromFile(
-            '${webDavLocalTempDirectory.path}/collectchanges.tmp');
-      }
-      await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
+          '${webDavLocalTempDirectory.path}/collectchanges.tmp');
+      }  
     } catch (e) {
       KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
-      rethrow;
+      throw Exception('webDav get collectibles from file failed'); 
+    }
+    if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
+      await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
     }
     await updateCollectibles();
   }

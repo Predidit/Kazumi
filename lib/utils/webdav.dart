@@ -109,9 +109,14 @@ class WebDav {
     // don't try muliti thread update here
     // some webdav server may not support muliti thread write
     // you will get 423 locked error
-    await update('collectibles');
-    if (GStorage.collectChanges.isNotEmpty) {
-      await update('collectchanges');
+    try {
+      await update('collectibles');
+      if (GStorage.collectChanges.isNotEmpty) {
+        await update('collectchanges');
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'webDav update collectibles failed $e');
+      rethrow;
     }
   }
 
@@ -151,30 +156,41 @@ class WebDav {
     List<CollectedBangumi> remoteCollectibles = [];
     List<CollectedBangumiChange> remoteChanges = [];
 
-    // muliti thread download
-    Future<void> collectiblesFuture = download('collectibles').catchError((e) {
-      KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
-      throw Exception('webDav download collectibles failed');
-    });
-    Future<void> changesFuture = download('collectchanges').catchError((e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav download collect changes failed $e');
-      throw Exception('webDav download collect changes failed');
-    });
-    await Future.wait([collectiblesFuture, changesFuture]);
-
-
-    // we should block download changes when download collectibles failed
-    // download changes failed but collectibles success means remote files broken or newwork error
-    // we should force push local collectibles to remote to fix it
+    final files = await client.readDir('/kazumiSync');
+    final collectiblesExists = files.any((file) => file.name == 'collectibles.tmp');
+    final changesExists = files.any((file) => file.name == 'collectchanges.tmp');
+    if (!collectiblesExists && !changesExists) {
+      await updateCollectibles();
+      return;
+    }
+    
+    List<Future<void>> downloadFutures = [];
+    if (collectiblesExists) {
+      downloadFutures.add(download('collectibles').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
+        throw Exception('webDav download collectibles failed');
+      }));
+    }
+    if (changesExists) {
+      downloadFutures.add(download('collectchanges').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectchanges failed $e');
+        throw Exception('webDav download collectchanges failed');
+      }));
+    }
+    if (downloadFutures.isNotEmpty) {
+      await Future.wait(downloadFutures);
+    } 
     try {
-      remoteCollectibles = await GStorage.getCollectiblesFromFile(
+      if (collectiblesExists) {
+        remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');
-      remoteChanges = await GStorage.getCollectChangesFromFile(
+      }
+      if (changesExists) {
+        remoteChanges = await GStorage.getCollectChangesFromFile(
           '${webDavLocalTempDirectory.path}/collectchanges.tmp');
+      }  
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav get collectibles from file failed $e');
+      KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
       throw Exception('webDav get collectibles from file failed'); 
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {

@@ -5,6 +5,7 @@ import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_pla
 
 class WebviewAndroidItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
+  PlatformHeadlessInAppWebView? headlessWebView;
   Timer? loadingMonitorTimer;
   bool hasInjectedScripts = false;
   bool shouldInjectIframeRedirect = false;
@@ -12,7 +13,36 @@ class WebviewAndroidItemControllerImpel
 
   @override
   Future<void> init() async {
-    initEventController.add(true);
+    headlessWebView ??= PlatformHeadlessInAppWebView(
+      PlatformHeadlessInAppWebViewCreationParams(
+        initialSettings: InAppWebViewSettings(
+          userAgent: Utils.getRandomUA(),
+          mediaPlaybackRequiresUserGesture: true,
+          cacheEnabled: false,
+          blockNetworkImage: true,
+          loadsImagesAutomatically: false,
+          upgradeKnownHostsToHTTPS: false,
+          safeBrowsingEnabled: false,
+          mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
+          geolocationEnabled: false,
+        ),
+        onWebViewCreated: (controller) {
+          print('[WebView] Created');
+          webviewController = controller;
+          initEventController.add(true);
+        },
+        onLoadStart: (controller, url) async {
+          logEventController.add('started loading: $url');
+          if (url.toString() != 'about:blank') {
+            await onLoadStart();
+          }
+        },
+        onLoadStop: (controller, url) {
+          logEventController.add('loading completed: $url');
+        },
+      ),
+    );
+    await headlessWebView?.run();
   }
 
   @override
@@ -335,7 +365,6 @@ class WebviewAndroidItemControllerImpel
   @override
   Future<void> unloadPage() async {
     loadingMonitorTimer?.cancel();
-    await webviewController!.clearAllCache();
     await webviewController!
         .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
   }
@@ -343,5 +372,8 @@ class WebviewAndroidItemControllerImpel
   @override
   void dispose() {
     loadingMonitorTimer?.cancel();
+    headlessWebView?.dispose();
+    headlessWebView = null;
+    webviewController = null;
   }
 }

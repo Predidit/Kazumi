@@ -1,7 +1,5 @@
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/constants.dart';
-import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -18,8 +16,9 @@ class BangumiHTTP {
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
-      var res = await Request().get(Api.bangumiCalendar,
-          options: Options(headers: bangumiHTTPHeader));
+      var res = await Request().get(
+        Api.bangumiAPINextDomain + Api.bangumiCalendar,
+      );
       final jsonData = res.data;
       for (int i = 1; i <= 7; i++) {
         List<BangumiItem> bangumiList = [];
@@ -58,11 +57,12 @@ class BangumiHTTP {
       }
     };
     try {
-      final url = Api.formatUrl(Api.bangumiRankSearch, [limit, offset]);
-      final res = await Request().post(url,
-          data: params,
-          options: Options(
-              headers: bangumiHTTPHeader, contentType: 'application/json'));
+      final url = Api.formatUrl(
+          Api.bangumiAPIDomain + Api.bangumiRankSearch, [limit, offset]);
+      final res = await Request().post(
+        url,
+        data: params,
+      );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -120,10 +120,9 @@ class BangumiHTTP {
     }
     try {
       final res = await Request().post(
-          Api.formatUrl(Api.bangumiRankSearch, [100, 0]),
-          data: params,
-          options: Options(
-              headers: bangumiHTTPHeader, contentType: 'application/json'));
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch, [100, 0]),
+        data: params,
+      );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -147,10 +146,10 @@ class BangumiHTTP {
       'offset': offset,
     };
     try {
-      final res = await Request().get(Api.bangumiTrendsNext,
-          data: params,
-          options: Options(
-              headers: bangumiHTTPHeader, contentType: 'application/json'));
+      final res = await Request().get(
+        Api.bangumiAPINextDomain + Api.bangumiTrendsNext,
+        data: params,
+      );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -165,7 +164,10 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword, {List<String> tags = const [], int offset = 0, String sort = 'heat'}) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword,
+      {List<String> tags = const [],
+      int offset = 0,
+      String sort = 'heat'}) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
@@ -181,10 +183,10 @@ class BangumiHTTP {
 
     try {
       final res = await Request().post(
-          Api.formatUrl(Api.bangumiRankSearch, [20, offset]),
-          data: params,
-          options: Options(
-              headers: bangumiHTTPHeader, contentType: 'application/json'));
+        Api.formatUrl(
+            Api.bangumiAPIDomain + Api.bangumiRankSearch, [20, offset]),
+        data: params,
+      );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
       for (dynamic jsonItem in jsonList) {
@@ -208,8 +210,9 @@ class BangumiHTTP {
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
     try {
-      final res = await Request().get(Api.bangumiInfoByID + id.toString(),
-          options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
+      );
       return BangumiItem.fromJson(res.data);
     } catch (e) {
       KazumiLogger()
@@ -226,8 +229,10 @@ class BangumiHTTP {
       'limit': 1
     };
     try {
-      final res = await Request().get(Api.bangumiEpisodeByID,
-          data: params, options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(
+        Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
+        data: params,
+      );
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {
@@ -242,8 +247,9 @@ class BangumiHTTP {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
       final res = await Request().get(
-          '${Api.bangumiInfoByIDNext}$id/comments?offset=$offset&limit=20',
-          options: Options(headers: bangumiHTTPHeader));
+        Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
+            [id, 20, offset]),
+      );
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
     } catch (e) {
@@ -259,8 +265,10 @@ class BangumiHTTP {
         EpisodeCommentResponse.fromTemplate();
     try {
       final res = await Request().get(
-          '${Api.bangumiEpisodeByIDNext}$id/comments',
-          options: Options(headers: bangumiHTTPHeader));
+        Api.formatUrl(
+            Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
+            [id]),
+      );
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
     } catch (e) {
@@ -276,8 +284,10 @@ class BangumiHTTP {
         CharacterCommentResponse.fromTemplate();
     try {
       final res = await Request().get(
-          '${Api.bangumiCharacterByIDNext}$id/comments',
-          options: Options(headers: bangumiHTTPHeader));
+        Api.formatUrl(
+            Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
+            [id]),
+      );
       final jsonData = res.data;
       commentResponse = CharacterCommentResponse.fromJson(jsonData);
     } catch (e) {
@@ -290,8 +300,10 @@ class BangumiHTTP {
   static Future<StaffResponse> getBangumiStaffByID(int id) async {
     StaffResponse staffResponse = StaffResponse.fromTemplate();
     try {
-      final res = await Request().get(Api.formatUrl(Api.bangumiStaffByIDNext, [id]),
-          options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(
+        Api.formatUrl(
+            Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
+      );
       final jsonData = res.data;
       staffResponse = StaffResponse.fromJson(jsonData);
     } catch (e) {
@@ -304,8 +316,9 @@ class BangumiHTTP {
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
     CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
     try {
-      final res = await Request().get('${Api.bangumiInfoByID}$id/characters',
-          options: Options(headers: bangumiHTTPHeader));
+      final res = await Request().get(
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
+      );
       final jsonData = res.data;
       charactersResponse = CharactersResponse.fromJson(jsonData);
     } catch (e) {
@@ -319,8 +332,11 @@ class BangumiHTTP {
     CharacterFullItem characterFullItem = CharacterFullItem.fromTemplate();
     try {
       final res = await Request().get(
-          Api.formatUrl(Api.characterInfoByCharacterIDNext, [id]),
-          options: Options(headers: bangumiHTTPHeader));
+        Api.formatUrl(
+            Api.bangumiAPINextDomain +
+                Api.bangumiCharacterInfoByCharacterIDNext,
+            [id]),
+      );
       final jsonData = res.data;
       characterFullItem = CharacterFullItem.fromJson(jsonData);
     } catch (e) {

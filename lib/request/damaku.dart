@@ -1,30 +1,27 @@
-import 'package:dio/dio.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/request/api.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/utils/string_match.dart';
 
 class DanmakuRequest {
-
-  // 从标题列表中获取番剧ID
-  static Future<int> getBangumiIDByTitles(List<String> titleList) async {
-    for (var title in titleList) {
-      int bangumiID = await getBangumiID(title);
-      if (bangumiID != 0) {
-        return bangumiID;
-      }
-    }
-    return 0;
+  // 从BgmBangumiID获取DanDanBangumiID
+  static Future<int> getDanDanBangumiIDByBgmBangumiID(int bgmBangumiID) async {
+    var path = Api.formatUrl(Api.dandanAPIInfoByBgmBangumiId, [bgmBangumiID]);
+    var endPoint = Api.dandanAPIDomain + path;
+    final res = await Request().get(endPoint,
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
+    Map<String, dynamic> jsonData = res.data;
+    DanmakuEpisodeResponse danmakuEpisodeResponse =
+        DanmakuEpisodeResponse.fromJson(jsonData);
+    return danmakuEpisodeResponse.bangumiId;
   }
 
-  //获取弹弹Play集合，需要进一步处理
-  static Future<int> getBangumiID(String title) async {
+  // 从标题获取DanDanBangumiID
+  static Future<int> getBangumiIDByTitle(String title) async {
     DanmakuSearchResponse danmakuSearchResponse =
         await getDanmakuSearchResponse(title);
 
@@ -54,22 +51,12 @@ class DanmakuRequest {
     return bestAnimeId;
   }
 
-  //从BangumiID获取分集ID
-  static Future<DanmakuEpisodeResponse> getDanDanEpisodesByBangumiID(
+  // 从BangumiID获取分集ID
+  static Future<DanmakuEpisodeResponse> getDanmakuEpisodesByBangumiID(
       int bangumiID) async {
-    var path = Api.dandanAPIInfo + bangumiID.toString();
+    var path = Api.formatUrl(Api.dandanAPIInfoByBgmBangumiId, [bangumiID]);
     var endPoint = Api.dandanAPIDomain + path;
-    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    var httpHeaders = {
-      'user-agent': Utils.getRandomUA(),
-      'referer': '',
-      'X-Auth': 1,
-      'X-AppId': mortis['id'],
-      'X-Timestamp': timestamp.toString(),
-      'X-Signature': Utils.generateDandanSignature(path, timestamp),
-    };
     final res = await Request().get(endPoint,
-        options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
     Map<String, dynamic> jsonData = res.data;
     DanmakuEpisodeResponse danmakuEpisodeResponse =
@@ -77,26 +64,30 @@ class DanmakuRequest {
     return danmakuEpisodeResponse;
   }
 
+  // 从DanDanBangumiID获取分集ID
+  static Future<DanmakuEpisodeResponse> getDanDanEpisodesByDanDanBangumiID(
+      int bangumiID) async {
+    var path = Api.dandanAPIInfo + bangumiID.toString();
+    var endPoint = Api.dandanAPIDomain + path;
+    final res = await Request().get(endPoint,
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
+    Map<String, dynamic> jsonData = res.data;
+    DanmakuEpisodeResponse danmakuEpisodeResponse =
+        DanmakuEpisodeResponse.fromJson(jsonData);
+    return danmakuEpisodeResponse;
+  }
+
+  // 从标题检索DanDan番剧数据库
   static Future<DanmakuSearchResponse> getDanmakuSearchResponse(
       String title) async {
     var path = Api.dandanAPISearch;
     var endPoint = Api.dandanAPIDomain + path;
-    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    var httpHeaders = {
-      'user-agent': Utils.getRandomUA(),
-      'referer': '',
-      'X-Auth': 1,
-      'X-AppId': mortis['id'],
-      'X-Timestamp': timestamp.toString(),
-      'X-Signature': Utils.generateDandanSignature(path, timestamp),
-    };
     Map<String, String> keywordMap = {
       'keyword': title,
     };
 
     final res = await Request().get(endPoint,
         data: keywordMap,
-        options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'});
     Map<String, dynamic> jsonData = res.data;
     DanmakuSearchResponse danmakuSearchResponse =
@@ -114,22 +105,12 @@ class DanmakuRequest {
         bangumiID.toString() +
         episode.toString().padLeft(4, '0');
     var endPoint = Api.dandanAPIDomain + path;
-    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    var httpHeaders = {
-      'user-agent': Utils.getRandomUA(),
-      'referer': '',
-      'X-Auth': 1,
-      'X-AppId': mortis['id'],
-      'X-Timestamp': timestamp.toString(),
-      'X-Signature': Utils.generateDandanSignature(path, timestamp),
-    };
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
     KazumiLogger().log(Level.info, "弹幕请求最终URL $endPoint");
     final res = await Request().get(endPoint,
         data: withRelated,
-        options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
 
     Map<String, dynamic> jsonData = res.data;
@@ -145,22 +126,12 @@ class DanmakuRequest {
   static Future<List<Danmaku>> getDanDanmakuByEpisodeID(int episodeID) async {
     var path = Api.dandanAPIComment + episodeID.toString();
     var endPoint = Api.dandanAPIDomain + path;
-    var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     List<Danmaku> danmakus = [];
-    var httpHeaders = {
-      'user-agent': Utils.getRandomUA(),
-      'referer': '',
-      'X-Auth': 1,
-      'X-AppId': mortis['id'],
-      'X-Timestamp': timestamp.toString(),
-      'X-Signature': Utils.generateDandanSignature(path, timestamp),
-    };
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
     final res = await Request().get(endPoint,
         data: withRelated,
-        options: Options(headers: httpHeaders),
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];

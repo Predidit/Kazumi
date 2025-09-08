@@ -130,18 +130,34 @@ class GStorage {
 
     // Process local changes
     for (var change in newLocalChanges) {
-      // Lookup by bangumiID
-      // CollectiblesChange only stores the bangumiID, so we need to lookup the corresponding CollectedBangumi.
-      final changedBangumiID = change.bangumiID.toString();
-      for (var localCollect in localCollectibles) {
-        if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
-          if (change.action == 1) {
-            // Action 1: add
-            final exists = remoteCollectibles
-                .any((b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-            if (!exists) {
-              remoteCollectibles.add(localCollect);
-            } else {
+      // For delete action, we don't need to look up the local collectible.
+      // We can directly remove the item from the remote list.
+      if (change.action == 3) {
+        // Action 3: delete
+        remoteCollectibles.removeWhere(
+            (b) => b.bangumiItem.id == change.bangumiID);
+      } else {
+        // For add/update, we still need to look up the local collectible.
+        final changedBangumiID = change.bangumiID.toString();
+        for (var localCollect in localCollectibles) {
+          if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
+            if (change.action == 1) {
+              // Action 1: add
+              final exists = remoteCollectibles
+                  .any((b) => b.bangumiItem.id == localCollect.bangumiItem.id);
+              if (!exists) {
+                remoteCollectibles.add(localCollect);
+              } else {
+                final index = remoteCollectibles.indexWhere(
+                    (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
+                localCollect.type = change.type;
+                if (index != -1) {
+                  // Update the entry with local data.
+                  remoteCollectibles[index] = localCollect;
+                }
+              }
+            } else if (change.action == 2) {
+              // Action 2: update
               final index = remoteCollectibles.indexWhere(
                   (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
               localCollect.type = change.type;
@@ -150,24 +166,10 @@ class GStorage {
                 remoteCollectibles[index] = localCollect;
               }
             }
-          } else if (change.action == 2) {
-            // Action 2: update
-            final index = remoteCollectibles.indexWhere(
-                (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-            localCollect.type = change.type;
-            if (index != -1) {
-              // Update the entry with local data.
-              remoteCollectibles[index] = localCollect;
-            }
-          } else if (change.action == 3) {
-            // Action 3: delete
-            remoteCollectibles.removeWhere(
-                (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
+            break;
           }
-          break;
         }
       }
-      // If the corresponding CollectedBangumi does not exist locally, skip the change.
     }
 
     // merge local changes with remote changes

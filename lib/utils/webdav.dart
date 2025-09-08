@@ -47,7 +47,10 @@ class WebDav {
       await client.ping();
       try {
         // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
-        await client.mkdir('/kazumiSync');
+        await client.mkdir('/kazumiSync');    
+        if (!await webDavLocalTempDirectory.exists()) {
+          await webDavLocalTempDirectory.create(recursive: true);
+        }
         initialized = true;
         KazumiLogger().log(Level.info, 'webDav backup directory create success');
       } catch (_) {
@@ -62,32 +65,34 @@ class WebDav {
 
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
-    await File('${directory.path}/hive/$boxName.hive')
-          .copy('${directory.path}/hive/$boxName.hive.tmp');
+    final localFilePath = '${directory.path}/hive/$boxName.hive'; 
+    final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
+    final webDavPath = '/kazumiSync/$boxName.tmp';
+    await File(localFilePath)
+          .copy(tempFilePath);
     try {
-      await client.remove('/kazumiSync/$boxName.tmp.cache');
+      await client.remove('$webDavPath.cache');
     } catch (_) {}
-    await client.writeFromFile('${directory.path}/hive/$boxName.hive.tmp',
-        '/kazumiSync/$boxName.tmp.cache', onProgress: (c, t) {
+    await client.writeFromFile(tempFilePath,
+        '$webDavPath.cache', onProgress: (c, t) {
       // print(c / t);
     });
     try {
-      await client.remove('/kazumiSync/$boxName.tmp');
+      await client.remove(webDavPath);
     } catch (_) {
       KazumiLogger().log(Level.warning, 'webDav former backup file not exist');
     }
     await client.rename(
-        '/kazumiSync/$boxName.tmp.cache', '/kazumiSync/$boxName.tmp', true);
+        '$webDavPath.cache', webDavPath, true);
     try {
-      await File('${directory.path}/hive/$boxName.hive.tmp').delete();
+      await File(tempFilePath).delete();
     } catch (_) {}
   }
 
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().log(Level.warning, 'History is currently syncing');
-      //throw Exception('History is currently syncing');
-      return;
+      throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     try {
@@ -104,10 +109,27 @@ class WebDav {
     // don't try muliti thread update here
     // some webdav server may not support muliti thread write
     // you will get 423 locked error
-    await update('collectibles');
-    if (GStorage.collectChanges.isNotEmpty) {
-      await update('collectchanges');
+    try {
+      await update('collectibles');
+      if (GStorage.collectChanges.isNotEmpty) {
+        await update('collectchanges');
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, 'webDav update collectibles failed $e');
+      rethrow;
     }
+  }
+
+  Future<void> download(String boxName) async {
+    String fileName = '$boxName.tmp';
+    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
+    if (await existingFile.exists()) {
+      await existingFile.delete();
+    }
+    await client.read2File('/kazumiSync/$fileName', existingFile.path,
+        onProgress: (c, t) {
+      // print(c / t);
+    });
   }
 
   Future<void> downloadAndPatchHistory() async {
@@ -118,17 +140,8 @@ class WebDav {
     isHistorySyncing = true;
     String fileName = 'histories.tmp';
     try {
-      if (!await webDavLocalTempDirectory.exists()) {
-        await webDavLocalTempDirectory.create(recursive: true);
-      }
       final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-      if (await existingFile.exists()) {
-        await existingFile.delete();
-      }
-      await client.read2File('/kazumiSync/$fileName', existingFile.path,
-          onProgress: (c, t) {
-        // print(c / t);
-      });
+      await download('histories');
       await GStorage.patchHistory(existingFile.path);
     } catch (e) {
       KazumiLogger()
@@ -139,62 +152,46 @@ class WebDav {
     }
   }
 
-  Future<void> downloadCollectibles() async {
-    String fileName = 'collectibles.tmp';
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
-    }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await client.read2File('/kazumiSync/$fileName', existingFile.path,
-        onProgress: (c, t) {
-      // print(c / t);
-    });
-  }
-
-  Future<void> downloadCollectChanges() async {
-    String fileName = 'collectChanges.tmp';
-    if (!await webDavLocalTempDirectory.exists()) {
-      await webDavLocalTempDirectory.create(recursive: true);
-    }
-    final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
-    if (await existingFile.exists()) {
-      await existingFile.delete();
-    }
-    await client.read2File('/kazumiSync/$fileName', existingFile.path,
-        onProgress: (c, t) {
-      // print(c / t);
-    });
-  }
-
   Future<void> syncCollectibles() async {
     List<CollectedBangumi> remoteCollectibles = [];
     List<CollectedBangumiChange> remoteChanges = [];
 
-    // muliti thread download
-    Future<void> collectiblesFuture = downloadCollectibles().catchError((e) {
-      KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
-    });
-    Future<void> changesFuture = downloadCollectChanges().catchError((e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav download collect changes failed $e');
-    });
-    await Future.wait([collectiblesFuture, changesFuture]);
-
-
-    // we should block download changes when download collectibles failed
-    // download changes failed but collectibles success means remote files broken or newwork error
-    // we should force push local collectibles to remote to fix it
+    final files = await client.readDir('/kazumiSync');
+    final collectiblesExists = files.any((file) => file.name == 'collectibles.tmp');
+    final changesExists = files.any((file) => file.name == 'collectchanges.tmp');
+    if (!collectiblesExists && !changesExists) {
+      await updateCollectibles();
+      return;
+    }
+    
+    List<Future<void>> downloadFutures = [];
+    if (collectiblesExists) {
+      downloadFutures.add(download('collectibles').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
+        throw Exception('webDav download collectibles failed');
+      }));
+    }
+    if (changesExists) {
+      downloadFutures.add(download('collectchanges').catchError((e) {
+        KazumiLogger().log(Level.error, 'webDav download collectchanges failed $e');
+        throw Exception('webDav download collectchanges failed');
+      }));
+    }
+    if (downloadFutures.isNotEmpty) {
+      await Future.wait(downloadFutures);
+    } 
     try {
-      remoteCollectibles = await GStorage.getCollectiblesFromFile(
+      if (collectiblesExists) {
+        remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');
-      remoteChanges = await GStorage.getCollectChangesFromFile(
-          '${webDavLocalTempDirectory.path}/collectChanges.tmp');
+      }
+      if (changesExists) {
+        remoteChanges = await GStorage.getCollectChangesFromFile(
+          '${webDavLocalTempDirectory.path}/collectchanges.tmp');
+      }  
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'webDav get collectibles from file failed $e');
+      KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
+      throw Exception('webDav get collectibles from file failed'); 
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);

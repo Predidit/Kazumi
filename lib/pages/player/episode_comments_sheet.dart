@@ -55,6 +55,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         });
       }
     });
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -235,7 +238,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         ),
         onRefresh: () async {
           await loadComments(ep == 0 ? episode : ep);
-          setState(() {});
         },
       ),
     );

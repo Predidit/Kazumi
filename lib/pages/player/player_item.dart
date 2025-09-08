@@ -196,9 +196,7 @@ class _PlayerItemState extends State<PlayerItem>
       try {
         var webDav = WebDav();
         await webDav.updateHistory();
-      } catch (e) {
-        KazumiLogger().log(Level.error, 'webDav update history failed $e');
-      }
+      } catch (_) {}
     }
   }
 
@@ -426,7 +424,7 @@ class _PlayerItemState extends State<PlayerItem>
                 KazumiDialog.showLoading(msg: '弹幕检索中');
                 try {
                   danmakuEpisodeResponse =
-                      await DanmakuRequest.getDanDanEpisodesByBangumiID(
+                      await DanmakuRequest.getDanDanEpisodesByDanDanBangumiID(
                           danmakuInfo.animeId);
                 } catch (e) {
                   KazumiDialog.dismiss();

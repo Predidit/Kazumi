@@ -23,12 +23,14 @@ class DanmakuEpisode {
 }
 
 class DanmakuEpisodeResponse {
+  int bangumiId;
   List<DanmakuEpisode> episodes;
   int errorCode;
   bool success;
   String errorMessage;
 
   DanmakuEpisodeResponse({
+    required this.bangumiId,
     required this.episodes,
     required this.errorCode,
     required this.success,
@@ -41,6 +43,7 @@ class DanmakuEpisodeResponse {
         list.map((i) => DanmakuEpisode.fromJson(i)).toList();
 
     return DanmakuEpisodeResponse(
+      bangumiId: json['bangumi']['animeId'],
       episodes: episodeList,
       errorCode: json['errorCode'],
       success: json['success'],
@@ -50,6 +53,7 @@ class DanmakuEpisodeResponse {
 
   factory DanmakuEpisodeResponse.fromTemplate() {
     return DanmakuEpisodeResponse(
+      bangumiId: 0,
       episodes: [],
       errorCode: 0,
       success: false,

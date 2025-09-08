@@ -59,6 +59,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   flutter::DartProject project(L"data");
 
+  // Disable thread merge to improve performance
+  // Attention: This may impact plugin performance and may be incompatible with future Flutter releases.
+  project.set_ui_thread_policy(flutter::UIThreadPolicy::RunOnSeparateThread);
+
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
 

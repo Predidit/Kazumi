@@ -4,6 +4,9 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/mortis.dart';
+import 'package:kazumi/utils/constants.dart';
 
 class ApiInterceptor extends Interceptor {
   static Box setting = GStorage.setting;
@@ -17,6 +20,20 @@ class ApiInterceptor extends Interceptor {
         options.path = Api.gitMirror + options.path;
       }
     }
+    if (options.path.contains(Api.dandanAPIDomain)) {
+      var timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      options.headers = {
+        'user-agent': Utils.getRandomUA(),
+        'referer': '',
+        'X-Auth': 1,
+        'X-AppId': mortis['id'],
+        'X-Timestamp': timestamp,
+        'X-Signature': Utils.generateDandanSignature(Uri.parse(options.path).path, timestamp),
+      };
+    }
+    if (options.path.contains(Api.bangumiAPIDomain) || options.path.contains(Api.bangumiAPINextDomain)) {
+      options.headers = bangumiHTTPHeader;
+    }
     handler.next(options);
   }
 
@@ -28,7 +45,8 @@ class ApiInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     String url = err.requestOptions.uri.toString();
-    if (!url.contains('heartBeat') && err.requestOptions.extra['customError'] != '') {
+    if (!url.contains('heartBeat') &&
+        err.requestOptions.extra['customError'] != '') {
       if (err.requestOptions.extra['customError'] == null) {
         KazumiDialog.showToast(
           message: await dioError(err),

@@ -31,6 +31,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool showWindowButton;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
+  final MenuController menuController = MenuController();
 
   @override
   void initState() {
@@ -129,7 +130,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -145,67 +145,115 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    KazumiDialog.show(builder: (context) {
-                      return AlertDialog(
-                        title: const Text('深色模式'),
-                        content: StatefulBuilder(
-                          builder:
-                              (BuildContext context, StateSetter setState) {
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: Utils.isDesktop() ? 8 : 0,
-                              children: [
-                                defaultThemeMode == 'system'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('system');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("跟随系统"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('system');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("跟随系统")),
-                                defaultThemeMode == 'light'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('light');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("浅色"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('light');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("浅色")),
-                                defaultThemeMode == 'dark'
-                                    ? FilledButton(
-                                        onPressed: () {
-                                          updateTheme('dark');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("深色"))
-                                    : FilledButton.tonal(
-                                        onPressed: () {
-                                          updateTheme('dark');
-                                          KazumiDialog.dismiss();
-                                        },
-                                        child: const Text("深色")),
-                              ],
-                            );
-                          },
-                        ),
-                      );
-                    });
+                    if (menuController.isOpen) {
+                      menuController.close();
+                    } else {
+                      menuController.open();
+                    }
                   },
                   title: const Text('深色模式'),
-                  value: Text(
-                    defaultThemeMode == 'light'
-                        ? '浅色'
-                        : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                  value: MenuAnchor(
+                    consumeOutsideTap: true,
+                    controller: menuController,
+                    builder: (_, __, ___) {
+                      return Text(
+                        defaultThemeMode == 'light'
+                            ? '浅色'
+                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                      );
+                    },
+                    menuChildren: [
+                      MenuItemButton(
+                        requestFocusOnHover: false,
+                        onPressed: () => updateTheme('system'),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.brightness_auto_rounded,
+                                  color: defaultThemeMode == 'system'
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '跟随系统',
+                                  style: TextStyle(
+                                    color: defaultThemeMode == 'system'
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      MenuItemButton(
+                        requestFocusOnHover: false,
+                        onPressed: () => updateTheme('light'),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.light_mode_rounded,
+                                  color: defaultThemeMode == 'light'
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '浅色',
+                                  style: TextStyle(
+                                    color: defaultThemeMode == 'light'
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      MenuItemButton(
+                        requestFocusOnHover: false,
+                        onPressed: () => updateTheme('dark'),
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.dark_mode_rounded,
+                                  color: defaultThemeMode == 'dark'
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  '深色',
+                                  style: TextStyle(
+                                    color: defaultThemeMode == 'dark'
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SettingsTile.navigation(

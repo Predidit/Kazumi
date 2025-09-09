@@ -13,6 +13,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/menu/menu.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PopularPage extends StatefulWidget {
@@ -69,6 +70,11 @@ class _PopularPageState extends State<PopularPage>
         popularController.queryBangumiByTrend();
       }
     }
+  }
+
+  bool showWindowButton() {
+    return GStorage.setting
+        .get(SettingBoxKey.showWindowButton, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -210,8 +216,8 @@ class _PopularPageState extends State<PopularPage>
               return Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 60),
+                  padding: const EdgeInsets.only(
+                      left: 16, top: 8, bottom: 8, right: 60),
                   child: SizedBox(
                     height: 44,
                     child: Observer(
@@ -258,13 +264,15 @@ class _PopularPageState extends State<PopularPage>
       ),
     ];
     if (Utils.isDesktop()) {
-      actions.add(
-        IconButton(
-          tooltip: '退出',
-          onPressed: () => windowManager.close(),
-          icon: const Icon(Icons.close),
-        ),
-      );
+      if (!showWindowButton()) {
+        actions.add(
+          IconButton(
+            tooltip: '退出',
+            onPressed: () => windowManager.close(),
+            icon: const Icon(Icons.close),
+          ),
+        );
+      }
     }
     return actions;
   }

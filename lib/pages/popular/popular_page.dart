@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -8,12 +9,11 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/bean/widget/scrollable_wrapper.dart';
 import 'package:kazumi/pages/menu/menu.dart';
-import 'package:provider/provider.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -25,11 +25,13 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
-  bool showTagFilter = true;
   late NavigationBarState navigationBarState;
   final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
+
+  // Key used to position the dropdown menu for the tag selector
+  final GlobalKey selectorKey = GlobalKey();
 
   @override
   bool get wantKeepAlive => true;
@@ -46,7 +48,6 @@ class _PopularPageState extends State<PopularPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    navigationBarState = Provider.of<NavigationBarState>(context, listen: true);
   }
 
   @override
@@ -78,12 +79,11 @@ class _PopularPageState extends State<PopularPage>
     if (_lastPressedAt == null ||
         DateTime.now().difference(_lastPressedAt!) >
             const Duration(seconds: 2)) {
-      // 两次点击时间间隔超过2秒，重新记录时间戳
       _lastPressedAt = DateTime.now();
       KazumiDialog.showToast(message: "再按一次退出应用", context: context);
       return;
     }
-    SystemNavigator.pop(); // 退出应用
+    SystemNavigator.pop();
   }
 
   @override
@@ -99,113 +99,61 @@ class _PopularPageState extends State<PopularPage>
           onBackPressed(context);
         },
         child: Scaffold(
-          appBar: SysAppBar(
-            needTopOffset: false,
-            // default 56 + 10
-            leadingWidth: 66,
-            leading: (navigationBarState.isBottom)
-                ? Row(
-                    children: [
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      ClipOval(
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () {
-                            Modular.to.pushNamed('/settings/history');
-                          },
-                          child: Image.asset(
-                            'assets/images/logo/logo_android.png',
-                          ),
-                        ),
-                      )
-                    ],
-                  )
-                : null,
-            backgroundColor: Colors.transparent,
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    Modular.to.pushNamed('/search/');
-                  },
-                  icon: const Icon(Icons.search))
-            ],
-            title: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onPanStart: (_) => windowManager.startDragging(),
-              child: Container(),
-            ),
-          ),
-          body: Column(
-            children: [
-              SizedBox(
-                height: showTagFilter ? 50 : 0,
-                child: tagFilter(),
-              ),
-              Expanded(
-                child: CustomScrollView(
-                  controller: scrollController,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Observer(
-                        builder: (_) => Padding(
-                          padding: const EdgeInsets.only(
-                              top: 0, bottom: 10, left: 0),
-                          child: popularController.isLoadingMore
-                              ? const LinearProgressIndicator()
-                              : const SizedBox(
-                                  height: 4.0,
-                                ),
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(
-                            StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                        sliver: Observer(builder: (_) {
-                          if (popularController.isTimeOut) {
-                            return SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: 400,
-                                child: GeneralErrorWidget(
-                                  errMsg: '什么都没有找到 (´;ω;`)',
-                                  actions: [
-                                    GeneralErrorButton(
-                                      onPressed: () {
-                                        if (popularController
-                                            .trendList.isEmpty) {
-                                          popularController
-                                              .queryBangumiByTrend();
-                                        } else {
-                                          popularController.queryBangumiByTag();
-                                        }
-                                      },
-                                      text: '点击重试',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          return contentGrid(
-                              (popularController.currentTag == '')
-                                  ? popularController.trendList
-                                  : popularController.bangumiList,
-                              orientation);
-                        })),
-                  ],
+          body: CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              buildSliverAppBar(),
+              SliverToBoxAdapter(
+                child: Observer(
+                  builder: (_) => AnimatedOpacity(
+                    opacity: popularController.isLoadingMore ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: popularController.isLoadingMore
+                        ? const LinearProgressIndicator(minHeight: 4)
+                        : const SizedBox(height: 4),
+                  ),
                 ),
               ),
+              SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                      StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                  sliver: Observer(builder: (_) {
+                    if (popularController.isTimeOut) {
+                      return SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 400,
+                          child: GeneralErrorWidget(
+                            errMsg: '什么都没有找到 (´;ω;`)',
+                            actions: [
+                              GeneralErrorButton(
+                                onPressed: () {
+                                  if (popularController.trendList.isEmpty) {
+                                    popularController.queryBangumiByTrend();
+                                  } else {
+                                    popularController.queryBangumiByTag();
+                                  }
+                                },
+                                text: '点击重试',
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return contentGrid(
+                        (popularController.currentTag == '')
+                            ? popularController.trendList
+                            : popularController.bangumiList,
+                        orientation);
+                  })),
             ],
           ),
           floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              scrollController.jumpTo(0.0);
-            },
+            onPressed: () => scrollController.animateTo(0,
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOut),
             child: const Icon(Icons.arrow_upward),
           ),
-          // backgroundColor: themedata.colorScheme.primaryContainer,
         ),
       );
     });
@@ -235,67 +183,134 @@ class _PopularPageState extends State<PopularPage>
     );
   }
 
-  Widget tagFilter() {
-    List<String> tags = [
-      '日常',
-      '原创',
-      '校园',
-      '搞笑',
-      '奇幻',
-      '百合',
-      '恋爱',
-      '悬疑',
-      '热血',
-      '后宫',
-      '机战',
-      '轻改',
-      '偶像',
-      '治愈',
-      '异世界',
-    ];
-
-    final ScrollController tagScrollController = ScrollController();
-
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: ScrollableWrapper(
-            scrollController: tagScrollController,
-            child: ListView.builder(
-              controller: tagScrollController,
-              scrollDirection: Axis.horizontal,
-              itemCount: tags.length,
-              itemBuilder: (context, index) {
-                final filter = tags[index];
-                return Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 8, left: 8),
-                  child: Observer(
-                    builder: (_) => filter == popularController.currentTag
-                        ? FilledButton(
-                            child: Text(filter),
-                            onPressed: () async {
-                              scrollController.jumpTo(0.0);
-                              popularController.setCurrentTag('');
-                              popularController.clearBangumiList();
-                            },
-                          )
-                        : FilledButton.tonal(
-                            child: Text(filter),
-                            onPressed: () async {
-                              _focusNode.unfocus();
-                              scrollController.jumpTo(0.0);
-                              popularController.setCurrentTag(filter);
-                              await popularController.queryBangumiByTag(
-                                  type: 'init');
-                            },
+  Widget buildSliverAppBar() {
+    final theme = Theme.of(context);
+    return SliverAppBar(
+      pinned: true,
+      stretch: true,
+      expandedHeight: 120,
+      elevation: 0,
+      titleSpacing: 0,
+      centerTitle: false,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      actions: buildActions(),
+      title: null,
+      flexibleSpace: SafeArea(
+        child: dtb.DragToMoveArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double maxExtent = 120 - MediaQuery.of(context).padding.top;
+              final t = (1 -
+                  ((constraints.maxHeight - kToolbarHeight) /
+                          (maxExtent - kToolbarHeight))
+                      .clamp(0.0, 1.0));
+              // 字重收缩后为 w500，展开时为 w700
+              final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
+              final fontSize = lerpDouble(28, 20, t)!;
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 60),
+                  child: SizedBox(
+                    height: 44,
+                    child: Observer(
+                      builder: (_) {
+                        final bool isTrend = popularController.currentTag == '';
+                        return InkWell(
+                          key: selectorKey,
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: showTagMenu,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isTrend ? '热门番组' : popularController.currentTag,
+                                style: theme.textTheme.headlineMedium!.copyWith(
+                                  fontWeight: fontWeight,
+                                  fontSize: fontSize,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(Icons.keyboard_arrow_down,
+                                  size: fontSize, color: theme.iconTheme.color),
+                            ],
                           ),
+                        );
+                      },
+                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> buildActions() {
+    final actions = <Widget>[
+      IconButton(
+        tooltip: '搜索',
+        onPressed: () => Modular.to.pushNamed('/search/'),
+        icon: const Icon(Icons.search),
+      ),
+    ];
+    if (Utils.isDesktop()) {
+      actions.add(
+        IconButton(
+          tooltip: '退出',
+          onPressed: () => windowManager.close(),
+          icon: const Icon(Icons.close),
+        ),
+      );
+    }
+    return actions;
+  }
+
+  Future<void> showTagMenu() async {
+    // we have to calculate the position of the button manually here.
+    // PopupMenuButton / DropdownButton cannot be used here because they can't set different font size in the button and the menu.
+    final RenderBox renderBox =
+        selectorKey.currentContext!.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    final Size size = renderBox.size;
+
+    final selected = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+          offset.dx, offset.dy + size.height, offset.dx + size.width, 0),
+      items: [
+        const PopupMenuItem<String>(
+          value: '',
+          child: Text('热门番组', style: TextStyle(fontSize: 14)),
+        ),
+        ...defaultAnimeTags.map(
+          (t) => PopupMenuItem<String>(
+            value: t,
+            child: Text(t, style: const TextStyle(fontSize: 14)),
           ),
         ),
       ],
+      elevation: 6,
+      constraints: const BoxConstraints(maxHeight: 350),
     );
+
+    if (selected == null) return;
+    if (selected == '' && popularController.currentTag != '') {
+      scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      popularController.setCurrentTag('');
+      popularController.clearBangumiList();
+      if (popularController.trendList.isEmpty) {
+        await popularController.queryBangumiByTrend();
+      }
+    } else if (selected != '' && selected != popularController.currentTag) {
+      scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      popularController.setCurrentTag(selected);
+      await popularController.queryBangumiByTag(type: 'init');
+    }
   }
 }

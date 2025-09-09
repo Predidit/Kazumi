@@ -101,29 +101,24 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
 
   Widget sideMenuWidget(BuildContext context, NavigationBarState state) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       body: Row(
         children: [
           EmbeddedNativeControlArea(
             child: Visibility(
               visible: !state.isHide,
               child: NavigationRail(
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                 groupAlignment: 1.0,
+                leading: FloatingActionButton(
+                  elevation: 0,
+                  heroTag: null,
+                  onPressed: () {
+                    Modular.to.pushNamed('/search/');
+                  },
+                  child: const Icon(Icons.search),
+                ),
                 labelType: NavigationRailLabelType.selected,
-                leading: SizedBox(
-                    width: 50,
-                    child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: ClipOval(
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: () {
-                              Modular.to.pushNamed('/settings/history');
-                            },
-                            child: Image.asset(
-                              'assets/images/logo/logo_android.png',
-                            ),
-                          ),
-                        ))),
                 destinations: const <NavigationRailDestination>[
                   NavigationRailDestination(
                     selectedIcon: Icon(Icons.home),
@@ -156,11 +151,23 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
           ),
           Expanded(
             child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: PageView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: menu.size,
-                itemBuilder: (_, __) => const RouterOutlet(),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  bottomLeft: Radius.circular(16.0),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16.0),
+                  bottomLeft: Radius.circular(16.0),
+                ),
+                child: PageView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: menu.size,
+                  itemBuilder: (_, __) => const RouterOutlet(),
+                ),
               ),
             ),
           ),

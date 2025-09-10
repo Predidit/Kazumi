@@ -86,6 +86,239 @@ class _TimelinePageState extends State<TimelinePage>
     return d.year.toString() + Utils.getSeasonStringByMonth(d.month);
   }
 
+  void showSeasonBottomSheet(BuildContext context) {
+    final currDate = DateTime.now();
+    final years = List.generate(20, (index) => currDate.year - index);
+
+    // 按年份分组生成可用季节
+    Map<int, List<DateTime>> yearSeasons = {};
+    for (final year in years) {
+      List<DateTime> availableSeasons = [];
+      for (final season in seasons) {
+        final date = generateDateTime(year, season);
+        if (currDate.isAfter(date)) {
+          availableSeasons.add(date);
+        }
+      }
+      // 只有当年份有可用季节时才添加到map中
+      if (availableSeasons.isNotEmpty) {
+        yearSeasons[year] = availableSeasons;
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 标题
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '时间机器',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  // 年份季节列表
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
+                      itemCount: yearSeasons.keys.length,
+                      itemBuilder: (context, index) {
+                        final year = yearSeasons.keys.elementAt(index);
+                        final seasons = yearSeasons[year]!;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 年份标题
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Text(
+                                  '$year年',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                ),
+                              ),
+                              // 季节按钮
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                children: seasons.map((date) {
+                                  final isSelected = Utils.isSameSeason(
+                                      timelineController.selectedDate, date);
+                                  final seasonName =
+                                      Utils.getSeasonStringByMonth(date.month);
+
+                                  return buildSeasonButton(
+                                    context,
+                                    seasonName,
+                                    isSelected,
+                                    () => _onSeasonSelected(date),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget buildSeasonButton(
+    BuildContext context,
+    String seasonName,
+    bool isSelected,
+    VoidCallback onPressed,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (isSelected) {
+      return Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              colorScheme.primary,
+              colorScheme.primary.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {},
+            child: Center(
+              child: Text(
+                seasonName,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: colorScheme.surfaceContainerHighest,
+          border: Border.all(
+            color: colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onPressed,
+            child: Center(
+              child: Text(
+                seasonName,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _onSeasonSelected(DateTime date) async {
+    Navigator.pop(context);
+
+    final currDate = DateTime.now();
+    timelineController.tryEnterSeason(date);
+
+    if (Utils.isSameSeason(timelineController.selectedDate, currDate)) {
+      await timelineController.getSchedules();
+    } else {
+      await timelineController.getSchedulesBySeason();
+    }
+
+    timelineController.seasonString =
+        AnimeSeason(timelineController.selectedDate).toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
@@ -109,57 +342,7 @@ class _TimelinePageState extends State<TimelinePage>
             title: InkWell(
               child: Text(timelineController.seasonString),
               onTap: () {
-                KazumiDialog.show(builder: (context) {
-                  final currDate = DateTime.now();
-                  final years =
-                      List.generate(20, (index) => currDate.year - index);
-                  List<DateTime> buttons = [];
-                  for (final i in years) {
-                    for (final s in seasons) {
-                      final date = generateDateTime(i, s);
-                      if (currDate.isAfter(date)) {
-                        buttons.add(date);
-                      }
-                    }
-                  }
-                  return AlertDialog(
-                    title: const Text("时间机器"),
-                    content: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: Utils.isCompact() ? 2 : 8,
-                        children: [
-                          for (final date in buttons)
-                            Utils.isSameSeason(
-                                    timelineController.selectedDate, date)
-                                ? FilledButton(
-                                    onPressed: () {},
-                                    child: Text(getStringByDateTime(date)),
-                                  )
-                                : FilledButton.tonal(
-                                    onPressed: () async {
-                                      KazumiDialog.dismiss();
-                                      timelineController.tryEnterSeason(date);
-                                      if (Utils.isSameSeason(
-                                          timelineController.selectedDate,
-                                          currDate)) {
-                                        await timelineController.getSchedules();
-                                      } else {
-                                        await timelineController
-                                            .getSchedulesBySeason();
-                                      }
-                                      timelineController
-                                          .seasonString = AnimeSeason(
-                                              timelineController.selectedDate)
-                                          .toString();
-                                    },
-                                    child: Text(getStringByDateTime(date)),
-                                  )
-                        ],
-                      ),
-                    ),
-                  );
-                });
+                showSeasonBottomSheet(context);
               },
             ),
           ),
@@ -170,7 +353,8 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget get renderBody {
-    if (timelineController.isLoading) {
+    if (timelineController.isLoading &&
+        timelineController.bangumiCalendar.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
       );

@@ -30,8 +30,8 @@ abstract class _TimelineController with Store {
 
   Future<void> getSchedules() async {
     isLoading = true;
-    final resBangumiCalendar = await BangumiHTTP.getCalendar();
     bangumiCalendar.clear();
+    final resBangumiCalendar = await BangumiHTTP.getCalendar();
     bangumiCalendar.addAll(resBangumiCalendar);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;

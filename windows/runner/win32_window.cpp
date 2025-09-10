@@ -208,6 +208,14 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_ACTIVATE:
+      if (LOWORD(wparam) == WA_ACTIVE || LOWORD(wparam) == WA_CLICKACTIVE) {
+        if (child_content_ != nullptr) {
+          SetFocus(child_content_);
+        }
+      }
+      return 0;
+
+    case WM_SETFOCUS:
       if (child_content_ != nullptr) {
         SetFocus(child_content_);
       }

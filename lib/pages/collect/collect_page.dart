@@ -63,78 +63,76 @@ class _CollectPageState extends State<CollectPage>
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(builder: (context, orientation) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-          onBackPressed(context);
-        },
-        child: Scaffold(
-          appBar: SysAppBar(
-            needTopOffset: false,
-            toolbarHeight: 104,
-            bottom: TabBar(
-              controller: tabController,
-              tabs: tabs,
-              indicatorColor: Theme.of(context).colorScheme.primary,
-            ),
-            title: const Text('追番'),
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      showDelete = !showDelete;
-                    });
-                  },
-                  icon: showDelete
-                      ? const Icon(Icons.edit_outlined)
-                      : const Icon(Icons.edit))
-            ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: SysAppBar(
+          needTopOffset: false,
+          toolbarHeight: 104,
+          bottom: TabBar(
+            controller: tabController,
+            tabs: tabs,
+            indicatorColor: Theme.of(context).colorScheme.primary,
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
-                  defaultValue: false);
-              if (!webDavenable) {
-                KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
-                return;
-              }
-              if (showDelete) {
-                KazumiDialog.showToast(message: '编辑模式无法执行同步');
-                return;
-              }
-              if (syncCollectiblesing) {
-                return;
-              }
-              setState(() {
-                syncCollectiblesing = true;
-              });
-              await collectController.syncCollectibles();
-              setState(() {
-                syncCollectiblesing = false;
-              });
-            },
-            child: syncCollectiblesing
-                ? const SizedBox(
-                    width: 32, height: 32, child: CircularProgressIndicator())
-                : const Icon(Icons.cloud_sync),
-          ),
-          body: Observer(builder: (context) {
-            return renderBody(orientation);
-          }),
+          title: const Text('追番'),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  setState(() {
+                    showDelete = !showDelete;
+                  });
+                },
+                icon: showDelete
+                    ? const Icon(Icons.edit_outlined)
+                    : const Icon(Icons.edit))
+          ],
         ),
-      );
-    });
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
+                defaultValue: false);
+            if (!webDavenable) {
+              KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
+              return;
+            }
+            if (showDelete) {
+              KazumiDialog.showToast(message: '编辑模式无法执行同步');
+              return;
+            }
+            if (syncCollectiblesing) {
+              return;
+            }
+            setState(() {
+              syncCollectiblesing = true;
+            });
+            await collectController.syncCollectibles();
+            setState(() {
+              syncCollectiblesing = false;
+            });
+          },
+          child: syncCollectiblesing
+              ? const SizedBox(
+                  width: 32, height: 32, child: CircularProgressIndicator())
+              : const Icon(Icons.cloud_sync),
+        ),
+        body: Observer(builder: (context) {
+          return renderBody;
+        }),
+      ),
+    );
   }
 
-  Widget renderBody(Orientation orientation) {
+  Widget get renderBody {
     if (collectController.collectibles.isNotEmpty) {
       return TabBarView(
         controller: tabController,
-        children: contentGrid(collectController.collectibles, orientation),
+        children: contentGrid(collectController.collectibles),
       );
     } else {
       return const Center(
@@ -143,8 +141,7 @@ class _CollectPageState extends State<CollectPage>
     }
   }
 
-  List<Widget> contentGrid(
-      List<CollectedBangumi> collectedBangumiList, Orientation orientation) {
+  List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
     List<Widget> gridViewList = [];
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
         List.generate(tabs.length, (_) => <CollectedBangumi>[]);
@@ -155,7 +152,8 @@ class _CollectPageState extends State<CollectPage>
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }
-    int crossCount = orientation != Orientation.portrait ? 6 : 3;
+    int crossCount =
+        MediaQuery.of(context).orientation != Orientation.portrait ? 6 : 3;
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
       gridViewList.add(

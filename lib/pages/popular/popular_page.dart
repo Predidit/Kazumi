@@ -95,78 +95,77 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return OrientationBuilder(builder: (context, orientation) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-          onBackPressed(context);
-        },
-        child: Scaffold(
-          body: CustomScrollView(
-            controller: scrollController,
-            slivers: [
-              buildSliverAppBar(),
-              SliverToBoxAdapter(
-                child: Observer(
-                  builder: (_) => AnimatedOpacity(
-                    opacity: popularController.isLoadingMore ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 300),
-                    child: popularController.isLoadingMore
-                        ? const LinearProgressIndicator(minHeight: 4)
-                        : const SizedBox(height: 4),
-                  ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        body: CustomScrollView(
+          controller: scrollController,
+          slivers: [
+            buildSliverAppBar(),
+            SliverToBoxAdapter(
+              child: Observer(
+                builder: (_) => AnimatedOpacity(
+                  opacity: popularController.isLoadingMore ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: popularController.isLoadingMore
+                      ? const LinearProgressIndicator(minHeight: 4)
+                      : const SizedBox(height: 4),
                 ),
               ),
-              SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                      StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                  sliver: Observer(builder: (_) {
-                    if (popularController.isTimeOut) {
-                      return SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: 400,
-                          child: GeneralErrorWidget(
-                            errMsg: '什么都没有找到 (´;ω;`)',
-                            actions: [
-                              GeneralErrorButton(
-                                onPressed: () {
-                                  if (popularController.trendList.isEmpty) {
-                                    popularController.queryBangumiByTrend();
-                                  } else {
-                                    popularController.queryBangumiByTag();
-                                  }
-                                },
-                                text: '点击重试',
-                              ),
-                            ],
-                          ),
+            ),
+            SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                    StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                sliver: Observer(builder: (_) {
+                  if (popularController.isTimeOut) {
+                    return SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 400,
+                        child: GeneralErrorWidget(
+                          errMsg: '什么都没有找到 (´;ω;`)',
+                          actions: [
+                            GeneralErrorButton(
+                              onPressed: () {
+                                if (popularController.trendList.isEmpty) {
+                                  popularController.queryBangumiByTrend();
+                                } else {
+                                  popularController.queryBangumiByTag();
+                                }
+                              },
+                              text: '点击重试',
+                            ),
+                          ],
                         ),
-                      );
-                    }
-                    return contentGrid(
-                        (popularController.currentTag == '')
-                            ? popularController.trendList
-                            : popularController.bangumiList,
-                        orientation);
-                  })),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => scrollController.animateTo(0,
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeOut),
-            child: const Icon(Icons.arrow_upward),
-          ),
+                      ),
+                    );
+                  }
+                  return contentGrid(
+                    (popularController.currentTag == '')
+                        ? popularController.trendList
+                        : popularController.bangumiList,
+                  );
+                })),
+          ],
         ),
-      );
-    });
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => scrollController.animateTo(0,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOut),
+          child: const Icon(Icons.arrow_upward),
+        ),
+      ),
+    );
   }
 
-  Widget contentGrid(bangumiList, Orientation orientation) {
-    int crossCount = orientation != Orientation.portrait ? 6 : 3;
+  Widget contentGrid(bangumiList) {
+    int crossCount =
+        MediaQuery.of(context).orientation != Orientation.portrait ? 6 : 3;
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         // 行间距
@@ -257,11 +256,12 @@ class _PopularPageState extends State<PopularPage>
 
   List<Widget> buildActions() {
     final actions = <Widget>[
-      IconButton(
-        tooltip: '搜索',
-        onPressed: () => Modular.to.pushNamed('/search/'),
-        icon: const Icon(Icons.search),
-      ),
+      if (MediaQuery.of(context).orientation == Orientation.portrait)
+        IconButton(
+          tooltip: '搜索',
+          onPressed: () => Modular.to.pushNamed('/search/'),
+          icon: const Icon(Icons.search),
+        ),
     ];
     if (Utils.isDesktop()) {
       if (!showWindowButton()) {

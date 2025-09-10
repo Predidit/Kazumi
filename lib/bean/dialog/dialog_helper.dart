@@ -126,6 +126,58 @@ class KazumiDialog {
     }
   }
 
+  static Future<T?> showBottomSheet<T>({
+    BuildContext? context,
+    required WidgetBuilder builder,
+    Color? backgroundColor,
+    double? elevation,
+    ShapeBorder? shape,
+    Clip? clipBehavior,
+    BoxConstraints? constraints,
+    Color? barrierColor,
+    bool isScrollControlled = false,
+    bool useRootNavigator = true,
+    bool isDismissible = true,
+    bool enableDrag = true,
+    RouteSettings? routeSettings,
+    AnimationController? transitionAnimationController,
+    Offset? anchorPoint,
+    bool useSafeArea = false,
+  }) async {
+    // Use provided context first, then root context, then fallback to current context
+    final ctx = context ?? observer.rootContext ?? observer.currentContext;
+    if (ctx != null && ctx.mounted) {
+      try {
+        final result = await showModalBottomSheet<T>(
+          context: ctx,
+          builder: builder,
+          backgroundColor: backgroundColor,
+          elevation: elevation,
+          shape: shape,
+          clipBehavior: clipBehavior,
+          constraints: constraints,
+          barrierColor: barrierColor,
+          isScrollControlled: isScrollControlled,
+          useRootNavigator: useRootNavigator,
+          isDismissible: isDismissible,
+          enableDrag: enableDrag,
+          routeSettings: routeSettings ?? const RouteSettings(name: 'KazumiBottomSheet'),
+          transitionAnimationController: transitionAnimationController,
+          anchorPoint: anchorPoint,
+          useSafeArea: useSafeArea,
+        );
+        return result;
+      } catch (e) {
+        debugPrint('Kazumi Dialog Error: Failed to show bottom sheet: $e');
+        return null;
+      }
+    } else {
+      debugPrint(
+          'Kazumi Dialog Error: No context available to show the bottom sheet');
+      return null;
+    }
+  }
+
   static void dismiss() {
     if (observer.hasKazumiDialog && observer.kazumiDialogContext != null) {
       try {
@@ -150,9 +202,15 @@ class KazumiDialogObserver extends NavigatorObserver {
   /// The most recent context from any route containing a Scaffold
   BuildContext? _scaffoldContext;
 
+  /// The root context of the app (for bottom sheets to cover the entire app)
+  BuildContext? _rootContext;
+
   BuildContext? get currentContext => _currentContext;
 
   BuildContext? get scaffoldContext => _scaffoldContext ?? _currentContext;
+
+  /// Get the root context for bottom sheets, fallback to scaffold context, then current context
+  BuildContext? get rootContext => _rootContext ?? _scaffoldContext ?? _currentContext;
 
   bool get hasKazumiDialog => _kazumiDialogRoutes.isNotEmpty;
 
@@ -219,6 +277,9 @@ class KazumiDialogObserver extends NavigatorObserver {
     _currentContext = context;
     if (_hasScaffold(context)) {
       _scaffoldContext = context;
+      // Always update root context with scaffold contexts to ensure we have the most recent one
+      // This helps ensure bottom sheets appear at the app level
+      _rootContext = context;
     }
   }
 
@@ -227,7 +288,8 @@ class KazumiDialogObserver extends NavigatorObserver {
   }
 
   bool _isKazumiDialogRoute(Route<dynamic> route) {
-    return route.settings.name == 'KazumiDialog';
+    return route.settings.name == 'KazumiDialog' || 
+           route.settings.name == 'KazumiBottomSheet';
   }
 
   void _removeCurrentSnackBar(Route<dynamic>? route) {

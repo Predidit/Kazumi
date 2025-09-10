@@ -106,8 +106,8 @@ class _TimelinePageState extends State<TimelinePage>
       }
     }
 
-    showModalBottomSheet(
-      context: context,
+    KazumiDialog.showBottomSheet(
+      // context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),

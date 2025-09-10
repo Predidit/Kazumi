@@ -100,7 +100,6 @@ class _TimelinePageState extends State<TimelinePage>
           availableSeasons.add(date);
         }
       }
-      // 只有当年份有可用季节时才添加到map中
       if (availableSeasons.isNotEmpty) {
         yearSeasons[year] = availableSeasons;
       }
@@ -129,21 +128,6 @@ class _TimelinePageState extends State<TimelinePage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 标题和拖拽指示器
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Container(
-                      width: 32,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 24, vertical: 8),

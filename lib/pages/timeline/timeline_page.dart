@@ -341,6 +341,7 @@ class _TimelinePageState extends State<TimelinePage>
             indicatorColor: Theme.of(context).colorScheme.primary,
           ),
           title: InkWell(
+            borderRadius: BorderRadius.circular(8),
             child: Observer(builder: (context) {
               return Text(timelineController.seasonString);
             }),

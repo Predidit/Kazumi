@@ -14,6 +14,12 @@ abstract class _TimelineController with Store {
   @observable
   String seasonString = '';
 
+  @observable
+  bool isLoading = false;
+
+  @observable
+  bool isTimeOut = false;
+
   late DateTime selectedDate;
 
   void init() {
@@ -23,9 +29,12 @@ abstract class _TimelineController with Store {
   }
 
   Future<void> getSchedules() async {
+    isLoading = true;
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
+    isLoading = false;
+    isTimeOut = bangumiCalendar.isEmpty;
   }
 
   Future<void> getSchedulesBySeason() async {

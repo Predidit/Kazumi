@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
@@ -169,16 +170,30 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   Widget get renderBody {
-    if (timelineController.bangumiCalendar.isNotEmpty) {
-      return TabBarView(
-        controller: tabController,
-        children: contentGrid(timelineController.bangumiCalendar),
-      );
-    } else {
+    if (timelineController.isLoading) {
       return const Center(
-        child: Text('数据还没有更新 (´;ω;`)'),
+        child: CircularProgressIndicator(),
       );
     }
+    if (timelineController.isTimeOut) {
+      return Center(
+        child: SizedBox(
+          height: 400,
+          child: GeneralErrorWidget(errMsg: '什么都没有找到 (´;ω;`)', actions: [
+            GeneralErrorButton(
+              onPressed: () {
+                timelineController.getSchedules();
+              },
+              text: '点击重试',
+            ),
+          ]),
+        ),
+      );
+    }
+    return TabBarView(
+      controller: tabController,
+      children: contentGrid(timelineController.bangumiCalendar),
+    );
   }
 
   List<Widget> contentGrid(List<List<BangumiItem>> bangumiCalendar) {

@@ -41,11 +41,45 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$isLoadingAtom =
+      Atom(name: '_TimelineController.isLoading', context: context);
+
+  @override
+  bool get isLoading {
+    _$isLoadingAtom.reportRead();
+    return super.isLoading;
+  }
+
+  @override
+  set isLoading(bool value) {
+    _$isLoadingAtom.reportWrite(value, super.isLoading, () {
+      super.isLoading = value;
+    });
+  }
+
+  late final _$isTimeOutAtom =
+      Atom(name: '_TimelineController.isTimeOut', context: context);
+
+  @override
+  bool get isTimeOut {
+    _$isTimeOutAtom.reportRead();
+    return super.isTimeOut;
+  }
+
+  @override
+  set isTimeOut(bool value) {
+    _$isTimeOutAtom.reportWrite(value, super.isTimeOut, () {
+      super.isTimeOut = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
 bangumiCalendar: ${bangumiCalendar},
-seasonString: ${seasonString}
+seasonString: ${seasonString},
+isLoading: ${isLoading},
+isTimeOut: ${isTimeOut}
     ''';
   }
 }

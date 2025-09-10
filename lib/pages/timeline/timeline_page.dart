@@ -129,7 +129,21 @@ class _TimelinePageState extends State<TimelinePage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 标题
+                  // 标题和拖拽指示器
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Container(
+                      width: 32,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurfaceVariant
+                            .withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -154,7 +168,13 @@ class _TimelinePageState extends State<TimelinePage>
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
+                  Divider(
+                    height: 1,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
                   // 年份季节列表
                   Expanded(
                     child: ListView.builder(
@@ -164,50 +184,47 @@ class _TimelinePageState extends State<TimelinePage>
                       itemCount: yearSeasons.keys.length,
                       itemBuilder: (context, index) {
                         final year = yearSeasons.keys.elementAt(index);
-                        final seasons = yearSeasons[year]!;
+                        final availableSeasons = yearSeasons[year]!;
 
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.only(bottom: 32),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // 年份标题
                               Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Text(
-                                  '$year年',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 20,
+                                      decoration: BoxDecoration(
                                         color: Theme.of(context)
                                             .colorScheme
-                                            .onSurface,
-                                        fontWeight: FontWeight.w500,
+                                            .primary,
+                                        borderRadius: BorderRadius.circular(2),
                                       ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      '$year年',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              // 季节按钮
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                children: seasons.map((date) {
-                                  final isSelected = Utils.isSameSeason(
-                                      timelineController.selectedDate, date);
-                                  final seasonName =
-                                      Utils.getSeasonStringByMonth(date.month);
-
-                                  return buildSeasonButton(
-                                    context,
-                                    seasonName,
-                                    isSelected,
-                                    () {
-                                      Navigator.pop(context);
-                                      onSeasonSelected(date);
-                                    },
-                                  );
-                                }).toList(),
-                              ),
+                              // 季节选择器
+                              buildSeasonSegmentedButton(
+                                  context, availableSeasons),
                             ],
                           ),
                         );
@@ -223,87 +240,87 @@ class _TimelinePageState extends State<TimelinePage>
     );
   }
 
-  Widget buildSeasonButton(
-    BuildContext context,
-    String seasonName,
-    bool isSelected,
-    VoidCallback onPressed,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget buildSeasonSegmentedButton(
+      BuildContext context, List<DateTime> availableSeasons) {
+    DateTime? selectedSeason;
+    for (final season in availableSeasons) {
+      if (Utils.isSameSeason(timelineController.selectedDate, season)) {
+        selectedSeason = season;
+        break;
+      }
+    }
 
-    if (isSelected) {
-      return Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              colorScheme.primary,
-              colorScheme.primary.withValues(alpha: 0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.primary.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {},
-            child: Center(
-              child: Text(
-                seasonName,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
+    final segments = availableSeasons.map((date) {
+      final seasonName = Utils.getSeasonStringByMonth(date.month);
+      return ButtonSegment<DateTime>(
+        value: date,
+        label: Text(
+          seasonName,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-            ),
-          ),
         ),
+        icon: getSeasonIcon(seasonName),
       );
-    } else {
-      return Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: colorScheme.surfaceContainerHighest,
-          border: Border.all(
-            color: colorScheme.outlineVariant,
+    }).toList();
+
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<DateTime>(
+        segments: segments,
+        selected: selectedSeason != null ? {selectedSeason} : {},
+        onSelectionChanged: (Set<DateTime> newSelection) {
+          if (newSelection.isNotEmpty) {
+            Navigator.pop(context);
+            onSeasonSelected(newSelection.first);
+          }
+        },
+        multiSelectionEnabled: false,
+        showSelectedIcon: false,
+        emptySelectionAllowed: true,
+        style: SegmentedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          selectedForegroundColor:
+              Theme.of(context).colorScheme.onSecondaryContainer,
+          selectedBackgroundColor:
+              Theme.of(context).colorScheme.secondaryContainer,
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
             width: 1,
           ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onPressed,
-            child: Center(
-              child: Text(
-                seasonName,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-              ),
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
-      );
+      ),
+    );
+  }
+
+  Widget getSeasonIcon(String seasonName) {
+    IconData iconData;
+    switch (seasonName) {
+      case '春':
+        iconData = Icons.eco;
+        break;
+      case '夏':
+        iconData = Icons.wb_sunny;
+        break;
+      case '秋':
+        iconData = Icons.park;
+        break;
+      case '冬':
+        iconData = Icons.ac_unit;
+        break;
+      default:
+        iconData = Icons.schedule;
     }
+
+    return Icon(
+      iconData,
+      size: 18,
+    );
   }
 
   void onSeasonSelected(DateTime date) async {

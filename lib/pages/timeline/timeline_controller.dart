@@ -30,6 +30,7 @@ abstract class _TimelineController with Store {
 
   Future<void> getSchedules() async {
     isLoading = true;
+    isTimeOut = false;
     bangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
     bangumiCalendar.addAll(resBangumiCalendar);
@@ -39,6 +40,9 @@ abstract class _TimelineController with Store {
 
   Future<void> getSchedulesBySeason() async {
     // 4次获取，每次最多20部
+    isLoading = true;
+    isTimeOut = false;
+    bangumiCalendar.clear();
     var time = 0;
     const maxTime = 4;
     const limit = 20;
@@ -52,6 +56,12 @@ abstract class _TimelineController with Store {
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
+    }
+    isLoading = false;
+    if (bangumiCalendar.isEmpty) {
+      isTimeOut = true;
+    } else {
+      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
     }
   }
 

@@ -201,7 +201,10 @@ class _TimelinePageState extends State<TimelinePage>
                                     context,
                                     seasonName,
                                     isSelected,
-                                    () => _onSeasonSelected(date),
+                                    () {
+                                      Navigator.pop(context);
+                                      onSeasonSelected(date);
+                                    },
                                   );
                                 }).toList(),
                               ),
@@ -303,9 +306,7 @@ class _TimelinePageState extends State<TimelinePage>
     }
   }
 
-  void _onSeasonSelected(DateTime date) async {
-    Navigator.pop(context);
-
+  void onSeasonSelected(DateTime date) async {
     final currDate = DateTime.now();
     timelineController.tryEnterSeason(date);
 
@@ -321,62 +322,60 @@ class _TimelinePageState extends State<TimelinePage>
 
   @override
   Widget build(BuildContext context) {
-    return Observer(builder: (context) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-          onBackPressed(context);
-        },
-        child: Scaffold(
-          appBar: SysAppBar(
-            needTopOffset: false,
-            toolbarHeight: 104,
-            bottom: TabBar(
-              controller: tabController,
-              tabs: tabs,
-              indicatorColor: Theme.of(context).colorScheme.primary,
-            ),
-            title: InkWell(
-              child: Text(timelineController.seasonString),
-              onTap: () {
-                showSeasonBottomSheet(context);
-              },
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        onBackPressed(context);
+      },
+      child: Scaffold(
+        appBar: SysAppBar(
+          needTopOffset: false,
+          toolbarHeight: 104,
+          bottom: TabBar(
+            controller: tabController,
+            tabs: tabs,
+            indicatorColor: Theme.of(context).colorScheme.primary,
           ),
-          body: renderBody,
+          title: InkWell(
+            child: Observer(builder: (context) {
+              return Text(timelineController.seasonString);
+            }),
+            onTap: () {
+              showSeasonBottomSheet(context);
+            },
+          ),
         ),
-      );
-    });
-  }
-
-  Widget get renderBody {
-    if (timelineController.isLoading &&
-        timelineController.bangumiCalendar.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-    if (timelineController.isTimeOut) {
-      return Center(
-        child: SizedBox(
-          height: 400,
-          child: GeneralErrorWidget(errMsg: '什么都没有找到 (´;ω;`)', actions: [
-            GeneralErrorButton(
-              onPressed: () {
-                timelineController.getSchedules();
-              },
-              text: '点击重试',
-            ),
-          ]),
-        ),
-      );
-    }
-    return TabBarView(
-      controller: tabController,
-      children: contentGrid(timelineController.bangumiCalendar),
+        body: Observer(builder: (context) {
+          if (timelineController.isLoading &&
+              timelineController.bangumiCalendar.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (timelineController.isTimeOut) {
+            return Center(
+              child: SizedBox(
+                height: 400,
+                child: GeneralErrorWidget(errMsg: '什么都没有找到 (´;ω;`)', actions: [
+                  GeneralErrorButton(
+                    onPressed: () {
+                      onSeasonSelected(timelineController.selectedDate);
+                    },
+                    text: '点击重试',
+                  ),
+                ]),
+              ),
+            );
+          }
+          return TabBarView(
+            controller: tabController,
+            children: contentGrid(timelineController.bangumiCalendar),
+          );
+        }),
+      ),
     );
   }
 

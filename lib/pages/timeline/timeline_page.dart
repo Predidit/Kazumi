@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
-import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/card/timeline_bangumi_card.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -187,8 +187,14 @@ class _TimelinePageState extends State<TimelinePage>
   List<Widget> contentGrid(
       List<List<BangumiItem>> bangumiCalendar, Orientation orientation) {
     List<Widget> gridViewList = [];
-    int crossCount = orientation != Orientation.portrait ? 6 : 3;
-    for (dynamic bangumiList in bangumiCalendar) {
+    int crossCount;
+    crossCount = orientation == Orientation.portrait ? 1 : 3;
+    double cardHeight = Utils.isDesktop()
+        ? 160
+        : (Utils.isTablet()
+            ? 140
+            : 120);
+    for (var bangumiList in bangumiCalendar) {
       gridViewList.add(
         Padding(
           padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
@@ -199,38 +205,13 @@ class _TimelinePageState extends State<TimelinePage>
                   mainAxisSpacing: StyleString.cardSpace - 2,
                   crossAxisSpacing: StyleString.cardSpace,
                   crossAxisCount: crossCount,
-                  mainAxisExtent:
-                      MediaQuery.of(context).size.width / crossCount / 0.65 +
-                          MediaQuery.textScalerOf(context).scale(32.0),
+                  mainAxisExtent: cardHeight + 12,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    return bangumiList.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(bangumiItem: bangumiList[index]),
-                              Positioned(
-                                right: 4,
-                                top: 4,
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 0),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .tertiaryContainer,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    bangumiList[index]
-                                        .ratingScore
-                                        .toStringAsFixed(1),
-                                  ),
-                                ),
-                              )
-                            ],
-                          )
-                        : null;
+                    if (bangumiList.isEmpty) return null;
+                    final item = bangumiList[index];
+                    return TimelineBangumiCard(bangumiItem: item);
                   },
                   childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
                 ),

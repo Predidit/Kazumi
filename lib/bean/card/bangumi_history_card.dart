@@ -13,11 +13,18 @@ import 'package:logger/logger.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
-  const BangumiHistoryCardV(
-      {super.key, required this.historyItem, this.showDelete = true});
+  const BangumiHistoryCardV({
+    super.key,
+    required this.historyItem,
+    this.showDelete = true,
+    this.cardHeight = 120,
+    this.cardWidth,
+  });
 
   final History historyItem;
   final bool showDelete;
+  final double cardHeight;
+  final double? cardWidth;
 
   @override
   State<BangumiHistoryCardV> createState() => _BangumiHistoryCardVState();
@@ -50,10 +57,35 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     );
   }
 
+  Widget buildImage(
+      BuildContext context, String imageUrl, double width, double height) {
+    final borderRadius = BorderRadius.circular(16);
+    Widget img = NetworkImgLayer(
+      src: imageUrl,
+      width: width,
+      height: height,
+    );
+    img = ClipRRect(
+      borderRadius: borderRadius,
+      child: img,
+    );
+    return img;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final double borderRadius = 18;
+    final double imageWidth = widget.cardHeight * 0.7;
+
     return Card(
+      elevation: 1,
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
       clipBehavior: Clip.antiAlias,
+      color: theme.colorScheme.surface,
       child: InkWell(
         onTap: () async {
           if (widget.showDelete) {
@@ -93,25 +125,19 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             KazumiDialog.showToast(message: '网络资源获取失败 ${e.toString()}');
           }
         },
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 0.65,
-                child: LayoutBuilder(builder: (context, boxConstraints) {
-                  final double maxWidth = boxConstraints.maxWidth;
-                  final double maxHeight = boxConstraints.maxHeight;
-                  return NetworkImgLayer(
-                    src: widget.historyItem.bangumiItem.images['large'] ?? '',
-                    width: maxWidth,
-                    height: maxHeight,
-                  );
-                }),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildImage(
+                context,
+                widget.historyItem.bangumiItem.images['large'] ?? '',
+                imageWidth,
+                widget.cardHeight),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -149,47 +175,45 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                   ],
                 ),
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (!widget.showDelete) ...[
-                    CollectButton(
-                      onClose: () {
-                        FocusScope.of(context).unfocus();
-                      },
-                      bangumiItem: widget.historyItem.bangumiItem,
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (!widget.showDelete) ...[
+                  CollectButton(
+                    onClose: () {
+                      FocusScope.of(context).unfocus();
+                    },
+                    bangumiItem: widget.historyItem.bangumiItem,
+                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.open_in_new,
                       color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.open_in_new,
-                        color:
-                            Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
-                      tooltip: '番剧详情',
-                      onPressed: () {
-                        Modular.to.pushNamed(
-                          '/info/',
-                          arguments: widget.historyItem.bangumiItem,
-                        );
-                      },
-                    ),
-                  ],
-                  if (widget.showDelete)
-                    IconButton(
-                      icon: Icon(
-                        Icons.delete,
-                        color:
-                            Theme.of(context).colorScheme.onSecondaryContainer,
-                      ),
-                      onPressed: () {
-                        historyController.deleteHistory(widget.historyItem);
-                      },
-                    ),
+                    tooltip: '番剧详情',
+                    onPressed: () {
+                      Modular.to.pushNamed(
+                        '/info/',
+                        arguments: widget.historyItem.bangumiItem,
+                      );
+                    },
+                  ),
                 ],
-              ),
-            ],
-          ),
+                if (widget.showDelete)
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                    onPressed: () {
+                      historyController.deleteHistory(widget.historyItem);
+                    },
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -119,47 +119,32 @@ class _HistoryPageState extends State<HistoryPage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 3;
     }
+    double cardHeight = 100;
 
     return CustomScrollView(
       slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.only(
-              left: StyleString.cardSpace + 2,
-              right: StyleString.cardSpace + 2,
-              bottom: StyleString.safeSpace * 2),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: StyleString.cardSpace - 2,
-              crossAxisSpacing: StyleString.cardSpace - 2,
-              crossAxisCount: crossCount,
-              mainAxisExtent: MediaQuery.textScalerOf(context).scale(150),
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return historyController.histories.isNotEmpty
-                    ? BangumiHistoryCardV(
-                        showDelete: showDelete,
-                        historyItem: historyController.histories[index])
-                    : null;
-              },
-              childCount: historyController.histories.isNotEmpty
-                  ? historyController.histories.length
-                  : 10,
-            ),
+        SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            mainAxisSpacing: StyleString.cardSpace - 2,
+            crossAxisSpacing: StyleString.cardSpace,
+            crossAxisCount: crossCount,
+            mainAxisExtent: cardHeight + 12,
           ),
-        )
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              return historyController.histories.isNotEmpty
+                  ? BangumiHistoryCardV(
+                      showDelete: showDelete,
+                      cardHeight: cardHeight,
+                      historyItem: historyController.histories[index])
+                  : null;
+            },
+            childCount: historyController.histories.isNotEmpty
+                ? historyController.histories.length
+                : 10,
+          ),
+        ),
       ],
     );
   }
-
-// Widget contentGrid(List<History> histories) {
-//   return ListView.builder(
-//     itemCount: histories.isNotEmpty ? histories.length : 10,
-//     itemBuilder: (BuildContext context, int index) {
-//       return histories.isNotEmpty
-//           ? BangumiHistoryCardV(historyItem: histories[index])
-//           : Container();
-//     },
-//   );
-// }
 }

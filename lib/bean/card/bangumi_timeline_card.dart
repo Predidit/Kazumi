@@ -5,17 +5,21 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 
 /// 时间线番剧卡片
-class TimelineBangumiCard extends StatelessWidget {
-  const TimelineBangumiCard({
+class BangumiTimelineCard extends StatelessWidget {
+  const BangumiTimelineCard({
     super.key,
     required this.bangumiItem,
     this.onTap,
+    this.cardHeight = 120,
+    this.cardWidth,
     this.enableHero = true,
   });
 
   final BangumiItem bangumiItem;
   final VoidCallback? onTap;
   final bool enableHero;
+  final double cardHeight;
+  final double? cardWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +27,12 @@ class TimelineBangumiCard extends StatelessWidget {
     final isTablet = Utils.isTablet();
     final theme = Theme.of(context);
     final textScaler = MediaQuery.textScalerOf(context);
-    final double cardHeight = isDesktop ? 160 : (isTablet ? 140 : 120);
     final double imageWidth = cardHeight * 0.7;
     final double borderRadius = 18;
 
     return Card(
       elevation: 1,
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),
@@ -43,10 +46,11 @@ class TimelineBangumiCard extends StatelessWidget {
             },
         child: SizedBox(
           height: cardHeight,
+          width: cardWidth,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              buildImage(context, imageWidth, cardHeight),
+              buildImage(context, bangumiItem.images['large'] ?? '', imageWidth, cardHeight),
               Expanded(
                 child: Padding(
                   padding:
@@ -61,8 +65,7 @@ class TimelineBangumiCard extends StatelessWidget {
     );
   }
 
-  Widget buildImage(BuildContext context, double width, double height) {
-    final imageUrl = bangumiItem.images['large'] ?? '';
+  Widget buildImage(BuildContext context, String imageUrl, double width, double height) {
     final borderRadius = BorderRadius.circular(16);
     Widget img = NetworkImgLayer(
       src: imageUrl,

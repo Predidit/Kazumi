@@ -4,7 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
-import 'package:kazumi/bean/card/timeline_bangumi_card.dart';
+import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -187,37 +187,37 @@ class _TimelinePageState extends State<TimelinePage>
   List<Widget> contentGrid(
       List<List<BangumiItem>> bangumiCalendar, Orientation orientation) {
     List<Widget> gridViewList = [];
-    int crossCount;
-    crossCount = orientation == Orientation.portrait ? 1 : 3;
-    double cardHeight = Utils.isDesktop()
-        ? 160
-        : (Utils.isTablet()
-            ? 140
-            : 120);
+    int crossCount = 1;
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+      crossCount = 2;
+    }
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+      crossCount = 3;
+    }
+    double cardHeight =
+        Utils.isDesktop() ? 160 : (Utils.isTablet() ? 140 : 120);
     for (var bangumiList in bangumiCalendar) {
       gridViewList.add(
-        Padding(
-          padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
-          child: CustomScrollView(
-            slivers: [
-              SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  mainAxisSpacing: StyleString.cardSpace - 2,
-                  crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount: crossCount,
-                  mainAxisExtent: cardHeight + 12,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    if (bangumiList.isEmpty) return null;
-                    final item = bangumiList[index];
-                    return TimelineBangumiCard(bangumiItem: item);
-                  },
-                  childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
-                ),
+        CustomScrollView(
+          slivers: [
+            SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                mainAxisSpacing: StyleString.cardSpace - 2,
+                crossAxisSpacing: StyleString.cardSpace,
+                crossAxisCount: crossCount,
+                mainAxisExtent: cardHeight + 12,
               ),
-            ],
-          ),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  if (bangumiList.isEmpty) return null;
+                  final item = bangumiList[index];
+                  return BangumiTimelineCard(
+                      bangumiItem: item, cardHeight: cardHeight);
+                },
+                childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
+              ),
+            ),
+          ],
         ),
       );
     }

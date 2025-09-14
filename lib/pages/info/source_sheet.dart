@@ -28,6 +28,7 @@ class SourceSheet extends StatefulWidget {
 }
 
 class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStateMixin {
+  final ScrollController _tabGridScrollController = ScrollController();
   bool _showTabGrid = false;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
@@ -52,6 +53,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
 
   @override
   void dispose() {
+  _tabGridScrollController.dispose();
     queryManager?.cancel();
     super.dispose();
   }
@@ -290,6 +292,16 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                     setState(() {
                       _showTabGrid = true;
                     });
+                  } else if (_showTabGrid && event.scrollDelta.dy > 8) {
+                    // 仅当面板内部无需滚动时才允许收起
+          final maxScroll = _tabGridScrollController.hasClients
+            ? _tabGridScrollController.position.maxScrollExtent
+            : 0.0;
+                    if (maxScroll == 0.0) {
+                      setState(() {
+                        _showTabGrid = false;
+                      });
+                    }
                   }
                 }
               },
@@ -430,7 +442,8 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                     ),
                                     Expanded(
                                       child: SingleChildScrollView(
-                                        physics: const ClampingScrollPhysics(), //避免macOS触摸板的奇怪抖动
+                                        controller: _tabGridScrollController,
+                                        physics: const ClampingScrollPhysics(),
                                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                                         child: Wrap(
                                           spacing: 8,

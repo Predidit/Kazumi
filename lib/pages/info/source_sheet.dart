@@ -291,11 +291,6 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                       _showTabGrid = true;
                     });
                   }
-                  // else if (_showTabGrid && event.scrollDelta.dy > 8) {
-                  //   setState(() {
-                  //     _showTabGrid = false;
-                  //   });
-                  // }
                 }
               },
               child: AnimatedContainer(
@@ -435,6 +430,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                     ),
                                     Expanded(
                                       child: SingleChildScrollView(
+                                        physics: const ClampingScrollPhysics(), //避免macOS触摸板的奇怪抖动
                                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                                         child: Wrap(
                                           spacing: 8,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -26,8 +27,8 @@ class SourceSheet extends StatefulWidget {
   State<SourceSheet> createState() => _SourceSheetState();
 }
 
-class _SourceSheetState extends State<SourceSheet>
-    with SingleTickerProviderStateMixin {
+class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStateMixin {
+  bool _showTabGrid = false;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final CollectController collectController = Modular.get<CollectController>();
@@ -187,75 +188,6 @@ class _SourceSheetState extends State<SourceSheet>
       child: Scaffold(
         body: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    dividerHeight: 0,
-                    controller: widget.tabController,
-                    tabs: pluginsController.pluginList
-                        .map(
-                          (plugin) => Observer(
-                            builder: (context) => Tab(
-                              child: Row(
-                                children: [
-                                  Text(
-                                    plugin.name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium!
-                                            .fontSize,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface),
-                                  ),
-                                  const SizedBox(width: 5.0),
-                                  Container(
-                                    width: 8.0,
-                                    height: 8.0,
-                                    decoration: BoxDecoration(
-                                      color: widget.infoController
-                                                      .pluginSearchStatus[
-                                                  plugin.name] ==
-                                              'success'
-                                          ? Colors.green
-                                          : (widget.infoController
-                                                          .pluginSearchStatus[
-                                                      plugin.name] ==
-                                                  'pending')
-                                              ? Colors.grey
-                                              : Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    int currentIndex = widget.tabController.index;
-                    launchUrl(
-                      Uri.parse(pluginsController
-                          .pluginList[currentIndex].searchURL
-                          .replaceFirst('@keyword', keyword)),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  },
-                  icon: const Icon(Icons.open_in_browser_rounded),
-                ),
-                const SizedBox(width: 4),
-              ],
-            ),
-            const Divider(height: 1),
             Expanded(
               child: Observer(
                 builder: (context) => TabBarView(
@@ -349,7 +281,222 @@ class _SourceSheetState extends State<SourceSheet>
                   }),
                 ),
               ),
-            )
+            ),
+            const Divider(height: 1),
+            Listener(
+              onPointerSignal: (event) {
+                if (event is PointerScrollEvent) {
+                  if (!_showTabGrid && event.scrollDelta.dy < -8) {
+                    setState(() {
+                      _showTabGrid = true;
+                    });
+                  }
+                  // else if (_showTabGrid && event.scrollDelta.dy > 8) {
+                  //   setState(() {
+                  //     _showTabGrid = false;
+                  //   });
+                  // }
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                height: _showTabGrid ? 330 : 56,
+                child: Stack(
+                  children: [
+                    // TabBar（收起时显示）
+                    AnimatedOpacity(
+                      opacity: _showTabGrid ? 0 : 1,
+                      duration: const Duration(milliseconds: 200),
+                      child: GestureDetector(
+                        onVerticalDragUpdate: (details) {
+                          if (details.primaryDelta != null && details.primaryDelta! < -8) {
+                            setState(() {
+                              _showTabGrid = true;
+                            });
+                          }
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  setState(() {
+                                    _showTabGrid = true;
+                                  });
+                                },
+                                child: const Icon(Icons.keyboard_arrow_up),
+                              ),
+                            ),
+                            Expanded(
+                              child: TabBar(
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.center,
+                                dividerHeight: 0,
+                                controller: widget.tabController,
+                                //需要自定义Tab指示条到上方，待完成
+                                tabs: pluginsController.pluginList
+                                    .map(
+                                      (plugin) => Observer(
+                                        builder: (context) => Tab(
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                plugin.name,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    fontSize: Theme.of(context)
+                                                        .textTheme
+                                                        .titleMedium!
+                                                        .fontSize,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurface),
+                                              ),
+                                              const SizedBox(width: 5.0),
+                                              Container(
+                                                width: 8.0,
+                                                height: 8.0,
+                                                decoration: BoxDecoration(
+                                                  color: widget.infoController
+                                                                  .pluginSearchStatus[
+                                                              plugin.name] ==
+                                                          'success'
+                                                      ? Colors.green
+                                                      : (widget.infoController
+                                                                      .pluginSearchStatus[
+                                                                  plugin.name] ==
+                                                              'pending')
+                                                          ? Colors.grey
+                                                          : Colors.red,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                int currentIndex = widget.tabController.index;
+                                launchUrl(
+                                  Uri.parse(pluginsController
+                                      .pluginList[currentIndex].searchURL
+                                      .replaceFirst('@keyword', keyword)),
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              },
+                              icon: const Icon(Icons.open_in_browser_rounded),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // 展开时显示的按钮网格
+                    AnimatedOpacity(
+                      opacity: _showTabGrid ? 1 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: _showTabGrid
+                          ? GestureDetector(
+                              onVerticalDragUpdate: (details) {
+                                if (details.primaryDelta != null && details.primaryDelta! > 8) {
+                                  setState(() {
+                                    _showTabGrid = false;
+                                  });
+                                }
+                              },
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                color: Theme.of(context).scaffoldBackgroundColor,
+                                child: Column(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            width: 40,
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[400],
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                                        child: Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: List.generate(
+                                            pluginsController.pluginList.length,
+                                            (i) => ActionChip(
+                                              label: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    pluginsController.pluginList[i].name,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      color: widget.tabController.index == i
+                                                          ? Theme.of(context).colorScheme.onPrimary
+                                                          : Theme.of(context).colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    width: 8.0,
+                                                    height: 8.0,
+                                                    decoration: BoxDecoration(
+                                                      color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                          ? Colors.green
+                                                          : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
+                                                              ? Colors.grey
+                                                              : Colors.red,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              backgroundColor: widget.tabController.index == i
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : Theme.of(context).colorScheme.surfaceContainerLow,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  widget.tabController.index = i;
+                                                  _showTabGrid = false;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

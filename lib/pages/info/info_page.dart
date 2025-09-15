@@ -367,7 +367,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                   return DraggableScrollableSheet(
                     initialChildSize: (MediaQuery.sizeOf(context).height >= LayoutBreakpoint.compact['height']!)
                       ? 0.75
-                      : 0.95,
+                      : 0.90,
                     minChildSize: 0.4,
                     maxChildSize: 1.0,
                     expand: false,

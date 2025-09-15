@@ -74,6 +74,10 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
       queryManager?.queryAllSource(keyword);
     }
     super.initState();
+    widget.tabController.addListener(() {
+      if (!mounted) return;
+      setState(() {});
+    });
   }
 
   @override
@@ -250,6 +254,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                             child: TabBar(
                               isScrollable: true,
                               tabAlignment: TabAlignment.center,
+                              dividerHeight: 0,
                               controller: widget.tabController,
                               tabs: pluginsController.pluginList
                                   .map(
@@ -391,60 +396,60 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         alignment: WrapAlignment.start,
                                         children: List.generate(
                                             pluginsController.pluginList.length,
-                                                      (i) => GestureDetector(
-                                                        onLongPress: () {
-                                                          setState(() {
-                                                            widget.tabController.index = i;
-                                                          });
-                                                        },
-                                                        onSecondaryTap: (){
-                                                          setState(() {
-                                                            widget.tabController.index = i;
-                                                          });
-                                                        },
-                                                        child:ActionChip(
-                                                  label: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Text(
-                                                              pluginsController.pluginList[i].name,
-                                                              overflow: TextOverflow.ellipsis,
-                                                        style: TextStyle(
-                                                          fontSize: 15,
-                                                          color: widget.tabController.index == i
-                                                              ? Theme.of(context).colorScheme.onPrimary
-                                                              : Theme.of(context).colorScheme.onSurface,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Container(
-                                                        width: 8.0,
-                                                        height: 8.0,
-                                                        decoration: BoxDecoration(
-                                                                color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                              ? Colors.green
-                                                                    : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
-                                                                  ? Colors.grey
-                                                                  : Colors.red,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                        backgroundColor: widget.tabController.index == i
-                                                            ? Theme.of(context).colorScheme.primary
-                                                            : Theme.of(context).colorScheme.surfaceDim,
-                                                  shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                  onPressed: () {
+                                                (i) => GestureDetector(
+                                                  onLongPress: () {
                                                     setState(() {
                                                       widget.tabController.index = i;
-                                                      _showTabGrid = false;
                                                     });
                                                   },
-                                                )
+                                                  onSecondaryTap: (){
+                                                    setState(() {
+                                                      widget.tabController.index = i;
+                                                    });
+                                                  },
+                                                  child:ActionChip(
+                                                    label: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                                pluginsController.pluginList[i].name,
+                                                                overflow: TextOverflow.ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            color: widget.tabController.index == i
+                                                                ? Theme.of(context).colorScheme.onPrimary
+                                                                : Theme.of(context).colorScheme.onSurface,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Container(
+                                                          width: 8.0,
+                                                          height: 8.0,
+                                                          decoration: BoxDecoration(
+                                                                  color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                                ? Colors.green
+                                                                      : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
+                                                                    ? Colors.grey
+                                                                    : Colors.red,
+                                                            shape: BoxShape.circle,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    backgroundColor: widget.tabController.index == i
+                                                        ? Theme.of(context).colorScheme.primary
+                                                        : Theme.of(context).colorScheme.surface,
+                                                    shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        widget.tabController.index = i;
+                                                        _showTabGrid = false;
+                                                      });
+                                                    },
+                                                  )
                                                 ),
                                         ),
                                       ),
@@ -517,7 +522,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                 controller: widget.scrollController,
                                 child: ConstrainedBox(
                                   constraints: BoxConstraints(
-                                    minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) - tabBarHeight,
+                                    minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
                                   ),
                                   child: const Center(
                                     child: CircularProgressIndicator(),
@@ -531,7 +536,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                     controller: widget.scrollController,
                                     child: ConstrainedBox(
                                       constraints: BoxConstraints(
-                                        minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) - tabBarHeight,
+                                        minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
                                       ),
                                       child: Center(
                                         child: GeneralErrorWidget(
@@ -554,7 +559,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         controller: widget.scrollController,
                                         child: ConstrainedBox(
                                           constraints: BoxConstraints(
-                                            minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) - tabBarHeight,
+                                            minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
                                           ),
                                           child: Center(
                                             child: GeneralErrorWidget(

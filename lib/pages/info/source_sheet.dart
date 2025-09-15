@@ -46,7 +46,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _showTabGrid = false;
-        });        
+        });
       });
     }
     if (constraints.maxHeight < screenHeight * ( 1- tabGridHeightPercent ) - tabBarHeight - 30 -48 && expandedByScroll == 1) {
@@ -78,7 +78,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
 
   @override
   void dispose() {
-  _tabGridScrollController.dispose();
+    _tabGridScrollController.dispose();
     queryManager?.cancel();
     super.dispose();
   }
@@ -224,185 +224,183 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                     });
                   } else if (_showTabGrid && event.scrollDelta.dy > 8) {
                     // 仅当面板内部无需滚动时才允许收起
-              final maxScroll = _tabGridScrollController.hasClients
-                ? _tabGridScrollController.position.maxScrollExtent
-                : 0.0;
-                        if (maxScroll == 0.0) {
-                          setState(() {
-                            _showTabGrid = false;
-                          });
-                        }
-                      }
+                    final maxScroll = _tabGridScrollController.hasClients
+                        ? _tabGridScrollController.position.maxScrollExtent
+                        : 0.0;
+                    if (maxScroll == 0.0) {
+                      setState(() {
+                        _showTabGrid = false;
+                      });
                     }
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
+                  }
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
                     height: _showTabGrid ? MediaQuery.of(context).size.height * tabGridHeightPercent + tabBarHeight - 12 : tabBarHeight,
-                    child: Stack(
-                      children: [
-                        // TabBar（收起时显示）
-                        AnimatedOpacity(
-                              opacity: _showTabGrid ? 0 : 1,
-                              duration: const Duration(milliseconds: 200),
-                                child: Row(
-                                  children: [
-                                    const SizedBox(width: 4),
-                                    Padding(
+                child: Stack(
+                  children: [
+                    // TabBar（收起时显示）
+                    AnimatedOpacity(
+                      opacity: _showTabGrid ? 0 : 1,
+                      duration: const Duration(milliseconds: 200),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 4),
+                          Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(16),
-                                        onTap: () {
-                                          setState(() {
-                                            _showTabGrid = true;
-                                          });
-                                        },
-                                        child: const Icon(Icons.keyboard_arrow_up),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: TabBar(
-                                        isScrollable: true,
-                                        tabAlignment: TabAlignment.center,
-                                        dividerHeight: 0,
-                                        controller: widget.tabController,
-                                        //需要自定义Tab指示条到上方，待完成
-                                        tabs: pluginsController.pluginList
-                                            .map(
-                                              (plugin) => Observer(
-                                                builder: (context) => Tab(
-                                                  child: Row(
-                                                    children: [
-                                                      Text(
-                                                        plugin.name,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        style: TextStyle(
-                                                            fontSize: Theme.of(context)
-                                                                .textTheme
-                                                                .titleMedium!
-                                                                .fontSize,
-                                                            color: Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurface),
-                                                      ),
-                                                      const SizedBox(width: 5.0),
-                                                      Container(
-                                                        width: 8.0,
-                                                        height: 8.0,
-                                                        decoration: BoxDecoration(
-                                                          color: widget.infoController
-                                                                          .pluginSearchStatus[
-                                                                      plugin.name] ==
-                                                                  'success'
-                                                              ? Colors.green
-                                                              : (widget.infoController
-                                                                              .pluginSearchStatus[
-                                                                          plugin.name] ==
-                                                                      'pending')
-                                                                  ? Colors.grey
-                                                                  : Colors.red,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                setState(() {
+                                  _showTabGrid = true;
+                                });
+                              },
+                              child: const Icon(Icons.keyboard_arrow_up),
+                            ),
+                          ),
+                          Expanded(
+                            child: TabBar(
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.center,
+                              dividerHeight: 0,
+                              controller: widget.tabController,
+                              //需要自定义Tab指示条到上方，待完成
+                              tabs: pluginsController.pluginList
+                                  .map(
+                                    (plugin) => Observer(
+                                      builder: (context) => Tab(
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              plugin.name,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  fontSize: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium!
+                                                      .fontSize,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurface),
+                                            ),
+                                            const SizedBox(width: 5.0),
+                                            Container(
+                                              width: 8.0,
+                                              height: 8.0,
+                                              decoration: BoxDecoration(
+                                                color: widget.infoController
+                                                                .pluginSearchStatus[
+                                                            plugin.name] ==
+                                                        'success'
+                                                    ? Colors.green
+                                                    : (widget.infoController
+                                                                    .pluginSearchStatus[
+                                                                plugin.name] ==
+                                                            'pending')
+                                                        ? Colors.grey
+                                                        : Colors.red,
+                                                shape: BoxShape.circle,
                                               ),
-                                            )
-                                            .toList(),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                    IconButton(
-                                      onPressed: () {
-                                        int currentIndex = widget.tabController.index;
-                                        launchUrl(
-                                          Uri.parse(pluginsController
-                                              .pluginList[currentIndex].searchURL
-                                              .replaceFirst('@keyword', keyword)),
-                                          mode: LaunchMode.externalApplication,
-                                        );
-                                      },
-                                      icon: const Icon(Icons.open_in_browser_rounded),
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                ),
-                        ),
-                        // 展开时显示的按钮网格
-                        AnimatedOpacity(
-                          opacity: _showTabGrid ? 1 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: _showTabGrid
-                              ? Container(
-                                    color: Theme.of(context).scaffoldBackgroundColor,
-                                    child: 
-                                        Expanded(
-                                          child: SingleChildScrollView(
-                                            controller: _tabGridScrollController,
-                                            physics: const ClampingScrollPhysics(),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              int currentIndex = widget.tabController.index;
+                              launchUrl(
+                                Uri.parse(pluginsController
+                                    .pluginList[currentIndex].searchURL
+                                    .replaceFirst('@keyword', keyword)),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                            icon: const Icon(Icons.open_in_browser_rounded),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
+                    ),
+                    // 展开时显示的按钮网格
+                    AnimatedOpacity(
+                      opacity: _showTabGrid ? 1 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: _showTabGrid
+                          ? Container(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              child: SingleChildScrollView(
+                                controller: _tabGridScrollController,
+                                physics: const ClampingScrollPhysics(),
                                             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                                            child: Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              alignment: WrapAlignment.center,
-                                              children: List.generate(
-                                                pluginsController.pluginList.length,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: List.generate(
+                                      pluginsController.pluginList.length,
                                                 (i) => GestureDetector(
                                                   onLongPress: () {
                                                     showCustomSearchDialog(pluginsController.pluginList[i].name);
                                                   },
                                                   child:ActionChip(
-                                                  label: Row(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    children: [
-                                                      Text(
+                                            label: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
                                                         pluginsController.pluginList[i].name,
                                                         overflow: TextOverflow.ellipsis,
-                                                        style: TextStyle(
-                                                          fontSize: 15,
+                                                  style: TextStyle(
+                                                    fontSize: 15,
                                                           color: widget.tabController.index == i
                                                               ? Theme.of(context).colorScheme.onPrimary
                                                               : Theme.of(context).colorScheme.onSurface,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Container(
-                                                        width: 8.0,
-                                                        height: 8.0,
-                                                        decoration: BoxDecoration(
-                                                          color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                              ? Colors.green
-                                                              : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
-                                                                  ? Colors.grey
-                                                                  : Colors.red,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                    ],
                                                   ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  width: 8.0,
+                                                  height: 8.0,
+                                                  decoration: BoxDecoration(
+                                                          color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                        ? Colors.green
+                                                              : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
+                                                            ? Colors.grey
+                                                            : Colors.red,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                                   backgroundColor: widget.tabController.index == i
                                                       ? Theme.of(context).colorScheme.primary
                                                       : Theme.of(context).colorScheme.surfaceContainerLow,
-                                                  shape: RoundedRectangleBorder(
+                                            shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.circular(20),
-                                                  ),
-                                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      widget.tabController.index = i;
-                                                      _showTabGrid = false;
-                                                    });
-                                                  },
-                                                ),)
-                                              ),
                                             ),
+                                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            onPressed: () {
+                                              setState(() {
+                                                widget.tabController.index = i;
+                                                _showTabGrid = false;
+                                              });
+                                            },
+                                          )
                                           ),
-                                        ),
-                                  )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
+                                  ),
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                  ),
+                  ],
+                ),
+              ),
             ),
             const Divider(height: 1),
             Expanded(

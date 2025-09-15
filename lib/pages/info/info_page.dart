@@ -361,7 +361,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 isScrollControlled: true,
                 clipBehavior: Clip.antiAlias,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                // showDragHandle: true,
+                showDragHandle: true,
                 context: context,
                 builder: (context) {
                   return DraggableScrollableSheet(

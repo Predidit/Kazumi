@@ -5,7 +5,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -34,24 +33,23 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
   var expandedByScroll = 0; //通过滚动展开
   final tabBarHeight = 40.0;
   final tabGridHeightPercent = 0.25; //展开面板高度占比（应小于面板最小高度）
-  final isDesktop = Utils.isDesktop();
   void _maybeExpandTabGridOnListViewHeight(BoxConstraints constraints) {
     final screenHeight = MediaQuery.of(context).size.height;
-    if (constraints.maxHeight >= screenHeight - tabBarHeight - 1 && !_showTabGrid && expandedByScroll == 0) {
+    if (constraints.maxHeight >= screenHeight - tabBarHeight - 1 - 48 && !_showTabGrid && expandedByScroll == 0) { //48为小白条高度
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _showTabGrid = true;
         });
         expandedByScroll = 1;
       });
-    } else if (constraints.maxHeight < screenHeight * ( 1 - tabGridHeightPercent ) - tabBarHeight - 30 && _showTabGrid && expandedByScroll == 1) {
+    } else if (constraints.maxHeight < screenHeight * ( 1 - tabGridHeightPercent ) - tabBarHeight - 30 - 48 && _showTabGrid && expandedByScroll == 1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _showTabGrid = false;
         });        
       });
     }
-    if (constraints.maxHeight < screenHeight * ( 1- tabGridHeightPercent ) - tabBarHeight - 30 && expandedByScroll == 1) {
+    if (constraints.maxHeight < screenHeight * ( 1- tabGridHeightPercent ) - tabBarHeight - 30 -48 && expandedByScroll == 1) {
       expandedByScroll = 0;
     } // 避免点击视频源后收起面板时的抖动
   }
@@ -239,7 +237,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    height: _showTabGrid ? MediaQuery.of(context).size.height * tabGridHeightPercent + tabBarHeight : tabBarHeight,
+                    height: _showTabGrid ? MediaQuery.of(context).size.height * tabGridHeightPercent + tabBarHeight - 12 : tabBarHeight,
                     child: Stack(
                       children: [
                         // TabBar（收起时显示）
@@ -341,9 +339,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                           child: SingleChildScrollView(
                                             controller: _tabGridScrollController,
                                             physics: const ClampingScrollPhysics(),
-                                            padding: isDesktop
-                                                ? const EdgeInsets.fromLTRB(12, 12, 12, 12)
-                                                : const EdgeInsets.fromLTRB(12, 28, 12, 12), // 移动端 避免与状态栏冲突
+                                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                                             child: Wrap(
                                               spacing: 8,
                                               runSpacing: 8,

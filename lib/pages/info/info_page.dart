@@ -364,11 +364,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 showDragHandle: true,
                 context: context,
                 builder: (context) {
+                  final double minChildSize = 0.3;
                   return DraggableScrollableSheet(
                     initialChildSize: (MediaQuery.sizeOf(context).height >= LayoutBreakpoint.compact['height']!)
                       ? 0.75
                       : 0.90,
-                    minChildSize: 0.4,
+                    minChildSize: minChildSize,
                     maxChildSize: 1.0,
                     expand: false,
                     builder: (context, scrollController) {
@@ -376,6 +377,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         tabController: sourceTabController,
                         infoController: infoController,
                         scrollController: scrollController,
+                        tabGridHeight: minChildSize*0.7,
                       );
                     },
                   );

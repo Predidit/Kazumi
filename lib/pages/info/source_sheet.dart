@@ -19,39 +19,39 @@ class SourceSheet extends StatefulWidget {
     required this.tabController,
     required this.infoController,
     required this.scrollController,
+    required this.tabGridHeight,
   });
 
   final TabController tabController;
   final InfoController infoController;
   final ScrollController scrollController;
+  final double tabGridHeight;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
 }
 
 class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStateMixin {
-  var expandedByScroll = 0; //通过滚动展开
+  bool expandedByScroll = false; //通过滚动展开
+  var expandedByClick = 0; //通过点击展开
   final tabBarHeight = 48.0;
-  final tabGridHeightPercent = 0.25; //展开面板高度占比（应小于面板最小高度）
   void _maybeExpandTabGridOnListViewHeight(BoxConstraints constraints) {
     final screenHeight = MediaQuery.of(context).size.height;
-    if (constraints.maxHeight >= screenHeight - tabBarHeight - 1 - 48 && !_showTabGrid && expandedByScroll == 0) { //48为小白条高度
+    if (constraints.maxHeight >= screenHeight - tabBarHeight - 1 - 48 && !_showTabGrid && !expandedByScroll && expandedByClick !=2) { //48为小白条高度 手动点击按钮后不响应弹出
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _showTabGrid = true;
+        expandedByScroll = true;
         });
-        expandedByScroll = 1;
       });
-    } else if (constraints.maxHeight < screenHeight * ( 1 - tabGridHeightPercent ) - tabBarHeight - 30 - 48 && _showTabGrid && expandedByScroll == 1) {
+    } else if (constraints.maxHeight < screenHeight * ( 1 - widget.tabGridHeight ) - tabBarHeight - 1 - 48 - 40 && _showTabGrid &&expandedByScroll && expandedByClick !=1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         setState(() {
           _showTabGrid = false;
+        expandedByScroll = false;
         });
       });
     }
-    if (constraints.maxHeight < screenHeight * ( 1- tabGridHeightPercent ) - tabBarHeight - 30 -48 && expandedByScroll == 1) {
-      expandedByScroll = 0;
-    } // 避免点击视频源后收起面板时的抖动
   }
   final ScrollController _tabGridScrollController = ScrollController();
   bool _showTabGrid = false;
@@ -222,11 +222,11 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
             Listener(
               onPointerSignal: (event) {
                 if (event is PointerScrollEvent) {
-                  if (!_showTabGrid && (event.scrollDelta.dy < -8 || event.scrollDelta.dy > 8)) {
+                  if (!_showTabGrid && (event.scrollDelta.dy.abs() > 8)) {
                     setState(() {
                       _showTabGrid = true;
                     });
-                  } else if (_showTabGrid && (event.scrollDelta.dy < -8 || event.scrollDelta.dy > 8)) {
+                  } else if (_showTabGrid && (event.scrollDelta.dy.abs() > 8)) {
                     // 仅当面板内部无需滚动时才允许收起
                     final maxScroll = _tabGridScrollController.hasClients
                         ? _tabGridScrollController.position.maxScrollExtent
@@ -241,7 +241,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                    height: _showTabGrid ? MediaQuery.of(context).size.height * tabGridHeightPercent + tabBarHeight - 12 : tabBarHeight,
+                    height: _showTabGrid ? MediaQuery.of(context).size.height * widget.tabGridHeight + tabBarHeight - 12 : tabBarHeight,
                 child: Stack(
                   children: [
                     // TabBar（收起时显示）
@@ -289,7 +289,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                 plugin.name] ==
                                                             'pending')
                                                         ? Colors.grey
-                                                        : Colors.red,
+                                                        : Theme.of(context).colorScheme.error,
                                                 shape: BoxShape.circle,
                                               ),
                                             ),
@@ -303,6 +303,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                           ),
                           IconButton(
                             onPressed: () {
+                              expandedByClick = 1;
                               setState(() {
                                 _showTabGrid = true;
                               });
@@ -310,7 +311,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                             icon: const Icon(Icons.keyboard_arrow_down),
                             tooltip: '展开', 
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: 2),
                         ],
                       ),
                     ),
@@ -321,142 +322,167 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                       child: _showTabGrid
                           ? Container(
                               color: Theme.of(context).scaffoldBackgroundColor,
-                              child: ScrollConfiguration(
-                                behavior: const ScrollBehavior().copyWith(scrollbars: false),
-                                child:SingleChildScrollView(
-                                  controller: _tabGridScrollController,
-                                  physics: const ClampingScrollPhysics(),
-                                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                              child: Column(
+                                children:[
+                                  Row(
+                                    children:[
                                       Row(
-                                        children:[
-                                          Row(
-                                            children: [
-                                              Text('视频源', style: TextStyle(fontSize: 18))
-                                            ]
-                                          ),
-                                          Spacer(),
-                                          Row(
-                                            children: [
-                                              // IconButton(
-                                              //   onPressed: () {
-                                              //     queryManager?.querySource(keyword, pluginsController.pluginList[widget.tabController.index].name);
-                                              //   },
-                                              //   icon: const Icon(Icons.refresh),
-                                              //   tooltip: '重新检索结果',
-                                              // ),
-                                              // IconButton(
-                                              //   onPressed: () {
-                                              //     showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                              //   },
-                                              //   onLongPress: (){
-                                              //     showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                              //   },
-                                              //   icon: const Icon(Icons.search_rounded),
-                                              //   tooltip: '别名检索(长按时手动输入)',
-                                              // ),
-                                              IconButton(
-                                                onPressed: () {
-                                                  int currentIndex = widget.tabController.index;
-                                                  launchUrl(
-                                                    Uri.parse(pluginsController
-                                                        .pluginList[currentIndex].searchURL
-                                                        .replaceFirst('@keyword', keyword)),
-                                                    mode: LaunchMode.externalApplication,
-                                                  );
-                                                },
-                                                icon: const Icon(Icons.open_in_browser_rounded),
-                                                tooltip: '在浏览器中打开当前视频源搜索页',
-                                              ),
-                                              IconButton(
-                                                onPressed: () {
-                                                  Modular.to.pushNamed('/settings/plugin/');
-                                                },
-                                                icon: const Icon(Icons.settings_rounded),
-                                                tooltip: '规则管理',
-                                              ),
-                                              IconButton(
-                                                onPressed: () {
-                                                  setState(() {
-                                                    _showTabGrid = false;
-                                                  });                                                },
-                                                icon: const Icon(Icons.keyboard_arrow_up),
-                                                tooltip: '收起',
-                                              ),
-                                            ]
-                                          ),
+                                        children: [
+                                          SizedBox(width : 16),
+                                          Text('视频源', style: TextStyle(fontSize: 18))
                                         ]
                                       ),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        alignment: WrapAlignment.start,
-                                        children: List.generate(
-                                            pluginsController.pluginList.length,
-                                                (i) => GestureDetector(
-                                                  onLongPress: () {
-                                                    setState(() {
-                                                      widget.tabController.index = i;
-                                                    });
-                                                  },
-                                                  onSecondaryTap: (){
-                                                    setState(() {
-                                                      widget.tabController.index = i;
-                                                    });
-                                                  },
-                                                  child:ActionChip(
-                                                    label: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                                pluginsController.pluginList[i].name,
-                                                                overflow: TextOverflow.ellipsis,
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            color: widget.tabController.index == i
-                                                                ? Theme.of(context).colorScheme.onPrimary
-                                                                : Theme.of(context).colorScheme.onSurface,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(width: 8),
-                                                        Container(
-                                                          width: 8.0,
-                                                          height: 8.0,
-                                                          decoration: BoxDecoration(
-                                                                  color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                                ? Colors.green
-                                                                      : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
-                                                                    ? Colors.grey
-                                                                    : Colors.red,
-                                                            shape: BoxShape.circle,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    backgroundColor: widget.tabController.index == i
-                                                        ? Theme.of(context).colorScheme.primary
-                                                        : Theme.of(context).colorScheme.surface,
-                                                    shape: RoundedRectangleBorder(
-                                                            borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        widget.tabController.index = i;
-                                                        _showTabGrid = false;
-                                                      });
-                                                    },
-                                                  )
-                                                ),
-                                        ),
+                                      Spacer(),
+                                      Row(
+                                        children: [
+                                          // IconButton(
+                                          //   onPressed: () {
+                                          //     queryManager?.querySource(keyword, pluginsController.pluginList[widget.tabController.index].name);
+                                          //   },
+                                          //   icon: const Icon(Icons.refresh),
+                                          //   tooltip: '重新检索结果',
+                                          // ),
+                                          // IconButton(
+                                          //   onPressed: () {
+                                          //     showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
+                                          //   },
+                                          //   onLongPress: (){
+                                          //     showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
+                                          //   },
+                                          //   icon: const Icon(Icons.search_rounded),
+                                          //   tooltip: '别名检索(长按时手动输入)',
+                                          // ),
+                                          IconButton(
+                                            onPressed: () {
+                                              int currentIndex = widget.tabController.index;
+                                              launchUrl(
+                                                Uri.parse(pluginsController
+                                                    .pluginList[currentIndex].searchURL
+                                                    .replaceFirst('@keyword', keyword)),
+                                                mode: LaunchMode.externalApplication,
+                                              );
+                                            },
+                                            icon: const Icon(Icons.open_in_browser_rounded),
+                                            tooltip: '在浏览器中打开当前视频源搜索页',
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              Modular.to.pushNamed('/settings/plugin/');
+                                            },
+                                            icon: const Icon(Icons.extension),
+                                            tooltip: '规则管理',
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              expandedByClick = 2;
+                                              setState(() {
+                                                _showTabGrid = false;
+                                              });},
+                                            icon: const Icon(Icons.keyboard_arrow_up),
+                                            tooltip: '收起',
+                                          ),
+                                          SizedBox(width: 2),
+                                        ]
                                       ),
-                                    ],
-                                  )
-                                ),
-                              )
+                                    ]
+                                  ),
+                                  Expanded(
+                                    child: ScrollConfiguration(
+                                      behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                                      child:SingleChildScrollView(
+                                        controller: _tabGridScrollController,
+                                        physics: const ClampingScrollPhysics(),
+                                        padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 8,
+                                              alignment: WrapAlignment.start,
+                                              children: List.generate(
+                                                  pluginsController.pluginList.length,
+                                                      (i) => GestureDetector(
+                                                        onLongPress: () {
+                                                          setState(() {
+                                                            widget.tabController.index = i;
+                                                          });
+                                                        },
+                                                        onSecondaryTap: (){
+                                                          setState(() {
+                                                            widget.tabController.index = i;
+                                                          });
+                                                        },
+                                                        child:ActionChip(
+                                                          label: Text(
+                                                                      pluginsController.pluginList[i].name,
+                                                                      overflow: TextOverflow.ellipsis,
+                                                                style: TextStyle(
+                                                                  fontSize: 15,
+                                                                  color: widget.tabController.index == i
+                                                                      ? Theme.of(context).colorScheme.onPrimary
+                                                                      : null,
+                                                                ),
+                                                              ),
+                                                              // const SizedBox(width: 8),
+                                                              // Container(
+                                                              //   width: 8.0,
+                                                              //   height: 8.0,
+                                                              //   decoration: BoxDecoration(
+                                                              //           color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                              //         ? Colors.green
+                                                              //               : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
+                                                              //             ? Colors.grey
+                                                              //             : Colors.red,
+                                                              //     shape: BoxShape.circle,
+                                                              //   ),
+                                                              // ),
+                                                          backgroundColor: widget.tabController.index == i
+                                                              ? (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                                ? Theme.of(context).colorScheme.secondary
+                                                                : Color.lerp(
+                                                                    Theme.of(context).colorScheme.secondary,
+                                                                    widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending'
+                                                                        ? Colors.grey
+                                                                        : Theme.of(context).colorScheme.error,
+                                                                    0.5,
+                                                                  ))
+                                                              : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
+                                                                  ? null
+                                                                  : Color.lerp(
+                                                                      null,
+                                                                      widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending'
+                                                                          ? Colors.grey
+                                                                          : Theme.of(context).colorScheme.errorContainer,
+                                                                      0.15,
+                                                                    )),
+                                                          shape: RoundedRectangleBorder(
+                                                                  borderRadius: BorderRadius.circular(9),
+                                                          ),
+                                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              widget.tabController.index = i;
+                                                              if (!expandedByScroll){ //通过滑动展开后点击源不收回
+                                                                _showTabGrid = false;
+                                                              }
+                                                            });
+                                                          },
+                                                        )
+                                                      ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      ),
+                                    ),
+                                  ),
+                                ]
+                              ),
+
+
+
+
                             )
                           : const SizedBox.shrink(),
                     ),
@@ -522,7 +548,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                 controller: widget.scrollController,
                                 child: ConstrainedBox(
                                   constraints: BoxConstraints(
-                                    minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
+                                    minHeight: MediaQuery.of(context).size.height * (1 - widget.tabGridHeight) * 0.75,
                                   ),
                                   child: const Center(
                                     child: CircularProgressIndicator(),
@@ -536,7 +562,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                     controller: widget.scrollController,
                                     child: ConstrainedBox(
                                       constraints: BoxConstraints(
-                                        minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
+                                        minHeight: MediaQuery.of(context).size.height * (1 - widget.tabGridHeight) * 0.75,
                                       ),
                                       child: Center(
                                         child: GeneralErrorWidget(
@@ -559,7 +585,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         controller: widget.scrollController,
                                         child: ConstrainedBox(
                                           constraints: BoxConstraints(
-                                            minHeight: MediaQuery.of(context).size.height * (1 - tabGridHeightPercent) * 0.75,
+                                            minHeight: MediaQuery.of(context).size.height * (1 - widget.tabGridHeight) * 0.75,
                                           ),
                                           child: Center(
                                             child: GeneralErrorWidget(

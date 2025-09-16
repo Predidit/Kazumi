@@ -1,16 +1,126 @@
 import 'dart:async';
+import 'dart:collection';
+import 'package:flutter/material.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
 class WebviewAppleItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
+  PlatformHeadlessInAppWebView? headlessWebView;
   Timer? loadingMonitorTimer;
   bool hasInjectedScripts = false;
 
   @override
   Future<void> init() async {
-    initEventController.add(true);
+    headlessWebView ??= PlatformHeadlessInAppWebView(
+      PlatformHeadlessInAppWebViewCreationParams(
+        initialUserScripts: UnmodifiableListView<UserScript>([
+          UserScript(
+            source: '''
+            function removeLazyLoading() {
+              document.querySelectorAll('iframe[loading="lazy"]').forEach(iframe => {
+                console.log('Removing lazy loading from:', iframe.src);
+                iframe.removeAttribute('loading');
+              });
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', removeLazyLoading);
+            } else {
+              removeLazyLoading();
+            }
+          ''',
+            injectionTime: UserScriptInjectionTime.AT_DOCUMENT_END,
+          ),
+        ]),
+        initialSettings: InAppWebViewSettings(
+          userAgent: Utils.getRandomUA(),
+          mediaPlaybackRequiresUserGesture: true,
+          useOnLoadResource: false,
+          cacheEnabled: false,
+          isInspectable: false,
+          contentBlockers: [
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?devtools-detector\.js",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.SCRIPT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(urlFilter: '.*', resourceType: [
+                ContentBlockerTriggerResourceType.IMAGE,
+              ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?googleads",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.DOCUMENT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?googlesyndication\.com",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.DOCUMENT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?prestrain\.html",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.DOCUMENT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?prestrain%2Ehtml",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.DOCUMENT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+            ContentBlocker(
+              trigger: ContentBlockerTrigger(
+                  urlFilter: r"^https?://.+?adtrafficquality",
+                  resourceType: [
+                    ContentBlockerTriggerResourceType.DOCUMENT,
+                  ]),
+              action:
+                  ContentBlockerAction(type: ContentBlockerActionType.BLOCK),
+            ),
+          ],
+        ),
+        onWebViewCreated: (controller) {
+          debugPrint('[WebView] Created');
+          webviewController = controller;
+          initEventController.add(true);
+        },
+        onLoadStart: (controller, url) {
+          logEventController.add('started loading: $url');
+        },
+        onLoadStop: (controller, url) {
+          logEventController.add('loading completed: $url');
+        },
+        onReceivedError: (controller, request, error) {
+          debugPrint(
+              '[WebView] Error: ${error.toString()} - Request: ${request.url}');
+        },
+      ),
+    );
+    await headlessWebView?.run();
   }
 
   @override
@@ -259,7 +369,6 @@ class WebviewAppleItemControllerImpel
   @override
   Future<void> unloadPage() async {
     loadingMonitorTimer?.cancel();
-    await webviewController!.clearAllCache();
     await webviewController!
         .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
   }
@@ -267,5 +376,8 @@ class WebviewAppleItemControllerImpel
   @override
   void dispose() {
     loadingMonitorTimer?.cancel();
+    headlessWebView?.dispose();
+    headlessWebView = null;
+    webviewController = null;
   }
 }

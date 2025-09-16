@@ -14,8 +14,8 @@ class _WebviewAppleItemImpelState extends State<WebviewAppleItemImpel> {
 
   @override
   void initState() {
-    webviewAppleItemController.init();
     super.initState();
+    webviewAppleItemController.init();
   }
 
   @override

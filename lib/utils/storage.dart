@@ -7,15 +7,17 @@ import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/search/search_history_module.dart';
 
 class GStorage {
-  // Don't use favorites box, it's replaced by collectibles.
+  /// Don't use favorites box, it's replaced by collectibles.
   static late Box<BangumiItem> favorites;
   static late Box<CollectedBangumi> collectibles;
   static late Box<History> histories;
   static late Box<CollectedBangumiChange> collectChanges;
   static late Box<String> shieldList;
   static late final Box<dynamic> setting;
+  static late Box<SearchHistory> searchHistory;
 
   static Future init() async {
     Hive.registerAdapter(BangumiItemAdapter());
@@ -24,12 +26,14 @@ class GStorage {
     Hive.registerAdapter(ProgressAdapter());
     Hive.registerAdapter(HistoryAdapter());
     Hive.registerAdapter(CollectedBangumiChangeAdapter());
+    Hive.registerAdapter(SearchHistoryAdapter());
     favorites = await Hive.openBox('favorites');
     collectibles = await Hive.openBox('collectibles');
     histories = await Hive.openBox('histories');
     setting = await Hive.openBox('setting');
     collectChanges = await Hive.openBox('collectchanges');
     shieldList = await Hive.openBox('shieldList');
+    searchHistory = await Hive.openBox('searchHistory');
   }
 
   static Future<void> backupBox(String boxName, String backupFilePath) async {

@@ -57,12 +57,71 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$searchHistoriesAtom =
+      Atom(name: '_SearchPageController.searchHistories', context: context);
+
+  @override
+  ObservableList<SearchHistory> get searchHistories {
+    _$searchHistoriesAtom.reportRead();
+    return super.searchHistories;
+  }
+
+  @override
+  set searchHistories(ObservableList<SearchHistory> value) {
+    _$searchHistoriesAtom.reportWrite(value, super.searchHistories, () {
+      super.searchHistories = value;
+    });
+  }
+
+  late final _$searchBangumiAsyncAction =
+      AsyncAction('_SearchPageController.searchBangumi', context: context);
+
+  @override
+  Future<void> searchBangumi(String input, {String type = 'add'}) {
+    return _$searchBangumiAsyncAction
+        .run(() => super.searchBangumi(input, type: type));
+  }
+
+  late final _$deleteSearchHistoryAsyncAction = AsyncAction(
+      '_SearchPageController.deleteSearchHistory',
+      context: context);
+
+  @override
+  Future<void> deleteSearchHistory(SearchHistory history) {
+    return _$deleteSearchHistoryAsyncAction
+        .run(() => super.deleteSearchHistory(history));
+  }
+
+  late final _$clearSearchHistoryAsyncAction =
+      AsyncAction('_SearchPageController.clearSearchHistory', context: context);
+
+  @override
+  Future<void> clearSearchHistory() {
+    return _$clearSearchHistoryAsyncAction
+        .run(() => super.clearSearchHistory());
+  }
+
+  late final _$_SearchPageControllerActionController =
+      ActionController(name: '_SearchPageController', context: context);
+
+  @override
+  void loadSearchHistories() {
+    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
+        name: '_SearchPageController.loadSearchHistories');
+    try {
+      return super.loadSearchHistories();
+    } finally {
+      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
-bangumiList: ${bangumiList}
+bangumiList: ${bangumiList},
+searchHistories: ${searchHistories}
     ''';
   }
 }

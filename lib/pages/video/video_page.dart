@@ -134,7 +134,7 @@ class _VideoPageState extends State<VideoPage>
       playerController.init(mediaUrl, offset: offset);
     });
     _logSubscription = webviewItemController.onLog.listen((event) {
-      debugPrint('Kazumi Webview log: $event');
+      debugPrint('[kazumi webview parser]: $event');
       if (event == 'clear') {
         clearWebviewLog();
         return;

@@ -143,10 +143,9 @@ class _TimelinePageState extends State<TimelinePage>
                           '时间机器',
                           style: Theme.of(context)
                               .textTheme
-                              .headlineSmall
+                              .titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
                               ),
                         ),
                       ],
@@ -195,12 +194,11 @@ class _TimelinePageState extends State<TimelinePage>
                                       '$year年',
                                       style: Theme.of(context)
                                           .textTheme
-                                          .titleLarge
+                                          .titleMedium
                                           ?.copyWith(
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface,
-                                            fontWeight: FontWeight.w600,
                                           ),
                                     ),
                                   ],

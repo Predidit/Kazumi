@@ -164,8 +164,13 @@ class _PopularPageState extends State<PopularPage>
   }
 
   Widget contentGrid(bangumiList) {
-    int crossCount =
-        MediaQuery.of(context).orientation != Orientation.portrait ? 6 : 3;
+    int crossCount = 3;
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+      crossCount = 5;
+    }
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+      crossCount = 6;
+    }
     return SliverGrid(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         // 行间距

@@ -263,6 +263,13 @@ class _PopularPageState extends State<PopularPage>
           icon: const Icon(Icons.search),
         ),
     ];
+    actions.add(
+      IconButton(
+        tooltip: '历史记录',
+        onPressed: () => Modular.to.pushNamed('/settings/history/'),
+        icon: const Icon(Icons.history),
+      ),
+    );
     if (Utils.isDesktop()) {
       if (!showWindowButton()) {
         actions.add(

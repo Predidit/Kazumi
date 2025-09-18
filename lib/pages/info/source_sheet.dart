@@ -34,6 +34,7 @@ class SourceSheet extends StatefulWidget {
 class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStateMixin {
   bool expandedByScroll = false; //通过滚动展开
   var expandedByClick = 0; //通过点击展开
+  bool _showOnlySuccess = false;
   final tabBarHeight = 48.0;
   void _maybeExpandTabGridOnListViewHeight(BoxConstraints constraints) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -288,8 +289,13 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                     .pluginSearchStatus[
                                                                 plugin.name] ==
                                                             'pending')
-                                                        ? Colors.grey
-                                                        : Theme.of(context).colorScheme.error,
+                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                        : (widget.infoController
+                                                                    .pluginSearchStatus[
+                                                                plugin.name] ==
+                                                            'noresult')
+                                                            ? Colors.yellow
+                                                            : Colors.red,
                                                 shape: BoxShape.circle,
                                               ),
                                             ),
@@ -323,54 +329,45 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                           ? Container(
                               color: Theme.of(context).scaffoldBackgroundColor,
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children:[
                                   Row(
                                     children:[
                                       Row(
                                         children: [
                                           SizedBox(width : 16),
-                                          Text('视频源', style: TextStyle(fontSize: 18))
+                                          Tooltip(
+                                            message:"点击打开规则管理",
+                                            child: TextButton(
+                                              onPressed: () {
+                                                Modular.to.pushNamed('/settings/plugin/');
+                                              },
+                                              style: TextButton.styleFrom(
+                                                padding: EdgeInsets.zero,
+                                                minimumSize: const Size(0, 0),
+                                              ),
+                                              child: Text(
+                                                '番源',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            )
+                                          ),
                                         ]
                                       ),
                                       Spacer(),
                                       Row(
                                         children: [
-                                          // IconButton(
-                                          //   onPressed: () {
-                                          //     queryManager?.querySource(keyword, pluginsController.pluginList[widget.tabController.index].name);
-                                          //   },
-                                          //   icon: const Icon(Icons.refresh),
-                                          //   tooltip: '重新检索结果',
-                                          // ),
-                                          // IconButton(
-                                          //   onPressed: () {
-                                          //     showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                          //   },
-                                          //   onLongPress: (){
-                                          //     showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                          //   },
-                                          //   icon: const Icon(Icons.search_rounded),
-                                          //   tooltip: '别名检索(长按时手动输入)',
-                                          // ),
                                           IconButton(
                                             onPressed: () {
-                                              int currentIndex = widget.tabController.index;
-                                              launchUrl(
-                                                Uri.parse(pluginsController
-                                                    .pluginList[currentIndex].searchURL
-                                                    .replaceFirst('@keyword', keyword)),
-                                                mode: LaunchMode.externalApplication,
-                                              );
+                                              setState(() {
+                                                _showOnlySuccess = !_showOnlySuccess;
+                                              });
                                             },
-                                            icon: const Icon(Icons.open_in_browser_rounded),
-                                            tooltip: '在浏览器中打开当前视频源搜索页',
-                                          ),
-                                          IconButton(
-                                            onPressed: () {
-                                              Modular.to.pushNamed('/settings/plugin/');
-                                            },
-                                            icon: const Icon(Icons.extension),
-                                            tooltip: '规则管理',
+                                            icon: Icon(_showOnlySuccess ? Icons.filter_alt : Icons.filter_alt_outlined,),
+                                            tooltip: '筛选有结果项',
                                           ),
                                           IconButton(
                                             onPressed: () {
@@ -396,82 +393,142 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              alignment: WrapAlignment.start,
-                                              children: List.generate(
-                                                  pluginsController.pluginList.length,
-                                                      (i) => GestureDetector(
-                                                        onLongPress: () {
-                                                          setState(() {
-                                                            widget.tabController.index = i;
-                                                          });
-                                                        },
-                                                        onSecondaryTap: (){
-                                                          setState(() {
-                                                            widget.tabController.index = i;
-                                                          });
-                                                        },
-                                                        child:ActionChip(
-                                                          label: Text(
-                                                                      pluginsController.pluginList[i].name,
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                style: TextStyle(
-                                                                  fontSize: 15,
-                                                                  color: widget.tabController.index == i
-                                                                      ? Theme.of(context).colorScheme.onPrimary
-                                                                      : null,
-                                                                ),
-                                                              ),
-                                                              // const SizedBox(width: 8),
-                                                              // Container(
-                                                              //   width: 8.0,
-                                                              //   height: 8.0,
-                                                              //   decoration: BoxDecoration(
-                                                              //           color: widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                              //         ? Colors.green
-                                                              //               : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending')
-                                                              //             ? Colors.grey
-                                                              //             : Colors.red,
-                                                              //     shape: BoxShape.circle,
-                                                              //   ),
-                                                              // ),
-                                                          backgroundColor: widget.tabController.index == i
-                                                              ? (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                                ? Theme.of(context).colorScheme.secondary
-                                                                : Color.lerp(
-                                                                    Theme.of(context).colorScheme.secondary,
-                                                                    widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending'
-                                                                        ? Colors.grey
-                                                                        : Theme.of(context).colorScheme.error,
-                                                                    0.5,
-                                                                  ))
-                                                              : (widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'success'
-                                                                  ? null
-                                                                  : Color.lerp(
-                                                                      null,
-                                                                      widget.infoController.pluginSearchStatus[pluginsController.pluginList[i].name] == 'pending'
-                                                                          ? Colors.grey
-                                                                          : Theme.of(context).colorScheme.errorContainer,
-                                                                      0.15,
-                                                                    )),
-                                                          shape: RoundedRectangleBorder(
-                                                                  borderRadius: BorderRadius.circular(9),
-                                                          ),
-                                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            Observer(
+                                              builder: (_) {
+                                                // 根据筛选条件生成要显示的插件列表
+                                                final visiblePluginsWithIndex = pluginsController.pluginList
+                                                  .asMap()
+                                                  .entries
+                                                  .where((entry) {
+                                                    final plugin = entry.value;
+                                                    final status = widget.infoController.pluginSearchStatus[plugin.name];
+                                                    if (_showOnlySuccess) return status == 'success';
+                                                    return true;
+                                                  })
+                                                  .toList(); // entry.key = 原始索引
+
+                                                return Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  alignment: WrapAlignment.start,
+                                                  children: visiblePluginsWithIndex.map((entry){
+                                                    final originalIndex = entry.key;
+                                                    final plugin = entry.value;
+                                                    final status = widget.infoController.pluginSearchStatus[plugin.name];
+
+                                                    return MenuAnchor(
+                                                      menuChildren: [
+                                                        TextButton.icon(
+                                                          onPressed: (){
+                                                            queryManager?.querySource(keyword, plugin.name);
+                                                          }, 
+                                                          icon: const Icon(Icons.refresh),
+                                                          label: const Text("重新检索")
+                                                        ),
+                                                        TextButton.icon(
                                                           onPressed: () {
-                                                            setState(() {
-                                                              widget.tabController.index = i;
-                                                              if (!expandedByScroll){ //通过滑动展开后点击源不收回
-                                                                _showTabGrid = false;
-                                                              }
-                                                            });
+                                                            showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
                                                           },
-                                                        )
+                                                          icon: const Icon(Icons.saved_search_rounded),
+                                                          label: const Text("别名检索"),
+                                                        ),
+                                                        TextButton.icon(
+                                                          onPressed: (){
+                                                            showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
+                                                          },
+                                                          icon: const Icon(Icons.search_rounded),
+                                                          label: const Text("手动检索"),
+                                                        ),
+                                                        TextButton.icon(
+                                                          onPressed: () {
+                                                            launchUrl(
+                                                              Uri.parse(pluginsController
+                                                                  .pluginList[widget.tabController.index].searchURL
+                                                                  .replaceFirst('@keyword', keyword)),
+                                                              mode: LaunchMode.externalApplication,
+                                                            );
+                                                          },
+                                                          icon: const Icon(Icons.open_in_browser_rounded),
+                                                          label: const Text('打开网页'),
+                                                        ),
+                                                      ],
+                                                      builder:(context, controller, child){
+                                                        return GestureDetector(
+                                                          onSecondaryTap: () {
+                                                            widget.tabController.index = originalIndex;
+                                                            controller.open();
+                                                          },
+                                                          onLongPress: () {
+                                                            widget.tabController.index = originalIndex;
+                                                            controller.open();
+                                                          },
+                                                          child: child,
+                                                        );
+                                                      },
+                                                      child: ActionChip(
+                                                        label: Text(
+                                                          plugin.name,
+                                                          overflow: TextOverflow.ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            color: widget.tabController.index == originalIndex
+                                                                ? Theme.of(context).colorScheme.onPrimary
+                                                                : null,
+                                                          ),
+                                                        ),
+                                                        backgroundColor: widget.tabController.index == originalIndex
+                                                            ? status == 'success'
+                                                              ? Theme.of(context).colorScheme.secondary
+                                                              : Color.lerp(
+                                                                  Theme.of(context).colorScheme.secondary,
+                                                                  status == 'pending'
+                                                                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                      : status =='noresult'
+                                                                        ? Colors.yellow
+                                                                        : Colors.red,
+                                                                  0.3,
+                                                                )
+                                                            : status == 'success'
+                                                                ? null
+                                                                : Color.lerp(
+                                                                    null,
+                                                                    status == 'pending'
+                                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                        : status =='noresult'
+                                                                          ? Colors.yellow
+                                                                          : Colors.red,
+                                                                    0.075,
+                                                                  ),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(9),
+                                                          side: BorderSide(
+                                                            color: status == 'success'
+                                                              ? Color.lerp(Theme.of(context).colorScheme.outlineVariant,Theme.of(context).colorScheme.secondary,0.15)!
+                                                              // ? Theme.of(context).colorScheme.outlineVariant
+                                                              : Color.lerp(
+                                                                  Theme.of(context).colorScheme.outlineVariant,
+                                                                  status == 'pending'
+                                                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                    : status == 'noresult'
+                                                                        ? Colors.yellow
+                                                                        : Colors.red,
+                                                                  0.15
+                                                                )!,
+                                                          ),
+                                                        ),
+                                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                        onPressed: () {
+                                                          widget.tabController.index = originalIndex;
+                                                          // if (!expandedByScroll) {
+                                                          //   _showTabGrid = false;
+                                                          // }
+                                                        },
                                                       ),
-                                              ),
-                                            ),
+                                                    );
+                                                  }).toList(),
+                                                );
+                                              }
+                                            )
                                           ],
                                         )
                                       ),
@@ -479,10 +536,6 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                   ),
                                 ]
                               ),
-
-
-
-
                             )
                           : const SizedBox.shrink(),
                     ),
@@ -580,7 +633,9 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                     ),
                                   )
 
-                                : cardList.isEmpty
+                                : (widget.infoController
+                                        .pluginSearchStatus[plugin.name] ==
+                                    'noresult'
                                     ? SingleChildScrollView(
                                         controller: widget.scrollController,
                                         child: ConstrainedBox(
@@ -612,6 +667,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         controller: widget.scrollController,
                                         children: cardList,
                                       )
+                                  )
                                 );
                       }),
                     ),

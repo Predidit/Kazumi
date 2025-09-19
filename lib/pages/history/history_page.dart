@@ -119,7 +119,7 @@ class _HistoryPageState extends State<HistoryPage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 3;
     }
-    double cardHeight = 100;
+    double cardHeight = 120;
 
     return CustomScrollView(
       slivers: [

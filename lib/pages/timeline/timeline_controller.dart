@@ -9,7 +9,8 @@ class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
   @observable
-  ObservableList<List<BangumiItem>> bangumiCalendar = ObservableList<List<BangumiItem>>();
+  ObservableList<List<BangumiItem>> bangumiCalendar =
+      ObservableList<List<BangumiItem>>();
 
   @observable
   String seasonString = '';
@@ -19,6 +20,8 @@ abstract class _TimelineController with Store {
 
   @observable
   bool isTimeOut = false;
+
+  int sortType = 1;
 
   late DateTime selectedDate;
 
@@ -33,7 +36,9 @@ abstract class _TimelineController with Store {
     isTimeOut = false;
     bangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
+    changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
   }
@@ -63,10 +68,41 @@ abstract class _TimelineController with Store {
     } else {
       isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
     }
+    if (!isTimeOut) {
+      changeSortType(sortType);
+    }
   }
 
   void tryEnterSeason(DateTime date) {
     selectedDate = date;
     seasonString = "加载中 ٩(◦`꒳´◦)۶";
+  }
+
+  /// 排序方式
+  /// 1. default
+  /// 2. score
+  /// 3. heat
+  void changeSortType(int type) {
+    if (type < 1 || type > 3) {
+      return;
+    }
+    sortType = type;
+    var resBangumiCalendar = bangumiCalendar.toList();
+    for (var dayList in resBangumiCalendar) {
+      switch (sortType) {
+        case 1:
+          dayList.sort((a, b) => a.id.compareTo(b.id));
+          break;
+        case 2:
+          dayList.sort((a, b) => (b.ratingScore).compareTo(a.ratingScore));
+          break;
+        case 3:
+          dayList.sort((a, b) => (b.votes).compareTo(a.votes));
+          break;
+        default:
+      }
+    }
+    bangumiCalendar.clear();
+    bangumiCalendar.addAll(resBangumiCalendar);
   }
 }

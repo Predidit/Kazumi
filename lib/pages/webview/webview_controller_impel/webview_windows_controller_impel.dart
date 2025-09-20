@@ -69,6 +69,7 @@ class WebviewWindowsItemControllerImpel
       } catch (_) {}
     });
     headlessWebview!.dispose();
+    headlessWebview = null;
   }
 
   // The webview_windows package does not have a method to unload the current page.

@@ -4,14 +4,14 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 
 class WebviewWindowsItemControllerImpel
     extends WebviewItemController<WebviewController> {
-  HeadlessWebview? headlessWebview;
   final List<StreamSubscription> subscriptions = [];
 
   @override
   Future<void> init() async {
-    headlessWebview ??= HeadlessWebview();
-    await headlessWebview!.run();
-    await headlessWebview!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    webviewController ??= WebviewController();
+    await webviewController!.initialize();
+    await webviewController!
+        .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
   }
 
@@ -24,7 +24,7 @@ class WebviewWindowsItemControllerImpel
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoLoadingEventController.add(true);
-    subscriptions.add(headlessWebview!.onM3USourceLoaded.listen((data) {
+    subscriptions.add(webviewController!.onM3USourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -36,7 +36,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading m3u8 source: $url');
       videoParserEventController.add((url, offset));
     }));
-    subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
+    subscriptions.add(webviewController!.onVideoSourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -48,7 +48,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading video source: $url');
       videoParserEventController.add((url, offset));
     }));
-    await headlessWebview!.loadUrl(url);
+    await webviewController!.loadUrl(url);
   }
 
   @override
@@ -68,15 +68,15 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    headlessWebview!.dispose();
+    webviewController!.dispose();
   }
 
-  // The webview_windows package does not have a method to unload the current page.
-  // The loadUrl method opens a new tab, which can lead to memory leaks.
-  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly.
+  // The webview_windows package does not have a method to unload the current page. 
+  // The loadUrl method opens a new tab, which can lead to memory leaks. 
+  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly. 
   // Therefore, this method is used to redirect to a blank page instead.
   Future<void> redirect2Blank() async {
-    await headlessWebview!.executeScript('''
+    await webviewController!.executeScript('''
       window.location.href = 'about:blank';
     ''');
   }

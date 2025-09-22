@@ -85,13 +85,15 @@ class KazumiDialog {
   static Future<void> showLoading({
     BuildContext? context,
     String? msg,
+    bool barrierDismissible = false,
+    Function()? onDismiss,
   }) async {
     final ctx = context ?? observer.currentContext;
     if (ctx != null && ctx.mounted) {
       try {
         await showDialog(
           context: ctx,
-          barrierDismissible: false,
+          barrierDismissible: barrierDismissible,
           builder: (BuildContext context) {
             return Center(
               child: Card(
@@ -117,6 +119,7 @@ class KazumiDialog {
           },
           routeSettings: const RouteSettings(name: 'KazumiDialog'),
         );
+        onDismiss?.call();
       } catch (e) {
         debugPrint('Kazumi Dialog Error: Failed to show loading dialog: $e');
       }
@@ -161,7 +164,8 @@ class KazumiDialog {
           useRootNavigator: useRootNavigator,
           isDismissible: isDismissible,
           enableDrag: enableDrag,
-          routeSettings: routeSettings ?? const RouteSettings(name: 'KazumiBottomSheet'),
+          routeSettings:
+              routeSettings ?? const RouteSettings(name: 'KazumiBottomSheet'),
           transitionAnimationController: transitionAnimationController,
           anchorPoint: anchorPoint,
           useSafeArea: useSafeArea,
@@ -210,7 +214,8 @@ class KazumiDialogObserver extends NavigatorObserver {
   BuildContext? get scaffoldContext => _scaffoldContext ?? _currentContext;
 
   /// Get the root context for bottom sheets, fallback to scaffold context, then current context
-  BuildContext? get rootContext => _rootContext ?? _scaffoldContext ?? _currentContext;
+  BuildContext? get rootContext =>
+      _rootContext ?? _scaffoldContext ?? _currentContext;
 
   bool get hasKazumiDialog => _kazumiDialogRoutes.isNotEmpty;
 
@@ -221,6 +226,7 @@ class KazumiDialogObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
+
     /// workaround for #533
     /// we can't remove snackbar when push a new route
     /// otherwise, framework will throw an exception, and can't be caught
@@ -288,8 +294,8 @@ class KazumiDialogObserver extends NavigatorObserver {
   }
 
   bool _isKazumiDialogRoute(Route<dynamic> route) {
-    return route.settings.name == 'KazumiDialog' || 
-           route.settings.name == 'KazumiBottomSheet';
+    return route.settings.name == 'KazumiDialog' ||
+        route.settings.name == 'KazumiBottomSheet';
   }
 
   void _removeCurrentSnackBar(Route<dynamic>? route) {

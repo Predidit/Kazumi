@@ -10,6 +10,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
@@ -94,7 +95,13 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             );
             return;
           }
-          KazumiDialog.showLoading(msg: '获取中');
+          KazumiDialog.showLoading(
+            msg: '获取中',
+            barrierDismissible: Utils.isDesktop(),
+            onDismiss: () {
+              videoPageController.cancelQueryRoads();
+            },
+          );
           bool flag = false;
           for (Plugin plugin in pluginsController.pluginList) {
             if (plugin.name == widget.historyItem.adapterName) {
@@ -119,10 +126,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 videoPageController.currentPlugin.name);
             KazumiDialog.dismiss();
             Modular.to.pushNamed('/video/');
-          } catch (e) {
-            KazumiLogger().log(Level.warning, e.toString());
+          } catch (_) {
+            KazumiLogger().log(Level.warning, "获取视频播放列表失败");
             KazumiDialog.dismiss();
-            KazumiDialog.showToast(message: '网络资源获取失败 ${e.toString()}');
           }
         },
         child: Row(

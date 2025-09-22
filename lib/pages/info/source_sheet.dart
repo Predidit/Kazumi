@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
@@ -276,7 +277,13 @@ class _SourceSheetState extends State<SourceSheet>
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () async {
-                                  KazumiDialog.showLoading(msg: '获取中');
+                                  KazumiDialog.showLoading(
+                                    msg: '获取中',
+                                    barrierDismissible: Utils.isDesktop(),
+                                    onDismiss: () {
+                                      videoPageController.cancelQueryRoads();
+                                    },
+                                  );
                                   videoPageController.bangumiItem =
                                       widget.infoController.bangumiItem;
                                   videoPageController.currentPlugin = plugin;
@@ -287,9 +294,9 @@ class _SourceSheetState extends State<SourceSheet>
                                         searchItem.src, plugin.name);
                                     KazumiDialog.dismiss();
                                     Modular.to.pushNamed('/video/');
-                                  } catch (e) {
+                                  } catch (_) {
                                     KazumiLogger()
-                                        .log(Level.error, e.toString());
+                                        .log(Level.warning, "获取视频播放列表失败");
                                     KazumiDialog.dismiss();
                                   }
                                 },

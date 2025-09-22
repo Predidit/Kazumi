@@ -151,14 +151,32 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
-    observerController.controller?.dispose();
-    animation.dispose();
-    _initSubscription.cancel();
-    _videoLoadedSubscription.cancel();
-    _videoURLSubscription.cancel();
-    _logSubscription.cancel();
-    playerController.dispose();
+    try {
+      windowManager.removeListener(this);
+    } catch (_) {}
+    try {
+      observerController.controller?.dispose();
+    } catch (_) {}
+    try {
+      animation.dispose();
+    } catch (_) {}
+    try {
+      _initSubscription.cancel();
+    } catch (_) {}
+    try {
+      _videoLoadedSubscription.cancel();
+    } catch (_) {}
+    try {
+      _videoURLSubscription.cancel();
+    } catch (_) {}
+    try {
+      _logSubscription.cancel();
+    } catch (_) {}
+    try {
+      playerController.dispose();
+    } catch (e) {
+      KazumiLogger().log(Level.error, '播放器释放失败: $e');
+    }
     if (!Utils.isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();

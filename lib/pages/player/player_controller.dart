@@ -123,40 +123,42 @@ abstract class _PlayerController with Store {
 
   // 播放器实时状态
   bool get playerPlaying => mediaPlayer.state.playing;
-
   bool get playerBuffering => mediaPlayer.state.buffering;
-
   bool get playerCompleted => mediaPlayer.state.completed;
-
   double get playerVolume => mediaPlayer.state.volume;
-
   Duration get playerPosition => mediaPlayer.state.position;
-
   Duration get playerBuffer => mediaPlayer.state.buffer;
-
   Duration get playerDuration => mediaPlayer.state.duration;
 
-  int? get playerWidth => mediaPlayer.state.width;
+  // 播放器调试信息
+  @observable
+  ObservableList<String> playerLog = ObservableList.of([]);
+  @observable
+  int playerWidth = 0;
+  @observable
+  int playerHeight = 0;
+  @observable
+  String playerVideoParams = '';
+  @observable
+  String playerAudioParams = '';
+  @observable
+  String playerPlaylist = '';
+  @observable
+  String playerAudioTracks = '';
+  @observable
+  String playerVideoTracks = '';
+  @observable
+  String playerAudioBitrate = '';
 
-  int? get playerHeight => mediaPlayer.state.height;
-
-  String get playerVideoParams => mediaPlayer.state.videoParams.toString();
-
-  String get playerAudioParams => mediaPlayer.state.audioParams.toString();
-
-  String get playerPlaylist => mediaPlayer.state.playlist.toString();
-
-  String get playerAudioTracks => mediaPlayer.state.track.audio.toString();
-
-  String get playerVideoTracks => mediaPlayer.state.track.video.toString();
-
-  String get playerAudioBitrate => mediaPlayer.state.audioBitrate.toString();
-
-  /// 播放器内部日志
-  List<String> playerLog = [];
-
-  /// 播放器日志订阅
+  /// 播放器调试信息订阅
   StreamSubscription<PlayerLog>? playerLogSubscription;
+  StreamSubscription<int?>? playerWidthSubscription;
+  StreamSubscription<int?>? playerHeightSubscription;
+  StreamSubscription<VideoParams>? playerVideoParamsSubscription;
+  StreamSubscription<AudioParams>? playerAudioParamsSubscription;
+  StreamSubscription<Playlist>? playerPlaylistSubscription;
+  StreamSubscription<Track>? playerTracksSubscription;
+  StreamSubscription<double?>? playerAudioBitrateSubscription;
 
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
@@ -181,7 +183,8 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    getDanDanmakuByBgmBangumiID(videoPageController.bangumiItem.id, episodeFromTitle);
+    getDanDanmakuByBgmBangumiID(
+        videoPageController.bangumiItem.id, episodeFromTitle);
     mediaPlayer = await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
@@ -207,6 +210,59 @@ abstract class _PlayerController with Store {
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
     }
+  }
+
+  Future<void> setupPlayerDebugInfoSubscription() async {
+    await playerLogSubscription?.cancel();
+    playerLogSubscription = mediaPlayer.stream.log.listen((event) {
+      playerLog.add(event.toString());
+      if (playerDebugMode) {
+        KazumiLogger().simpleLog(event.toString());
+      }
+    });
+    await playerWidthSubscription?.cancel();
+    playerWidthSubscription = mediaPlayer.stream.width.listen((event) {
+      playerWidth = event ?? 0;
+    });
+    await playerHeightSubscription?.cancel();
+    playerHeightSubscription = mediaPlayer.stream.height.listen((event) {
+      playerHeight = event ?? 0;
+    });
+    await playerVideoParamsSubscription?.cancel();
+    playerVideoParamsSubscription =
+        mediaPlayer.stream.videoParams.listen((event) {
+      playerVideoParams = event.toString();
+    });
+    await playerAudioParamsSubscription?.cancel();
+    playerAudioParamsSubscription =
+        mediaPlayer.stream.audioParams.listen((event) {
+      playerAudioParams = event.toString();
+    });
+    await playerPlaylistSubscription?.cancel();
+    playerPlaylistSubscription = mediaPlayer.stream.playlist.listen((event) {
+      playerPlaylist = event.toString();
+    });
+    await playerTracksSubscription?.cancel();
+    playerTracksSubscription = mediaPlayer.stream.track.listen((event) {
+      playerAudioTracks = event.audio.toString();
+      playerVideoTracks = event.video.toString();
+    });
+    await playerAudioBitrateSubscription?.cancel();
+    playerAudioBitrateSubscription =
+        mediaPlayer.stream.audioBitrate.listen((event) {
+      playerAudioBitrate = event.toString();
+    });
+  }
+
+  Future<void> cancelPlayerDebugInfoSubscription() async {
+    await playerLogSubscription?.cancel();
+    await playerWidthSubscription?.cancel();
+    await playerHeightSubscription?.cancel();
+    await playerVideoParamsSubscription?.cancel();
+    await playerAudioParamsSubscription?.cancel();
+    await playerPlaylistSubscription?.cancel();
+    await playerTracksSubscription?.cancel();
+    await playerAudioBitrateSubscription?.cancel();
   }
 
   Future<Player> createVideoController({int offset = 0}) async {
@@ -244,13 +300,7 @@ abstract class _PlayerController with Store {
 
     // 记录播放器内部日志
     playerLog.clear();
-    await playerLogSubscription?.cancel();
-    playerLogSubscription = mediaPlayer.stream.log.listen((event) {
-      playerLog.add(event.toString());
-      if (playerDebugMode) {
-        KazumiLogger().simpleLog(event.toString());
-      }
-    });
+    setupPlayerDebugInfoSubscription();
 
     var pp = mediaPlayer.platform as NativePlayer;
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
@@ -414,11 +464,9 @@ abstract class _PlayerController with Store {
       } catch (_) {}
     }
     try {
-      await playerLogSubscription?.cancel();
+      await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
-    try {
-      await mediaPlayer.dispose();
-    } catch (_) {}
+    await mediaPlayer.dispose();
   }
 
   Future<void> stop() async {
@@ -441,7 +489,8 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
     try {
       danDanmakus.clear();
-      bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
+      bangumiID =
+          await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {

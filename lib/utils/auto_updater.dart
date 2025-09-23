@@ -712,7 +712,7 @@ class AutoUpdater {
       final downloadUrl = asset['browser_download_url'] as String? ?? '';
 
       for (final pattern in patterns) {
-        if (name.toLowerCase().contains(pattern.toLowerCase()) &&
+        if (patterns.every((pattern) => name.toLowerCase().contains(pattern.toLowerCase())) &&
             downloadUrl.isNotEmpty) {
           return downloadUrl;
         }

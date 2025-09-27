@@ -66,8 +66,6 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
             Uri.encodeFull(message.replaceFirst('iframeMessage:', ''));
         logEventController
             .add('Callback received: [iframe] ${Uri.decodeFull(messageItem)}');
-        logEventController.add(
-            'If there is audio but no video, please report it to the rule developer.');
         if ((messageItem.contains('http') || messageItem.startsWith('//')) &&
             !messageItem.contains('googleads') &&
             !messageItem.contains('googlesyndication.com') &&
@@ -112,7 +110,6 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
 
   static const String iframeScript = """
     var iframes = document.getElementsByTagName('iframe');
-    window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + 'The number of iframe tags is' + iframes.length);
     for (var i = 0; i < iframes.length; i++) {
         var iframe = iframes[i];
         var src = iframe.getAttribute('src');
@@ -123,28 +120,43 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   """;
 
   static const String videoScript = """
-    var videos = document.querySelectorAll('video');
-    window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + 'The number of video tags is' + videos.length);
-    for (var i = 0; i < videos.length; i++) {
-      var src = videos[i].getAttribute('src');
+    function processVideoElement(video) {
+      let src = video.getAttribute('src');
       if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
         window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
-      } 
+        return;
+      }
+      const sources = video.getElementsByTagName('source');
+      for (let source of sources) {
+        src = source.getAttribute('src');
+        if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+          window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
+          return;
+        }
+      }
     }
 
-    document.querySelectorAll('iframe').forEach((iframe) => {
-      try {
-        iframe.contentWindow.eval(`
-          var videos = document.querySelectorAll('video');
-          window.parent.postMessage({ message: 'videoMessage:' + 'The number of video tags is' + videos.length }, "*");
-          for (var i = 0; i < videos.length; i++) {
-            var src = videos[i].getAttribute('src');
-            if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
-              window.parent.postMessage({ message: 'videoMessage:' + src }, "*");
-            } 
+    document.querySelectorAll('video').forEach(processVideoElement);
+
+    const _observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'attributes' && mutation.target.nodeName === 'VIDEO') {
+          processVideoElement(mutation.target);
+        }
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeName === 'VIDEO') processVideoElement(node);
+          if (node.querySelectorAll) {
+            node.querySelectorAll('video').forEach(processVideoElement);
           }
-                `);
-      } catch { }
+        });
+      });  
+    });
+
+    _observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src']
     });
   """;
 

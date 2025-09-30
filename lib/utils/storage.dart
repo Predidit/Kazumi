@@ -251,5 +251,6 @@ class SettingBoxKey {
       playerDebugMode = 'playerDebugMode',
       syncPlayEndPoint = 'syncPlayEndPoint',
       androidEnableOpenSLES = 'androidEnableOpenSLES',
-      defaultSuperResolutionType = 'defaultSuperResolutionType';
+      defaultSuperResolutionType = 'defaultSuperResolutionType',
+      superResolutionWarn = 'superResolutionWarn';
 }

@@ -92,7 +92,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
   
   /// 启用超分辨率时弹出提示
-  Future<void> _handleSuperResolutionChange(int shaderIndex) async {
+  Future<void> handleSuperResolutionChange(int shaderIndex) async {
     final bool isHighMode = shaderIndex == 2 || shaderIndex == 3;
     final bool alreadyShown = setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false) as bool;
 
@@ -1167,7 +1167,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   3,
                                   (int index) => MenuItemButton(
                                     onPressed: () =>
-                                        _handleSuperResolutionChange(index + 1),
+                                        handleSuperResolutionChange(index + 1),
                                     child: Container(
                                       height: 48,
                                       constraints:

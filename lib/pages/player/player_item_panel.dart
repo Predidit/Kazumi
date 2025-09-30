@@ -28,6 +28,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
+    required this.handleSuperResolutionChange,
     required this.animationController,
     required this.openMenu,
     required this.keyboardFocus,
@@ -48,6 +49,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
+  final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
   final void Function() startHideTimer;
@@ -1102,7 +1104,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   3,
                                   (int index) => MenuItemButton(
                                     onPressed: () =>
-                                        playerController.setShader(index + 1),
+                                        widget.handleSuperResolutionChange(index + 1),
                                     child: Container(
                                       height: 48,
                                       constraints:

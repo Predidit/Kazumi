@@ -220,6 +220,73 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
   }
 
+    /// 启用超分辨率时弹出提示
+  Future<void> handleSuperResolutionChange(int shaderIndex) async {
+    if (!mounted) return;
+
+    final bool isHighMode = shaderIndex == 2 || shaderIndex == 3;
+    final bool alreadyShown = setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false) as bool;
+
+    if (isHighMode && !alreadyShown) {
+      bool confirmed = false;
+
+      await KazumiDialog.show(builder: (context) {
+        bool dontAskAgain = false;
+
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('性能提示'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('启用超分辨率（效率档/质量档）可能会造成设备卡顿，是否继续？'),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: dontAskAgain,
+                      onChanged: (value) => setState(() => dontAskAgain = value ?? false),
+                    ),
+                    const Text('下次不再询问'),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  if (dontAskAgain) {
+                    await setting.put(SettingBoxKey.superResolutionWarn, true);
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  confirmed = true;
+                  if (dontAskAgain) {
+                    await setting.put(SettingBoxKey.superResolutionWarn, true);
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('确认'),
+              ),
+            ],
+          );
+        });
+      });
+
+      if (confirmed) {
+        playerController.setShader(shaderIndex);
+      }
+    } else {
+      playerController.setShader(shaderIndex);
+    }
+  }
+
   void handleFullscreen() {
     _handleFullscreenChange(context);
     if (videoPageController.isFullscreen) {
@@ -1225,6 +1292,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleSuperResolutionChange: handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
@@ -1245,6 +1313,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleSuperResolutionChange: handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             handleHove: _handleHove,

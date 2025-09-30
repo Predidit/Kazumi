@@ -516,7 +516,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               3,
                               (int index) => MenuItemButton(
                                 onPressed: () =>
-                                    playerController.setShader(index + 1),
+                                    _handleSuperResolutionChange(index + 1),
                                 child: Container(
                                   height: 48,
                                   constraints: BoxConstraints(minWidth: 112),

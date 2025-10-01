@@ -220,7 +220,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
   }
 
-    /// 启用超分辨率时弹出提示
+  // 启用超分辨率（质量档）时弹出提示
   Future<void> handleSuperResolutionChange(int shaderIndex) async {
     if (!mounted) return;
 

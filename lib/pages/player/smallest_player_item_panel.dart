@@ -26,6 +26,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleFullscreen,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
+    required this.handleSuperResolutionChange,
     required this.animationController,
     required this.keyboardFocus,
     required this.handleHove,
@@ -44,6 +45,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
+  final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
   final void Function() handleHove;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
@@ -516,7 +518,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               3,
                               (int index) => MenuItemButton(
                                 onPressed: () =>
-                                    playerController.setShader(index + 1),
+                                    widget.handleSuperResolutionChange(index + 1),
                                 child: Container(
                                   height: 48,
                                   constraints: BoxConstraints(minWidth: 112),

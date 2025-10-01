@@ -4,10 +4,10 @@
 
 目前Kazumi仍未上架App Store，所以需要通过ID签的方式安装至iPhone/iPad。虽然已经有[Issue](https://github.com/Predidit/Kazumi/issues/819#issuecomment-2742542449)给出了方案，但不是所有人都会点开Issue，而本篇也会给出不同的方法。
 
-# 方法1 通过Sideloady
+# 方法1 通过Sideloadly
 
 ## a.准备事项
-1. [Sideloady](https://sideloadly.io/#download)
+1. [Sideloadly](https://sideloadly.io/#download)
 
 > [!NOTE]
 > 一般下载64Bit版本
@@ -37,7 +37,7 @@
 ## b.准备
 逐一安装上述软件并重启电脑，准备好Apple Account后就可以开始了。
 
-启动Sideloady后，你将会看到以下界面
+启动Sideloadly后，你将会看到以下界面
 
 <img src="https://github.com/user-attachments/assets/ab14f12c-80ca-4185-a855-b96658e08063" style="width:500px"/>
 
@@ -77,7 +77,7 @@
 
 之后可能手机会跳出需要双重认证，点击允许并在电脑输入验证码就好了
 
-安装完成后，Sideloady会显示Done
+安装完成后，Sideloadly会显示Done
 
 <img src="https://github.com/user-attachments/assets/2baadd45-4c13-41c0-9b98-3747d35c7850" style="width:500px"/>
 
@@ -97,6 +97,8 @@
 <img src="https://github.com/user-attachments/assets/83ce4e4e-1601-4ea7-b4fb-365dd47d1dc5" style="width:150px"/>
 <img src="https://github.com/user-attachments/assets/73059227-5697-4c1e-b8d5-8f54887c3b81" style="width:150px"/>
 
+***
+Kazumi是一个开源项目，使用GPL v3协议发布。 | App Store, iPhone, iPad, iTunes和Apple Account是 Apple Inc. 的注册商标
 
 
 

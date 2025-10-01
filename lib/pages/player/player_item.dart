@@ -224,8 +224,8 @@ class _PlayerItemState extends State<PlayerItem>
   Future<void> handleSuperResolutionChange(int shaderIndex) async {
     if (!mounted) return;
 
-    final bool isHighMode = shaderIndex == 2 || shaderIndex == 3;
-    final bool alreadyShown = setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false) as bool;
+    final bool isHighMode = shaderIndex == 3;
+    final bool alreadyShown = setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
 
     if (isHighMode && !alreadyShown) {
       bool confirmed = false;
@@ -240,7 +240,7 @@ class _PlayerItemState extends State<PlayerItem>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('启用超分辨率（效率档/质量档）可能会造成设备卡顿，是否继续？'),
+                const Text('启用超分辨率（质量档）可能会造成设备卡顿，是否继续？'),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisSize: MainAxisSize.min,

@@ -25,8 +25,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   void initState() {
     super.initState();
     promptOnEnable =
-        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false)
-            as bool;
+        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
   }
 
   @override

@@ -7,16 +7,32 @@
 # 方法1 通过Sideloady
 
 ## a.准备事项
-1. [Sideloady](https://sideloadly.io/)
+1. [Sideloady](https://sideloadly.io/#download)
+
+> [!NOTE]
+> 一般下载64Bit版本
+
+
 2. [iTunes](https://www.apple.com.cn/itunes/)
-3. [Apple Account](https://support.apple.com/zh-cn/apple-account)
-4. [Kazumi IPA 安装包](https://github.com/Predidit/Kazumi/releases/latest)
->[!NOTE]
-> IPA安装包文件名一般为Kazumi_ios_版本号_no_sign.ipa
 
 > [!IMPORTANT]
 > iTunes必须使用Windows版本，在下载页面往下滑动即可找到，一般下载64bit版本。
-<img src="https://github.com/user-attachments/assets/234db3e5-583b-4d7d-be91-e09e2ef4d57a" style="width:400px" />
+<img src="https://github.com/user-attachments/assets/234db3e5-583b-4d7d-be91-e09e2ef4d57a" style="width:200px" />
+
+
+3. [Apple Account](https://support.apple.com/zh-cn/apple-account)
+
+> [!NOTE]
+> Apple Account必须使用邮箱注册
+
+
+4. [Kazumi IPA 安装包](https://github.com/Predidit/Kazumi/releases/latest)
+
+>[!NOTE]
+> IPA安装包文件名一般为Kazumi_ios_版本号_no_sign.ipa
+
+
+
 
 ## b.准备
 逐一安装上述软件并重启电脑，准备好Apple Account后就可以开始了。
@@ -28,9 +44,11 @@
 
 
 在Apple ID一栏中输入你的Apple Account，并使用一条稳定的USB-C数据线或USB-C 至 Lightning数据线将USB-C一段连接至你的电脑，并将另一端连接至你的iPhone或iPad。
+
 如无意外，来你将会在iDevice一栏中看到你的设备名称
 
-<img src="https://github.com/user-attachments/assets/0eb2d396-6917-4a8d-9d4b-f93ba0f8ccd5" style="width:400px"/>
+<img src="https://github.com/user-attachments/assets/500e8bb0-0038-4d4e-8eb2-8457dc97f7d9" style="width:500px"/>
+
 
 之后，你的设备会出现一个弹窗，点击信任并输入你的数字密码
 
@@ -67,13 +85,17 @@
 
 来到手机，直接打开Kazumi可能会失败
 
-<img src="https://github.com/user-attachments/assets/6c351f74-0bcf-4881-8511-9bc47dd46b07" style="width:400px"/>
+<img src="https://github.com/user-attachments/assets/6c351f74-0bcf-4881-8511-9bc47dd46b07" style="width:200px"/>
 
+### 解决方法
 
+1. 打开设置  2. 点击通用  3.滑动至底部，点击VPN与设备管理  4.滑动至底部，找到开发者应用并点击  5.点击信任
 
-
-
-
+<img src="https://github.com/user-attachments/assets/821d1af3-eccc-476b-9e77-60b14ea6608b" style="width:150px"/>
+<img src="https://github.com/user-attachments/assets/dae3f441-406c-403d-bf7a-9b9e77ee86d4" style="width:150px"/>
+<img src="https://github.com/user-attachments/assets/7455e32e-26d6-4086-a075-4ad9b344ec31" style="width:150px"/>
+<img src="https://github.com/user-attachments/assets/83ce4e4e-1601-4ea7-b4fb-365dd47d1dc5" style="width:150px"/>
+<img src="https://github.com/user-attachments/assets/73059227-5697-4c1e-b8d5-8f54887c3b81" style="width:150px"/>
 
 
 

@@ -241,6 +241,7 @@ class _SearchPageState extends State<SearchPage> {
                       ? BangumiCardV(
                           enableHero: false,
                           bangumiItem: searchPageController.bangumiList[index],
+                          keyword: searchController.text,
                         )
                       : Container();
                 },

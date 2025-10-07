@@ -171,24 +171,28 @@ class _PopularPageState extends State<PopularPage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 6;
     }
-    return SliverGrid(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        // 行间距
-        mainAxisSpacing: StyleString.cardSpace - 2,
-        // 列间距
-        crossAxisSpacing: StyleString.cardSpace,
-        // 列数
-        crossAxisCount: crossCount,
-        mainAxisExtent: MediaQuery.of(context).size.width / crossCount / 0.65 +
-            MediaQuery.textScalerOf(context).scale(32.0),
-      ),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          return bangumiList!.isNotEmpty
-              ? BangumiCardV(bangumiItem: bangumiList[index])
-              : null;
-        },
-        childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+    return SliverPadding(
+      padding: const EdgeInsets.all(8),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          // 行间距
+          mainAxisSpacing: StyleString.cardSpace - 2,
+          // 列间距
+          crossAxisSpacing: StyleString.cardSpace,
+          // 列数
+          crossAxisCount: crossCount,
+          mainAxisExtent:
+              MediaQuery.of(context).size.width / crossCount / 0.65 +
+                  MediaQuery.textScalerOf(context).scale(32.0),
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return bangumiList!.isNotEmpty
+                ? BangumiCardV(bangumiItem: bangumiList[index])
+                : null;
+          },
+          childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+        ),
       ),
     );
   }

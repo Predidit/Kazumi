@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive/hive.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -26,6 +28,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool showPlayerError;
   late bool privateMode;
   late bool playerDebugMode;
+  late int playerQuickSeekDuration;
+  late int playerSkipDuration;
   final MenuController menuController = MenuController();
 
   @override
@@ -46,6 +50,10 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    playerQuickSeekDuration =
+        setting.get(SettingBoxKey.playerQuickSeekDuration, defaultValue: 10);
+    playerSkipDuration =
+        setting.get(SettingBoxKey.playerSkipDuration, defaultValue: 80);
   }
 
   void onBackPressed(BuildContext context) {
@@ -67,6 +75,93 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     setState(() {
       defaultAspectRatioType = type;
     });
+  }
+
+  PlayerController? _resolvePlayerController() {
+    try {
+      return Modular.get<PlayerController>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<int?> _showDurationDialog({
+    required String title,
+    required int initialValue,
+  }) async {
+    final TextEditingController controller =
+        TextEditingController(text: initialValue.toString());
+    final List<TextInputFormatter> digitFormatter =
+        <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly];
+    return showDialog<int>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: digitFormatter,
+            decoration: const InputDecoration(
+              hintText: '请输入秒数',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final raw = controller.text.trim();
+                if (raw.isEmpty) {
+                  Navigator.of(context).pop();
+                  return;
+                }
+                final int? value = int.tryParse(raw);
+                if (value == null || value <= 0) {
+                  KazumiDialog.showToast(message: '请输入大于0的秒数');
+                  return;
+                }
+                Navigator.of(context).pop(value);
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> updateQuickSeekDuration() async {
+    final int? value = await _showDurationDialog(
+      title: '快进/快退时长',
+      initialValue: playerQuickSeekDuration,
+    );
+    if (value != null && value != playerQuickSeekDuration) {
+      await setting.put(SettingBoxKey.playerQuickSeekDuration, value);
+      _resolvePlayerController()?.setQuickSeekTime(value);
+      setState(() {
+        playerQuickSeekDuration = value;
+      });
+    }
+  }
+
+  Future<void> updateSkipDuration() async {
+    final int? value = await _showDurationDialog(
+      title: '跳过时长',
+      initialValue: playerSkipDuration,
+    );
+    if (value != null && value != playerSkipDuration) {
+      await setting.put(SettingBoxKey.playerSkipDuration, value);
+      _resolvePlayerController()?.setForwardTime(value);
+      setState(() {
+        playerSkipDuration = value;
+      });
+    }
   }
 
   @override
@@ -179,6 +274,22 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             ),
             SettingsSection(
               tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    await updateQuickSeekDuration();
+                  },
+                  title: const Text('快进/快退时长'),
+                  description: const Text('左右方向键等操作的跳转秒数'),
+                  value: Text('$playerQuickSeekDuration 秒'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    await updateSkipDuration();
+                  },
+                  title: const Text('跳过时长'),
+                  description: const Text('顶栏跳过按钮的秒数'),
+                  value: Text('$playerSkipDuration 秒'),
+                ),
                 SettingsTile(
                   title: const Text('默认倍速'),
                   description: Slider(

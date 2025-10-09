@@ -1122,7 +1122,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     LogicalKeyboardKey.arrowLeft) {
                                   int targetPosition = playerController
                                           .currentPosition.inSeconds -
-                                      10;
+                                      playerController.quickSeekTime;
                                   if (targetPosition < 0) {
                                     targetPosition = 0;
                                   }
@@ -1199,7 +1199,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       playerController.seek(Duration(
                                           seconds: playerController
                                                   .currentPosition.inSeconds +
-                                              10));
+                                              playerController.quickSeekTime));
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,

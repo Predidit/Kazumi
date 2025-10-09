@@ -119,7 +119,10 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
   bool playerDebugMode = false;
-  int forwardTime = 80;
+  int quickSeekTime = GStorage.setting
+      .get(SettingBoxKey.playerQuickSeekDuration, defaultValue: 10);
+  int forwardTime =
+      GStorage.setting.get(SettingBoxKey.playerSkipDuration, defaultValue: 80);
 
   // 播放器实时状态
   bool get playerPlaying => mediaPlayer!.state.playing;
@@ -483,7 +486,19 @@ abstract class _PlayerController with Store {
   }
 
   void setForwardTime(int time) {
+    if (time <= 0) {
+      return;
+    }
     forwardTime = time;
+    setting.put(SettingBoxKey.playerSkipDuration, time);
+  }
+
+  void setQuickSeekTime(int time) {
+    if (time <= 0) {
+      return;
+    }
+    quickSeekTime = time;
+    setting.put(SettingBoxKey.playerQuickSeekDuration, time);
   }
 
   Future<void> getDanDanmakuByBgmBangumiID(

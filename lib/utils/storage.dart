@@ -212,6 +212,8 @@ class SettingBoxKey {
       alwaysOntop = 'alwaysOntop',
       defaultPlaySpeed = 'defaultPlaySpeed',
       defaultAspectRatioType = 'defaultAspectRatioType',
+      playerQuickSeekDuration = 'playerQuickSeekDuration',
+      playerSkipDuration = 'playerSkipDuration',
       danmakuEnhance = 'danmakuEnhance',
       danmakuBorder = 'danmakuBorder',
       danmakuOpacity = 'danmakuOpacity',

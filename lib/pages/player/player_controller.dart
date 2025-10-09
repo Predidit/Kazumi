@@ -119,8 +119,7 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
   bool playerDebugMode = false;
-  int quickSeekTime = GStorage.setting
-      .get(SettingBoxKey.playerQuickSeekDuration, defaultValue: 10);
+  int quickSeekTime = 10;
   int forwardTime =
       GStorage.setting.get(SettingBoxKey.playerSkipDuration, defaultValue: 80);
 
@@ -191,6 +190,8 @@ abstract class _PlayerController with Store {
     mediaPlayer ??= await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    quickSeekTime =
+        setting.get(SettingBoxKey.playerQuickSeekDuration, defaultValue: 10);
     aspectRatioType =
         setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
     if (Utils.isDesktop()) {

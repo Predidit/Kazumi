@@ -6,7 +6,6 @@ import 'package:hive/hive.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 
@@ -77,14 +76,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  PlayerController? _resolvePlayerController() {
-    try {
-      return Modular.get<PlayerController>();
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<int?> _showDurationDialog({
     required String title,
     required int initialValue,
@@ -93,9 +84,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         TextEditingController(text: initialValue.toString());
     final List<TextInputFormatter> digitFormatter =
         <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly];
-    return showDialog<int>(
+    return KazumiDialog.show<int>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(title),
           content: TextField(
@@ -108,17 +99,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 '取消',
-                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                style: TextStyle(color: Theme.of(dialogContext).colorScheme.outline),
               ),
             ),
             TextButton(
               onPressed: () {
                 final raw = controller.text.trim();
                 if (raw.isEmpty) {
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
                   return;
                 }
                 final int? value = int.tryParse(raw);
@@ -126,7 +117,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   KazumiDialog.showToast(message: '请输入大于0的秒数');
                   return;
                 }
-                Navigator.of(context).pop(value);
+                Navigator.of(dialogContext).pop(value);
               },
               child: const Text('确定'),
             ),
@@ -143,7 +134,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     );
     if (value != null && value != playerQuickSeekDuration) {
       await setting.put(SettingBoxKey.playerQuickSeekDuration, value);
-      _resolvePlayerController()?.setQuickSeekTime(value);
       setState(() {
         playerQuickSeekDuration = value;
       });
@@ -157,7 +147,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     );
     if (value != null && value != playerSkipDuration) {
       await setting.put(SettingBoxKey.playerSkipDuration, value);
-      _resolvePlayerController()?.setForwardTime(value);
       setState(() {
         playerSkipDuration = value;
       });

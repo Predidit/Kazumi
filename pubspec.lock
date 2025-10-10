@@ -778,8 +778,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -787,8 +787,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/android/media_kit_libs_android_video"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -796,8 +796,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -805,8 +805,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -814,8 +814,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/macos/media_kit_libs_macos_video"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -823,8 +823,8 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/universal/media_kit_libs_video"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -832,8 +832,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/windows/media_kit_libs_windows_video"
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -841,8 +841,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
-      resolved-ref: a57457e8038c2cfb263503b8f57e2c4c37fed946
+      ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
+      resolved-ref: "95a9c7b8da1076ec7ee6711ec208f4353cdda8e8"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"
@@ -1138,10 +1138,10 @@ packages:
     dependency: transitive
     description:
       name: screen_brightness_android
-      sha256: fb5fa43cb89d0c9b8534556c427db1e97e46594ac5d66ebdcf16063b773d54ed
+      sha256: d34f5321abd03bc3474f4c381f53d189117eba0b039eac1916aa92cca5fd0a96
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.2"
+    version: "2.1.3"
   screen_brightness_ios:
     dependency: transitive
     description:
@@ -1615,18 +1615,18 @@ packages:
     dependency: transitive
     description:
       name: volume_controller
-      sha256: c71d4c62631305df63b72da79089e078af2659649301807fa746088f365cb48e
+      sha256: d75039e69c0d90e7810bfd47e3eedf29ff8543ea7a10392792e81f9bded7edf5
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.8"
+    version: "3.4.0"
   wakelock_plus:
     dependency: transitive
     description:
       name: wakelock_plus
-      sha256: a474e314c3e8fb5adef1f9ae2d247e57467ad557fa7483a2b895bc1b421c5678
+      sha256: "61713aa82b7f85c21c9f4cd0a148abd75f38a74ec645fcb1e446f882c82fd09b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.2"
+    version: "1.3.3"
   wakelock_plus_platform_interface:
     dependency: transitive
     description:

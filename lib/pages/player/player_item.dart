@@ -1304,6 +1304,10 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            // disable animation on linux to avoid fucked-up gtk shared openGL context issue.
+                            // damn gtk can't even handle opengl context on other thread correctly.
+                            // we can only disable animation to avoid falling into the gtk/flutter/mpv openGL context interoper hell.
+                            disableAnimations: Platform.isLinux,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -1325,6 +1329,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            disableAnimations: Platform.isLinux,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

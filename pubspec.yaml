@@ -95,17 +95,17 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/universal/media_kit_libs_video
   flutter_inappwebview_platform_interface: ^1.3.0+1
   flutter_inappwebview_ios: ^1.1.2
@@ -118,27 +118,27 @@ dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 95a9c7b8da1076ec7ee6711ec208f4353cdda8e8
+      ref: 8984f0a3389a786dc2fb8ce055231e5b86e987f7
       path: ./libs/macos/media_kit_libs_macos_video
 
 dev_dependencies:

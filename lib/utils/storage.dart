@@ -252,5 +252,6 @@ class SettingBoxKey {
       syncPlayEndPoint = 'syncPlayEndPoint',
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       defaultSuperResolutionType = 'defaultSuperResolutionType',
-      superResolutionWarn = 'superResolutionWarn';
+      superResolutionWarn = 'superResolutionWarn',
+      playerDisableAnimations = 'playerDisableAnimations';
 }

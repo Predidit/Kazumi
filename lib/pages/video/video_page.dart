@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -68,10 +67,8 @@ class _VideoPageState extends State<VideoPage>
   // The first parameter is the video source URL and the second parameter is the video offset (start position)
   late final StreamSubscription<(String, int)> _videoURLSubscription;
 
-  // disable animation on linux to avoid fucked-up gtk shared openGL context issue.
-  // damn gtk can't even handle opengl context on other thread correctly.
-  // we can only disable animation to avoid falling into the gtk/flutter/mpv openGL context interoper hell.
-  final bool disableAnimations = Platform.isLinux;
+  // disable animation.
+  late final bool disableAnimations;
 
   @override
   void initState() {
@@ -105,6 +102,8 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
+    disableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);

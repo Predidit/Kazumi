@@ -26,6 +26,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool showPlayerError;
   late bool privateMode;
   late bool playerDebugMode;
+  late bool playerDisableAnimations;
   final MenuController menuController = MenuController();
 
   @override
@@ -46,6 +47,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    playerDisableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -142,6 +145,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: const Text('自动跳转'),
                   description: const Text('跳转到上次播放位置'),
                   initialValue: playResume,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    playerDisableAnimations = value ?? !playerDisableAnimations;
+                    await setting.put(SettingBoxKey.playerDisableAnimations,
+                        playerDisableAnimations);
+                    setState(() {});
+                  },
+                  title: const Text('禁用动画'),
+                  description: const Text('禁用播放器内的过渡动画'),
+                  initialValue: playerDisableAnimations,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

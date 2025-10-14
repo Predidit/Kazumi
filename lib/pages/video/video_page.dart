@@ -67,6 +67,9 @@ class _VideoPageState extends State<VideoPage>
   // The first parameter is the video source URL and the second parameter is the video offset (start position)
   late final StreamSubscription<(String, int)> _videoURLSubscription;
 
+  // disable animation.
+  late final bool disableAnimations;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +102,8 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
+    disableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
@@ -247,16 +252,22 @@ class _VideoPageState extends State<VideoPage>
 
   void openTabBodyAnimated() {
     if (videoPageController.showTabBody) {
-      animation.forward();
+      if (!disableAnimations) {
+        animation.forward();
+      }
       menuJumpToCurrentEpisode();
     }
   }
 
   void closeTabBodyAnimated() {
-    animation.reverse();
-    Future.delayed(const Duration(milliseconds: 120), () {
+    if (!disableAnimations) {
+      animation.reverse();
+      Future.delayed(const Duration(milliseconds: 120), () {
+        videoPageController.showTabBody = false;
+      });
+    } else {
       videoPageController.showTabBody = false;
-    });
+    }
     keyboardFocus.requestFocus();
   }
 
@@ -429,60 +440,72 @@ class _VideoPageState extends State<VideoPage>
                       ],
                     ),
 
-                    // when is wideScreen, show tabBody on the right side with SlideTransition
+                    // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
                     if (isWideScreen && videoPageController.showTabBody) ...[
-                      FadeTransition(
-                        opacity: _maskOpacityAnimation,
-                        child: GestureDetector(
-                          onTap: closeTabBodyAnimated,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.5),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
+                      if (disableAnimations) ...[
+                        sideTabMask,
+                        sideTabBody,
+                      ] else ...[
+                        FadeTransition(
+                          opacity: _maskOpacityAnimation,
+                          child: sideTabMask,
                         ),
-                      ),
-                      SlideTransition(
-                        position: _rightOffsetAnimation,
-                        child: SizedBox(
-                          height: MediaQuery.sizeOf(context).height,
-                          // 420 is chosen based on 426.6(1/3 of 1280)
-                          width: (!Utils.isDesktop() && !Utils.isTablet())
-                              ? MediaQuery.sizeOf(context).height
-                              : (MediaQuery.sizeOf(context).width / 3 > 420
-                                  ? 420
-                                  : MediaQuery.sizeOf(context).width / 3),
-                          child: Container(
-                            color: Theme.of(context).canvasColor,
-                            child: GridViewObserver(
-                              controller: observerController,
-                              child: (Utils.isDesktop() || Utils.isTablet())
-                                  ? tabBody
-                                  : Column(
-                                      children: [
-                                        menuBar,
-                                        menuBody,
-                                      ],
-                                    ),
-                            ),
-                          ),
+                        SlideTransition(
+                          position: _rightOffsetAnimation,
+                          child: sideTabBody,
                         ),
-                      ),
+                      ],
                     ],
                   ],
                 )),
           );
         });
       }),
+    );
+  }
+
+  Widget get sideTabBody {
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height,
+      width: (!Utils.isDesktop() && !Utils.isTablet())
+          ? MediaQuery.sizeOf(context).height
+          : (MediaQuery.sizeOf(context).width / 3 > 420
+              ? 420
+              : MediaQuery.sizeOf(context).width / 3),
+      child: Container(
+        color: Theme.of(context).canvasColor,
+        child: GridViewObserver(
+          controller: observerController,
+          child: (Utils.isDesktop() || Utils.isTablet())
+              ? tabBody
+              : Column(
+                  children: [
+                    menuBar,
+                    menuBody,
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget get sideTabMask {
+    return GestureDetector(
+      onTap: closeTabBodyAnimated,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Colors.black.withValues(alpha: 0.5),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        width: double.infinity,
+        height: double.infinity,
+      ),
     );
   }
 
@@ -641,6 +664,7 @@ class _VideoPageState extends State<VideoPage>
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
                   sendDanmaku: sendDanmaku,
+                  disableAnimations: disableAnimations,
                 ),
         ),
 

@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.8.2+10802
+version: 1.8.3+10803
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
@@ -95,17 +95,17 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/universal/media_kit_libs_video
   flutter_inappwebview_platform_interface: ^1.3.0+1
   flutter_inappwebview_ios: ^1.1.2
@@ -118,27 +118,27 @@ dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: ad84c59faa2b871926cb31516bdeec65d7676884
+      ref: 56469d210b66828d8e4c7938d0d9d864f1beeea4
       path: ./libs/macos/media_kit_libs_macos_video
 
 dev_dependencies:

@@ -38,23 +38,6 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: const Text('默认行为'),
-            tiles: [
-              SettingsTile.switchTile(
-                title: const Text('关闭提示'),
-                description:
-                    const Text('关闭每次启用超分辨率时的提示'),
-                initialValue: promptOnEnable,
-                onToggle: (value) async {
-                  promptOnEnable = value ?? false;
-                  await setting.put(SettingBoxKey.superResolutionWarn, promptOnEnable);
-                  if (mounted) setState(() {});
-                },
-              ),
-            ],
-          ),
-
-          SettingsSection(
               title: const Text(
                   '超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换硬件解码器为 auto-copy'),
               tiles: [
@@ -104,6 +87,22 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   },
                 )
               ]),
+          SettingsSection(
+            title: const Text('默认行为'),
+            tiles: [
+              SettingsTile.switchTile(
+                title: const Text('关闭提示'),
+                description: const Text('关闭每次启用超分辨率时的提示'),
+                initialValue: promptOnEnable,
+                onToggle: (value) async {
+                  promptOnEnable = value ?? false;
+                  await setting.put(
+                      SettingBoxKey.superResolutionWarn, promptOnEnable);
+                  if (mounted) setState(() {});
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );

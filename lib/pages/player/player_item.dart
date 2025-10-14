@@ -40,6 +40,7 @@ class PlayerItem extends StatefulWidget {
     required this.onBackPressed,
     required this.keyboardFocus,
     required this.sendDanmaku,
+    this.disableAnimations = false,
   });
 
   final VoidCallback openMenu;
@@ -49,6 +50,7 @@ class PlayerItem extends StatefulWidget {
   final void Function(BuildContext) onBackPressed;
   final void Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
+  final bool disableAnimations;
 
   @override
   State<PlayerItem> createState() => _PlayerItemState();
@@ -1303,7 +1305,8 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
-                                showSyncPlayEndPointSwitchDialog,
+                                showSyncPlayEndPointSwitchDialog,                         
+                            disableAnimations: widget.disableAnimations,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -1325,6 +1328,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            disableAnimations: widget.disableAnimations,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -294,31 +295,36 @@ class _PopularPageState extends State<PopularPage>
   }
 
   Future<void> showTagMenu() async {
-    // we have to calculate the position of the button manually here.
-    // PopupMenuButton / DropdownButton cannot be used here because they can't set different font size in the button and the menu.
+    // Calculate the position of the button manually to position the dropdown menu.
+    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
+    // and to support different font sizes in the button and menu items.
     final RenderBox renderBox =
         selectorKey.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
     final Size size = renderBox.size;
 
-    final selected = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-          offset.dx, offset.dy + size.height, offset.dx + size.width, 0),
-      items: [
-        const PopupMenuItem<String>(
-          value: '',
-          child: Text('热门番组', style: TextStyle(fontSize: 14)),
-        ),
-        ...defaultAnimeTags.map(
-          (t) => PopupMenuItem<String>(
-            value: t,
-            child: Text(t, style: const TextStyle(fontSize: 14)),
-          ),
-        ),
-      ],
-      elevation: 6,
-      constraints: const BoxConstraints(maxHeight: 350),
+    final selected = await Navigator.push<String>(
+      context,
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.transparent,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return CustomDropdownMenu(
+            offset: offset,
+            buttonSize: size,
+            animation: animation,
+            maxWidth: 80,
+            items: [
+              '',
+              ...defaultAnimeTags,
+            ],
+            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 200),
+        reverseTransitionDuration: const Duration(milliseconds: 150),
+      ),
     );
 
     if (selected == null) return;

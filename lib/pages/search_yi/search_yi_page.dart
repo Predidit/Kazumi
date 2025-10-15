@@ -506,7 +506,7 @@ class _SearchYiPageState extends State<SearchYiPage>
                 ratingScore: 0.0,
                 votes: 0,
                 votesCount: [],
-                info: '',
+                info: '', keyword: '',
               )
       ..currentPlugin = plugin
       ..title = searchItem.name

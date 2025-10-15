@@ -231,7 +231,7 @@ class _SearchPageState extends State<SearchPage> {
                   crossAxisCount: crossCount,
                   mainAxisExtent:
                       MediaQuery.of(context).size.width / crossCount / 0.65 +
-                          MediaQuery.textScalerOf(context).scale(32.0),
+                      MediaQuery.textScalerOf(context).scale(32.0),
                 ),
                 itemCount: searchPageController.bangumiList.isNotEmpty
                     ? searchPageController.bangumiList.length

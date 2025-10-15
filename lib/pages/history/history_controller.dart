@@ -70,6 +70,33 @@ abstract class _HistoryController with Store {
     init();
   }
 
+  void updateHistoryByKey(String adapterName, BangumiItem oldBangumiItem, BangumiItem newBangumiItem) {
+    String oldKey =adapterName+oldBangumiItem.id.toString();
+    String newKey =adapterName+newBangumiItem.id.toString();
+
+    History? histort = storedHistories.get(oldKey);
+    if(histort!=null){
+      histort.bangumiItem = newBangumiItem;
+      storedHistories.delete(oldKey);
+      storedHistories.delete(newKey);
+      storedHistories.put(newKey, histort);
+    }
+    init();
+  }
+
+  BangumiItem? queryBangumiItem(String adapterName, String name) {
+    var temp = storedHistories.values.toList();
+    for (var historyItem in temp) {
+      if (historyItem.adapterName == adapterName) {
+        final bangumi = historyItem.bangumiItem;
+        if (bangumi.nameCn == name) {
+          return bangumi;
+        }
+      }
+    }
+    return null;
+  }
+
   void clearProgress(BangumiItem bangumiItem, String adapterName, int episode) {
     var history = storedHistories.get(History.getKey(adapterName, bangumiItem));
     history!.progresses[episode]!.progress = Duration.zero;

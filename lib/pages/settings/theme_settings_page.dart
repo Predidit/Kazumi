@@ -80,21 +80,23 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   void resetTheme() {
     var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorSchemeSeed: Colors.green,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorSchemeSeed: Colors.green,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024
+    );
     var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.light,
-          colorSchemeSeed: Colors.green,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: Colors.green,
+        progressIndicatorTheme: progressIndicatorTheme2024,
+        sliderTheme: sliderTheme2024,
+        pageTransitionsTheme: pageTransitionsTheme2024
+      ),
       oledEnhance ? oledDarkTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
@@ -139,19 +141,19 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         appBar: const SysAppBar(title: Text('外观设置')),
         body: SettingsList(
           maxWidth: 1000,
-          sections: [
-            SettingsSection(
-              title: const Text('外观'),
-              tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    if (menuController.isOpen) {
-                      menuController.close();
-                    } else {
-                      menuController.open();
-                    }
-                  },
-                  title: const Text('深色模式'),
+              sections: [
+                SettingsSection(
+                  title: const Text('外观'),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        if (menuController.isOpen) {
+                          menuController.close();
+                        } else {
+                          menuController.open();
+                        }
+                      },
+                      title: const Text('深色模式'),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
@@ -254,118 +256,120 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                SettingsTile.navigation(
-                  enabled: !useDynamicColor,
-                  onPressed: (_) async {
-                    KazumiDialog.show(builder: (context) {
-                      return AlertDialog(
-                        title: const Text('配色方案'),
-                        content: StatefulBuilder(builder:
-                            (BuildContext context, StateSetter setState) {
-                          final List<Map<String, dynamic>> colorThemes =
-                              colorThemeTypes;
-                          return Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: Utils.isDesktop() ? 8 : 0,
-                            children: [
-                              ...colorThemes.map(
-                                (e) {
-                                  final index = colorThemes.indexOf(e);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      index == 0
-                                          ? resetTheme()
-                                          : setTheme(e['color']);
-                                      KazumiDialog.dismiss();
-                                    },
-                                    child: Column(
-                                      children: [
-                                        PaletteCard(
-                                          color: e['color'],
-                                          selected: (e['color']
-                                                      .value
-                                                      .toRadixString(16) ==
-                                                  defaultThemeColor ||
-                                              (defaultThemeColor == 'default' &&
-                                                  index == 0)),
+                      ),
+                    ),
+                    SettingsTile.navigation(
+                      enabled: !useDynamicColor,
+                      onPressed: (_) async {
+                        KazumiDialog.show(builder: (context) {
+                          return AlertDialog(
+                            title: const Text('配色方案'),
+                            content: StatefulBuilder(builder:
+                                (BuildContext context, StateSetter setState) {
+                              final List<Map<String, dynamic>> colorThemes =
+                                  colorThemeTypes;
+                              return Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: Utils.isDesktop() ? 8 : 0,
+                                children: [
+                                  ...colorThemes.map(
+                                    (e) {
+                                      final index = colorThemes.indexOf(e);
+                                      return GestureDetector(
+                                        onTap: () {
+                                          index == 0
+                                              ? resetTheme()
+                                              : setTheme(e['color']);
+                                          KazumiDialog.dismiss();
+                                        },
+                                        child: Column(
+                                          children: [
+                                            PaletteCard(
+                                              color: e['color'],
+                                              selected: (e['color']
+                                                          .value
+                                                          .toRadixString(16) ==
+                                                      defaultThemeColor ||
+                                                  (defaultThemeColor ==
+                                                          'default' &&
+                                                      index == 0)),
+                                            ),
+                                            Text(e['label']),
+                                          ],
                                         ),
-                                        Text(e['label']),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              )
-                            ],
+                                      );
+                                    },
+                                  )
+                                ],
+                              );
+                            }),
                           );
-                        }),
-                      );
-                    });
-                  },
-                  title: const Text('配色方案'),
+                        });
+                      },
+                      title: const Text('配色方案'),
+                    ),
+                    SettingsTile.switchTile(
+                      enabled: !Platform.isIOS,
+                      onToggle: (value) async {
+                        useDynamicColor = value ?? !useDynamicColor;
+                        await setting.put(
+                            SettingBoxKey.useDynamicColor, useDynamicColor);
+                        themeProvider.setDynamic(useDynamicColor);
+                        setState(() {});
+                      },
+                      title: const Text('动态配色'),
+                      initialValue: useDynamicColor,
+                    ),
+                  ],
+                  bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
                 ),
-                SettingsTile.switchTile(
-                  enabled: !Platform.isIOS,
-                  onToggle: (value) async {
-                    useDynamicColor = value ?? !useDynamicColor;
-                    await setting.put(
-                        SettingBoxKey.useDynamicColor, useDynamicColor);
-                    themeProvider.setDynamic(useDynamicColor);
-                    setState(() {});
-                  },
-                  title: const Text('动态配色'),
-                  initialValue: useDynamicColor,
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        oledEnhance = value ?? !oledEnhance;
+                        await setting.put(
+                            SettingBoxKey.oledEnhance, oledEnhance);
+                        updateOledEnhance();
+                        setState(() {});
+                      },
+                      title: const Text('OLED优化'),
+                      description: const Text('深色模式下使用纯黑背景'),
+                      initialValue: oledEnhance,
+                    ),
+                  ],
                 ),
-              ],
-              bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
-            ),
-            SettingsSection(
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    oledEnhance = value ?? !oledEnhance;
-                    await setting.put(SettingBoxKey.oledEnhance, oledEnhance);
-                    updateOledEnhance();
-                    setState(() {});
-                  },
-                  title: const Text('OLED优化'),
-                  description: const Text('深色模式下使用纯黑背景'),
-                  initialValue: oledEnhance,
-                ),
-              ],
-            ),
-            if (Utils.isDesktop())
-              SettingsSection(
-                tiles: [
-                  SettingsTile.switchTile(
-                    onToggle: (value) async {
-                      showWindowButton = value ?? !showWindowButton;
-                      await setting.put(
-                          SettingBoxKey.showWindowButton, showWindowButton);
-                      setState(() {});
-                    },
-                    title: const Text('使用系统标题栏'),
-                    description: const Text('重启应用生效'),
-                    initialValue: showWindowButton,
+                if (Utils.isDesktop())
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile.switchTile(
+                        onToggle: (value) async {
+                          showWindowButton = value ?? !showWindowButton;
+                          await setting.put(
+                              SettingBoxKey.showWindowButton, showWindowButton);
+                          setState(() {});
+                        },
+                        title: const Text('使用系统标题栏'),
+                        description: const Text('重启应用生效'),
+                        initialValue: showWindowButton,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            if (Platform.isAndroid)
-              SettingsSection(
-                tiles: [
-                  SettingsTile.navigation(
-                    onPressed: (_) async {
-                      Modular.to.pushNamed('/settings/theme/display');
-                    },
-                    title: const Text('屏幕帧率'),
+                if (Platform.isAndroid)
+                  SettingsSection(
+                    tiles: [
+                      SettingsTile.navigation(
+                        onPressed: (_) async {
+                          Modular.to.pushNamed('/settings/theme/display');
+                        },
+                        title: const Text('屏幕帧率'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-          ],
-        ),
-      ),
+              ],
+            ),
+          ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/pages/player/details_info.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
@@ -41,6 +42,7 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<WebviewItemController>();
   late bool playResume;
   bool showDebugLog = false;
+  bool jumpNeed = true;
   List<String> webviewLogLines = [];
   final FocusNode keyboardFocus = FocusNode();
 
@@ -67,6 +69,11 @@ class _VideoPageState extends State<VideoPage>
   // The first parameter is the video source URL and the second parameter is the video offset (start position)
   late final StreamSubscription<(String, int)> _videoURLSubscription;
 
+  bool isFullHighScreen = false;
+
+  // disable animation.
+  late final bool disableAnimations;
+
   @override
   void initState() {
     super.initState();
@@ -74,7 +81,7 @@ class _VideoPageState extends State<VideoPage>
     // Check fullscreen when enter video page
     // in case user use system controls to enter fullscreen outside video page
     videoPageController.isDesktopFullscreen();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 3, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 120),
@@ -99,6 +106,8 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
+    disableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
@@ -247,16 +256,29 @@ class _VideoPageState extends State<VideoPage>
 
   void openTabBodyAnimated() {
     if (videoPageController.showTabBody) {
-      animation.forward();
-      menuJumpToCurrentEpisode();
+      if (!disableAnimations) {
+        animation.forward();
+        if (videoPageController.loading == jumpNeed) {
+          if (jumpNeed) {
+            menuJumpToCurrentEpisode();
+          }
+          jumpNeed = !jumpNeed;
+        } else if (jumpNeed) {
+          menuJumpToCurrentEpisode();
+        }
+      }
     }
   }
 
   void closeTabBodyAnimated() {
-    animation.reverse();
-    Future.delayed(const Duration(milliseconds: 120), () {
+    if (!disableAnimations) {
+      animation.reverse();
+      Future.delayed(const Duration(milliseconds: 120), () {
+        videoPageController.showTabBody = false;
+      });
+    } else {
       videoPageController.showTabBody = false;
-    });
+    }
     keyboardFocus.requestFocus();
   }
 
@@ -419,7 +441,9 @@ class _VideoPageState extends State<VideoPage>
                             color: Colors.black,
                             height: (isWideScreen)
                                 ? MediaQuery.sizeOf(context).height
-                                : MediaQuery.sizeOf(context).width * 9 / 16,
+                                : isFullHighScreen
+                                    ? MediaQuery.sizeOf(context).height * 0.75
+                                    : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
                             child: playerBody,
                           ),
@@ -429,60 +453,72 @@ class _VideoPageState extends State<VideoPage>
                       ],
                     ),
 
-                    // when is wideScreen, show tabBody on the right side with SlideTransition
+                    // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
                     if (isWideScreen && videoPageController.showTabBody) ...[
-                      FadeTransition(
-                        opacity: _maskOpacityAnimation,
-                        child: GestureDetector(
-                          onTap: closeTabBodyAnimated,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.5),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
+                      if (disableAnimations) ...[
+                        sideTabMask,
+                        sideTabBody,
+                      ] else ...[
+                        FadeTransition(
+                          opacity: _maskOpacityAnimation,
+                          child: sideTabMask,
                         ),
-                      ),
-                      SlideTransition(
-                        position: _rightOffsetAnimation,
-                        child: SizedBox(
-                          height: MediaQuery.sizeOf(context).height,
-                          // 420 is chosen based on 426.6(1/3 of 1280)
-                          width: (!Utils.isDesktop() && !Utils.isTablet())
-                              ? MediaQuery.sizeOf(context).height
-                              : (MediaQuery.sizeOf(context).width / 3 > 420
-                                  ? 420
-                                  : MediaQuery.sizeOf(context).width / 3),
-                          child: Container(
-                            color: Theme.of(context).canvasColor,
-                            child: GridViewObserver(
-                              controller: observerController,
-                              child: (Utils.isDesktop() || Utils.isTablet())
-                                  ? tabBody
-                                  : Column(
-                                      children: [
-                                        menuBar,
-                                        menuBody,
-                                      ],
-                                    ),
-                            ),
-                          ),
+                        SlideTransition(
+                          position: _rightOffsetAnimation,
+                          child: sideTabBody,
                         ),
-                      ),
+                      ],
                     ],
                   ],
                 )),
           );
         });
       }),
+    );
+  }
+
+  Widget get sideTabBody {
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height,
+      width: (!Utils.isDesktop() && !Utils.isTablet())
+          ? MediaQuery.sizeOf(context).height
+          : (MediaQuery.sizeOf(context).width / 3 > 420
+              ? 420
+              : MediaQuery.sizeOf(context).width / 3),
+      child: Container(
+        color: Theme.of(context).canvasColor,
+        child: GridViewObserver(
+          controller: observerController,
+          child: (Utils.isDesktop() || Utils.isTablet())
+              ? tabBody
+              : Column(
+                  children: [
+                    menuBar,
+                    menuBody,
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget get sideTabMask {
+    return GestureDetector(
+      onTap: closeTabBodyAnimated,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Colors.black.withValues(alpha: 0.5),
+              Colors.transparent,
+            ],
+          ),
+        ),
+        width: double.infinity,
+        height: double.infinity,
+      ),
     );
   }
 
@@ -641,6 +677,7 @@ class _VideoPageState extends State<VideoPage>
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
                   sendDanmaku: sendDanmaku,
+                  disableAnimations: disableAnimations,
                 ),
         ),
 
@@ -835,7 +872,7 @@ class _VideoPageState extends State<VideoPage>
     return Container(
       color: Theme.of(context).canvasColor,
       child: DefaultTabController(
-        length: 2,
+        length: 3,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -847,7 +884,7 @@ class _VideoPageState extends State<VideoPage>
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   labelPadding:
-                      const EdgeInsetsDirectional.only(start: 30, end: 30),
+                      const EdgeInsetsDirectional.only(start: 20, end: 10),
                   onTap: (index) {
                     if (index == 0) {
                       menuJumpToCurrentEpisode();
@@ -856,11 +893,41 @@ class _VideoPageState extends State<VideoPage>
                   tabs: const [
                     Tab(text: '选集'),
                     Tab(text: '评论'),
+                    Tab(text: '详情'),
                   ],
                 ),
                 if (MediaQuery.sizeOf(context).width <=
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
+                  // 新增宽高比按钮
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 0.5,
+                      ),
+                    ),
+                    width: 40,
+                    height: 31,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        isFullHighScreen
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isFullHighScreen = !isFullHighScreen;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 原有弹幕发送容器
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
@@ -931,6 +998,7 @@ class _VideoPageState extends State<VideoPage>
                     episode: episodeNum,
                     child: EpisodeCommentsSheet(),
                   ),
+                  DetailsCommentsSheet()
                 ],
               ),
             ),

@@ -26,28 +26,28 @@ class _DecoderSettingsState extends State<DecoderSettings> {
       ),
       body: SettingsList(
         maxWidth: 1000,
-        sections: [
-          SettingsSection(
-            title: const Text('选择不受支持的解码器将回退到软件解码'),
-            tiles: hardwareDecodersList.entries
-                .map((e) => SettingsTile<String>.radioTile(
-                      title: Text(e.key),
-                      description: Text(e.value),
-                      radioValue: e.key,
-                      groupValue: decoder.value,
-                      onChanged: (String? value) {
-                        if (value != null) {
-                          setting.put(SettingBoxKey.hardwareDecoder, value);
-                          setState(() {
-                            decoder.value = value;
-                          });
-                        }
-                      },
-                    ))
-                .toList(),
+            sections: [
+              SettingsSection(
+                title: const Text('选择不受支持的解码器将回退到软件解码'),
+                tiles: hardwareDecodersList.entries
+                    .map((e) => SettingsTile<String>.radioTile(
+                          title: Text(e.key),
+                          description: Text(e.value),
+                          radioValue: e.key,
+                          groupValue: decoder.value,
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setting.put(SettingBoxKey.hardwareDecoder, value);
+                              setState(() {
+                                decoder.value = value;
+                              });
+                            }
+                          },
+                        ))
+                    .toList(),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

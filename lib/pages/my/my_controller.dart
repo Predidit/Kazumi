@@ -69,7 +69,7 @@ abstract class _MyController with Store {
     try {
       final autoUpdater = AutoUpdater();
 
-      if (type == 'manual') {
+        if (type == 'manual') {
         await autoUpdater.manualCheckForUpdates();
       } else {
         await autoUpdater.autoCheckForUpdates();

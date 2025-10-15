@@ -1,6 +1,7 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/popular/popular_module.dart';
 import 'package:kazumi/pages/my/my_module.dart';
+import 'package:kazumi/pages/search_yi/search_yi_module.dart';
 import 'package:kazumi/pages/timeline/timeline_module.dart';
 import 'package:kazumi/pages/collect/collect_module.dart';
 
@@ -38,6 +39,10 @@ final MenuRoute menu = MenuRoute([
   MenuRouteItem(
     path: "/popular",
     module: PopularModule(),
+  ),
+  MenuRouteItem(
+      path: "/searchYi",
+      module: SearchYiModule()
   ),
   MenuRouteItem(
     path: "/timeline",

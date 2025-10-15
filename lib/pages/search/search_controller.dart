@@ -87,10 +87,8 @@ abstract class _SearchPageController with Store {
         return;
       }
     }
-    var result = await BangumiHTTP.bangumiSearch(keywords,
-        tags: [if (tag != null) tag],
-        offset: bangumiList.length,
-        sort: sort ?? 'heat');
+    var result =
+        await BangumiHTTP.bangumiSearch(keywords, tags: [if (tag != null) tag], offset: bangumiList.length, sort: sort ?? 'heat');
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;

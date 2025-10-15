@@ -71,9 +71,9 @@ class WebviewWindowsItemControllerImpel
     webviewController!.dispose();
   }
 
-  // The webview_windows package does not have a method to unload the current page. 
-  // The loadUrl method opens a new tab, which can lead to memory leaks. 
-  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly. 
+  // The webview_windows package does not have a method to unload the current page.
+  // The loadUrl method opens a new tab, which can lead to memory leaks.
+  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly.
   // Therefore, this method is used to redirect to a blank page instead.
   Future<void> redirect2Blank() async {
     await webviewController!.executeScript('''

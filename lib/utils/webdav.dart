@@ -46,15 +46,15 @@ class WebDav {
     try {
       await client.ping();
       try {
-        // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
-        await client.mkdir('/kazumiSync');    
+      // KazumiLogger().log(Level.warning, 'webDav backup directory not exists, creating');
+      await client.mkdir('/kazumiSync');
         if (!await webDavLocalTempDirectory.exists()) {
           await webDavLocalTempDirectory.create(recursive: true);
         }
-        initialized = true;
-        KazumiLogger().log(Level.info, 'webDav backup directory create success');
-      } catch (_) {
-        KazumiLogger().log(Level.error, 'webDav backup directory create failed');
+      initialized = true;
+      KazumiLogger().log(Level.info, 'webDav backup directory create success');
+    } catch (_) {
+      KazumiLogger().log(Level.error, 'webDav backup directory create failed');
         rethrow;
       }
     } catch (e) {
@@ -65,7 +65,7 @@ class WebDav {
 
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
-    final localFilePath = '${directory.path}/hive/$boxName.hive'; 
+    final localFilePath = '${directory.path}/hive/$boxName.hive';
     final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
     final webDavPath = '/kazumiSync/$boxName.tmp';
     await File(localFilePath)
@@ -101,8 +101,8 @@ class WebDav {
       KazumiLogger().log(Level.error, 'webDav update history failed $e');
       rethrow;
     } finally {
-      isHistorySyncing = false;
-    }
+    isHistorySyncing = false;
+  }
   }
 
   Future<void> updateCollectibles() async {
@@ -110,10 +110,10 @@ class WebDav {
     // some webdav server may not support muliti thread write
     // you will get 423 locked error
     try {
-      await update('collectibles');
-      if (GStorage.collectChanges.isNotEmpty) {
-        await update('collectchanges');
-      }
+    await update('collectibles');
+    if (GStorage.collectChanges.isNotEmpty) {
+      await update('collectchanges');
+    }
     } catch (e) {
       KazumiLogger().log(Level.error, 'webDav update collectibles failed $e');
       rethrow;
@@ -148,8 +148,8 @@ class WebDav {
           .log(Level.error, 'webDav download and patch history failed $e');
       rethrow;
     } finally {
-      isHistorySyncing = false;
-    }
+    isHistorySyncing = false;
+  }
   }
 
   Future<void> syncCollectibles() async {
@@ -163,11 +163,11 @@ class WebDav {
       await updateCollectibles();
       return;
     }
-    
+
     List<Future<void>> downloadFutures = [];
     if (collectiblesExists) {
       downloadFutures.add(download('collectibles').catchError((e) {
-        KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
+      KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
         throw Exception('webDav download collectibles failed');
       }));
     }
@@ -179,19 +179,19 @@ class WebDav {
     }
     if (downloadFutures.isNotEmpty) {
       await Future.wait(downloadFutures);
-    } 
+    }
     try {
       if (collectiblesExists) {
-        remoteCollectibles = await GStorage.getCollectiblesFromFile(
+      remoteCollectibles = await GStorage.getCollectiblesFromFile(
           '${webDavLocalTempDirectory.path}/collectibles.tmp');
       }
       if (changesExists) {
-        remoteChanges = await GStorage.getCollectChangesFromFile(
+      remoteChanges = await GStorage.getCollectChangesFromFile(
           '${webDavLocalTempDirectory.path}/collectchanges.tmp');
-      }  
+      }
     } catch (e) {
       KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
-      throw Exception('webDav get collectibles from file failed'); 
+      throw Exception('webDav get collectibles from file failed');
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
@@ -201,7 +201,7 @@ class WebDav {
 
   Future<void> ping() async {
     try {
-      await client.ping();
+    await client.ping();
     } catch (e) {
       KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
       rethrow;

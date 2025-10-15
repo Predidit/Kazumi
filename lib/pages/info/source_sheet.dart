@@ -68,66 +68,66 @@ class _SourceSheetState extends State<SourceSheet>
         clipBehavior: Clip.antiAlias,
         child: SizedBox(
           width: 560,
-          child: ValueListenableBuilder<List<String>>(
-            valueListenable: aliasNotifier,
-            builder: (context, aliasList, child) {
-              return ListView(
-                shrinkWrap: true,
-                children: aliasList.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final alias = entry.value;
-                  return ListTile(
-                    title: Text(alias),
-                    trailing: IconButton(
-                      onPressed: () {
-                        KazumiDialog.show(
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('删除确认'),
-                              content: const Text('删除后无法恢复，确认要永久删除这个别名吗？'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    KazumiDialog.dismiss();
-                                  },
-                                  child: Text(
-                                    '取消',
-                                    style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline),
-                                  ),
+        child: ValueListenableBuilder<List<String>>(
+          valueListenable: aliasNotifier,
+          builder: (context, aliasList, child) {
+            return ListView(
+              shrinkWrap: true,
+              children: aliasList.asMap().entries.map((entry) {
+                final index = entry.key;
+                final alias = entry.value;
+                return ListTile(
+                  title: Text(alias),
+                  trailing: IconButton(
+                    onPressed: () {
+                      KazumiDialog.show(
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('删除确认'),
+                            content: const Text('删除后无法恢复，确认要永久删除这个别名吗？'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  KazumiDialog.dismiss();
+                                },
+                                child: Text(
+                                  '取消',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outline),
                                 ),
-                                TextButton(
-                                  onPressed: () {
-                                    KazumiDialog.dismiss();
-                                    aliasList.removeAt(index);
-                                    aliasNotifier.value = List.from(aliasList);
-                                    collectController.updateLocalCollect(
-                                        widget.infoController.bangumiItem);
-                                    if (aliasList.isEmpty) {
-                                      // pop whole dialog when empty
-                                      Navigator.of(context).pop();
-                                    }
-                                  },
-                                  child: const Text('确认'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      icon: Icon(Icons.delete),
-                    ),
-                    onTap: () {
-                      KazumiDialog.dismiss();
-                      queryManager?.querySource(alias, pluginName);
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  KazumiDialog.dismiss();
+                                  aliasList.removeAt(index);
+                                  aliasNotifier.value = List.from(aliasList);
+                                  collectController.updateLocalCollect(
+                                      widget.infoController.bangumiItem);
+                                  if (aliasList.isEmpty) {
+                                    // pop whole dialog when empty
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                                child: const Text('确认'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
-                  );
-                }).toList(),
-              );
-            },
-          ),
+                    icon: Icon(Icons.delete),
+                  ),
+                  onTap: () {
+                    KazumiDialog.dismiss();
+                    queryManager?.querySource(alias, pluginName);
+                  },
+                );
+              }).toList(),
+            );
+          },
+        ),
         ),
       );
     });

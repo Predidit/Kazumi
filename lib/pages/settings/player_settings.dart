@@ -26,6 +26,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool showPlayerError;
   late bool privateMode;
   late bool playerDebugMode;
+  late bool playerDisableAnimations;
   final MenuController menuController = MenuController();
 
   @override
@@ -46,6 +47,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    playerDisableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -80,36 +83,36 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         appBar: const SysAppBar(title: Text('播放设置')),
         body: SettingsList(
           maxWidth: 1000,
-          sections: [
-            SettingsSection(
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    hAenable = value ?? !hAenable;
-                    await setting.put(SettingBoxKey.hAenable, hAenable);
-                    setState(() {});
-                  },
-                  title: const Text('硬件解码'),
-                  initialValue: hAenable,
-                ),
-                SettingsTile.navigation(
+              sections: [
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        hAenable = value ?? !hAenable;
+                        await setting.put(SettingBoxKey.hAenable, hAenable);
+                        setState(() {});
+                      },
+                      title: const Text('硬件解码'),
+                      initialValue: hAenable,
+                    ),
+                    SettingsTile.navigation(
                   onPressed: (_) async {
-                    await Modular.to.pushNamed('/settings/player/decoder');
-                  },
-                  title: const Text('硬件解码器'),
-                  description: const Text('仅在硬件解码启用时生效'),
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    lowMemoryMode = value ?? !lowMemoryMode;
-                    await setting.put(
-                        SettingBoxKey.lowMemoryMode, lowMemoryMode);
-                    setState(() {});
-                  },
-                  title: const Text('低内存模式'),
-                  description: const Text('禁用高级缓存以减少内存占用'),
-                  initialValue: lowMemoryMode,
-                ),
+                        await Modular.to.pushNamed('/settings/player/decoder');
+                      },
+                      title: const Text('硬件解码器'),
+                      description: const Text('仅在硬件解码启用时生效'),
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        lowMemoryMode = value ?? !lowMemoryMode;
+                        await setting.put(
+                            SettingBoxKey.lowMemoryMode, lowMemoryMode);
+                        setState(() {});
+                      },
+                      title: const Text('低内存模式'),
+                      description: const Text('禁用高级缓存以减少内存占用'),
+                      initialValue: lowMemoryMode,
+                    ),
                 if (Platform.isAndroid) ...[
                   SettingsTile.switchTile(
                     onToggle: (value) async {
@@ -123,62 +126,74 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     initialValue: androidEnableOpenSLES,
                   ),
                 ],
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    Modular.to.pushNamed('/settings/player/super');
-                  },
-                  title: const Text('超分辨率'),
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        Modular.to.pushNamed('/settings/player/super');
+                      },
+                      title: const Text('超分辨率'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
+                SettingsSection(
+                  tiles: [
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        playResume = value ?? !playResume;
+                        await setting.put(SettingBoxKey.playResume, playResume);
+                        setState(() {});
+                      },
+                      title: const Text('自动跳转'),
+                      description: const Text('跳转到上次播放位置'),
+                      initialValue: playResume,
+                    ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
-                    playResume = value ?? !playResume;
-                    await setting.put(SettingBoxKey.playResume, playResume);
+                    playerDisableAnimations = value ?? !playerDisableAnimations;
+                    await setting.put(SettingBoxKey.playerDisableAnimations,
+                        playerDisableAnimations);
                     setState(() {});
                   },
-                  title: const Text('自动跳转'),
-                  description: const Text('跳转到上次播放位置'),
-                  initialValue: playResume,
+                  title: const Text('禁用动画'),
+                  description: const Text('禁用播放器内的过渡动画'),
+                  initialValue: playerDisableAnimations,
                 ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    showPlayerError = value ?? !showPlayerError;
-                    await setting.put(
-                        SettingBoxKey.showPlayerError, showPlayerError);
-                    setState(() {});
-                  },
-                  title: const Text('错误提示'),
-                  description: const Text('显示播放器内部错误提示'),
-                  initialValue: showPlayerError,
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        showPlayerError = value ?? !showPlayerError;
+                        await setting.put(
+                            SettingBoxKey.showPlayerError, showPlayerError);
+                        setState(() {});
+                      },
+                      title: const Text('错误提示'),
+                      description: const Text('显示播放器内部错误提示'),
+                      initialValue: showPlayerError,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        playerDebugMode = value ?? !playerDebugMode;
+                        await setting.put(
+                            SettingBoxKey.playerDebugMode, playerDebugMode);
+                        setState(() {});
+                      },
+                      title: const Text('调试模式'),
+                      description: const Text('记录播放器内部日志'),
+                      initialValue: playerDebugMode,
+                    ),
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        privateMode = value ?? !privateMode;
+                        await setting.put(
+                            SettingBoxKey.privateMode, privateMode);
+                        setState(() {});
+                      },
+                      title: const Text('隐身模式'),
+                      description: const Text('不保留观看记录'),
+                      initialValue: privateMode,
+                    ),
+                  ],
                 ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    playerDebugMode = value ?? !playerDebugMode;
-                    await setting.put(
-                        SettingBoxKey.playerDebugMode, playerDebugMode);
-                    setState(() {});
-                  },
-                  title: const Text('调试模式'),
-                  description: const Text('记录播放器内部日志'),
-                  initialValue: playerDebugMode,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    privateMode = value ?? !privateMode;
-                    await setting.put(SettingBoxKey.privateMode, privateMode);
-                    setState(() {});
-                  },
-                  title: const Text('隐身模式'),
-                  description: const Text('不保留观看记录'),
-                  initialValue: privateMode,
-                ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
+                SettingsSection(
+                  tiles: [
                 SettingsTile(
                   title: const Text('默认倍速'),
                   description: Slider(
@@ -193,23 +208,23 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     },
                   ),
                 ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
                     if (menuController.isOpen) {
                       menuController.close();
                     } else {
                       menuController.open();
                     }
                   },
-                  title: const Text('默认视频比例'),
+                        title: const Text('默认视频比例'),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
                     builder: (_, __, ___) {
                       return Text(
                         aspectRatioTypeMap[defaultAspectRatioType] ?? '自动',
-                      );
-                    },
+                              );
+                          },
                     menuChildren: [
                       for (final entry in aspectRatioTypeMap.entries)
                         MenuItemButton(
@@ -221,25 +236,25 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                             constraints: BoxConstraints(minWidth: 112),
                             child: Align(
                               alignment: Alignment.centerLeft,
-                              child: Text(
+                                child: Text(
                                 entry.value,
-                                style: TextStyle(
+                                  style: TextStyle(
                                   color: entry.key == defaultAspectRatioType
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                 ),
+                                ),
                               ),
-                            ),
                           ),
-                        ),
-                    ],
+                              ),
+                            ],
                   ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

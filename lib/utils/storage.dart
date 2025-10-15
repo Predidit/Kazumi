@@ -142,26 +142,16 @@ class GStorage {
             (b) => b.bangumiItem.id == change.bangumiID);
       } else {
         // For add/update, we still need to look up the local collectible.
-        final changedBangumiID = change.bangumiID.toString();
-        for (var localCollect in localCollectibles) {
-          if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
-            if (change.action == 1) {
-              // Action 1: add
-              final exists = remoteCollectibles
-                  .any((b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-              if (!exists) {
-                remoteCollectibles.add(localCollect);
-              } else {
-                final index = remoteCollectibles.indexWhere(
-                    (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-                localCollect.type = change.type;
-                if (index != -1) {
-                  // Update the entry with local data.
-                  remoteCollectibles[index] = localCollect;
-                }
-              }
-            } else if (change.action == 2) {
-              // Action 2: update
+      final changedBangumiID = change.bangumiID.toString();
+      for (var localCollect in localCollectibles) {
+        if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
+          if (change.action == 1) {
+            // Action 1: add
+            final exists = remoteCollectibles
+                .any((b) => b.bangumiItem.id == localCollect.bangumiItem.id);
+            if (!exists) {
+              remoteCollectibles.add(localCollect);
+            } else {
               final index = remoteCollectibles.indexWhere(
                   (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
               localCollect.type = change.type;
@@ -170,9 +160,19 @@ class GStorage {
                 remoteCollectibles[index] = localCollect;
               }
             }
-            break;
+          } else if (change.action == 2) {
+            // Action 2: update
+            final index = remoteCollectibles.indexWhere(
+                (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
+            localCollect.type = change.type;
+            if (index != -1) {
+              // Update the entry with local data.
+              remoteCollectibles[index] = localCollect;
+            }
           }
+          break;
         }
+      }
       }
     }
 
@@ -252,5 +252,6 @@ class SettingBoxKey {
       syncPlayEndPoint = 'syncPlayEndPoint',
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       defaultSuperResolutionType = 'defaultSuperResolutionType',
-      superResolutionWarn = 'superResolutionWarn';
+      superResolutionWarn = 'superResolutionWarn',
+      playerDisableAnimations = 'playerDisableAnimations';
 }

@@ -183,8 +183,7 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    getDanDanmakuByBgmBangumiID(
-        videoPageController.bangumiItem.id, episodeFromTitle);
+    getDanDanmakuByBgmBangumiID(videoPageController.bangumiItem.id, episodeFromTitle);
     mediaPlayer ??= await createVideoController(offset: offset);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
@@ -311,7 +310,7 @@ abstract class _PlayerController with Store {
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
       if (androidEnableOpenSLES) {
-        await pp.setProperty("ao", "opensles");
+      await pp.setProperty("ao", "opensles");
       } else {
         await pp.setProperty("ao", "audiotrack");
       }
@@ -491,8 +490,7 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
     try {
       danDanmakus.clear();
-      bangumiID =
-          await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
+      bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {

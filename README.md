@@ -7,8 +7,8 @@
 - Windows 10 及以上
 - MacOS 10.15 及以上
 - Linux (实验性)
-- iOS 13 及以上 (需要自签名)
-- HarmonyOS 5.0 及以上 (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要侧载)
+- iOS (需要自签名)
+- HarmonyOS NEXT (位于[分支仓库](https://github.com/ErBWs/Kazumi/releases/latest)，需要侧载)
 
 ## 屏幕截图 
 
@@ -61,35 +61,24 @@
   <img src="static/svg/get_it_on_github.svg" alt="Get it on Github" width="200"/>
 </a>
 
-### Android
+对于安卓用户，可以从 F-Droid 安装：
 
 <a href="https://f-droid.org/packages/com.predidit.kazumi">
   <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on-en-us.svg"
   alt="Get it on F-Droid" width="200">
 </a>
 
-### GNU/Linux
+对于 GNU/Linux 用户，可以从 Flathub 安装：
 
 &nbsp;&nbsp;
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
   <img src="https://flathub.org/api/badge?svg&locale=en" alt="Get it on Flathub" width="175"/>
 </a>
 
-#### Arch Linux
-
-可以从 [AUR](http://aur.archlinux.org) 或 [archlinuxcn](https://github.com/archlinuxcn/repo) 安装。
-
-##### AUR
+对于 Arch Linux 用户，可以从 AUR 软件库安装：
 
 ```bash
-[yay/paru] -S kazumi # 从源码构建
-[yay/paru] -S kazumi-bin # 二进制包
-```
-
-##### archlinuxcn
-
-```bash
-sudo pacman -S kazumi
+yay -S kazumi
 ```
 
 ## 贡献

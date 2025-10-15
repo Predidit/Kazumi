@@ -46,15 +46,23 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await videoPageController.queryBangumiEpisodeCommentsByID(
-            videoPageController.bangumiItem.id, episode)
-        .then((_) {
-      if (videoPageController.episodeCommentsList.isEmpty && mounted) {
-        setState(() {
-          commentsQueryTimeout = true;
-        });
-      }
-    });
+    if (videoPageController.bangumiItem.id >= 100000000) {
+
+      setState(() {
+        commentsQueryTimeout = true;
+      });
+    } else {
+      await videoPageController
+          .queryBangumiEpisodeCommentsByID(
+              videoPageController.bangumiItem.id, episode)
+          .then((_) {
+        if (videoPageController.episodeCommentsList.isEmpty && mounted) {
+          setState(() {
+            commentsQueryTimeout = true;
+          });
+        }
+      });
+    }
     if (mounted) {
       setState(() {});
     }

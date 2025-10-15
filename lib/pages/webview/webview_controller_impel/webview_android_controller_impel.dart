@@ -29,7 +29,7 @@ class WebviewAndroidItemControllerImpel
         onWebViewCreated: (controller) {
           print('[WebView] Created');
           webviewController = controller;
-          initEventController.add(true);
+    initEventController.add(true);
         },
         onLoadStart: (controller, url) async {
           logEventController.add('started loading: $url');

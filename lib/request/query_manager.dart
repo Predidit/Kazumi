@@ -15,34 +15,44 @@ class QueryManager {
   late StreamController _controller;
   bool _isCancelled = false;
 
-  Future<void> querySource(String keyword, String pluginName) async {
-    for (PluginSearchResponse pluginSearchResponse
-        in infoController.pluginSearchResponseList) {
-      if (pluginSearchResponse.pluginName == pluginName) {
-        infoController.pluginSearchResponseList.remove(pluginSearchResponse);
-        break;
+  Future<void> querySource(String keyword, String pluginName,
+      {int page = 1, bool isAppend = false}) async {
+    PluginSearchResponse? searchHistory;
+    if (infoController.pluginSearchResponseList
+        .any((r) => r.pluginName == pluginName)) {
+      searchHistory = infoController.pluginSearchResponseList
+          .firstWhere((r) => r.pluginName == pluginName);
+      if (!isAppend) {
+        searchHistory.data.clear();
       }
     }
-    if (infoController.pluginSearchStatus.containsKey(pluginName)) {
+    if (!isAppend &&
+        infoController.pluginSearchStatus.containsKey(pluginName)) {
       infoController.pluginSearchStatus[pluginName] = 'pending';
     }
-    for (Plugin plugin in pluginsController.pluginList) {
-      if (plugin.name == pluginName) {
-        plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
-          if (_isCancelled) return;
-
-          infoController.pluginSearchStatus[plugin.name] = 'success';
-          if (result.data.isNotEmpty) {
-            pluginsController.validityTracker.markSearchValid(plugin.name);
-          }
-          infoController.pluginSearchResponseList.add(result);
-        }).catchError((error) {
-          if (_isCancelled) return;
-
-          infoController.pluginSearchStatus[plugin.name] = 'error';
-        });
+    final targetPlugin =
+        pluginsController.pluginList.firstWhere((p) => p.name == pluginName);
+    await targetPlugin.queryBangumi(
+      keyword,
+      page,
+      shouldRethrow: true,
+    ).then((result){
+      if (_isCancelled) return;
+      // 处理结果（原逻辑迁移到这里，确保状态同步）
+      infoController.pluginSearchStatus[pluginName] = 'success';
+      if (result.data.isNotEmpty) {
+        pluginsController.validityTracker.markSearchValid(pluginName);
       }
-    }
+      if (searchHistory != null) {
+        searchHistory.data.addAll(result.data);
+      } else {
+        infoController.pluginSearchResponseList.add(result);
+      }
+
+    }).catchError((error) {
+      if (_isCancelled) return;
+      infoController.pluginSearchStatus[pluginName] = 'error';
+    });
   }
 
   Future<void> queryAllSource(String keyword) async {
@@ -50,13 +60,14 @@ class QueryManager {
     infoController.pluginSearchResponseList.clear();
 
     for (Plugin plugin in pluginsController.pluginList) {
+      //todo: plugin加一个成员变量用来判断是否需要与大部队一块搜索
       infoController.pluginSearchStatus[plugin.name] = 'pending';
     }
 
     for (Plugin plugin in pluginsController.pluginList) {
       if (_isCancelled) return;
 
-      plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
+      plugin.queryBangumi(keyword, 1, shouldRethrow: true,).then((result) {
         if (_isCancelled) return;
 
         infoController.pluginSearchStatus[plugin.name] = 'success';

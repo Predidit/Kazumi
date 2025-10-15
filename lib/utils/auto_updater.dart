@@ -188,81 +188,81 @@ class AutoUpdater {
                   ),
                 ],
                 const SizedBox(height: 8),
-                if (!Platform.isLinux && !Platform.isIOS) ...[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '选择安装类型:',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        ...updateInfo.availableInstallationTypes.map((type) {
-                          return Container(
-                            margin: const EdgeInsets.symmetric(vertical: 2),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(4),
-                                onTap: () {
-                                  KazumiDialog.dismiss();
-                                  _downloadUpdateWithType(updateInfo, type);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outline
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.download,
-                                        size: 16,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _getInstallationTypeDescription(type),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 12,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .outline,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ],
+                // if (!Platform.isLinux && !Platform.isIOS) ...[
+                //   Container(
+                //     padding: const EdgeInsets.all(8),
+                //     decoration: BoxDecoration(
+                //       color:
+                //           Theme.of(context).colorScheme.surfaceContainerHighest,
+                //       borderRadius: BorderRadius.circular(4),
+                //     ),
+                //     child: Column(
+                //       crossAxisAlignment: CrossAxisAlignment.start,
+                //       children: [
+                //         Text(
+                //           '选择安装类型:',
+                //           style: Theme.of(context).textTheme.labelSmall,
+                //         ),
+                //         const SizedBox(height: 8),
+                //         ...updateInfo.availableInstallationTypes.map((type) {
+                //           return Container(
+                //             margin: const EdgeInsets.symmetric(vertical: 2),
+                //             child: Material(
+                //               color: Colors.transparent,
+                //               child: InkWell(
+                //                 borderRadius: BorderRadius.circular(4),
+                //                 onTap: () {
+                //                   KazumiDialog.dismiss();
+                //                   _downloadUpdateWithType(updateInfo, type);
+                //                 },
+                //                 child: Container(
+                //                   padding: const EdgeInsets.symmetric(
+                //                       horizontal: 12, vertical: 8),
+                //                   decoration: BoxDecoration(
+                //                     border: Border.all(
+                //                       color: Theme.of(context)
+                //                           .colorScheme
+                //                           .outline
+                //                           .withValues(alpha: 0.3),
+                //                     ),
+                //                     borderRadius: BorderRadius.circular(4),
+                //                   ),
+                //                   child: Row(
+                //                     children: [
+                //                       Icon(
+                //                         Icons.download,
+                //                         size: 16,
+                //                         color: Theme.of(context)
+                //                             .colorScheme
+                //                             .primary,
+                //                       ),
+                //                       const SizedBox(width: 8),
+                //                       Expanded(
+                //                         child: Text(
+                //                           _getInstallationTypeDescription(type),
+                //                           style: Theme.of(context)
+                //                               .textTheme
+                //                               .bodySmall,
+                //                         ),
+                //                       ),
+                //                       Icon(
+                //                         Icons.arrow_forward_ios,
+                //                         size: 12,
+                //                         color: Theme.of(context)
+                //                             .colorScheme
+                //                             .outline,
+                //                       ),
+                //                     ],
+                //                   ),
+                //                 ),
+                //               ),
+                //             ),
+                //           );
+                //         }),
+                //       ],
+                //     ),
+                //   ),
+                // ],
               ],
             ),
           ),
@@ -295,17 +295,17 @@ class AutoUpdater {
                 },
                 child: const Text('查看详情'),
               ),
-            TextButton(
-              onPressed: () {
-                KazumiDialog.dismiss();
-                // 直接使用第一个可用的安装类型
-                if (updateInfo.availableInstallationTypes.isNotEmpty) {
-                  _downloadUpdateWithType(
-                      updateInfo, updateInfo.availableInstallationTypes.first);
-                }
-              },
-              child: const Text('立即更新'),
-            ),
+            // TextButton(
+            //   onPressed: () {
+            //     KazumiDialog.dismiss();
+            //     // 直接使用第一个可用的安装类型
+            //     if (updateInfo.availableInstallationTypes.isNotEmpty) {
+            //       _downloadUpdateWithType(
+            //           updateInfo, updateInfo.availableInstallationTypes.first);
+            //     }
+            //   },
+            //   child: const Text('立即更新'),
+            // ),
           ],
         );
       },
@@ -561,6 +561,7 @@ class AutoUpdater {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
+            if (Utils.isDesktop())
             TextButton(
               onPressed: () {
                 // 在文件管理器中显示文件
@@ -662,6 +663,8 @@ class AutoUpdater {
         } else {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
+        await Future.delayed(const Duration(seconds: 1));
+        exit(0);
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
@@ -674,8 +677,6 @@ class AutoUpdater {
           return;
         }
       }
-      await Future.delayed(const Duration(seconds: 1));
-      exit(0);
     } catch (e) {
       KazumiDialog.showToast(message: '启动安装程序失败: ${e.toString()}');
       KazumiLogger().log(Level.error, '启动安装程序失败: ${e.toString()}');
@@ -716,8 +717,8 @@ class AutoUpdater {
       });
       return (asset['browser_download_url'] as String?) ?? '';
     } catch (e) {
-      return '';
-    }
+    return '';
+  }
   }
 
   /// 获取合适的下载链接

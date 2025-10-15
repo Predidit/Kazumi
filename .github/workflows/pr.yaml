@@ -247,11 +247,10 @@
           - run: flutter build macos --release
           - name: Create DMG
             run: |
-              npm install --global create-dmg
-              create-dmg build/macos/Build/Products/Release/Kazumi.app
-            continue-on-error: true
-          - name: Rename DMG
-            run: mv Kazumi*.dmg Kazumi_macos_canary.dmg
+              mkdir -p build/dist
+              cp -a build/macos/Build/Products/Release/kazumi.app build/dist/
+              ln -s /Applications build/dist/Applications
+              hdiutil create -format UDZO -srcfolder build/dist -volname kazumi Kazumi_macos_canary.dmg
           - name: Upload MacOS build
             uses: actions/upload-artifact@v4
             with:

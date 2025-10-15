@@ -131,16 +131,16 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             KazumiDialog.dismiss();
           }
         },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             buildImage(
                 context,
                 widget.historyItem.bangumiItem.images['large'] ?? '',
                 imageWidth,
                 widget.cardHeight),
-            const SizedBox(width: 12),
-            Expanded(
+              const SizedBox(width: 12),
+              Expanded(
               child: Padding(
                 padding:
                     const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
@@ -182,46 +182,48 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                 ),
               ),
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (!widget.showDelete) ...[
-                  CollectButton(
-                    onClose: () {
-                      FocusScope.of(context).unfocus();
-                    },
-                    bangumiItem: widget.historyItem.bangumiItem,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.open_in_new,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (!widget.showDelete) ...[
+                    CollectButton(
+                      onClose: () {
+                        FocusScope.of(context).unfocus();
+                      },
+                      bangumiItem: widget.historyItem.bangumiItem,
                       color: Theme.of(context).colorScheme.onSecondaryContainer,
                     ),
-                    tooltip: '番剧详情',
-                    onPressed: () {
-                      Modular.to.pushNamed(
-                        '/info/',
-                        arguments: widget.historyItem.bangumiItem,
-                      );
-                    },
-                  ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.open_in_new,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      tooltip: '番剧详情',
+                      onPressed: () {
+                        Modular.to.pushNamed(
+                          '/info/',
+                          arguments: widget.historyItem.bangumiItem,
+                        );
+                      },
+                    ),
+                  ],
+                  if (widget.showDelete)
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      onPressed: () {
+                        historyController.deleteHistory(widget.historyItem);
+                      },
+                    ),
                 ],
-                if (widget.showDelete)
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete,
-                      color: Theme.of(context).colorScheme.onSecondaryContainer,
-                    ),
-                    onPressed: () {
-                      historyController.deleteHistory(widget.historyItem);
-                    },
-                  ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
     );
   }
 }

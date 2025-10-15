@@ -40,9 +40,11 @@ class _SourceSheetState extends State<SourceSheet>
 
   @override
   void initState() {
-    keyword = widget.infoController.bangumiItem.nameCn == ''
-        ? widget.infoController.bangumiItem.name
-        : widget.infoController.bangumiItem.nameCn;
+    keyword = widget.infoController.bangumiItem.keyword == ''
+        ? widget.infoController.bangumiItem.nameCn == ''
+            ? widget.infoController.bangumiItem.name
+            : widget.infoController.bangumiItem.nameCn
+        : widget.infoController.bangumiItem.keyword;
     if (widget.infoController.pluginSearchResponseList.isEmpty) {
       queryManager = QueryManager(infoController: widget.infoController);
       queryManager?.queryAllSource(keyword);

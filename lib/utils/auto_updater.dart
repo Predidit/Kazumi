@@ -561,13 +561,14 @@ class AutoUpdater {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
-              onPressed: () {
-                // 在文件管理器中显示文件
-                _revealInFileManager(filePath);
-              },
-              child: const Text('打开文件夹'),
-            ),
+            if (Utils.isDesktop())
+              TextButton(
+                onPressed: () {
+                  // 在文件管理器中显示文件
+                  _revealInFileManager(filePath);
+                },
+                child: const Text('打开文件夹'),
+              ),
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
@@ -662,6 +663,8 @@ class AutoUpdater {
         } else {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
+        await Future.delayed(const Duration(seconds: 1));
+        exit(0);
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
@@ -673,10 +676,6 @@ class AutoUpdater {
           KazumiDialog.showToast(message: '无法打开安装文件: ${result.message}');
           return;
         }
-      }
-      if (!Platform.isAndroid) {
-        await Future.delayed(const Duration(seconds: 1));
-        exit(0);
       }
     } catch (e) {
       KazumiDialog.showToast(message: '启动安装程序失败: ${e.toString()}');

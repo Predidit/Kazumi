@@ -561,13 +561,14 @@ class AutoUpdater {
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
-            TextButton(
-              onPressed: () {
-                // 在文件管理器中显示文件
-                _revealInFileManager(filePath);
-              },
-              child: const Text('打开文件夹'),
-            ),
+            if (Utils.isDesktop())
+              TextButton(
+                onPressed: () {
+                  // 在文件管理器中显示文件
+                  _revealInFileManager(filePath);
+                },
+                child: const Text('打开文件夹'),
+              ),
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
@@ -662,6 +663,8 @@ class AutoUpdater {
         } else {
           await Process.start('explorer.exe', [filePath], runInShell: true);
         }
+        await Future.delayed(const Duration(seconds: 1));
+        exit(0);
       } else if (Platform.isMacOS) {
         if (filePath.endsWith('.dmg')) {
           await Process.start('open', [filePath]);
@@ -674,8 +677,6 @@ class AutoUpdater {
           return;
         }
       }
-      await Future.delayed(const Duration(seconds: 1));
-      exit(0);
     } catch (e) {
       KazumiDialog.showToast(message: '启动安装程序失败: ${e.toString()}');
       KazumiLogger().log(Level.error, '启动安装程序失败: ${e.toString()}');
@@ -705,14 +706,15 @@ class AutoUpdater {
   /// 根据安装类型获取下载链接
   Future<String> _getDownloadUrlForType(
       List<dynamic> assets, InstallationType type) async {
-    final patterns = _getFilePatterns(type).map((p) => p.toLowerCase()).toList();
+    final patterns =
+        _getFilePatterns(type).map((p) => p.toLowerCase()).toList();
 
     try {
       final asset = assets.cast<Map<String, dynamic>>().firstWhere((asset) {
         final name = (asset['name'] as String?)?.toLowerCase() ?? '';
         final downloadUrl = (asset['browser_download_url'] as String?) ?? '';
         return downloadUrl.isNotEmpty &&
-              patterns.every((pattern) => name.contains(pattern));
+            patterns.every((pattern) => name.contains(pattern));
       });
       return (asset['browser_download_url'] as String?) ?? '';
     } catch (e) {

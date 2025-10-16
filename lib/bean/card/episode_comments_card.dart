@@ -43,7 +43,7 @@ class EpisodeCommentsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            BBCodeWidget(bbcode: userComment),  // 对应这里被修改为上面的 userComment
+            BBCodeWidget(bbcode: userComment),
             if (commentItem.replies.isNotEmpty)
               ListView.builder(
                 // Don't know why but ohos has bottom padding,

@@ -194,7 +194,7 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
     aspectRatioType =
         setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
-    // TODO: 获取本地设置好的跳转秒数的逻辑
+        
     buttonSkipTime =
         setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
     arrowKeySkipTime =

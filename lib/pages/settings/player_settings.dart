@@ -10,6 +10,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:logger/logger.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -82,25 +83,11 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  /// 更新左右方向键的快进/快退时长
-  Future<void> updateArrowKeySkipDuration() async {
-    final int? newArrowKeySkipTime = await _showSkipTimeChangeDialog(
-        title: '方向键快进/快退时长', initialValue: playerArrowKeySkipTime.toString());
-
-    if (newArrowKeySkipTime != null &&
-        newArrowKeySkipTime != playerArrowKeySkipTime) {
-      setting.put(SettingBoxKey.arrowKeySkipTime, newArrowKeySkipTime);
-      setState(() {
-        playerArrowKeySkipTime = newArrowKeySkipTime;
-      });
-    }
-  }
-
   /// 更新顶部按键的快进时长
   Future<void> updateButtonSkipTime() async {
     final int? newButtonSkipTime = await _showSkipTimeChangeDialog(
         title: '顶部按钮快进时长', initialValue: playerButtonSkipTime.toString());
-    KazumiLogger().d('newButtonSkipTime: $newButtonSkipTime');
+    print('新设置的顶部按钮快进时长: $newButtonSkipTime');
 
     if (newButtonSkipTime != null &&
         newButtonSkipTime != playerButtonSkipTime) {
@@ -156,7 +143,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 return;
               }
               // 以新设置的值弹出
-              Navigator.of(context).pop(newValue);
+              KazumiDialog.dismiss(popWith: newValue);
             },
             child: const Text('确定'),
           ),
@@ -229,22 +216,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             ),
             SettingsSection(
               tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    await updateArrowKeySkipDuration();
-                  },
-                  title: const Text('快进/快退时长'),
-                  description: const Text('左右方向键等操作的跳转秒数'),
-                  value: Text('$playerArrowKeySkipTime 秒'),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    await updateButtonSkipTime();
-                  },
-                  title: const Text('跳过时长'),
-                  description: const Text('顶栏跳过按钮的秒数'),
-                  value: Text('$playerButtonSkipTime 秒'),
-                ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     playResume = value ?? !playResume;
@@ -315,6 +286,37 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                           double.parse(value.toStringAsFixed(2)));
                     },
                   ),
+                ),
+                SettingsTile.navigation(
+                  description: Slider(
+                    value: playerArrowKeySkipTime.toDouble(),
+                    min: 0,
+                    max: 15,
+                    divisions: 15,
+                    label: '$playerArrowKeySkipTime秒',
+                    onChanged: (value) {
+                      final newArrowKeySkipTime = value.toInt();
+                      print('新设置的方向键快进/快退时长: $newArrowKeySkipTime');
+
+                      if (value != playerArrowKeySkipTime) {
+                        setting.put(SettingBoxKey.arrowKeySkipTime,
+                            newArrowKeySkipTime);
+                        setState(() {
+                          playerArrowKeySkipTime = newArrowKeySkipTime;
+                        });
+                      }
+                    },
+                  ),
+                  title: const Text('左右方向键的快进/快退秒数'),
+                  value: Text('$playerArrowKeySkipTime 秒'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    await updateButtonSkipTime();
+                  },
+                  title: const Text('跳过时长'),
+                  description: const Text('顶栏跳过按钮的秒数'),
+                  value: Text('$playerButtonSkipTime 秒'),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {

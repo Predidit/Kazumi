@@ -83,5 +83,12 @@
         "xmemory": "cpp",
         "xtr1common": "cpp",
         "xutility": "cpp"
+    },
+    "workbench.colorCustomizations": {
+        "editor.lineHighlightBackground": "#1073cf2d",
+        "editor.lineHighlightBorder": "#9fced11f",
+        "activityBar.background": "#07304B",
+        "titleBar.activeBackground": "#0A4369",
+        "titleBar.activeForeground": "#F7FBFE"
     }
 }

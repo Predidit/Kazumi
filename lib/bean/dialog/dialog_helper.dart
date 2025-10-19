@@ -182,10 +182,11 @@ class KazumiDialog {
     }
   }
 
-  static void dismiss() {
+  // 在存在返回值时弹出并附带返回值
+  static void dismiss<T>({T? popWith}) {
     if (observer.hasKazumiDialog && observer.kazumiDialogContext != null) {
       try {
-        Navigator.of(observer.kazumiDialogContext!).pop();
+        Navigator.of(observer.kazumiDialogContext!).pop(popWith);
       } catch (e) {
         debugPrint('Kazumi Dialog Error: Failed to dismiss dialog: $e');
       }

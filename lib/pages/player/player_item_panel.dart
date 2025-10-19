@@ -234,7 +234,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             decoration: InputDecoration(
               floatingLabelBehavior:
                   FloatingLabelBehavior.never, // 控制label的显示方式
-              labelText: playerController.forwardTime.toString(),
+              labelText: playerController.buttonSkipTime.toString(),
             ),
             onChanged: (value) {
               input = value;
@@ -252,7 +252,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           TextButton(
             onPressed: () async {
               if (input != "") {
-                playerController.setForwardTime(int.parse(input));
+                playerController.setButtonForwardTime(int.parse(input));
                 KazumiDialog.dismiss();
               } else {
                 KazumiDialog.dismiss();
@@ -305,7 +305,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           ),
           onPressed: () {
             playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.forwardTime));
+                Duration(seconds: playerController.buttonSkipTime));
           },
         ),
       ),

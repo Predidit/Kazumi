@@ -31,8 +31,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool privateMode;
   late bool playerDebugMode;
   late bool playerDisableAnimations;
-  late int playerButtonSkipTime; // 顶部按钮快进时长
-  late int playerArrowKeySkipTime; // 方向键快进/快退时长
+  late int playerButtonSkipTime;
+  late int playerArrowKeySkipTime;
   final MenuController menuController = MenuController();
 
   @override
@@ -83,7 +83,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  /// 更新顶部按键的快进时长
   Future<void> updateButtonSkipTime() async {
     final int? newButtonSkipTime = await _showSkipTimeChangeDialog(
         title: '顶部按钮快进时长', initialValue: playerButtonSkipTime.toString());
@@ -98,7 +97,6 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     }
   }
 
-  /// 在设置内设置快进/快退时长时弹出对话框，要求提供修改的数字
   Future<int?> _showSkipTimeChangeDialog(
       {required String title, required String initialValue}) async {
     return KazumiDialog.show<int>(builder: (context) {

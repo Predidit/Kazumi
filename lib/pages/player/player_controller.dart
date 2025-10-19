@@ -119,9 +119,7 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
   bool playerDebugMode = false;
-  // 按键跳过的时间
   int buttonSkipTime = 80;
-  // PC 端左右键跳过的时间
   int arrowKeySkipTime = 10;
 
   // 播放器实时状态
@@ -494,13 +492,11 @@ abstract class _PlayerController with Store {
 
   void setButtonForwardTime(int time) {
     buttonSkipTime = time;
-    // 存进 GStorage 中
     setting.put(SettingBoxKey.buttonSkipTime, time);
   }
 
   void setArrowKeyForwardTime(int time) {
     arrowKeySkipTime = time;
-    // 存进 GStorage 中
     setting.put(SettingBoxKey.arrowKeySkipTime, time);
   }
 

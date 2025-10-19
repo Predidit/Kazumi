@@ -227,7 +227,8 @@ class _PlayerItemState extends State<PlayerItem>
     if (!mounted) return;
 
     final bool isHighMode = shaderIndex == 3;
-    final bool alreadyShown = setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
+    final bool alreadyShown =
+        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
 
     if (isHighMode && !alreadyShown) {
       bool confirmed = false;
@@ -249,7 +250,8 @@ class _PlayerItemState extends State<PlayerItem>
                   children: [
                     Checkbox(
                       value: dontAskAgain,
-                      onChanged: (value) => setState(() => dontAskAgain = value ?? false),
+                      onChanged: (value) =>
+                          setState(() => dontAskAgain = value ?? false),
                     ),
                     const Text('下次不再询问'),
                   ],
@@ -574,131 +576,127 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Widget get videoInfoBody {
-    return Observer(
-      builder: (context) {
-        return ListView(
-          children: [
-            ListTile(
-              title: const Text("Source"),
-              subtitle: Text(playerController.videoUrl),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(text: playerController.videoUrl),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("Resolution"),
-              subtitle: Text(
-                  '${playerController.playerWidth}x${playerController.playerHeight}'),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "Resolution\n${playerController.playerWidth}x${playerController.playerHeight}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("VideoParams"),
-              subtitle: Text(playerController.playerVideoParams.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "VideoParams\n${playerController.playerVideoParams.toString()}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("AudioParams"),
-              subtitle: Text(playerController.playerAudioParams.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "AudioParams\n${playerController.playerAudioParams.toString()}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("Media"),
-              subtitle: Text(playerController.playerPlaylist.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text: "Media\n${playerController.playerPlaylist.toString()}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("AudioTrack"),
-              subtitle: Text(playerController.playerAudioTracks.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "AudioTrack\n${playerController.playerAudioTracks.toString()}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("VideoTrack"),
-              subtitle: Text(playerController.playerVideoTracks.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "VideoTrack\n${playerController.playerVideoTracks.toString()}",
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              title: const Text("AudioBitrate"),
-              subtitle: Text(playerController.playerAudioBitrate.toString()),
-              onTap: () {
-                KazumiDialog.showToast(message: '已复制到剪贴板');
-                Clipboard.setData(
-                  ClipboardData(
-                    text:
-                        "AudioBitrate\n${playerController.playerAudioBitrate.toString()}",
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      }
-    );
+    return Observer(builder: (context) {
+      return ListView(
+        children: [
+          ListTile(
+            title: const Text("Source"),
+            subtitle: Text(playerController.videoUrl),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(text: playerController.videoUrl),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("Resolution"),
+            subtitle: Text(
+                '${playerController.playerWidth}x${playerController.playerHeight}'),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "Resolution\n${playerController.playerWidth}x${playerController.playerHeight}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("VideoParams"),
+            subtitle: Text(playerController.playerVideoParams.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "VideoParams\n${playerController.playerVideoParams.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioParams"),
+            subtitle: Text(playerController.playerAudioParams.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioParams\n${playerController.playerAudioParams.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("Media"),
+            subtitle: Text(playerController.playerPlaylist.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text: "Media\n${playerController.playerPlaylist.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioTrack"),
+            subtitle: Text(playerController.playerAudioTracks.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioTrack\n${playerController.playerAudioTracks.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("VideoTrack"),
+            subtitle: Text(playerController.playerVideoTracks.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "VideoTrack\n${playerController.playerVideoTracks.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioBitrate"),
+            subtitle: Text(playerController.playerAudioBitrate.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioBitrate\n${playerController.playerAudioBitrate.toString()}",
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    });
   }
 
   Widget get videoDebugLogBody {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0),
-        child: Observer(
-          builder: (context) {
-            return ListView.builder(
-              itemCount: playerController.playerLog.length,
-              itemBuilder: (context, index) {
-                return Text(playerController.playerLog[index]);
-              },
-            );
-          }
-        ),
+        child: Observer(builder: (context) {
+          return ListView.builder(
+            itemCount: playerController.playerLog.length,
+            itemBuilder: (context, index) {
+              return Text(playerController.playerLog[index]);
+            },
+          );
+        }),
       ),
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.copy),
@@ -1124,7 +1122,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     LogicalKeyboardKey.arrowLeft) {
                                   int targetPosition = playerController
                                           .currentPosition.inSeconds -
-                                      10;
+                                      playerController.arrowKeySkipTime;
                                   if (targetPosition < 0) {
                                     targetPosition = 0;
                                   }
@@ -1201,7 +1199,8 @@ class _PlayerItemState extends State<PlayerItem>
                                       playerController.seek(Duration(
                                           seconds: playerController
                                                   .currentPosition.inSeconds +
-                                              10));
+                                              playerController
+                                                  .arrowKeySkipTime));
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
@@ -1294,7 +1293,8 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
-                            handleSuperResolutionChange: handleSuperResolutionChange,
+                            handleSuperResolutionChange:
+                                handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
@@ -1305,7 +1305,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayRoomCreateDialog:
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
-                                showSyncPlayEndPointSwitchDialog,                         
+                                showSyncPlayEndPointSwitchDialog,
                             disableAnimations: widget.disableAnimations,
                           )
                         : SmallestPlayerItemPanel(
@@ -1316,7 +1316,8 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
-                            handleSuperResolutionChange: handleSuperResolutionChange,
+                            handleSuperResolutionChange:
+                                handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             handleHove: _handleHove,

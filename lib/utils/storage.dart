@@ -212,6 +212,8 @@ class SettingBoxKey {
       alwaysOntop = 'alwaysOntop',
       defaultPlaySpeed = 'defaultPlaySpeed',
       defaultAspectRatioType = 'defaultAspectRatioType',
+      buttonSkipTime = 'buttonSkipTime',
+      arrowKeySkipTime = 'arrowKeySkipTime',
       danmakuEnhance = 'danmakuEnhance',
       danmakuBorder = 'danmakuBorder',
       danmakuOpacity = 'danmakuOpacity',

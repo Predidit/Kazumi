@@ -255,5 +255,6 @@ class SettingBoxKey {
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       defaultSuperResolutionType = 'defaultSuperResolutionType',
       superResolutionWarn = 'superResolutionWarn',
-      playerDisableAnimations = 'playerDisableAnimations';
+      playerDisableAnimations = 'playerDisableAnimations',
+      playerLogLevel = 'playerLogLevel';
 }

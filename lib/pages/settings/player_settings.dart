@@ -30,7 +30,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDisableAnimations;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
-  final MenuController menuController = MenuController();
+  late int playerLogLevel;
+  final MenuController playerAspectRatioMenuController = MenuController();
+  final MenuController playerLogLevelMenuController = MenuController();
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     playerDisableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+    playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
 
     playerButtonSkipTime =
         setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
@@ -70,6 +73,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     setting.put(SettingBoxKey.defaultPlaySpeed, speed);
     setState(() {
       defaultPlaySpeed = speed;
+    });
+  }
+
+  void updatePlayerLogLevel(int level) {
+    setting.put(SettingBoxKey.playerLogLevel, level);
+    setState(() {
+      playerLogLevel = level;
     });
   }
 
@@ -234,6 +244,20 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
+                    privateMode = value ?? !privateMode;
+                    await setting.put(SettingBoxKey.privateMode, privateMode);
+                    setState(() {});
+                  },
+                  title: const Text('隐身模式'),
+                  description: const Text('不保留观看记录'),
+                  initialValue: privateMode,
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
                     showPlayerError = value ?? !showPlayerError;
                     await setting.put(
                         SettingBoxKey.showPlayerError, showPlayerError);
@@ -254,15 +278,47 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: const Text('记录播放器内部日志'),
                   initialValue: playerDebugMode,
                 ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    privateMode = value ?? !privateMode;
-                    await setting.put(SettingBoxKey.privateMode, privateMode);
-                    setState(() {});
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    if (playerLogLevelMenuController.isOpen) {
+                      playerLogLevelMenuController.close();
+                    } else {
+                      playerLogLevelMenuController.open();
+                    }
                   },
-                  title: const Text('隐身模式'),
-                  description: const Text('不保留观看记录'),
-                  initialValue: privateMode,
+                  title: const Text('日志等级'),
+                  description: const Text('播放器内部日志等级'),
+                  value: MenuAnchor(
+                    consumeOutsideTap: true,
+                    controller: playerLogLevelMenuController,
+                    builder: (_, __, ___) {
+                      return Text(
+                        playerLogLevelMap[playerLogLevel] ?? '???',
+                      );
+                    },
+                    menuChildren: [
+                      for (final entry in playerLogLevelMap.entries)
+                        MenuItemButton(
+                          requestFocusOnHover: false,
+                          onPressed: () => updatePlayerLogLevel(entry.key),
+                          child: Container(
+                            height: 48,
+                            constraints: BoxConstraints(minWidth: 112),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                entry.value,
+                                style: TextStyle(
+                                  color: entry.key == playerLogLevel
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -314,16 +370,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
-                    if (menuController.isOpen) {
-                      menuController.close();
+                    if (playerAspectRatioMenuController.isOpen) {
+                      playerAspectRatioMenuController.close();
                     } else {
-                      menuController.open();
+                      playerAspectRatioMenuController.open();
                     }
                   },
                   title: const Text('默认视频比例'),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
-                    controller: menuController,
+                    controller: playerAspectRatioMenuController,
                     builder: (_, __, ___) {
                       return Text(
                         aspectRatioTypeMap[defaultAspectRatioType] ?? '自动',

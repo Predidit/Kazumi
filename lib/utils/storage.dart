@@ -256,5 +256,6 @@ class SettingBoxKey {
       defaultSuperResolutionType = 'defaultSuperResolutionType',
       superResolutionWarn = 'superResolutionWarn',
       playerDisableAnimations = 'playerDisableAnimations',
-      playerLogLevel = 'playerLogLevel';
+      playerLogLevel = 'playerLogLevel',
+      searchNotShowWatchedBangumis = 'searchNotShowWatchedBangumis';
 }

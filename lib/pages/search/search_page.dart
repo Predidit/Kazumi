@@ -24,11 +24,6 @@ class _SearchPageState extends State<SearchPage> {
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
-  final watchedBangumiNames = GStorage.collectibles.values
-      .where((item) => item.type == 4)
-      .map((item) => item.bangumiItem.name)
-      .toSet();
-
   @override
   void initState() {
     super.initState();
@@ -229,9 +224,6 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
-              final filteredList = searchPageController.bangumiList
-                  .where((item) => !watchedBangumiNames.contains(item.name))
-                  .toList();
 
               return GridView.builder(
                 controller: scrollController,
@@ -244,12 +236,14 @@ class _SearchPageState extends State<SearchPage> {
                       MediaQuery.of(context).size.width / crossCount / 0.65 +
                           MediaQuery.textScalerOf(context).scale(32.0),
                 ),
-                itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
+                itemCount: searchPageController.bangumiList.isNotEmpty
+                    ? searchPageController.bangumiList.length
+                    : 10,
                 itemBuilder: (context, index) {
-                  return filteredList.isNotEmpty
+                  return searchPageController.bangumiList.isNotEmpty
                       ? BangumiCardV(
                           enableHero: false,
-                          bangumiItem: filteredList[index],
+                          bangumiItem: searchPageController.bangumiList[index],
                         )
                       : Container();
                 },

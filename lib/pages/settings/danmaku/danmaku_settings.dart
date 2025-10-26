@@ -183,7 +183,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     value: defaultDanmakuArea,
                     min: 0,
                     max: 1,
-                    divisions: 4,
+                    divisions: 8,
                     label: '${(defaultDanmakuArea * 100).round()}%',
                     onChanged: (value) {
                       updateDanmakuArea(value);

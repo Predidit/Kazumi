@@ -270,6 +270,7 @@ class _SearchPageState extends State<SearchPage> {
                 );
               }
 
+
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
                 return Center(child: CircularProgressIndicator());

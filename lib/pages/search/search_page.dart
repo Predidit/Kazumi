@@ -209,6 +209,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                 );
               }
+
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
                 return Center(child: CircularProgressIndicator());
@@ -222,6 +223,7 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
+
               return GridView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),

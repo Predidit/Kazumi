@@ -27,7 +27,7 @@ class _SearchPageState extends State<SearchPage> {
 
   final List<Tab> tabs = [
     Tab(text: "排序方式"),
-    Tab(text: "显示设置"),
+    Tab(text: "过滤器"),
   ];
 
   @override

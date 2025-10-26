@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/storage.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -22,6 +23,11 @@ class _SearchPageState extends State<SearchPage> {
   /// Use a new instance of SearchPageController for each search page.
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
+
+  final watchedBangumiNames = GStorage.collectibles.values
+      .where((item) => item.type == 4)
+      .map((item) => item.bangumiItem.name)
+      .toSet();
 
   @override
   void initState() {
@@ -209,6 +215,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                 );
               }
+
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
                 return Center(child: CircularProgressIndicator());
@@ -222,6 +229,10 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
+              final filteredList = searchPageController.bangumiList
+                  .where((item) => !watchedBangumiNames.contains(item.name))
+                  .toList();
+
               return GridView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
@@ -233,14 +244,12 @@ class _SearchPageState extends State<SearchPage> {
                       MediaQuery.of(context).size.width / crossCount / 0.65 +
                           MediaQuery.textScalerOf(context).scale(32.0),
                 ),
-                itemCount: searchPageController.bangumiList.isNotEmpty
-                    ? searchPageController.bangumiList.length
-                    : 10,
+                itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
                 itemBuilder: (context, index) {
-                  return searchPageController.bangumiList.isNotEmpty
+                  return filteredList.isNotEmpty
                       ? BangumiCardV(
                           enableHero: false,
-                          bangumiItem: searchPageController.bangumiList[index],
+                          bangumiItem: filteredList[index],
                         )
                       : Container();
                 },

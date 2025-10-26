@@ -158,7 +158,7 @@ class _SearchPageState extends State<SearchPage> {
             constraints: BoxConstraints(
               maxHeight: (MediaQuery.sizeOf(context).height >=
                       LayoutBreakpoint.compact['height']!)
-                  ? MediaQuery.of(context).size.height * 1 / 2
+                  ? MediaQuery.of(context).size.height * 1 / 4
                   : MediaQuery.of(context).size.height,
               maxWidth: (MediaQuery.sizeOf(context).width >=
                       LayoutBreakpoint.medium['width']!)

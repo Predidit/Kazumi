@@ -129,6 +129,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 const SizedBox(height: 20),
                 ExpansionTile(
                   title: const Text('高级选项'),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                   children: [
                     SwitchListTile(
                       title: const Text('简易解析'),

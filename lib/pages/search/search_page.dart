@@ -59,14 +59,21 @@ class _SearchPageState extends State<SearchPage> {
   Widget showFilterSwitcher() {
     return Wrap(
       children: [
-        ListTile(
-          title: const Text('不显示已看过的番剧'),
-          trailing: Observer(
-            builder: (context) => Switch(
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              searchPageController.setNotShowWatchedBangumis(
+                  !searchPageController.notShowWatchedBangumis);
+            },
+            child: ListTile(
+              title: const Text('不显示已看过的番剧'),
+              trailing: Switch(
                 value: searchPageController.notShowWatchedBangumis,
                 onChanged: (value) {
                   searchPageController.setNotShowWatchedBangumis(value);
-                }),
+                },
+              ),
+            ),
           ),
         ),
       ],

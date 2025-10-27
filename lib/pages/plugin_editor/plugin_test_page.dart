@@ -193,7 +193,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
                       theme: theme,
                       title: '1. 搜索请求测试',
                       subtitle: _getSearchSubtitle(),
-                      expanded: true,
+                      expanded: false,
                       child: _buildSearchContent(theme),
                     ),
                     _h12,

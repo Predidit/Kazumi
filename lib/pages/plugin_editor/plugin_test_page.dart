@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -25,11 +26,9 @@ class PluginTestPage extends StatefulWidget {
 class _PluginTestPageState extends State<PluginTestPage> {
   late final Plugin plugin;
   final testKeywordController = TextEditingController();
-  final _scrollCtrls = {
-    'html': ScrollController(),
-    'chapter': ScrollController(),
-    'itemHtml': ScrollController(),
-  };
+  final htmlScrollController = ScrollController();
+  final chapterScrollController = ScrollController();
+  final itemHtmlScrollController = ScrollController();
 
   String searchHtml = "";
   PluginSearchResponse? searchRes;
@@ -40,8 +39,11 @@ class _PluginTestPageState extends State<PluginTestPage> {
   int? _showItemHtmlIdx;
 
   bool get _hasSearchHtml => searchHtml.isNotEmpty;
+
   bool get _hasSearchData => searchRes?.data.isNotEmpty ?? false;
+
   bool get _hasChapters => chapters?.isNotEmpty ?? false;
+
   bool get _needChapterParse => plugin.chapterRoads.isNotEmpty;
 
   @override
@@ -55,7 +57,9 @@ class _PluginTestPageState extends State<PluginTestPage> {
   @override
   void dispose() {
     testKeywordController.dispose();
-    _scrollCtrls.forEach((_, ctrl) => ctrl.dispose());
+    htmlScrollController.dispose();
+    chapterScrollController.dispose();
+    itemHtmlScrollController.dispose();
     super.dispose();
   }
 
@@ -109,8 +113,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
       // 3. 获取章节
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
-        if (firstItem.src.isNotEmpty)
-          chapters = await plugin.querychapterRoads(firstItem.src);
+        if (firstItem.src.isNotEmpty) {
+          chapters = await plugin.querychapterRoads(firstItem.src,
+              cancelToken: CancelToken());
+        }
       }
     } catch (e, stack) {
       errorMsg = "测试失败：$e";
@@ -142,35 +148,38 @@ class _PluginTestPageState extends State<PluginTestPage> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(16.0),
-          child: Center(child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildKeywordInput(),
-              _h12,
-              _buildErrorWidget(),
-              _buildExpansionTile(
-                title: '1. 搜索请求测试',
-                subtitle: _getSearchSubtitle(),
-                expanded: true,
-                child: _buildSearchContent(),
-              ),
-              _h12,
-              _buildExpansionTile(
-                title: '2. 搜索解析测试',
-                subtitle: _getParseSubtitle(),
-                expanded: false,
-                child: _buildParseContent(),
-              ),
-              _h12,
-              _buildExpansionTile(
-                title: '3. 章节列表测试',
-                subtitle: _getChapterSubtitle(),
-                expanded: _hasSearchData,
-                child: _buildChapterContent(),
-              ),
-            ]),
-          ),),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildKeywordInput(),
+                    _h12,
+                    _buildErrorWidget(),
+                    _buildExpansionTile(
+                      title: '1. 搜索请求测试',
+                      subtitle: _getSearchSubtitle(),
+                      expanded: true,
+                      child: _buildSearchContent(),
+                    ),
+                    _h12,
+                    _buildExpansionTile(
+                      title: '2. 搜索解析测试',
+                      subtitle: _getParseSubtitle(),
+                      expanded: false,
+                      child: _buildParseContent(),
+                    ),
+                    _h12,
+                    _buildExpansionTile(
+                      title: '3. 章节列表测试',
+                      subtitle: _getChapterSubtitle(),
+                      expanded: _hasSearchData,
+                      child: _buildChapterContent(),
+                    ),
+                  ]),
+            ),
+          ),
         ),
       ),
     );
@@ -227,7 +236,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ]),
         );
 
-  Widget _buildHtmlContainer(String html, String ctrlKey) => Container(
+  Widget _buildHtmlContainer(String html, ScrollController scrollController) =>
+      Container(
         margin: EdgeInsets.only(bottom: 8.0),
         padding: EdgeInsets.all(8.0),
         decoration: BoxDecoration(
@@ -237,7 +247,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         child: NotificationListener<ScrollNotification>(
           onNotification: (n) => n.depth == 0,
           child: SingleChildScrollView(
-            controller: _scrollCtrls[ctrlKey]!,
+            controller: scrollController,
             physics: const ClampingScrollPhysics(),
             child: SelectableText(html,
                 style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
@@ -274,7 +284,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
   Widget _buildSearchContent() {
     if (isTesting) return _buildLoading();
     if (!_hasSearchHtml) return _buildEmpty('点击顶部「开始测试」按钮执行');
-    return _buildHtmlContainer(searchHtml, 'html');
+    return _buildHtmlContainer(searchHtml, htmlScrollController);
   }
 
   String _getParseSubtitle() {
@@ -330,7 +340,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ]),
         ),
       ),
-      if (isShowHtml) _buildHtmlContainer(itemHtml, 'itemHtml'),
+      if (isShowHtml) _buildHtmlContainer(itemHtml, itemHtmlScrollController),
     ]);
   }
 
@@ -353,7 +363,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
       padding: EdgeInsets.all(8.0),
       height: 280,
       child: ListView.builder(
-        controller: _scrollCtrls['chapter']!,
+        controller: chapterScrollController,
         itemCount: chapters?.length ?? 0,
         itemBuilder: (_, i) => _buildChapterCard(chapters![i], i),
       ),

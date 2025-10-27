@@ -183,27 +183,29 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            heroTag: null,
             child: const Icon(Icons.bug_report),
             onPressed: () async {
-              plugin.api = apiController.text;
-              plugin.type = typeController.text;
-              plugin.name = nameController.text;
-              plugin.version = versionController.text;
-              plugin.userAgent = userAgentController.text;
-              plugin.baseUrl = baseURLController.text;
-              plugin.searchURL = searchURLController.text;
-              plugin.searchList = searchListController.text;
-              plugin.searchName = searchNameController.text;
-              plugin.searchResult = searchResultController.text;
-              plugin.chapterRoads = chapterRoadsController.text;
-              plugin.chapterResult = chapterResultController.text;
-              plugin.muliSources = muliSources;
-              plugin.useWebview = useWebview;
-              plugin.useNativePlayer = useNativePlayer;
-              plugin.usePost = usePost;
-              plugin.useLegacyParser = useLegacyParser;
-              plugin.referer = refererController.text;
-              Modular.to.pushNamed('/settings/plugin/test', arguments: plugin);
+              Plugin pluginText = Plugin(
+                  api: apiController.text,
+                  type: typeController.text,
+                  name: nameController.text,
+                  version: versionController.text,
+                  muliSources: muliSources,
+                  useWebview: useWebview,
+                  useNativePlayer: useNativePlayer,
+                  usePost: usePost,
+                  useLegacyParser: useLegacyParser,
+                  userAgent: userAgentController.text,
+                  baseUrl: baseURLController.text,
+                  searchURL: searchURLController.text,
+                  searchList: searchListController.text,
+                  searchName: searchNameController.text,
+                  searchResult: searchResultController.text,
+                  chapterRoads: chapterRoadsController.text,
+                  chapterResult: chapterResultController.text,
+                  referer: refererController.text);
+              Modular.to.pushNamed('/settings/plugin/test', arguments: pluginText);
             },
           ),
           SizedBox(width: 15),

@@ -218,4 +218,62 @@ class Plugin {
     } catch (_) {}
     return roadList;
   }
+
+  Future<String> testSearchRequest(String keyword,
+      {bool shouldRethrow = false,CancelToken? cancelToken}) async {
+    String queryURL = searchURL.replaceAll('@keyword', keyword);
+    dynamic resp;
+    if (usePost) {
+      Uri uri = Uri.parse(queryURL);
+      Map<String, String> queryParams = uri.queryParameters;
+      Uri postUri = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        path: uri.path,
+      );
+      var httpHeaders = {
+        'referer': '$baseUrl/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
+      };
+      resp = await Request().post(postUri.toString(),
+          options: Options(headers: httpHeaders),
+          extra: {'customError': ''},
+          data: queryParams,
+          shouldRethrow: shouldRethrow);
+    } else {
+      var httpHeaders = {
+        'referer': '$baseUrl/',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
+      };
+      resp = await Request().get(queryURL,
+          options: Options(headers: httpHeaders,),
+          shouldRethrow: shouldRethrow,
+          extra: {'customError': ''},
+          cancelToken: cancelToken);
+    }
+
+    return resp.data.toString();
+  }
+
+  Future<PluginSearchResponse> testQueryBangumi(String htmlString) async {
+    List<SearchItem> searchItems = [];
+    var htmlElement = parse(htmlString).documentElement!;
+    htmlElement.queryXPath(searchList).nodes.forEach((element) {
+      try {
+        SearchItem searchItem = SearchItem(
+          name: element.queryXPath(searchName).node!.text?.trim() ?? '',
+          src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+        );
+        searchItems.add(searchItem);
+        KazumiLogger().log(Level.info,
+            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+      } catch (_) {}
+    });
+    PluginSearchResponse pluginSearchResponse =
+    PluginSearchResponse(pluginName: name, data: searchItems);
+    return pluginSearchResponse;
+  }
 }

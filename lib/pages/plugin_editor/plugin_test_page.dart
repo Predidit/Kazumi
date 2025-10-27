@@ -13,8 +13,6 @@ import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 import '../../modules/roads/road_module.dart';
 import '../../plugins/plugins.dart';
-import '../../request/request.dart';
-import '../../utils/utils.dart';
 
 const _h8 = SizedBox(height: 8.0);
 const _h12 = SizedBox(height: 12.0);
@@ -28,7 +26,8 @@ class PluginTestPage extends StatefulWidget {
 
 class _PluginTestPageState extends State<PluginTestPage> {
   late final Plugin plugin;
-  final VideoPageController videoPageController = Modular.get<VideoPageController>();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
   final testKeywordController = TextEditingController();
   final htmlScrollController = ScrollController();
   final chapterScrollController = ScrollController();
@@ -50,6 +49,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   bool get _needChapterParse => plugin.chapterRoads.isNotEmpty;
 
+  CancelToken? _testSearchRequestCancelToken;
   CancelToken? _testRoadsCancelToken;
 
   @override
@@ -62,6 +62,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   @override
   void dispose() {
+    _testSearchRequestCancelToken?.cancel();
     _testRoadsCancelToken?.cancel();
     testKeywordController.dispose();
     htmlScrollController.dispose();
@@ -113,10 +114,13 @@ class _PluginTestPageState extends State<PluginTestPage> {
     resetState();
     setState(() => isTesting = true);
     try {
+      _testSearchRequestCancelToken?.cancel();
+      _testSearchRequestCancelToken = CancelToken();
       // 1. 搜索请求
-      searchHtml = await searchRequest(plugin, keyword, shouldRethrow: true);
+      searchHtml = await plugin.testSearchRequest(keyword,
+          shouldRethrow: true, cancelToken: _testSearchRequestCancelToken);
       // 2. 解析搜索结果
-      searchRes = await plugin.queryBangumi(keyword, shouldRethrow: true);
+      searchRes = await plugin.testQueryBangumi(searchHtml);
       // 3. 获取章节
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
@@ -124,7 +128,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           _testRoadsCancelToken?.cancel();
           _testRoadsCancelToken = CancelToken();
           chapters = await plugin.querychapterRoads(firstItem.src,
-              cancelToken:_testRoadsCancelToken);
+              cancelToken: _testRoadsCancelToken);
         }
       }
     } catch (e, stack) {
@@ -133,44 +137,6 @@ class _PluginTestPageState extends State<PluginTestPage> {
     } finally {
       if (mounted) setState(() => isTesting = false);
     }
-  }
-
-  Future<String> searchRequest(Plugin plugin, String keyword,
-      {bool shouldRethrow = false}) async {
-    String queryURL = plugin.searchURL.replaceAll('@keyword', keyword);
-    dynamic resp;
-    if (plugin.usePost) {
-      Uri uri = Uri.parse(queryURL);
-      Map<String, String> queryParams = uri.queryParameters;
-      Uri postUri = Uri(
-        scheme: uri.scheme,
-        host: uri.host,
-        path: uri.path,
-      );
-      var httpHeaders = {
-        'referer': '$plugin.baseUrl/',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      resp = await Request().post(postUri.toString(),
-          options: Options(headers: httpHeaders),
-          extra: {'customError': ''},
-          data: queryParams,
-          shouldRethrow: shouldRethrow);
-    } else {
-      var httpHeaders = {
-        'referer': '$plugin.baseUrl/',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      resp = await Request().get(queryURL,
-          options: Options(headers: httpHeaders),
-          shouldRethrow: shouldRethrow,
-          extra: {'customError': ''});
-    }
-
-    return resp.data.toString();
   }
 
   @override

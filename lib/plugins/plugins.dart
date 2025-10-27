@@ -117,10 +117,11 @@ class Plugin {
     return data;
   }
 
-  Future<String> searchRequest(String keyword,
+  Future<PluginSearchResponse> queryBangumi(String keyword,
       {bool shouldRethrow = false}) async {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     dynamic resp;
+    List<SearchItem> searchItems = [];
     if (usePost) {
       Uri uri = Uri.parse(queryURL);
       Map<String, String> queryParams = uri.queryParameters;
@@ -152,14 +153,7 @@ class Plugin {
           extra: {'customError': ''});
     }
 
-    return resp.data.toString();
-  }
-
-  Future<PluginSearchResponse> queryBangumi(String keyword,
-      {bool shouldRethrow = false}) async {
-    List<SearchItem> searchItems = [];
-
-    var htmlString = await searchRequest(keyword,shouldRethrow: shouldRethrow);
+    var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
 
     htmlElement.queryXPath(searchList).nodes.forEach((element) {
@@ -174,12 +168,11 @@ class Plugin {
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =
-        PluginSearchResponse(pluginName: name, data: searchItems);
+    PluginSearchResponse(pluginName: name, data: searchItems);
     return pluginSearchResponse;
   }
 
-  Future<List<Road>> querychapterRoads(String url,
-      {CancelToken? cancelToken}) async {
+  Future<List<Road>> querychapterRoads(String url, {CancelToken? cancelToken}) async {
     List<Road> roadList = [];
     // 预处理
     if (!url.contains('https')) {
@@ -197,8 +190,8 @@ class Plugin {
       'Connection': 'keep-alive',
     };
     try {
-      var resp = await Request().get(queryURL,
-          options: Options(headers: httpHeaders), cancelToken: cancelToken);
+      var resp =
+      await Request().get(queryURL, options: Options(headers: httpHeaders), cancelToken: cancelToken);
       var htmlString = resp.data.toString();
       var htmlElement = parse(htmlString).documentElement!;
       int count = 1;

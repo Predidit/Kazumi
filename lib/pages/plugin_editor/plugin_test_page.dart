@@ -12,6 +12,8 @@ import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 
 import '../../modules/roads/road_module.dart';
 import '../../plugins/plugins.dart';
+import '../../request/request.dart';
+import '../../utils/utils.dart';
 
 const _h8 = SizedBox(height: 8.0);
 const _h12 = SizedBox(height: 12.0);
@@ -107,7 +109,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     setState(() => isTesting = true);
     try {
       // 1. 搜索请求
-      searchHtml = await plugin.searchRequest(keyword, shouldRethrow: true);
+      searchHtml = await searchRequest(plugin, keyword, shouldRethrow: true);
       // 2. 解析搜索结果
       searchRes = await plugin.queryBangumi(keyword, shouldRethrow: true);
       // 3. 获取章节
@@ -124,6 +126,44 @@ class _PluginTestPageState extends State<PluginTestPage> {
     } finally {
       if (mounted) setState(() => isTesting = false);
     }
+  }
+
+  Future<String> searchRequest(Plugin plugin, String keyword,
+      {bool shouldRethrow = false}) async {
+    String queryURL = plugin.searchURL.replaceAll('@keyword', keyword);
+    dynamic resp;
+    if (plugin.usePost) {
+      Uri uri = Uri.parse(queryURL);
+      Map<String, String> queryParams = uri.queryParameters;
+      Uri postUri = Uri(
+        scheme: uri.scheme,
+        host: uri.host,
+        path: uri.path,
+      );
+      var httpHeaders = {
+        'referer': '$plugin.baseUrl/',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
+      };
+      resp = await Request().post(postUri.toString(),
+          options: Options(headers: httpHeaders),
+          extra: {'customError': ''},
+          data: queryParams,
+          shouldRethrow: shouldRethrow);
+    } else {
+      var httpHeaders = {
+        'referer': '$plugin.baseUrl/',
+        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Connection': 'keep-alive',
+      };
+      resp = await Request().get(queryURL,
+          options: Options(headers: httpHeaders),
+          shouldRethrow: shouldRethrow,
+          extra: {'customError': ''});
+    }
+
+    return resp.data.toString();
   }
 
   @override

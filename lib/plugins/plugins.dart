@@ -241,7 +241,8 @@ class Plugin {
           options: Options(headers: httpHeaders),
           extra: {'customError': ''},
           data: queryParams,
-          shouldRethrow: shouldRethrow);
+          shouldRethrow: shouldRethrow,
+          cancelToken: cancelToken);
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
@@ -258,7 +259,7 @@ class Plugin {
     return resp.data.toString();
   }
 
-  Future<PluginSearchResponse> testQueryBangumi(String htmlString) async {
+  PluginSearchResponse testQueryBangumi(String htmlString) {
     List<SearchItem> searchItems = [];
     var htmlElement = parse(htmlString).documentElement!;
     htmlElement.queryXPath(searchList).nodes.forEach((element) {

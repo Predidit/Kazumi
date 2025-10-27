@@ -75,6 +75,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
       KazumiDialog.observer.hasKazumiDialog ? KazumiDialog.dismiss() : null;
 
   void resetState() => setState(() {
+    _testSearchRequestCancelToken?.cancel();
+    _testSearchRequestCancelToken = null;
+    _testRoadsCancelToken?.cancel();
+    _testRoadsCancelToken = null;
         searchHtml = "";
         searchRes = null;
         chapters = null;
@@ -115,17 +119,19 @@ class _PluginTestPageState extends State<PluginTestPage> {
     setState(() => isTesting = true);
     try {
       _testSearchRequestCancelToken?.cancel();
+      _testSearchRequestCancelToken = null;
       _testSearchRequestCancelToken = CancelToken();
       // 1. 搜索请求
       searchHtml = await plugin.testSearchRequest(keyword,
           shouldRethrow: true, cancelToken: _testSearchRequestCancelToken);
       // 2. 解析搜索结果
-      searchRes = await plugin.testQueryBangumi(searchHtml);
+      searchRes = plugin.testQueryBangumi(searchHtml);
       // 3. 获取章节
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
         if (firstItem.src.isNotEmpty) {
           _testRoadsCancelToken?.cancel();
+          _testRoadsCancelToken = null;
           _testRoadsCancelToken = CancelToken();
           chapters = await plugin.querychapterRoads(firstItem.src,
               cancelToken: _testRoadsCancelToken);

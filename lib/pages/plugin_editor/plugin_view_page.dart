@@ -455,6 +455,26 @@ class _PluginViewPageState extends State<PluginViewPage> {
         MenuItemButton(
           requestFocusOnHover: false,
           onPressed: () {
+            Modular.to.pushNamed('/settings/plugin/test', arguments: plugin);
+          },
+          child: Container(
+            height: 48,
+            constraints: BoxConstraints(minWidth: 112),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Icon(Icons.bug_report_outlined),
+                  SizedBox(width: 8),
+                  Text('测试'),
+                ],
+              ),
+            ),
+          ),
+        ),
+        MenuItemButton(
+          requestFocusOnHover: false,
+          onPressed: () {
             KazumiDialog.show(builder: (context) {
               return AlertDialog(
                 title: const Text('规则链接'),

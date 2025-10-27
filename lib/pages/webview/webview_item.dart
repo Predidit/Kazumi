@@ -8,9 +8,7 @@ import 'package:kazumi/pages/webview/webview_item_impel/webview_apple_item_impel
 import 'package:kazumi/utils/utils.dart';
 
 class WebviewItem extends StatefulWidget {
-  const WebviewItem({
-    super.key
-  });
+  const WebviewItem({super.key});
 
   @override
   State<WebviewItem> createState() => _WebviewItemState();
@@ -38,4 +36,3 @@ Widget get webviewUniversal {
   }
   return const WebviewItemImpel();
 }
-

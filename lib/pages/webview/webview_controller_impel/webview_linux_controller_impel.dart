@@ -4,7 +4,6 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
 class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
-
   bool bridgeInited = false;
 
   @override
@@ -110,32 +109,32 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   }
 
   static const String iframeScript = """
-      var iframes = document.getElementsByTagName('iframe');
-      for (var i = 0; i < iframes.length; i++) {
-          var iframe = iframes[i];
-          var src = iframe.getAttribute('src');
-          if (src) {
-            window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
-          }
-          }
+    var iframes = document.getElementsByTagName('iframe');
+    for (var i = 0; i < iframes.length; i++) {
+        var iframe = iframes[i];
+        var src = iframe.getAttribute('src');
+        if (src) {
+          window.webkit.messageHandlers.msgToNative.postMessage('iframeMessage:' + src);
+        }
+    }
   """;
 
   static const String videoScript = """
     function processVideoElement(video) {
       let src = video.getAttribute('src');
-        if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
-          window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
+      if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+        window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
         return;
-        } 
+      }
       const sources = video.getElementsByTagName('source');
       for (let source of sources) {
         src = source.getAttribute('src');
-              if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
+        if (src && src.trim() !== '' && !src.startsWith('blob:') && !src.includes('googleads')) {
           window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + src);
           return;
         }
-              } 
-            }
+      }
+    }
 
     document.querySelectorAll('video').forEach(processVideoElement);
 
@@ -158,34 +157,34 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
       subtree: true,
       attributes: true,
       attributeFilter: ['src']
-      });
+    });
   """;
 
   static const String blobScript = """
-      const _r_text = window.Response.prototype.text;
-      window.Response.prototype.text = function () {
-          return new Promise((resolve, reject) => {
-              _r_text.call(this).then((text) => {
-                  resolve(text);
-                  if (text.trim().startsWith("#EXTM3U")) {
-                      window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + this.url);
-                  }
-              }).catch(reject);
-          });
-      }
+    const _r_text = window.Response.prototype.text;
+    window.Response.prototype.text = function () {
+        return new Promise((resolve, reject) => {
+            _r_text.call(this).then((text) => {
+                resolve(text);
+                if (text.trim().startsWith("#EXTM3U")) {
+                    window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + this.url);
+                }
+            }).catch(reject);
+        });
+    }
 
-      const _open = window.XMLHttpRequest.prototype.open;
-      window.XMLHttpRequest.prototype.open = function (...args) {
-          this.addEventListener("load", () => {
-              try {
-                  let content = this.responseText;
-                  if (content.trim().startsWith("#EXTM3U")) {
-                      window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + args[1]);
-                  };
-              } catch { }
-          });
-          return _open.apply(this, args);
-      }
+    const _open = window.XMLHttpRequest.prototype.open;
+    window.XMLHttpRequest.prototype.open = function (...args) {
+        this.addEventListener("load", () => {
+            try {
+                let content = this.responseText;
+                if (content.trim().startsWith("#EXTM3U")) {
+                    window.webkit.messageHandlers.msgToNative.postMessage('videoMessage:' + args[1]);
+                };
+            } catch { }
+        });
+        return _open.apply(this, args);
+    }
   """;
 
   Future<void> redirect2Blank() async {

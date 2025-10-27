@@ -12,13 +12,11 @@ class BangumiCardV extends StatelessWidget {
     required this.bangumiItem,
     this.canTap = true,
     this.enableHero = true,
-    this.keyword = "",
   });
 
   final BangumiItem bangumiItem;
   final bool canTap;
   final bool enableHero;
-  final String keyword;
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +32,6 @@ class BangumiCardV extends StatelessWidget {
                 message: '编辑模式',
               );
               return;
-            }
-            if(keyword != ""){
-              bangumiItem.keyword = keyword;
             }
             Modular.to.pushNamed('/info/', arguments: bangumiItem);
           },

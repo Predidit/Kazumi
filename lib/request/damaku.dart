@@ -51,7 +51,7 @@ class DanmakuRequest {
     return bestAnimeId;
   }
 
-  //从BangumiID获取分集ID
+  // 从BangumiID获取分集ID
   static Future<DanmakuEpisodeResponse> getDanmakuEpisodesByBangumiID(
       int bangumiID) async {
     var path = Api.formatUrl(Api.dandanAPIInfoByBgmBangumiId, [bangumiID]);

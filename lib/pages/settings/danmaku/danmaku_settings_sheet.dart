@@ -8,6 +8,7 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
+
   const DanmakuSettingsSheet({super.key, required this.danmakuController});
 
   @override
@@ -44,7 +45,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 showDanmakuShieldSheet();
               },
               title: const Text('关键词屏蔽'),
-        ),
+            ),
           ],
         ),
         SettingsSection(
@@ -53,9 +54,9 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             SettingsTile(
               title: const Text('字体大小'),
               description: Slider(
-          value: widget.danmakuController.option.fontSize,
-          min: 10,
-          max: Utils.isCompact() ? 32 : 48,
+                value: widget.danmakuController.option.fontSize,
+                min: 10,
+                max: Utils.isCompact() ? 32 : 48,
                 label:
                     '${widget.danmakuController.option.fontSize.floorToDouble()}',
                 onChanged: (value) {
@@ -77,17 +78,17 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 max: 1,
                 label:
                     '${(widget.danmakuController.option.opacity * 100).round()}%',
-          onChanged: (value) {
-            setState(() => widget.danmakuController.updateOption(
-                  widget.danmakuController.option.copyWith(
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
                           opacity: value,
-                  ),
-                ));
+                        ),
+                      ));
                   setting.put(SettingBoxKey.danmakuOpacity,
                       double.parse(value.toStringAsFixed(2)));
-          },
-        ),
-        ),
+                },
+              ),
+            ),
           ],
         ),
         SettingsSection(
@@ -96,63 +97,64 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             SettingsTile(
               title: const Text('弹幕区域'),
               description: Slider(
-          value: widget.danmakuController.option.area,
-          min: 0,
-          max: 1,
-          divisions: 4,
-          label: '${(widget.danmakuController.option.area * 100).round()}%',
-          onChanged: (value) {
-            setState(() => widget.danmakuController.updateOption(
-                  widget.danmakuController.option.copyWith(
-                    area: value,
-                  ),
-                ));
-            setting.put(SettingBoxKey.danmakuArea, value);
-          },
-        ),
-                  ),
+                value: widget.danmakuController.option.area,
+                min: 0,
+                max: 1,
+                divisions: 8,
+                label:
+                    '${(widget.danmakuController.option.area * 100).round()}%',
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          area: value,
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuArea, value);
+                },
+              ),
+            ),
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool show = value ?? widget.danmakuController.option.hideTop;
-              setState(() => widget.danmakuController.updateOption(
-                    widget.danmakuController.option.copyWith(
+                setState(() => widget.danmakuController.updateOption(
+                      widget.danmakuController.option.copyWith(
                         hideTop: !show,
-                    ),
-                  ));
+                      ),
+                    ));
                 setting.put(SettingBoxKey.danmakuTop, show);
-            },
+              },
               title: const Text('顶部弹幕'),
               initialValue: !widget.danmakuController.option.hideTop,
-          ),
+            ),
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool show = value ?? widget.danmakuController.option.hideBottom;
-              setState(() => widget.danmakuController.updateOption(
-                    widget.danmakuController.option.copyWith(
+                setState(() => widget.danmakuController.updateOption(
+                      widget.danmakuController.option.copyWith(
                         hideBottom: !show,
-                    ),
-                  ));
+                      ),
+                    ));
                 setting.put(SettingBoxKey.danmakuBottom, show);
-            },
+              },
               title: const Text('底部弹幕'),
               initialValue: !widget.danmakuController.option.hideBottom,
-          ),
+            ),
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool show = value ?? widget.danmakuController.option.hideScroll;
-              setState(() => widget.danmakuController.updateOption(
-                    widget.danmakuController.option.copyWith(
+                setState(() => widget.danmakuController.updateOption(
+                      widget.danmakuController.option.copyWith(
                         hideScroll: !show,
-                    ),
-                  ));
+                      ),
+                    ));
                 setting.put(SettingBoxKey.danmakuScroll, show);
-            },
+              },
               title: const Text('滚动弹幕'),
               initialValue: !widget.danmakuController.option.hideScroll,
-        ),
-      ],
             ),
           ],
+        ),
+      ],
     );
   }
 }

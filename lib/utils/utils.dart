@@ -487,10 +487,10 @@ class Utils {
   }
 
   static String getSeasonStringByMonth(int month) {
-    if (month <= 3) return '春';
-    if (month <= 6) return '夏';
-    if (month <= 9) return '秋';
-    return '冬';
+    if (month <= 3) return '冬';
+    if (month <= 6) return '春';
+    if (month <= 9) return '夏';
+    return '秋';
   }
 
   // 进入桌面设备小窗模式

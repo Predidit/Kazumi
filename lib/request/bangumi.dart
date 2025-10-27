@@ -58,8 +58,9 @@ class BangumiHTTP {
     try {
       final url = Api.formatUrl(
           Api.bangumiAPIDomain + Api.bangumiRankSearch, [limit, offset]);
-      final res = await Request().post(url,
-          data: params,
+      final res = await Request().post(
+        url,
+        data: params,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -119,7 +120,7 @@ class BangumiHTTP {
     try {
       final res = await Request().post(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch, [100, 0]),
-          data: params,
+        data: params,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -146,7 +147,7 @@ class BangumiHTTP {
     try {
       final res = await Request().get(
         Api.bangumiAPINextDomain + Api.bangumiTrendsNext,
-          data: params,
+        data: params,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -162,7 +163,10 @@ class BangumiHTTP {
     return bangumiList;
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword, {List<String> tags = const [], int offset = 0, String sort = 'heat'}) async {
+  static Future<List<BangumiItem>> bangumiSearch(String keyword,
+      {List<String> tags = const [],
+      int offset = 0,
+      String sort = 'heat'}) async {
     List<BangumiItem> bangumiList = [];
 
     var params = <String, dynamic>{
@@ -180,7 +184,7 @@ class BangumiHTTP {
       final res = await Request().post(
         Api.formatUrl(
             Api.bangumiAPIDomain + Api.bangumiRankSearch, [20, offset]),
-          data: params,
+        data: params,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];

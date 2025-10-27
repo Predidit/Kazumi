@@ -133,28 +133,29 @@ class _CollectButtonState extends State<CollectButton> {
             constraints: BoxConstraints(minWidth: 112),
             child: Align(
               alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(getIconByInt(index),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    getIconByInt(index),
                     color: index == collectType
                         ? Theme.of(context).colorScheme.primary
                         : null,
                   ),
                   SizedBox(width: 4),
-                Text(
-                  ' ${getTypeStringByInt(index)}',
-                  style: TextStyle(
+                  Text(
+                    ' ${getTypeStringByInt(index)}',
+                    style: TextStyle(
                       color: index == collectType
                           ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }

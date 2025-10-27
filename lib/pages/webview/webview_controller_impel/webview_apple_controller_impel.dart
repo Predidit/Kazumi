@@ -106,7 +106,7 @@ class WebviewAppleItemControllerImpel
         onWebViewCreated: (controller) {
           debugPrint('[WebView] Created');
           webviewController = controller;
-    initEventController.add(true);
+          initEventController.add(true);
         },
         onLoadStart: (controller, url) {
           logEventController.add('started loading: $url');
@@ -188,8 +188,8 @@ class WebviewAppleItemControllerImpel
           callback: (args) {
             String message = args[0].toString();
             logEventController.add('Callback received: $message');
-      logEventController.add(
-          'If there is audio but no video, please report it to the rule developer.');
+            logEventController.add(
+                'If there is audio but no video, please report it to the rule developer.');
             if ((message.contains('http') || message.startsWith('//')) &&
                 !message.contains('googleads') &&
                 !message.contains('googlesyndication.com') &&
@@ -199,17 +199,17 @@ class WebviewAppleItemControllerImpel
               logEventController.add('Parsing video source $message');
               String encodedUrl = Uri.encodeFull(message);
               if (Utils.decodeVideoSource(encodedUrl) != encodedUrl) {
-          isIframeLoaded = true;
-          isVideoSourceLoaded = true;
-          videoLoadingEventController.add(false);
-          logEventController.add(
+                isIframeLoaded = true;
+                isVideoSourceLoaded = true;
+                videoLoadingEventController.add(false);
+                logEventController.add(
                     'Loading video source ${Utils.decodeVideoSource(encodedUrl)}');
-          unloadPage();
-          videoParserEventController
+                unloadPage();
+                videoParserEventController
                     .add((Utils.decodeVideoSource(encodedUrl), offset));
-        }
-      }
-    });
+              }
+            }
+          });
     } else {
       logEventController.add('Adding VideoBridgeDebug handler');
       webviewController?.addJavaScriptHandler(
@@ -219,13 +219,13 @@ class WebviewAppleItemControllerImpel
             logEventController.add('Callback received: $message');
             if (message.contains('http') && !isVideoSourceLoaded) {
               logEventController.add('Loading video source: $message');
-          isIframeLoaded = true;
-          isVideoSourceLoaded = true;
-          videoLoadingEventController.add(false);
-            unloadPage();
+              isIframeLoaded = true;
+              isVideoSourceLoaded = true;
+              videoLoadingEventController.add(false);
+              unloadPage();
               videoParserEventController.add((message, offset));
-        }
-      });
+            }
+          });
     }
   }
 
@@ -237,16 +237,16 @@ class WebviewAppleItemControllerImpel
       logEventController.add('Adding IframeRedirectBridge UserScript');
       const String iframeRedirectScript = """
         window.flutter_inappwebview.callHandler('LogBridge', 'IframeRedirectBridge script loaded: ' + window.location.href);
-      var iframes = document.getElementsByTagName('iframe');
-      for (var i = 0; i < iframes.length; i++) {
-          var iframe = iframes[i];
-          var src = iframe.getAttribute('src');
-          if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
+        var iframes = document.getElementsByTagName('iframe');
+        for (var i = 0; i < iframes.length; i++) {
+              var iframe = iframes[i];
+              var src = iframe.getAttribute('src');
+              if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
                   window.flutter_inappwebview.callHandler('IframeRedirectBridge', src);
                   window.location.href = src;
-          break;
-        } 
-      }
+                  break; 
+              }
+          }
       """;
       scripts.add(UserScript(
         source: iframeRedirectScript,
@@ -264,8 +264,8 @@ class WebviewAppleItemControllerImpel
             var src = iframe.getAttribute('src');
             if (src) {
               window.flutter_inappwebview.callHandler('JSBridgeDebug', src);
-              } 
             }
+        }
       """;
       scripts.add(UserScript(
         source: jsBridgeDebugScript,
@@ -276,34 +276,34 @@ class WebviewAppleItemControllerImpel
       logEventController.add('Adding VideoBridgeDebug UserScripts');
       const String blobParserScript = """
         window.flutter_inappwebview.callHandler('LogBridge', 'BlobParser script loaded: ' + window.location.href);
-      const _r_text = window.Response.prototype.text;
-      window.Response.prototype.text = function () {
-          return new Promise((resolve, reject) => {
-              _r_text.call(this).then((text) => {
-                  resolve(text);
-                  if (text.trim().startsWith("#EXTM3U")) {
+        const _r_text = window.Response.prototype.text;
+        window.Response.prototype.text = function () {
+            return new Promise((resolve, reject) => {
+                _r_text.call(this).then((text) => {
+                    resolve(text);
+                    if (text.trim().startsWith("#EXTM3U")) {
                         window.flutter_inappwebview.callHandler('LogBridge', 'M3U8 source found: ' + this.url);
                         window.flutter_inappwebview.callHandler('VideoBridgeDebug', this.url);
-                  }
-              }).catch(reject);
-          });
-      }
+                    }
+                }).catch(reject);
+            });
+        }
 
-      const _open = window.XMLHttpRequest.prototype.open;
-      window.XMLHttpRequest.prototype.open = function (...args) {
-          this.addEventListener("load", () => {
-              try {
-                  let content = this.responseText;
-                  if (content.trim().startsWith("#EXTM3U")) {
+        const _open = window.XMLHttpRequest.prototype.open;
+        window.XMLHttpRequest.prototype.open = function (...args) {
+            this.addEventListener("load", () => {
+                try {
+                    let content = this.responseText;
+                    if (content.trim().startsWith("#EXTM3U")) {
                         window.flutter_inappwebview.callHandler('LogBridge', 'M3U8 source found: ' + args[1]);
                         window.flutter_inappwebview.callHandler('VideoBridgeDebug', args[1]);
-                  };
-              } catch { }
-          });
-          return _open.apply(this, args);
+                    };
+                } catch {}
+            });
+            return _open.apply(this, args);
         };
       """;
-          
+
       const String videoTagParserScript = """
         window.flutter_inappwebview.callHandler('LogBridge', 'VideoTagParser script loaded: ' + window.location.href);
         function processVideoElement(video) {
@@ -321,27 +321,27 @@ class WebviewAppleItemControllerImpel
               window.flutter_inappwebview.callHandler('LogBridge', 'VIDEO source found (source tag): ' + src);
               window.flutter_inappwebview.callHandler('VideoBridgeDebug', src);
               return;
+            }
           }
         }
-      }
 
         document.querySelectorAll('video').forEach(processVideoElement);
-        
+
         const _observer = new MutationObserver((mutations) => {
           window.flutter_inappwebview.callHandler('LogBridge', 'Scanning for video elements...');
           mutations.forEach(mutation => {
             if (mutation.type === 'attributes' && mutation.target.nodeName === 'VIDEO') {
               processVideoElement(mutation.target);
             }
-              mutation.addedNodes.forEach(node => {
+            mutation.addedNodes.forEach(node => {
               if (node.nodeName === 'VIDEO') processVideoElement(node);
-                if (node.querySelectorAll) {
+              if (node.querySelectorAll) {
                 node.querySelectorAll('video').forEach(processVideoElement);
-                }
-              });
-          });
+              }
+            });
+          });  
         });
-        
+
         _observer.observe(document.body, {
           childList: true,
           subtree: true,
@@ -359,7 +359,7 @@ class WebviewAppleItemControllerImpel
         injectionTime: UserScriptInjectionTime.AT_DOCUMENT_END,
         forMainFrameOnly: false,
       ));
-      }
+    }
 
     await webviewController?.addUserScripts(
       userScripts: scripts,

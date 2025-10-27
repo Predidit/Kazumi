@@ -13,8 +13,14 @@ class EpisodeCommentsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 对 用户评论 做判空操作，如果为空则显示“用户已删除”
+    String userComment = commentItem.comment.comment;
+    if (userComment.isEmpty) {
+      userComment = "<用户已删除>";
+    }
+
     return Card(
-      color: Theme.of(context).colorScheme.secondaryContainer,
+      // color: Theme.of(context).colorScheme.secondaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -37,7 +43,7 @@ class EpisodeCommentsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            BBCodeWidget(bbcode: commentItem.comment.comment),
+            BBCodeWidget(bbcode: userComment),
             if (commentItem.replies.isNotEmpty)
               ListView.builder(
                 // Don't know why but ohos has bottom padding,

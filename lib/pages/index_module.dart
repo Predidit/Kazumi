@@ -4,8 +4,6 @@ import 'package:kazumi/pages/router.dart';
 import 'package:kazumi/pages/init_page.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
-import 'package:kazumi/pages/web_yi/web_yi_controller.dart';
-import 'package:kazumi/pages/web_yi/web_yi_modle.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
@@ -32,7 +30,6 @@ class IndexModule extends Module {
     i.addSingleton(HistoryController.new);
     i.addSingleton(MyController.new);
     i.addSingleton(ShadersController.new);
-    i.addSingleton(WebYiControllerFactory.getController);
   }
 
   @override
@@ -63,6 +60,5 @@ class IndexModule extends Module {
     r.module("/info", module: InfoModule());
     r.module("/settings", module: SettingsModule());
     r.module("/search", module: SearchModule());
-    r.module("/webYi", module: WebYiModule());
   }
 }

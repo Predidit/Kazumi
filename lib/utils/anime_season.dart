@@ -1,7 +1,7 @@
 /// This class asks for DateTime to get a string to indicate seasonal anime
 class AnimeSeason {
   late DateTime _date;
-  final _seasons = ['春季', '夏季', '秋季', '冬季'];
+  final _seasons = ['冬季', '春季', '夏季', '秋季'];
 
   AnimeSeason(DateTime date) {
     _date = date;

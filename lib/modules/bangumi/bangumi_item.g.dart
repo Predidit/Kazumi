@@ -32,7 +32,6 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       votes: fields[12] == null ? 0 : fields[12] as int,
       votesCount: fields[13] == null ? [] : (fields[13] as List).cast<int>(),
       info: fields[14] == null ? '' : fields[14] as String,
-      keyword: fields[15] == null ? '' : fields[15] as String,
     );
   }
 

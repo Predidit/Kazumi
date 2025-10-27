@@ -124,26 +124,26 @@ class _HistoryPageState extends State<HistoryPage>
     return CustomScrollView(
       slivers: [
         SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: StyleString.cardSpace - 2,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            mainAxisSpacing: StyleString.cardSpace - 2,
             crossAxisSpacing: StyleString.cardSpace,
-              crossAxisCount: crossCount,
+            crossAxisCount: crossCount,
             mainAxisExtent: cardHeight + 12,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return historyController.histories.isNotEmpty
-                    ? BangumiHistoryCardV(
-                        showDelete: showDelete,
-                      cardHeight: cardHeight,
-                        historyItem: historyController.histories[index])
-                    : null;
-              },
-              childCount: historyController.histories.isNotEmpty
-                  ? historyController.histories.length
-                  : 10,
-            ),
           ),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              return historyController.histories.isNotEmpty
+                  ? BangumiHistoryCardV(
+                      showDelete: showDelete,
+                      cardHeight: cardHeight,
+                      historyItem: historyController.histories[index])
+                  : null;
+            },
+            childCount: historyController.histories.isNotEmpty
+                ? historyController.histories.length
+                : 10,
+          ),
+        ),
       ],
     );
   }

@@ -45,7 +45,8 @@ class ApiInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     String url = err.requestOptions.uri.toString();
-    if (!url.contains('heartBeat') && err.requestOptions.extra['customError'] != '') {
+    if (!url.contains('heartBeat') &&
+        err.requestOptions.extra['customError'] != '') {
       if (err.requestOptions.extra['customError'] == null) {
         KazumiDialog.showToast(
           message: await dioError(err),

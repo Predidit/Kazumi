@@ -10,7 +10,7 @@ class TimelineController = _TimelineController with _$TimelineController;
 abstract class _TimelineController with Store {
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
-  ObservableList<List<BangumiItem>>();
+      ObservableList<List<BangumiItem>>();
 
   @observable
   String seasonString = '';

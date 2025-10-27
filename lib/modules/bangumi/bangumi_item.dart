@@ -36,8 +36,6 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
-  @HiveField(15, defaultValue: '')
-  String keyword;
 
   BangumiItem({
     required this.id,
@@ -55,7 +53,6 @@ class BangumiItem {
     required this.votes,
     required this.votesCount,
     required this.info,
-    required this.keyword,
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -131,7 +128,6 @@ class BangumiItem {
       votes: json['rating']['total'] ?? 0,
       votesCount: voteList,
       info: json['info'] ?? '',
-      keyword: json["keyword"]?? '',
     );
   }
 }

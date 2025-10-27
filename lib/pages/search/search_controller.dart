@@ -13,12 +13,17 @@ class SearchPageController = _SearchPageController with _$SearchPageController;
 abstract class _SearchPageController with Store {
   final Box setting = GStorage.setting;
   final Box searchHistoryBox = GStorage.searchHistory;
+  final Box collectiblesBox = GStorage.collectibles;
 
   @observable
   bool isLoading = false;
 
   @observable
   bool isTimeOut = false;
+
+  @observable
+  late bool notShowWatchedBangumis =
+      setting.get(SettingBoxKey.searchNotShowWatchedBangumis, defaultValue: false);
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
@@ -87,8 +92,10 @@ abstract class _SearchPageController with Store {
         return;
       }
     }
-    var result =
-        await BangumiHTTP.bangumiSearch(keywords, tags: [if (tag != null) tag], offset: bangumiList.length, sort: sort ?? 'heat');
+    var result = await BangumiHTTP.bangumiSearch(keywords,
+        tags: [if (tag != null) tag],
+        offset: bangumiList.length,
+        sort: sort ?? 'heat');
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
@@ -104,5 +111,19 @@ abstract class _SearchPageController with Store {
   Future<void> clearSearchHistory() async {
     await searchHistoryBox.clear();
     loadSearchHistories();
+  }
+
+  @action
+  Future<void> setNotShowWatchedBangumis(bool value) async {
+    notShowWatchedBangumis = value;
+    await setting.put(SettingBoxKey.searchNotShowWatchedBangumis, value);
+  }
+
+  @action
+  Set<String> loadWatchedBangumiNames() {
+    return collectiblesBox.values
+        .where((item) => item.type == 4)
+        .map((item) => item.bangumiItem.name.toString())
+        .toSet();
   }
 }

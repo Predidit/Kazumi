@@ -34,8 +34,8 @@ class _WebviewAppleItemImpelState extends State<WebviewAppleItemImpel> {
         child: Text(
           '此平台不支持Webview规则',
           style: TextStyle(color: Colors.white),
-          ),
-          ),
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ Name=Kazumi
 Comment=Watch Animes online with danmaku support.
 Comment[zh_CN]=一款好用的追番软件
 Exec=kazumi
+StartupWMClass=kazumi
 Icon=io.github.Predidit.Kazumi
 Terminal=false
 Type=Application

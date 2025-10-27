@@ -173,6 +173,18 @@ const Map<int, String> aspectRatioTypeMap = {
   3: "拉伸填充",
 };
 
+/// 可选播放器日志等级
+/// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细 4: 调试（隐藏） 5: 全部（隐藏）
+const Map<int, String> playerLogLevelMap = {
+  0: "错误",
+  1: "警告",
+  2: "简略",
+  3: "详细",
+  // 以下两个级别被MPV官方支持，但是输出内容过于冗长，暂时隐藏
+  // 4: "调试",
+  // 5: "全部",
+};
+
 final List<String> defaultAnimeTags = const [
   '日常',
   '原创',

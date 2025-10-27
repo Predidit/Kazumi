@@ -96,74 +96,72 @@ class _PopularPageState extends State<PopularPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (bool didPop, Object? result) {
-          if (didPop) {
-            return;
-          }
-          onBackPressed(context);
-        },
-        child: Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          return;
+        }
+        onBackPressed(context);
+      },
+      child: Scaffold(
         body: CustomScrollView(
-                  controller: scrollController,
-                  slivers: [
+          controller: scrollController,
+          slivers: [
             buildSliverAppBar(),
-                    SliverToBoxAdapter(
-                      child: Observer(
+            SliverToBoxAdapter(
+              child: Observer(
                 builder: (_) => AnimatedOpacity(
                   opacity: popularController.isLoadingMore ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
-                          child: popularController.isLoadingMore
+                  child: popularController.isLoadingMore
                       ? const LinearProgressIndicator(minHeight: 4)
                       : const SizedBox(height: 4),
+                ),
+              ),
+            ),
+            SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                    StyleString.cardSpace, 0, StyleString.cardSpace, 0),
+                sliver: Observer(builder: (_) {
+                  if (popularController.isTimeOut) {
+                    return SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 400,
+                        child: GeneralErrorWidget(
+                          errMsg: '什么都没有找到 (´;ω;`)',
+                          actions: [
+                            GeneralErrorButton(
+                              onPressed: () {
+                                if (popularController.trendList.isEmpty) {
+                                  popularController.queryBangumiByTrend();
+                                } else {
+                                  popularController.queryBangumiByTag();
+                                }
+                              },
+                              text: '点击重试',
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(
-                            StyleString.cardSpace, 0, StyleString.cardSpace, 0),
-                        sliver: Observer(builder: (_) {
-                          if (popularController.isTimeOut) {
-                            return SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: 400,
-                                child: GeneralErrorWidget(
-                                  errMsg: '什么都没有找到 (´;ω;`)',
-                                  actions: [
-                                    GeneralErrorButton(
-                                      onPressed: () {
-                                        if (popularController
-                                            .trendList.isEmpty) {
-                                          popularController
-                                              .queryBangumiByTrend();
-                                        } else {
-                                          popularController.queryBangumiByTag();
-                                        }
-                                      },
-                                      text: '点击重试',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          return contentGrid(
-                              (popularController.currentTag == '')
-                                  ? popularController.trendList
-                                  : popularController.bangumiList,
+                    );
+                  }
+                  return contentGrid(
+                    (popularController.currentTag == '')
+                        ? popularController.trendList
+                        : popularController.bangumiList,
                   );
-                        })),
-                  ],
-                ),
-          floatingActionButton: FloatingActionButton(
+                })),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
           onPressed: () => scrollController.animateTo(0,
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOut),
-            child: const Icon(Icons.arrow_upward),
-          ),
+          child: const Icon(Icons.arrow_upward),
         ),
-      );
+      ),
+    );
   }
 
   Widget contentGrid(bangumiList) {
@@ -177,24 +175,25 @@ class _PopularPageState extends State<PopularPage>
     return SliverPadding(
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        // 行间距
-        mainAxisSpacing: StyleString.cardSpace - 2,
-        // 列间距
-        crossAxisSpacing: StyleString.cardSpace,
-        // 列数
-        crossAxisCount: crossCount,
-        mainAxisExtent: MediaQuery.of(context).size.width / crossCount / 0.65 +
-            MediaQuery.textScalerOf(context).scale(32.0),
-      ),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          return bangumiList!.isNotEmpty
-              ? BangumiCardV(bangumiItem: bangumiList[index])
-              : null;
-        },
-        childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
-      ),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          // 行间距
+          mainAxisSpacing: StyleString.cardSpace - 2,
+          // 列间距
+          crossAxisSpacing: StyleString.cardSpace,
+          // 列数
+          crossAxisCount: crossCount,
+          mainAxisExtent:
+              MediaQuery.of(context).size.width / crossCount / 0.65 +
+                  MediaQuery.textScalerOf(context).scale(32.0),
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return bangumiList!.isNotEmpty
+                ? BangumiCardV(bangumiItem: bangumiList[index])
+                : null;
+          },
+          childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+        ),
       ),
     );
   }
@@ -204,7 +203,7 @@ class _PopularPageState extends State<PopularPage>
     return SliverAppBar(
       pinned: true,
       stretch: true,
-      expandedHeight: 80,
+      expandedHeight: 120,
       elevation: 0,
       titleSpacing: 0,
       centerTitle: false,
@@ -230,7 +229,7 @@ class _PopularPageState extends State<PopularPage>
                       left: 16, top: 8, bottom: 8, right: 60),
                   child: SizedBox(
                     height: 44,
-                  child: Observer(
+                    child: Observer(
                       builder: (_) {
                         final bool isTrend = popularController.currentTag == '';
                         return InkWell(
@@ -269,17 +268,16 @@ class _PopularPageState extends State<PopularPage>
     final actions = <Widget>[
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
-          tooltip: '历史记录',
-          onPressed: () => Modular.to.pushNamed('/settings/history/'),
-          icon: const Icon(Icons.history),
+          tooltip: '搜索',
+          onPressed: () => Modular.to.pushNamed('/search/'),
+          icon: const Icon(Icons.search),
         ),
-
     ];
     actions.add(
       IconButton(
-        tooltip: '搜索',
-        onPressed: () => Modular.to.pushNamed('/search/'),
-        icon: const Icon(Icons.search),
+        tooltip: '历史记录',
+        onPressed: () => Modular.to.pushNamed('/settings/history/'),
+        icon: const Icon(Icons.history),
       ),
     );
     if (Utils.isDesktop()) {
@@ -317,10 +315,10 @@ class _PopularPageState extends State<PopularPage>
             buttonSize: size,
             animation: animation,
             maxWidth: 80,
-      items: [
+            items: [
               '',
               ...defaultAnimeTags,
-      ],
+            ],
             itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
           );
         },
@@ -333,8 +331,8 @@ class _PopularPageState extends State<PopularPage>
     if (selected == '' && popularController.currentTag != '') {
       scrollController.animateTo(0,
           duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-                              popularController.setCurrentTag('');
-                              popularController.clearBangumiList();
+      popularController.setCurrentTag('');
+      popularController.clearBangumiList();
       if (popularController.trendList.isEmpty) {
         await popularController.queryBangumiByTrend();
       }

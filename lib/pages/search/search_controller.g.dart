@@ -41,6 +41,27 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$showWatchedBangumisAtom =
+      Atom(name: '_SearchPageController.showWatchedBangumis', context: context);
+
+  @override
+  bool get notShowWatchedBangumis {
+    _$showWatchedBangumisAtom.reportRead();
+    return super.notShowWatchedBangumis;
+  }
+
+  bool _showWatchedBangumisIsInitialized = false;
+
+  @override
+  set notShowWatchedBangumis(bool value) {
+    _$showWatchedBangumisAtom.reportWrite(value,
+        _showWatchedBangumisIsInitialized ? super.notShowWatchedBangumis : null,
+        () {
+      super.notShowWatchedBangumis = value;
+      _showWatchedBangumisIsInitialized = true;
+    });
+  }
+
   late final _$bangumiListAtom =
       Atom(name: '_SearchPageController.bangumiList', context: context);
 
@@ -101,6 +122,16 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.clearSearchHistory());
   }
 
+  late final _$setShowWatchedBangumisAsyncAction = AsyncAction(
+      '_SearchPageController.setShowWatchedBangumis',
+      context: context);
+
+  @override
+  Future<void> setNotShowWatchedBangumis(bool value) {
+    return _$setShowWatchedBangumisAsyncAction
+        .run(() => super.setNotShowWatchedBangumis(value));
+  }
+
   late final _$_SearchPageControllerActionController =
       ActionController(name: '_SearchPageController', context: context);
 
@@ -116,10 +147,22 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
+  Set<String> loadWatchedBangumiNames() {
+    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
+        name: '_SearchPageController.loadWatchedBangumiNames');
+    try {
+      return super.loadWatchedBangumiNames();
+    } finally {
+      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
+showWatchedBangumis: ${notShowWatchedBangumis},
 bangumiList: ${bangumiList},
 searchHistories: ${searchHistories}
     ''';

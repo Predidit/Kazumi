@@ -102,7 +102,7 @@ abstract class _CollectController with Store {
       return;
     }
     try {
-    await WebDav().syncCollectibles();
+      await WebDav().syncCollectibles();
     } catch (e){
       KazumiDialog.showToast(message: 'WebDav同步失败 $e');
     }

@@ -111,153 +111,151 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         appBar: const SysAppBar(title: Text('弹幕设置')),
         body: SettingsList(
           maxWidth: 1000,
-              sections: [
-                SettingsSection(
-                  title: const Text('弹幕'),
-                  tiles: [
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuEnabledByDefault =
-                            value ?? !danmakuEnabledByDefault;
-                        await setting.put(SettingBoxKey.danmakuEnabledByDefault,
-                            danmakuEnabledByDefault);
-                        setState(() {});
-                      },
-                      title: const Text('默认开启'),
-                      description: const Text('默认是否随视频播放弹幕'),
-                      initialValue: danmakuEnabledByDefault,
-                    ),
-                  ],
+          sections: [
+            SettingsSection(
+              title: const Text('弹幕'),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuEnabledByDefault = value ?? !danmakuEnabledByDefault;
+                    await setting.put(SettingBoxKey.danmakuEnabledByDefault,
+                        danmakuEnabledByDefault);
+                    setState(() {});
+                  },
+                  title: const Text('默认开启'),
+                  description: const Text('默认是否随视频播放弹幕'),
+                  initialValue: danmakuEnabledByDefault,
                 ),
-                SettingsSection(
-                  title: const Text('弹幕来源'),
-                  tiles: [
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuBiliBiliSource = value ?? !danmakuBiliBiliSource;
-                        await setting.put(SettingBoxKey.danmakuBiliBiliSource,
-                            danmakuBiliBiliSource);
-                        setState(() {});
-                      },
-                      title: const Text('BiliBili'),
-                      initialValue: danmakuBiliBiliSource,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuGamerSource = value ?? !danmakuGamerSource;
-                        await setting.put(SettingBoxKey.danmakuGamerSource,
-                            danmakuGamerSource);
-                        setState(() {});
-                      },
-                      title: const Text('Gamer'),
-                      initialValue: danmakuGamerSource,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuDanDanSource = value ?? !danmakuDanDanSource;
-                        await setting.put(SettingBoxKey.danmakuDanDanSource,
-                            danmakuDanDanSource);
-                        setState(() {});
-                      },
-                      title: const Text('DanDan'),
-                      initialValue: danmakuDanDanSource,
-                    ),
-                  ],
+              ],
+            ),
+            SettingsSection(
+              title: const Text('弹幕来源'),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuBiliBiliSource = value ?? !danmakuBiliBiliSource;
+                    await setting.put(SettingBoxKey.danmakuBiliBiliSource,
+                        danmakuBiliBiliSource);
+                    setState(() {});
+                  },
+                  title: const Text('BiliBili'),
+                  initialValue: danmakuBiliBiliSource,
                 ),
-                SettingsSection(
-                  title: const Text('弹幕屏蔽'),
-                  tiles: [
-                    SettingsTile.navigation(
-                      onPressed: (_) {
-                        Modular.to.pushNamed('/settings/danmaku/shield');
-                      },
-                      title: const Text('关键词屏蔽'),
-                    ),
-                  ],
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuGamerSource = value ?? !danmakuGamerSource;
+                    await setting.put(
+                        SettingBoxKey.danmakuGamerSource, danmakuGamerSource);
+                    setState(() {});
+                  },
+                  title: const Text('Gamer'),
+                  initialValue: danmakuGamerSource,
                 ),
-                SettingsSection(
-                  title: const Text('弹幕显示'),
-                  tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuDanDanSource = value ?? !danmakuDanDanSource;
+                    await setting.put(
+                        SettingBoxKey.danmakuDanDanSource, danmakuDanDanSource);
+                    setState(() {});
+                  },
+                  title: const Text('DanDan'),
+                  initialValue: danmakuDanDanSource,
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('弹幕屏蔽'),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/danmaku/shield');
+                  },
+                  title: const Text('关键词屏蔽'),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('弹幕显示'),
+              tiles: [
                 SettingsTile(
-                      title: const Text('弹幕区域'),
+                  title: const Text('弹幕区域'),
                   description: Slider(
                     value: defaultDanmakuArea,
                     min: 0,
                     max: 1,
-                    divisions: 4,
+                    divisions: 8,
                     label: '${(defaultDanmakuArea * 100).round()}%',
                     onChanged: (value) {
                       updateDanmakuArea(value);
                     },
                   ),
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuTop = value ?? !danmakuTop;
-                        await setting.put(SettingBoxKey.danmakuTop, danmakuTop);
-                        setState(() {});
-                      },
-                      title: const Text('顶部弹幕'),
-                      initialValue: danmakuTop,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuBottom = value ?? !danmakuBottom;
-                        await setting.put(
-                            SettingBoxKey.danmakuBottom, danmakuBottom);
-                        setState(() {});
-                      },
-                      title: const Text('底部弹幕'),
-                      initialValue: danmakuBottom,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuScroll = value ?? !danmakuScroll;
-                        await setting.put(
-                            SettingBoxKey.danmakuScroll, danmakuScroll);
-                        setState(() {});
-                      },
-                      title: const Text('滚动弹幕'),
-                      initialValue: danmakuScroll,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuMassive = value ?? !danmakuMassive;
-                        await setting.put(
-                            SettingBoxKey.danmakuMassive, danmakuMassive);
-                        setState(() {});
-                      },
-                      title: const Text('海量弹幕'),
-                      description: const Text('弹幕过多时进行叠加绘制'),
-                      initialValue: danmakuMassive,
-                    ),
-                  ],
                 ),
-                SettingsSection(
-                  title: const Text('弹幕样式'),
-                  tiles: [
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuBorder = value ?? !danmakuBorder;
-                        await setting.put(
-                            SettingBoxKey.danmakuBorder, danmakuBorder);
-                        setState(() {});
-                      },
-                      title: const Text('弹幕描边'),
-                      initialValue: danmakuBorder,
-                    ),
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        danmakuColor = value ?? !danmakuColor;
-                        await setting.put(
-                            SettingBoxKey.danmakuColor, danmakuColor);
-                        setState(() {});
-                      },
-                      title: const Text('弹幕颜色'),
-                      initialValue: danmakuColor,
-                    ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuTop = value ?? !danmakuTop;
+                    await setting.put(SettingBoxKey.danmakuTop, danmakuTop);
+                    setState(() {});
+                  },
+                  title: const Text('顶部弹幕'),
+                  initialValue: danmakuTop,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuBottom = value ?? !danmakuBottom;
+                    await setting.put(
+                        SettingBoxKey.danmakuBottom, danmakuBottom);
+                    setState(() {});
+                  },
+                  title: const Text('底部弹幕'),
+                  initialValue: danmakuBottom,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuScroll = value ?? !danmakuScroll;
+                    await setting.put(
+                        SettingBoxKey.danmakuScroll, danmakuScroll);
+                    setState(() {});
+                  },
+                  title: const Text('滚动弹幕'),
+                  initialValue: danmakuScroll,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuMassive = value ?? !danmakuMassive;
+                    await setting.put(
+                        SettingBoxKey.danmakuMassive, danmakuMassive);
+                    setState(() {});
+                  },
+                  title: const Text('海量弹幕'),
+                  description: const Text('弹幕过多时进行叠加绘制'),
+                  initialValue: danmakuMassive,
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: const Text('弹幕样式'),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuBorder = value ?? !danmakuBorder;
+                    await setting.put(
+                        SettingBoxKey.danmakuBorder, danmakuBorder);
+                    setState(() {});
+                  },
+                  title: const Text('弹幕描边'),
+                  initialValue: danmakuBorder,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuColor = value ?? !danmakuColor;
+                    await setting.put(SettingBoxKey.danmakuColor, danmakuColor);
+                    setState(() {});
+                  },
+                  title: const Text('弹幕颜色'),
+                  initialValue: danmakuColor,
+                ),
                 SettingsTile(
-                      title: const Text('字体大小'),
+                  title: const Text('字体大小'),
                   description: Slider(
                     value: defaultDanmakuFontSize,
                     min: 10,
@@ -265,11 +263,11 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     label: '${defaultDanmakuFontSize.floorToDouble()}',
                     onChanged: (value) {
                       updateDanmakuFontSize(value.floorToDouble());
-                                        },
-                                ),
-                              ),
+                    },
+                  ),
+                ),
                 SettingsTile(
-                      title: const Text('字体字重'),
+                  title: const Text('字体字重'),
                   description: Slider(
                     value: defaultDanmakuFontWeight.toDouble(),
                     min: 1,
@@ -279,10 +277,10 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     onChanged: (value) {
                       updateDanmakuFontWeight(value.toInt());
                     },
-                    ),
+                  ),
                 ),
                 SettingsTile(
-                            title: const Text('弹幕不透明度'),
+                  title: const Text('弹幕不透明度'),
                   description: Slider(
                     value: defaultDanmakuOpacity,
                     min: 0.1,
@@ -291,14 +289,14 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     onChanged: (value) {
                       updateDanmakuOpacity(
                           double.parse(value.toStringAsFixed(2)));
-                                        },
-                              ),
-                    ),
-                  ],
+                    },
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 }

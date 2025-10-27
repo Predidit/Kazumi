@@ -3,7 +3,6 @@ import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/pages/player/details_info.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
@@ -42,7 +41,6 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<WebviewItemController>();
   late bool playResume;
   bool showDebugLog = false;
-  bool jumpNeed = true;
   List<String> webviewLogLines = [];
   final FocusNode keyboardFocus = FocusNode();
 
@@ -69,8 +67,6 @@ class _VideoPageState extends State<VideoPage>
   // The first parameter is the video source URL and the second parameter is the video offset (start position)
   late final StreamSubscription<(String, int)> _videoURLSubscription;
 
-  bool isFullHighScreen = false;
-
   // disable animation.
   late final bool disableAnimations;
 
@@ -81,7 +77,7 @@ class _VideoPageState extends State<VideoPage>
     // Check fullscreen when enter video page
     // in case user use system controls to enter fullscreen outside video page
     videoPageController.isDesktopFullscreen();
-    tabController = TabController(length: 3, vsync: this);
+    tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 120),
@@ -258,15 +254,8 @@ class _VideoPageState extends State<VideoPage>
     if (videoPageController.showTabBody) {
       if (!disableAnimations) {
         animation.forward();
-        if (videoPageController.loading == jumpNeed) {
-          if (jumpNeed) {
-            menuJumpToCurrentEpisode();
-          }
-          jumpNeed = !jumpNeed;
-        } else if (jumpNeed) {
-          menuJumpToCurrentEpisode();
-        }
       }
+      menuJumpToCurrentEpisode();
     }
   }
 
@@ -441,9 +430,7 @@ class _VideoPageState extends State<VideoPage>
                             color: Colors.black,
                             height: (isWideScreen)
                                 ? MediaQuery.sizeOf(context).height
-                                : isFullHighScreen
-                                    ? MediaQuery.sizeOf(context).height * 0.75
-                                    : MediaQuery.sizeOf(context).width * 9 / 16,
+                                : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
                             child: playerBody,
                           ),
@@ -872,7 +859,7 @@ class _VideoPageState extends State<VideoPage>
     return Container(
       color: Theme.of(context).canvasColor,
       child: DefaultTabController(
-        length: 3,
+        length: 2,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -884,7 +871,7 @@ class _VideoPageState extends State<VideoPage>
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   labelPadding:
-                      const EdgeInsetsDirectional.only(start: 20, end: 10),
+                      const EdgeInsetsDirectional.only(start: 30, end: 30),
                   onTap: (index) {
                     if (index == 0) {
                       menuJumpToCurrentEpisode();
@@ -893,41 +880,11 @@ class _VideoPageState extends State<VideoPage>
                   tabs: const [
                     Tab(text: '选集'),
                     Tab(text: '评论'),
-                    Tab(text: '详情'),
                   ],
                 ),
                 if (MediaQuery.sizeOf(context).width <=
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
-                  // 新增宽高比按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
-                        width: 0.5,
-                      ),
-                    ),
-                    width: 40,
-                    height: 31,
-                    child: IconButton(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        isFullHighScreen
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                        size: 20,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isFullHighScreen = !isFullHighScreen;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // 原有弹幕发送容器
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
@@ -998,7 +955,6 @@ class _VideoPageState extends State<VideoPage>
                     episode: episodeNum,
                     child: EpisodeCommentsSheet(),
                   ),
-                  DetailsCommentsSheet()
                 ],
               ),
             ),

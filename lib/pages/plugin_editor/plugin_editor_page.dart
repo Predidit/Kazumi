@@ -179,30 +179,61 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.save),
-        onPressed: () async {
-          plugin.api = apiController.text;
-          plugin.type = typeController.text;
-          plugin.name = nameController.text;
-          plugin.version = versionController.text;
-          plugin.userAgent = userAgentController.text;
-          plugin.baseUrl = baseURLController.text;
-          plugin.searchURL = searchURLController.text;
-          plugin.searchList = searchListController.text;
-          plugin.searchName = searchNameController.text;
-          plugin.searchResult = searchResultController.text;
-          plugin.chapterRoads = chapterRoadsController.text;
-          plugin.chapterResult = chapterResultController.text;
-          plugin.muliSources = muliSources;
-          plugin.useWebview = useWebview;
-          plugin.useNativePlayer = useNativePlayer;
-          plugin.usePost = usePost;
-          plugin.useLegacyParser = useLegacyParser;
-          plugin.referer = refererController.text;
-          pluginsController.updatePlugin(plugin);
-          Navigator.of(context).pop();
-        },
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            child: const Icon(Icons.bug_report),
+            onPressed: () async {
+              plugin.api = apiController.text;
+              plugin.type = typeController.text;
+              plugin.name = nameController.text;
+              plugin.version = versionController.text;
+              plugin.userAgent = userAgentController.text;
+              plugin.baseUrl = baseURLController.text;
+              plugin.searchURL = searchURLController.text;
+              plugin.searchList = searchListController.text;
+              plugin.searchName = searchNameController.text;
+              plugin.searchResult = searchResultController.text;
+              plugin.chapterRoads = chapterRoadsController.text;
+              plugin.chapterResult = chapterResultController.text;
+              plugin.muliSources = muliSources;
+              plugin.useWebview = useWebview;
+              plugin.useNativePlayer = useNativePlayer;
+              plugin.usePost = usePost;
+              plugin.useLegacyParser = useLegacyParser;
+              plugin.referer = refererController.text;
+              Modular.to.pushNamed('/settings/plugin/test', arguments: plugin);
+            },
+          ),
+          SizedBox(width: 15),
+          FloatingActionButton(
+            heroTag: null,
+            child: const Icon(Icons.save),
+            onPressed: () async {
+              plugin.api = apiController.text;
+              plugin.type = typeController.text;
+              plugin.name = nameController.text;
+              plugin.version = versionController.text;
+              plugin.userAgent = userAgentController.text;
+              plugin.baseUrl = baseURLController.text;
+              plugin.searchURL = searchURLController.text;
+              plugin.searchList = searchListController.text;
+              plugin.searchName = searchNameController.text;
+              plugin.searchResult = searchResultController.text;
+              plugin.chapterRoads = chapterRoadsController.text;
+              plugin.chapterResult = chapterResultController.text;
+              plugin.muliSources = muliSources;
+              plugin.useWebview = useWebview;
+              plugin.useNativePlayer = useNativePlayer;
+              plugin.usePost = usePost;
+              plugin.useLegacyParser = useLegacyParser;
+              plugin.referer = refererController.text;
+              pluginsController.updatePlugin(plugin);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       ),
     );
   }

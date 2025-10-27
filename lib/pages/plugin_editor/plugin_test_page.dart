@@ -249,25 +249,6 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ]),
         );
 
-  Widget _buildHtmlContainer(String html, ScrollController scrollController) =>
-      Container(
-        margin: EdgeInsets.only(bottom: 8.0),
-        padding: EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!)),
-        height: 250,
-        child: NotificationListener<ScrollNotification>(
-          onNotification: (n) => n.depth == 0,
-          child: SingleChildScrollView(
-            controller: scrollController,
-            physics: const ClampingScrollPhysics(),
-            child: SelectableText(html,
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-          ),
-        ),
-      );
-
   Widget _buildLoading() =>
       const Center(child: CircularProgressIndicator.adaptive());
 
@@ -297,7 +278,23 @@ class _PluginTestPageState extends State<PluginTestPage> {
   Widget _buildSearchContent() {
     if (isTesting) return _buildLoading();
     if (!_hasSearchHtml) return _buildEmpty('点击顶部「开始测试」按钮执行');
-    return _buildHtmlContainer(searchHtml, htmlScrollController);
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.0),
+      padding: EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!)),
+      height: 250,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (n) => n.depth == 0,
+        child: SingleChildScrollView(
+          controller: htmlScrollController,
+          physics: const ClampingScrollPhysics(),
+          child: SelectableText(searchHtml,
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+        ),
+      ),
+    );
   }
 
   String _getParseSubtitle() {
@@ -353,7 +350,25 @@ class _PluginTestPageState extends State<PluginTestPage> {
           ]),
         ),
       ),
-      if (isShowHtml) _buildHtmlContainer(itemHtml, itemHtmlScrollController),
+      if (isShowHtml)
+        Container(
+          margin: EdgeInsets.only(bottom: 8.0),
+          padding: EdgeInsets.all(8.0),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!)),
+          height: 250,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (n) => n.depth == 0,
+            child: SingleChildScrollView(
+              controller: itemHtmlScrollController,
+              physics: const ClampingScrollPhysics(),
+              child: SelectableText(itemHtml,
+                  style:
+                      const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+            ),
+          ),
+        ),
     ]);
   }
 
@@ -384,33 +399,32 @@ class _PluginTestPageState extends State<PluginTestPage> {
   }
 
   Widget _buildChapterCard(Road road, int i) => Card(
-        margin: EdgeInsets.only(bottom: 8.0),
-        child: Padding(
-          padding: EdgeInsets.all(12.0),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('播放列表 ${i + 1}：${road.name}',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                _h8,
-                Text('章节数量：${road.data.length}',
-                    style: TextStyle(fontSize: 12)),
-                _h8,
-                Container(
-                  height: 120,
-                  child: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ...road.identifier.asMap().entries.map((e) => Text(
-                              '${e.key + 1}. ${e.value}',
-                              style: TextStyle(fontSize: 12))),
-                        ]),
-                  ),
-                ),
-              ]),
-        ),
-      );
+    margin: EdgeInsets.only(bottom: 8.0),
+    child: Padding(
+      padding: EdgeInsets.all(12.0),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('播放列表 ${i + 1}：${road.name}',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            _h8,
+            Text('章节数量：${road.data.length}', style: TextStyle(fontSize: 12)),
+            _h8,
+            SizedBox(
+              width: double.infinity, // 关键添加：让宽度匹配父级约束（即maxWidth:1000）
+              height: 120,
+              child: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...road.identifier.asMap().entries.map((e) => Text(
+                          '${e.key + 1}. ${e.value}',
+                          style: TextStyle(fontSize: 12))),
+                    ]),
+              ),
+            ),
+          ]),
+    ),
+  );
 }

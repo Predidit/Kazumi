@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:html/dom.dart' show Element;
@@ -27,6 +28,7 @@ class PluginTestPage extends StatefulWidget {
 
 class _PluginTestPageState extends State<PluginTestPage> {
   late final Plugin plugin;
+  final VideoPageController videoPageController = Modular.get<VideoPageController>();
   final testKeywordController = TextEditingController();
   final htmlScrollController = ScrollController();
   final chapterScrollController = ScrollController();
@@ -48,6 +50,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   bool get _needChapterParse => plugin.chapterRoads.isNotEmpty;
 
+  CancelToken? _testRoadsCancelToken;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +62,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
 
   @override
   void dispose() {
+    _testRoadsCancelToken?.cancel();
     testKeywordController.dispose();
     htmlScrollController.dispose();
     chapterScrollController.dispose();
@@ -116,8 +121,10 @@ class _PluginTestPageState extends State<PluginTestPage> {
       if (_hasSearchData && _needChapterParse) {
         final firstItem = searchRes!.data.first;
         if (firstItem.src.isNotEmpty) {
+          _testRoadsCancelToken?.cancel();
+          _testRoadsCancelToken = CancelToken();
           chapters = await plugin.querychapterRoads(firstItem.src,
-              cancelToken: CancelToken());
+              cancelToken:_testRoadsCancelToken);
         }
       }
     } catch (e, stack) {

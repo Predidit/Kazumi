@@ -43,16 +43,15 @@ class _SourceSheetState extends State<SourceSheet>
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    if (widget.infoController.pluginSearchResponseList.isEmpty) {
-      queryManager = QueryManager(infoController: widget.infoController);
-      queryManager?.queryAllSource(keyword);
-    }
+    queryManager = QueryManager(infoController: widget.infoController);
+    queryManager?.queryAllSource(keyword);
     super.initState();
   }
 
   @override
   void dispose() {
     queryManager?.cancel();
+    queryManager = null;
     super.dispose();
   }
 
@@ -199,43 +198,64 @@ class _SourceSheetState extends State<SourceSheet>
                     tabs: pluginsController.pluginList
                         .map(
                           (plugin) => Observer(
-                            builder: (context) => Tab(
-                              child: Row(
-                                children: [
-                                  Text(
-                                    plugin.name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium!
-                                            .fontSize,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface),
-                                  ),
-                                  const SizedBox(width: 5.0),
-                                  Container(
-                                    width: 8.0,
-                                    height: 8.0,
-                                    decoration: BoxDecoration(
-                                      color: widget.infoController
-                                                      .pluginSearchStatus[
-                                                  plugin.name] ==
-                                              'success'
-                                          ? Colors.green
-                                          : (widget.infoController
-                                                          .pluginSearchStatus[
-                                                      plugin.name] ==
-                                                  'pending')
-                                              ? Colors.grey
-                                              : Colors.red,
-                                      shape: BoxShape.circle,
+                            builder: (context) {
+                              bool isSuccessButEmpty = false;
+                              if (widget.infoController
+                                      .pluginSearchStatus[plugin.name] ==
+                                  'success') {
+                                bool hasContent = false;
+                                for (var searchResponse in widget
+                                    .infoController.pluginSearchResponseList) {
+                                  if (searchResponse.pluginName ==
+                                          plugin.name &&
+                                      searchResponse.data.isNotEmpty) {
+                                    hasContent = true;
+                                    break;
+                                  }
+                                }
+                                isSuccessButEmpty = !hasContent;
+                              }
+
+                              return Tab(
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      plugin.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontSize: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium!
+                                              .fontSize,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                    const SizedBox(width: 5.0),
+                                    Container(
+                                      width: 8.0,
+                                      height: 8.0,
+                                      decoration: BoxDecoration(
+                                        color: isSuccessButEmpty
+                                            ? Colors.orange
+                                            : (widget.infoController
+                                                            .pluginSearchStatus[
+                                                        plugin.name] ==
+                                                    'success'
+                                                ? Colors.green
+                                                : (widget.infoController
+                                                                .pluginSearchStatus[
+                                                            plugin.name] ==
+                                                        'pending')
+                                                    ? Colors.grey
+                                                    : Colors.red),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         )
                         .toList(),

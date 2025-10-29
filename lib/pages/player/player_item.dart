@@ -82,9 +82,8 @@ class _PlayerItemState extends State<PlayerItem>
   final _danmuKey = GlobalKey();
   late bool _border;
   late double _opacity;
-  late double _duration;
   late double _fontSize;
-  late double danmakuArea;
+  late double _danmakuArea;
   late bool _hideTop;
   late bool _hideBottom;
   late bool _hideScroll;
@@ -93,6 +92,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuBiliBiliSource;
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
+  late double _danmakuDuration;
   late int _danmakuFontWeight;
 
   // 硬件解码
@@ -323,7 +323,7 @@ class _PlayerItemState extends State<PlayerItem>
     await playerController.setPlaybackSpeed(speed);
     playerController.danmakuController.updateOption(
       playerController.danmakuController.option
-          .copyWith(duration: _duration ~/ speed),
+          .copyWith(duration: _danmakuDuration ~/ speed),
     );
   }
 
@@ -994,10 +994,9 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
-    _duration = 8;
     _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
-    danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
+    _danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
     _hideBottom =
         !setting.get(SettingBoxKey.danmakuBottom, defaultValue: false);
@@ -1005,6 +1004,7 @@ class _PlayerItemState extends State<PlayerItem>
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
+    _danmakuDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     _danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
     _danmakuGamerSource =
@@ -1271,10 +1271,10 @@ class _PlayerItemState extends State<PlayerItem>
                           hideTop: _hideTop,
                           hideScroll: _hideScroll,
                           hideBottom: _hideBottom,
-                          area: danmakuArea,
+                          area: _danmakuArea,
                           opacity: _opacity,
                           fontSize: _fontSize,
-                          duration: _duration ~/ playerController.playerSpeed,
+                          duration: _danmakuDuration ~/ playerController.playerSpeed,
                           showStroke: _border,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,

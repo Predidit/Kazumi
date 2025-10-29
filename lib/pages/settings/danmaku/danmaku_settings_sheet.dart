@@ -113,6 +113,24 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 },
               ),
             ),
+            SettingsTile(title: const Text('持续时间'),
+              description: Slider(
+                value: widget.danmakuController.option.duration.toDouble(),
+                min: 4,
+                max: 16,
+                divisions: 12,
+                label:
+                    '${widget.danmakuController.option.duration.round()}',
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          duration: value.round(),
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());
+                },
+              ),
+            ),
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool show = value ?? widget.danmakuController.option.hideTop;

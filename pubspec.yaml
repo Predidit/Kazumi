@@ -195,6 +195,10 @@ msix_config:
   sign_msix: false
   install_certificate: false
   build_windows: false
+  create_desktop_shortcut: true
+  create_start_menu_shortcut: true
+  shortcut_name: Kazumi
+  logo_path: assets/images/logo/logo_windows.ico
 
 # The following section is specific to Flutter packages.
 flutter:

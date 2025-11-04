@@ -23,7 +23,6 @@ class WebviewAndroidItemControllerImpel
           loadsImagesAutomatically: false,
           upgradeKnownHostsToHTTPS: false,
           safeBrowsingEnabled: false,
-          hardwareAcceleration: false,
           mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
           geolocationEnabled: false,
         ),

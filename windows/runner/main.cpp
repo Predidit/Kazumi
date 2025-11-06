@@ -19,6 +19,44 @@ extern "C"
 
 HANDLE mutex = NULL;
 
+// Window class name must match the one in win32_window.cpp
+constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+
+bool ActivateExistingWindow()
+{
+  // Find the existing window by class name
+  HWND hwnd = ::FindWindow(kWindowClassName, nullptr);
+  if (hwnd != NULL)
+  {
+    // Check if window is hidden (e.g., minimized to tray)
+    if (!::IsWindowVisible(hwnd))
+    {
+      // Show the hidden window
+      ::ShowWindow(hwnd, SW_SHOW);
+    }
+    // If window is minimized, restore it
+    else if (::IsIconic(hwnd))
+    {
+      ::ShowWindow(hwnd, SW_RESTORE);
+    }
+
+    // Bring window to foreground
+    ::SetForegroundWindow(hwnd);
+
+    // Flash the window to get user's attention
+    FLASHWINFO fwi = {0};
+    fwi.cbSize = sizeof(FLASHWINFO);
+    fwi.hwnd = hwnd;
+    fwi.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+    fwi.uCount = 3;
+    fwi.dwTimeout = 0;
+    ::FlashWindowEx(&fwi);
+
+    return true;
+  }
+  return false;
+}
+
 bool isSingleInstance()
 {
   if (mutex != NULL)
@@ -43,8 +81,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // This is important for the application to work correctly with the local storage.
   if (!isSingleInstance())
   {
-    MessageBox(NULL, L"Another instance is already running.", L"Error", MB_OK | MB_ICONERROR);
-    return EXIT_FAILURE;
+    // Try to activate the existing window instead of showing an error
+    ActivateExistingWindow();
+    return EXIT_SUCCESS;
   }
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.

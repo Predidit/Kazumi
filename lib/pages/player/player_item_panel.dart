@@ -759,11 +759,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                 danmakuController:
                                                     playerController
                                                         .danmakuController,
-                                                onSpeedFollowChanged: () {
-                                                  // 重新应用当前播放速度以更新弹幕速度
-                                                  widget.setPlaybackSpeed(
-                                                      playerController.playerSpeed);
-                                                },
                                               );
                                             });
                                       },
@@ -820,11 +815,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     return DanmakuSettingsSheet(
                                       danmakuController:
                                           playerController.danmakuController,
-                                      onSpeedFollowChanged: () {
-                                        // 重新应用当前播放速度以更新弹幕速度
-                                        widget.setPlaybackSpeed(
-                                            playerController.playerSpeed);
-                                      },
                                     );
                                   });
                             },

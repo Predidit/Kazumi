@@ -402,9 +402,19 @@ abstract class _PlayerController with Store {
     this.playerSpeed = playerSpeed;
     try {
       mediaPlayer!.setRate(playerSpeed);
+      updateDanmakuSpeed();
     } catch (e) {
       KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
+  }
+
+  void updateDanmakuSpeed() {
+    final setting = GStorage.setting;
+    final baseDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    final followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+
+    final duration = followSpeed ? (baseDuration ~/ playerSpeed) : baseDuration.toInt();
+    danmakuController.updateOption(danmakuController.option.copyWith(duration: duration));
   }
 
   Future<void> setVolume(double value) async {

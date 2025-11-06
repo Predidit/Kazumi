@@ -322,21 +322,6 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    // 实时读取设置，确保用户修改后立即生效
-    bool followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
-    if (followSpeed) {
-      // 弹幕跟随视频倍速播放
-      playerController.danmakuController.updateOption(
-        playerController.danmakuController.option
-            .copyWith(duration: _danmakuDuration ~/ speed),
-      );
-    } else {
-      // 弹幕保持原速，不受视频倍速影响
-      playerController.danmakuController.updateOption(
-        playerController.danmakuController.option
-            .copyWith(duration: _danmakuDuration.toInt()),
-      );
-    }
   }
 
   Future<void> increaseVolume() async {

@@ -1,19 +1,19 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
-  final VoidCallback? onSpeedFollowChanged;
 
   const DanmakuSettingsSheet({
     super.key,
     required this.danmakuController,
-    this.onSpeedFollowChanged,
   });
 
   @override
@@ -22,6 +22,7 @@ class DanmakuSettingsSheet extends StatefulWidget {
 
 class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
   Box setting = GStorage.setting;
+  final PlayerController playerController = Modular.get<PlayerController>();
 
   void showDanmakuShieldSheet() {
     showModalBottomSheet(
@@ -178,11 +179,9 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool followSpeed = value ?? !setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
-                setState(() {
-                  setting.put(SettingBoxKey.danmakuFollowSpeed, followSpeed);
-                });
-                // 立即应用新的弹幕速度设置
-                widget.onSpeedFollowChanged?.call();
+                setting.put(SettingBoxKey.danmakuFollowSpeed, followSpeed);
+                playerController.updateDanmakuSpeed();
+                setState(() {});
               },
               title: const Text('跟随视频倍速'),
               description: const Text('弹幕速度随视频倍速变化'),

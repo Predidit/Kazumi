@@ -94,6 +94,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuDanDanSource;
   late double _danmakuDuration;
   late int _danmakuFontWeight;
+  late bool _danmakuFollowSpeed;
 
   // 硬件解码
   late bool haEnable;
@@ -321,10 +322,21 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    playerController.danmakuController.updateOption(
-      playerController.danmakuController.option
-          .copyWith(duration: _danmakuDuration ~/ speed),
-    );
+    // 实时读取设置，确保用户修改后立即生效
+    bool followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+    if (followSpeed) {
+      // 弹幕跟随视频倍速播放
+      playerController.danmakuController.updateOption(
+        playerController.danmakuController.option
+            .copyWith(duration: _danmakuDuration ~/ speed),
+      );
+    } else {
+      // 弹幕保持原速，不受视频倍速影响
+      playerController.danmakuController.updateOption(
+        playerController.danmakuController.option
+            .copyWith(duration: _danmakuDuration.toInt()),
+      );
+    }
   }
 
   Future<void> increaseVolume() async {
@@ -1013,6 +1025,8 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    _danmakuFollowSpeed =
+        setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);

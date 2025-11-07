@@ -1,0 +1,18 @@
+{
+    "api": "4",
+    "type": "anime",
+    "name": "mandao",
+    "version": "1.3",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "usePost": true,
+    "userAgent": "",
+    "baseURL": "https://www.mengdao.tv/",
+    "searchURL":"https://www.mengdao.tv/search.php?searchword=@keyword",
+    "searchList": "//div[2]/div[3]/ul/li",
+    "searchName": "//a/div[2]/p",
+    "searchResult": "//a",
+    "chapterRoads": "//div[3]/div[2]//div",
+    "chapterResult": "//*[@id='stab_1_71']/ul/li/a"
+}

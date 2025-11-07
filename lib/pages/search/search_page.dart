@@ -23,10 +23,19 @@ class _SearchPageState extends State<SearchPage> {
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
+  late final Set<String> watchedBangumiNames;
+
+  final List<Tab> tabs = [
+    Tab(text: "排序方式"),
+    Tab(text: "过滤器"),
+  ];
+
   @override
   void initState() {
     super.initState();
     scrollController.addListener(scrollListener);
+    searchPageController.loadSearchHistories();
+    watchedBangumiNames = searchPageController.loadWatchedBangumiNames();
   }
 
   @override
@@ -47,52 +56,92 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void showSortSwitcher() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return Wrap(
+  Widget showFilterSwitcher() {
+    return Wrap(
+      children: [
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              searchPageController.setNotShowWatchedBangumis(
+                  !searchPageController.notShowWatchedBangumis);
+            },
+            child: ListTile(
+              title: const Text('不显示已看过的番剧'),
+              trailing: Switch(
+                value: searchPageController.notShowWatchedBangumis,
+                onChanged: (value) {
+                  searchPageController.setNotShowWatchedBangumis(value);
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget showSortSwitcher() {
+    return Wrap(
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: const Text('按热度排序'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    searchController.text = searchPageController
-                        .attachSortParams(searchController.text, 'heat');
-                    searchPageController.searchBangumi(searchController.text,
-                        type: 'init');
-                  },
-                ),
-                ListTile(
-                  title: const Text('按评分排序'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    searchController.text = searchPageController
-                        .attachSortParams(searchController.text, 'rank');
-                    searchPageController.searchBangumi(searchController.text,
-                        type: 'init');
-                  },
-                ),
-                ListTile(
-                  title: const Text('按匹配程度排序'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    searchController.text = searchPageController
-                        .attachSortParams(searchController.text, 'match');
-                    searchPageController.searchBangumi(searchController.text,
-                        type: 'init');
-                  },
-                ),
-              ],
+            ListTile(
+              title: const Text('按热度排序'),
+              onTap: () {
+                Navigator.pop(context);
+                searchController.text = searchPageController.attachSortParams(
+                    searchController.text, 'heat');
+                searchPageController.searchBangumi(searchController.text,
+                    type: 'init');
+              },
+            ),
+            ListTile(
+              title: const Text('按评分排序'),
+              onTap: () {
+                Navigator.pop(context);
+                searchController.text = searchPageController.attachSortParams(
+                    searchController.text, 'rank');
+                searchPageController.searchBangumi(searchController.text,
+                    type: 'init');
+              },
+            ),
+            ListTile(
+              title: const Text('按匹配程度排序'),
+              onTap: () {
+                Navigator.pop(context);
+                searchController.text = searchPageController.attachSortParams(
+                    searchController.text, 'match');
+                searchPageController.searchBangumi(searchController.text,
+                    type: 'init');
+              },
             ),
           ],
-        );
-      },
+        ),
+      ],
     );
+  }
+
+  Widget showSearchOptionTabBar({required List<Widget> options}) {
+    return DefaultTabController(
+        length: tabs.length,
+        child: Scaffold(
+            body: Column(
+          children: [
+            PreferredSize(
+              preferredSize: Size.fromHeight(kToolbarHeight),
+              child: Material(
+                child: TabBar(
+                  tabs: tabs,
+                ),
+              ),
+            ),
+            Expanded(
+                child: TabBarView(
+              children: options,
+            ))
+          ],
+        )));
   }
 
   @override
@@ -110,11 +159,30 @@ class _SearchPageState extends State<SearchPage> {
         title: const Text("搜索"),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showSortSwitcher();
+        onPressed: () async {
+          showModalBottomSheet(
+            isScrollControlled: true,
+            constraints: BoxConstraints(
+              maxHeight: (MediaQuery.sizeOf(context).height >=
+                      LayoutBreakpoint.compact['height']!)
+                  ? MediaQuery.of(context).size.height * 1 / 4
+                  : MediaQuery.of(context).size.height,
+              maxWidth: (MediaQuery.sizeOf(context).width >=
+                      LayoutBreakpoint.medium['width']!)
+                  ? MediaQuery.of(context).size.width * 9 / 16
+                  : MediaQuery.of(context).size.width,
+            ),
+            clipBehavior: Clip.antiAlias,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            context: context,
+            builder: (context) {
+              return showSearchOptionTabBar(
+                  options: [showSortSwitcher(), showFilterSwitcher()]);
+            },
+          );
         },
         icon: const Icon(Icons.sort),
-        label: const Text("排序方式"),
+        label: const Text("搜索设置"),
       ),
       body: Column(
         children: [
@@ -136,11 +204,45 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 isFullScreen: MediaQuery.sizeOf(context).width <
                     LayoutBreakpoint.compact['width']!,
-                suggestionsBuilder: (context, controller) => <Widget>[
-                  Container(
-                    height: 400,
-                    alignment: Alignment.center,
-                    child: Text("无可用搜索建议，回车以直接检索"),
+                suggestionsBuilder: (context, controller) => [
+                  Observer(
+                    builder: (context) {
+                      if (controller.text.isNotEmpty) {
+                        return Container(
+                          height: 400,
+                          alignment: Alignment.center,
+                          child: Text("无可用搜索建议，回车以直接检索"),
+                        );
+                      } else {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var history in searchPageController
+                                .searchHistories
+                                .take(10))
+                              ListTile(
+                                title: Text(history.keyword),
+                                onTap: () {
+                                  controller.text = history.keyword;
+                                  searchPageController.searchBangumi(
+                                      controller.text,
+                                      type: 'init');
+                                  if (searchController.isOpen) {
+                                    searchController.closeView(history.keyword);
+                                  }
+                                },
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () {
+                                    searchPageController
+                                        .deleteSearchHistory(history);
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
+                      }
+                    },
                   ),
                 ],
                 onSubmitted: (value) {
@@ -174,36 +276,44 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                 );
               }
+
+
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
                 return Center(child: CircularProgressIndicator());
               }
+              int crossCount = 3;
+              if (MediaQuery.sizeOf(context).width >
+                  LayoutBreakpoint.compact['width']!) {
+                crossCount = 5;
+              }
+              if (MediaQuery.sizeOf(context).width >
+                  LayoutBreakpoint.medium['width']!) {
+                crossCount = 6;
+              }
+              final filteredList = searchPageController.notShowWatchedBangumis
+                  ? searchPageController.bangumiList
+                      .where((item) => !watchedBangumiNames.contains(item.name))
+                      .toList()
+                  : searchPageController.bangumiList;
+
               return GridView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   mainAxisSpacing: StyleString.cardSpace - 2,
                   crossAxisSpacing: StyleString.cardSpace,
-                  crossAxisCount:
-                      MediaQuery.of(context).orientation != Orientation.portrait
-                          ? 6
-                          : 3,
-                  mainAxisExtent: MediaQuery.of(context).size.width /
-                          (MediaQuery.of(context).orientation !=
-                                  Orientation.portrait
-                              ? 6
-                              : 3) /
-                          0.65 +
-                      MediaQuery.textScalerOf(context).scale(32.0),
+                  crossAxisCount: crossCount,
+                  mainAxisExtent:
+                      MediaQuery.of(context).size.width / crossCount / 0.65 +
+                          MediaQuery.textScalerOf(context).scale(32.0),
                 ),
-                itemCount: searchPageController.bangumiList.isNotEmpty
-                    ? searchPageController.bangumiList.length
-                    : 10,
+                itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
                 itemBuilder: (context, index) {
-                  return searchPageController.bangumiList.isNotEmpty
+                  return filteredList.isNotEmpty
                       ? BangumiCardV(
                           enableHero: false,
-                          bangumiItem: searchPageController.bangumiList[index],
+                          bangumiItem: filteredList[index],
                         )
                       : Container();
                 },

@@ -13,6 +13,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/bangumi.dart';
+import 'package:dio/dio.dart';
 
 part 'video_controller.g.dart';
 
@@ -60,6 +61,9 @@ abstract class _VideoPageController with Store {
 
   late Plugin currentPlugin;
 
+  /// 用于取消正在进行的 queryRoads 操作
+  CancelToken? _queryRoadsCancelToken;
+
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
 
@@ -92,17 +96,34 @@ abstract class _VideoPageController with Store {
     KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
   }
 
-  Future<void> queryRoads(String url, String pluginName) async {
+  Future<void> queryRoads(String url, String pluginName, {CancelToken? cancelToken}) async {
+    if (cancelToken != null) {
+      _queryRoadsCancelToken?.cancel();
+      _queryRoadsCancelToken = cancelToken;
+    } else {
+      _queryRoadsCancelToken?.cancel();
+      _queryRoadsCancelToken = CancelToken();
+      cancelToken = _queryRoadsCancelToken;
+    }
+
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     roadList.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
-        roadList.addAll(await plugin.querychapterRoads(url));
+        roadList.addAll(await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
     KazumiLogger().log(Level.info, '播放列表长度 ${roadList.length}');
     KazumiLogger().log(Level.info, '第一播放列表选集数 ${roadList[0].data.length}');
+  }
+
+  void cancelQueryRoads() {
+    if (_queryRoadsCancelToken != null) {
+      if (!_queryRoadsCancelToken!.isCancelled) {
+        _queryRoadsCancelToken!.cancel();
+      }
+    }
   }
 
   void enterFullScreen() {

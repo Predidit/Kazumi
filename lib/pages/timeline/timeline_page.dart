@@ -143,10 +143,9 @@ class _TimelinePageState extends State<TimelinePage>
                           '时间机器',
                           style: Theme.of(context)
                               .textTheme
-                              .headlineSmall
+                              .titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
                               ),
                         ),
                       ],
@@ -195,12 +194,11 @@ class _TimelinePageState extends State<TimelinePage>
                                       '$year年',
                                       style: Theme.of(context)
                                           .textTheme
-                                          .titleLarge
+                                          .titleMedium
                                           ?.copyWith(
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface,
-                                            fontWeight: FontWeight.w600,
                                           ),
                                     ),
                                   ],
@@ -321,6 +319,45 @@ class _TimelinePageState extends State<TimelinePage>
         AnimeSeason(timelineController.selectedDate).toString();
   }
 
+  void showSortSwitcher() {
+    KazumiDialog.showBottomSheet(
+      // context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return Wrap(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('按热度排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    timelineController.changeSortType(3);
+                  },
+                ),
+                ListTile(
+                  title: const Text('按评分排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    timelineController.changeSortType(2);
+                  },
+                ),
+                ListTile(
+                  title: const Text('按时间排序'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    timelineController.changeSortType(1);
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -349,6 +386,13 @@ class _TimelinePageState extends State<TimelinePage>
               showSeasonBottomSheet(context);
             },
           ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            showSortSwitcher();
+          },
+          icon: const Icon(Icons.sort),
+          label: const Text("排序方式"),
         ),
         body: Observer(builder: (context) {
           if (timelineController.isLoading &&

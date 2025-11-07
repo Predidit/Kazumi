@@ -18,7 +18,7 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
       return Video(
-        controller: playerController.videoController,
+        controller: playerController.videoController!,
         controls: NoVideoControls,
         fit: playerController.aspectRatioType == 1
             ? BoxFit.contain

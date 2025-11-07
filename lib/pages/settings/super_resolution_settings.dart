@@ -14,11 +14,19 @@ class SuperResolutionSettings extends StatefulWidget {
 
 class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   late final Box setting = GStorage.setting;
+  late bool promptOnEnable;
   late final ValueNotifier<String> superResolutionType = ValueNotifier<String>(
     setting
         .get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1)
         .toString(),
   );
+
+  @override
+  void initState() {
+    super.initState();
+    promptOnEnable =
+        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +87,22 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   },
                 )
               ]),
+          SettingsSection(
+            title: const Text('默认行为'),
+            tiles: [
+              SettingsTile.switchTile(
+                title: const Text('关闭提示'),
+                description: const Text('关闭每次启用超分辨率时的提示'),
+                initialValue: promptOnEnable,
+                onToggle: (value) async {
+                  promptOnEnable = value ?? false;
+                  await setting.put(
+                      SettingBoxKey.superResolutionWarn, promptOnEnable);
+                  if (mounted) setState(() {});
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -157,10 +157,17 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.sourceUrl),
+                    launchUrl(Uri.parse(Api.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: const Text('项目主页'),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(Api.sourceUrl),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: const Text('代码仓库'),
                   value: const Text('Github'),
                 ),
                 SettingsTile.navigation(

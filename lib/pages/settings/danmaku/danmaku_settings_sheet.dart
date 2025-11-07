@@ -100,7 +100,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 value: widget.danmakuController.option.area,
                 min: 0,
                 max: 1,
-                divisions: 4,
+                divisions: 8,
                 label:
                     '${(widget.danmakuController.option.area * 100).round()}%',
                 onChanged: (value) {
@@ -110,6 +110,24 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                         ),
                       ));
                   setting.put(SettingBoxKey.danmakuArea, value);
+                },
+              ),
+            ),
+            SettingsTile(title: const Text('持续时间'),
+              description: Slider(
+                value: widget.danmakuController.option.duration.toDouble(),
+                min: 4,
+                max: 16,
+                divisions: 12,
+                label:
+                    '${widget.danmakuController.option.duration.round()}',
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          duration: value.round(),
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());
                 },
               ),
             ),

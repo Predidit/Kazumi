@@ -37,6 +37,15 @@ void main() async {
         '${(await getApplicationSupportDirectory()).path}/hive');
     await GStorage.init();
   } catch (_) {
+    if (Platform.isWindows) {
+      await windowManager.ensureInitialized();
+      windowManager.waitUntilReadyToShow(null, () async {
+        // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
+        // Without this. the window will never show on Windows.
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    }
     runApp(MaterialApp(
         title: '初始化失败',
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -68,6 +77,8 @@ void main() async {
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
+      // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
+      // Without this. the window will never show on Windows.
       await windowManager.show();
       await windowManager.focus();
     });

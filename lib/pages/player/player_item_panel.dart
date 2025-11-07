@@ -759,6 +759,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                                 danmakuController:
                                                     playerController
                                                         .danmakuController,
+                                                onUpdateDanmakuSpeed:
+                                                    playerController.updateDanmakuSpeed,
                                               );
                                             });
                                       },
@@ -815,6 +817,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     return DanmakuSettingsSheet(
                                       danmakuController:
                                           playerController.danmakuController,
+                                      onUpdateDanmakuSpeed:
+                                          playerController.updateDanmakuSpeed,
                                     );
                                   });
                             },

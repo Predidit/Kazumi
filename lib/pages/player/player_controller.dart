@@ -409,7 +409,6 @@ abstract class _PlayerController with Store {
   }
 
   void updateDanmakuSpeed() {
-    final setting = GStorage.setting;
     final baseDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     final followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
 

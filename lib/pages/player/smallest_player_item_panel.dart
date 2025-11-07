@@ -769,8 +769,11 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       context: context,
                       builder: (context) {
                         return DanmakuSettingsSheet(
-                            danmakuController:
-                                playerController.danmakuController);
+                          danmakuController:
+                              playerController.danmakuController,
+                          onUpdateDanmakuSpeed:
+                              playerController.updateDanmakuSpeed,
+                        );
                       },
                     );
                   },

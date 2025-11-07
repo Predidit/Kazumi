@@ -756,9 +756,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                             context: context,
                                             builder: (context) {
                                               return DanmakuSettingsSheet(
-                                                  danmakuController:
-                                                      playerController
-                                                          .danmakuController);
+                                                danmakuController:
+                                                    playerController
+                                                        .danmakuController,
+                                                onUpdateDanmakuSpeed:
+                                                    playerController.updateDanmakuSpeed,
+                                              );
                                             });
                                       },
                                       color: Colors.white,
@@ -812,8 +815,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   context: context,
                                   builder: (context) {
                                     return DanmakuSettingsSheet(
-                                        danmakuController:
-                                            playerController.danmakuController);
+                                      danmakuController:
+                                          playerController.danmakuController,
+                                      onUpdateDanmakuSpeed:
+                                          playerController.updateDanmakuSpeed,
+                                    );
                                   });
                             },
                             color: Colors.white,

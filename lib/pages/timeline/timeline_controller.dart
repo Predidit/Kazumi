@@ -33,6 +33,8 @@ abstract class _TimelineController with Store {
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
 
+  List<List<BangumiItem>> _rawBangumiCalendar = [];
+
   @observable
   String seasonString = '';
 
@@ -56,7 +58,9 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
+    _rawBangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    _rawBangumiCalendar = resBangumiCalendar.map((dayList) => List<BangumiItem>.from(dayList)).toList();
     final filteredCalendar = resBangumiCalendar.map((dayList) {
       return collectController.filterBangumiByType(dayList, 5);
     }).toList();
@@ -72,21 +76,25 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
+    _rawBangumiCalendar.clear();
     var time = 0;
     const maxTime = 4;
     const limit = 20;
     var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
+    var rawCalendar = List.generate(7, (_) => <BangumiItem>[]);
     for (time = 0; time < maxTime; time++) {
       final offset = time * limit;
       var newList = await BangumiHTTP.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
+        rawCalendar[i].addAll(newList[i]);
         final filteredDayList = collectController.filterBangumiByType(newList[i], 5);
         resBangumiCalendar[i].addAll(filteredDayList);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
     }
+    _rawBangumiCalendar = rawCalendar.map((dayList) => List<BangumiItem>.from(dayList)).toList();
     isLoading = false;
     if (bangumiCalendar.isEmpty) {
       isTimeOut = true;
@@ -135,9 +143,10 @@ abstract class _TimelineController with Store {
   void filterCurrentCalendar() {
     final abandonedNames = collectController.getBangumiNamesByType(5);
 
-    final filteredCalendar = bangumiCalendar.map((dayList) {
-      dayList.removeWhere((item) => abandonedNames.contains(item.name));
-      return dayList;
+    final filteredCalendar = _rawBangumiCalendar.map((dayList) {
+      return dayList
+          .where((item) => !abandonedNames.contains(item.name))
+          .toList();
     }).toList();
 
     bangumiCalendar.clear();

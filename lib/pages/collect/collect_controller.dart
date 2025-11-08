@@ -28,6 +28,9 @@ abstract class _CollectController with Store {
   ObservableList<CollectedBangumi> collectibles =
       ObservableList<CollectedBangumi>();
 
+  @observable
+  int lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
+
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());
@@ -53,6 +56,7 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   @action
@@ -67,6 +71,7 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {

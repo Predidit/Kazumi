@@ -47,8 +47,11 @@ abstract class _TimelineController with Store {
     isTimeOut = false;
     bangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    final filteredCalendar = resBangumiCalendar.map((dayList) {
+      return collectController.filterBangumiByType(dayList, 5);
+    }).toList();
     bangumiCalendar.clear();
-    bangumiCalendar.addAll(resBangumiCalendar);
+    bangumiCalendar.addAll(filteredCalendar);
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
@@ -68,7 +71,8 @@ abstract class _TimelineController with Store {
       var newList = await BangumiHTTP.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
-        resBangumiCalendar[i].addAll(newList[i]);
+        final filteredDayList = collectController.filterBangumiByType(newList[i], 5);
+        resBangumiCalendar[i].addAll(filteredDayList);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);

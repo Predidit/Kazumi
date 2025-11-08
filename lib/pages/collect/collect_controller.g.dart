@@ -46,7 +46,8 @@ mixin _$CollectController on _CollectController, Store {
   @override
   String toString() {
     return '''
-collectibles: ${collectibles}
+collectibles: ${collectibles},
+lastUpdateTime: ${lastUpdateTime}
     ''';
   }
 }

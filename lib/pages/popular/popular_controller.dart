@@ -42,6 +42,9 @@ abstract class _PopularController with Store {
   @observable
   ObservableList<BangumiItem> trendList = ObservableList.of([]);
 
+  List<BangumiItem> _rawBangumiList = [];
+  List<BangumiItem> _rawTrendList = [];
+
   double scrollOffset = 0.0;
 
   @observable
@@ -56,15 +59,18 @@ abstract class _PopularController with Store {
 
   void clearBangumiList() {
     bangumiList.clear();
+    _rawBangumiList.clear();
   }
 
   Future<void> queryBangumiByTrend({String type = 'add'}) async {
     if (type == 'init') {
       trendList.clear();
+      _rawTrendList.clear();
     }
     isLoadingMore = true;
     var result =
         await BangumiHTTP.getBangumiTrendsList(offset: trendList.length);
+    _rawTrendList.addAll(result);
     final filteredResult = collectController.filterBangumiByType(result, 5);
     trendList.addAll(filteredResult);
     isLoadingMore = false;
@@ -74,11 +80,13 @@ abstract class _PopularController with Store {
   Future<void> queryBangumiByTag({String type = 'add'}) async {
     if (type == 'init') {
       bangumiList.clear();
+      _rawBangumiList.clear();
     }
     isLoadingMore = true;
     int randomNumber = Random().nextInt(8000) + 1;
     var tag = currentTag;
     var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
+    _rawBangumiList.addAll(result);
     final filteredResult = collectController.filterBangumiByType(result, 5);
     bangumiList.addAll(filteredResult);
     isLoadingMore = false;
@@ -89,7 +97,16 @@ abstract class _PopularController with Store {
   void filterCurrentLists() {
     final abandonedNames = collectController.getBangumiNamesByType(5);
 
-    bangumiList.removeWhere((item) => abandonedNames.contains(item.name));
-    trendList.removeWhere((item) => abandonedNames.contains(item.name));
+    final filteredBangumiList = _rawBangumiList
+        .where((item) => !abandonedNames.contains(item.name))
+        .toList();
+    final filteredTrendList = _rawTrendList
+        .where((item) => !abandonedNames.contains(item.name))
+        .toList();
+
+    bangumiList.clear();
+    bangumiList.addAll(filteredBangumiList);
+    trendList.clear();
+    trendList.addAll(filteredTrendList);
   }
 }

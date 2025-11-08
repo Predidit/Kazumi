@@ -21,6 +21,9 @@ abstract class _CollectController with Store {
   ObservableList<CollectedBangumi> collectibles =
       ObservableList<CollectedBangumi>();
 
+  @observable
+  int lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
+
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(GStorage.collectibles.values.toList());
@@ -36,6 +39,7 @@ abstract class _CollectController with Store {
     }
   }
 
+  @action
   Future<void> addCollect(BangumiItem bangumiItem, {type = 1}) async {
     if (type == 0) {
       await deleteCollect(bangumiItem);
@@ -55,8 +59,10 @@ abstract class _CollectController with Store {
     await GStorage.collectChanges.put(collectChangeId, collectChange);
     await GStorage.collectChanges.flush();
     loadCollectibles();
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
+  @action
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
     await GStorage.collectibles.delete(bangumiItem.id);
     await GStorage.collectibles.flush();
@@ -70,6 +76,7 @@ abstract class _CollectController with Store {
     await GStorage.collectChanges.put(collectChangeId, collectChange);
     await GStorage.collectChanges.flush();
     loadCollectibles();
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
@@ -121,5 +128,19 @@ abstract class _CollectController with Store {
       await GStorage.favorites.flush();
       KazumiLogger().log(Level.debug, '检测到$count条未分类追番记录, 已迁移');
     }
+  }
+
+  Set<String> getBangumiNamesByType(int type) {
+    return GStorage.collectibles.values
+        .where((item) => item.type == type)
+        .map((item) => item.bangumiItem.name.toString())
+        .toSet();
+  }
+
+  List<BangumiItem> filterBangumiByType(List<BangumiItem> bangumiList, int excludeType) {
+    final excludeNames = getBangumiNamesByType(excludeType);
+    return bangumiList
+        .where((item) => !excludeNames.contains(item.name))
+        .toList();
   }
 }

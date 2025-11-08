@@ -73,6 +73,20 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$_TimelineControllerActionController =
+      ActionController(name: '_TimelineController', context: context);
+
+  @override
+  void filterCurrentCalendar() {
+    final _$actionInfo = _$_TimelineControllerActionController.startAction(
+        name: '_TimelineController.filterCurrentCalendar');
+    try {
+      return super.filterCurrentCalendar();
+    } finally {
+      _$_TimelineControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''

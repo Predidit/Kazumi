@@ -1,6 +1,8 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/anime_season.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
@@ -8,6 +10,25 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
+  late final CollectController collectController;
+
+  _TimelineController() {
+    collectController = Modular.get<CollectController>();
+    _setupCollectiblesReaction();
+  }
+
+  late final ReactionDisposer _collectiblesReactionDisposer;
+
+  void _setupCollectiblesReaction() {
+    _collectiblesReactionDisposer = reaction(
+      (_) => collectController.lastUpdateTime,
+      (_) => filterCurrentCalendar(),
+    );
+  }
+
+  void dispose() {
+    _collectiblesReactionDisposer();
+  }
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
@@ -36,8 +57,11 @@ abstract class _TimelineController with Store {
     isTimeOut = false;
     bangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    final filteredCalendar = resBangumiCalendar.map((dayList) {
+      return collectController.filterBangumiByType(dayList, 5);
+    }).toList();
     bangumiCalendar.clear();
-    bangumiCalendar.addAll(resBangumiCalendar);
+    bangumiCalendar.addAll(filteredCalendar);
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
@@ -57,7 +81,8 @@ abstract class _TimelineController with Store {
       var newList = await BangumiHTTP.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
-        resBangumiCalendar[i].addAll(newList[i]);
+        final filteredDayList = collectController.filterBangumiByType(newList[i], 5);
+        resBangumiCalendar[i].addAll(filteredDayList);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
@@ -104,5 +129,18 @@ abstract class _TimelineController with Store {
     }
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
+  }
+
+  @action
+  void filterCurrentCalendar() {
+    final abandonedNames = collectController.getBangumiNamesByType(5);
+
+    final filteredCalendar = bangumiCalendar.map((dayList) {
+      dayList.removeWhere((item) => abandonedNames.contains(item.name));
+      return dayList;
+    }).toList();
+
+    bangumiCalendar.clear();
+    bangumiCalendar.addAll(filteredCalendar);
   }
 }

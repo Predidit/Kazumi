@@ -64,6 +64,29 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$notShowAbandonedBangumisAtom = Atom(
+      name: '_SearchPageController.notShowAbandonedBangumis', context: context);
+
+  @override
+  bool get notShowAbandonedBangumis {
+    _$notShowAbandonedBangumisAtom.reportRead();
+    return super.notShowAbandonedBangumis;
+  }
+
+  bool _notShowAbandonedBangumisIsInitialized = false;
+
+  @override
+  set notShowAbandonedBangumis(bool value) {
+    _$notShowAbandonedBangumisAtom.reportWrite(
+        value,
+        _notShowAbandonedBangumisIsInitialized
+            ? super.notShowAbandonedBangumis
+            : null, () {
+      super.notShowAbandonedBangumis = value;
+      _notShowAbandonedBangumisIsInitialized = true;
+    });
+  }
+
   late final _$bangumiListAtom =
       Atom(name: '_SearchPageController.bangumiList', context: context);
 
@@ -134,6 +157,16 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.setNotShowWatchedBangumis(value));
   }
 
+  late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
+      '_SearchPageController.setNotShowAbandonedBangumis',
+      context: context);
+
+  @override
+  Future<void> setNotShowAbandonedBangumis(bool value) {
+    return _$setNotShowAbandonedBangumisAsyncAction
+        .run(() => super.setNotShowAbandonedBangumis(value));
+  }
+
   late final _$_SearchPageControllerActionController =
       ActionController(name: '_SearchPageController', context: context);
 
@@ -149,11 +182,22 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
-  Set<String> loadWatchedBangumiNames() {
+  Set<int> loadWatchedBangumiIds() {
     final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.loadWatchedBangumiNames');
+        name: '_SearchPageController.loadWatchedBangumiIds');
     try {
-      return super.loadWatchedBangumiNames();
+      return super.loadWatchedBangumiIds();
+    } finally {
+      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  Set<int> loadAbandonedBangumiIds() {
+    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
+        name: '_SearchPageController.loadAbandonedBangumiIds');
+    try {
+      return super.loadAbandonedBangumiIds();
     } finally {
       _$_SearchPageControllerActionController.endAction(_$actionInfo);
     }
@@ -165,6 +209,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
 notShowWatchedBangumis: ${notShowWatchedBangumis},
+notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
 searchHistories: ${searchHistories}
     ''';

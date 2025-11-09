@@ -259,5 +259,8 @@ class SettingBoxKey {
       superResolutionWarn = 'superResolutionWarn',
       playerDisableAnimations = 'playerDisableAnimations',
       playerLogLevel = 'playerLogLevel',
-      searchNotShowWatchedBangumis = 'searchNotShowWatchedBangumis';
+      searchNotShowWatchedBangumis = 'searchNotShowWatchedBangumis',
+      searchNotShowAbandonedBangumis = 'searchNotShowAbandonedBangumis',
+      timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
+      timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis';
 }

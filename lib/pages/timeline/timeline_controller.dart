@@ -2,7 +2,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/anime_season.dart';
-import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
@@ -10,30 +12,18 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
-  late final CollectController collectController;
+  final ICollectRepository _collectRepository;
 
-  _TimelineController() {
-    collectController = Modular.get<CollectController>();
-    _setupCollectiblesReaction();
-  }
+  /// 构造函数
+  ///
+  /// [collectRepository] 收藏数据访问层，默认从Modular获取
+  _TimelineController({
+    ICollectRepository? collectRepository,
+  }) : _collectRepository = collectRepository ?? Modular.get<ICollectRepository>();
 
-  late final ReactionDisposer _collectiblesReactionDisposer;
-
-  void _setupCollectiblesReaction() {
-    _collectiblesReactionDisposer = reaction(
-      (_) => collectController.lastUpdateTime,
-      (_) => filterCurrentCalendar(),
-    );
-  }
-
-  void dispose() {
-    _collectiblesReactionDisposer();
-  }
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
-
-  List<List<BangumiItem>> _rawBangumiCalendar = [];
 
   @observable
   String seasonString = '';
@@ -43,6 +33,18 @@ abstract class _TimelineController with Store {
 
   @observable
   bool isTimeOut = false;
+
+  @observable
+  late bool notShowAbandonedBangumis = _collectRepository.getFilterSetting(
+    SettingBoxKey.timelineNotShowAbandonedBangumis,
+    defaultValue: false,
+  );
+
+  @observable
+  late bool notShowWatchedBangumis = _collectRepository.getFilterSetting(
+    SettingBoxKey.timelineNotShowWatchedBangumis,
+    defaultValue: false,
+  );
 
   int sortType = 1;
 
@@ -58,14 +60,9 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
-    _rawBangumiCalendar.clear();
     final resBangumiCalendar = await BangumiHTTP.getCalendar();
-    _rawBangumiCalendar = resBangumiCalendar.map((dayList) => List<BangumiItem>.from(dayList)).toList();
-    final filteredCalendar = resBangumiCalendar.map((dayList) {
-      return collectController.filterBangumiByType(dayList, 5);
-    }).toList();
     bangumiCalendar.clear();
-    bangumiCalendar.addAll(filteredCalendar);
+    bangumiCalendar.addAll(resBangumiCalendar);
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
@@ -76,25 +73,20 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
-    _rawBangumiCalendar.clear();
     var time = 0;
     const maxTime = 4;
     const limit = 20;
     var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
-    var rawCalendar = List.generate(7, (_) => <BangumiItem>[]);
     for (time = 0; time < maxTime; time++) {
       final offset = time * limit;
       var newList = await BangumiHTTP.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
-        rawCalendar[i].addAll(newList[i]);
-        final filteredDayList = collectController.filterBangumiByType(newList[i], 5);
-        resBangumiCalendar[i].addAll(filteredDayList);
+        resBangumiCalendar[i].addAll(newList[i]);
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);
     }
-    _rawBangumiCalendar = rawCalendar.map((dayList) => List<BangumiItem>.from(dayList)).toList();
     isLoading = false;
     if (bangumiCalendar.isEmpty) {
       isTimeOut = true;
@@ -140,16 +132,30 @@ abstract class _TimelineController with Store {
   }
 
   @action
-  void filterCurrentCalendar() {
-    final abandonedNames = collectController.getBangumiNamesByType(5);
+  Future<void> setNotShowAbandonedBangumis(bool value) async {
+    notShowAbandonedBangumis = value;
+    await _collectRepository.updateFilterSetting(
+      SettingBoxKey.timelineNotShowAbandonedBangumis,
+      value,
+    );
+  }
 
-    final filteredCalendar = _rawBangumiCalendar.map((dayList) {
-      return dayList
-          .where((item) => !abandonedNames.contains(item.name))
-          .toList();
-    }).toList();
+  @action
+  Future<void> setNotShowWatchedBangumis(bool value) async {
+    notShowWatchedBangumis = value;
+    await _collectRepository.updateFilterSetting(
+      SettingBoxKey.timelineNotShowWatchedBangumis,
+      value,
+    );
+  }
 
-    bangumiCalendar.clear();
-    bangumiCalendar.addAll(filteredCalendar);
+  @action
+  Set<int> loadAbandonedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.abandoned);
+  }
+
+  @action
+  Set<int> loadWatchedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.watched);
   }
 }

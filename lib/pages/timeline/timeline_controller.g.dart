@@ -73,15 +73,92 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$notShowAbandonedBangumisAtom = Atom(
+      name: '_TimelineController.notShowAbandonedBangumis', context: context);
+
+  @override
+  bool get notShowAbandonedBangumis {
+    _$notShowAbandonedBangumisAtom.reportRead();
+    return super.notShowAbandonedBangumis;
+  }
+
+  bool _notShowAbandonedBangumisIsInitialized = false;
+
+  @override
+  set notShowAbandonedBangumis(bool value) {
+    _$notShowAbandonedBangumisAtom.reportWrite(
+        value,
+        _notShowAbandonedBangumisIsInitialized
+            ? super.notShowAbandonedBangumis
+            : null, () {
+      super.notShowAbandonedBangumis = value;
+      _notShowAbandonedBangumisIsInitialized = true;
+    });
+  }
+
+  late final _$notShowWatchedBangumisAtom = Atom(
+      name: '_TimelineController.notShowWatchedBangumis', context: context);
+
+  @override
+  bool get notShowWatchedBangumis {
+    _$notShowWatchedBangumisAtom.reportRead();
+    return super.notShowWatchedBangumis;
+  }
+
+  bool _notShowWatchedBangumisIsInitialized = false;
+
+  @override
+  set notShowWatchedBangumis(bool value) {
+    _$notShowWatchedBangumisAtom.reportWrite(
+        value,
+        _notShowWatchedBangumisIsInitialized
+            ? super.notShowWatchedBangumis
+            : null, () {
+      super.notShowWatchedBangumis = value;
+      _notShowWatchedBangumisIsInitialized = true;
+    });
+  }
+
+  late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
+      '_TimelineController.setNotShowAbandonedBangumis',
+      context: context);
+
+  @override
+  Future<void> setNotShowAbandonedBangumis(bool value) {
+    return _$setNotShowAbandonedBangumisAsyncAction
+        .run(() => super.setNotShowAbandonedBangumis(value));
+  }
+
+  late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
+      '_TimelineController.setNotShowWatchedBangumis',
+      context: context);
+
+  @override
+  Future<void> setNotShowWatchedBangumis(bool value) {
+    return _$setNotShowWatchedBangumisAsyncAction
+        .run(() => super.setNotShowWatchedBangumis(value));
+  }
+
   late final _$_TimelineControllerActionController =
       ActionController(name: '_TimelineController', context: context);
 
   @override
-  void filterCurrentCalendar() {
+  Set<int> loadAbandonedBangumiIds() {
     final _$actionInfo = _$_TimelineControllerActionController.startAction(
-        name: '_TimelineController.filterCurrentCalendar');
+        name: '_TimelineController.loadAbandonedBangumiIds');
     try {
-      return super.filterCurrentCalendar();
+      return super.loadAbandonedBangumiIds();
+    } finally {
+      _$_TimelineControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  Set<int> loadWatchedBangumiIds() {
+    final _$actionInfo = _$_TimelineControllerActionController.startAction(
+        name: '_TimelineController.loadWatchedBangumiIds');
+    try {
+      return super.loadWatchedBangumiIds();
     } finally {
       _$_TimelineControllerActionController.endAction(_$actionInfo);
     }
@@ -93,7 +170,9 @@ mixin _$TimelineController on _TimelineController, Store {
 bangumiCalendar: ${bangumiCalendar},
 seasonString: ${seasonString},
 isLoading: ${isLoading},
-isTimeOut: ${isTimeOut}
+isTimeOut: ${isTimeOut},
+notShowAbandonedBangumis: ${notShowAbandonedBangumis},
+notShowWatchedBangumis: ${notShowWatchedBangumis}
     ''';
   }
 }

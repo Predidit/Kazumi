@@ -1,19 +1,31 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/search_parser.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
-import 'package:hive/hive.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/repositories/search_history_repository.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 
 part 'search_controller.g.dart';
 
 class SearchPageController = _SearchPageController with _$SearchPageController;
 
 abstract class _SearchPageController with Store {
-  final Box setting = GStorage.setting;
-  final Box searchHistoryBox = GStorage.searchHistory;
-  final Box collectiblesBox = GStorage.collectibles;
+  final ICollectRepository _collectRepository;
+  final ISearchHistoryRepository _searchHistoryRepository;
+
+  /// 构造函数
+  ///
+  /// [collectRepository] 收藏数据访问层，默认从Modular获取
+  /// [searchHistoryRepository] 搜索历史数据访问层，默认从Modular获取
+  _SearchPageController({
+    ICollectRepository? collectRepository,
+    ISearchHistoryRepository? searchHistoryRepository,
+  })  : _collectRepository = collectRepository ?? Modular.get<ICollectRepository>(),
+        _searchHistoryRepository = searchHistoryRepository ?? Modular.get<ISearchHistoryRepository>();
 
   @observable
   bool isLoading = false;
@@ -22,8 +34,16 @@ abstract class _SearchPageController with Store {
   bool isTimeOut = false;
 
   @observable
-  late bool notShowWatchedBangumis =
-      setting.get(SettingBoxKey.searchNotShowWatchedBangumis, defaultValue: false);
+  late bool notShowWatchedBangumis = _collectRepository.getFilterSetting(
+    SettingBoxKey.searchNotShowWatchedBangumis,
+    defaultValue: false,
+  );
+
+  @observable
+  late bool notShowAbandonedBangumis = _collectRepository.getFilterSetting(
+    SettingBoxKey.searchNotShowAbandonedBangumis,
+    defaultValue: false,
+  );
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
@@ -33,12 +53,9 @@ abstract class _SearchPageController with Store {
 
   @action
   void loadSearchHistories() {
-    var temp = searchHistoryBox.values.toList().cast<SearchHistory>();
-    temp.sort(
-      (a, b) => b.timestamp - a.timestamp,
-    );
+    final histories = _searchHistoryRepository.getAllHistories();
     searchHistories.clear();
-    searchHistories.addAll(temp);
+    searchHistories.addAll(histories);
   }
 
   /// Avaliable sort parameters:
@@ -56,22 +73,20 @@ abstract class _SearchPageController with Store {
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
     if (type != 'add') {
       bangumiList.clear();
-      bool privateMode =
-          await setting.get(SettingBoxKey.privateMode, defaultValue: false);
+      bool privateMode = _collectRepository.getFilterSetting(
+        SettingBoxKey.privateMode,
+        defaultValue: false,
+      );
       if (!privateMode) {
-        if (searchHistories.length >= 10) {
-          await searchHistoryBox.delete(searchHistories.last.key);
+        // 检查是否已满，删除最旧的记录
+        if (_searchHistoryRepository.isHistoryFull(10)) {
+          await _searchHistoryRepository.deleteOldest();
         }
-        final historiesToDelete =
-            searchHistories.where((element) => element.keyword == input);
-        if (historiesToDelete.isNotEmpty) {
-          for (var history in historiesToDelete) {
-            await searchHistoryBox.delete(history.key);
-          }
-        }
-        await searchHistoryBox.put(
-            DateTime.now().millisecondsSinceEpoch.toString(),
-            SearchHistory(input, DateTime.now().millisecondsSinceEpoch));
+        // 删除重复的历史记录
+        await _searchHistoryRepository.deleteDuplicates(input);
+        // 保存新的搜索历史
+        await _searchHistoryRepository.saveHistory(input);
+        // 重新加载历史记录
         loadSearchHistories();
       }
     }
@@ -103,27 +118,41 @@ abstract class _SearchPageController with Store {
 
   @action
   Future<void> deleteSearchHistory(SearchHistory history) async {
-    await searchHistoryBox.delete(history.key);
+    await _searchHistoryRepository.deleteHistory(history);
     loadSearchHistories();
   }
 
   @action
   Future<void> clearSearchHistory() async {
-    await searchHistoryBox.clear();
+    await _searchHistoryRepository.clearAllHistories();
     loadSearchHistories();
   }
 
   @action
   Future<void> setNotShowWatchedBangumis(bool value) async {
     notShowWatchedBangumis = value;
-    await setting.put(SettingBoxKey.searchNotShowWatchedBangumis, value);
+    await _collectRepository.updateFilterSetting(
+      SettingBoxKey.searchNotShowWatchedBangumis,
+      value,
+    );
   }
 
   @action
-  Set<String> loadWatchedBangumiNames() {
-    return collectiblesBox.values
-        .where((item) => item.type == 4)
-        .map((item) => item.bangumiItem.name.toString())
-        .toSet();
+  Future<void> setNotShowAbandonedBangumis(bool value) async {
+    notShowAbandonedBangumis = value;
+    await _collectRepository.updateFilterSetting(
+      SettingBoxKey.searchNotShowAbandonedBangumis,
+      value,
+    );
+  }
+
+  @action
+  Set<int> loadWatchedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.watched);
+  }
+
+  @action
+  Set<int> loadAbandonedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.abandoned);
   }
 }

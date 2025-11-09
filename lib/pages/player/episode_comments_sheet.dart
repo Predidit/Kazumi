@@ -29,24 +29,26 @@ class EpisodeCommentsSheet extends StatefulWidget {
   State<EpisodeCommentsSheet> createState() => _EpisodeCommentsSheetState();
 }
 
-class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
+class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet>
+    with AutomaticKeepAliveClientMixin {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   bool commentsQueryTimeout = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
+  final _scrollController = ScrollController();
+
   /// episode input by [showEpisodeSelection]
   int ep = 0;
 
   @override
-  void initState() {
-    super.initState();
-  }
+  bool get wantKeepAlive => true;
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await videoPageController.queryBangumiEpisodeCommentsByID(
+    await videoPageController
+        .queryBangumiEpisodeCommentsByID(
             videoPageController.bangumiItem.id, episode)
         .then((_) {
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
@@ -75,11 +77,15 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
   Widget get episodeCommentsBody {
     return CustomScrollView(
+      key: PageStorageKey(
+          'episodeCommentsBody_${videoPageController.bangumiItem.id}'),
+      controller: _scrollController,
       scrollBehavior: const ScrollBehavior().copyWith(
         // Scrollbars' movement is not linear so hide it.
         scrollbars: false,
@@ -228,6 +234,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final int episode = EpisodeInfo.of(context)!.episode;
     return Scaffold(
       body: RefreshIndicator(

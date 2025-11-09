@@ -156,7 +156,7 @@ dev_dependencies:
   hive_generator: ^2.0.0
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.3
-  msix: ^3.16.8
+  msix: ^3.16.12
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

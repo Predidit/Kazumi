@@ -8,8 +8,13 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
+  final VoidCallback? onUpdateDanmakuSpeed;
 
-  const DanmakuSettingsSheet({super.key, required this.danmakuController});
+  const DanmakuSettingsSheet({
+    super.key,
+    required this.danmakuController,
+    this.onUpdateDanmakuSpeed,
+  });
 
   @override
   State<DanmakuSettingsSheet> createState() => _DanmakuSettingsSheetState();
@@ -169,6 +174,17 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               },
               title: const Text('滚动弹幕'),
               initialValue: !widget.danmakuController.option.hideScroll,
+            ),
+            SettingsTile.switchTile(
+              onToggle: (value) async {
+                bool followSpeed = value ?? !setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+                setting.put(SettingBoxKey.danmakuFollowSpeed, followSpeed);
+                widget.onUpdateDanmakuSpeed?.call();
+                setState(() {});
+              },
+              title: const Text('跟随视频倍速'),
+              description: const Text('弹幕速度随视频倍速变化'),
+              initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true),
             ),
           ],
         ),

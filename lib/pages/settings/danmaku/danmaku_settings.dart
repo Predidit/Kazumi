@@ -33,6 +33,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuBiliBiliSource;
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
+  late bool danmakuFollowSpeed;
 
   @override
   void initState() {
@@ -65,6 +66,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
     danmakuDanDanSource =
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+    danmakuFollowSpeed =
+        setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
   }
 
   void onBackPressed(BuildContext context) {
@@ -212,6 +215,17 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                       updateDanmakuDuration(value.round().toDouble());
                     },
                   ),
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuFollowSpeed = value ?? !danmakuFollowSpeed;
+                    await setting.put(
+                        SettingBoxKey.danmakuFollowSpeed, danmakuFollowSpeed);
+                    setState(() {});
+                  },
+                  title: const Text('弹幕跟随视频倍速'),
+                  description: const Text('开启后弹幕速度会随视频倍速而改变'),
+                  initialValue: danmakuFollowSpeed,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

@@ -321,10 +321,6 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    playerController.danmakuController.updateOption(
-      playerController.danmakuController.option
-          .copyWith(duration: _danmakuDuration ~/ speed),
-    );
   }
 
   Future<void> increaseVolume() async {

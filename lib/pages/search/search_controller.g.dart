@@ -41,24 +41,26 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
-  late final _$showWatchedBangumisAtom =
-      Atom(name: '_SearchPageController.showWatchedBangumis', context: context);
+  late final _$notShowWatchedBangumisAtom = Atom(
+      name: '_SearchPageController.notShowWatchedBangumis', context: context);
 
   @override
   bool get notShowWatchedBangumis {
-    _$showWatchedBangumisAtom.reportRead();
+    _$notShowWatchedBangumisAtom.reportRead();
     return super.notShowWatchedBangumis;
   }
 
-  bool _showWatchedBangumisIsInitialized = false;
+  bool _notShowWatchedBangumisIsInitialized = false;
 
   @override
   set notShowWatchedBangumis(bool value) {
-    _$showWatchedBangumisAtom.reportWrite(value,
-        _showWatchedBangumisIsInitialized ? super.notShowWatchedBangumis : null,
-        () {
+    _$notShowWatchedBangumisAtom.reportWrite(
+        value,
+        _notShowWatchedBangumisIsInitialized
+            ? super.notShowWatchedBangumis
+            : null, () {
       super.notShowWatchedBangumis = value;
-      _showWatchedBangumisIsInitialized = true;
+      _notShowWatchedBangumisIsInitialized = true;
     });
   }
 
@@ -122,13 +124,13 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.clearSearchHistory());
   }
 
-  late final _$setShowWatchedBangumisAsyncAction = AsyncAction(
-      '_SearchPageController.setShowWatchedBangumis',
+  late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
+      '_SearchPageController.setNotShowWatchedBangumis',
       context: context);
 
   @override
   Future<void> setNotShowWatchedBangumis(bool value) {
-    return _$setShowWatchedBangumisAsyncAction
+    return _$setNotShowWatchedBangumisAsyncAction
         .run(() => super.setNotShowWatchedBangumis(value));
   }
 
@@ -162,7 +164,7 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return '''
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
-showWatchedBangumis: ${notShowWatchedBangumis},
+notShowWatchedBangumis: ${notShowWatchedBangumis},
 bangumiList: ${bangumiList},
 searchHistories: ${searchHistories}
     ''';

@@ -89,20 +89,6 @@ mixin _$PopularController on _PopularController, Store {
     });
   }
 
-  late final _$_PopularControllerActionController =
-      ActionController(name: '_PopularController', context: context);
-
-  @override
-  void filterCurrentLists() {
-    final _$actionInfo = _$_PopularControllerActionController.startAction(
-        name: '_PopularController.filterCurrentLists');
-    try {
-      return super.filterCurrentLists();
-    } finally {
-      _$_PopularControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
   @override
   String toString() {
     return '''

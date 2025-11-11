@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -14,42 +13,52 @@ abstract class ICollectRepository {
   /// 返回符合条件的番剧ID集合
   Set<int> getBangumiIdsByType(CollectType type);
 
-  /// 更新过滤器设置
-  ///
-  /// [key] 设置键
-  /// [value] 设置值
-  Future<void> updateFilterSetting(String key, bool value);
-
-  /// 获取过滤器设置
-  ///
-  /// [key] 设置键
-  /// [defaultValue] 默认值
-  /// 返回设置值
-  bool getFilterSetting(String key, {bool defaultValue = false});
-
   /// 批量获取多种类型的番剧ID集合
   ///
   /// [types] 收藏类型列表
   /// 返回符合条件的番剧ID集合（并集）
   Set<int> getBangumiIdsByTypes(List<CollectType> types);
+
+  // ========== 搜索页过滤器设置 ==========
+
+  /// 获取搜索页"不显示已看过番剧"设置
+  bool getSearchNotShowWatchedBangumis();
+
+  /// 更新搜索页"不显示已看过番剧"设置
+  Future<void> updateSearchNotShowWatchedBangumis(bool value);
+
+  /// 获取搜索页"不显示已抛弃番剧"设置
+  bool getSearchNotShowAbandonedBangumis();
+
+  /// 更新搜索页"不显示已抛弃番剧"设置
+  Future<void> updateSearchNotShowAbandonedBangumis(bool value);
+
+  // ========== 时间表页过滤器设置 ==========
+
+  /// 获取时间表页"不显示已抛弃番剧"设置
+  bool getTimelineNotShowAbandonedBangumis();
+
+  /// 更新时间表页"不显示已抛弃番剧"设置
+  Future<void> updateTimelineNotShowAbandonedBangumis(bool value);
+
+  /// 获取时间表页"不显示已看过番剧"设置
+  bool getTimelineNotShowWatchedBangumis();
+
+  /// 更新时间表页"不显示已看过番剧"设置
+  Future<void> updateTimelineNotShowWatchedBangumis(bool value);
+
+  // ========== 其他设置 ==========
+
+  /// 获取隐私模式设置
+  bool getPrivateMode();
 }
 
 /// 收藏数据访问实现类
 ///
 /// 基于Hive实现的收藏数据访问层
 class CollectRepository implements ICollectRepository {
-  final Box _collectiblesBox;
-  final Box _settingBox;
-
-  /// 构造函数
-  ///
-  /// [collectiblesBox] 收藏数据Box，默认使用GStorage.collectibles
-  /// [settingBox] 设置数据Box，默认使用GStorage.setting
-  CollectRepository({
-    Box? collectiblesBox,
-    Box? settingBox,
-  })  : _collectiblesBox = collectiblesBox ?? GStorage.collectibles,
-        _settingBox = settingBox ?? GStorage.setting;
+  final _collectiblesBox = GStorage.collectibles;
+  final _settingBox = GStorage.setting;
 
   @override
   Set<int> getBangumiIdsByType(CollectType type) {
@@ -88,14 +97,35 @@ class CollectRepository implements ICollectRepository {
     }
   }
 
+  // ========== 搜索页过滤器设置实现 ==========
+
   @override
-  Future<void> updateFilterSetting(String key, bool value) async {
+  bool getSearchNotShowWatchedBangumis() {
     try {
-      await _settingBox.put(key, value);
+      final value = _settingBox.get(
+        SettingBoxKey.searchNotShowWatchedBangumis,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.warning,
+        '获取搜索页"不显示已看过"设置失败，使用默认值false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateSearchNotShowWatchedBangumis(bool value) async {
+    try {
+      await _settingBox.put(SettingBoxKey.searchNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().log(
         Level.error,
-        '更新过滤器设置失败: key=$key, value=$value',
+        '更新搜索页"不显示已看过"设置失败: value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -103,18 +133,124 @@ class CollectRepository implements ICollectRepository {
   }
 
   @override
-  bool getFilterSetting(String key, {bool defaultValue = false}) {
+  bool getSearchNotShowAbandonedBangumis() {
     try {
-      final value = _settingBox.get(key, defaultValue: defaultValue);
-      return value is bool ? value : defaultValue;
+      final value = _settingBox.get(
+        SettingBoxKey.searchNotShowAbandonedBangumis,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().log(
         Level.warning,
-        '获取过滤器设置失败: key=$key, 使用默认值=$defaultValue',
+        '获取搜索页"不显示已抛弃"设置失败，使用默认值false',
         error: e,
         stackTrace: stackTrace,
       );
-      return defaultValue;
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateSearchNotShowAbandonedBangumis(bool value) async {
+    try {
+      await _settingBox.put(SettingBoxKey.searchNotShowAbandonedBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.error,
+        '更新搜索页"不显示已抛弃"设置失败: value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  // ========== 时间表页过滤器设置实现 ==========
+
+  @override
+  bool getTimelineNotShowAbandonedBangumis() {
+    try {
+      final value = _settingBox.get(
+        SettingBoxKey.timelineNotShowAbandonedBangumis,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.warning,
+        '获取时间表页"不显示已抛弃"设置失败，使用默认值false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineNotShowAbandonedBangumis(bool value) async {
+    try {
+      await _settingBox.put(SettingBoxKey.timelineNotShowAbandonedBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.error,
+        '更新时间表页"不显示已抛弃"设置失败: value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  bool getTimelineNotShowWatchedBangumis() {
+    try {
+      final value = _settingBox.get(
+        SettingBoxKey.timelineNotShowWatchedBangumis,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.warning,
+        '获取时间表页"不显示已看过"设置失败，使用默认值false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineNotShowWatchedBangumis(bool value) async {
+    try {
+      await _settingBox.put(SettingBoxKey.timelineNotShowWatchedBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.error,
+        '更新时间表页"不显示已看过"设置失败: value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  // ========== 其他设置实现 ==========
+
+  @override
+  bool getPrivateMode() {
+    try {
+      final value = _settingBox.get(
+        SettingBoxKey.privateMode,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
+    } catch (e, stackTrace) {
+      KazumiLogger().log(
+        Level.warning,
+        '获取隐私模式设置失败，使用默认值false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
     }
   }
 }

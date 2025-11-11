@@ -182,28 +182,6 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
-  Set<int> loadWatchedBangumiIds() {
-    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.loadWatchedBangumiIds');
-    try {
-      return super.loadWatchedBangumiIds();
-    } finally {
-      _$_SearchPageControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  Set<int> loadAbandonedBangumiIds() {
-    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.loadAbandonedBangumiIds');
-    try {
-      return super.loadAbandonedBangumiIds();
-    } finally {
-      _$_SearchPageControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
   String toString() {
     return '''
 isLoading: ${isLoading},

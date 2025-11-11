@@ -2,7 +2,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/anime_season.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:mobx/mobx.dart';
@@ -12,14 +11,7 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
-  final ICollectRepository _collectRepository;
-
-  /// 构造函数
-  ///
-  /// [collectRepository] 收藏数据访问层，默认从Modular获取
-  _TimelineController({
-    ICollectRepository? collectRepository,
-  }) : _collectRepository = collectRepository ?? Modular.get<ICollectRepository>();
+  final _collectRepository = Modular.get<ICollectRepository>();
 
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
@@ -35,16 +27,10 @@ abstract class _TimelineController with Store {
   bool isTimeOut = false;
 
   @observable
-  late bool notShowAbandonedBangumis = _collectRepository.getFilterSetting(
-    SettingBoxKey.timelineNotShowAbandonedBangumis,
-    defaultValue: false,
-  );
+  late bool notShowAbandonedBangumis = _collectRepository.getTimelineNotShowAbandonedBangumis();
 
   @observable
-  late bool notShowWatchedBangumis = _collectRepository.getFilterSetting(
-    SettingBoxKey.timelineNotShowWatchedBangumis,
-    defaultValue: false,
-  );
+  late bool notShowWatchedBangumis = _collectRepository.getTimelineNotShowWatchedBangumis();
 
   int sortType = 1;
 
@@ -134,27 +120,19 @@ abstract class _TimelineController with Store {
   @action
   Future<void> setNotShowAbandonedBangumis(bool value) async {
     notShowAbandonedBangumis = value;
-    await _collectRepository.updateFilterSetting(
-      SettingBoxKey.timelineNotShowAbandonedBangumis,
-      value,
-    );
+    await _collectRepository.updateTimelineNotShowAbandonedBangumis(value);
   }
 
   @action
   Future<void> setNotShowWatchedBangumis(bool value) async {
     notShowWatchedBangumis = value;
-    await _collectRepository.updateFilterSetting(
-      SettingBoxKey.timelineNotShowWatchedBangumis,
-      value,
-    );
+    await _collectRepository.updateTimelineNotShowWatchedBangumis(value);
   }
 
-  @action
   Set<int> loadAbandonedBangumiIds() {
     return _collectRepository.getBangumiIdsByType(CollectType.abandoned);
   }
 
-  @action
   Set<int> loadWatchedBangumiIds() {
     return _collectRepository.getBangumiIdsByType(CollectType.watched);
   }

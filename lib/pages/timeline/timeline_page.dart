@@ -27,9 +27,6 @@ class _TimelinePageState extends State<TimelinePage>
   late NavigationBarState navigationBarState;
   TabController? tabController;
 
-  late final Set<int> abandonedBangumiIds;
-  late final Set<int> watchedBangumiIds;
-
   final List<Tab> optionTabs = [
     Tab(text: "排序方式"),
     Tab(text: "过滤器"),
@@ -43,8 +40,6 @@ class _TimelinePageState extends State<TimelinePage>
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    abandonedBangumiIds = timelineController.loadAbandonedBangumiIds();
-    watchedBangumiIds = timelineController.loadWatchedBangumiIds();
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
@@ -527,12 +522,14 @@ class _TimelinePageState extends State<TimelinePage>
       var filteredList = bangumiList;
 
       if (timelineController.notShowAbandonedBangumis) {
+        final abandonedBangumiIds = timelineController.loadAbandonedBangumiIds();
         filteredList = filteredList
             .where((item) => !abandonedBangumiIds.contains(item.id))
             .toList();
       }
 
       if (timelineController.notShowWatchedBangumis) {
+        final watchedBangumiIds = timelineController.loadWatchedBangumiIds();
         filteredList = filteredList
             .where((item) => !watchedBangumiIds.contains(item.id))
             .toList();

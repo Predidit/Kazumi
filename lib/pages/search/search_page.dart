@@ -24,9 +24,6 @@ class _SearchPageState extends State<SearchPage> {
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
-  late final Set<int> watchedBangumiIds;
-  late final Set<int> abandonedBangumiIds;
-
   final List<Tab> tabs = [
     Tab(text: "排序方式"),
     Tab(text: "过滤器"),
@@ -37,8 +34,6 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     scrollController.addListener(scrollListener);
     searchPageController.loadSearchHistories();
-    watchedBangumiIds = searchPageController.loadWatchedBangumiIds();
-    abandonedBangumiIds = searchPageController.loadAbandonedBangumiIds();
   }
 
   @override
@@ -314,12 +309,14 @@ class _SearchPageState extends State<SearchPage> {
               List<BangumiItem> filteredList = searchPageController.bangumiList.toList();
 
               if (searchPageController.notShowWatchedBangumis) {
+                final watchedBangumiIds = searchPageController.loadWatchedBangumiIds();
                 filteredList = filteredList
                     .where((item) => !watchedBangumiIds.contains(item.id))
                     .toList();
               }
 
               if (searchPageController.notShowAbandonedBangumis) {
+                final abandonedBangumiIds = searchPageController.loadAbandonedBangumiIds();
                 filteredList = filteredList
                     .where((item) => !abandonedBangumiIds.contains(item.id))
                     .toList();

@@ -18,20 +18,8 @@ part 'collect_controller.g.dart';
 class CollectController = _CollectController with _$CollectController;
 
 abstract class _CollectController with Store {
-  final ICollectCrudRepository _collectCrudRepository;
-  final ICollectRepository _collectRepository;
-
-  /// 构造函数
-  ///
-  /// [collectCrudRepository] 收藏CRUD数据访问层，默认从Modular获取
-  /// [collectRepository] 收藏数据访问层，默认从Modular获取
-  _CollectController({
-    ICollectCrudRepository? collectCrudRepository,
-    ICollectRepository? collectRepository,
-  })  : _collectCrudRepository =
-            collectCrudRepository ?? Modular.get<ICollectCrudRepository>(),
-        _collectRepository =
-            collectRepository ?? Modular.get<ICollectRepository>();
+  final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
+  final _collectRepository = Modular.get<ICollectRepository>();
 
   Box setting = GStorage.setting;
   List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
@@ -39,9 +27,6 @@ abstract class _CollectController with Store {
   @observable
   ObservableList<CollectedBangumi> collectibles =
       ObservableList<CollectedBangumi>();
-
-  @observable
-  int lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
 
   void loadCollectibles() {
     collectibles.clear();
@@ -68,7 +53,6 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
-    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   @action
@@ -83,7 +67,6 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
-    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {

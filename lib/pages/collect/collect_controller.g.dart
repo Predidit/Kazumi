@@ -25,22 +25,6 @@ mixin _$CollectController on _CollectController, Store {
     });
   }
 
-  late final _$lastUpdateTimeAtom =
-      Atom(name: '_CollectController.lastUpdateTime', context: context);
-
-  @override
-  int get lastUpdateTime {
-    _$lastUpdateTimeAtom.reportRead();
-    return super.lastUpdateTime;
-  }
-
-  @override
-  set lastUpdateTime(int value) {
-    _$lastUpdateTimeAtom.reportWrite(value, super.lastUpdateTime, () {
-      super.lastUpdateTime = value;
-    });
-  }
-
   late final _$addCollectAsyncAction =
       AsyncAction('_CollectController.addCollect', context: context);
 
@@ -62,8 +46,7 @@ mixin _$CollectController on _CollectController, Store {
   @override
   String toString() {
     return '''
-collectibles: ${collectibles},
-lastUpdateTime: ${lastUpdateTime}
+collectibles: ${collectibles}
     ''';
   }
 }

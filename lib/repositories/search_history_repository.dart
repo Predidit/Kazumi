@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -44,14 +43,7 @@ abstract class ISearchHistoryRepository {
 ///
 /// 基于Hive实现的搜索历史数据访问层
 class SearchHistoryRepository implements ISearchHistoryRepository {
-  final Box _searchHistoryBox;
-
-  /// 构造函数
-  ///
-  /// [searchHistoryBox] 搜索历史Box，默认使用GStorage.searchHistory
-  SearchHistoryRepository({
-    Box? searchHistoryBox,
-  }) : _searchHistoryBox = searchHistoryBox ?? GStorage.searchHistory;
+  final _searchHistoryBox = GStorage.searchHistory;
 
   @override
   List<SearchHistory> getAllHistories() {

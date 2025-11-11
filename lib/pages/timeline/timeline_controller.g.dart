@@ -139,31 +139,6 @@ mixin _$TimelineController on _TimelineController, Store {
         .run(() => super.setNotShowWatchedBangumis(value));
   }
 
-  late final _$_TimelineControllerActionController =
-      ActionController(name: '_TimelineController', context: context);
-
-  @override
-  Set<int> loadAbandonedBangumiIds() {
-    final _$actionInfo = _$_TimelineControllerActionController.startAction(
-        name: '_TimelineController.loadAbandonedBangumiIds');
-    try {
-      return super.loadAbandonedBangumiIds();
-    } finally {
-      _$_TimelineControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  Set<int> loadWatchedBangumiIds() {
-    final _$actionInfo = _$_TimelineControllerActionController.startAction(
-        name: '_TimelineController.loadWatchedBangumiIds');
-    try {
-      return super.loadWatchedBangumiIds();
-    } finally {
-      _$_TimelineControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
   @override
   String toString() {
     return '''

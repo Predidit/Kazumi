@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -57,22 +56,9 @@ abstract class ICollectCrudRepository {
 ///
 /// 基于Hive实现的收藏CRUD数据访问层
 class CollectCrudRepository implements ICollectCrudRepository {
-  final Box _collectiblesBox;
-  final Box _collectChangesBox;
-  final Box _favoritesBox;
-
-  /// 构造函数
-  ///
-  /// [collectiblesBox] 收藏数据Box，默认使用GStorage.collectibles
-  /// [collectChangesBox] 收藏变更Box，默认使用GStorage.collectChanges
-  /// [favoritesBox] 旧版收藏Box，默认使用GStorage.favorites
-  CollectCrudRepository({
-    Box? collectiblesBox,
-    Box? collectChangesBox,
-    Box? favoritesBox,
-  })  : _collectiblesBox = collectiblesBox ?? GStorage.collectibles,
-        _collectChangesBox = collectChangesBox ?? GStorage.collectChanges,
-        _favoritesBox = favoritesBox ?? GStorage.favorites;
+  final _collectiblesBox = GStorage.collectibles;
+  final _collectChangesBox = GStorage.collectChanges;
+  final _favoritesBox = GStorage.favorites;
 
   @override
   List<CollectedBangumi> getAllCollectibles() {

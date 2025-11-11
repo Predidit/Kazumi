@@ -40,8 +40,6 @@ class _TimelinePageState extends State<TimelinePage>
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    abandonedBangumiIds = timelineController.loadAbandonedBangumiIds();
-    watchedBangumiIds = timelineController.loadWatchedBangumiIds();
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }

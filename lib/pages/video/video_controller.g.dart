@@ -153,6 +153,20 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$_VideoPageControllerActionController =
+      ActionController(name: '_VideoPageController', context: context);
+
+  @override
+  void updateRoadList(List<Road> newRoadList) {
+    final _$actionInfo = _$_VideoPageControllerActionController.startAction(
+        name: '_VideoPageController.updateRoadList');
+    try {
+      return super.updateRoadList(newRoadList);
+    } finally {
+      _$_VideoPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''

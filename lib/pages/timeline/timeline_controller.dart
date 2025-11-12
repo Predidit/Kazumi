@@ -1,6 +1,9 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/anime_season.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
@@ -8,6 +11,8 @@ part 'timeline_controller.g.dart';
 class TimelineController = _TimelineController with _$TimelineController;
 
 abstract class _TimelineController with Store {
+  final _collectRepository = Modular.get<ICollectRepository>();
+
   @observable
   ObservableList<List<BangumiItem>> bangumiCalendar =
       ObservableList<List<BangumiItem>>();
@@ -20,6 +25,12 @@ abstract class _TimelineController with Store {
 
   @observable
   bool isTimeOut = false;
+
+  @observable
+  late bool notShowAbandonedBangumis = _collectRepository.getTimelineNotShowAbandonedBangumis();
+
+  @observable
+  late bool notShowWatchedBangumis = _collectRepository.getTimelineNotShowWatchedBangumis();
 
   int sortType = 1;
 
@@ -104,5 +115,25 @@ abstract class _TimelineController with Store {
     }
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
+  }
+
+  @action
+  Future<void> setNotShowAbandonedBangumis(bool value) async {
+    notShowAbandonedBangumis = value;
+    await _collectRepository.updateTimelineNotShowAbandonedBangumis(value);
+  }
+
+  @action
+  Future<void> setNotShowWatchedBangumis(bool value) async {
+    notShowWatchedBangumis = value;
+    await _collectRepository.updateTimelineNotShowWatchedBangumis(value);
+  }
+
+  Set<int> loadAbandonedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.abandoned);
+  }
+
+  Set<int> loadWatchedBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.watched);
   }
 }

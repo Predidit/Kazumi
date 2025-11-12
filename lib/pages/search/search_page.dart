@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -23,8 +24,6 @@ class _SearchPageState extends State<SearchPage> {
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
-  late final Set<String> watchedBangumiNames;
-
   final List<Tab> tabs = [
     Tab(text: "排序方式"),
     Tab(text: "过滤器"),
@@ -35,7 +34,6 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     scrollController.addListener(scrollListener);
     searchPageController.loadSearchHistories();
-    watchedBangumiNames = searchPageController.loadWatchedBangumiNames();
   }
 
   @override
@@ -71,6 +69,23 @@ class _SearchPageState extends State<SearchPage> {
                 value: searchPageController.notShowWatchedBangumis,
                 onChanged: (value) {
                   searchPageController.setNotShowWatchedBangumis(value);
+                },
+              ),
+            ),
+          ),
+        ),
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              searchPageController.setNotShowAbandonedBangumis(
+                  !searchPageController.notShowAbandonedBangumis);
+            },
+            child: ListTile(
+              title: const Text('不显示已抛弃的番剧'),
+              trailing: Switch(
+                value: searchPageController.notShowAbandonedBangumis,
+                onChanged: (value) {
+                  searchPageController.setNotShowAbandonedBangumis(value);
                 },
               ),
             ),
@@ -291,11 +306,21 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
-              final filteredList = searchPageController.notShowWatchedBangumis
-                  ? searchPageController.bangumiList
-                      .where((item) => !watchedBangumiNames.contains(item.name))
-                      .toList()
-                  : searchPageController.bangumiList;
+              List<BangumiItem> filteredList = searchPageController.bangumiList.toList();
+
+              if (searchPageController.notShowWatchedBangumis) {
+                final watchedBangumiIds = searchPageController.loadWatchedBangumiIds();
+                filteredList = filteredList
+                    .where((item) => !watchedBangumiIds.contains(item.id))
+                    .toList();
+              }
+
+              if (searchPageController.notShowAbandonedBangumis) {
+                final abandonedBangumiIds = searchPageController.loadAbandonedBangumiIds();
+                filteredList = filteredList
+                    .where((item) => !abandonedBangumiIds.contains(item.id))
+                    .toList();
+              }
 
               return GridView.builder(
                 controller: scrollController,

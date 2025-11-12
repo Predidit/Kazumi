@@ -1,9 +1,13 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
+import 'package:kazumi/repositories/collect_crud_repository.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:hive/hive.dart';
 import 'package:mobx/mobx.dart';
 import 'package:logger/logger.dart';
@@ -14,8 +18,11 @@ part 'collect_controller.g.dart';
 class CollectController = _CollectController with _$CollectController;
 
 abstract class _CollectController with Store {
+  final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
+  final _collectRepository = Modular.get<ICollectRepository>();
+
   Box setting = GStorage.setting;
-  List<BangumiItem> get favorites => GStorage.favorites.values.toList();
+  List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
 
   @observable
   ObservableList<CollectedBangumi> collectibles =
@@ -23,28 +30,20 @@ abstract class _CollectController with Store {
 
   void loadCollectibles() {
     collectibles.clear();
-    collectibles.addAll(GStorage.collectibles.values.toList());
+    collectibles.addAll(_collectCrudRepository.getAllCollectibles());
   }
 
   int getCollectType(BangumiItem bangumiItem) {
-    CollectedBangumi? collectedBangumi =
-        GStorage.collectibles.get(bangumiItem.id);
-    if (collectedBangumi == null) {
-      return 0;
-    } else {
-      return collectedBangumi.type;
-    }
+    return _collectCrudRepository.getCollectType(bangumiItem.id);
   }
 
+  @action
   Future<void> addCollect(BangumiItem bangumiItem, {type = 1}) async {
     if (type == 0) {
       await deleteCollect(bangumiItem);
       return;
     }
-    CollectedBangumi collectedBangumi =
-        CollectedBangumi(bangumiItem, DateTime.now(), type);
-    await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
-    await GStorage.collectibles.flush();
+    await _collectCrudRepository.addCollectible(bangumiItem, type);
     final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     final CollectedBangumiChange collectChange = CollectedBangumiChange(
         collectChangeId,
@@ -52,14 +51,13 @@ abstract class _CollectController with Store {
         1,
         type,
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
-    await GStorage.collectChanges.put(collectChangeId, collectChange);
-    await GStorage.collectChanges.flush();
+    await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
   }
 
+  @action
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
-    await GStorage.collectibles.delete(bangumiItem.id);
-    await GStorage.collectibles.flush();
+    await _collectCrudRepository.deleteCollectible(bangumiItem.id);
     final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     final CollectedBangumiChange collectChange = CollectedBangumiChange(
         collectChangeId,
@@ -67,22 +65,13 @@ abstract class _CollectController with Store {
         3,
         5,
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
-    await GStorage.collectChanges.put(collectChangeId, collectChange);
-    await GStorage.collectChanges.flush();
+    await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {
-    CollectedBangumi? collectedBangumi =
-        GStorage.collectibles.get(bangumiItem.id);
-    if (collectedBangumi == null) {
-      return;
-    } else {
-      collectedBangumi.bangumiItem = bangumiItem;
-      await GStorage.collectibles.put(bangumiItem.id, collectedBangumi);
-      await GStorage.collectibles.flush();
-      loadCollectibles();
-    }
+    await _collectCrudRepository.updateCollectible(bangumiItem);
+    loadCollectibles();
   }
 
   Future<void> syncCollectibles() async {
@@ -117,9 +106,29 @@ abstract class _CollectController with Store {
         await addCollect(bangumiItem, type: 1);
         count++;
       }
-      await GStorage.favorites.clear();
-      await GStorage.favorites.flush();
+      await _collectCrudRepository.clearFavorites();
       KazumiLogger().log(Level.debug, '检测到$count条未分类追番记录, 已迁移');
     }
+  }
+
+  /// 根据收藏类型获取番剧ID集合
+  ///
+  /// [type] 收藏类型
+  /// 返回番剧ID集合
+  Set<int> getBangumiIdsByType(CollectType type) {
+    return _collectRepository.getBangumiIdsByType(type);
+  }
+
+  /// 过滤掉指定收藏类型的番剧
+  ///
+  /// [bangumiList] 原始番剧列表
+  /// [excludeType] 要排除的收藏类型
+  /// 返回过滤后的番剧列表
+  List<BangumiItem> filterBangumiByType(
+      List<BangumiItem> bangumiList, CollectType excludeType) {
+    final excludeIds = getBangumiIdsByType(excludeType);
+    return bangumiList
+        .where((item) => !excludeIds.contains(item.id))
+        .toList();
   }
 }

@@ -1,9 +1,11 @@
 class Api {
   /// 当前版本
-  static const String version = '1.7.9';
+  static const String version = '1.8.7';
   /// 规则API级别
   static const int apiLevel = 4;
   /// 项目主页
+  static const String projectUrl = "https://kazumi.app/";
+  /// Github 项目主页
   static const String sourceUrl = "https://github.com/Predidit/Kazumi";
   /// 图标作者
   static const String iconUrl = "https://www.pixiv.net/users/66219277";

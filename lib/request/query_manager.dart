@@ -12,7 +12,7 @@ class QueryManager {
 
   final InfoController infoController;
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  late StreamController _controller;
+  StreamController? _controller;
   bool _isCancelled = false;
 
   Future<void> querySource(String keyword, String pluginName) async {
@@ -29,7 +29,9 @@ class QueryManager {
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
         plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
-          if (_isCancelled) return;
+          if (_isCancelled) {
+            return;
+          }
 
           infoController.pluginSearchStatus[plugin.name] = 'success';
           if (result.data.isNotEmpty) {
@@ -37,7 +39,9 @@ class QueryManager {
           }
           infoController.pluginSearchResponseList.add(result);
         }).catchError((error) {
-          if (_isCancelled) return;
+          if (_isCancelled) {
+            return;
+          }
 
           infoController.pluginSearchStatus[plugin.name] = 'error';
         });
@@ -57,21 +61,25 @@ class QueryManager {
       if (_isCancelled) return;
 
       plugin.queryBangumi(keyword, shouldRethrow: true).then((result) {
-        if (_isCancelled) return;
+        if (_isCancelled) {
+          return;
+        }
 
         infoController.pluginSearchStatus[plugin.name] = 'success';
         if (result.data.isNotEmpty) {
           pluginsController.validityTracker.markSearchValid(plugin.name);
         }
-        _controller.add(result);
+        _controller?.add(result);
       }).catchError((error) {
-        if (_isCancelled) return;
+        if (_isCancelled) {
+          return;
+        }
 
         infoController.pluginSearchStatus[plugin.name] = 'error';
       });
     }
 
-    await for (var result in _controller.stream) {
+    await for (var result in _controller!.stream) {
       if (_isCancelled) break;
 
       infoController.pluginSearchResponseList.add(result);
@@ -80,6 +88,8 @@ class QueryManager {
 
   void cancel() {
     _isCancelled = true;
-    _controller.close();
+    if (_controller != null && !_controller!.isClosed) {
+      _controller!.close();
+    }
   }
 }

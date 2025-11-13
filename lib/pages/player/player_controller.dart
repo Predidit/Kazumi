@@ -91,8 +91,8 @@ abstract class _PlayerController with Store {
   int bangumiID = 0;
 
   // 播放器实体
-  late Player mediaPlayer;
-  late VideoController videoController;
+  Player? mediaPlayer;
+  VideoController? videoController;
 
   // 播放器面板状态
   @observable
@@ -119,44 +119,49 @@ abstract class _PlayerController with Store {
   bool lowMemoryMode = false;
   bool autoPlay = true;
   bool playerDebugMode = false;
-  int forwardTime = 80;
+  int buttonSkipTime = 80;
+  int arrowKeySkipTime = 10;
 
   // 播放器实时状态
-  bool get playerPlaying => mediaPlayer.state.playing;
+  bool get playerPlaying => mediaPlayer!.state.playing;
+  bool get playerBuffering => mediaPlayer!.state.buffering;
+  bool get playerCompleted => mediaPlayer!.state.completed;
+  double get playerVolume => mediaPlayer!.state.volume;
+  Duration get playerPosition => mediaPlayer!.state.position;
+  Duration get playerBuffer => mediaPlayer!.state.buffer;
+  Duration get playerDuration => mediaPlayer!.state.duration;
 
-  bool get playerBuffering => mediaPlayer.state.buffering;
+  // 播放器调试信息
+  /// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细
+  int playerLogLevel = 2;
+  @observable
+  ObservableList<String> playerLog = ObservableList.of([]);
+  @observable
+  int playerWidth = 0;
+  @observable
+  int playerHeight = 0;
+  @observable
+  String playerVideoParams = '';
+  @observable
+  String playerAudioParams = '';
+  @observable
+  String playerPlaylist = '';
+  @observable
+  String playerAudioTracks = '';
+  @observable
+  String playerVideoTracks = '';
+  @observable
+  String playerAudioBitrate = '';
 
-  bool get playerCompleted => mediaPlayer.state.completed;
-
-  double get playerVolume => mediaPlayer.state.volume;
-
-  Duration get playerPosition => mediaPlayer.state.position;
-
-  Duration get playerBuffer => mediaPlayer.state.buffer;
-
-  Duration get playerDuration => mediaPlayer.state.duration;
-
-  int? get playerWidth => mediaPlayer.state.width;
-
-  int? get playerHeight => mediaPlayer.state.height;
-
-  String get playerVideoParams => mediaPlayer.state.videoParams.toString();
-
-  String get playerAudioParams => mediaPlayer.state.audioParams.toString();
-
-  String get playerPlaylist => mediaPlayer.state.playlist.toString();
-
-  String get playerAudioTracks => mediaPlayer.state.track.audio.toString();
-
-  String get playerVideoTracks => mediaPlayer.state.track.video.toString();
-
-  String get playerAudioBitrate => mediaPlayer.state.audioBitrate.toString();
-
-  /// 播放器内部日志
-  List<String> playerLog = [];
-
-  /// 播放器日志订阅
+  /// 播放器调试信息订阅
   StreamSubscription<PlayerLog>? playerLogSubscription;
+  StreamSubscription<int?>? playerWidthSubscription;
+  StreamSubscription<int?>? playerHeightSubscription;
+  StreamSubscription<VideoParams>? playerVideoParamsSubscription;
+  StreamSubscription<AudioParams>? playerAudioParamsSubscription;
+  StreamSubscription<Playlist>? playerPlaylistSubscription;
+  StreamSubscription<Track>? playerTracksSubscription;
+  StreamSubscription<double?>? playerAudioBitrateSubscription;
 
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
@@ -167,6 +172,16 @@ abstract class _PlayerController with Store {
     buffer = Duration.zero;
     duration = Duration.zero;
     completed = false;
+    playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
+    playerSpeed =
+        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    aspectRatioType =
+        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
+
+    buttonSkipTime =
+        setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
+    arrowKeySkipTime =
+        setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
     try {
       await dispose(disposeSyncPlayController: false);
     } catch (_) {}
@@ -181,12 +196,10 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    getDanDanmakuByBgmBangumiID(videoPageController.bangumiItem.id, episodeFromTitle);
-    mediaPlayer = await createVideoController(offset: offset);
-    playerSpeed =
-        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
-    aspectRatioType =
-        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
+    getDanDanmakuByBgmBangumiID(
+        videoPageController.bangumiItem.id, episodeFromTitle);
+    mediaPlayer ??= await createVideoController(offset: offset);
+
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
       await setVolume(volume);
@@ -207,6 +220,59 @@ abstract class _PlayerController with Store {
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
     }
+  }
+
+  Future<void> setupPlayerDebugInfoSubscription() async {
+    await playerLogSubscription?.cancel();
+    playerLogSubscription = mediaPlayer!.stream.log.listen((event) {
+      playerLog.add(event.toString());
+      if (playerDebugMode) {
+        KazumiLogger().simpleLog(event.toString());
+      }
+    });
+    await playerWidthSubscription?.cancel();
+    playerWidthSubscription = mediaPlayer!.stream.width.listen((event) {
+      playerWidth = event ?? 0;
+    });
+    await playerHeightSubscription?.cancel();
+    playerHeightSubscription = mediaPlayer!.stream.height.listen((event) {
+      playerHeight = event ?? 0;
+    });
+    await playerVideoParamsSubscription?.cancel();
+    playerVideoParamsSubscription =
+        mediaPlayer!.stream.videoParams.listen((event) {
+      playerVideoParams = event.toString();
+    });
+    await playerAudioParamsSubscription?.cancel();
+    playerAudioParamsSubscription =
+        mediaPlayer!.stream.audioParams.listen((event) {
+      playerAudioParams = event.toString();
+    });
+    await playerPlaylistSubscription?.cancel();
+    playerPlaylistSubscription = mediaPlayer!.stream.playlist.listen((event) {
+      playerPlaylist = event.toString();
+    });
+    await playerTracksSubscription?.cancel();
+    playerTracksSubscription = mediaPlayer!.stream.track.listen((event) {
+      playerAudioTracks = event.audio.toString();
+      playerVideoTracks = event.video.toString();
+    });
+    await playerAudioBitrateSubscription?.cancel();
+    playerAudioBitrateSubscription =
+        mediaPlayer!.stream.audioBitrate.listen((event) {
+      playerAudioBitrate = event.toString();
+    });
+  }
+
+  Future<void> cancelPlayerDebugInfoSubscription() async {
+    await playerLogSubscription?.cancel();
+    await playerWidthSubscription?.cancel();
+    await playerHeightSubscription?.cancel();
+    await playerVideoParamsSubscription?.cancel();
+    await playerAudioParamsSubscription?.cancel();
+    await playerPlaylistSubscription?.cancel();
+    await playerTracksSubscription?.cancel();
+    await playerAudioBitrateSubscription?.cancel();
   }
 
   Future<Player> createVideoController({int offset = 0}) async {
@@ -238,21 +304,15 @@ abstract class _PlayerController with Store {
       configuration: PlayerConfiguration(
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
         osc: false,
-        logLevel: MPVLogLevel.info,
+        logLevel: MPVLogLevel.values[playerLogLevel],
       ),
     );
 
     // 记录播放器内部日志
     playerLog.clear();
-    await playerLogSubscription?.cancel();
-    playerLogSubscription = mediaPlayer.stream.log.listen((event) {
-      playerLog.add(event.toString());
-      if (playerDebugMode) {
-        KazumiLogger().simpleLog(event.toString());
-      }
-    });
+    setupPlayerDebugInfoSubscription();
 
-    var pp = mediaPlayer.platform as NativePlayer;
+    var pp = mediaPlayer!.platform as NativePlayer;
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
     // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
     // 该设置可以在所有平台上正确启用双重缓存
@@ -267,24 +327,24 @@ abstract class _PlayerController with Store {
       }
     }
 
-    await mediaPlayer.setAudioTrack(
+    await mediaPlayer!.setAudioTrack(
       AudioTrack.auto(),
     );
 
-    videoController = VideoController(
-      mediaPlayer,
+    videoController ??= VideoController(
+      mediaPlayer!,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: hAenable,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );
-    mediaPlayer.setPlaylistMode(PlaylistMode.none);
+    mediaPlayer!.setPlaylistMode(PlaylistMode.none);
 
     // error handle
     bool showPlayerError =
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
-    mediaPlayer.stream.error.listen((event) {
+    mediaPlayer!.stream.error.listen((event) {
       if (showPlayerError) {
         KazumiDialog.showToast(
             message: '播放器内部错误 ${event.toString()} $videoUrl',
@@ -299,17 +359,17 @@ abstract class _PlayerController with Store {
       await setShader(superResolutionType);
     }
 
-    await mediaPlayer.open(
+    await mediaPlayer!.open(
       Media(videoUrl,
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
       play: autoPlay,
     );
 
-    return mediaPlayer;
+    return mediaPlayer!;
   }
 
   Future<void> setShader(int type, {bool synchronized = true}) async {
-    var pp = mediaPlayer.platform as NativePlayer;
+    var pp = mediaPlayer!.platform as NativePlayer;
     await pp.waitForPlayerInitialization;
     await pp.waitForVideoControllerInitializationIfAttached;
     if (type == 2) {
@@ -341,10 +401,19 @@ abstract class _PlayerController with Store {
   Future<void> setPlaybackSpeed(double playerSpeed) async {
     this.playerSpeed = playerSpeed;
     try {
-      mediaPlayer.setRate(playerSpeed);
+      mediaPlayer!.setRate(playerSpeed);
+      updateDanmakuSpeed();
     } catch (e) {
       KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
+  }
+
+  void updateDanmakuSpeed() {
+    final baseDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    final followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+
+    final duration = followSpeed ? (baseDuration ~/ playerSpeed) : baseDuration.toInt();
+    danmakuController.updateOption(danmakuController.option.copyWith(duration: duration));
   }
 
   Future<void> setVolume(double value) async {
@@ -352,7 +421,7 @@ abstract class _PlayerController with Store {
     volume = value;
     try {
       if (Utils.isDesktop()) {
-        await mediaPlayer.setVolume(value);
+        await mediaPlayer!.setVolume(value);
       } else {
         await FlutterVolumeController.updateShowSystemUI(false);
         await FlutterVolumeController.setVolume(value / 100);
@@ -361,7 +430,7 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> playOrPause() async {
-    if (mediaPlayer.state.playing) {
+    if (mediaPlayer!.state.playing) {
       await pause();
     } else {
       await play();
@@ -371,7 +440,7 @@ abstract class _PlayerController with Store {
   Future<void> seek(Duration duration, {bool enableSync = true}) async {
     currentPosition = duration;
     danmakuController.clear();
-    await mediaPlayer.seek(duration);
+    await mediaPlayer!.seek(duration);
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -382,7 +451,7 @@ abstract class _PlayerController with Store {
 
   Future<void> pause({bool enableSync = true}) async {
     danmakuController.pause();
-    await mediaPlayer.pause();
+    await mediaPlayer!.pause();
     playing = false;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
@@ -394,7 +463,7 @@ abstract class _PlayerController with Store {
 
   Future<void> play({bool enableSync = true}) async {
     danmakuController.resume();
-    await mediaPlayer.play();
+    await mediaPlayer!.play();
     playing = true;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
@@ -414,26 +483,32 @@ abstract class _PlayerController with Store {
       } catch (_) {}
     }
     try {
-      await playerLogSubscription?.cancel();
+      await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
-    try {
-      await mediaPlayer.dispose();
-    } catch (_) {}
+    await mediaPlayer?.dispose();
+    mediaPlayer = null;
+    videoController = null;
   }
 
   Future<void> stop() async {
     try {
-      await mediaPlayer.stop();
+      await mediaPlayer?.stop();
       loading = true;
     } catch (_) {}
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
-    return await mediaPlayer.screenshot(format: format);
+    return await mediaPlayer!.screenshot(format: format);
   }
 
-  void setForwardTime(int time) {
-    forwardTime = time;
+  void setButtonForwardTime(int time) {
+    buttonSkipTime = time;
+    setting.put(SettingBoxKey.buttonSkipTime, time);
+  }
+
+  void setArrowKeyForwardTime(int time) {
+    arrowKeySkipTime = time;
+    setting.put(SettingBoxKey.arrowKeySkipTime, time);
   }
 
   Future<void> getDanDanmakuByBgmBangumiID(
@@ -441,7 +516,8 @@ abstract class _PlayerController with Store {
     KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
     try {
       danDanmakus.clear();
-      bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
+      bangumiID =
+          await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {

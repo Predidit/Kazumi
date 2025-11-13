@@ -27,6 +27,11 @@ class _TimelinePageState extends State<TimelinePage>
   late NavigationBarState navigationBarState;
   TabController? tabController;
 
+  final List<Tab> optionTabs = [
+    Tab(text: "排序方式"),
+    Tab(text: "过滤器"),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -143,10 +148,9 @@ class _TimelinePageState extends State<TimelinePage>
                           '时间机器',
                           style: Theme.of(context)
                               .textTheme
-                              .headlineSmall
+                              .titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
                               ),
                         ),
                       ],
@@ -195,12 +199,11 @@ class _TimelinePageState extends State<TimelinePage>
                                       '$year年',
                                       style: Theme.of(context)
                                           .textTheme
-                                          .titleLarge
+                                          .titleMedium
                                           ?.copyWith(
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurface,
-                                            fontWeight: FontWeight.w600,
                                           ),
                                     ),
                                   ],
@@ -321,6 +324,102 @@ class _TimelinePageState extends State<TimelinePage>
         AnimeSeason(timelineController.selectedDate).toString();
   }
 
+  Widget showFilterSwitcher() {
+    return Wrap(
+      children: [
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              timelineController.setNotShowAbandonedBangumis(
+                  !timelineController.notShowAbandonedBangumis);
+            },
+            child: ListTile(
+              title: const Text('不显示已抛弃的番剧'),
+              trailing: Switch(
+                value: timelineController.notShowAbandonedBangumis,
+                onChanged: (value) {
+                  timelineController.setNotShowAbandonedBangumis(value);
+                },
+              ),
+            ),
+          ),
+        ),
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              timelineController.setNotShowWatchedBangumis(
+                  !timelineController.notShowWatchedBangumis);
+            },
+            child: ListTile(
+              title: const Text('不显示已看过的番剧'),
+              trailing: Switch(
+                value: timelineController.notShowWatchedBangumis,
+                onChanged: (value) {
+                  timelineController.setNotShowWatchedBangumis(value);
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget showSortSwitcher() {
+    return Wrap(
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('按热度排序'),
+              onTap: () {
+                Navigator.pop(context);
+                timelineController.changeSortType(3);
+              },
+            ),
+            ListTile(
+              title: const Text('按评分排序'),
+              onTap: () {
+                Navigator.pop(context);
+                timelineController.changeSortType(2);
+              },
+            ),
+            ListTile(
+              title: const Text('按时间排序'),
+              onTap: () {
+                Navigator.pop(context);
+                timelineController.changeSortType(1);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget showTimelineOptionTabBar({required List<Widget> options}) {
+    return DefaultTabController(
+        length: optionTabs.length,
+        child: Scaffold(
+            body: Column(
+          children: [
+            PreferredSize(
+              preferredSize: Size.fromHeight(kToolbarHeight),
+              child: Material(
+                child: TabBar(
+                  tabs: optionTabs,
+                ),
+              ),
+            ),
+            Expanded(
+                child: TabBarView(
+              children: options,
+            ))
+          ],
+        )));
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -349,6 +448,32 @@ class _TimelinePageState extends State<TimelinePage>
               showSeasonBottomSheet(context);
             },
           ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            showModalBottomSheet(
+              isScrollControlled: true,
+              constraints: BoxConstraints(
+                maxHeight: (MediaQuery.sizeOf(context).height >=
+                        LayoutBreakpoint.compact['height']!)
+                    ? MediaQuery.of(context).size.height * 1 / 4
+                    : MediaQuery.of(context).size.height,
+                maxWidth: (MediaQuery.sizeOf(context).width >=
+                        LayoutBreakpoint.medium['width']!)
+                    ? MediaQuery.of(context).size.width * 9 / 16
+                    : MediaQuery.of(context).size.width,
+              ),
+              clipBehavior: Clip.antiAlias,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              context: context,
+              builder: (context) {
+                return showTimelineOptionTabBar(
+                    options: [showSortSwitcher(), showFilterSwitcher()]);
+              },
+            );
+          },
+          icon: const Icon(Icons.sort),
+          label: const Text("时间表设置"),
         ),
         body: Observer(builder: (context) {
           if (timelineController.isLoading &&
@@ -393,6 +518,23 @@ class _TimelinePageState extends State<TimelinePage>
     double cardHeight =
         Utils.isDesktop() ? 160 : (Utils.isTablet() ? 140 : 120);
     for (var bangumiList in bangumiCalendar) {
+      // 根据过滤器设置过滤番剧
+      var filteredList = bangumiList;
+
+      if (timelineController.notShowAbandonedBangumis) {
+        final abandonedBangumiIds = timelineController.loadAbandonedBangumiIds();
+        filteredList = filteredList
+            .where((item) => !abandonedBangumiIds.contains(item.id))
+            .toList();
+      }
+
+      if (timelineController.notShowWatchedBangumis) {
+        final watchedBangumiIds = timelineController.loadWatchedBangumiIds();
+        filteredList = filteredList
+            .where((item) => !watchedBangumiIds.contains(item.id))
+            .toList();
+      }
+
       gridViewList.add(
         CustomScrollView(
           slivers: [
@@ -405,12 +547,12 @@ class _TimelinePageState extends State<TimelinePage>
               ),
               delegate: SliverChildBuilderDelegate(
                 (BuildContext context, int index) {
-                  if (bangumiList.isEmpty) return null;
-                  final item = bangumiList[index];
+                  if (filteredList.isEmpty) return null;
+                  final item = filteredList[index];
                   return BangumiTimelineCard(
                       bangumiItem: item, cardHeight: cardHeight);
                 },
-                childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
+                childCount: filteredList.isNotEmpty ? filteredList.length : 10,
               ),
             ),
           ],

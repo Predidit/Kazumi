@@ -152,16 +152,22 @@ class _CollectPageState extends State<CollectPage>
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }
-    int crossCount =
-        MediaQuery.of(context).orientation != Orientation.portrait ? 6 : 3;
+    int crossCount = 3;
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
+      crossCount = 5;
+    }
+    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
+      crossCount = 6;
+    }
     for (List<CollectedBangumi> collectedBangumiRenderItem
         in collectedBangumiRenderItemList) {
       gridViewList.add(
-        Padding(
-          padding: const EdgeInsets.only(left: 8, right: 8, top: 8),
-          child: CustomScrollView(
-            slivers: [
-              SliverGrid(
+        CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                  StyleString.cardSpace, StyleString.cardSpace, StyleString.cardSpace, 0),
+              sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   mainAxisSpacing: StyleString.cardSpace - 2,
                   crossAxisSpacing: StyleString.cardSpace,
@@ -213,8 +219,8 @@ class _CollectPageState extends State<CollectPage>
                       : 10,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

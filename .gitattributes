@@ -1,0 +1,69 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted to native line endings on checkout
+*.dart text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+
+# Source code files (C/C++/Objective-C/Swift)
+*.c text eol=lf
+*.cc text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.m text eol=lf
+*.mm text eol=lf
+*.swift text eol=lf
+
+# CMake files
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+
+# Generated files should always use LF (Flutter generates these)
+**/generated_plugin_registrant.* text eol=lf
+**/generated_plugins.cmake text eol=lf
+**/GeneratedPluginRegistrant.* text eol=lf
+
+# Windows-specific files use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Visual Studio files
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.exe binary
+*.jar binary
+*.aar binary
+*.apk binary
+*.aab binary
+*.zip binary
+*.tar binary
+*.gz binary

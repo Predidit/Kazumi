@@ -21,6 +21,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late dynamic defaultDanmakuOpacity;
   late dynamic defaultDanmakuFontSize;
   late int defaultDanmakuFontWeight;
+  late double defaultDanmakuDuration;
   final PopularController popularController = Modular.get<PopularController>();
   late bool danmakuEnabledByDefault;
   late bool danmakuBorder;
@@ -32,6 +33,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuBiliBiliSource;
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
+  late bool danmakuFollowSpeed;
 
   @override
   void initState() {
@@ -44,6 +46,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
     defaultDanmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    defaultDanmakuDuration =
+        setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     danmakuEnabledByDefault =
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     danmakuBorder =
@@ -62,6 +66,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
     danmakuDanDanSource =
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+    danmakuFollowSpeed =
+        setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
   }
 
   void onBackPressed(BuildContext context) {
@@ -89,6 +95,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     await setting.put(SettingBoxKey.danmakuFontSize, i);
     setState(() {
       defaultDanmakuFontSize = i;
+    });
+  }
+
+  void updateDanmakuDuration(double i) async {
+    await setting.put(SettingBoxKey.danmakuDuration, i);
+    setState(() {
+      defaultDanmakuDuration = i;
     });
   }
 
@@ -183,12 +196,36 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     value: defaultDanmakuArea,
                     min: 0,
                     max: 1,
-                    divisions: 4,
+                    divisions: 8,
                     label: '${(defaultDanmakuArea * 100).round()}%',
                     onChanged: (value) {
                       updateDanmakuArea(value);
                     },
                   ),
+                ),
+                SettingsTile(
+                  title: const Text('弹幕持续时间'),
+                  description: Slider(
+                    value: defaultDanmakuDuration,
+                    min: 4,
+                    max: 16,
+                    divisions: 12,
+                    label: '${defaultDanmakuDuration.round()}',
+                    onChanged: (value) {
+                      updateDanmakuDuration(value.round().toDouble());
+                    },
+                  ),
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuFollowSpeed = value ?? !danmakuFollowSpeed;
+                    await setting.put(
+                        SettingBoxKey.danmakuFollowSpeed, danmakuFollowSpeed);
+                    setState(() {});
+                  },
+                  title: const Text('弹幕跟随视频倍速'),
+                  description: const Text('开启后弹幕速度会随视频倍速而改变'),
+                  initialValue: danmakuFollowSpeed,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

@@ -28,7 +28,6 @@ import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
-import 'package:kazumi/bean/widget/text_display.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 
@@ -41,6 +40,7 @@ class PlayerItem extends StatefulWidget {
     required this.onBackPressed,
     required this.keyboardFocus,
     required this.sendDanmaku,
+    this.disableAnimations = false,
   });
 
   final VoidCallback openMenu;
@@ -50,6 +50,7 @@ class PlayerItem extends StatefulWidget {
   final void Function(BuildContext) onBackPressed;
   final void Function(String) sendDanmaku;
   final FocusNode keyboardFocus;
+  final bool disableAnimations;
 
   @override
   State<PlayerItem> createState() => _PlayerItemState();
@@ -81,9 +82,8 @@ class _PlayerItemState extends State<PlayerItem>
   final _danmuKey = GlobalKey();
   late bool _border;
   late double _opacity;
-  late double _duration;
   late double _fontSize;
-  late double danmakuArea;
+  late double _danmakuArea;
   late bool _hideTop;
   late bool _hideBottom;
   late bool _hideScroll;
@@ -92,6 +92,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuBiliBiliSource;
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
+  late double _danmakuDuration;
   late int _danmakuFontWeight;
 
   // 硬件解码
@@ -221,6 +222,75 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer = getPlayerTimer();
   }
 
+  // 启用超分辨率（质量档）时弹出提示
+  Future<void> handleSuperResolutionChange(int shaderIndex) async {
+    if (!mounted) return;
+
+    final bool isHighMode = shaderIndex == 3;
+    final bool alreadyShown =
+        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
+
+    if (isHighMode && !alreadyShown) {
+      bool confirmed = false;
+
+      await KazumiDialog.show(builder: (context) {
+        bool dontAskAgain = false;
+
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('性能提示'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('启用超分辨率（质量档）可能会造成设备卡顿，是否继续？'),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: dontAskAgain,
+                      onChanged: (value) =>
+                          setState(() => dontAskAgain = value ?? false),
+                    ),
+                    const Text('下次不再询问'),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  if (dontAskAgain) {
+                    await setting.put(SettingBoxKey.superResolutionWarn, true);
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  confirmed = true;
+                  if (dontAskAgain) {
+                    await setting.put(SettingBoxKey.superResolutionWarn, true);
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('确认'),
+              ),
+            ],
+          );
+        });
+      });
+
+      if (confirmed) {
+        playerController.setShader(shaderIndex);
+      }
+    } else {
+      playerController.setShader(shaderIndex);
+    }
+  }
+
   void handleFullscreen() {
     _handleFullscreenChange(context);
     if (videoPageController.isFullscreen) {
@@ -251,10 +321,6 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
-    playerController.danmakuController.updateOption(
-      playerController.danmakuController.option
-          .copyWith(duration: _duration ~/ speed),
-    );
   }
 
   Future<void> increaseVolume() async {
@@ -506,118 +572,127 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Widget get videoInfoBody {
-    return ListView(
-      children: [
-        ListTile(
-          title: const Text("Source"),
-          subtitle: Text(playerController.videoUrl),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(text: playerController.videoUrl),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("Resolution"),
-          subtitle: Text(
-              '${playerController.playerWidth}x${playerController.playerHeight}'),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "Resolution\n${playerController.playerWidth}x${playerController.playerHeight}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("VideoParams"),
-          subtitle: Text(playerController.playerVideoParams.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "VideoParams\n${playerController.playerVideoParams.toString()}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("AudioParams"),
-          subtitle: Text(playerController.playerAudioParams.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "AudioParams\n${playerController.playerAudioParams.toString()}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("Media"),
-          subtitle: Text(playerController.playerPlaylist.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text: "Media\n${playerController.playerPlaylist.toString()}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("AudioTrack"),
-          subtitle: Text(playerController.playerAudioTracks.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "AudioTrack\n${playerController.playerAudioTracks.toString()}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("VideoTrack"),
-          subtitle: Text(playerController.playerVideoTracks.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "VideoTrack\n${playerController.playerVideoTracks.toString()}",
-              ),
-            );
-          },
-        ),
-        ListTile(
-          title: const Text("AudioBitrate"),
-          subtitle: Text(playerController.playerAudioBitrate.toString()),
-          onTap: () {
-            KazumiDialog.showToast(message: '已复制到剪贴板');
-            Clipboard.setData(
-              ClipboardData(
-                text:
-                    "AudioBitrate\n${playerController.playerAudioBitrate.toString()}",
-              ),
-            );
-          },
-        ),
-      ],
-    );
+    return Observer(builder: (context) {
+      return ListView(
+        children: [
+          ListTile(
+            title: const Text("Source"),
+            subtitle: Text(playerController.videoUrl),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(text: playerController.videoUrl),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("Resolution"),
+            subtitle: Text(
+                '${playerController.playerWidth}x${playerController.playerHeight}'),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "Resolution\n${playerController.playerWidth}x${playerController.playerHeight}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("VideoParams"),
+            subtitle: Text(playerController.playerVideoParams.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "VideoParams\n${playerController.playerVideoParams.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioParams"),
+            subtitle: Text(playerController.playerAudioParams.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioParams\n${playerController.playerAudioParams.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("Media"),
+            subtitle: Text(playerController.playerPlaylist.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text: "Media\n${playerController.playerPlaylist.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioTrack"),
+            subtitle: Text(playerController.playerAudioTracks.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioTrack\n${playerController.playerAudioTracks.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("VideoTrack"),
+            subtitle: Text(playerController.playerVideoTracks.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "VideoTrack\n${playerController.playerVideoTracks.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text("AudioBitrate"),
+            subtitle: Text(playerController.playerAudioBitrate.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "AudioBitrate\n${playerController.playerAudioBitrate.toString()}",
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    });
   }
 
   Widget get videoDebugLogBody {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0),
-        child: TextDisplayWidget(logLines: playerController.playerLog),
+        child: Observer(builder: (context) {
+          return ListView.builder(
+            itemCount: playerController.playerLog.length,
+            itemBuilder: (context, index) {
+              return Text(playerController.playerLog[index]);
+            },
+          );
+        }),
       ),
       floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.copy),
@@ -915,10 +990,9 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
-    _duration = 8;
     _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
         defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
-    danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
+    _danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
     _hideBottom =
         !setting.get(SettingBoxKey.danmakuBottom, defaultValue: false);
@@ -926,6 +1000,7 @@ class _PlayerItemState extends State<PlayerItem>
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
+    _danmakuDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     _danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
     _danmakuGamerSource =
@@ -1043,7 +1118,7 @@ class _PlayerItemState extends State<PlayerItem>
                                     LogicalKeyboardKey.arrowLeft) {
                                   int targetPosition = playerController
                                           .currentPosition.inSeconds -
-                                      10;
+                                      playerController.arrowKeySkipTime;
                                   if (targetPosition < 0) {
                                     targetPosition = 0;
                                   }
@@ -1120,7 +1195,8 @@ class _PlayerItemState extends State<PlayerItem>
                                       playerController.seek(Duration(
                                           seconds: playerController
                                                   .currentPosition.inSeconds +
-                                              10));
+                                              playerController
+                                                  .arrowKeySkipTime));
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
                                       KazumiLogger().log(Level.error,
@@ -1191,10 +1267,10 @@ class _PlayerItemState extends State<PlayerItem>
                           hideTop: _hideTop,
                           hideScroll: _hideScroll,
                           hideBottom: _hideBottom,
-                          area: danmakuArea,
+                          area: _danmakuArea,
                           opacity: _opacity,
                           fontSize: _fontSize,
-                          duration: _duration ~/ playerController.playerSpeed,
+                          duration: _danmakuDuration ~/ playerController.playerSpeed,
                           showStroke: _border,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
@@ -1213,6 +1289,8 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleSuperResolutionChange:
+                                handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
@@ -1224,6 +1302,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            disableAnimations: widget.disableAnimations,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -1233,6 +1312,8 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
+                            handleSuperResolutionChange:
+                                handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             handleHove: _handleHove,
@@ -1244,6 +1325,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            disableAnimations: widget.disableAnimations,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

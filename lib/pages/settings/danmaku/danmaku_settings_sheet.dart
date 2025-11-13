@@ -8,8 +8,13 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
+  final VoidCallback? onUpdateDanmakuSpeed;
 
-  const DanmakuSettingsSheet({super.key, required this.danmakuController});
+  const DanmakuSettingsSheet({
+    super.key,
+    required this.danmakuController,
+    this.onUpdateDanmakuSpeed,
+  });
 
   @override
   State<DanmakuSettingsSheet> createState() => _DanmakuSettingsSheetState();
@@ -100,7 +105,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 value: widget.danmakuController.option.area,
                 min: 0,
                 max: 1,
-                divisions: 4,
+                divisions: 8,
                 label:
                     '${(widget.danmakuController.option.area * 100).round()}%',
                 onChanged: (value) {
@@ -110,6 +115,24 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                         ),
                       ));
                   setting.put(SettingBoxKey.danmakuArea, value);
+                },
+              ),
+            ),
+            SettingsTile(title: const Text('持续时间'),
+              description: Slider(
+                value: widget.danmakuController.option.duration.toDouble(),
+                min: 4,
+                max: 16,
+                divisions: 12,
+                label:
+                    '${widget.danmakuController.option.duration.round()}',
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          duration: value.round(),
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());
                 },
               ),
             ),
@@ -151,6 +174,17 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               },
               title: const Text('滚动弹幕'),
               initialValue: !widget.danmakuController.option.hideScroll,
+            ),
+            SettingsTile.switchTile(
+              onToggle: (value) async {
+                bool followSpeed = value ?? !setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+                setting.put(SettingBoxKey.danmakuFollowSpeed, followSpeed);
+                widget.onUpdateDanmakuSpeed?.call();
+                setState(() {});
+              },
+              title: const Text('跟随视频倍速'),
+              description: const Text('弹幕速度随视频倍速变化'),
+              initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true),
             ),
           ],
         ),

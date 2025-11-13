@@ -33,9 +33,11 @@ class QueryManager {
             return;
           }
 
-          infoController.pluginSearchStatus[plugin.name] = 'success';
           if (result.data.isNotEmpty) {
+            infoController.pluginSearchStatus[plugin.name] = 'success';
             pluginsController.validityTracker.markSearchValid(plugin.name);
+          } else {
+            infoController.pluginSearchStatus[plugin.name] = 'noresult';
           }
           infoController.pluginSearchResponseList.add(result);
         }).catchError((error) {
@@ -65,9 +67,11 @@ class QueryManager {
           return;
         }
 
-        infoController.pluginSearchStatus[plugin.name] = 'success';
         if (result.data.isNotEmpty) {
+          infoController.pluginSearchStatus[plugin.name] = 'success';
           pluginsController.validityTracker.markSearchValid(plugin.name);
+        } else {
+          infoController.pluginSearchStatus[plugin.name] = 'noresult';
         }
         _controller?.add(result);
       }).catchError((error) {

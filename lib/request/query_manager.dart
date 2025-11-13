@@ -17,9 +17,11 @@ class QueryManager {
   final InfoController infoController;
   final PluginsController _pluginsController;
   final IVideoSourceRepository _videoSourceRepository;
+  final PluginsController pluginsController = Modular.get<PluginsController>();
   StreamController? _controller;
   bool _isCancelled = false;
 
+  /// 追踪本次查询预加载的所有 src（用于销毁时清理缓存）
   Future<void> querySource(String keyword, String pluginName) async {
     for (PluginSearchResponse pluginSearchResponse
         in infoController.pluginSearchResponseList) {

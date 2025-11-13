@@ -1,66 +1,11 @@
 import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/modules/roads/cached_road_list.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:logger/logger.dart';
 import 'package:mobx/mobx.dart';
 
 part 'video_source_repository.g.dart';
-
-/// 播放列表缓存状态
-enum RoadListLoadStatus {
-  pending,  // 加载中
-  success,  // 成功
-  error,    // 失败
-  notStarted, // 未开始
-}
-
-/// 缓存的播放列表数据
-class CachedRoadList {
-  final List<Road> roadList;
-  final RoadListLoadStatus status;
-  final DateTime timestamp;
-  final String? errorMessage;
-
-  CachedRoadList({
-    required this.roadList,
-    required this.status,
-    required this.timestamp,
-    this.errorMessage,
-  });
-
-  /// 创建成功状态的缓存
-  factory CachedRoadList.success(List<Road> roadList) {
-    return CachedRoadList(
-      roadList: roadList,
-      status: RoadListLoadStatus.success,
-      timestamp: DateTime.now(),
-    );
-  }
-
-  /// 创建加载中状态的缓存
-  factory CachedRoadList.pending() {
-    return CachedRoadList(
-      roadList: [],
-      status: RoadListLoadStatus.pending,
-      timestamp: DateTime.now(),
-    );
-  }
-
-  /// 创建失败状态的缓存
-  factory CachedRoadList.error(String errorMessage) {
-    return CachedRoadList(
-      roadList: [],
-      status: RoadListLoadStatus.error,
-      timestamp: DateTime.now(),
-      errorMessage: errorMessage,
-    );
-  }
-
-  bool get isSuccess => status == RoadListLoadStatus.success;
-  bool get isPending => status == RoadListLoadStatus.pending;
-  bool get isError => status == RoadListLoadStatus.error;
-  bool get isNotStarted => status == RoadListLoadStatus.notStarted;
-}
 
 /// 视频源数据访问接口
 ///
@@ -100,8 +45,25 @@ abstract class IVideoSourceRepository {
   /// [src] 视频源URL
   void clearCache(String src);
 
+  /// 批量清空指定视频源列表的缓存
+  ///
+  /// [sources] 视频源URL列表
+  void clearCacheBatch(List<String> sources);
+
   /// 清空所有缓存
   void clearAllCache();
+
+  /// 清空所有过期缓存
+  ///
+  /// [maxAge] 最大缓存时长，默认1小时
+  void clearExpiredCache({Duration maxAge = const Duration(hours: 1)});
+
+  /// 强制刷新指定视频源的播放列表
+  ///
+  /// [src] 视频源URL
+  /// [plugin] 插件实例
+  /// 清除缓存并重新加载
+  Future<CachedRoadList> refreshRoadList(String src, Plugin plugin);
 
   /// 获取缓存的视频源数量
   int getCacheSize();
@@ -120,18 +82,34 @@ abstract class _VideoSourceRepository with Store implements IVideoSourceReposito
   /// 正在加载的任务：src -> Future
   final Map<String, Future<CachedRoadList>> _pendingTasks = {};
 
+  /// 最大缓存条目数（防止内存泄漏）
+  static const int maxCacheSize = 100;
+
+  /// 默认缓存过期时间（1小时）
+  static const Duration defaultMaxAge = Duration(hours: 1);
+
   @override
   @action
   Future<void> preloadRoadList(String src, Plugin plugin) async {
     try {
-      // 如果已经有成功的缓存，跳过
-      if (cache[src]?.isSuccess == true) {
+      // 检查缓存：有效且未过期则跳过
+      final cached = cache[src];
+      if (cached?.isSuccess == true && !cached!.isExpired(maxAge: defaultMaxAge)) {
         return;
       }
 
       // 如果正在加载中，跳过
       if (_pendingTasks.containsKey(src)) {
         return;
+      }
+
+      // 内存保护：如果缓存过多，先清理过期缓存
+      if (cache.length >= maxCacheSize) {
+        clearExpiredCache();
+        // 如果清理后仍然过多，清理最旧的缓存
+        if (cache.length >= maxCacheSize) {
+          _evictOldestCache();
+        }
       }
 
       // 标记为加载中
@@ -167,22 +145,35 @@ abstract class _VideoSourceRepository with Store implements IVideoSourceReposito
 
   @override
   CachedRoadList? getRoadList(String src) {
-    return cache[src];
+    final cached = cache[src];
+    // 如果缓存过期，返回 null（视为不存在）
+    if (cached != null && cached.isExpired(maxAge: defaultMaxAge)) {
+      return null;
+    }
+    return cached;
   }
 
   @override
   @action
   Future<CachedRoadList> queryRoadList(String src, Plugin plugin) async {
     try {
-      // 如果已有成功的缓存，直接返回
+      // 检查缓存：有效且未过期则直接返回
       final cached = cache[src];
-      if (cached != null && cached.isSuccess) {
+      if (cached != null && cached.isSuccess && !cached.isExpired(maxAge: defaultMaxAge)) {
         return cached;
       }
 
       // 如果正在加载中，等待加载完成
       if (_pendingTasks.containsKey(src)) {
         return await _pendingTasks[src]!;
+      }
+
+      // 内存保护
+      if (cache.length >= maxCacheSize) {
+        clearExpiredCache();
+        if (cache.length >= maxCacheSize) {
+          _evictOldestCache();
+        }
       }
 
       // 标记为加载中
@@ -229,14 +220,83 @@ abstract class _VideoSourceRepository with Store implements IVideoSourceReposito
 
   @override
   @action
+  void clearCacheBatch(List<String> sources) {
+    for (final src in sources) {
+      cache.remove(src);
+      _pendingTasks.remove(src);
+    }
+    KazumiLogger().log(Level.debug, '批量清理了 ${sources.length} 个缓存');
+  }
+
+  @override
+  @action
   void clearAllCache() {
     cache.clear();
     _pendingTasks.clear();
   }
 
   @override
+  @action
+  void clearExpiredCache({Duration maxAge = defaultMaxAge}) {
+    final keysToRemove = <String>[];
+
+    for (final entry in cache.entries) {
+      if (entry.value.isExpired(maxAge: maxAge)) {
+        keysToRemove.add(entry.key);
+      }
+    }
+
+    for (final key in keysToRemove) {
+      cache.remove(key);
+      _pendingTasks.remove(key);
+    }
+
+    if (keysToRemove.isNotEmpty) {
+      KazumiLogger().log(Level.debug, '清理了 ${keysToRemove.length} 个过期缓存');
+    }
+  }
+
+  @override
   int getCacheSize() {
     return cache.length;
+  }
+
+  /// 内部方法：清理最旧的缓存（LRU策略）
+  @action
+  void _evictOldestCache() {
+    if (cache.isEmpty) return;
+
+    // 找到最旧的缓存
+    String? oldestKey;
+    DateTime? oldestTime;
+
+    for (final entry in cache.entries) {
+      // 跳过正在加载中的
+      if (entry.value.isPending) continue;
+
+      if (oldestTime == null || entry.value.timestamp.isBefore(oldestTime)) {
+        oldestTime = entry.value.timestamp;
+        oldestKey = entry.key;
+      }
+    }
+
+    if (oldestKey != null) {
+      cache.remove(oldestKey);
+      _pendingTasks.remove(oldestKey);
+      KazumiLogger().log(Level.debug, '缓存已满，清理了最旧的缓存: $oldestKey');
+    }
+  }
+
+  @override
+  @action
+  Future<CachedRoadList> refreshRoadList(String src, Plugin plugin) async {
+    // 先清除旧缓存
+    clearCache(src);
+
+    KazumiLogger().log(Level.info, '强制刷新播放列表: $src');
+
+    // 重新加载
+    return await queryRoadList(src, plugin);
   }
 
   /// 内部方法：加载播放列表

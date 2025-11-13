@@ -43,6 +43,15 @@ mixin _$VideoSourceRepository on _VideoSourceRepository, Store {
         .run(() => super.queryRoadList(src, plugin));
   }
 
+  late final _$refreshRoadListAsyncAction =
+      AsyncAction('_VideoSourceRepository.refreshRoadList', context: context);
+
+  @override
+  Future<CachedRoadList> refreshRoadList(String src, Plugin plugin) {
+    return _$refreshRoadListAsyncAction
+        .run(() => super.refreshRoadList(src, plugin));
+  }
+
   late final _$_loadRoadListAsyncAction =
       AsyncAction('_VideoSourceRepository._loadRoadList', context: context);
 
@@ -67,11 +76,44 @@ mixin _$VideoSourceRepository on _VideoSourceRepository, Store {
   }
 
   @override
+  void clearCacheBatch(List<String> sources) {
+    final _$actionInfo = _$_VideoSourceRepositoryActionController.startAction(
+        name: '_VideoSourceRepository.clearCacheBatch');
+    try {
+      return super.clearCacheBatch(sources);
+    } finally {
+      _$_VideoSourceRepositoryActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void clearAllCache() {
     final _$actionInfo = _$_VideoSourceRepositoryActionController.startAction(
         name: '_VideoSourceRepository.clearAllCache');
     try {
       return super.clearAllCache();
+    } finally {
+      _$_VideoSourceRepositoryActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void clearExpiredCache({Duration maxAge = defaultMaxAge}) {
+    final _$actionInfo = _$_VideoSourceRepositoryActionController.startAction(
+        name: '_VideoSourceRepository.clearExpiredCache');
+    try {
+      return super.clearExpiredCache(maxAge: maxAge);
+    } finally {
+      _$_VideoSourceRepositoryActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void _evictOldestCache() {
+    final _$actionInfo = _$_VideoSourceRepositoryActionController.startAction(
+        name: '_VideoSourceRepository._evictOldestCache');
+    try {
+      return super._evictOldestCache();
     } finally {
       _$_VideoSourceRepositoryActionController.endAction(_$actionInfo);
     }

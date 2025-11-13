@@ -496,7 +496,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                       : status =='noresult'
                                                                         ? Colors.orange
                                                                         : Colors.red,
-                                                                  0.3,
+                                                                  Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.6,
                                                                 )
                                                             : status == 'success'
                                                                 ? null

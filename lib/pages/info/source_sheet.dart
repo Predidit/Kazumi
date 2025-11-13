@@ -252,59 +252,67 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                       child: Row(
                         children: [
                           Expanded(
-                            child: TabBar(
-                              isScrollable: true,
-                              tabAlignment: TabAlignment.center,
-                              dividerHeight: 0,
-                              controller: widget.tabController,
-                              tabs: pluginsController.pluginList
-                                  .map(
-                                    (plugin) => Observer(
-                                      builder: (context) => Tab(
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              plugin.name,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
+                            child: Observer(
+                              builder: (context) => TabBar(
+                                isScrollable: true,
+                                tabAlignment: TabAlignment.center,
+                                dividerHeight: 0,
+                                controller: widget.tabController,
+                                labelPadding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                indicatorColor: (() {
+                                  final list = pluginsController.pluginList;
+                                  final idx = widget.tabController.index;
+                                  if (idx < 0 || idx >= list.length) {
+                                    return Theme.of(context).colorScheme.secondary;
+                                  }
+                                  final status = widget.infoController.pluginSearchStatus[list[idx].name];
+                                  return status == 'success'
+                                      ? Theme.of(context).colorScheme.onSurface
+                                      : Color.lerp(
+                                          Theme.of(context).colorScheme.secondary,
+                                          status == 'pending'
+                                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                              : status == 'noresult'
+                                                  ? Colors.orange
+                                                  : Colors.red,
+                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
+                                        )!;
+                                })(),
+                                tabs: pluginsController.pluginList
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                      final plugin = entry.value;
+                                      final status = widget.infoController.pluginSearchStatus[plugin.name];
+                                      return Tab(
+                                          child: Row(
+                                            children: [
+                                              Text(
+                                                plugin.name,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
                                                   fontSize: Theme.of(context)
                                                       .textTheme
                                                       .titleMedium!
                                                       .fontSize,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurface),
-                                            ),
-                                            const SizedBox(width: 5.0),
-                                            Container(
-                                              width: 8.0,
-                                              height: 8.0,
-                                              decoration: BoxDecoration(
-                                                color: widget.infoController
-                                                                .pluginSearchStatus[
-                                                            plugin.name] ==
-                                                        'success'
-                                                    ? Colors.green
-                                                    : (widget.infoController
-                                                                    .pluginSearchStatus[
-                                                                plugin.name] ==
-                                                            'pending')
-                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                                                        : (widget.infoController
-                                                                    .pluginSearchStatus[
-                                                                plugin.name] ==
-                                                            'noresult')
-                                                            ? Colors.orange
-                                                            : Colors.red,
-                                                shape: BoxShape.circle,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: status == 'success'
+                                                      ? Theme.of(context).colorScheme.onSurface
+                                                      : Color.lerp(
+                                                          Theme.of(context).colorScheme.onSurface,
+                                                          status == 'pending'
+                                                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                              : status == 'noresult'
+                                                                  ? Colors.orange
+                                                                  : Colors.red,
+                                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
+                                            ],
+                                          ),
+                                        );
+                                    }).toList(),
+                              ),
                             ),
                           ),
                           IconButton(

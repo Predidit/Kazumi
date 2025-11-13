@@ -9,19 +9,17 @@ import 'package:kazumi/repositories/video_source_repository.dart';
 class QueryManager {
   QueryManager({
     required this.infoController,
-    IVideoSourceRepository? videoSourceRepository,
-    PluginsController? pluginsController,
-  })  : _videoSourceRepository = videoSourceRepository ?? Modular.get<IVideoSourceRepository>(),
-        _pluginsController = pluginsController ?? Modular.get<PluginsController>();
+  });
 
   final InfoController infoController;
-  final PluginsController _pluginsController;
-  final IVideoSourceRepository _videoSourceRepository;
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final IVideoSourceRepository videoSourceRepository = Modular.get<IVideoSourceRepository>();
   StreamController? _controller;
   bool _isCancelled = false;
 
   /// 追踪本次查询预加载的所有 src（用于销毁时清理缓存）
+  final Set<String> _preloadedSources = {};
+
   Future<void> querySource(String keyword, String pluginName) async {
     for (PluginSearchResponse pluginSearchResponse
         in infoController.pluginSearchResponseList) {
@@ -33,7 +31,7 @@ class QueryManager {
     if (infoController.pluginSearchStatus.containsKey(pluginName)) {
       infoController.pluginSearchStatus[pluginName] = 'pending';
     }
-    for (Plugin plugin in _pluginsController.pluginList) {
+    for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
         plugin.queryBangumi(keyword, shouldRethrow: true).then((result) async {
           if (_isCancelled) {
@@ -42,7 +40,7 @@ class QueryManager {
 
           infoController.pluginSearchStatus[plugin.name] = 'success';
           if (result.data.isNotEmpty) {
-            _pluginsController.validityTracker.markSearchValid(plugin.name);
+            pluginsController.validityTracker.markSearchValid(plugin.name);
           }
           infoController.pluginSearchResponseList.add(result);
 
@@ -65,11 +63,11 @@ class QueryManager {
     _controller = StreamController();
     infoController.pluginSearchResponseList.clear();
 
-    for (Plugin plugin in _pluginsController.pluginList) {
+    for (Plugin plugin in pluginsController.pluginList) {
       infoController.pluginSearchStatus[plugin.name] = 'pending';
     }
 
-    for (Plugin plugin in _pluginsController.pluginList) {
+    for (Plugin plugin in pluginsController.pluginList) {
       if (_isCancelled) return;
 
       plugin.queryBangumi(keyword, shouldRethrow: true).then((result) async {
@@ -79,7 +77,7 @@ class QueryManager {
 
         infoController.pluginSearchStatus[plugin.name] = 'success';
         if (result.data.isNotEmpty) {
-          _pluginsController.validityTracker.markSearchValid(plugin.name);
+          pluginsController.validityTracker.markSearchValid(plugin.name);
         }
         _controller?.add(result);
 
@@ -112,17 +110,25 @@ class QueryManager {
     for (var item in searchItems) {
       if (item is SearchItem) {
         sources.add((item.src, plugin));
+        // 追踪加载的 src
+        _preloadedSources.add(item.src);
       }
     }
 
     // 批量预加载（不等待完成，后台执行）
-    _videoSourceRepository.batchPreloadRoadLists(sources);
+    videoSourceRepository.batchPreloadRoadLists(sources);
   }
 
   void cancel() {
     _isCancelled = true;
     if (_controller != null && !_controller!.isClosed) {
       _controller!.close();
+    }
+
+    // 清理本次查询预加载的缓存
+    if (_preloadedSources.isNotEmpty) {
+      videoSourceRepository.clearCacheBatch(_preloadedSources.toList());
+      _preloadedSources.clear();
     }
   }
 }

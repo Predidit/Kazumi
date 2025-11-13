@@ -98,7 +98,7 @@ mixin _$VideoSourceRepository on _VideoSourceRepository, Store {
   }
 
   @override
-  void clearExpiredCache({Duration maxAge = defaultMaxAge}) {
+  void clearExpiredCache({Duration maxAge = const Duration(hours: 1)}) {
     final _$actionInfo = _$_VideoSourceRepositoryActionController.startAction(
         name: '_VideoSourceRepository.clearExpiredCache');
     try {

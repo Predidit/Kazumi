@@ -1,4 +1,3 @@
-import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/modules/roads/cached_road_list.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -237,7 +236,7 @@ abstract class _VideoSourceRepository with Store implements IVideoSourceReposito
 
   @override
   @action
-  void clearExpiredCache({Duration maxAge = defaultMaxAge}) {
+  void clearExpiredCache({Duration maxAge = const Duration(hours: 1)}) {
     final keysToRemove = <String>[];
 
     for (final entry in cache.entries) {

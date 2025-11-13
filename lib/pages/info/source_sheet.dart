@@ -472,7 +472,17 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                           style: TextStyle(
                                                             fontSize: 15,
                                                             color: widget.tabController.index == originalIndex
-                                                                ? Theme.of(context).colorScheme.onPrimary
+                                                                ? status == 'success'
+                                                                  ? Theme.of(context).colorScheme.onPrimary
+                                                                  : Color.lerp(
+                                                                    Theme.of(context).colorScheme.onPrimary,
+                                                                    status == 'pending'
+                                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                        : status =='noresult'
+                                                                          ? Colors.orange
+                                                                          : Colors.red,
+                                                                    0.15,
+                                                                  )
                                                                 : null,
                                                           ),
                                                         ),

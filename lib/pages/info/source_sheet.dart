@@ -567,8 +567,14 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
                                     onTap: () async {
-                                      KazumiDialog.showLoading(msg: '获取中');
-                                      videoPageController.bangumiItem =
+                                  KazumiDialog.showLoading(
+                                    msg: '获取中',
+                                    barrierDismissible: Utils.isDesktop(),
+                                    onDismiss: () {
+                                      videoPageController.cancelQueryRoads();
+                                    },
+                                  );
+                                        videoPageController.bangumiItem =
                                           widget.infoController.bangumiItem;
                                       videoPageController.currentPlugin = plugin;
                                       videoPageController.title = searchItem.name;
@@ -578,9 +584,9 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                             searchItem.src, plugin.name);
                                         KazumiDialog.dismiss();
                                         Modular.to.pushNamed('/video/');
-                                      } catch (e) {
+                                      } catch (_) {
                                         KazumiLogger()
-                                            .log(Level.error, e.toString());
+                                            .log(Level.warning, "获取视频播放列表失败");
                                         KazumiDialog.dismiss();
                                       }
                                     },

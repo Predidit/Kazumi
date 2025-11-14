@@ -556,10 +556,6 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                 widget.tabController.index = originalIndex;
                                                                 controller.open();
                                                               },
-                                                              onLongPress: () {
-                                                                widget.tabController.index = originalIndex;
-                                                                controller.open();
-                                                              },
                                                               child: child,
                                                             );
                                                           },
@@ -571,8 +567,33 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                 label: Text(
                                                                   plugin.name,
                                                                   overflow: TextOverflow.ellipsis,
-                                                                  style: TextStyle(fontSize: 15),
+                                                                  style: TextStyle(
+                                                                    fontSize: 15,
+                                                                    color: status == 'success'
+                                                                      ? Theme.of(context).colorScheme.onSurface
+                                                                      : Color.lerp(
+                                                                          Theme.of(context).colorScheme.onSurface,
+                                                                          status == 'pending'
+                                                                              ? Colors.blueGrey
+                                                                              : status == 'noresult'
+                                                                                  ? Colors.orange
+                                                                                  : Colors.red,
+                                                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
+                                                                  ),
                                                                 ),
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius: BorderRadius.circular(9),
+                                                                  side: BorderSide(
+                                                                    color: status == 'success'
+                                                                        ? Color.lerp(Theme.of(context).colorScheme.outlineVariant, Theme.of(context).colorScheme.secondary, 0.15)!
+                                                                        : Color.lerp(
+                                                                            Theme.of(context).colorScheme.outlineVariant,
+                                                                            status == 'pending' ? Colors.blueGrey : status == 'noresult' ? Colors.orange : Colors.red,
+                                                                            0.15,
+                                                                          )!,
+                                                                  ),
+                                                                ),
+                                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                               ),
                                                             ),
                                                             childWhenDragging: Opacity(
@@ -583,6 +604,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                   overflow: TextOverflow.ellipsis,
                                                                   style: TextStyle(fontSize: 15),
                                                                 ),
+                                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                               ),
                                                             ),
                                                             child: ActionChip(

@@ -61,6 +61,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
       Modular.get<VideoPageController>();
   final CollectController collectController = Modular.get<CollectController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final Map<int, MenuController> _menuControllers = {};
   late String keyword;
 
   /// Concurrent query manager
@@ -452,136 +453,185 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                     final plugin = entry.value;
                                                     final status = widget.infoController.pluginSearchStatus[plugin.name];
 
-                                                    return MenuAnchor(
-                                                      menuChildren: [
-                                                        TextButton.icon(
-                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                                          onPressed: (){
-                                                            queryManager?.querySource(keyword, plugin.name);
-                                                          }, 
-                                                          icon: Icon(Icons.refresh),
-                                                          label: Text("重新检索")
-                                                        ),
-                                                        TextButton.icon(
-                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                                          onPressed: () {
-                                                            showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                                          },
-                                                          icon: Icon(Icons.saved_search_rounded),
-                                                          label: Text("别名检索"),
-                                                        ),
-                                                        TextButton.icon(
-                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                                          onPressed: (){
-                                                            showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
-                                                          },
-                                                          icon: Icon(Icons.search_rounded),
-                                                          label: Text("手动检索"),
-                                                        ),
-                                                        TextButton.icon(
-                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                                          onPressed: () {
-                                                            launchUrl(
-                                                              Uri.parse(pluginsController
-                                                                  .pluginList[widget.tabController.index].searchURL
-                                                                  .replaceFirst('@keyword', keyword)),
-                                                              mode: LaunchMode.externalApplication,
+                                                    return DragTarget<int>(
+                                                      onAcceptWithDetails: (details) async {
+                                                        final fromIndex = details.data;
+                                                        // 如果拖放到自身，则弹出菜单而不是进行排序
+                                                        if (fromIndex == originalIndex) {
+                                                          widget.tabController.index = originalIndex;
+                                                          final controller = _menuControllers[originalIndex];
+                                                          if (controller != null) {
+                                                            controller.open();
+                                                            return;
+                                                          }
+                                                        }
+                                                        final targetIndex = originalIndex;
+                                                        setState(() {
+                                                          final item = pluginsController.pluginList.removeAt(fromIndex);
+                                                          pluginsController.pluginList.insert(targetIndex, item);
+                                                          // menu controllers keyed by indices may now be stale; clear so they'll be re-cached
+                                                          _menuControllers.clear();
+                                                        });
+                                                        // Persist the new plugin order so it survives restarts
+                                                        pluginsController.savePlugins();
+                                                        widget.tabController.index = targetIndex;
+                                                      },
+                                                      builder: (context, candidateData, rejectedData) {
+                                                        return MenuAnchor(
+                                                          menuChildren: [
+                                                            MenuItemButton(
+                                                              onPressed: () {
+                                                                queryManager?.querySource(keyword, plugin.name);
+                                                              },
+                                                              child: Row(
+                                                                children: [
+                                                                  Icon(Icons.refresh),
+                                                                  SizedBox(width: 8),
+                                                                  Text('重新检索'),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            MenuItemButton(
+                                                              onPressed: () {
+                                                                showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
+                                                              },
+                                                              child: Row(
+                                                                children: [
+                                                                  Icon(Icons.saved_search_rounded),
+                                                                  SizedBox(width: 8),
+                                                                  Text('别名检索'),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            MenuItemButton(
+                                                              onPressed: () {
+                                                                showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
+                                                              },
+                                                              child: Row(
+                                                                children: [
+                                                                  Icon(Icons.search_rounded),
+                                                                  SizedBox(width: 8),
+                                                                  Text('手动检索'),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            MenuItemButton(
+                                                              onPressed: () {
+                                                                launchUrl(
+                                                                  Uri.parse(pluginsController.pluginList[widget.tabController.index].searchURL.replaceFirst('@keyword', keyword)),
+                                                                  mode: LaunchMode.externalApplication,
+                                                                );
+                                                              },
+                                                              child: Row(
+                                                                children: [
+                                                                  Icon(Icons.open_in_browser_rounded),
+                                                                  SizedBox(width: 8),
+                                                                  Text('打开网页'),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            MenuItemButton(
+                                                              onPressed: () {
+                                                                Modular.to.pushNamed('/settings/plugin/');
+                                                              },
+                                                              child: Row(
+                                                                children: [
+                                                                  Icon(Icons.extension),
+                                                                  SizedBox(width: 8),
+                                                                  Text('规则管理'),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                          builder: (context, controller, child) {
+                                                            // cache controller so we can open the same menu on drop
+                                                            _menuControllers[originalIndex] = controller;
+                                                            return GestureDetector(
+                                                              onSecondaryTap: () {
+                                                                widget.tabController.index = originalIndex;
+                                                                controller.open();
+                                                              },
+                                                              onLongPress: () {
+                                                                widget.tabController.index = originalIndex;
+                                                                controller.open();
+                                                              },
+                                                              child: child,
                                                             );
                                                           },
-                                                          icon: Icon(Icons.open_in_browser_rounded),
-                                                          label: Text('打开网页'),
-                                                        ),
-                                                        TextButton.icon(
-                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
-                                                          onPressed: () {
-                                                            Modular.to.pushNamed('/settings/plugin/');
-                                                          },
-                                                          icon: Icon(Icons.extension),
-                                                          label: Text('规则管理'),
-                                                        ),
-                                                      ],
-                                                      builder:(context, controller, child){
-                                                        return GestureDetector(
-                                                          onSecondaryTap: () {
-                                                            widget.tabController.index = originalIndex;
-                                                            controller.open();
-                                                          },
-                                                          onLongPress: () {
-                                                            widget.tabController.index = originalIndex;
-                                                            controller.open();
-                                                          },
-                                                          child: child,
+                                                          child: LongPressDraggable<int>(
+                                                            data: originalIndex,
+                                                            feedback: Material(
+                                                              color: Colors.transparent,
+                                                              child: ActionChip(
+                                                                label: Text(
+                                                                  plugin.name,
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  style: TextStyle(fontSize: 15),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            childWhenDragging: Opacity(
+                                                              opacity: 0.4,
+                                                              child: ActionChip(
+                                                                label: Text(
+                                                                  plugin.name,
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                  style: TextStyle(fontSize: 15),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            child: ActionChip(
+                                                              label: Text(
+                                                                plugin.name,
+                                                                overflow: TextOverflow.ellipsis,
+                                                                style: TextStyle(
+                                                                  fontSize: 15,
+                                                                  color: widget.tabController.index == originalIndex
+                                                                      ? status == 'success'
+                                                                          ? Theme.of(context).colorScheme.surface
+                                                                          : Color.lerp(
+                                                                              Theme.of(context).colorScheme.surface,
+                                                                              status == 'pending' ? Colors.blueGrey : status == 'noresult' ? Colors.orange : Colors.red,
+                                                                              0.15,
+                                                                            )
+                                                                      : null,
+                                                                ),
+                                                              ),
+                                                              backgroundColor: widget.tabController.index == originalIndex
+                                                                  ? status == 'success'
+                                                                      ? Theme.of(context).colorScheme.onSurface
+                                                                      : Color.lerp(
+                                                                          Theme.of(context).colorScheme.onSurface,
+                                                                          status == 'pending' ? Colors.blueGrey : status == 'noresult' ? Colors.orange : Colors.red,
+                                                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
+                                                                        )
+                                                                  : status == 'success'
+                                                                      ? null
+                                                                      : Color.lerp(
+                                                                          null,
+                                                                          status == 'pending' ? Colors.blueGrey : status == 'noresult' ? Colors.orange : Colors.red,
+                                                                          0.075,
+                                                                        ),
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius.circular(9),
+                                                                side: BorderSide(
+                                                                  color: status == 'success'
+                                                                      ? Color.lerp(Theme.of(context).colorScheme.outlineVariant, Theme.of(context).colorScheme.secondary, 0.15)!
+                                                                      : Color.lerp(
+                                                                          Theme.of(context).colorScheme.outlineVariant,
+                                                                          status == 'pending' ? Colors.blueGrey : status == 'noresult' ? Colors.orange : Colors.red,
+                                                                          0.15,
+                                                                        )!,
+                                                                ),
+                                                              ),
+                                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                              onPressed: () {
+                                                                widget.tabController.index = originalIndex;
+                                                              },
+                                                            ),
+                                                          ),
                                                         );
                                                       },
-                                                      child: ActionChip(
-                                                        label: Text(
-                                                          plugin.name,
-                                                          overflow: TextOverflow.ellipsis,
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            color: widget.tabController.index == originalIndex
-                                                                ? status == 'success'
-                                                                  ? Theme.of(context).colorScheme.surface
-                                                                  : Color.lerp(
-                                                                    Theme.of(context).colorScheme.surface,
-                                                                    status == 'pending'
-                                                                        ? Colors.blueGrey
-                                                                        : status =='noresult'
-                                                                          ? Colors.orange
-                                                                          : Colors.red,
-                                                                    0.15,
-                                                                  )
-                                                                : null,
-                                                          ),
-                                                        ),
-                                                        backgroundColor: widget.tabController.index == originalIndex
-                                                            ? status == 'success'
-                                                              ? Theme.of(context).colorScheme.onSurface
-                                                              : Color.lerp(
-                                                                  Theme.of(context).colorScheme.onSurface,
-                                                                  status == 'pending'
-                                                                      ? Colors.blueGrey
-                                                                      : status =='noresult'
-                                                                        ? Colors.orange
-                                                                        : Colors.red,
-                                                                  Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
-                                                                )
-                                                            : status == 'success'
-                                                                ? null
-                                                                : Color.lerp(
-                                                                    null,
-                                                                    status == 'pending'
-                                                                        ? Colors.blueGrey
-                                                                        : status =='noresult'
-                                                                          ? Colors.orange
-                                                                          : Colors.red,
-                                                                    0.075,
-                                                                  ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(9),
-                                                          side: BorderSide(
-                                                            color: status == 'success'
-                                                              ? Color.lerp(Theme.of(context).colorScheme.outlineVariant,Theme.of(context).colorScheme.secondary,0.15)!
-                                                              // ? Theme.of(context).colorScheme.outlineVariant
-                                                              : Color.lerp(
-                                                                  Theme.of(context).colorScheme.outlineVariant,
-                                                                  status == 'pending'
-                                                                    ? Colors.blueGrey
-                                                                    : status == 'noresult'
-                                                                        ? Colors.orange
-                                                                        : Colors.red,
-                                                                  0.15
-                                                                )!,
-                                                          ),
-                                                        ),
-                                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                        onPressed: () {
-                                                          widget.tabController.index = originalIndex;
-                                                          // if (!expandedByScroll) {
-                                                          //   _showTabGrid = false;
-                                                          // }
-                                                        },
-                                                      ),
                                                     );
                                                   }).toList(),
                                                 );

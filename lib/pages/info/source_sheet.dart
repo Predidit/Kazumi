@@ -455,27 +455,31 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                     return MenuAnchor(
                                                       menuChildren: [
                                                         TextButton.icon(
+                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
                                                           onPressed: (){
                                                             queryManager?.querySource(keyword, plugin.name);
                                                           }, 
-                                                          icon: const Icon(Icons.refresh),
-                                                          label: const Text("重新检索")
+                                                          icon: Icon(Icons.refresh),
+                                                          label: Text("重新检索")
                                                         ),
                                                         TextButton.icon(
+                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
                                                           onPressed: () {
                                                             showAliasSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
                                                           },
-                                                          icon: const Icon(Icons.saved_search_rounded),
-                                                          label: const Text("别名检索"),
+                                                          icon: Icon(Icons.saved_search_rounded),
+                                                          label: Text("别名检索"),
                                                         ),
                                                         TextButton.icon(
+                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
                                                           onPressed: (){
                                                             showCustomSearchDialog(pluginsController.pluginList[widget.tabController.index].name);
                                                           },
-                                                          icon: const Icon(Icons.search_rounded),
-                                                          label: const Text("手动检索"),
+                                                          icon: Icon(Icons.search_rounded),
+                                                          label: Text("手动检索"),
                                                         ),
                                                         TextButton.icon(
+                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
                                                           onPressed: () {
                                                             launchUrl(
                                                               Uri.parse(pluginsController
@@ -484,8 +488,16 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                               mode: LaunchMode.externalApplication,
                                                             );
                                                           },
-                                                          icon: const Icon(Icons.open_in_browser_rounded),
-                                                          label: const Text('打开网页'),
+                                                          icon: Icon(Icons.open_in_browser_rounded),
+                                                          label: Text('打开网页'),
+                                                        ),
+                                                        TextButton.icon(
+                                                          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
+                                                          onPressed: () {
+                                                            Modular.to.pushNamed('/settings/plugin/');
+                                                          },
+                                                          icon: Icon(Icons.extension),
+                                                          label: Text('规则管理'),
                                                         ),
                                                       ],
                                                       builder:(context, controller, child){

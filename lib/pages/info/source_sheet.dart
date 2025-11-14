@@ -252,41 +252,41 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                       child: SizedBox(
                         height: tabBarHeight,
                         child: Stack(
-                        children: [
+                          children: [
                             Positioned.fill(
-                            child: Observer(
-                              builder: (context) => TabBar(
-                                isScrollable: true,
-                                tabAlignment: TabAlignment.center,
-                                dividerHeight: 0,
-                                controller: widget.tabController,
-                                labelPadding: const EdgeInsets.symmetric(horizontal: 10.0),
-                                indicatorColor: (() {
-                                  final list = pluginsController.pluginList;
-                                  final idx = widget.tabController.index;
-                                  if (idx < 0 || idx >= list.length) {
-                                    return Theme.of(context).colorScheme.secondary;
-                                  }
-                                  final status = widget.infoController.pluginSearchStatus[list[idx].name];
-                                  return status == 'success'
-                                      ? Theme.of(context).colorScheme.onSurface
-                                      : Color.lerp(
-                                          Theme.of(context).colorScheme.secondary,
-                                          status == 'pending'
-                                              ? Theme.of(context).colorScheme.onSurfaceVariant
-                                              : status == 'noresult'
-                                                  ? Colors.orange
-                                                  : Colors.red,
-                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
-                                        )!;
-                                })(),
-                                tabs: pluginsController.pluginList
-                                    .asMap()
-                                    .entries
-                                    .map((entry) {
-                                      final plugin = entry.value;
-                                      final status = widget.infoController.pluginSearchStatus[plugin.name];
-                                      return Tab(
+                              child: Observer(
+                                  builder: (context) => TabBar(
+                                    isScrollable: true,
+                                    tabAlignment: TabAlignment.center,
+                                    dividerHeight: 0,
+                                    controller: widget.tabController,
+                                    labelPadding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                    indicatorColor: (() {
+                                      final list = pluginsController.pluginList;
+                                      final idx = widget.tabController.index;
+                                      if (idx < 0 || idx >= list.length) {
+                                        return Theme.of(context).colorScheme.secondary;
+                                      }
+                                      final status = widget.infoController.pluginSearchStatus[list[idx].name];
+                                      return status == 'success'
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : Color.lerp(
+                                              Theme.of(context).colorScheme.secondary,
+                                              status == 'pending'
+                                                  ? Colors.blueGrey
+                                                  : status == 'noresult'
+                                                      ? Colors.orange
+                                                      : Colors.red,
+                                              Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
+                                            )!;
+                                    })(),
+                                    tabs: pluginsController.pluginList
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                          final plugin = entry.value;
+                                          final status = widget.infoController.pluginSearchStatus[plugin.name];
+                                          return Tab(
                                               child: Text(
                                                 plugin.name,
                                                 overflow: TextOverflow.ellipsis,
@@ -301,16 +301,16 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                       : Color.lerp(
                                                           Theme.of(context).colorScheme.onSurface,
                                                           status == 'pending'
-                                                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                              ? Colors.blueGrey
                                                               : status == 'noresult'
                                                                   ? Colors.orange
                                                                   : Colors.red,
                                                           Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
                                                 ),
-                                          ),
-                                        );
-                                    }).toList(),
-                              ),
+                                              ),
+                                            );
+                                        }).toList(),
+                                  ),
                                 ),
                             ),
                             // Fading background behind the expand button to increase contrast
@@ -333,8 +333,8 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         Theme.of(context).colorScheme.surface,
                                       ],
                                       stops: const [0.0, 0.3, 0.5, 1.0],
-                            ),
-                          ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -343,17 +343,17 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                               top: 0,
                               bottom: 0,
                               child: IconButton(
-                            onPressed: () {
-                              expandedByClick = 1;
-                              setState(() {
-                                _showTabGrid = true;
-                              });
-                            },
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            tooltip: '展开', 
-                          ),
+                                onPressed: () {
+                                  expandedByClick = 1;
+                                  setState(() {
+                                    _showTabGrid = true;
+                                  });
+                                },
+                                icon: const Icon(Icons.keyboard_arrow_down),
+                                tooltip: '展开',
+                              ),
                             ),
-                        ],
+                          ],
                         ),
                       ),
                     ),
@@ -509,11 +509,11 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                             fontSize: 15,
                                                             color: widget.tabController.index == originalIndex
                                                                 ? status == 'success'
-                                                                  ? Theme.of(context).colorScheme.onPrimary
+                                                                  ? Theme.of(context).colorScheme.surface
                                                                   : Color.lerp(
-                                                                    Theme.of(context).colorScheme.onPrimary,
+                                                                    Theme.of(context).colorScheme.surface,
                                                                     status == 'pending'
-                                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                        ? Colors.blueGrey
                                                                         : status =='noresult'
                                                                           ? Colors.orange
                                                                           : Colors.red,
@@ -524,22 +524,22 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                         ),
                                                         backgroundColor: widget.tabController.index == originalIndex
                                                             ? status == 'success'
-                                                              ? Theme.of(context).colorScheme.secondary
+                                                              ? Theme.of(context).colorScheme.onSurface
                                                               : Color.lerp(
-                                                                  Theme.of(context).colorScheme.secondary,
+                                                                  Theme.of(context).colorScheme.onSurface,
                                                                   status == 'pending'
-                                                                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                      ? Colors.blueGrey
                                                                       : status =='noresult'
                                                                         ? Colors.orange
                                                                         : Colors.red,
-                                                                  Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.6,
+                                                                  Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,
                                                                 )
                                                             : status == 'success'
                                                                 ? null
                                                                 : Color.lerp(
                                                                     null,
                                                                     status == 'pending'
-                                                                        ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                        ? Colors.blueGrey
                                                                         : status =='noresult'
                                                                           ? Colors.orange
                                                                           : Colors.red,
@@ -554,7 +554,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                               : Color.lerp(
                                                                   Theme.of(context).colorScheme.outlineVariant,
                                                                   status == 'pending'
-                                                                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                                                                    ? Colors.blueGrey
                                                                     : status == 'noresult'
                                                                         ? Colors.orange
                                                                         : Colors.red,

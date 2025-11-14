@@ -285,28 +285,33 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                         .asMap()
                                         .entries
                                         .map((entry) {
+                                          final index = entry.key;
                                           final plugin = entry.value;
                                           final status = widget.infoController.pluginSearchStatus[plugin.name];
+                                          final isLast = index == pluginsController.pluginList.length - 1;
                                           return Tab(
-                                              child: Text(
-                                                plugin.name,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: Theme.of(context)
-                                                      .textTheme
-                                                      .titleMedium!
-                                                      .fontSize,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: status == 'success'
-                                                      ? Theme.of(context).colorScheme.onSurface
-                                                      : Color.lerp(
-                                                          Theme.of(context).colorScheme.onSurface,
-                                                          status == 'pending'
-                                                              ? Colors.blueGrey
-                                                              : status == 'noresult'
-                                                                  ? Colors.orange
-                                                                  : Colors.red,
-                                                          Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
+                                              child: Padding(
+                                                padding: isLast ? const EdgeInsets.only(right: 40) : EdgeInsets.zero,
+                                                child: Text(
+                                                  plugin.name,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: Theme.of(context)
+                                                        .textTheme
+                                                        .titleMedium!
+                                                        .fontSize,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: status == 'success'
+                                                        ? Theme.of(context).colorScheme.onSurface
+                                                        : Color.lerp(
+                                                            Theme.of(context).colorScheme.onSurface,
+                                                            status == 'pending'
+                                                                ? Colors.blueGrey
+                                                                : status == 'noresult'
+                                                                    ? Colors.orange
+                                                                    : Colors.red,
+                                                            Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
+                                                  ),
                                                 ),
                                               ),
                                             );

@@ -249,9 +249,11 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                     AnimatedOpacity(
                       opacity: _showTabGrid ? 0 : 1,
                       duration: const Duration(milliseconds: 200),
-                      child: Row(
+                      child: SizedBox(
+                        height: tabBarHeight,
+                        child: Stack(
                         children: [
-                          Expanded(
+                            Positioned.fill(
                             child: Observer(
                               builder: (context) => TabBar(
                                 isScrollable: true,
@@ -285,9 +287,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                       final plugin = entry.value;
                                       final status = widget.infoController.pluginSearchStatus[plugin.name];
                                       return Tab(
-                                          child: Row(
-                                            children: [
-                                              Text(
+                                              child: Text(
                                                 plugin.name,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
@@ -307,15 +307,42 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                                   : Colors.red,
                                                           Theme.of(context).brightness == Brightness.dark ? 0.5 : 0.8,)
                                                 ),
-                                              ),
-                                            ],
                                           ),
                                         );
                                     }).toList(),
                               ),
+                                ),
+                            ),
+                            // Fading background behind the expand button to increase contrast
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: 50,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      // left: gradual fade (transparent -> semi), right: fully opaque
+                                      colors: [
+                                        Theme.of(context).colorScheme.surface.withAlpha(0),
+                                        Theme.of(context).colorScheme.surface.withAlpha(230),
+                                        Theme.of(context).colorScheme.surface,
+                                        Theme.of(context).colorScheme.surface,
+                                      ],
+                                      stops: const [0.0, 0.3, 0.5, 1.0],
                             ),
                           ),
-                          IconButton(
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: 2,
+                              top: 0,
+                              bottom: 0,
+                              child: IconButton(
                             onPressed: () {
                               expandedByClick = 1;
                               setState(() {
@@ -325,8 +352,9 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                             icon: const Icon(Icons.keyboard_arrow_down),
                             tooltip: '展开', 
                           ),
-                          SizedBox(width: 2),
+                            ),
                         ],
+                        ),
                       ),
                     ),
                     // 展开时显示的按钮网格

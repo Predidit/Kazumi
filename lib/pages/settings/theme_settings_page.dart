@@ -28,6 +28,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late dynamic defaultThemeColor;
   late bool oledEnhance;
   late bool useDynamicColor;
+  late bool defaultShowSelector;
+  late bool autoLockSourceSheet;
+  late bool autoshowSuccessed;
   late bool showWindowButton;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
@@ -41,6 +44,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     defaultThemeColor =
         setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
     oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    defaultShowSelector = setting.get(SettingBoxKey.defaultShowSelector, defaultValue: false);
+    autoLockSourceSheet = setting.get(SettingBoxKey.autoLockSourceSheet, defaultValue: true);
+    autoshowSuccessed = setting.get(SettingBoxKey.autoshowSuccessed, defaultValue: false);
     useDynamicColor =
         setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
     showWindowButton =
@@ -256,6 +262,17 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     ],
                   ),
                 ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    oledEnhance = value ?? !oledEnhance;
+                    await setting.put(SettingBoxKey.oledEnhance, oledEnhance);
+                    updateOledEnhance();
+                    setState(() {});
+                  },
+                  title: const Text('OLED优化'),
+                  description: const Text('深色模式下使用纯黑背景'),
+                  initialValue: oledEnhance,
+                ),
                 SettingsTile.navigation(
                   enabled: !useDynamicColor,
                   onPressed: (_) async {
@@ -316,24 +333,53 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setState(() {});
                   },
                   title: const Text('动态配色'),
+                  description: const Text('仅支持安卓12及以上和桌面平台'),
                   initialValue: useDynamicColor,
                 ),
               ],
-              bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
             ),
             SettingsSection(
+              title: const Text('番源选择器'),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
-                    oledEnhance = value ?? !oledEnhance;
-                    await setting.put(SettingBoxKey.oledEnhance, oledEnhance);
-                    updateOledEnhance();
+                    defaultShowSelector = value ?? !defaultShowSelector;
+                    if (defaultShowSelector) {
+                      autoLockSourceSheet = true;
+                      await setting.put(SettingBoxKey.autoLockSourceSheet, autoLockSourceSheet);
+                      }
+                    await setting.put(SettingBoxKey.defaultShowSelector, defaultShowSelector);
                     setState(() {});
                   },
-                  title: const Text('OLED优化'),
-                  description: const Text('深色模式下使用纯黑背景'),
-                  initialValue: oledEnhance,
+                  title: const Text('默认展开'),
+                  initialValue: defaultShowSelector,
                 ),
+                SettingsTile.switchTile(
+                  enabled: !defaultShowSelector,
+                  onToggle: (value) async {
+                    autoLockSourceSheet = value ?? !autoLockSourceSheet;
+                    await setting.put(SettingBoxKey.autoLockSourceSheet, autoLockSourceSheet);
+                    setState(() {});
+                  },
+                  title: const Text('自动锁定'),
+                  description: const Text('点击按钮展开时自动锁定面板'),
+                  initialValue: autoLockSourceSheet,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    autoshowSuccessed = value ?? !autoshowSuccessed;
+                    await setting.put(SettingBoxKey.autoshowSuccessed, autoshowSuccessed);
+                    setState(() {});
+                  },
+                  title: const Text('自动筛选'),
+                  description: const Text('自动筛选有结果项'),
+                  initialValue: autoshowSuccessed,
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                
               ],
             ),
             if (Utils.isDesktop())

@@ -377,7 +377,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         tabController: sourceTabController,
                         infoController: infoController,
                         scrollController: scrollController,
-                        tabGridHeight: minChildSize*0.7,
+                        tabGridHeight: minChildSize*0.8,
                       );
                     },
                   );

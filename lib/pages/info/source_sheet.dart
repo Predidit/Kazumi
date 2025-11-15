@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -13,6 +14,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:flutter/services.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -33,30 +36,45 @@ class SourceSheet extends StatefulWidget {
 }
 
 class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStateMixin {
-  bool expandedByScroll = false; //通过滚动展开
-  var expandedByClick = 0; //通过点击展开
   bool _showOnlySuccess = false;
   final tabBarHeight = 48.0;
+  bool expandedByDrag = false;
+  final defaultShowSelector = GStorage.setting.get(SettingBoxKey.defaultShowSelector, defaultValue: false);
+  final autoLock = GStorage.setting.get(SettingBoxKey.autoLockSourceSheet, defaultValue: true);
+  final autoShowSuccess = GStorage.setting.get(SettingBoxKey.autoshowSuccessed, defaultValue: false);
   void _maybeExpandTabGridOnListViewHeight(BoxConstraints constraints) {
     final screenHeight = MediaQuery.of(context).size.height;
-    if (constraints.maxHeight >= screenHeight - tabBarHeight - 1 - 48 && !_showTabGrid && !expandedByScroll && expandedByClick !=2) { //48为小白条高度 手动点击按钮后不响应弹出
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _showTabGrid = true;
-        expandedByScroll = true;
+    final dragHandleHeight = 48.0;
+    final bufferHeight = 40; //40像素作为下拉时的缓冲高度，防止误触回弹
+    final hideHeight = screenHeight - tabBarHeight - dragHandleHeight - 1;
+    final showHeight = screenHeight * ( 1 - widget.tabGridHeight ) - tabBarHeight - dragHandleHeight - 1;
+    if (constraints.maxHeight >= hideHeight && !_showTabGrid) {
+      if (!_isLocked && !expandedByDrag) { //当面板触顶且未锁定、未通过拖拽展开时自动展开面板。防止点击番源按钮收起面板后立刻展开面板。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setState(() {
+            _showTabGrid = true;
+            if(autoShowSuccess){_showOnlySuccess = true;}
+          });
         });
-      });
-    } else if (constraints.maxHeight < screenHeight * ( 1 - widget.tabGridHeight ) - tabBarHeight - 1 - 48 - 40 && _showTabGrid &&expandedByScroll && expandedByClick !=1) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          _showTabGrid = false;
-        expandedByScroll = false;
+        expandedByDrag = true;
+      }
+    } else if (constraints.maxHeight < showHeight - bufferHeight) { 
+      if (!_isLocked && expandedByDrag) { //禁用点击按钮且解锁时面板高度触发的自动收起，防止用户点击解锁按钮后就立刻收起。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setState(() {
+            _showTabGrid = false;
+          });
         });
-      });
+      }
+      if (!_showTabGrid){
+        expandedByDrag = false; //重置拖拽展开状态，允许后续触顶时展开面板，
+      }
     }
   }
   final ScrollController _tabGridScrollController = ScrollController();
   bool _showTabGrid = false;
+  Timer? _scrollWaitTimer;
+  bool _isLocked = false;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final CollectController collectController = Modular.get<CollectController>();
@@ -75,6 +93,11 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
     queryManager = QueryManager(infoController: widget.infoController);
     queryManager?.queryAllSource(keyword);
     super.initState();
+    if (defaultShowSelector == true) {
+      _showTabGrid = true;
+      if(autoShowSuccess){_showOnlySuccess = true;}
+      if(autoLock){ _isLocked = true; }
+    }
     widget.tabController.addListener(() {
       if (!mounted) return;
       setState(() {});
@@ -84,6 +107,7 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
   @override
   void dispose() {
     _tabGridScrollController.dispose();
+    _scrollWaitTimer?.cancel();
     queryManager?.cancel();
     queryManager = null;
     super.dispose();
@@ -223,27 +247,34 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
           children: [
             Listener(
               onPointerSignal: (event) {
-                if (event is PointerScrollEvent) {
-                  if (!_showTabGrid && (event.scrollDelta.dy.abs() > 8)) {
-                    setState(() {
-                      _showTabGrid = true;
-                    });
-                  } else if (_showTabGrid && (event.scrollDelta.dy.abs() > 8)) {
-                    // 仅当面板内部无需滚动时才允许收起
-                    final maxScroll = _tabGridScrollController.hasClients
-                        ? _tabGridScrollController.position.maxScrollExtent
-                        : 0.0;
-                    if (maxScroll == 0.0) {
+                  if (event is PointerScrollEvent) {
+                    if (event.scrollDelta.dy.abs() < 8) return;
+                    if (_scrollWaitTimer?.isActive ?? false) return;
+                    _scrollWaitTimer?.cancel();
+                    _scrollWaitTimer = Timer(Duration(milliseconds: 750), () {}); //防抖
+
+                    if (!_showTabGrid) {
                       setState(() {
-                        _showTabGrid = false;
+                        _showTabGrid = true;
+                        if(autoShowSuccess){_showOnlySuccess = true;}
+                        
                       });
+                    } else {
+                      // 仅当面板内部无需滚动时才允许收起
+                      final maxScroll = _tabGridScrollController.hasClients
+                          ? _tabGridScrollController.position.maxScrollExtent
+                          : 0.0;
+                      if (maxScroll == 0.0) {
+                        setState(() {
+                          _showTabGrid = false;
+                        });
+                      }
                     }
                   }
-                }
-              },
+                },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                    height: _showTabGrid ? MediaQuery.of(context).size.height * widget.tabGridHeight + tabBarHeight - 12 : tabBarHeight,
+                    height: _showTabGrid ? MediaQuery.of(context).size.height * widget.tabGridHeight : tabBarHeight,
                 child: Stack(
                   children: [
                     // TabBar（收起时显示）
@@ -350,9 +381,10 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                               bottom: 0,
                               child: IconButton(
                                 onPressed: () {
-                                  expandedByClick = 1;
                                   setState(() {
                                     _showTabGrid = true;
+                                    if(autoLock){ _isLocked = true;}
+                                    if(autoShowSuccess){_showOnlySuccess = true;}
                                   });
                                 },
                                 icon: const Icon(Icons.keyboard_arrow_down),
@@ -413,7 +445,16 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                           ),
                                           IconButton(
                                             onPressed: () {
-                                              expandedByClick = 2;
+                                              setState(() {
+                                                expandedByDrag = false; //避免触顶展开>锁上>拉回>解锁时自动收起
+                                                _isLocked = !_isLocked;
+                                              });
+                                            },
+                                            icon: Icon(_isLocked ? Icons.lock : Icons.lock_open),
+                                            tooltip: '锁定/解锁',
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
                                               setState(() {
                                                 _showTabGrid = false;
                                               });},
@@ -654,6 +695,11 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                               onPressed: () {
                                                                 widget.tabController.index = originalIndex;
+                                                                if (!_isLocked) {
+                                                                  setState(() {
+                                                                    _showTabGrid = false;
+                                                                  });
+                                                                }
                                                               },
                                                             ),
                                                           ),
@@ -684,12 +730,52 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                 builder: (context, constraints) {
                   _maybeExpandTabGridOnListViewHeight(constraints);
                   return Observer(
-                    builder: (context) => TabBarView(
-                      controller: widget.tabController,
-                      children: List.generate(pluginsController.pluginList.length,
-                          (pluginIndex) {
-                        var plugin = pluginsController.pluginList[pluginIndex];
-                        var cardList = <Widget>[];
+                    builder: (context) {
+                      return Focus(
+                        autofocus: true,
+                        onKeyEvent: (FocusNode node, KeyEvent event) {
+                          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                              final cur = widget.tabController.index;
+                              if (cur > 0) {
+                                widget.tabController.animateTo(cur - 1);
+                              }
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                              final cur = widget.tabController.index;
+                              if (cur < widget.tabController.length - 1) {
+                                widget.tabController.animateTo(cur + 1);
+                              }
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          if (event is KeyDownEvent) {
+                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                              if(!_showTabGrid){
+                                setState(() {
+                                _showTabGrid = true;
+                                if(autoLock){ _isLocked = true;}
+                                if(autoShowSuccess){_showOnlySuccess = true;}
+                              });
+                              }
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              setState(() {
+                                _showTabGrid = false;
+                              });
+                              return KeyEventResult.handled;
+                            }
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TabBarView(
+                          controller: widget.tabController,
+                          children: List.generate(pluginsController.pluginList.length,
+                              (pluginIndex) {
+                            var plugin = pluginsController.pluginList[pluginIndex];
+                            var cardList = <Widget>[];
                         for (var searchResponse
                             in widget.infoController.pluginSearchResponseList) {
                           if (searchResponse.pluginName == plugin.name) {
@@ -810,8 +896,10 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                       )
                                   )
                                 );
-                      }),
-                    ),
+                              }), // end List.generate
+                            ), // end TabBarView
+                          ); // end Focus (returned from builder)
+                    }, // end Observer builder
                   );
                 },
               ),

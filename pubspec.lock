@@ -1158,14 +1158,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  screen_pixel:
-    dependency: "direct main"
-    description:
-      name: screen_pixel
-      sha256: b7310d81d98289ba1d6fb381ec95094b30b43ee1e901fefb65a3cf4de7d77e6b
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.3"
   screen_retriever:
     dependency: transitive
     description:

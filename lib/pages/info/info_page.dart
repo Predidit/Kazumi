@@ -359,22 +359,28 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             onPressed: () async {
               showModalBottomSheet(
                 isScrollControlled: true,
-                constraints: BoxConstraints(
-                  maxHeight: (MediaQuery.sizeOf(context).height >=
-                          LayoutBreakpoint.compact['height']!)
-                      ? MediaQuery.of(context).size.height * 3 / 4
-                      : MediaQuery.of(context).size.height,
-                  maxWidth: (MediaQuery.sizeOf(context).width >=
-                          LayoutBreakpoint.medium['width']!)
-                      ? MediaQuery.of(context).size.width * 9 / 16
-                      : MediaQuery.of(context).size.width,
-                ),
                 clipBehavior: Clip.antiAlias,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 showDragHandle: true,
                 context: context,
                 builder: (context) {
-                  return SourceSheet(tabController: sourceTabController, infoController: infoController);
+                  final double minChildSize = 0.3;
+                  return DraggableScrollableSheet(
+                    initialChildSize: (MediaQuery.sizeOf(context).height >= LayoutBreakpoint.compact['height']!)
+                      ? 0.75
+                      : 0.90,
+                    minChildSize: minChildSize,
+                    maxChildSize: 1.0,
+                    expand: false,
+                    builder: (context, scrollController) {
+                      return SourceSheet(
+                        tabController: sourceTabController,
+                        infoController: infoController,
+                        scrollController: scrollController,
+                        tabGridHeight: minChildSize*0.8,
+                      );
+                    },
+                  );
                 },
               );
             },

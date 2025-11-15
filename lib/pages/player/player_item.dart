@@ -94,6 +94,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuDanDanSource;
   late double _danmakuDuration;
   late int _danmakuFontWeight;
+  late bool _danmakuFollowSpeed;
 
   // 硬件解码
   late bool haEnable;
@@ -1009,6 +1010,8 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    _danmakuFollowSpeed =
+        setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);

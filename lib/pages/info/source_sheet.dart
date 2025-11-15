@@ -437,21 +437,21 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                                           IconButton(
                                             onPressed: () {
                                               setState(() {
-                                                _showOnlySuccess = !_showOnlySuccess;
-                                              });
-                                            },
-                                            icon: Icon(_showOnlySuccess ? Icons.filter_alt : Icons.filter_alt_outlined,),
-                                            tooltip: '筛选有结果项',
-                                          ),
-                                          IconButton(
-                                            onPressed: () {
-                                              setState(() {
                                                 expandedByDrag = false; //避免触顶展开>锁上>拉回>解锁时自动收起
                                                 _isLocked = !_isLocked;
                                               });
                                             },
                                             icon: Icon(_isLocked ? Icons.lock : Icons.lock_open),
                                             tooltip: '锁定/解锁',
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _showOnlySuccess = !_showOnlySuccess;
+                                              });
+                                            },
+                                            icon: Icon(_showOnlySuccess ? Icons.filter_alt : Icons.filter_alt_outlined,),
+                                            tooltip: '筛选有结果项',
                                           ),
                                           IconButton(
                                             onPressed: () {
@@ -751,20 +751,14 @@ class _SourceSheetState extends State<SourceSheet> with SingleTickerProviderStat
                             }
                           }
                           if (event is KeyDownEvent) {
-                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                            if (event.logicalKey == LogicalKeyboardKey.slash) {
                               if(!_showTabGrid){
                                 setState(() {
-                                _showTabGrid = true;
                                 if(autoLock){ _isLocked = true;}
                                 if(autoShowSuccess){_showOnlySuccess = true;}
                               });
                               }
-                              return KeyEventResult.handled;
-                            }
-                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                              setState(() {
-                                _showTabGrid = false;
-                              });
+                              setState(() {_showTabGrid = !_showTabGrid;});
                               return KeyEventResult.handled;
                             }
                           }

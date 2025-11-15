@@ -374,21 +374,21 @@ class _TimelinePageState extends State<TimelinePage>
             ListTile(
               title: const Text('按热度排序'),
               onTap: () {
-                Navigator.pop(context);
+                KazumiDialog.dismiss();
                 timelineController.changeSortType(3);
               },
             ),
             ListTile(
               title: const Text('按评分排序'),
               onTap: () {
-                Navigator.pop(context);
+                KazumiDialog.dismiss();
                 timelineController.changeSortType(2);
               },
             ),
             ListTile(
               title: const Text('按时间排序'),
               onTap: () {
-                Navigator.pop(context);
+                KazumiDialog.dismiss();
                 timelineController.changeSortType(1);
               },
             ),
@@ -451,7 +451,11 @@ class _TimelinePageState extends State<TimelinePage>
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () async {
-            showModalBottomSheet(
+            KazumiDialog.showBottomSheet(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
               isScrollControlled: true,
               constraints: BoxConstraints(
                 maxHeight: (MediaQuery.sizeOf(context).height >=
@@ -464,7 +468,6 @@ class _TimelinePageState extends State<TimelinePage>
                     : MediaQuery.of(context).size.width,
               ),
               clipBehavior: Clip.antiAlias,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               context: context,
               builder: (context) {
                 return showTimelineOptionTabBar(
@@ -522,7 +525,8 @@ class _TimelinePageState extends State<TimelinePage>
       var filteredList = bangumiList;
 
       if (timelineController.notShowAbandonedBangumis) {
-        final abandonedBangumiIds = timelineController.loadAbandonedBangumiIds();
+        final abandonedBangumiIds =
+            timelineController.loadAbandonedBangumiIds();
         filteredList = filteredList
             .where((item) => !abandonedBangumiIds.contains(item.id))
             .toList();

@@ -95,7 +95,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 description: const Text('关闭每次启用超分辨率时的提示'),
                 initialValue: promptOnEnable,
                 onToggle: (value) async {
-                  promptOnEnable = value ?? false;
+                  promptOnEnable = value ?? !promptOnEnable;
                   await setting.put(
                       SettingBoxKey.superResolutionWarn, promptOnEnable);
                   if (mounted) setState(() {});

@@ -1262,6 +1262,9 @@ class _PlayerItemState extends State<PlayerItem>
                         key: _danmuKey,
                         createdController: (DanmakuController e) {
                           playerController.danmakuController = e;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            playerController.updateDanmakuSpeed();
+                          });
                         },
                         option: DanmakuOption(
                           hideTop: _hideTop,

@@ -402,10 +402,12 @@ abstract class _PlayerController with Store {
     this.playerSpeed = playerSpeed;
     try {
       mediaPlayer!.setRate(playerSpeed);
-      updateDanmakuSpeed();
     } catch (e) {
       KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
     }
+    try {
+      updateDanmakuSpeed();
+    } catch (_) {}
   }
 
   void updateDanmakuSpeed() {

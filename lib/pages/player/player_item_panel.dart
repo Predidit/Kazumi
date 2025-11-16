@@ -83,8 +83,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     try {
       Uint8List? screenshot =
           await playerController.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(screenshot!,
-          fileName: DateTime.timestamp().toString(), skipIfExists: false);
+      final result = await SaverGallery.saveImage(
+        screenshot!,
+        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
+        skipIfExists: false,
+      );
       if (result.isSuccess) {
         KazumiDialog.showToast(message: '截图保存到相簿成功');
       } else {

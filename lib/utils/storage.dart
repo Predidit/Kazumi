@@ -241,6 +241,7 @@ class SettingBoxKey {
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
       enableSystemProxy = 'enableSystemProxy',
+      /// Deprecated
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
       webDavEnableHistory = 'webDavEnableHistory',

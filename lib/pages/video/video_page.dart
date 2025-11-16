@@ -381,7 +381,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool isWideScreen =
+    final bool islandScape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
@@ -425,10 +425,10 @@ class _VideoPageState extends State<VideoPage>
                       children: [
                         Flexible(
                           // make it unflexible when not wideScreen.
-                          flex: (isWideScreen) ? 1 : 0,
+                          flex: (islandScape) ? 1 : 0,
                           child: Container(
                             color: Colors.black,
-                            height: (isWideScreen)
+                            height: (islandScape)
                                 ? MediaQuery.sizeOf(context).height
                                 : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
@@ -436,12 +436,12 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                         // when not wideScreen, show tabBody on the bottom
-                        if (!isWideScreen) Expanded(child: tabBody),
+                        if (!islandScape) Expanded(child: tabBody),
                       ],
                     ),
 
                     // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
-                    if (isWideScreen && videoPageController.showTabBody) ...[
+                    if (islandScape && videoPageController.showTabBody) ...[
                       if (disableAnimations) ...[
                         sideTabMask,
                         sideTabBody,

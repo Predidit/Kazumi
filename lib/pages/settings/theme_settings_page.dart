@@ -58,6 +58,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   void setTheme(Color? color) {
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
+        fontFamily: defaultAppFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -67,6 +68,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
+          fontFamily: defaultAppFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -81,6 +83,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   void resetTheme() {
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
+        fontFamily: defaultAppFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.green,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -90,6 +93,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
+          fontFamily: defaultAppFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: Colors.green,
           progressIndicatorTheme: progressIndicatorTheme2024,

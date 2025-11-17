@@ -970,7 +970,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void onWindowRestore() {
-    playerController.danmakuController.onClear();
+    playerController.danmakuController.clear();
   }
 
   @override
@@ -1161,7 +1161,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       !Utils.isTablet()) {
                                     try {
                                       playerController.danmakuController
-                                          .onClear();
+                                          .clear();
                                     } catch (_) {}
                                     Utils.exitFullScreen();
                                     videoPageController.isFullscreen =
@@ -1284,8 +1284,8 @@ class _PlayerItemState extends State<PlayerItem>
                           opacity: _opacity,
                           fontSize: _fontSize,
                           duration:
-                              _danmakuDuration ~/ playerController.playerSpeed,
-                          showStroke: _border,
+                              _danmakuDuration / playerController.playerSpeed,
+                          strokeWidth: _border ? 1.5 : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
                         ),

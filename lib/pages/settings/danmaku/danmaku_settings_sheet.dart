@@ -129,7 +129,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 onChanged: (value) {
                   setState(() => widget.danmakuController.updateOption(
                         widget.danmakuController.option.copyWith(
-                          duration: value.round(),
+                          duration: value,
                         ),
                       ));
                   setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());

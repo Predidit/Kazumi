@@ -244,6 +244,7 @@ class _AppWidgetState extends State<AppWidget>
     }
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
+        fontFamily: defaultAppFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -253,6 +254,7 @@ class _AppWidgetState extends State<AppWidget>
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
+          fontFamily: defaultAppFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -266,6 +268,8 @@ class _AppWidgetState extends State<AppWidget>
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
             ThemeData(
+                useMaterial3: true,
+                fontFamily: defaultAppFontFamily,
                 colorScheme: theme,
                 brightness: Brightness.light,
                 progressIndicatorTheme: progressIndicatorTheme2024,
@@ -273,12 +277,16 @@ class _AppWidgetState extends State<AppWidget>
                 pageTransitionsTheme: pageTransitionsTheme2024),
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
+                    useMaterial3: true,
+                    fontFamily: defaultAppFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
                     sliderTheme: sliderTheme2024,
                     pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
+                    useMaterial3: true,
+                    fontFamily: defaultAppFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,

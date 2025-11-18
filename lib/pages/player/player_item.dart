@@ -93,6 +93,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late double _danmakuDuration;
+  late double _danmakuLineHeight;
   late int _danmakuFontWeight;
 
   // 硬件解码
@@ -1011,6 +1012,8 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
     _danmakuDuration =
         setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    _danmakuLineHeight =
+        setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
     _danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
     _danmakuGamerSource =
@@ -1285,6 +1288,7 @@ class _PlayerItemState extends State<PlayerItem>
                           fontSize: _fontSize,
                           duration:
                               _danmakuDuration / playerController.playerSpeed,
+                          lineHeight: _danmakuLineHeight,
                           strokeWidth: _border ? 1.5 : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,

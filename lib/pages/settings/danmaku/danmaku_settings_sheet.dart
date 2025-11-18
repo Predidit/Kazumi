@@ -137,6 +137,24 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 },
               ),
             ),
+            SettingsTile(
+              title: Text('行高', style: TextStyle(fontFamily: fontFamily)),
+              description: Slider(
+                value: widget.danmakuController.option.lineHeight,
+                min: 0,
+                max: 3,
+                divisions: 30,
+                label: widget.danmakuController.option.lineHeight.toStringAsFixed(1),
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          lineHeight: double.parse(value.toStringAsFixed(1)),
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuLineHeight, double.parse(value.toStringAsFixed(1)));
+                },
+              ),
+            ),
             SettingsTile.switchTile(
               onToggle: (value) async {
                 bool show = value ?? widget.danmakuController.option.hideTop;

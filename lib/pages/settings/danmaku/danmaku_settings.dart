@@ -22,6 +22,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late dynamic defaultDanmakuFontSize;
   late int defaultDanmakuFontWeight;
   late double defaultDanmakuDuration;
+  late double defaultDanmakuLineHeight;
   final PopularController popularController = Modular.get<PopularController>();
   late bool danmakuEnabledByDefault;
   late bool danmakuBorder;
@@ -48,6 +49,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     defaultDanmakuDuration =
         setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    defaultDanmakuLineHeight =
+        setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
     danmakuEnabledByDefault =
         setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     danmakuBorder =
@@ -102,6 +105,13 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     await setting.put(SettingBoxKey.danmakuDuration, i);
     setState(() {
       defaultDanmakuDuration = i;
+    });
+  }
+
+  void updateDanmakuLineHeight(double i) async {
+    await setting.put(SettingBoxKey.danmakuLineHeight, i);
+    setState(() {
+      defaultDanmakuLineHeight = i;
     });
   }
 
@@ -213,6 +223,19 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     label: '${defaultDanmakuDuration.round()}',
                     onChanged: (value) {
                       updateDanmakuDuration(value.round().toDouble());
+                    },
+                  ),
+                ),
+                SettingsTile(
+                  title: Text('弹幕行高', style: TextStyle(fontFamily: fontFamily)),
+                  description: Slider(
+                    value: defaultDanmakuLineHeight,
+                    min: 0,
+                    max: 3,
+                    divisions: 30,
+                    label: defaultDanmakuLineHeight.toStringAsFixed(1),
+                    onChanged: (value) {
+                      updateDanmakuLineHeight(double.parse(value.toStringAsFixed(1)));
                     },
                   ),
                 ),

@@ -414,7 +414,7 @@ abstract class _PlayerController with Store {
     final baseDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     final followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
 
-    final duration = followSpeed ? (baseDuration ~/ playerSpeed) : baseDuration.toInt();
+    final duration = followSpeed ? (baseDuration / playerSpeed) : baseDuration;
     danmakuController.updateOption(danmakuController.option.copyWith(duration: duration));
   }
 

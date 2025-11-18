@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -72,6 +72,11 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
+  
+  // SVG Caches
+  String? cachedSvgString;
+  Widget? cachedDanmakuOnIcon;
+  Widget? cachedDanmakuOffIcon;
 
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
@@ -143,6 +148,38 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    cacheSvgIcons();
+  }
+  
+  void cacheSvgIcons() {
+    cachedDanmakuOffIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_off.svg',
+        height: 24,
+      ),
+    );
+  }
+  
+  Widget danmakuOnIcon(BuildContext context) {
+    final colorHex = Theme.of(context)
+        .colorScheme
+        .primary
+        .toARGB32()
+        .toRadixString(16)
+        .substring(2);
+    
+    if (cachedSvgString != colorHex) {
+      cachedSvgString = colorHex;
+      final svgString = danmakuOnSvg.replaceFirst('00AEEC', colorHex);
+      cachedDanmakuOnIcon = RepaintBoundary(
+        child: SvgPicture.string(
+          svgString,
+          height: 24,
+        ),
+      );
+    }
+    
+    return cachedDanmakuOnIcon!;
   }
 
   Widget forwardIcon() {
@@ -468,14 +505,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   }
 
   Widget get topControlWidget {
-    final svgString = danmakuOnSvg.replaceFirst(
-        '00AEEC',
-        Theme.of(context)
-            .colorScheme
-            .primary
-            .toARGB32()
-            .toRadixString(16)
-            .substring(2));
     return Observer(builder: (context) {
       return EmbeddedNativeControlArea(
         child: Row(
@@ -509,14 +538,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             IconButton(
               color: Colors.white,
               icon: playerController.danmakuOn
-                  ? SvgPicture.string(
-                      svgString,
-                      height: 24,
-                    )
-                  : SvgPicture.asset(
-                      'assets/images/danmaku_off.svg',
-                      height: 24,
-                    ),
+                  ? danmakuOnIcon(context)
+                  : cachedDanmakuOffIcon!,
               onPressed: () {
                 widget.handleDanmaku();
               },

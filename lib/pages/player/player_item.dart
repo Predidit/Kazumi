@@ -1288,7 +1288,7 @@ class _PlayerItemState extends State<PlayerItem>
                           strokeWidth: _border ? 1.5 : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
-                          fontFamily: defaultAppFontFamily,
+                          fontFamily: customAppFontFamily,
                         ),
                       ),
                     ),

@@ -231,6 +231,8 @@ class _AppWidgetState extends State<AppWidget>
     }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    bool useSystemFont =
+        setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
     final defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     if (defaultThemeMode == 'dark') {
@@ -242,9 +244,10 @@ class _AppWidgetState extends State<AppWidget>
     if (defaultThemeMode == 'system') {
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
+    themeProvider.setFontFamily(useSystemFont, notify: false);
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
-        fontFamily: defaultAppFontFamily,
+        fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -254,7 +257,7 @@ class _AppWidgetState extends State<AppWidget>
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
-          fontFamily: defaultAppFontFamily,
+          fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -269,7 +272,7 @@ class _AppWidgetState extends State<AppWidget>
           themeProvider.setTheme(
             ThemeData(
                 useMaterial3: true,
-                fontFamily: defaultAppFontFamily,
+                fontFamily: themeProvider.currentFontFamily,
                 colorScheme: theme,
                 brightness: Brightness.light,
                 progressIndicatorTheme: progressIndicatorTheme2024,
@@ -278,7 +281,7 @@ class _AppWidgetState extends State<AppWidget>
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
                     useMaterial3: true,
-                    fontFamily: defaultAppFontFamily,
+                    fontFamily: themeProvider.currentFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
@@ -286,7 +289,7 @@ class _AppWidgetState extends State<AppWidget>
                     pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
                     useMaterial3: true,
-                    fontFamily: defaultAppFontFamily,
+                    fontFamily: themeProvider.currentFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,

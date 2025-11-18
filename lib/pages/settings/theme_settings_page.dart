@@ -29,6 +29,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool oledEnhance;
   late bool useDynamicColor;
   late bool showWindowButton;
+  late bool useSystemFont;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
   final MenuController menuController = MenuController();
@@ -45,6 +46,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
     showWindowButton =
         setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
+    useSystemFont =
+        setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
@@ -58,7 +61,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   void setTheme(Color? color) {
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
-        fontFamily: defaultAppFontFamily,
+        fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -68,7 +71,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
-          fontFamily: defaultAppFontFamily,
+          fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -83,7 +86,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   void resetTheme() {
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
-        fontFamily: defaultAppFontFamily,
+        fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.green,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -93,7 +96,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
-          fontFamily: defaultAppFontFamily,
+          fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: Colors.green,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -326,6 +329,24 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   },
                   title: Text('动态配色', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useDynamicColor,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    useSystemFont = value ?? !useSystemFont;
+                    await setting.put(SettingBoxKey.useSystemFont, useSystemFont);
+                    themeProvider.setFontFamily(useSystemFont);
+                    dynamic color;
+                    if (defaultThemeColor == 'default') {
+                      color = Colors.green;
+                    } else {
+                      color = Color(int.parse(defaultThemeColor, radix: 16));
+                    }
+                    setTheme(color);
+                    setState(() {});
+                  },
+                  title: Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('关闭后使用 MI Sans 字体', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: useSystemFont,
                 ),
               ],
               bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台', style: TextStyle(fontFamily: fontFamily)),

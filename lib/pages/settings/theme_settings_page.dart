@@ -134,6 +134,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -145,7 +146,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: const Text('外观'),
+              title: Text('外观', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -155,7 +156,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       menuController.open();
                     }
                   },
-                  title: const Text('深色模式'),
+                  title: Text('深色模式', style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
@@ -164,6 +165,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                         defaultThemeMode == 'light'
                             ? '浅色'
                             : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                        style: TextStyle(fontFamily: fontFamily),
                       );
                     },
                     menuChildren: [
@@ -190,6 +192,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     color: defaultThemeMode == 'system'
                                         ? Theme.of(context).colorScheme.primary
                                         : null,
+                                    fontFamily: fontFamily,
                                   ),
                                 ),
                               ],
@@ -220,6 +223,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     color: defaultThemeMode == 'light'
                                         ? Theme.of(context).colorScheme.primary
                                         : null,
+                                    fontFamily: fontFamily
                                   ),
                                 ),
                               ],
@@ -250,6 +254,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                     color: defaultThemeMode == 'dark'
                                         ? Theme.of(context).colorScheme.primary
                                         : null,
+                                    fontFamily: fontFamily,
                                   ),
                                 ),
                               ],
@@ -319,11 +324,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setDynamic(useDynamicColor);
                     setState(() {});
                   },
-                  title: const Text('动态配色'),
+                  title: Text('动态配色', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useDynamicColor,
                 ),
               ],
-              bottomInfo: const Text('动态配色仅支持安卓12及以上和桌面平台'),
+              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台', style: TextStyle(fontFamily: fontFamily)),
             ),
             SettingsSection(
               tiles: [
@@ -334,8 +339,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     updateOledEnhance();
                     setState(() {});
                   },
-                  title: const Text('OLED优化'),
-                  description: const Text('深色模式下使用纯黑背景'),
+                  title: Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('深色模式下使用纯黑背景', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: oledEnhance,
                 ),
               ],
@@ -350,8 +355,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           SettingBoxKey.showWindowButton, showWindowButton);
                       setState(() {});
                     },
-                    title: const Text('使用系统标题栏'),
-                    description: const Text('重启应用生效'),
+                    title: Text('使用系统标题栏', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('重启应用生效', style: TextStyle(fontFamily: fontFamily)),
                     initialValue: showWindowButton,
                   ),
                 ],
@@ -363,7 +368,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     onPressed: (_) async {
                       Modular.to.pushNamed('/settings/theme/display');
                     },
-                    title: const Text('屏幕帧率'),
+                    title: Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],
               ),

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:kazumi/request/api.dart';
 
@@ -10,7 +9,7 @@ class StyleString {
   static const double aspectRatio = 16 / 10;
 }
 
-String? defaultAppFontFamily = Platform.isAndroid ? 'sans-serif' : null;
+String? defaultAppFontFamily = null;
 
 /// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
 /// it to false so we have the latest M3 style process indicator.

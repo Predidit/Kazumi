@@ -30,6 +30,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: const SysAppBar(
         title: Text('超分辨率'),
@@ -38,12 +39,12 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
         maxWidth: 1000,
         sections: [
           SettingsSection(
-              title: const Text(
-                  '超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换硬件解码器为 auto-copy'),
+              title: Text(
+                  '超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换硬件解码器为 auto-copy', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile<String>.radioTile(
-                  title: const Text("OFF"),
-                  description: const Text("默认禁用超分辨率"),
+                  title: Text("OFF", style: TextStyle(fontFamily: fontFamily)),
+                  description: Text("默认禁用超分辨率", style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "1",
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
@@ -57,8 +58,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   },
                 ),
                 SettingsTile<String>.radioTile(
-                  title: const Text("Efficiency"),
-                  description: const Text("默认启用基于Anime4K的超分辨率 (效率优先)"),
+                  title: Text("Efficiency", style: TextStyle(fontFamily: fontFamily)),
+                  description: Text("默认启用基于Anime4K的超分辨率 (效率优先)", style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "2",
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
@@ -72,8 +73,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   },
                 ),
                 SettingsTile<String>.radioTile(
-                  title: const Text("Quality"),
-                  description: const Text("默认启用基于Anime4K的超分辨率 (质量优先)"),
+                  title: Text("Quality", style: TextStyle(fontFamily: fontFamily)),
+                  description: Text("默认启用基于Anime4K的超分辨率 (质量优先)", style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "3",
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
@@ -88,11 +89,11 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 )
               ]),
           SettingsSection(
-            title: const Text('默认行为'),
+            title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile.switchTile(
-                title: const Text('关闭提示'),
-                description: const Text('关闭每次启用超分辨率时的提示'),
+                title: Text('关闭提示', style: TextStyle(fontFamily: fontFamily)),
+                description: Text('关闭每次启用超分辨率时的提示', style: TextStyle(fontFamily: fontFamily)),
                 initialValue: promptOnEnable,
                 onToggle: (value) async {
                   promptOnEnable = value ?? !promptOnEnable;

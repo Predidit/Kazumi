@@ -66,7 +66,7 @@ dependencies:
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
   webview_flutter: ^4.13.0
-  canvas_danmaku: ^0.3.0
+  canvas_danmaku: ^0.3.1
   webdav_client: ^1.2.2
   tray_manager: ^0.5.0
   dlna_dart: ^0.0.8
@@ -240,3 +240,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+  fonts:
+    - family: MI_Sans_Regular
+      fonts:
+        - asset: assets/fonts/MiSans-Regular.ttf

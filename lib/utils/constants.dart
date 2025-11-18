@@ -9,7 +9,7 @@ class StyleString {
   static const double aspectRatio = 16 / 10;
 }
 
-String? defaultAppFontFamily = null;
+String? defaultAppFontFamily = "MI_Sans_Regular";
 
 /// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
 /// it to false so we have the latest M3 style process indicator.

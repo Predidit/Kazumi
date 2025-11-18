@@ -273,7 +273,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
                       return AlertDialog(
-                        title: const Text('配色方案'),
+                        title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<Map<String, dynamic>> colorThemes =
@@ -316,7 +316,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       );
                     });
                   },
-                  title: const Text('配色方案'),
+                  title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.switchTile(
                   enabled: !Platform.isIOS,

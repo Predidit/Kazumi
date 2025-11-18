@@ -207,9 +207,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title: Text('弹幕持续时间', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuDuration,
-                    min: 4,
+                    min: 2,
                     max: 16,
-                    divisions: 12,
+                    divisions: 14,
                     label: '${defaultDanmakuDuration.round()}',
                     onChanged: (value) {
                       updateDanmakuDuration(value.round().toDouble());

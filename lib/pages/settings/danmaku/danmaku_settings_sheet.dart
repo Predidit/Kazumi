@@ -122,9 +122,9 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             SettingsTile(title: Text('持续时间', style: TextStyle(fontFamily: fontFamily)),
               description: Slider(
                 value: widget.danmakuController.option.duration.toDouble(),
-                min: 4,
+                min: 2,
                 max: 16,
-                divisions: 12,
+                divisions: 14,
                 label:
                     '${widget.danmakuController.option.duration.round()}',
                 onChanged: (value) {

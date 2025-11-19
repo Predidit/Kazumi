@@ -87,6 +87,14 @@ class _MyPageState extends State<MyPage> {
                   title: const Text('弹幕设置'),
                   description: const Text('设置弹幕相关参数'),
                 ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/keyboard');
+                  },
+                  leading: const Icon(Icons.keyboard_rounded),
+                  title: const Text('操作设置'),
+                  description: const Text('设置播放器按键映射'),
+                ),
               ],
             ),
             SettingsSection(

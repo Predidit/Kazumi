@@ -81,7 +81,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(title: Text('操作设置')),
+      appBar: SysAppBar(title: Text('键盘快捷键')),
       body: FocusScope(
         autofocus: true,
         child: Focus(

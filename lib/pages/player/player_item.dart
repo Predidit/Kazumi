@@ -100,6 +100,8 @@ class _PlayerItemState extends State<PlayerItem>
   // 硬件解码
   late bool haEnable;
 
+  late bool touchBetter;
+
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
@@ -142,7 +144,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
-    if (Utils.isDesktop()) {
+    if (!touchBetter) {
       playerController.playOrPause();
     } else {
       if (playerController.showVideoController) {
@@ -154,7 +156,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap() {
-    if (Utils.isDesktop() && !videoPageController.isPip) {
+    if (!touchBetter && !videoPageController.isPip) {
       handleFullscreen();
     } else {
       playerController.playOrPause();
@@ -1042,6 +1044,7 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    touchBetter = setting.get(SettingBoxKey.touchBetter, defaultValue: false);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
@@ -1124,16 +1127,14 @@ class _PlayerItemState extends State<PlayerItem>
                         child: Focus(
                             // workaround for #461
                             // I don't know why, but the focus node will break popscope.
-                            focusNode:
-                                Utils.isDesktop() ? widget.keyboardFocus : null,
-                            autofocus: Utils.isDesktop(),
+                            focusNode: widget.keyboardFocus,
+                            autofocus: true,
                             onKeyEvent: (focusNode, KeyEvent event) {
                                 if (event is KeyDownEvent) {
                                   final keyLabel = event.logicalKey.keyLabel.isNotEmpty
                                       ? event.logicalKey.keyLabel
                                       : event.logicalKey.debugName ?? '';
 
-                                  // 判断每个功能是否匹配
                                   if (keyboardShortcuts['播放/暂停']!.contains(keyLabel)) {
                                     try {
                                       playerController.playOrPause();
@@ -1328,7 +1329,7 @@ class _PlayerItemState extends State<PlayerItem>
                       top: 25,
                       right: 15,
                       bottom: 15,
-                      child: (Utils.isDesktop() || playerController.lockPanel)
+                      child: (!touchBetter || playerController.lockPanel)
                           ? Container()
                           : GestureDetector(
                               onHorizontalDragStart: (_) {
@@ -1380,26 +1381,35 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double sectionWidth = totalWidth / 2;
                                 final double delta = details.delta.dy;
 
-                                if (tapPosition < sectionWidth) {
-                                  // 左边区域
-                                  playerController.brightnessSeeking = true;
-                                  playerController.showBrightness = true;
-                                  final double level = (totalHeight) * 2;
-                                  final double brightness =
-                                      playerController.brightness -
-                                          delta / level;
-                                  final double result =
-                                      brightness.clamp(0.0, 1.0);
-                                  setBrightness(result);
-                                  playerController.brightness = result;
-                                } else {
-                                  // 右边区域
+                                if(Utils.isDesktop()){
                                   playerController.volumeSeeking = true;
-                                  playerController.showVolume = true;
-                                  final double level = (totalHeight) * 0.03;
-                                  final double volume =
-                                      playerController.volume - delta / level;
-                                  playerController.setVolume(volume);
+                                    playerController.showVolume = true;
+                                    final double level = (totalHeight) * 0.03;
+                                    final double volume =
+                                        playerController.volume - delta / level;
+                                    playerController.setVolume(volume);
+                                } else{
+                                  if (tapPosition < sectionWidth) {
+                                    // 左边区域
+                                    playerController.brightnessSeeking = true;
+                                    playerController.showBrightness = true;
+                                    final double level = (totalHeight) * 2;
+                                    final double brightness =
+                                        playerController.brightness -
+                                            delta / level;
+                                    final double result =
+                                        brightness.clamp(0.0, 1.0);
+                                    setBrightness(result);
+                                    playerController.brightness = result;
+                                  } else {
+                                    // 右边区域
+                                    playerController.volumeSeeking = true;
+                                    playerController.showVolume = true;
+                                    final double level = (totalHeight) * 0.03;
+                                    final double volume =
+                                        playerController.volume - delta / level;
+                                    playerController.setVolume(volume);
+                                  }
                                 }
                               },
                               onVerticalDragEnd: (_) {

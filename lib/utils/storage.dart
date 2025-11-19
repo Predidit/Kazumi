@@ -252,6 +252,7 @@ class SettingBoxKey {
       webDavPassword = 'webDavPasswd',
       lowMemoryMode = 'lowMemoryMode',
       showWindowButton = 'showWindowButton',
+      touchBetter = 'touchBetter',
       useDynamicColor = 'useDynamicColor',
       exitBehavior = 'exitBehavior',
       playerDebugMode = 'playerDebugMode',

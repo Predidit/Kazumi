@@ -68,6 +68,7 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
+  late Map<String, List<String>> keyboardShortcuts;
 
   // 1. 在看
   // 2. 想看
@@ -121,6 +122,23 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmakuController.resume();
       }
     } catch (_) {}
+  }
+
+  void _loadShortcuts() {
+    keyboardShortcuts = {
+      '播放/暂停': setting.get('shortcut_播放/暂停', defaultValue: [' ']).cast<String>(),
+      '快进': setting.get('shortcut_快进', defaultValue: ['ArrowRight']).cast<String>(),
+      '快退': setting.get('shortcut_快退', defaultValue: ['ArrowLeft']).cast<String>(),
+      '音量加': setting.get('shortcut_音量+', defaultValue: ['ArrowUp']).cast<String>(),
+      '音量减': setting.get('shortcut_音量-', defaultValue: ['ArrowDown']).cast<String>(),
+      '静音': setting.get('shortcut_静音', defaultValue: ['KeyM']).cast<String>(),
+      '全屏': setting.get('shortcut_全屏', defaultValue: ['KeyF']).cast<String>(),
+      '退出全屏': setting.get('shortcut_退出全屏', defaultValue: ['Escape']).cast<String>(),
+      '弹幕开关': setting.get('shortcut_弹幕开关', defaultValue: ['KeyD']).cast<String>(),
+      '1倍速': setting.get('shortcut_1倍速', defaultValue: ['Key1']).cast<String>(),
+      '2倍速': setting.get('shortcut_2倍速', defaultValue: ['Key2']).cast<String>(),
+      '3倍速': setting.get('shortcut_3倍速', defaultValue: ['Key3']).cast<String>(),
+    };
   }
 
   void _handleTap() {
@@ -977,6 +995,7 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void initState() {
     super.initState();
+    _loadShortcuts();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1109,117 +1128,74 @@ class _PlayerItemState extends State<PlayerItem>
                                 Utils.isDesktop() ? widget.keyboardFocus : null,
                             autofocus: Utils.isDesktop(),
                             onKeyEvent: (focusNode, KeyEvent event) {
-                              if (event is KeyDownEvent) {
-                                // 当空格键被按下时
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.space) {
-                                  try {
-                                    playerController.playOrPause();
-                                  } catch (e) {
-                                    KazumiLogger().log(
-                                        Level.error, '播放器内部错误 ${e.toString()}');
-                                  }
-                                }
-                                // 右方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  lastPlayerSpeed =
-                                      playerController.playerSpeed;
-                                }
-                                // 左方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowLeft) {
-                                  int targetPosition = playerController
-                                          .currentPosition.inSeconds -
-                                      playerController.arrowKeySkipTime;
-                                  if (targetPosition < 0) {
-                                    targetPosition = 0;
-                                  }
-                                  try {
-                                    playerTimer?.cancel();
-                                    playerController.seek(
-                                        Duration(seconds: targetPosition));
-                                    playerTimer = getPlayerTimer();
-                                  } catch (e) {
-                                    KazumiLogger()
-                                        .log(Level.error, e.toString());
-                                  }
-                                }
-                                // 上方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowUp) {
-                                  increaseVolume();
-                                  _handleKeyChangingVolume();
-                                }
-                                // 下方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowDown) {
-                                  decreaseVolume();
-                                  _handleKeyChangingVolume();
-                                }
-                                // Esc键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.escape) {
-                                  if (videoPageController.isFullscreen &&
-                                      !Utils.isTablet()) {
+                                if (event is KeyDownEvent) {
+                                  final keyLabel = event.logicalKey.keyLabel.isNotEmpty
+                                      ? event.logicalKey.keyLabel
+                                      : event.logicalKey.debugName ?? '';
+
+                                  // 判断每个功能是否匹配
+                                  if (keyboardShortcuts['播放/暂停']!.contains(keyLabel)) {
                                     try {
-                                      playerController.danmakuController
-                                          .clear();
-                                    } catch (_) {}
-                                    Utils.exitFullScreen();
-                                    videoPageController.isFullscreen =
-                                        !videoPageController.isFullscreen;
-                                  } else if (!Platform.isMacOS) {
-                                    playerController.pause();
-                                    windowManager.hide();
-                                  }
-                                }
-                                // F键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.keyF) {
-                                  if (!videoPageController.isPip) {
-                                    handleFullscreen();
-                                  }
-                                }
-                                // D键盘被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.keyD) {
-                                  handleDanmaku();
-                                }
-                              } else if (event is KeyRepeatEvent) {
-                                // 右方向键长按
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  if (playerController.playerSpeed < 2.0) {
-                                    playerController.showPlaySpeed = true;
-                                    setPlaybackSpeed(2.0);
-                                  }
-                                }
-                              } else if (event is KeyUpEvent) {
-                                // 右方向键抬起
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  if (playerController.showPlaySpeed) {
-                                    playerController.showPlaySpeed = false;
-                                    setPlaybackSpeed(lastPlayerSpeed);
-                                  } else {
+                                      playerController.playOrPause();
+                                    } catch (e) {
+                                      KazumiLogger().log(
+                                          Level.error, '播放器内部错误 ${e.toString()}');
+                                    }
+                                  } else if (keyboardShortcuts['快进']!.contains(keyLabel)) {
+                                    lastPlayerSpeed =
+                                        playerController.playerSpeed;
+                                  } else if (keyboardShortcuts['快退']!.contains(keyLabel)) {
+                                    int targetPosition = playerController
+                                            .currentPosition.inSeconds -
+                                        playerController.arrowKeySkipTime;
+                                    if (targetPosition < 0) {
+                                      targetPosition = 0;
+                                    }
                                     try {
                                       playerTimer?.cancel();
-                                      playerController.seek(Duration(
-                                          seconds: playerController
-                                                  .currentPosition.inSeconds +
-                                              playerController
-                                                  .arrowKeySkipTime));
+                                      playerController.seek(
+                                          Duration(seconds: targetPosition));
                                       playerTimer = getPlayerTimer();
                                     } catch (e) {
-                                      KazumiLogger().log(Level.error,
-                                          '播放器内部错误 ${e.toString()}');
+                                      KazumiLogger()
+                                          .log(Level.error, e.toString());
                                     }
+                                  } else if (keyboardShortcuts['音量加']!.contains(keyLabel)) {
+                                    increaseVolume();
+                                    _handleKeyChangingVolume();
+                                  } else if (keyboardShortcuts['音量减']!.contains(keyLabel)) {
+                                    decreaseVolume();
+                                    _handleKeyChangingVolume();
+                                  } else if (keyboardShortcuts['退出全屏']!.contains(keyLabel)) {
+                                    if (videoPageController.isFullscreen &&
+                                        !Utils.isTablet()) {
+                                      try {
+                                        playerController.danmakuController
+                                            .onClear();
+                                      } catch (_) {}
+                                      Utils.exitFullScreen();
+                                      videoPageController.isFullscreen =
+                                          !videoPageController.isFullscreen;
+                                    } else if (!Platform.isMacOS) {
+                                      playerController.pause();
+                                      windowManager.hide();
+                                    }
+                                  } else if (keyboardShortcuts['全屏']!.contains(keyLabel)) {
+                                    if (!videoPageController.isPip) {
+                                      handleFullscreen();
+                                    }
+                                  } else if (keyboardShortcuts['弹幕开关']!.contains(keyLabel)) {
+                                    handleDanmaku();
+                                  } else if (keyboardShortcuts['1倍速']!.contains(keyLabel)) {
+                                    setPlaybackSpeed(1.0);
+                                  } else if (keyboardShortcuts['2倍速']!.contains(keyLabel)) {
+                                    setPlaybackSpeed(2.0);
+                                  } else if (keyboardShortcuts['3倍速']!.contains(keyLabel)) {
+                                    setPlaybackSpeed(3.0);
                                   }
                                 }
-                              }
-                              return KeyEventResult.handled;
-                            },
+                                return KeyEventResult.handled;
+                              },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
                             videoPageController.loading)

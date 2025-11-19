@@ -9,16 +9,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/mortis.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:screen_pixel/screen_pixel.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
@@ -42,18 +39,11 @@ class Utils {
     if (Platform.isMacOS) {
       return false;
     }
-
-    try {
-      Map<String, double>? screenInfo = await getScreenInfo();
-      if (screenInfo != null) {
-        if (screenInfo['height']! / screenInfo['ratio']! < 900) {
-          return true;
-        }
-      }
-      return false;
-    } catch (_) {
-      return false;
+    Map<String, double> screenInfo = await getScreenInfo();
+    if (screenInfo['height']! / screenInfo['ratio']! < 900) {
+      return true;
     }
+    return false;
   }
 
   static String getRandomUA() {
@@ -70,24 +60,18 @@ class Utils {
     return randomElement;
   }
 
-  static Future<Map<String, double>?> getScreenInfo() async {
-    final screenPixelPlugin = ScreenPixel();
-    Map<String, double>? screenResolution;
+  static Future<Map<String, double>> getScreenInfo() async {
     final MediaQueryData mediaQuery = MediaQueryData.fromView(
         WidgetsBinding.instance.platformDispatcher.views.first);
+    final Size screenSize =
+        WidgetsBinding.instance.platformDispatcher.displays.first.size;
     final double screenRatio = mediaQuery.devicePixelRatio;
     Map<String, double>? screenInfo = {};
-
-    try {
-      screenResolution = await screenPixelPlugin.getResolution();
-      screenInfo = {
-        'width': screenResolution['width']!,
-        'height': screenResolution['height']!,
-        'ratio': screenRatio
-      };
-    } on PlatformException {
-      screenInfo = null;
-    }
+    screenInfo = {
+      'width': screenSize.width,
+      'height': screenSize.height,
+      'ratio': screenRatio
+    };
     return screenInfo;
   }
 
@@ -338,9 +322,10 @@ class Utils {
 
   /// 判断设备是否为宽屏
   static bool isWideScreen() {
-    Box setting = GStorage.setting;
-    bool isWideScreen =
-        setting.get(SettingBoxKey.isWideScreen, defaultValue: false);
+    final MediaQueryData mediaQuery = MediaQueryData.fromView(
+        WidgetsBinding.instance.platformDispatcher.views.first);
+    final bool isWideScreen = mediaQuery.size.shortestSide >= 600 &&
+        mediaQuery.size.shortestSide / mediaQuery.size.longestSide >= 9 / 16;
     return isWideScreen;
   }
 
@@ -364,6 +349,22 @@ class Utils {
         return result;
       } on PlatformException catch (e) {
         print("Failed to check multi window mode: '${e.message}'.");
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /// 判定是否运行在X11环境下 (Linux only)
+  static Future<bool> isRunningOnX11() async {
+    if (Platform.isLinux) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      try {
+        final bool result =
+            await platform.invokeMethod('isRunningOnX11');
+        return result;
+      } on PlatformException catch (e) {
+        print("Failed to check X11 environment: '${e.message}'.");
         return false;
       }
     }
@@ -536,7 +537,6 @@ class Utils {
     var digest = sha256.convert(bytes);
     return base64Encode(digest.bytes);
   }
-
 
   /// 格式化日期
   /// eg: 2025-07-27T09:14:12Z -> 2025-07-27

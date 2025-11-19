@@ -225,6 +225,7 @@ class SettingBoxKey {
       danmakuArea = 'danmakuArea',
       danmakuColor = 'danmakuColor',
       danmakuDuration = 'danmakuDuration',
+      danmakuLineHeight = 'danmakuLineHeight',
       danmakuEnabledByDefault = 'danmakuEnabledByDefault',
       danmakuBiliBiliSource = 'danmakuBiliBiliSource',
       danmakuGamerSource = 'danmakuGamerSource',
@@ -244,6 +245,7 @@ class SettingBoxKey {
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
       enableSystemProxy = 'enableSystemProxy',
+      /// Deprecated
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
       webDavEnableHistory = 'webDavEnableHistory',
@@ -265,5 +267,6 @@ class SettingBoxKey {
       searchNotShowWatchedBangumis = 'searchNotShowWatchedBangumis',
       searchNotShowAbandonedBangumis = 'searchNotShowAbandonedBangumis',
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
-      timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis';
+      timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
+      useSystemFont = 'useSystemFont';
 }

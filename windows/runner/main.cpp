@@ -25,7 +25,7 @@ constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
 bool ActivateExistingWindow()
 {
   // Find the existing window by class name
-  HWND hwnd = ::FindWindow(kWindowClassName, nullptr);
+  HWND hwnd = ::FindWindow(kWindowClassName, L"kazumi");
   if (hwnd != NULL)
   {
     // Check if window is hidden (e.g., minimized to tray)

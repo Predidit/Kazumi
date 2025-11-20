@@ -327,7 +327,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     return cachedDanmakuOnIcon!;
   }
 
-  Widget _buildDanmakuToggleButton(BuildContext context, {bool showKeyboardShortcut = true}) {
+  Widget _buildDanmakuToggleButton(BuildContext context) {
     return IconButton(
       color: Colors.white,
       icon: playerController.danmakuLoading
@@ -349,8 +349,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       tooltip: playerController.danmakuLoading
           ? '弹幕加载中...'
           : (playerController.danmakuOn
-              ? '关闭弹幕${showKeyboardShortcut ? "(d)" : ""}'
-              : '打开弹幕${showKeyboardShortcut ? "(d)" : ""}'),
+              ? '关闭弹幕'
+              : '打开弹幕'),
     );
   }
 
@@ -800,7 +800,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             widget.handleDanmaku();
                           },
                           tooltip:
-                              playerController.danmakuOn ? '关闭弹幕(d)' : '打开弹幕(d)',
+                              playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
                         ),
                         if (playerController.danmakuOn) ...[
                           IconButton(

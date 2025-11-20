@@ -66,7 +66,7 @@ void main() async {
     await windowManager.ensureInitialized();
     bool isLowResolution = await Utils.isLowResolution();
     WindowOptions windowOptions = WindowOptions(
-      size: isLowResolution ? const Size(800, 600) : const Size(1280, 860),
+      size: isLowResolution ? const Size(840, 600) : const Size(1280, 860),
       center: true,
       skipTaskbar: false,
       // macOS always hide title bar regardless of showWindowButton setting

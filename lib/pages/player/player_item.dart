@@ -93,6 +93,7 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _danmakuGamerSource;
   late bool _danmakuDanDanSource;
   late double _danmakuDuration;
+  late double _danmakuLineHeight;
   late int _danmakuFontWeight;
 
   // 硬件解码
@@ -951,9 +952,18 @@ class _PlayerItemState extends State<PlayerItem>
       return false;
     }
     // does not meet Google's phone landscape height and tablet landscape width requirements.
-    if (MediaQuery.sizeOf(context).height >
-            LayoutBreakpoint.compact['height']! &&
-        MediaQuery.sizeOf(context).width < LayoutBreakpoint.medium['width']!) {
+    if (!Utils.isDesktop() &&
+        (MediaQuery.sizeOf(context).height >
+                LayoutBreakpoint.compact['height']! &&
+            MediaQuery.sizeOf(context).width <
+                LayoutBreakpoint.medium['width']!)) {
+      return false;
+    }
+    if (Utils.isDesktop() &&
+        (MediaQuery.sizeOf(context).height >
+                LayoutBreakpoint.compact['height']! &&
+            MediaQuery.sizeOf(context).width <
+                LayoutBreakpoint.compact['width']!)) {
       return false;
     }
     return true;
@@ -961,7 +971,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void onWindowRestore() {
-    playerController.danmakuController.onClear();
+    playerController.danmakuController.clear();
   }
 
   @override
@@ -1000,7 +1010,10 @@ class _PlayerItemState extends State<PlayerItem>
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
     _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
-    _danmakuDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    _danmakuDuration =
+        setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    _danmakuLineHeight =
+        setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
     _danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
     _danmakuGamerSource =
@@ -1151,7 +1164,7 @@ class _PlayerItemState extends State<PlayerItem>
                                       !Utils.isTablet()) {
                                     try {
                                       playerController.danmakuController
-                                          .onClear();
+                                          .clear();
                                     } catch (_) {}
                                     Utils.exitFullScreen();
                                     videoPageController.isFullscreen =
@@ -1262,6 +1275,9 @@ class _PlayerItemState extends State<PlayerItem>
                         key: _danmuKey,
                         createdController: (DanmakuController e) {
                           playerController.danmakuController = e;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            playerController.updateDanmakuSpeed();
+                          });
                         },
                         option: DanmakuOption(
                           hideTop: _hideTop,
@@ -1270,10 +1286,13 @@ class _PlayerItemState extends State<PlayerItem>
                           area: _danmakuArea,
                           opacity: _opacity,
                           fontSize: _fontSize,
-                          duration: _danmakuDuration ~/ playerController.playerSpeed,
-                          showStroke: _border,
+                          duration:
+                              _danmakuDuration / playerController.playerSpeed,
+                          lineHeight: _danmakuLineHeight,
+                          strokeWidth: _border ? 1.5 : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
+                          fontFamily: customAppFontFamily,
                         ),
                       ),
                     ),

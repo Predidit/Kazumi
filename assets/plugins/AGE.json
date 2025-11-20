@@ -1,0 +1,17 @@
+{
+    "api": "1",
+    "type": "anime",
+    "name": "AGE",
+    "version": "1.5",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "baseURL": "https://www.agedm.io/",
+    "searchURL": "https://www.agedm.io/search?query=@keyword",
+    "searchList": "//div[2]/div/section/div/div/div/div",
+    "searchName": "//div/div[2]/h5/a",
+    "searchResult": "//div/div[2]/h5/a",
+    "chapterRoads": "//div[2]/div/section/div/div[2]/div[2]/div[2]/div",
+    "chapterResult": "//ul/li/a"
+}

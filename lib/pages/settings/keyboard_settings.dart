@@ -93,7 +93,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     setState(() {
       listeningFunction = func;
       listeningIndex = index;
-      shortcuts[func]![index] = '按键中...';
+      shortcuts[func]![index] = '...';
     });
 
     Future.delayed(const Duration(milliseconds: 50), () {

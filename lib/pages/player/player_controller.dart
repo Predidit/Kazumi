@@ -517,7 +517,6 @@ abstract class _PlayerController with Store {
 
   Future<void> getDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
-    // 并发控制：如果已经在加载，直接返回
     if (danmakuLoading) {
       KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
       return;
@@ -539,7 +538,6 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
-    // 并发控制：如果已经在加载，直接返回
     if (danmakuLoading) {
       KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
       return;

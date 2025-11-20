@@ -78,7 +78,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   Widget? cachedDanmakuOnIcon;
   Widget? cachedDanmakuOffIcon;
 
-  // 常量定义
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
 
@@ -186,7 +185,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     return cachedDanmakuOnIcon!;
   }
 
-  /// 构建弹幕开关按钮
   Widget _buildDanmakuToggleButton(BuildContext context, {bool showKeyboardShortcut = false}) {
     return IconButton(
       color: Colors.white,
@@ -196,7 +194,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               height: _danmakuIconSize,
               child: CircularProgressIndicator(
                 strokeWidth: _loadingIndicatorStrokeWidth,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
           : (playerController.danmakuOn

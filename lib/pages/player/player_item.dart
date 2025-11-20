@@ -180,7 +180,6 @@ class _PlayerItemState extends State<PlayerItem>
       setState(() {
         playerController.danmakuOn = false;
       });
-      // 保存弹幕状态，以便切换集数时保持关闭状态
       setting.put(SettingBoxKey.danmakuEnabledByDefault, false);
       return;
     }
@@ -193,7 +192,6 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {
       playerController.danmakuOn = true;
     });
-    // 保存弹幕状态，以便切换集数时保持开启状态
     setting.put(SettingBoxKey.danmakuEnabledByDefault, true);
   }
 

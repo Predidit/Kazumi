@@ -41,6 +41,22 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$danmakuLoadingAtom =
+      Atom(name: '_PlayerController.danmakuLoading', context: context);
+
+  @override
+  bool get danmakuLoading {
+    _$danmakuLoadingAtom.reportRead();
+    return super.danmakuLoading;
+  }
+
+  @override
+  set danmakuLoading(bool value) {
+    _$danmakuLoadingAtom.reportWrite(value, super.danmakuLoading, () {
+      super.danmakuLoading = value;
+    });
+  }
+
   late final _$syncplayRoomAtom =
       Atom(name: '_PlayerController.syncplayRoom', context: context);
 
@@ -558,6 +574,7 @@ mixin _$PlayerController on _PlayerController, Store {
     return '''
 danDanmakus: ${danDanmakus},
 danmakuOn: ${danmakuOn},
+danmakuLoading: ${danmakuLoading},
 syncplayRoom: ${syncplayRoom},
 syncplayClientRtt: ${syncplayClientRtt},
 aspectRatioType: ${aspectRatioType},

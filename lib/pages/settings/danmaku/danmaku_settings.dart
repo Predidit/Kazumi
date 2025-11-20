@@ -24,7 +24,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late double defaultDanmakuDuration;
   late double defaultDanmakuLineHeight;
   final PopularController popularController = Modular.get<PopularController>();
-  late bool danmakuEnabledByDefault;
   late bool danmakuBorder;
   late bool danmakuTop;
   late bool danmakuBottom;
@@ -51,8 +50,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     defaultDanmakuLineHeight =
         setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
-    danmakuEnabledByDefault =
-        setting.get(SettingBoxKey.danmakuEnabledByDefault, defaultValue: false);
     danmakuBorder =
         setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     danmakuTop = setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
@@ -135,22 +132,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         body: SettingsList(
           maxWidth: 1000,
           sections: [
-            SettingsSection(
-              title: Text('弹幕', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    danmakuEnabledByDefault = value ?? !danmakuEnabledByDefault;
-                    await setting.put(SettingBoxKey.danmakuEnabledByDefault,
-                        danmakuEnabledByDefault);
-                    setState(() {});
-                  },
-                  title: Text('默认开启', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('默认是否随视频播放弹幕', style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: danmakuEnabledByDefault,
-                ),
-              ],
-            ),
             SettingsSection(
               title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
               tiles: [

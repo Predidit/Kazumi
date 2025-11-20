@@ -29,6 +29,20 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     '2倍速': [],
     '3倍速': [],
   };
+  Map<String, List<String>> defaultShortcuts = {
+    '播放/暂停': [' '], // 空格
+    '快进': ['Arrow Right'],
+    '快退': ['Arrow Left'],
+    '音量加': ['Arrow Up'],
+    '音量减': ['Arrow Down'],
+    '静音': ['M'],
+    '全屏': ['F'],
+    '退出全屏': ['Escape'],
+    '弹幕开关': ['B'],
+    '1倍速': ['1'],
+    '2倍速': ['2'],
+    '3倍速': ['3'],
+  };
 
   String? listeningFunction;
   int? listeningIndex;
@@ -51,7 +65,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     super.initState();
     for (final func in shortcuts.keys) {
       final List<String> saved =
-          setting.get('shortcut_$func', defaultValue: <String>[])?.cast<String>() ?? [];
+          setting.get('shortcut_$func', defaultValue: defaultShortcuts[func]?.toList() ?? <String>[])?.cast<String>() ?? [];
       shortcuts[func] = saved;
     }
   }
@@ -81,7 +95,24 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(title: Text('键盘快捷键')),
+      appBar: SysAppBar(
+        title: Text('键盘快捷键'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: '恢复默认',
+            onPressed: () {
+              setState(() {
+                for (final func in shortcuts.keys) {
+                  shortcuts[func] = defaultShortcuts[func]?.toList() ?? [];
+                  saveShortcuts(func);
+                }
+              });
+            },
+          ),
+        ],
+      
+      ),
       body: FocusScope(
         autofocus: true,
         child: Focus(

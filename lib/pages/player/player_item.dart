@@ -129,17 +129,17 @@ class _PlayerItemState extends State<PlayerItem>
   void _loadShortcuts() {
     keyboardShortcuts = {
       '播放/暂停': setting.get('shortcut_播放/暂停', defaultValue: [' ']).cast<String>(),
-      '快进': setting.get('shortcut_快进', defaultValue: ['ArrowRight']).cast<String>(),
-      '快退': setting.get('shortcut_快退', defaultValue: ['ArrowLeft']).cast<String>(),
-      '音量加': setting.get('shortcut_音量+', defaultValue: ['ArrowUp']).cast<String>(),
-      '音量减': setting.get('shortcut_音量-', defaultValue: ['ArrowDown']).cast<String>(),
-      '静音': setting.get('shortcut_静音', defaultValue: ['KeyM']).cast<String>(),
-      '全屏': setting.get('shortcut_全屏', defaultValue: ['KeyF']).cast<String>(),
+      '快进': setting.get('shortcut_快进', defaultValue: ['Arrow Right']).cast<String>(),
+      '快退': setting.get('shortcut_快退', defaultValue: ['Arrow Left']).cast<String>(),
+      '音量加': setting.get('shortcut_音量+', defaultValue: ['Arrow Up']).cast<String>(),
+      '音量减': setting.get('shortcut_音量-', defaultValue: ['Arrow Down']).cast<String>(),
+      '静音': setting.get('shortcut_静音', defaultValue: ['M']).cast<String>(),
+      '全屏': setting.get('shortcut_全屏', defaultValue: ['F']).cast<String>(),
       '退出全屏': setting.get('shortcut_退出全屏', defaultValue: ['Escape']).cast<String>(),
-      '弹幕开关': setting.get('shortcut_弹幕开关', defaultValue: ['KeyD']).cast<String>(),
-      '1倍速': setting.get('shortcut_1倍速', defaultValue: ['Key1']).cast<String>(),
-      '2倍速': setting.get('shortcut_2倍速', defaultValue: ['Key2']).cast<String>(),
-      '3倍速': setting.get('shortcut_3倍速', defaultValue: ['Key3']).cast<String>(),
+      '弹幕开关': setting.get('shortcut_弹幕开关', defaultValue: ['D']).cast<String>(),
+      '1倍速': setting.get('shortcut_1倍速', defaultValue: ['1']).cast<String>(),
+      '2倍速': setting.get('shortcut_2倍速', defaultValue: ['2']).cast<String>(),
+      '3倍速': setting.get('shortcut_3倍速', defaultValue: ['3']).cast<String>(),
     };
   }
 

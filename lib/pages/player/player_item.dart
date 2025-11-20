@@ -1186,7 +1186,7 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    touchBetter = setting.get(SettingBoxKey.touchBetter, defaultValue: !Utils.isDesktop());
+    touchBetter = setting.get(SettingBoxKey.touchBetter, defaultValue: false);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();

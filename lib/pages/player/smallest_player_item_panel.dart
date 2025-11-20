@@ -33,6 +33,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
@@ -43,6 +44,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
   final void Function() handleDanmaku;
+  final void Function() skipOP;
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
@@ -224,8 +226,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),

@@ -26,6 +26,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.changeEpisode,
     required this.handleFullscreen,
     required this.handleScreenShot,
+    required this.handlePreNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
@@ -36,6 +37,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
@@ -57,6 +59,8 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
   final void Function() handleDanmaku;
+  final void Function(String direction) handlePreNextEpisode;
+  final void Function() skipOP;
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
@@ -77,11 +81,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();
-  void handleScreenShot() {
-    widget.handleScreenShot();
-  }
-  
+  final FocusNode textFieldFocus = FocusNode();  
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -366,8 +366,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),
@@ -722,27 +721,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: const Icon(Icons.skip_next_rounded),
-                          onPressed: () {
-                            if (videoPageController.loading) {
-                              return;
-                            }
-                            if (videoPageController.currentEpisode ==
-                                videoPageController
-                                    .roadList[videoPageController.currentRoad]
-                                    .data
-                                    .length) {
-                              KazumiDialog.showToast(
-                                message: '已经是最新一集',
-                              );
-                              return;
-                            }
-                            KazumiDialog.showToast(
-                                message:
-                                    '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
-                            widget.changeEpisode(
-                                videoPageController.currentEpisode + 1,
-                                currentRoad: videoPageController.currentRoad);
-                          },
+                          onPressed: () => widget.handlePreNextEpisode('next'),
                         ),
                       if (Utils.isDesktop())
                         Container(
@@ -1328,7 +1307,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         color: Colors.white,
                       ),
                       onPressed: () {
-                        handleScreenShot();
+                        widget.handleScreenShot();
                       },
                     ),
               IconButton(

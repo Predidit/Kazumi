@@ -210,6 +210,8 @@ final List<String> defaultAnimeTags = const [
     'playorpause': [' '], // 空格
     'forward': ['Arrow Right'],
     'rewind': ['Arrow Left'],
+    'next': ['N'],
+    'prev': ['P'],
     'volumeup': ['Arrow Up'],
     'volumedown': ['Arrow Down'],
     'togglemute': ['M'],
@@ -241,6 +243,8 @@ final List<String> defaultAnimeTags = const [
     'playorpause': '播放 / 暂停',
     'forward': '快进',
     'rewind': '快退',
+    'next': '下一集',
+    'prev': '上一集',
     'volumeup': '音量加',
     'volumedown': '音量减',
     'togglemute': '静音',

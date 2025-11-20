@@ -17,36 +17,22 @@ class KeyboardSettingsPage extends StatefulWidget {
 class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   Box setting = GStorage.setting;
 
-  Map<String, List<String>> shortcuts = {
-    'playorpause': [],
-    'forward': [],
-    'rewind': [],
-    'volumeup': [],
-    'volumedown': [],
-    'togglemute': [],
-    'fullscreen': [],
-    'exitfullscreen': [],
-    'toggledanmaku': [],
-    'screenshot': [],
-    'skip': [],
-    'speed1': [],
-    'speed2': [],
-    'speed3': [],
-  };
-
   String? listeningFunction;
   int? listeningIndex;
+  late Map<String, List<String>> shortcuts;
 
   final FocusNode focusNode = FocusNode();
 
   @override
   void initState() {
-    super.initState();
-    for (final func in shortcuts.keys) {
-      final List<String> saved =
-          setting.get('shortcut_$func', defaultValue: defaultShortcuts[func]?.toList() ?? <String>[])?.cast<String>() ?? [];
-      shortcuts[func] = saved;
-    }
+    super.initState();    
+    // 根据默认快捷键生成可用快捷键列表，并读取已设置值
+    shortcuts = {
+      for (var key in defaultShortcuts.keys)
+        key: (setting.get('shortcut_$key', 
+                defaultValue: defaultShortcuts[key]?.toList() ?? <String>[]) 
+              ?.cast<String>() ?? [])
+    };
   }
 
   @override

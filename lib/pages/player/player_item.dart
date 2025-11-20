@@ -1172,7 +1172,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         !Utils.isTablet()) {
                                       try {
                                         playerController.danmakuController
-                                            .onClear();
+                                            .clear();
                                       } catch (_) {}
                                       Utils.exitFullScreen();
                                       videoPageController.isFullscreen =

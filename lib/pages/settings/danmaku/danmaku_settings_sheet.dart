@@ -40,24 +40,25 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return SettingsList(
       sections: [
         SettingsSection(
-          title: const Text('弹幕屏蔽'),
+          title: Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
           tiles: [
             SettingsTile.navigation(
               onPressed: (_) {
                 showDanmakuShieldSheet();
               },
-              title: const Text('关键词屏蔽'),
+              title: Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),
             ),
           ],
         ),
         SettingsSection(
-          title: const Text('弹幕样式'),
+          title: Text('弹幕样式', style: TextStyle(fontFamily: fontFamily)),
           tiles: [
             SettingsTile(
-              title: const Text('字体大小'),
+              title: Text('字体大小', style: TextStyle(fontFamily: fontFamily)),
               description: Slider(
                 value: widget.danmakuController.option.fontSize,
                 min: 10,
@@ -76,7 +77,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               ),
             ),
             SettingsTile(
-              title: const Text('弹幕不透明度'),
+              title: Text('弹幕不透明度', style: TextStyle(fontFamily: fontFamily)),
               description: Slider(
                 value: widget.danmakuController.option.opacity,
                 min: 0.1,
@@ -97,10 +98,10 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
           ],
         ),
         SettingsSection(
-          title: const Text('弹幕显示'),
+          title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
           tiles: [
             SettingsTile(
-              title: const Text('弹幕区域'),
+              title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
               description: Slider(
                 value: widget.danmakuController.option.area,
                 min: 0,
@@ -118,21 +119,39 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 },
               ),
             ),
-            SettingsTile(title: const Text('持续时间'),
+            SettingsTile(title: Text('持续时间', style: TextStyle(fontFamily: fontFamily)),
               description: Slider(
                 value: widget.danmakuController.option.duration.toDouble(),
-                min: 4,
+                min: 2,
                 max: 16,
-                divisions: 12,
+                divisions: 14,
                 label:
                     '${widget.danmakuController.option.duration.round()}',
                 onChanged: (value) {
                   setState(() => widget.danmakuController.updateOption(
                         widget.danmakuController.option.copyWith(
-                          duration: value.round(),
+                          duration: value,
                         ),
                       ));
                   setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());
+                },
+              ),
+            ),
+            SettingsTile(
+              title: Text('行高', style: TextStyle(fontFamily: fontFamily)),
+              description: Slider(
+                value: widget.danmakuController.option.lineHeight,
+                min: 0,
+                max: 3,
+                divisions: 30,
+                label: widget.danmakuController.option.lineHeight.toStringAsFixed(1),
+                onChanged: (value) {
+                  setState(() => widget.danmakuController.updateOption(
+                        widget.danmakuController.option.copyWith(
+                          lineHeight: double.parse(value.toStringAsFixed(1)),
+                        ),
+                      ));
+                  setting.put(SettingBoxKey.danmakuLineHeight, double.parse(value.toStringAsFixed(1)));
                 },
               ),
             ),
@@ -146,7 +165,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                     ));
                 setting.put(SettingBoxKey.danmakuTop, show);
               },
-              title: const Text('顶部弹幕'),
+              title: Text('顶部弹幕', style: TextStyle(fontFamily: fontFamily)),
               initialValue: !widget.danmakuController.option.hideTop,
             ),
             SettingsTile.switchTile(
@@ -159,7 +178,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                     ));
                 setting.put(SettingBoxKey.danmakuBottom, show);
               },
-              title: const Text('底部弹幕'),
+              title: Text('底部弹幕', style: TextStyle(fontFamily: fontFamily)),
               initialValue: !widget.danmakuController.option.hideBottom,
             ),
             SettingsTile.switchTile(
@@ -172,7 +191,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                     ));
                 setting.put(SettingBoxKey.danmakuScroll, show);
               },
-              title: const Text('滚动弹幕'),
+              title: Text('滚动弹幕', style: TextStyle(fontFamily: fontFamily)),
               initialValue: !widget.danmakuController.option.hideScroll,
             ),
             SettingsTile.switchTile(
@@ -182,8 +201,8 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 widget.onUpdateDanmakuSpeed?.call();
                 setState(() {});
               },
-              title: const Text('跟随视频倍速'),
-              description: const Text('弹幕速度随视频倍速变化'),
+              title: Text('跟随视频倍速', style: TextStyle(fontFamily: fontFamily)),
+              description: Text('弹幕速度随视频倍速变化', style: TextStyle(fontFamily: fontFamily)),
               initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true),
             ),
           ],

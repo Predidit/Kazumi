@@ -130,6 +130,7 @@ class _AboutPageState extends State<AboutPage> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -147,59 +148,59 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/license');
                   },
-                  title: const Text('开源许可证'),
-                  description: const Text('查看所有开源许可证'),
+                  title: Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看所有开源许可证', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: const Text('外部链接'),
+              title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(Api.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: const Text('项目主页'),
+                  title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(Api.sourceUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: const Text('代码仓库'),
-                  value: const Text('Github'),
+                  title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('Github', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(Api.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: const Text('图标创作'),
-                  value: const Text('Pixiv'),
+                  title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(Api.bangumiIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: const Text('番剧索引'),
-                  value: const Text('Bangumi'),
+                  title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(Api.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: const Text('弹幕来源'),
-                  description: Text('ID: ${mortis['id']}'),
-                  value: const Text('DanDanPlay'),
+                  title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('ID: ${mortis['id']}', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('DanDanPlay', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
-                title: const Text('默认行为'),
+                title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
                   SettingsTile.navigation(
                     onPressed: (_) {
@@ -209,7 +210,7 @@ class _AboutPageState extends State<AboutPage> {
                         menuController.open();
                       }
                     },
-                    title: const Text('关闭时'),
+                    title: Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
                       controller: menuController,
@@ -252,7 +253,7 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/logs');
                   },
-                  title: const Text('错误日志'),
+                  title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -262,15 +263,15 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     _showCacheDialog();
                   },
-                  title: const Text('清除缓存'),
+                  title: Text('清除缓存', style: TextStyle(fontFamily: fontFamily)),
                   value: _cacheSizeMB == -1
-                      ? const Text('统计中...')
-                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB'),
+                      ? Text('统计中...', style: TextStyle(fontFamily: fontFamily))
+                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: const Text('应用更新'),
+              title: Text('应用更新', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -278,15 +279,15 @@ class _AboutPageState extends State<AboutPage> {
                     await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: const Text('自动更新'),
+                  title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
-                  title: const Text('检查更新'),
-                  value: const Text('当前版本 ${Api.version}'),
+                  title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('当前版本 ${Api.version}', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

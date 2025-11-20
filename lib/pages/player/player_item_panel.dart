@@ -77,14 +77,23 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
+  
+  // SVG Caches
+  String? cachedSvgString;
+  Widget? cachedDanmakuOnIcon;
+  Widget? cachedDanmakuOffIcon;
+  Widget? cachedDanmakuSettingIcon;
 
   Future<void> _handleScreenshot() async {
     KazumiDialog.showToast(message: '截图中...');
     try {
       Uint8List? screenshot =
           await playerController.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(screenshot!,
-          fileName: DateTime.timestamp().toString(), skipIfExists: false);
+      final result = await SaverGallery.saveImage(
+        screenshot!,
+        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
+        skipIfExists: false,
+      );
       if (result.isSuccess) {
         KazumiDialog.showToast(message: '截图保存到相簿成功');
       } else {
@@ -290,6 +299,45 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    cacheSvgIcons();
+  }
+  
+  void cacheSvgIcons() {
+    cachedDanmakuOffIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_off.svg',
+        height: 24,
+      ),
+    );
+    
+    cachedDanmakuSettingIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_setting.svg',
+        height: 24,
+      ),
+    );
+  }
+  
+  Widget danmakuOnIcon(BuildContext context) {
+    final colorHex = Theme.of(context)
+        .colorScheme
+        .primary
+        .toARGB32()
+        .toRadixString(16)
+        .substring(2);
+    
+    if (cachedSvgString != colorHex) {
+      cachedSvgString = colorHex;
+      final svgString = danmakuOnSvg.replaceFirst('00AEEC', colorHex);
+      cachedDanmakuOnIcon = RepaintBoundary(
+        child: SvgPicture.string(
+          svgString,
+          height: 24,
+        ),
+      );
+    }
+    
+    return cachedDanmakuOnIcon!;
   }
 
   Widget forwardIcon() {
@@ -573,14 +621,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   Widget get bottomControlWidget {
-    final svgString = danmakuOnSvg.replaceFirst(
-        '00AEEC',
-        Theme.of(context)
-            .colorScheme
-            .primary
-            .toARGB32()
-            .toRadixString(16)
-            .substring(2));
     return Observer(
       builder: (context) {
         return SafeArea(
@@ -716,14 +756,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     IconButton(
                                       color: Colors.white,
                                       icon: playerController.danmakuOn
-                                          ? SvgPicture.string(
-                                              svgString,
-                                              height: 24,
-                                            )
-                                          : SvgPicture.asset(
-                                              'assets/images/danmaku_off.svg',
-                                              height: 24,
-                                            ),
+                                          ? danmakuOnIcon(context)
+                                          : cachedDanmakuOffIcon!,
                                       onPressed: () {
                                         widget.handleDanmaku();
                                       },
@@ -765,10 +799,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                             });
                                       },
                                       color: Colors.white,
-                                      icon: SvgPicture.asset(
-                                        'assets/images/danmaku_setting.svg',
-                                        height: 24,
-                                      ),
+                                      icon: cachedDanmakuSettingIcon!,
                                     ),
                                     if (isSpaceEnough) danmakuTextField,
                                   ],
@@ -781,14 +812,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: playerController.danmakuOn
-                              ? SvgPicture.string(
-                                  svgString,
-                                  height: 24,
-                                )
-                              : SvgPicture.asset(
-                                  'assets/images/danmaku_off.svg',
-                                  height: 24,
-                                ),
+                              ? danmakuOnIcon(context)
+                              : cachedDanmakuOffIcon!,
                           onPressed: () {
                             widget.handleDanmaku();
                           },
@@ -823,10 +848,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   });
                             },
                             color: Colors.white,
-                            icon: SvgPicture.asset(
-                              'assets/images/danmaku_setting.svg',
-                              height: 24,
-                            ),
+                            icon: cachedDanmakuSettingIcon!,
                           ),
                           Expanded(child: danmakuTextField),
                         ],

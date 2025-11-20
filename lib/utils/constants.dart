@@ -215,7 +215,7 @@ final List<String> defaultAnimeTags = const [
     'togglemute': ['M'],
     'fullscreen': ['F'],
     'exitfullscreen': ['Escape'],
-    'toggledanmaku': ['B'],
+    'toggledanmaku': ['D'],
     'screenshot': ['S'],
     'skip': ['K'],
     'speed1': ['1'],

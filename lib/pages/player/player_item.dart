@@ -30,6 +30,10 @@ import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:saver_gallery/saver_gallery.dart';
+
+
+
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -69,6 +73,8 @@ class _PlayerItemState extends State<PlayerItem>
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
   late Map<String, List<String>> keyboardShortcuts;
+  late Map<String, void Function()> keyboardActions;
+
 
   // 1. 在看
   // 2. 想看
@@ -130,18 +136,112 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _loadShortcuts() {
     keyboardShortcuts = {
-      '播放/暂停': setting.get('shortcut_播放/暂停', defaultValue: [' ']).cast<String>(),
-      '快进': setting.get('shortcut_快进', defaultValue: ['Arrow Right']).cast<String>(),
-      '快退': setting.get('shortcut_快退', defaultValue: ['Arrow Left']).cast<String>(),
-      '音量加': setting.get('shortcut_音量+', defaultValue: ['Arrow Up']).cast<String>(),
-      '音量减': setting.get('shortcut_音量-', defaultValue: ['Arrow Down']).cast<String>(),
-      '静音': setting.get('shortcut_静音', defaultValue: ['M']).cast<String>(),
-      '全屏': setting.get('shortcut_全屏', defaultValue: ['F']).cast<String>(),
-      '退出全屏': setting.get('shortcut_退出全屏', defaultValue: ['Escape']).cast<String>(),
-      '弹幕开关': setting.get('shortcut_弹幕开关', defaultValue: ['D']).cast<String>(),
-      '1倍速': setting.get('shortcut_1倍速', defaultValue: ['1']).cast<String>(),
-      '2倍速': setting.get('shortcut_2倍速', defaultValue: ['2']).cast<String>(),
-      '3倍速': setting.get('shortcut_3倍速', defaultValue: ['3']).cast<String>(),
+      'playorpause': setting.get('shortcut_playorpause', defaultValue: [' ']).cast<String>(),
+      'forward': setting.get('shortcut_forward', defaultValue: ['Arrow Right']).cast<String>(),
+      'rewind': setting.get('shortcut_rewind', defaultValue: ['Arrow Left']).cast<String>(),
+      'volumeup': setting.get('shortcut_volumeup', defaultValue: ['Arrow Up']).cast<String>(),
+      'volumedown': setting.get('shortcut_volumedown', defaultValue: ['Arrow Down']).cast<String>(),
+      'togglemute': setting.get('shortcut_togglemute', defaultValue: ['M']).cast<String>(),
+      'fullscreen': setting.get('shortcut_fullscreen', defaultValue: ['F']).cast<String>(),
+      'exitfullscreen': setting.get('shortcut_exitfullscreen', defaultValue: ['Escape']).cast<String>(),
+      'screenshot': setting.get('shortcut_screenshot', defaultValue: ['S']).cast<String>(),
+      'skip': setting.get('shortcut_skip', defaultValue: ['K']).cast<String>(),
+      'toggledanmaku': setting.get('shortcut_toggledanmaku', defaultValue: ['D']).cast<String>(),
+      'speed1': setting.get('shortcut_speed1', defaultValue: ['1']).cast<String>(),
+      'speed2': setting.get('shortcut_speed2', defaultValue: ['2']).cast<String>(),
+      'speed3': setting.get('shortcut_speed3', defaultValue: ['3']).cast<String>(),
+    };
+  }
+
+  void _initKeyboardActions(){
+    keyboardActions = {
+      'playorpause': () async {
+        try {
+          playerController.playOrPause();
+        } catch (e) {
+          KazumiLogger().log(
+              Level.error, '播放器内部错误 ${e.toString()}');
+        }
+      },
+      'forward': () async {
+        int targetPosition = playerController.currentPosition.inSeconds +
+            playerController.arrowKeySkipTime;
+
+        final total = playerController.playerDuration.inSeconds;
+          if (targetPosition > total) {
+          targetPosition = total;
+        }
+
+        try {
+          playerTimer?.cancel();
+          playerController.seek(
+            Duration(seconds: targetPosition),
+          );
+          playerTimer = getPlayerTimer();
+        } catch (e) {
+          KazumiLogger()
+              .log(Level.error, e.toString()
+          );
+        }
+      },
+      'rewind': () async {
+        int targetPosition = playerController
+                .currentPosition.inSeconds -
+            playerController.arrowKeySkipTime;
+        if (targetPosition < 0) {
+          targetPosition = 0;
+        }
+        try {
+          playerTimer?.cancel();
+          playerController.seek(
+              Duration(seconds: targetPosition));
+          playerTimer = getPlayerTimer();
+        } catch (e) {
+          KazumiLogger()
+              .log(Level.error, e.toString());
+        }
+      },
+      'volumeup': () async {
+        increaseVolume();
+        _handleKeyChangingVolume();
+      },
+      'volumedown': () async {
+        decreaseVolume();
+        _handleKeyChangingVolume();
+      },
+      'togglemute': () async {
+        toggleMute();
+        _handleKeyChangingVolume();
+      },
+      'fullscreen': () async {
+        if (!videoPageController.isPip) handleFullscreen();
+      },
+      'screenshot': () async {
+        _handleScreenshot();
+      },
+      'skip': () async {
+        playerController.seek(playerController.currentPosition +
+            Duration(seconds: playerController.buttonSkipTime));
+      },
+      'exitfullscreen': () async {
+        if (videoPageController.isFullscreen &&
+            !Utils.isTablet()) {
+          try {
+            playerController.danmakuController
+                .clear();
+          } catch (_) {}
+          Utils.exitFullScreen();
+          videoPageController.isFullscreen =
+              !videoPageController.isFullscreen;
+        } else if (!Platform.isMacOS) {
+          playerController.pause();
+          windowManager.hide();
+        }
+      },
+      'toggledanmaku': handleDanmaku,
+      'speed1': () => setPlaybackSpeed(1.0),
+      'speed2': () => setPlaybackSpeed(2.0),
+      'speed3': () => setPlaybackSpeed(3.0),
     };
   }
 
@@ -243,6 +343,36 @@ class _PlayerItemState extends State<PlayerItem>
     startHideTimer();
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
+  }
+
+  void _handleScreenshot() async {
+    KazumiDialog.showToast(message: '截图中...');
+    try {
+      Uint8List? screenshot =
+          await playerController.screenshot(format: 'image/png');
+
+      if (screenshot == null) {
+        KazumiDialog.showToast(message: '截图失败：未获取到图像');
+        return;
+      }
+
+      if (Utils.isDesktop()) {
+        KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
+        return;
+      }
+      final result = await SaverGallery.saveImage(
+        screenshot,
+        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
+        skipIfExists: false,
+      );
+      if (result.isSuccess) {
+        KazumiDialog.showToast(message: '截图保存到相簿成功');
+      } else {
+        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
+      }
+    } catch (e) {
+      KazumiDialog.showToast(message: '截图失败：$e');
+    }
   }
 
   // 启用超分辨率（质量档）时弹出提示
@@ -1009,6 +1139,7 @@ class _PlayerItemState extends State<PlayerItem>
   void initState() {
     super.initState();
     _loadShortcuts();
+    _initKeyboardActions();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1146,92 +1277,20 @@ class _PlayerItemState extends State<PlayerItem>
                                       ? event.logicalKey.keyLabel
                                       : event.logicalKey.debugName ?? '';
 
-                                  if (keyboardShortcuts['播放/暂停']!.contains(keyLabel)) {
-                                    try {
-                                      playerController.playOrPause();
-                                    } catch (e) {
-                                      KazumiLogger().log(
-                                          Level.error, '播放器内部错误 ${e.toString()}');
+                                    for (final entry in keyboardShortcuts.entries) {
+                                      final func = entry.key;
+                                      final keys = entry.value;
+
+                                      if (keys.contains(keyLabel)) {
+                                        final action = keyboardActions[func];
+                                        if (action != null) {
+                                          action();
+                                          return KeyEventResult.handled;
+                                        }
+                                      }
                                     }
-                                  } else if (keyboardShortcuts['快进']!.contains(keyLabel)) {
-                                    lastPlayerSpeed =
-                                        playerController.playerSpeed;
-                                  } else if (keyboardShortcuts['快退']!.contains(keyLabel)) {
-                                    int targetPosition = playerController
-                                            .currentPosition.inSeconds -
-                                        playerController.arrowKeySkipTime;
-                                    if (targetPosition < 0) {
-                                      targetPosition = 0;
-                                    }
-                                    try {
-                                      playerTimer?.cancel();
-                                      playerController.seek(
-                                          Duration(seconds: targetPosition));
-                                      playerTimer = getPlayerTimer();
-                                    } catch (e) {
-                                      KazumiLogger()
-                                          .log(Level.error, e.toString());
-                                    }
-                                  } else if (keyboardShortcuts['音量加']!.contains(keyLabel)) {
-                                    increaseVolume();
-                                    _handleKeyChangingVolume();
-                                  } else if (keyboardShortcuts['音量减']!.contains(keyLabel)) {
-                                    decreaseVolume();
-                                    _handleKeyChangingVolume();
-                                  } else if (keyboardShortcuts['静音']!.contains(keyLabel)) {
-                                    toggleMute();
-                                  } else if (keyboardShortcuts['退出全屏']!.contains(keyLabel)) {
-                                    if (videoPageController.isFullscreen &&
-                                        !Utils.isTablet()) {
-                                      try {
-                                        playerController.danmakuController
-                                            .clear();
-                                      } catch (_) {}
-                                      Utils.exitFullScreen();
-                                      videoPageController.isFullscreen =
-                                          !videoPageController.isFullscreen;
-                                    } else if (!Platform.isMacOS) {
-                                      playerController.pause();
-                                      windowManager.hide();
-                                    }
-                                  } else if (keyboardShortcuts['全屏']!.contains(keyLabel)) {
-                                    if (!videoPageController.isPip) {
-                                      handleFullscreen();
-                                    }
-                                  } else if (keyboardShortcuts['弹幕开关']!.contains(keyLabel)) {
-                                    handleDanmaku();
-                                  } else if (keyboardShortcuts['1倍速']!.contains(keyLabel)) {
-                                    setPlaybackSpeed(1.0);
-                                  } else if (keyboardShortcuts['2倍速']!.contains(keyLabel)) {
-                                    setPlaybackSpeed(2.0);
-                                  } else if (keyboardShortcuts['3倍速']!.contains(keyLabel)) {
-                                    setPlaybackSpeed(3.0);
-                                  }
-                                } else if (event is KeyUpEvent) {
-                                  final keyLabel = event.logicalKey.keyLabel.isNotEmpty
-                                      ? event.logicalKey.keyLabel
-                                      : event.logicalKey.debugName ?? '';
-                                if (keyboardShortcuts['快进']!.contains(keyLabel)) {
-                                  if (playerController.showPlaySpeed) {
-                                    playerController.showPlaySpeed = false;
-                                    setPlaybackSpeed(lastPlayerSpeed);
-                                  } else {
-                                    try {
-                                      playerTimer?.cancel();
-                                      playerController.seek(Duration(
-                                          seconds: playerController
-                                                  .currentPosition.inSeconds +
-                                              playerController
-                                                  .arrowKeySkipTime));
-                                      playerTimer = getPlayerTimer();
-                                    } catch (e) {
-                                      KazumiLogger().log(Level.error,
-                                          '播放器内部错误 ${e.toString()}');
-                                    }
-                                  }
-                                }
-                              }
-                                return KeyEventResult.handled;
+                                } 
+                                return KeyEventResult.ignored;
                               },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
@@ -1335,6 +1394,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
                             disableAnimations: widget.disableAnimations,
+                            handleScreenShot: _handleScreenshot,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,

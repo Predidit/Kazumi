@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 
 
 class KeyboardSettingsPage extends StatefulWidget {
@@ -16,49 +18,26 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   Box setting = GStorage.setting;
 
   Map<String, List<String>> shortcuts = {
-    '播放/暂停': [],
-    '快进': [],
-    '快退': [],
-    '音量加': [],
-    '音量减': [],
-    '静音': [],
-    '全屏': [],
-    '退出全屏': [],
-    '弹幕开关': [],
-    '1倍速': [],
-    '2倍速': [],
-    '3倍速': [],
-  };
-  Map<String, List<String>> defaultShortcuts = {
-    '播放/暂停': [' '], // 空格
-    '快进': ['Arrow Right'],
-    '快退': ['Arrow Left'],
-    '音量加': ['Arrow Up'],
-    '音量减': ['Arrow Down'],
-    '静音': ['M'],
-    '全屏': ['F'],
-    '退出全屏': ['Escape'],
-    '弹幕开关': ['B'],
-    '1倍速': ['1'],
-    '2倍速': ['2'],
-    '3倍速': ['3'],
+    'playorpause': [],
+    'forward': [],
+    'rewind': [],
+    'volumeup': [],
+    'volumedown': [],
+    'togglemute': [],
+    'fullscreen': [],
+    'exitfullscreen': [],
+    'toggledanmaku': [],
+    'screenshot': [],
+    'skip': [],
+    'speed1': [],
+    'speed2': [],
+    'speed3': [],
   };
 
   String? listeningFunction;
   int? listeningIndex;
 
   final FocusNode focusNode = FocusNode();
-
-  final Map<String, String> keyAliases = {
-    ' ': '空格',
-    'Arrow Up': '↑',
-    'Arrow Down': '↓',
-    'Arrow Left': '←',
-    'Arrow Right': '→',
-    'Enter': '回车',
-    'Tab': 'Tab',
-    'Escape': 'Esc',
-  };
 
   @override
   void initState() {
@@ -128,6 +107,30 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   : event.logicalKey.debugName ?? '';
 
               final func = listeningFunction!;
+              final index = listeningIndex!;
+              bool conflict = false;
+              String conflictFunc = "";
+
+              for (final entry in shortcuts.entries) {
+                final otherFunc = entry.key;
+                final otherKeys = entry.value;
+
+                for (int i = 0; i < otherKeys.length; i++) {
+                  if (otherFunc == func && i == index) continue;
+                  if (otherKeys[i] == keyLabel) {
+                    conflict = true;
+                    conflictFunc = shortcutsChineseName[otherFunc] ?? otherFunc;
+                    break;
+                  }
+                }
+                if (conflict) break;
+              }
+                if (conflict) {
+                  KazumiDialog.showToast(message: "按键已被【$conflictFunc】占用，请重新输入");
+                  // 不退出监听，不保存，不覆盖，保持“按键中...”
+                  return KeyEventResult.handled;
+                }
+
               setState(() {
                 shortcuts[func]![listeningIndex!] = keyLabel; // 保存原始按键值
                 listeningFunction = null;
@@ -150,8 +153,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(func,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        shortcutsChineseName[func] ?? func,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,

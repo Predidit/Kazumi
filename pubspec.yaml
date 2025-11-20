@@ -91,6 +91,7 @@ dependencies:
   html: any
   material_color_utilities: any
   path: any
+  gamepads: ^0.1.8
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

@@ -31,6 +31,7 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
+import 'package:gamepads/gamepads.dart';
 
 
 
@@ -74,6 +75,7 @@ class _PlayerItemState extends State<PlayerItem>
   final MyController myController = Modular.get<MyController>();
   late Map<String, List<String>> keyboardShortcuts;
   late Map<String, void Function()> keyboardActions;
+  StreamSubscription<GamepadEvent>? _gamepadSub;
 
 
   // 1. 在看
@@ -161,6 +163,33 @@ class _PlayerItemState extends State<PlayerItem>
       'speed3': () async => setPlaybackSpeed(3.0),
     };
   }
+  bool handleShortcutInput(String keyLabel) {
+    for (final entry in keyboardShortcuts.entries) {
+      final func = entry.key;
+      final keys = entry.value;
+      if (keys.contains(keyLabel)) {
+        final action = keyboardActions[func];
+        if (action != null) {
+          action();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void _onGamepadEvent(GamepadEvent event) {
+    if (event.value.abs() < 0.5) return; //中心死区
+    String rawKey = event.key;
+    double rawValue = event.value;
+    if (axisMapping.containsKey(rawKey)) {
+      final map = axisMapping[rawKey]!;
+      int direction = rawValue.sign.toInt(); 
+      rawKey = map[direction]!; 
+    }
+    handleShortcutInput(rawKey);
+  }
+
 
   //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async{
@@ -1146,6 +1175,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
+    _gamepadSub = Gamepads.events.listen(_onGamepadEvent);
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1211,6 +1241,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
+    _gamepadSub?.cancel();
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;
@@ -1274,30 +1305,19 @@ class _PlayerItemState extends State<PlayerItem>
                         child: Focus(
                             // workaround for #461
                             // I don't know why, but the focus node will break popscope.
-                            focusNode:
-                                Utils.isDesktop() ? widget.keyboardFocus : null,
-                            autofocus: Utils.isDesktop(),
+                            focusNode: widget.keyboardFocus,
+                            autofocus: true,
                             onKeyEvent: (focusNode, KeyEvent event) {
-                                if (event is KeyDownEvent) {
-                                  final keyLabel = event.logicalKey.keyLabel.isNotEmpty
-                                      ? event.logicalKey.keyLabel
-                                      : event.logicalKey.debugName ?? '';
-
-                                    for (final entry in keyboardShortcuts.entries) {
-                                      final func = entry.key;
-                                      final keys = entry.value;
-
-                                      if (keys.contains(keyLabel)) {
-                                        final action = keyboardActions[func];
-                                        if (action != null) {
-                                          action();
-                                          return KeyEventResult.handled;
-                                        }
-                                      }
+                              if (event is KeyDownEvent) {
+                                final keyLabel = event.logicalKey.keyLabel.isNotEmpty
+                                    ? event.logicalKey.keyLabel
+                                    : event.logicalKey.debugName ?? '';
+                                    if (handleShortcutInput(keyLabel)) {
+                                      return KeyEventResult.handled;
                                     }
-                                } 
-                                return KeyEventResult.ignored;
-                              },
+                              } 
+                              return KeyEventResult.ignored;
+                            },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
                             videoPageController.loading)

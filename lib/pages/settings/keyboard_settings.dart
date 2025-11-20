@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -5,7 +6,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-
+import 'package:gamepads/gamepads.dart';
 
 class KeyboardSettingsPage extends StatefulWidget {
   const KeyboardSettingsPage({super.key});
@@ -22,6 +23,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   late Map<String, List<String>> shortcuts;
 
   final FocusNode focusNode = FocusNode();
+  StreamSubscription<GamepadEvent>? _gamepadSub;
 
   @override
   void initState() {
@@ -33,12 +35,58 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                 defaultValue: defaultShortcuts[key]?.toList() ?? <String>[]) 
               ?.cast<String>() ?? [])
     };
+    // 监听手柄事件
+    _gamepadSub = Gamepads.events.listen(_onGamepadEvent);
   }
 
   @override
   void dispose() {
     focusNode.dispose();
+    _gamepadSub?.cancel();
     super.dispose();
+  }
+  bool handleShortcutInput(String rawKey) {
+    if (listeningFunction == null || listeningIndex == null) return false;
+
+    final func = listeningFunction!;
+    final index = listeningIndex!;
+
+    // 冲突规避
+    for (final entry in shortcuts.entries) {
+      final otherFunc = entry.key;
+      final otherKeys = entry.value;
+
+      for (int i = 0; i < otherKeys.length; i++) {
+        if (otherFunc == func && i == index) continue;
+        if (otherKeys[i] == rawKey) {
+          final name = shortcutsChineseName[otherFunc] ?? otherFunc;
+          KazumiDialog.showToast(message: "按键已被【$name】占用，请重新输入");
+          return true;
+        }
+      }
+    }
+    setState(() {
+      shortcuts[func]![index] = rawKey;
+      listeningFunction = null;
+      listeningIndex = null;
+    });
+    setting.put('shortcut_$func', shortcuts[func]);
+
+    return true;
+  }
+
+  void _onGamepadEvent(GamepadEvent event) {
+    if (event.value.abs() < 0.5) return; //中心死区
+    if (listeningFunction == null) return;
+
+    String rawKey = event.key;
+    double rawValue = event.value;
+    if (axisMapping.containsKey(rawKey)) {
+      final map = axisMapping[rawKey]!;
+      int direction = rawValue.sign.toInt(); 
+      rawKey = map[direction]!; 
+    }
+    handleShortcutInput(rawKey);
   }
 
   void startListening(String func, int index) {
@@ -53,15 +101,11 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     });
   }
 
-  void saveShortcuts(String func) {
-    setting.put('shortcut_$func', shortcuts[func]);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
-        title: Text('键盘快捷键'),
+        title: Text('快捷键'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -70,13 +114,12 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
               setState(() {
                 for (final func in shortcuts.keys) {
                   shortcuts[func] = defaultShortcuts[func]?.toList() ?? [];
-                  saveShortcuts(func);
+                  setting.put('shortcut_$func', shortcuts[func]);
                 }
               });
             },
           ),
         ],
-      
       ),
       body: FocusScope(
         autofocus: true,
@@ -84,48 +127,15 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           focusNode: focusNode,
           autofocus: true,
           onKeyEvent: (node, event) {
-            if (listeningFunction == null || listeningIndex == null) return KeyEventResult.ignored;
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (listeningFunction == null) return KeyEventResult.ignored;
 
-            if (event is KeyDownEvent) {
-              // 捕获原始按键值
-              String keyLabel = event.logicalKey.keyLabel.isNotEmpty
-                  ? event.logicalKey.keyLabel
-                  : event.logicalKey.debugName ?? '';
+            final rawKey = event.logicalKey.keyLabel.isNotEmpty
+                ? event.logicalKey.keyLabel
+                : event.logicalKey.debugName ?? '';
 
-              final func = listeningFunction!;
-              final index = listeningIndex!;
-              bool conflict = false;
-              String conflictFunc = "";
-
-              for (final entry in shortcuts.entries) {
-                final otherFunc = entry.key;
-                final otherKeys = entry.value;
-
-                for (int i = 0; i < otherKeys.length; i++) {
-                  if (otherFunc == func && i == index) continue;
-                  if (otherKeys[i] == keyLabel) {
-                    conflict = true;
-                    conflictFunc = shortcutsChineseName[otherFunc] ?? otherFunc;
-                    break;
-                  }
-                }
-                if (conflict) break;
-              }
-                if (conflict) {
-                  KazumiDialog.showToast(message: "按键已被【$conflictFunc】占用，请重新输入");
-                  // 不退出监听，不保存，不覆盖，保持“按键中...”
-                  return KeyEventResult.handled;
-                }
-
-              setState(() {
-                shortcuts[func]![listeningIndex!] = keyLabel; // 保存原始按键值
-                listeningFunction = null;
-                listeningIndex = null;
-              });
-              saveShortcuts(func);
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
+            final handled = handleShortcutInput(rawKey);
+            return handled ? KeyEventResult.handled : KeyEventResult.ignored;
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -151,16 +161,13 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                           for (int i = 0; i < keys.length; i++)
                             GestureDetector(
                               onLongPress: () {
-                                setState(() {
-                                  keys.removeAt(i);
-                                });
-                                saveShortcuts(func);
+                                setState(() => keys.removeAt(i));
+                                setting.put('shortcut_$func', keys);
                               },
                               child: ActionChip(
                                 label: Text(
-                                  keys[i].isEmpty
-                                      ? '未设置'
-                                      : (keyAliases[keys[i]] ?? keys[i]), // 仅显示别名
+                                  keyAliases[keys[i]] ??
+                                      (keys[i].isEmpty ? '未设置' : keys[i]),
                                 ),
                                 onPressed: () => startListening(func, i),
                                 avatar: const Icon(Icons.edit),
@@ -168,13 +175,12 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                                 focusNode: FocusNode(canRequestFocus: false),
                               ),
                             ),
-                          // 添加新快捷键
+                          // 添加快捷键
                           ActionChip(
                             label: const Text("+"),
                             onPressed: () {
-                              setState(() {
-                                keys.add('');
-                              });
+                              setState(() => keys.add(''));
+                              setting.put('shortcut_$func', keys);
                             },
                             focusNode: FocusNode(canRequestFocus: false),
                           ),

@@ -37,6 +37,8 @@ abstract class _PlayerController with Store {
   Map<int, List<Danmaku>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
+  @observable
+  bool danmakuLoading = false;
 
   // 一起看控制器
   SyncplayClient? syncplayController;
@@ -515,7 +517,14 @@ abstract class _PlayerController with Store {
 
   Future<void> getDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
+    // 并发控制：如果已经在加载，直接返回
+    if (danmakuLoading) {
+      KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
+      return;
+    }
+
     KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
+    danmakuLoading = true;
     try {
       danDanmakus.clear();
       bangumiID =
@@ -524,17 +533,28 @@ abstract class _PlayerController with Store {
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+    } finally {
+      danmakuLoading = false;
     }
   }
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
+    // 并发控制：如果已经在加载，直接返回
+    if (danmakuLoading) {
+      KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
+      return;
+    }
+
     KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
+    danmakuLoading = true;
     try {
       danDanmakus.clear();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+    } finally {
+      danmakuLoading = false;
     }
   }
 

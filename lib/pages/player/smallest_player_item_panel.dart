@@ -78,6 +78,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   Widget? cachedDanmakuOnIcon;
   Widget? cachedDanmakuOffIcon;
 
+  // 常量定义
+  static const double _danmakuIconSize = 24.0;
+  static const double _loadingIndicatorStrokeWidth = 2.0;
+
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
       String input = "";
@@ -155,7 +159,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
         'assets/images/danmaku_off.svg',
-        height: 24,
+        height: _danmakuIconSize,
       ),
     );
   }
@@ -167,19 +171,48 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
         .toARGB32()
         .toRadixString(16)
         .substring(2);
-    
+
     if (cachedSvgString != colorHex) {
       cachedSvgString = colorHex;
       final svgString = danmakuOnSvg.replaceFirst('00AEEC', colorHex);
       cachedDanmakuOnIcon = RepaintBoundary(
         child: SvgPicture.string(
           svgString,
-          height: 24,
+          height: _danmakuIconSize,
         ),
       );
     }
-    
+
     return cachedDanmakuOnIcon!;
+  }
+
+  /// 构建弹幕开关按钮
+  Widget _buildDanmakuToggleButton(BuildContext context, {bool showKeyboardShortcut = false}) {
+    return IconButton(
+      color: Colors.white,
+      icon: playerController.danmakuLoading
+          ? SizedBox(
+              width: _danmakuIconSize,
+              height: _danmakuIconSize,
+              child: CircularProgressIndicator(
+                strokeWidth: _loadingIndicatorStrokeWidth,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : (playerController.danmakuOn
+              ? danmakuOnIcon(context)
+              : cachedDanmakuOffIcon!),
+      onPressed: playerController.danmakuLoading
+          ? null
+          : () {
+              widget.handleDanmaku();
+            },
+      tooltip: playerController.danmakuLoading
+          ? '弹幕加载中...'
+          : (playerController.danmakuOn
+              ? '关闭弹幕${showKeyboardShortcut ? "(d)" : ""}'
+              : '打开弹幕${showKeyboardShortcut ? "(d)" : ""}'),
+    );
   }
 
   Widget forwardIcon() {
@@ -535,16 +568,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: const Icon(Icons.picture_in_picture,
                       color: Colors.white)),
             // 弹幕开关
-            IconButton(
-              color: Colors.white,
-              icon: playerController.danmakuOn
-                  ? danmakuOnIcon(context)
-                  : cachedDanmakuOffIcon!,
-              onPressed: () {
-                widget.handleDanmaku();
-              },
-              tooltip: playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
-            ),
+            _buildDanmakuToggleButton(context),
             // 追番
             CollectButton(
               bangumiItem: videoPageController.bangumiItem,

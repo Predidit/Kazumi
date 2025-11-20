@@ -300,6 +300,7 @@ class _PlayerItemState extends State<PlayerItem>
       setState(() {
         playerController.danmakuOn = false;
       });
+      setting.put(SettingBoxKey.danmakuEnabledByDefault, false);
       return;
     }
     // if false and empty, show dialog.
@@ -311,6 +312,7 @@ class _PlayerItemState extends State<PlayerItem>
     setState(() {
       playerController.danmakuOn = true;
     });
+    setting.put(SettingBoxKey.danmakuEnabledByDefault, true);
   }
 
   Future<void> _uploadHistoryToWebDav() async {
@@ -669,11 +671,15 @@ class _PlayerItemState extends State<PlayerItem>
                       children: danmakuEpisodeResponse.episodes.map((episode) {
                         return ListTile(
                           title: Text(episode.episodeTitle),
-                          onTap: () {
+                          onTap: () async {
                             KazumiDialog.dismiss();
-                            KazumiDialog.showToast(message: '弹幕切换中');
-                            playerController
-                                .getDanDanmakuByEpisodeID(episode.episodeId);
+                            try {
+                              await playerController
+                                  .getDanDanmakuByEpisodeID(episode.episodeId);
+                              KazumiDialog.showToast(message: '弹幕切换成功');
+                            } catch (e) {
+                              KazumiDialog.showToast(message: '弹幕切换失败');
+                            }
                           },
                         );
                       }).toList(),

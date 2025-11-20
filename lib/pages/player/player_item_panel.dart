@@ -91,26 +91,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
 
-  Future<void> _handleScreenshot() async {
-    KazumiDialog.showToast(message: '截图中...');
-    try {
-      Uint8List? screenshot =
-          await playerController.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(
-        screenshot!,
-        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
-        skipIfExists: false,
-      );
-      if (result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存到相簿成功');
-      } else {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
-    }
-  }
-
   Widget get danmakuTextField {
     return Container(
       constraints: Utils.isDesktop()

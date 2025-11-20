@@ -107,6 +107,8 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
 
+  double lastVolume = 0;
+
   // 过渡动画控制器
   AnimationController? animationController;
 
@@ -350,6 +352,15 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> decreaseVolume() async {
     await playerController.setVolume(playerController.volume - 10);
+  }
+
+  Future<void> toggleMute() async {
+    if (playerController.volume > 0) {
+      lastVolume = playerController.volume;
+      await playerController.setVolume(0);
+    } else {
+      await playerController.setVolume(lastVolume);
+    }
   }
 
   Future<void> setBrightness(double value) async {
@@ -1167,6 +1178,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   } else if (keyboardShortcuts['音量减']!.contains(keyLabel)) {
                                     decreaseVolume();
                                     _handleKeyChangingVolume();
+                                  } else if (keyboardShortcuts['静音']!.contains(keyLabel)) {
+                                    toggleMute();
                                   } else if (keyboardShortcuts['退出全屏']!.contains(keyLabel)) {
                                     if (videoPageController.isFullscreen &&
                                         !Utils.isTablet()) {
@@ -1194,7 +1207,30 @@ class _PlayerItemState extends State<PlayerItem>
                                   } else if (keyboardShortcuts['3倍速']!.contains(keyLabel)) {
                                     setPlaybackSpeed(3.0);
                                   }
+                                } else if (event is KeyUpEvent) {
+                                  final keyLabel = event.logicalKey.keyLabel.isNotEmpty
+                                      ? event.logicalKey.keyLabel
+                                      : event.logicalKey.debugName ?? '';
+                                if (keyboardShortcuts['快进']!.contains(keyLabel)) {
+                                  if (playerController.showPlaySpeed) {
+                                    playerController.showPlaySpeed = false;
+                                    setPlaybackSpeed(lastPlayerSpeed);
+                                  } else {
+                                    try {
+                                      playerTimer?.cancel();
+                                      playerController.seek(Duration(
+                                          seconds: playerController
+                                                  .currentPosition.inSeconds +
+                                              playerController
+                                                  .arrowKeySkipTime));
+                                      playerTimer = getPlayerTimer();
+                                    } catch (e) {
+                                      KazumiLogger().log(Level.error,
+                                          '播放器内部错误 ${e.toString()}');
+                                    }
+                                  }
                                 }
+                              }
                                 return KeyEventResult.handled;
                               },
                             child: const PlayerItemSurface())),

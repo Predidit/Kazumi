@@ -90,11 +90,11 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/control');
+                    Modular.to.pushNamed('/settings/keyboard');
                   },
                   leading: const Icon(Icons.keyboard_rounded),
                   title: const Text('操作设置'),
-                  description: const Text('设置操作相关参数'),
+                  description: const Text('设置播放器按键映射'),
                 ),
               ],
             ),

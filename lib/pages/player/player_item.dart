@@ -106,8 +106,6 @@ class _PlayerItemState extends State<PlayerItem>
   // 硬件解码
   late bool haEnable;
 
-  late bool touchBetter;
-
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
@@ -246,7 +244,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
-    if (!touchBetter) {
+    if (Utils.isDesktop()) {
       playerController.playOrPause();
     } else {
       if (playerController.showVideoController) {
@@ -258,7 +256,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap() {
-    if (!touchBetter && !videoPageController.isPip) {
+    if (Utils.isDesktop() && !videoPageController.isPip) {
       handleFullscreen();
     } else {
       playerController.playOrPause();
@@ -1186,7 +1184,6 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
-    touchBetter = setting.get(SettingBoxKey.touchBetter, defaultValue: false);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
@@ -1269,8 +1266,9 @@ class _PlayerItemState extends State<PlayerItem>
                         child: Focus(
                             // workaround for #461
                             // I don't know why, but the focus node will break popscope.
-                            focusNode: widget.keyboardFocus,
-                            autofocus: true,
+                            focusNode:
+                                Utils.isDesktop() ? widget.keyboardFocus : null,
+                            autofocus: Utils.isDesktop(),
                             onKeyEvent: (focusNode, KeyEvent event) {
                                 if (event is KeyDownEvent) {
                                   final keyLabel = event.logicalKey.keyLabel.isNotEmpty
@@ -1425,7 +1423,7 @@ class _PlayerItemState extends State<PlayerItem>
                       top: 25,
                       right: 15,
                       bottom: 15,
-                      child: (!touchBetter || playerController.lockPanel)
+                      child: (Utils.isDesktop() || playerController.lockPanel)
                           ? Container()
                           : GestureDetector(
                               onHorizontalDragStart: (_) {
@@ -1477,35 +1475,26 @@ class _PlayerItemState extends State<PlayerItem>
                                 final double sectionWidth = totalWidth / 2;
                                 final double delta = details.delta.dy;
 
-                                if(Utils.isDesktop()){
+                                if (tapPosition < sectionWidth) {
+                                  // 左边区域
+                                  playerController.brightnessSeeking = true;
+                                  playerController.showBrightness = true;
+                                  final double level = (totalHeight) * 2;
+                                  final double brightness =
+                                      playerController.brightness -
+                                          delta / level;
+                                  final double result =
+                                      brightness.clamp(0.0, 1.0);
+                                  setBrightness(result);
+                                  playerController.brightness = result;
+                                } else {
+                                  // 右边区域
                                   playerController.volumeSeeking = true;
-                                    playerController.showVolume = true;
-                                    final double level = (totalHeight) * 0.03;
-                                    final double volume =
-                                        playerController.volume - delta / level;
-                                    playerController.setVolume(volume);
-                                } else{
-                                  if (tapPosition < sectionWidth) {
-                                    // 左边区域
-                                    playerController.brightnessSeeking = true;
-                                    playerController.showBrightness = true;
-                                    final double level = (totalHeight) * 2;
-                                    final double brightness =
-                                        playerController.brightness -
-                                            delta / level;
-                                    final double result =
-                                        brightness.clamp(0.0, 1.0);
-                                    setBrightness(result);
-                                    playerController.brightness = result;
-                                  } else {
-                                    // 右边区域
-                                    playerController.volumeSeeking = true;
-                                    playerController.showVolume = true;
-                                    final double level = (totalHeight) * 0.03;
-                                    final double volume =
-                                        playerController.volume - delta / level;
-                                    playerController.setVolume(volume);
-                                  }
+                                  playerController.showVolume = true;
+                                  final double level = (totalHeight) * 0.03;
+                                  final double volume =
+                                      playerController.volume - delta / level;
+                                  playerController.setVolume(volume);
                                 }
                               },
                               onVerticalDragEnd: (_) {

@@ -36,6 +36,13 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
 
   @override
   void dispose() {
+    // 清理空的快捷键设置
+    for (final entry in shortcuts.entries) {
+      final func = entry.key;
+      final keys = entry.value;
+      keys.removeWhere((key) => key.isEmpty || key == '...');
+      setting.put('shortcut_$func', keys);
+    }
     focusNode.dispose();
     super.dispose();
   }
@@ -119,10 +126,18 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
-            children: shortcuts.entries.map((entry) {
-              final func = entry.key;
-              final keys = entry.value;
-              return Card(
+            children: [
+              Text('长按已设置的快捷键可删除，点击 + 可添加新的快捷键', 
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...shortcuts.entries.map((entry) {
+                final func = entry.key;
+                final keys = entry.value;
+                return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -170,7 +185,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   ),
                 ),
               );
-            }).toList(),
+              }),
+            ],
           ),
         ),
       ),

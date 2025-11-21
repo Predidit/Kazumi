@@ -7,7 +7,6 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -26,6 +25,8 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showDanmakuSwitch,
     required this.changeEpisode,
     required this.handleFullscreen,
+    required this.handleScreenShot,
+    required this.handlePreNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
@@ -36,6 +37,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
@@ -48,6 +50,7 @@ class PlayerItemPanel extends StatefulWidget {
   final Future<void> Function(int, {int currentRoad, int offset}) changeEpisode;
   final void Function() openMenu;
   final void Function() handleFullscreen;
+  final void Function() handleScreenShot;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
@@ -56,6 +59,8 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
   final void Function() handleDanmaku;
+  final void Function(String direction) handlePreNextEpisode;
+  final void Function() skipOP;
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
@@ -76,8 +81,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();
-  
+  final FocusNode textFieldFocus = FocusNode();  
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -86,26 +90,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
-
-  Future<void> _handleScreenshot() async {
-    KazumiDialog.showToast(message: '截图中...');
-    try {
-      Uint8List? screenshot =
-          await playerController.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(
-        screenshot!,
-        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
-        skipIfExists: false,
-      );
-      if (result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存到相簿成功');
-      } else {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
-    }
-  }
 
   Widget get danmakuTextField {
     return Container(
@@ -343,7 +327,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     return cachedDanmakuOnIcon!;
   }
 
-  Widget _buildDanmakuToggleButton(BuildContext context, {bool showKeyboardShortcut = true}) {
+  Widget _buildDanmakuToggleButton(BuildContext context) {
     return IconButton(
       color: Colors.white,
       icon: playerController.danmakuLoading
@@ -365,8 +349,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       tooltip: playerController.danmakuLoading
           ? '弹幕加载中...'
           : (playerController.danmakuOn
-              ? '关闭弹幕${showKeyboardShortcut ? "(d)" : ""}'
-              : '打开弹幕${showKeyboardShortcut ? "(d)" : ""}'),
+              ? '关闭弹幕'
+              : '打开弹幕'),
     );
   }
 
@@ -382,8 +366,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),
@@ -738,27 +721,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: const Icon(Icons.skip_next_rounded),
-                          onPressed: () {
-                            if (videoPageController.loading) {
-                              return;
-                            }
-                            if (videoPageController.currentEpisode ==
-                                videoPageController
-                                    .roadList[videoPageController.currentRoad]
-                                    .data
-                                    .length) {
-                              KazumiDialog.showToast(
-                                message: '已经是最新一集',
-                              );
-                              return;
-                            }
-                            KazumiDialog.showToast(
-                                message:
-                                    '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
-                            widget.changeEpisode(
-                                videoPageController.currentEpisode + 1,
-                                currentRoad: videoPageController.currentRoad);
-                          },
+                          onPressed: () => widget.handlePreNextEpisode('next'),
                         ),
                       if (Utils.isDesktop())
                         Container(
@@ -837,7 +800,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             widget.handleDanmaku();
                           },
                           tooltip:
-                              playerController.danmakuOn ? '关闭弹幕(d)' : '打开弹幕(d)',
+                              playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
                         ),
                         if (playerController.danmakuOn) ...[
                           IconButton(
@@ -1344,7 +1307,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         color: Colors.white,
                       ),
                       onPressed: () {
-                        _handleScreenshot();
+                        widget.handleScreenShot();
                       },
                     ),
               IconButton(

@@ -30,6 +30,10 @@ import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:saver_gallery/saver_gallery.dart';
+
+
+
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -68,6 +72,9 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
+  late Map<String, List<String>> keyboardShortcuts;
+  late Map<String, void Function()> keyboardActions;
+
 
   // 1. 在看
   // 2. 想看
@@ -104,6 +111,8 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
 
+  double lastVolume = 0;
+
   // 过渡动画控制器
   AnimationController? animationController;
 
@@ -121,6 +130,122 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmakuController.resume();
       }
     } catch (_) {}
+  }
+
+  void _loadShortcuts() {
+    keyboardShortcuts = {};
+    defaultShortcuts.forEach((key, defaultValue) {
+      keyboardShortcuts[key] = setting
+          .get('shortcut_$key', defaultValue: defaultValue)
+          .cast<String>();
+    });
+  }
+
+  void _initKeyboardActions(){
+    keyboardActions = {
+      'playorpause': () => playerController.playOrPause(),
+      'forward': () async => handleShortcutSeek('forward'),
+      'rewind': () async => handleShortcutSeek('rewind'),
+      'next': () async => handlePreNextEpisode('next'),
+      'prev': () async => handlePreNextEpisode('prev'),
+      'volumeup': () async => handleShortcutVolumeChange('up'),
+      'volumedown': () async => handleShortcutVolumeChange('down'),
+      'togglemute': () async => handleShortcutVolumeChange('mute'),
+      'fullscreen': () => handleShortcutFullscreen(),
+      'screenshot': () async => handleScreenshot(),
+      'skip': () async => skipOP(),
+      'exitfullscreen': () => handleShortcutExitFullscreen(),
+      'toggledanmaku': () => handleDanmaku(),
+      'speed1': () async => setPlaybackSpeed(1.0),
+      'speed2': () async => setPlaybackSpeed(2.0),
+      'speed3': () async => setPlaybackSpeed(3.0),
+    };
+  }
+  bool handleShortcutInput(String keyLabel) {
+    for (final entry in keyboardShortcuts.entries) {
+      final func = entry.key;
+      final keys = entry.value;
+      if (keys.contains(keyLabel)) {
+        final action = keyboardActions[func];
+        if (action != null) {
+          action();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  //上一集下一集动作
+  Future<void> handlePreNextEpisode(String direction) async{
+    if (videoPageController.loading) return;
+    final currentRoad = videoPageController.currentRoad;
+    final episodes = videoPageController.roadList[currentRoad].data;
+    int targetEpisode;
+    if (direction == 'next'){targetEpisode = videoPageController.currentEpisode + 1;}
+    else if (direction == 'prev') {targetEpisode = videoPageController.currentEpisode - 1;}
+    else {return;}
+    
+    if (targetEpisode > episodes.length) {
+      KazumiDialog.showToast(message: '已经是最新一集');
+      return;
+    }
+    if (targetEpisode <= 0) {
+      KazumiDialog.showToast(message: '已经是第一集');
+      return;
+    }
+    
+    final identifier = videoPageController.roadList[currentRoad].identifier[targetEpisode - 1];
+    KazumiDialog.showToast(message: '正在加载$identifier');
+    widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
+  }
+
+  //快进快退快捷键动作
+  Future<void> handleShortcutSeek(String direction) async {
+    int skipTime = playerController.arrowKeySkipTime;
+    int current = playerController.currentPosition.inSeconds;
+    int total = playerController.playerDuration.inSeconds;
+    int targetPosition;
+
+    if (direction == 'forward') {
+      targetPosition = current + skipTime;
+      if (targetPosition > total) targetPosition = total;
+    } else if (direction == 'rewind') {
+      targetPosition = current - skipTime;
+      if (targetPosition < 0) targetPosition = 0;
+    } else {
+      return;
+    }
+
+    try {
+      playerTimer?.cancel();
+      await playerController.seek(Duration(seconds: targetPosition));
+      playerTimer = getPlayerTimer();
+    } catch (e) {
+      KazumiLogger().log(Level.error, e.toString());
+    }
+  }
+
+  //全屏快捷键动作
+  void handleShortcutFullscreen(){
+    if (!videoPageController.isPip) handleFullscreen();
+  }
+  
+  //退出全屏快捷键动作
+  void handleShortcutExitFullscreen(){
+    if (videoPageController.isFullscreen &&
+        !Utils.isTablet()) {
+      try {
+        playerController.danmakuController
+            .clear();
+      } catch (_) {}
+      Utils.exitFullScreen();
+      videoPageController.isFullscreen =
+          !videoPageController.isFullscreen;
+    } else if (!Platform.isMacOS) {
+      playerController.pause();
+      windowManager.hide();
+    }
   }
 
   void _handleTap() {
@@ -161,16 +286,10 @@ class _PlayerItemState extends State<PlayerItem>
       mouseScrollerTimer = null;
     });
   }
-
-  void _handleKeyChangingVolume() {
-    playerController.showVolume = true;
-    hideVolumeUITimer?.cancel();
-    hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        playerController.showVolume = false;
-      }
-      hideVolumeUITimer = null;
-    });
+  
+  //跳过指定秒数
+  Future<void> skipOP() async {
+    await playerController.seek(playerController.currentPosition + Duration(seconds: playerController.buttonSkipTime));
   }
 
   void handleDanmaku() {
@@ -223,6 +342,37 @@ class _PlayerItemState extends State<PlayerItem>
     startHideTimer();
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
+  }
+  
+  //截图
+  Future<void> handleScreenshot() async {
+    KazumiDialog.showToast(message: '截图中...');
+    try {
+      Uint8List? screenshot =
+          await playerController.screenshot(format: 'image/png');
+
+      if (screenshot == null) {
+        KazumiDialog.showToast(message: '截图失败：未获取到图像');
+        return;
+      }
+
+      if (Utils.isDesktop()) {
+        KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
+        return;
+      }
+      final result = await SaverGallery.saveImage(
+        screenshot,
+        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
+        skipIfExists: false,
+      );
+      if (result.isSuccess) {
+        KazumiDialog.showToast(message: '截图保存到相簿成功');
+      } else {
+        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
+      }
+    } catch (e) {
+      KazumiDialog.showToast(message: '截图失败：$e');
+    }
   }
 
   // 启用超分辨率（质量档）时弹出提示
@@ -326,12 +476,37 @@ class _PlayerItemState extends State<PlayerItem>
     await playerController.setPlaybackSpeed(speed);
   }
 
-  Future<void> increaseVolume() async {
-    await playerController.setVolume(playerController.volume + 10);
-  }
-
-  Future<void> decreaseVolume() async {
-    await playerController.setVolume(playerController.volume - 10);
+  Future<void> handleShortcutVolumeChange(String type) async {
+    try {
+      switch (type) {
+        case 'up':
+          await playerController.setVolume(playerController.volume + 10);
+          break;
+        case 'down':
+          await playerController.setVolume(playerController.volume - 10);
+          break;
+        case 'mute':
+          if (playerController.volume > 0) {
+            lastVolume = playerController.volume;
+            await playerController.setVolume(0);
+          } else {
+            await playerController.setVolume(lastVolume);
+          }
+          break;
+        default:
+          return;
+      }
+      playerController.showVolume = true;
+      hideVolumeUITimer?.cancel();
+      hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          playerController.showVolume = false;
+        }
+        hideVolumeUITimer = null;
+      });
+    } catch (e) {
+      KazumiLogger().log(Level.error, '音量操作失败: ${e.toString()}');
+    }
   }
 
   Future<void> setBrightness(double value) async {
@@ -983,6 +1158,8 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void initState() {
     super.initState();
+    _loadShortcuts();
+    _initKeyboardActions();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1111,120 +1288,18 @@ class _PlayerItemState extends State<PlayerItem>
                         child: Focus(
                             // workaround for #461
                             // I don't know why, but the focus node will break popscope.
-                            focusNode:
-                                Utils.isDesktop() ? widget.keyboardFocus : null,
-                            autofocus: Utils.isDesktop(),
+                            focusNode: widget.keyboardFocus,
+                            autofocus: true,
                             onKeyEvent: (focusNode, KeyEvent event) {
                               if (event is KeyDownEvent) {
-                                // 当空格键被按下时
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.space) {
-                                  try {
-                                    playerController.playOrPause();
-                                  } catch (e) {
-                                    KazumiLogger().log(
-                                        Level.error, '播放器内部错误 ${e.toString()}');
-                                  }
-                                }
-                                // 右方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  lastPlayerSpeed =
-                                      playerController.playerSpeed;
-                                }
-                                // 左方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowLeft) {
-                                  int targetPosition = playerController
-                                          .currentPosition.inSeconds -
-                                      playerController.arrowKeySkipTime;
-                                  if (targetPosition < 0) {
-                                    targetPosition = 0;
-                                  }
-                                  try {
-                                    playerTimer?.cancel();
-                                    playerController.seek(
-                                        Duration(seconds: targetPosition));
-                                    playerTimer = getPlayerTimer();
-                                  } catch (e) {
-                                    KazumiLogger()
-                                        .log(Level.error, e.toString());
-                                  }
-                                }
-                                // 上方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowUp) {
-                                  increaseVolume();
-                                  _handleKeyChangingVolume();
-                                }
-                                // 下方向键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowDown) {
-                                  decreaseVolume();
-                                  _handleKeyChangingVolume();
-                                }
-                                // Esc键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.escape) {
-                                  if (videoPageController.isFullscreen &&
-                                      !Utils.isTablet()) {
-                                    try {
-                                      playerController.danmakuController
-                                          .clear();
-                                    } catch (_) {}
-                                    Utils.exitFullScreen();
-                                    videoPageController.isFullscreen =
-                                        !videoPageController.isFullscreen;
-                                  } else if (!Platform.isMacOS) {
-                                    playerController.pause();
-                                    windowManager.hide();
-                                  }
-                                }
-                                // F键被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.keyF) {
-                                  if (!videoPageController.isPip) {
-                                    handleFullscreen();
-                                  }
-                                }
-                                // D键盘被按下
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.keyD) {
-                                  handleDanmaku();
-                                }
-                              } else if (event is KeyRepeatEvent) {
-                                // 右方向键长按
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  if (playerController.playerSpeed < 2.0) {
-                                    playerController.showPlaySpeed = true;
-                                    setPlaybackSpeed(2.0);
-                                  }
-                                }
-                              } else if (event is KeyUpEvent) {
-                                // 右方向键抬起
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowRight) {
-                                  if (playerController.showPlaySpeed) {
-                                    playerController.showPlaySpeed = false;
-                                    setPlaybackSpeed(lastPlayerSpeed);
-                                  } else {
-                                    try {
-                                      playerTimer?.cancel();
-                                      playerController.seek(Duration(
-                                          seconds: playerController
-                                                  .currentPosition.inSeconds +
-                                              playerController
-                                                  .arrowKeySkipTime));
-                                      playerTimer = getPlayerTimer();
-                                    } catch (e) {
-                                      KazumiLogger().log(Level.error,
-                                          '播放器内部错误 ${e.toString()}');
+                                final keyLabel = event.logicalKey.keyLabel.isNotEmpty
+                                    ? event.logicalKey.keyLabel
+                                    : event.logicalKey.debugName ?? '';
+                                    if (handleShortcutInput(keyLabel)) {
+                                      return KeyEventResult.handled;
                                     }
-                                  }
-                                }
-                              }
-                              return KeyEventResult.handled;
+                              } 
+                              return KeyEventResult.ignored;
                             },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
@@ -1316,6 +1391,7 @@ class _PlayerItemState extends State<PlayerItem>
                             handleProgressBarDragEnd: handleProgressBarDragEnd,
                             handleSuperResolutionChange:
                                 handleSuperResolutionChange,
+                            handlePreNextEpisode: handlePreNextEpisode,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
@@ -1328,6 +1404,8 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
                             disableAnimations: widget.disableAnimations,
+                            handleScreenShot: handleScreenshot,
+                            skipOP: skipOP,
                           )
                         : SmallestPlayerItemPanel(
                             onBackPressed: widget.onBackPressed,
@@ -1351,6 +1429,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
                             disableAnimations: widget.disableAnimations,
+                            skipOP: skipOP,
                           ),
                     // 播放器手势控制
                     Positioned.fill(

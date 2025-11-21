@@ -33,6 +33,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
@@ -43,6 +44,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
   final void Function() handleDanmaku;
+  final void Function() skipOP;
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
@@ -185,7 +187,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     return cachedDanmakuOnIcon!;
   }
 
-  Widget _buildDanmakuToggleButton(BuildContext context, {bool showKeyboardShortcut = false}) {
+  Widget _buildDanmakuToggleButton(BuildContext context) {
     return IconButton(
       color: Colors.white,
       icon: playerController.danmakuLoading
@@ -207,8 +209,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       tooltip: playerController.danmakuLoading
           ? '弹幕加载中...'
           : (playerController.danmakuOn
-              ? '关闭弹幕${showKeyboardShortcut ? "(d)" : ""}'
-              : '打开弹幕${showKeyboardShortcut ? "(d)" : ""}'),
+              ? '关闭弹幕'
+              : '打开弹幕'),
     );
   }
 
@@ -224,8 +226,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),

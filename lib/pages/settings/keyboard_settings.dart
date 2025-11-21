@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
@@ -6,7 +5,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:gamepads/gamepads.dart';
 
 class KeyboardSettingsPage extends StatefulWidget {
   const KeyboardSettingsPage({super.key});
@@ -23,7 +21,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   late Map<String, List<String>> shortcuts;
 
   final FocusNode focusNode = FocusNode();
-  StreamSubscription<GamepadEvent>? _gamepadSub;
 
   @override
   void initState() {
@@ -35,14 +32,11 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                 defaultValue: defaultShortcuts[key]?.toList() ?? <String>[]) 
               ?.cast<String>() ?? [])
     };
-    // 监听手柄事件
-    _gamepadSub = Gamepads.events.listen(_onGamepadEvent);
   }
 
   @override
   void dispose() {
     focusNode.dispose();
-    _gamepadSub?.cancel();
     super.dispose();
   }
   bool handleShortcutInput(String rawKey) {
@@ -73,20 +67,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     setting.put('shortcut_$func', shortcuts[func]);
 
     return true;
-  }
-
-  void _onGamepadEvent(GamepadEvent event) {
-    if (event.value.abs() < 0.5) return; //中心死区
-    if (listeningFunction == null) return;
-
-    String rawKey = event.key;
-    double rawValue = event.value;
-    if (axisMapping.containsKey(rawKey)) {
-      final map = axisMapping[rawKey]!;
-      int direction = rawValue.sign.toInt(); 
-      rawKey = map[direction]!; 
-    }
-    handleShortcutInput(rawKey);
   }
 
   void startListening(String func, int index) {

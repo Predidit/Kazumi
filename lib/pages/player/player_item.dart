@@ -31,7 +31,6 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:gamepads/gamepads.dart';
 
 
 
@@ -75,7 +74,6 @@ class _PlayerItemState extends State<PlayerItem>
   final MyController myController = Modular.get<MyController>();
   late Map<String, List<String>> keyboardShortcuts;
   late Map<String, void Function()> keyboardActions;
-  StreamSubscription<GamepadEvent>? _gamepadSub;
 
 
   // 1. 在看
@@ -177,19 +175,6 @@ class _PlayerItemState extends State<PlayerItem>
     }
     return false;
   }
-
-  void _onGamepadEvent(GamepadEvent event) {
-    if (event.value.abs() < 0.5) return; //中心死区
-    String rawKey = event.key;
-    double rawValue = event.value;
-    if (axisMapping.containsKey(rawKey)) {
-      final map = axisMapping[rawKey]!;
-      int direction = rawValue.sign.toInt(); 
-      rawKey = map[direction]!; 
-    }
-    handleShortcutInput(rawKey);
-  }
-
 
   //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async{
@@ -1175,7 +1160,6 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
-    _gamepadSub = Gamepads.events.listen(_onGamepadEvent);
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1241,7 +1225,6 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
-    _gamepadSub?.cancel();
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

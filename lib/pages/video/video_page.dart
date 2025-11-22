@@ -22,6 +22,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/pages/info/episode_selector.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -97,27 +98,32 @@ class _VideoPageState extends State<VideoPage>
       parent: animation,
       curve: Curves.easeIn,
     ));
-    videoPageController.currentEpisode = 1;
-    videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     disableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
-    var progress = historyController.lastWatching(
-        videoPageController.bangumiItem,
-        videoPageController.currentPlugin.name);
-    if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.currentEpisode = progress.episode;
-          videoPageController.currentRoad = progress.road;
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
+
+    // 只有在没有手动选择集数时，才从历史记录恢复
+    if (!videoPageController.hasManuallySelectedEpisode) {
+      var progress = historyController.lastWatching(
+          videoPageController.bangumiItem,
+          videoPageController.currentPlugin.name);
+      if (progress != null) {
+        if (videoPageController.roadList.length > progress.road) {
+          if (videoPageController.roadList[progress.road].data.length >=
+              progress.episode) {
+            videoPageController.currentEpisode = progress.episode;
+            videoPageController.currentRoad = progress.road;
+            if (playResume) {
+              videoPageController.historyOffset = progress.progress.inSeconds;
+            }
           }
         }
       }
+    } else {
+      // 如果是手动选择的，重置标志以便下次可以使用历史记录
+      videoPageController.hasManuallySelectedEpisode = false;
     }
     currentRoad = videoPageController.currentRoad;
 
@@ -754,90 +760,23 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get menuBody {
-    var cardList = <Widget>[];
-    for (var road in videoPageController.roadList) {
-      if (road.name == '播放列表${currentRoad + 1}') {
-        int count = 1;
-        for (var urlItem in road.data) {
-          int count0 = count;
-          cardList.add(Container(
-            margin: const EdgeInsets.only(bottom: 4), // 改为bottom间距
-            child: Material(
-              color: Theme.of(context).colorScheme.onInverseSurface,
-              borderRadius: BorderRadius.circular(6),
-              clipBehavior: Clip.hardEdge,
-              child: InkWell(
-                onTap: () async {
-                  if (count0 == videoPageController.currentEpisode &&
-                      videoPageController.currentRoad == currentRoad) {
-                    return;
-                  }
-                  KazumiLogger().log(Level.info, '视频链接为 $urlItem');
-                  closeTabBodyAnimated();
-                  changeEpisode(count0, currentRoad: currentRoad);
-                },
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: [
-                          if (count0 == (videoPageController.currentEpisode) &&
-                              currentRoad ==
-                                  videoPageController.currentRoad) ...<Widget>[
-                            Image.asset(
-                              'assets/images/playing.gif',
-                              color: Theme.of(context).colorScheme.primary,
-                              height: 12,
-                            ),
-                            const SizedBox(width: 6)
-                          ],
-                          Expanded(
-                              child: Text(
-                            road.identifier[count0 - 1],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: (count0 ==
-                                            videoPageController
-                                                .currentEpisode &&
-                                        currentRoad ==
-                                            videoPageController.currentRoad)
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.onSurface),
-                          )),
-                          const SizedBox(width: 2),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ));
-          count++;
-        }
-      }
-    }
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.only(top: 0, right: 8, left: 8),
-        child: GridView.builder(
-          scrollDirection: Axis.vertical,
-          controller: scrollController,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 5,
-            mainAxisExtent: 70,
-          ),
-          itemCount: cardList.length,
-          itemBuilder: (context, index) {
-            return cardList[index];
+        child: EpisodeSelector(
+          roadList: videoPageController.roadList,
+          initialRoad: currentRoad,
+          currentEpisode: videoPageController.currentEpisode,
+          currentRoad: videoPageController.currentRoad,
+          showPlayingIndicator: true,
+          onEpisodeSelected: (episode, road) {
+            if (episode == videoPageController.currentEpisode &&
+                road == videoPageController.currentRoad) {
+              return;
+            }
+            KazumiLogger().log(Level.info, '选择播放第 $episode 集');
+            closeTabBodyAnimated();
+            changeEpisode(episode, currentRoad: road);
           },
         ),
       ),

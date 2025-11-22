@@ -35,6 +35,9 @@ abstract class _VideoPageController with Store {
   @observable
   int currentRoad = 0;
 
+  /// 标记用户是否手动选择了集数（从集数选择器跳转）
+  bool hasManuallySelectedEpisode = false;
+
   /// 全屏状态
   @observable
   bool isFullscreen = false;
@@ -64,8 +67,28 @@ abstract class _VideoPageController with Store {
   /// 用于取消正在进行的 queryRoads 操作
   CancelToken? _queryRoadsCancelToken;
 
-  final PluginsController pluginsController = Modular.get<PluginsController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
+  /// 依赖注入的控制器
+  late final PluginsController pluginsController;
+  late final HistoryController historyController;
+
+  /// 构造函数，支持依赖注入
+  _VideoPageController({
+    PluginsController? pluginsController,
+    HistoryController? historyController,
+  }) {
+    this.pluginsController = pluginsController ?? Modular.get<PluginsController>();
+    this.historyController = historyController ?? Modular.get<HistoryController>();
+  }
+
+  /// 更新播放列表
+  ///
+  /// 封装 roadList 的更新逻辑，确保状态管理的一致性
+  @action
+  void updateRoadList(List<Road> newRoadList) {
+    roadList.clear();
+    roadList.addAll(newRoadList);
+    KazumiLogger().log(Level.info, '播放列表已更新，共 ${roadList.length} 个列表');
+  }
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {

@@ -76,7 +76,7 @@ void main() async {
       windowButtonVisibility: showWindowButton,
       title: 'Kazumi',
     );
-    if (Platform.isLinux && Platform.environment["GTK_CSD"]=="1" && !showWindowButton){
+    if (Platform.isLinux && Platform.environment["GTK_CSD"]=="0" && !showWindowButton){
       windowManager.setAsFrameless();
     }
     windowManager.waitUntilReadyToShow(windowOptions, () async {

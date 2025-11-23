@@ -77,12 +77,9 @@ void main() async {
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      if (Platform.isLinux && Platform.environment["GTK_CSD"]=="0" && !showWindowButton){
-        await windowManager.setAsFrameless();
-      }
       // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
       // Without this. the window will never show on Windows.
+      await windowManager.show();
       await windowManager.focus();
     });
   }

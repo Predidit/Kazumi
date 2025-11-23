@@ -7,6 +7,9 @@
 
 #include "flutter/generated_plugin_registrant.h"
 
+#include <fstream>
+#include <string>
+
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
@@ -38,16 +41,35 @@ static void intent_method_call_handler(FlMethodChannel* channel,
   }
 }
 
+static bool ReadShowSystemTitlebar() {
+    const char* home = getenv("HOME");
+    if (!home) return false;
+
+    std::string filepath = std::string(home) + "/.local/share/io.github.Predidit.Kazumi/showSystemTitlebar";
+
+    std::ifstream file(filepath);
+    if (!file.is_open()) return false;
+
+    std::string content;
+    std::getline(file, content);
+    file.close();
+
+    if (content == "true") return true;
+    if (content == "false") return false;
+
+    return false; // 默认值
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
   
-  // If have GTK_CSD in env and it is equal to 1 then add the gtk header bar
-  // to always use client side decorations
-  const char* GTK_CSD = getenv("GTK_CSD");
-  if (GTK_CSD && strcmp(GTK_CSD, "1") == 0) {
+
+  // 根据文件决定是否显示系统标题栏
+  bool showSystemTitlebar = ReadShowSystemTitlebar();
+  if (!showSystemTitlebar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
     gtk_header_bar_set_title(header_bar, "kazumi");

@@ -13,6 +13,8 @@ import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
+
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -372,6 +374,16 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       showWindowButton = value ?? !showWindowButton;
+                      if(Platform.isLinux){
+                        final directory = await getApplicationSupportDirectory();
+                        final path = directory.path;
+                        final showSystemTitlebar =File('$path/showSystemTitlebar');
+                        if (showWindowButton) {
+                          await showSystemTitlebar.writeAsString('true');
+                        } else {
+                          await showSystemTitlebar.writeAsString('false');
+                        }
+                      }
                       await setting.put(
                           SettingBoxKey.showWindowButton, showWindowButton);
                       setState(() {});

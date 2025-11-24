@@ -113,6 +113,9 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         child: Focus(
           focusNode: focusNode,
           autofocus: true,
+          canRequestFocus: true,
+          skipTraversal: true,
+          descendantsAreFocusable: true,
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (listeningFunction == null) return KeyEventResult.ignored;
@@ -151,7 +154,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
-                        runSpacing: 8,
                         children: [
                           for (int i = 0; i < keys.length; i++)
                             GestureDetector(

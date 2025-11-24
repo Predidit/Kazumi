@@ -155,6 +155,19 @@ abstract class _PlayerController with Store {
   @observable
   String playerAudioBitrate = '';
 
+  // 广告检测相关变量
+  int _adErrorCount = 0; // 广告解码错误计数
+  DateTime? _lastAdSkipTime; // 上次跳过广告的时间
+  Duration? _positionBeforeAdSkip; // 跳过广告前的位置
+  int? _normalVideoWidth; // 正片视频宽度（用于检测广告）
+  int? _normalVideoHeight; // 正片视频高度（用于检测广告）
+  bool _isResolutionStable = false; // 分辨率是否稳定（播放开始后5秒标记为稳定）
+  Duration _lastKnownPosition = Duration.zero; // 上一次记录的播放位置（用于检测异常跳转）
+  Duration _lastKnownBuffer = Duration.zero; // 上一次记录的缓存终点位置（广告的真实位置）
+  bool _isSeekingManually = false; // 是否正在手动跳转（避免误判）
+  int _consecutiveAdResets = 0; // 连续广告重置次数（用于自适应跳过）
+  Duration? _adStartPosition; // 广告开始的位置（用于判断是否同一段广告）
+
   /// 播放器调试信息订阅
   StreamSubscription<PlayerLog>? playerLogSubscription;
   StreamSubscription<int?>? playerWidthSubscription;
@@ -230,6 +243,15 @@ abstract class _PlayerController with Store {
       playerLog.add(event.toString());
       if (playerDebugMode) {
         KazumiLogger().simpleLog(event.toString());
+      }
+
+      // 广告检测：检测 H264 解码错误
+      final logText = event.toString();
+      if (logText.contains('co located POCs unavailable') ||
+          logText.contains('error while decoding MB') ||
+          logText.contains('concealing')) {
+        KazumiLogger().log(Level.warning, '[广告检测] 检测到解码错误');
+        _handleAdDetected();
       }
     });
     await playerWidthSubscription?.cancel();
@@ -347,14 +369,64 @@ abstract class _PlayerController with Store {
     bool showPlayerError =
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     mediaPlayer!.stream.error.listen((event) {
+      final errorMsg = event.toString();
+
+      // 广告检测：检查是否是 H264 解码错误
+      final isAdError = errorMsg.contains('co located POCs unavailable') ||
+          errorMsg.contains('error while decoding MB') ||
+          errorMsg.contains('concealing') ||
+          errorMsg.contains('decode_slice_header error') ||
+          errorMsg.contains('no frame!');
+
+      if (isAdError) {
+        KazumiLogger().log(Level.warning, '[广告检测] 检测到解码错误');
+        _handleAdDetected(reason: '解码错误');
+        return;
+      }
+
+      // 非广告错误，正常处理
       if (showPlayerError) {
         KazumiDialog.showToast(
-            message: '播放器内部错误 ${event.toString()} $videoUrl',
+            message: '播放器内部错误 $errorMsg',
             duration: const Duration(seconds: 5),
             showActionButton: true);
       }
       KazumiLogger().log(
-          Level.error, 'Player intent error: ${event.toString()} $videoUrl');
+          Level.error, 'Player intent error: $errorMsg $videoUrl');
+    });
+
+    // 监听播放位置，检测异常跳转
+    mediaPlayer!.stream.position.listen((position) {
+      if (_lastKnownPosition.inSeconds > 10 &&
+          position.inSeconds < 5 &&
+          !_isSeekingManually) {
+
+        final timeDiff = (_lastKnownPosition - position).inSeconds.abs();
+
+        if (timeDiff > 5) {
+          KazumiLogger().log(
+            Level.warning,
+            '[广告检测] 检测到异常跳转: ${_lastKnownPosition.inSeconds}s → ${position.inSeconds}s',
+          );
+
+          final adPosition = _lastKnownBuffer.inSeconds > _lastKnownPosition.inSeconds
+              ? _lastKnownBuffer
+              : _lastKnownPosition;
+
+          _handlePositionReset(adPosition);
+        }
+      }
+
+      if (position.inSeconds >= 3 && !_isSeekingManually) {
+        _lastKnownPosition = position;
+      }
+    });
+
+    // 监听缓存位置
+    mediaPlayer!.stream.buffer.listen((buffer) {
+      if (buffer.inSeconds >= 3 && !_isSeekingManually) {
+        _lastKnownBuffer = buffer;
+      }
     });
 
     if (superResolutionType != 1) {
@@ -442,9 +514,18 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> seek(Duration duration, {bool enableSync = true}) async {
+    // 标记为手动跳转（避免广告检测误判）
+    _isSeekingManually = true;
+
     currentPosition = duration;
     danmakuController.clear();
     await mediaPlayer!.seek(duration);
+
+    // 等待跳转完成后重置标志
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _isSeekingManually = false;
+    });
+
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -812,5 +893,127 @@ abstract class _PlayerController with Store {
     syncplayController = null;
     syncplayRoom = '';
     syncplayClientRtt = 0;
+  }
+
+  // === 广告检测功能 ===
+
+  /// 处理分辨率变化（检测广告）
+  void _handleResolutionChange(int width, int height) {
+    if (width <= 0 || height <= 0) return;
+
+    if (!_isResolutionStable) {
+      if (_normalVideoWidth == null || _normalVideoHeight == null) {
+        _normalVideoWidth = width;
+        _normalVideoHeight = height;
+
+        Future.delayed(const Duration(seconds: 5), () {
+          _isResolutionStable = true;
+        });
+      }
+      return;
+    }
+
+    if (width != _normalVideoWidth || height != _normalVideoHeight) {
+      KazumiLogger().log(
+        Level.warning,
+        '[广告检测] 分辨率变化: ${_normalVideoWidth}x${_normalVideoHeight} → ${width}x${height}',
+      );
+      _handleAdDetected(reason: '分辨率变化');
+    }
+  }
+
+  /// 处理检测到的广告片段
+  Future<void> _handleAdDetected({String reason = '解码错误'}) async {
+    final now = DateTime.now();
+
+    if (_lastAdSkipTime != null &&
+        now.difference(_lastAdSkipTime!).inSeconds < 3) {
+      return;
+    }
+
+    final currentPos = mediaPlayer!.state.position;
+    if (_positionBeforeAdSkip != null &&
+        (currentPos - _positionBeforeAdSkip!).inSeconds.abs() < 3) {
+      KazumiLogger().log(Level.warning, '[广告检测] 检测到循环，停止跳过');
+      KazumiDialog.showToast(
+        message: '检测到广告但自动跳过可能导致循环，请手动快进',
+        duration: const Duration(seconds: 5),
+      );
+      return;
+    }
+
+    _positionBeforeAdSkip = currentPos;
+    _lastAdSkipTime = now;
+
+    KazumiLogger().log(
+      Level.warning,
+      '[广告检测] $reason，跳过 10 秒（位置: ${currentPos.inSeconds}s）',
+    );
+    KazumiDialog.showToast(
+      message: '检测到广告（$reason），跳过 10 秒',
+      duration: const Duration(seconds: 2),
+    );
+
+    final newPosition = currentPos + const Duration(seconds: 10);
+    await mediaPlayer!.seek(newPosition);
+  }
+
+  /// 处理播放器位置异常重置
+  Future<void> _handlePositionReset(Duration originalPosition) async {
+    final now = DateTime.now();
+
+    bool isSameAd = false;
+    if (_adStartPosition != null) {
+      final posDiff = (originalPosition - _adStartPosition!).inSeconds.abs();
+      isSameAd = posDiff < 30;
+    }
+
+    if (isSameAd) {
+      _consecutiveAdResets++;
+    } else {
+      _consecutiveAdResets = 1;
+      _adStartPosition = originalPosition;
+    }
+
+    if (_lastAdSkipTime != null &&
+        now.difference(_lastAdSkipTime!).inSeconds < 1) {
+      return;
+    }
+
+    _lastAdSkipTime = now;
+
+    int skipSeconds;
+    if (_consecutiveAdResets == 1) {
+      skipSeconds = 10;
+    } else if (_consecutiveAdResets == 2) {
+      skipSeconds = 30;
+    } else {
+      skipSeconds = 45;
+    }
+
+    KazumiLogger().log(
+      Level.warning,
+      '[广告检测] 位置重置，跳过 $skipSeconds 秒（第 $_consecutiveAdResets 次）',
+    );
+
+    KazumiDialog.showToast(
+      message: '检测到广告重置，跳过 $skipSeconds 秒（第 $_consecutiveAdResets 次）',
+      duration: const Duration(seconds: 2),
+    );
+
+    _isSeekingManually = true;
+
+    final targetPosition = originalPosition + Duration(seconds: skipSeconds);
+    await mediaPlayer!.seek(targetPosition);
+
+    await Future.delayed(const Duration(milliseconds: 800));
+    _isSeekingManually = false;
+
+    Future.delayed(const Duration(seconds: 5), () {
+      if (_consecutiveAdResets > 0) {
+        _consecutiveAdResets = 0;
+        _adStartPosition = null;
+      }
+    });
   }
 }

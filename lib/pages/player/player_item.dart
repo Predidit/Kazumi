@@ -190,54 +190,11 @@ class _PlayerItemState extends State<PlayerItem>
     const MethodChannel channel = MethodChannel("com.predidit.kazumi/intent");
     channel.invokeMethod("enablePlayerMenu");
     playerMenu.setMethodCallHandler((call) async {
-        switch (call.method) {
-          case "menuPlayPause":
-            playerController.playOrPause();
-            break;
-          case "menuForward":
-            await handleShortcutSeek('forward');
-            break;
-          case "menuRewind":
-            await handleShortcutSeek('rewind');
-            break;
-          case "menuNext":
-            await handlePreNextEpisode('next');
-            break;
-          case "menuPrevious":
-            await handlePreNextEpisode('prev');
-            break;
-          case "menuVolumeUp":
-            await handleShortcutVolumeChange('up');
-            break;
-          case "menuVolumeDown":
-            await handleShortcutVolumeChange('down');
-            break;
-          case "menuToggleMute":
-            await handleShortcutVolumeChange('mute');
-            break;
-          case "menuToggleDanmaku":
-            handleDanmaku();
-            break;
-          case "menuSkip":
-            await skipOP();
-            break;
-          case "menuSpeed1":
-            await setPlaybackSpeed(1.0);
-            break;
-          case "menuSpeed2":
-            await setPlaybackSpeed(2.0);
-            break;
-          case "menuSpeed3":
-            await setPlaybackSpeed(3.0);
-            break;
-          case "menuSpeedUp":
-            await handleSpeedChange("up");
-            break;
-          case "menuSpeedDown":
-            await handleSpeedChange("down");
-            break;
-        }
-      });
+      final action = keyboardActions[call.method];
+      if (action != null) {
+        action();
+      }
+    });
   }
 
 

@@ -192,21 +192,21 @@ class AppDelegate: FlutterAppDelegate {
         )
         channel.invokeMethod(command, arguments: nil)
     }
-    @IBAction func menuPlayPause(_ sender: Any) { sendToFlutter("menuPlayPause") }
-    @IBAction func menuNext(_ sender: Any) { sendToFlutter("menuNext") }
-    @IBAction func menuPrevious(_ sender: Any) { sendToFlutter("menuPrevious") }
-    @IBAction func menuForward(_ sender: Any) { sendToFlutter("menuForward") }
-    @IBAction func menuRewind(_ sender: Any) { sendToFlutter("menuRewind") }
-    @IBAction func menuVolumeUp(_ sender: Any) { sendToFlutter("menuVolumeUp") }
-    @IBAction func menuVolumeDown(_ sender: Any) { sendToFlutter("menuVolumeDown") }
-    @IBAction func menuToggleMute(_ sender: Any) { sendToFlutter("menuToggleMute") }
-    @IBAction func menuToggleDanmaku(_ sender: Any) { sendToFlutter("menuToggleDanmaku") }
-    @IBAction func menuSkip(_ sender: Any) { sendToFlutter("menuSkip") }
-    @IBAction func menuSpeed1(_ sender: Any) { sendToFlutter("menuSpeed1") }
-    @IBAction func menuSpeed2(_ sender: Any) { sendToFlutter("menuSpeed2") }
-    @IBAction func menuSpeed3(_ sender: Any) { sendToFlutter("menuSpeed3") }
-    @IBAction func menuSpeedUp(_ sender: Any) { sendToFlutter("menuSpeedUp") }
-    @IBAction func menuSpeedDown(_ sender: Any) { sendToFlutter("menuSpeedDown") }
+    @IBAction func menuPlayPause(_ sender: Any) { sendToFlutter("playorpause") }
+    @IBAction func menuNext(_ sender: Any) { sendToFlutter("next") }
+    @IBAction func menuPrevious(_ sender: Any) { sendToFlutter("prev") }
+    @IBAction func menuForward(_ sender: Any) { sendToFlutter("forward") }
+    @IBAction func menuRewind(_ sender: Any) { sendToFlutter("rewind") }
+    @IBAction func menuVolumeUp(_ sender: Any) { sendToFlutter("volumeup") }
+    @IBAction func menuVolumeDown(_ sender: Any) { sendToFlutter("volumedown") }
+    @IBAction func menuToggleMute(_ sender: Any) { sendToFlutter("togglemute") }
+    @IBAction func menuToggleDanmaku(_ sender: Any) { sendToFlutter("toggledanmaku") }
+    @IBAction func menuSkip(_ sender: Any) { sendToFlutter("skip") }
+    @IBAction func menuSpeed1(_ sender: Any) { sendToFlutter("speed1") }
+    @IBAction func menuSpeed2(_ sender: Any) { sendToFlutter("speed2") }
+    @IBAction func menuSpeed3(_ sender: Any) { sendToFlutter("speed3") }
+    @IBAction func menuSpeedUp(_ sender: Any) { sendToFlutter("speedup") }
+    @IBAction func menuSpeedDown(_ sender: Any) { sendToFlutter("speeddown") }
 
 
     func setPlayerMenuEnabled(_ enabled: Bool){

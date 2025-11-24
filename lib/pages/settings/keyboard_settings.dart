@@ -154,6 +154,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (int i = 0; i < keys.length; i++)
                             GestureDetector(
@@ -168,7 +169,6 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                                 ),
                                 onPressed: () => startListening(func, i),
                                 avatar: const Icon(Icons.edit),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 focusNode: FocusNode(canRequestFocus: false),
                               ),
                             ),

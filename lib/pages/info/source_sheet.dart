@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -12,6 +13,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/pages/info/episode_selector.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
+import 'package:kazumi/modules/roads/cached_road_list.dart';
+import 'package:kazumi/repositories/video_source_repository.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -33,10 +38,21 @@ class _SourceSheetState extends State<SourceSheet>
       Modular.get<VideoPageController>();
   final CollectController collectController = Modular.get<CollectController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final IVideoSourceRepository videoSourceRepository =
+      Modular.get<IVideoSourceRepository>();
   late String keyword;
 
   /// Concurrent query manager
   QueryManager? queryManager;
+
+  /// 当前展开的搜索结果索引（用于显示集数选择器）
+  String? expandedCardKey;
+
+  /// 当前加载的播放列表
+  List<Road>? currentRoadList;
+
+  /// 是否正在加载播放列表
+  bool isLoadingRoads = false;
 
   @override
   void initState() {
@@ -53,6 +69,76 @@ class _SourceSheetState extends State<SourceSheet>
     queryManager?.cancel();
     queryManager = null;
     super.dispose();
+  }
+
+  /// 响应式等待播放列表加载完成（使用 MobX reaction）
+  Future<void> _waitForRoadListLoadedViaRepository(String cardKey, String src) async {
+    final completer = Completer<void>();
+    ReactionDisposer? dispose;
+
+    try {
+      // 使用 MobX reaction 响应式监听状态变化
+      dispose = reaction<RoadListLoadStatus>(
+        (_) => videoSourceRepository.getLoadStatus(src),
+        (status) {
+          // 如果用户已经切换到其他卡片，取消等待
+          if (expandedCardKey != cardKey) {
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
+            return;
+          }
+
+          // 状态变化为非 pending 时完成
+          if (status != RoadListLoadStatus.pending) {
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
+          }
+        },
+      );
+
+      // 最多等待10秒
+      await completer.future.timeout(const Duration(seconds: 10));
+
+      // 检查用户是否已经切换到其他卡片
+      if (expandedCardKey != cardKey) {
+        return;
+      }
+
+      final cached = videoSourceRepository.getRoadList(src);
+      final status = videoSourceRepository.getLoadStatus(src);
+
+      if (cached != null && status == RoadListLoadStatus.success) {
+        // 加载成功，更新UI
+        setState(() {
+          currentRoadList = List.from(cached.roadList);
+          isLoadingRoads = false;
+        });
+        // 同步到 videoPageController（使用封装方法）
+        videoPageController.updateRoadList(cached.roadList);
+      } else if (status == RoadListLoadStatus.error) {
+        // 加载失败
+        setState(() {
+          isLoadingRoads = false;
+          expandedCardKey = null;
+        });
+        KazumiDialog.showToast(
+            message: '获取播放列表失败：${cached?.errorMessage ?? "未知错误"}');
+      }
+    } catch (e) {
+      // 超时或其他错误
+      if (expandedCardKey == cardKey) {
+        setState(() {
+          isLoadingRoads = false;
+          expandedCardKey = null;
+        });
+        KazumiDialog.showToast(message: '获取播放列表超时');
+      }
+    } finally {
+      // 清理 reaction
+      dispose?.call();
+    }
   }
 
   void showAliasSearchDialog(String pluginName) {
@@ -289,41 +375,165 @@ class _SourceSheetState extends State<SourceSheet>
                         in widget.infoController.pluginSearchResponseList) {
                       if (searchResponse.pluginName == plugin.name) {
                         for (var searchItem in searchResponse.data) {
+                          final cardKey = '${plugin.name}_${searchItem.src}';
+                          final isExpanded = expandedCardKey == cardKey;
+
                           cardList.add(
                             Card(
                               elevation: 0,
                               margin: const EdgeInsets.only(
                                   left: 10, right: 10, top: 10),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () async {
-                                  KazumiDialog.showLoading(
-                                    msg: '获取中',
-                                    barrierDismissible: Utils.isDesktop(),
-                                    onDismiss: () {
-                                      videoPageController.cancelQueryRoads();
+                              child: Column(
+                                children: [
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () async {
+                                      if (isExpanded) {
+                                        // 如果已展开，点击后折叠
+                                        setState(() {
+                                          expandedCardKey = null;
+                                          currentRoadList = null;
+                                        });
+                                        return;
+                                      }
+
+                                      // 设置播放控制器的基本信息
+                                      videoPageController.bangumiItem =
+                                          widget.infoController.bangumiItem;
+                                      videoPageController.currentPlugin = plugin;
+                                      videoPageController.title = searchItem.name;
+                                      videoPageController.src = searchItem.src;
+
+                                      // 通过 Repository 获取播放列表缓存
+                                      final cached = videoSourceRepository.getRoadList(searchItem.src);
+                                      final loadStatus = videoSourceRepository.getLoadStatus(searchItem.src);
+
+                                      if (cached != null && cached.isSuccess) {
+                                        // 缓存命中且成功，直接使用
+                                        setState(() {
+                                          expandedCardKey = cardKey;
+                                          currentRoadList = List.from(cached.roadList);
+                                          isLoadingRoads = false;
+                                        });
+                                        // 同步到 videoPageController（使用封装方法）
+                                        videoPageController.updateRoadList(cached.roadList);
+                                      } else if (loadStatus == RoadListLoadStatus.pending) {
+                                        // 正在加载中，显示加载状态并等待
+                                        setState(() {
+                                          expandedCardKey = cardKey;
+                                          isLoadingRoads = true;
+                                          currentRoadList = null;
+                                        });
+                                        _waitForRoadListLoadedViaRepository(cardKey, searchItem.src);
+                                      } else {
+                                        // 未加载或加载失败，通过 Repository 查询
+                                        setState(() {
+                                          expandedCardKey = cardKey;
+                                          isLoadingRoads = true;
+                                          currentRoadList = null;
+                                        });
+
+                                        try {
+                                          final result = await videoSourceRepository.queryRoadList(
+                                              searchItem.src, plugin);
+
+                                          if (result.isSuccess) {
+                                            setState(() {
+                                              currentRoadList = List.from(result.roadList);
+                                              isLoadingRoads = false;
+                                            });
+                                            // 同步到 videoPageController（使用封装方法）
+                                            videoPageController.updateRoadList(result.roadList);
+                                          } else {
+                                            setState(() {
+                                              isLoadingRoads = false;
+                                              expandedCardKey = null;
+                                            });
+                                            KazumiDialog.showToast(
+                                                message: '获取播放列表失败：${result.errorMessage ?? "未知错误"}');
+                                          }
+                                        } catch (e) {
+                                          KazumiLogger().log(Level.warning,
+                                              "获取视频播放列表失败: $e");
+                                          setState(() {
+                                            isLoadingRoads = false;
+                                            expandedCardKey = null;
+                                          });
+                                          KazumiDialog.showToast(
+                                              message: '获取播放列表失败，请重试');
+                                        }
+                                      }
                                     },
-                                  );
-                                  videoPageController.bangumiItem =
-                                      widget.infoController.bangumiItem;
-                                  videoPageController.currentPlugin = plugin;
-                                  videoPageController.title = searchItem.name;
-                                  videoPageController.src = searchItem.src;
-                                  try {
-                                    await videoPageController.queryRoads(
-                                        searchItem.src, plugin.name);
-                                    KazumiDialog.dismiss();
-                                    Modular.to.pushNamed('/video/');
-                                  } catch (_) {
-                                    KazumiLogger()
-                                        .log(Level.warning, "获取视频播放列表失败");
-                                    KazumiDialog.dismiss();
-                                  }
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Text(searchItem.name),
-                                ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Row(
+                                        children: [
+                                          Expanded(child: Text(searchItem.name)),
+                                          Icon(
+                                            isExpanded
+                                                ? Icons.expand_less
+                                                : Icons.expand_more,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // 展开的集数选择器
+                                  if (isExpanded)
+                                    AnimatedSize(
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                      child: Container(
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest
+                                              .withOpacity(0.3),
+                                          borderRadius: const BorderRadius.only(
+                                            bottomLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(12),
+                                          ),
+                                        ),
+                                        child: isLoadingRoads
+                                            ? const Padding(
+                                                padding: EdgeInsets.all(40),
+                                                child: Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                ),
+                                              )
+                                            : (currentRoadList == null ||
+                                                    currentRoadList!.isEmpty
+                                                ? const Padding(
+                                                    padding: EdgeInsets.all(20),
+                                                    child: Text('暂无播放列表'),
+                                                  )
+                                                : EpisodeSelector(
+                                                    roadList: currentRoadList!,
+                                                    onEpisodeSelected:
+                                                        (episode, road) {
+                                                      // 选择集数后跳转到播放页面
+                                                      videoPageController
+                                                              .currentEpisode =
+                                                          episode;
+                                                      videoPageController
+                                                          .currentRoad = road;
+                                                      videoPageController
+                                                          .hasManuallySelectedEpisode = true;
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                      Modular.to.pushNamed(
+                                                          '/video/');
+                                                    },
+                                                  )),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           );

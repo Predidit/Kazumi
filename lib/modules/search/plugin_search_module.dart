@@ -8,7 +8,10 @@ class SearchItem {
   });
 
   factory SearchItem.fromJson(Map<String, dynamic> json) {
-    return SearchItem(name: json['name'], src: json['src']);
+    return SearchItem(
+      name: json['name'],
+      src: json['src'],
+    );
   }
 }
 

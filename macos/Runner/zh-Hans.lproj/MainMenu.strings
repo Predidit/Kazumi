@@ -1,6 +1,8 @@
+/* Class = "NSMenuItem"; title = "Toggle Mute"; ObjectID = "0go-7w-Agj"; */
+"0go-7w-Agj.title" = "切换静音";
 
-/* Class = "NSMenuItem"; title = "APP_NAME"; ObjectID = "1Xt-HY-uBw"; */
-"1Xt-HY-uBw.title" = "APP_NAME";
+/* Class = "NSMenuItem"; title = "Forward"; ObjectID = "1oV-tb-v1I"; */
+"1oV-tb-v1I.title" = "快进";
 
 /* Class = "NSMenuItem"; title = "Transformations"; ObjectID = "2oI-Rn-ZJC"; */
 "2oI-Rn-ZJC.title" = "转换";
@@ -14,26 +16,53 @@
 /* Class = "NSMenuItem"; title = "Quit APP_NAME"; ObjectID = "4sb-4s-VLi"; */
 "4sb-4s-VLi.title" = "退出APP_NAME";
 
-/* Class = "NSMenuItem"; title = "Edit"; ObjectID = "5QF-Oa-p0T"; */
-"5QF-Oa-p0T.title" = "编辑";
-
 /* Class = "NSMenuItem"; title = "About APP_NAME"; ObjectID = "5kV-Vb-QxS"; */
 "5kV-Vb-QxS.title" = "关于APP_NAME";
+
+/* Class = "NSMenuItem"; title = "Edit"; ObjectID = "5QF-Oa-p0T"; */
+"5QF-Oa-p0T.title" = "编辑";
 
 /* Class = "NSMenuItem"; title = "Redo"; ObjectID = "6dh-zS-Vam"; */
 "6dh-zS-Vam.title" = "重做";
 
-/* Class = "NSMenu"; title = "Main Menu"; ObjectID = "AYu-sK-qS6"; */
-"AYu-sK-qS6.title" = "Main Menu";
+/* Class = "NSMenuItem"; title = "Window"; ObjectID = "aUF-d1-5bR"; */
+"aUF-d1-5bR.title" = "窗口";
+
+/* Class = "NSMenu"; title = "Transformations"; ObjectID = "c8a-y6-VQd"; */
+"c8a-y6-VQd.title" = "转换";
+
+/* Class = "NSMenuItem"; title = "Volume Down"; ObjectID = "CEJ-Pz-JnN"; */
+"CEJ-Pz-JnN.title" = "音量减";
+
+/* Class = "NSMenuItem"; title = "Next"; ObjectID = "cVr-GM-2GR"; */
+"cVr-GM-2GR.title" = "下一集";
+
+/* Class = "NSMenuItem"; title = "Make Lower Case"; ObjectID = "d9M-CD-aMd"; */
+"d9M-CD-aMd.title" = "转换为小写";
+
+/* Class = "NSMenuItem"; title = "Undo"; ObjectID = "dRJ-4n-Yzg"; */
+"dRJ-4n-Yzg.title" = "撤销";
 
 /* Class = "NSMenuItem"; title = "Help"; ObjectID = "EPT-qC-fAb"; */
 "EPT-qC-fAb.title" = "帮助";
 
-/* Class = "NSMenuItem"; title = "View"; ObjectID = "H8h-7b-M4v"; */
-"H8h-7b-M4v.title" = "显示";
+/* Class = "NSMenu"; title = "Speed"; ObjectID = "FYI-7j-0Xf"; */
+"FYI-7j-0Xf.title" = "倍速";
 
-/* Class = "NSMenu"; title = "View"; ObjectID = "HyV-fh-RgO"; */
-"HyV-fh-RgO.title" = "显示";
+/* Class = "NSMenuItem"; title = "Paste"; ObjectID = "gVA-U4-sdL"; */
+"gVA-U4-sdL.title" = "粘贴";
+
+/* Class = "NSMenuItem"; title = "Rewind"; ObjectID = "hfw-bJ-3tF"; */
+"hfw-bJ-3tF.title" = "快退";
+
+/* Class = "NSMenu"; title = "Services"; ObjectID = "hz9-B4-Xy5"; */
+"hz9-B4-Xy5.title" = "服务";
+
+/* Class = "NSMenuItem"; title = "Skip"; ObjectID = "jFI-nV-KPO"; */
+"jFI-nV-KPO.title" = "跳过";
+
+/* Class = "NSMenuItem"; title = "Speed Up"; ObjectID = "kCQ-C0-LpW"; */
+"kCQ-C0-LpW.title" = "倍速加";
 
 /* Class = "NSMenuItem"; title = "Show All"; ObjectID = "Kd2-mp-pUS"; */
 "Kd2-mp-pUS.title" = "显示全部";
@@ -41,23 +70,35 @@
 /* Class = "NSMenuItem"; title = "Bring All to Front"; ObjectID = "LE2-aR-0XJ"; */
 "LE2-aR-0XJ.title" = "前置全部窗口";
 
+/* Class = "NSMenuItem"; title = "Toggle Danmaku"; ObjectID = "lmU-yX-0QG"; */
+"lmU-yX-0QG.title" = "弹幕开关";
+
 /* Class = "NSMenuItem"; title = "Services"; ObjectID = "NMo-om-nkz"; */
 "NMo-om-nkz.title" = "服务";
 
-/* Class = "NSMenuItem"; title = "Minimize"; ObjectID = "OY7-WF-poV"; */
-"OY7-WF-poV.title" = "最小化";
+/* Class = "NSMenuItem"; title = "Volume Up"; ObjectID = "o2L-YK-Znd"; */
+"o2L-YK-Znd.title" = "音量加";
 
 /* Class = "NSMenuItem"; title = "Hide APP_NAME"; ObjectID = "Olw-nP-bQN"; */
 "Olw-nP-bQN.title" = "隐藏APP_NAME";
 
+/* Class = "NSMenuItem"; title = "Previous"; ObjectID = "Ox4-Od-VDn"; */
+"Ox4-Od-VDn.title" = "上一集";
+
+/* Class = "NSMenuItem"; title = "Minimize"; ObjectID = "OY7-WF-poV"; */
+"OY7-WF-poV.title" = "最小化";
+
 /* Class = "NSMenuItem"; title = "Stop Speaking"; ObjectID = "Oyz-dy-DGm"; */
 "Oyz-dy-DGm.title" = "停止讲话";
 
-/* Class = "NSWindow"; title = "APP_NAME"; ObjectID = "QvC-M9-y7g"; */
-"QvC-M9-y7g.title" = "APP_NAME";
+/* Class = "NSMenuItem"; title = "Delete"; ObjectID = "pa3-QI-u2k"; */
+"pa3-QI-u2k.title" = "删除";
 
 /* Class = "NSMenuItem"; title = "Zoom"; ObjectID = "R4o-n2-Eq4"; */
 "R4o-n2-Eq4.title" = "缩放";
+
+/* Class = "NSMenu"; title = "Help"; ObjectID = "rJ0-wn-3NY"; */
+"rJ0-wn-3NY.title" = "帮助";
 
 /* Class = "NSMenuItem"; title = "Select All"; ObjectID = "Ruw-6m-B2m"; */
 "Ruw-6m-B2m.title" = "全选";
@@ -68,50 +109,39 @@
 /* Class = "NSMenuItem"; title = "Capitalize"; ObjectID = "UEZ-Bs-lqG"; */
 "UEZ-Bs-lqG.title" = "大写";
 
-/* Class = "NSMenuItem"; title = "Hide Others"; ObjectID = "Vdr-fp-XzO"; */
-"Vdr-fp-XzO.title" = "隐藏其他应用";
-
-/* Class = "NSMenu"; title = "Edit"; ObjectID = "W48-6f-4Dl"; */
-"W48-6f-4Dl.title" = "编辑";
-
-/* Class = "NSMenuItem"; title = "Start Speaking"; ObjectID = "Ynk-f8-cLZ"; */
-"Ynk-f8-cLZ.title" = "开始讲话";
-
-/* Class = "NSMenuItem"; title = "Window"; ObjectID = "aUF-d1-5bR"; */
-"aUF-d1-5bR.title" = "窗口";
-
-/* Class = "NSMenu"; title = "Transformations"; ObjectID = "c8a-y6-VQd"; */
-"c8a-y6-VQd.title" = "转换";
-
-/* Class = "NSMenuItem"; title = "Make Lower Case"; ObjectID = "d9M-CD-aMd"; */
-"d9M-CD-aMd.title" = "转换为小写";
-
-/* Class = "NSMenuItem"; title = "Undo"; ObjectID = "dRJ-4n-Yzg"; */
-"dRJ-4n-Yzg.title" = "撤销";
-
-/* Class = "NSMenuItem"; title = "Paste"; ObjectID = "gVA-U4-sdL"; */
-"gVA-U4-sdL.title" = "粘贴";
-
-/* Class = "NSMenu"; title = "Services"; ObjectID = "hz9-B4-Xy5"; */
-"hz9-B4-Xy5.title" = "服务";
-
-/* Class = "NSMenuItem"; title = "Delete"; ObjectID = "pa3-QI-u2k"; */
-"pa3-QI-u2k.title" = "删除";
-
-/* Class = "NSMenu"; title = "Help"; ObjectID = "rJ0-wn-3NY"; */
-"rJ0-wn-3NY.title" = "帮助";
-
-/* Class = "NSMenu"; title = "APP_NAME"; ObjectID = "uQy-DD-JDr"; */
-"uQy-DD-JDr.title" = "APP_NAME";
+/* Class = "NSMenu"; title = "Player"; ObjectID = "ufy-gc-bv9"; */
+"ufy-gc-bv9.title" = "播放器";
 
 /* Class = "NSMenuItem"; title = "Cut"; ObjectID = "uRl-iY-unG"; */
 "uRl-iY-unG.title" = "剪切";
 
+/* Class = "NSMenuItem"; title = "Speed Down"; ObjectID = "V9W-wp-A8v"; */
+"V9W-wp-A8v.title" = "倍速减";
+
+/* Class = "NSMenuItem"; title = "Hide Others"; ObjectID = "Vdr-fp-XzO"; */
+"Vdr-fp-XzO.title" = "隐藏其他应用";
+
 /* Class = "NSMenuItem"; title = "Make Upper Case"; ObjectID = "vmV-6d-7jI"; */
 "vmV-6d-7jI.title" = "转换为大写";
+
+/* Class = "NSMenuItem"; title = "Player"; ObjectID = "vQb-zP-A4Q"; */
+"vQb-zP-A4Q.title" = "播放器";
+
+/* Class = "NSMenu"; title = "Edit"; ObjectID = "W48-6f-4Dl"; */
+"W48-6f-4Dl.title" = "编辑";
+
+/* Class = "NSMenuItem"; title = "Speed"; ObjectID = "weg-Na-dVX"; */
+"weg-Na-dVX.title" = "倍速";
 
 /* Class = "NSMenuItem"; title = "Copy"; ObjectID = "x3v-GG-iWU"; */
 "x3v-GG-iWU.title" = "复制";
 
 /* Class = "NSMenuItem"; title = "Speech"; ObjectID = "xrE-MZ-jX0"; */
 "xrE-MZ-jX0.title" = "语音";
+
+/* Class = "NSMenuItem"; title = "Start Speaking"; ObjectID = "Ynk-f8-cLZ"; */
+"Ynk-f8-cLZ.title" = "开始讲话";
+
+/* Class = "NSMenuItem"; title = "Play / Pause"; ObjectID = "Yz8-Qq-Cit"; */
+"Yz8-Qq-Cit.title" = "播放 / 暂停";
+

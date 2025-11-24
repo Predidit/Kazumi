@@ -159,6 +159,8 @@ class _PlayerItemState extends State<PlayerItem>
       'speed1': () async => setPlaybackSpeed(1.0),
       'speed2': () async => setPlaybackSpeed(2.0),
       'speed3': () async => setPlaybackSpeed(3.0),
+      'speedup': () async => handleSpeedChange('up'),
+      'speeddown': () async => handleSpeedChange('down'),
     };
   }
   bool handleShortcutInput(String keyLabel) {
@@ -175,6 +177,70 @@ class _PlayerItemState extends State<PlayerItem>
     }
     return false;
   }
+
+  void _disposeMacOSMenu(){
+    if(!Platform.isMacOS) return;
+    const MethodChannel channel = MethodChannel("com.predidit.kazumi/intent");
+    channel.invokeMethod("disablePlayerMenu");
+  }
+
+  void _initMacOSMenu(){
+    if(!Platform.isMacOS) return;
+    const MethodChannel playerMenu = MethodChannel("macOS/player");
+    const MethodChannel channel = MethodChannel("com.predidit.kazumi/intent");
+    channel.invokeMethod("enablePlayerMenu");
+    playerMenu.setMethodCallHandler((call) async {
+        switch (call.method) {
+          case "menuPlayPause":
+            playerController.playOrPause();
+            break;
+          case "menuForward":
+            await handleShortcutSeek('forward');
+            break;
+          case "menuRewind":
+            await handleShortcutSeek('rewind');
+            break;
+          case "menuNext":
+            await handlePreNextEpisode('next');
+            break;
+          case "menuPrevious":
+            await handlePreNextEpisode('prev');
+            break;
+          case "menuVolumeUp":
+            await handleShortcutVolumeChange('up');
+            break;
+          case "menuVolumeDown":
+            await handleShortcutVolumeChange('down');
+            break;
+          case "menuToggleMute":
+            await handleShortcutVolumeChange('mute');
+            break;
+          case "menuToggleDanmaku":
+            handleDanmaku();
+            break;
+          case "menuSkip":
+            await skipOP();
+            break;
+          case "menuSpeed1":
+            await setPlaybackSpeed(1.0);
+            break;
+          case "menuSpeed2":
+            await setPlaybackSpeed(2.0);
+            break;
+          case "menuSpeed3":
+            await setPlaybackSpeed(3.0);
+            break;
+          case "menuSpeedUp":
+            await handleSpeedChange("up");
+            break;
+          case "menuSpeedDown":
+            await handleSpeedChange("down");
+            break;
+        }
+      });
+  }
+
+
 
   //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async{
@@ -474,6 +540,33 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
+  }
+
+
+  Future<void> handleSpeedChange(String type) async{
+    var currentSpeed = playerController.playerSpeed;
+    try{
+      switch (type){
+        case 'up':
+          currentSpeed = double.parse((currentSpeed + 0.25).toStringAsFixed(3));
+          if (currentSpeed <= 3.00){
+            setPlaybackSpeed(currentSpeed);
+          } else {
+            KazumiDialog.showToast(message: '已达倍速上限');
+          }
+          break;
+        case 'down':
+          currentSpeed = double.parse((currentSpeed - 0.25).toStringAsFixed(3));
+          if (currentSpeed >= 0.25){
+            setPlaybackSpeed(currentSpeed);
+          } else {
+            KazumiDialog.showToast(message: '已达倍速下限');
+          }
+          break;
+      }
+    } catch (e) {
+      KazumiLogger().log(Level.error, '倍速操作失败: ${e.toString()}');
+    }
   }
 
   Future<void> handleShortcutVolumeChange(String type) async {
@@ -1160,6 +1253,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
+    _initMacOSMenu();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1225,6 +1319,8 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
+
+    _disposeMacOSMenu();
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

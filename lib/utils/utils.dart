@@ -450,7 +450,7 @@ class Utils {
       }
     } catch (exception, stacktrace) {
       KazumiLogger()
-          .e('Failed to exit full screen', error: exception, stackTrace: stacktrace);
+          .e('DisPlay: failed to exit full screen', error: exception, stackTrace: stacktrace);
     }
   }
 
@@ -470,7 +470,7 @@ class Utils {
       }
     } catch (exception, stacktrace) {
       KazumiLogger()
-          .e('Failed to enter landscape mode', error: exception, stackTrace: stacktrace);
+          .e('Display: failed to enter landscape mode', error: exception, stackTrace: stacktrace);
     }
   }
 

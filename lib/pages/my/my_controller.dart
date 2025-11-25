@@ -25,7 +25,7 @@ abstract class _MyController with Store {
         try {
           if (RegExp(pattern).hasMatch(danmaku)) return true;
         } catch (_) {
-          KazumiLogger().e('无效的弹幕屏蔽正则表达式: $pattern');
+          KazumiLogger().e('Danmaku: invalid danmaku shield regex pattern: $pattern');
           continue;
         }
       } else {

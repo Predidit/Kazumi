@@ -315,7 +315,7 @@ class _SourceSheetState extends State<SourceSheet>
                                     Modular.to.pushNamed('/video/');
                                   } catch (_) {
                                     KazumiLogger()
-                                        .w("获取视频播放列表失败");
+                                        .w("QueryManager: failed to query video playlist");
                                     KazumiDialog.dismiss();
                                   }
                                 },

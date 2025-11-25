@@ -192,7 +192,7 @@ abstract class _PlayerController with Store {
           .roadList[videoPageController.currentRoad]
           .identifier[videoPageController.currentEpisode - 1]);
     } catch (e) {
-      KazumiLogger().e('从标题解析集数错误', error: e);
+      KazumiLogger().e('PlayerController: failed to extract episode number from title', error: e);
     }
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
@@ -353,7 +353,7 @@ abstract class _PlayerController with Store {
             showActionButton: true);
       }
       KazumiLogger().e(
-          'Player intent error $videoUrl', error: event);
+          'PlayerController: Player intent error $videoUrl', error: event);
     });
 
     if (superResolutionType != 1) {
@@ -404,7 +404,7 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer!.setRate(playerSpeed);
     } catch (e) {
-      KazumiLogger().e('设置播放速度失败', error: e);
+      KazumiLogger().e('PlayerController: failed to set playback speed', error: e);
     }
     try {
       updateDanmakuSpeed();

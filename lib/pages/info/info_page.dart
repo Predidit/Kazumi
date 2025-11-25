@@ -170,7 +170,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
       setState(() {});
     } catch (e) {
-      KazumiLogger().e('通过番剧ID网络查询番剧信息失败', error: e);
+      KazumiLogger().e('InfoController: failed to query bangumi info by ID', error: e);
     }
   }
 

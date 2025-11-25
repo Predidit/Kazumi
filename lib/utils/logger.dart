@@ -141,10 +141,9 @@ class KazumiLogOutput extends LogOutput {
         final file = File(filePath);
 
         final timestamp = DateTime.now().toString();
-        final levelName = event.level.name.toUpperCase();
 
         final buffer = StringBuffer();
-        buffer.writeln('[$timestamp] [$levelName]');
+        buffer.writeln('[$timestamp]');
         for (var line in event.lines) {
           final cleanLine = _removeAnsiCodes(line);
           buffer.writeln(cleanLine);

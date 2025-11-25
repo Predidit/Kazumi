@@ -126,7 +126,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             KazumiDialog.dismiss();
             Modular.to.pushNamed('/video/');
           } catch (_) {
-            KazumiLogger().w("获取视频播放列表失败");
+            KazumiLogger().w("QueryManager: failed to query roads");
             KazumiDialog.dismiss();
           }
         },

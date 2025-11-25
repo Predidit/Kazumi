@@ -62,7 +62,7 @@ class BBCodeBaseListener implements BBCodeListener {
         break;
       default:
         KazumiLogger()
-            .e('未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }
@@ -171,7 +171,7 @@ class BBCodeBaseListener implements BBCodeListener {
         break;
       default:
         KazumiLogger()
-            .e('未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }

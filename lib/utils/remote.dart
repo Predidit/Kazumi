@@ -57,7 +57,7 @@ class RemotePlay {
                                 DLNADevice(value.info).play();
                               } catch (e) {
                                 KazumiLogger()
-                                    .e('DLNA Error', error: e);
+                                    .e('RemotePlay: failed to cast to device', error: e);
                                 KazumiDialog.showToast(
                                   message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
                                 );

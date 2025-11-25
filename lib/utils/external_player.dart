@@ -14,7 +14,7 @@ class ExternalPlayer {
       return true;
     } on PlatformException catch (e) {
       KazumiLogger()
-          .e("Failed to open with mime", error: e);
+          .e("ExternalPlayer: failed to open with mime", error: e);
       return false;
     }
   }
@@ -26,7 +26,7 @@ class ExternalPlayer {
       return true;
     } on PlatformException catch (e) {
       KazumiLogger()
-          .e("Failed to open with referer", error: e);
+          .e("ExternalPlayer: failed to open with referer", error: e);
       return false;
     }
   }

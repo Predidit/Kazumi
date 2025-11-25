@@ -39,9 +39,9 @@ class RemotePlay {
                   dlna.devices.stream.listen((deviceList) {
                     dlnaDevice = [];
                     deviceList.forEach((key, value) async {
-                      debugPrint('Key: $key');
-                      debugPrint(
-                          'Value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
+                      KazumiLogger().i('RemotePlay: key: $key');
+                      KazumiLogger().i(
+                          'RemotePlay: value: ${value.info.friendlyName} ${value.info.deviceType} ${value.info.URLBase}');
                       setState(() {
                         dlnaDevice.add(ListTile(
                             leading: _deviceUPnPIcon(

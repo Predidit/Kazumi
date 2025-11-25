@@ -624,7 +624,7 @@ abstract class _PlayerController with Store {
         defaultValue: defaultSyncPlayEndPoint);
     String syncPlayEndPointHost = '';
     int syncPlayEndPointPort = 0;
-    debugPrint('SyncPlay: 连接到服务器 $syncPlayEndPoint');
+    KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
       final parts = syncPlayEndPoint.split(':');
       if (parts.length == 2) {

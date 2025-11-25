@@ -8,7 +8,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -77,12 +76,12 @@ class _InitPageState extends State<InitPage> {
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
-      KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
+      KazumiLogger().i('WebDav: Starting WebDav initialization');
       try {
         await webDav.init();
         try {
           await webDav.downloadAndPatchHistory();
-          KazumiLogger().log(Level.info, '同步观看记录完成');
+          KazumiLogger().i('WebDav: Completed syncing watch history');
         } catch (e) {
           KazumiDialog.showToast(message: "同步观看记录失败 ${e.toString()}");
         }

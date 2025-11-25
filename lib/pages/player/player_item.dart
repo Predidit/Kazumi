@@ -7,7 +7,6 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
-import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -222,7 +221,7 @@ class _PlayerItemState extends State<PlayerItem>
       await playerController.seek(Duration(seconds: targetPosition));
       playerTimer = getPlayerTimer();
     } catch (e) {
-      KazumiLogger().log(Level.error, e.toString());
+      KazumiLogger().e('PlayerController: seek failed', error: e);
     }
   }
 
@@ -505,7 +504,7 @@ class _PlayerItemState extends State<PlayerItem>
         hideVolumeUITimer = null;
       });
     } catch (e) {
-      KazumiLogger().log(Level.error, '音量操作失败: ${e.toString()}');
+      KazumiLogger().e('PlayerController: volume change failed', error: e);
     }
   }
 

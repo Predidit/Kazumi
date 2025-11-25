@@ -13,7 +13,6 @@ import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -171,7 +170,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
       setState(() {});
     } catch (e) {
-      KazumiLogger().log(Level.error, e.toString());
+      KazumiLogger().e('InfoController: failed to query bangumi info by ID', error: e);
     }
   }
 

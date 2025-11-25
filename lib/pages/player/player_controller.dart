@@ -13,7 +13,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -193,7 +192,7 @@ abstract class _PlayerController with Store {
           .roadList[videoPageController.currentRoad]
           .identifier[videoPageController.currentEpisode - 1]);
     } catch (e) {
-      KazumiLogger().log(Level.error, '从标题解析集数错误 ${e.toString()}');
+      KazumiLogger().e('PlayerController: failed to extract episode number from title', error: e);
     }
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
@@ -213,7 +212,7 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
-    KazumiLogger().log(Level.info, 'VideoURL初始化完成');
+    KazumiLogger().i('PlayerController: video initialized');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
@@ -229,7 +228,7 @@ abstract class _PlayerController with Store {
     playerLogSubscription = mediaPlayer!.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
-        KazumiLogger().simpleLog(event.toString());
+        KazumiLogger().i("MPV: ${event.toString()}", forceLog: true);
       }
     });
     await playerWidthSubscription?.cancel();
@@ -353,8 +352,8 @@ abstract class _PlayerController with Store {
             duration: const Duration(seconds: 5),
             showActionButton: true);
       }
-      KazumiLogger().log(
-          Level.error, 'Player intent error: ${event.toString()} $videoUrl');
+      KazumiLogger().e(
+          'PlayerController: Player intent error $videoUrl', error: event);
     });
 
     if (superResolutionType != 1) {
@@ -405,7 +404,7 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer!.setRate(playerSpeed);
     } catch (e) {
-      KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
+      KazumiLogger().e('PlayerController: failed to set playback speed', error: e);
     }
     try {
       updateDanmakuSpeed();
@@ -518,11 +517,11 @@ abstract class _PlayerController with Store {
   Future<void> getDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
     if (danmakuLoading) {
-      KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
       return;
     }
 
-    KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
+    KazumiLogger().i('PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
     danmakuLoading = true;
     try {
       danDanmakus.clear();
@@ -531,7 +530,7 @@ abstract class _PlayerController with Store {
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+      KazumiLogger().w('PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID', error: e);
     } finally {
       danmakuLoading = false;
     }
@@ -539,18 +538,18 @@ abstract class _PlayerController with Store {
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
     if (danmakuLoading) {
-      KazumiLogger().log(Level.info, '弹幕正在加载中，忽略重复请求');
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
       return;
     }
 
-    KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
+    KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
       danDanmakus.clear();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+      KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
     } finally {
       danmakuLoading = false;
     }
@@ -625,7 +624,7 @@ abstract class _PlayerController with Store {
         defaultValue: defaultSyncPlayEndPoint);
     String syncPlayEndPointHost = '';
     int syncPlayEndPointPort = 0;
-    debugPrint('SyncPlay: 连接到服务器 $syncPlayEndPoint');
+    KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
       final parts = syncPlayEndPoint.split(':');
       if (parts.length == 2) {
@@ -637,7 +636,7 @@ abstract class _PlayerController with Store {
       KazumiDialog.showToast(
         message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
       );
-      KazumiLogger().log(Level.error, 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint');
+      KazumiLogger().e('SyncPlay: invalid server address $syncPlayEndPoint');
       return;
     }
     syncplayController =

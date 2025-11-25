@@ -8,7 +8,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -139,7 +138,7 @@ class _VideoPageState extends State<VideoPage>
       playerController.init(mediaUrl, offset: offset);
     });
     _logSubscription = webviewItemController.onLog.listen((event) {
-      debugPrint('[kazumi webview parser]: $event');
+      KazumiLogger().i('WebViewParser: $event');
       if (event == 'clear') {
         clearWebviewLog();
         return;
@@ -180,7 +179,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       playerController.dispose();
     } catch (e) {
-      KazumiLogger().log(Level.error, '播放器释放失败: $e');
+      KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
     if (!Utils.isDesktop()) {
       try {
@@ -772,7 +771,7 @@ class _VideoPageState extends State<VideoPage>
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
-                  KazumiLogger().log(Level.info, '视频链接为 $urlItem');
+                  KazumiLogger().i('VideoPageController: video URL is $urlItem');
                   closeTabBodyAnimated();
                   changeEpisode(count0, currentRoad: currentRoad);
                 },

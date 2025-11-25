@@ -1,7 +1,6 @@
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 /// 收藏数据访问接口
 ///
@@ -67,12 +66,10 @@ class CollectRepository implements ICollectRepository {
           .where((item) => item.type == type.value)
           .map<int>((item) => item.bangumiItem.id)
           .toSet();
-    } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取收藏番剧ID失败: type=${type.label}',
+    } catch (e) {
+      KazumiLogger().w(
+        'GStorage: get bangumi IDs by type failed. type=${type.label}',
         error: e,
-        stackTrace: stackTrace,
       );
       return <int>{};
     }
@@ -86,12 +83,10 @@ class CollectRepository implements ICollectRepository {
           .where((item) => typeValues.contains(item.type))
           .map<int>((item) => item.bangumiItem.id)
           .toSet();
-    } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '批量获取收藏番剧ID失败: types=${types.map((t) => t.label).join(", ")}',
+    } catch (e) {
+      KazumiLogger().w(
+        'GStorage: get bangumi IDs by types failed. types=${types.map((t) => t.label).join(", ")}',
         error: e,
-        stackTrace: stackTrace,
       );
       return <int>{};
     }
@@ -107,12 +102,10 @@ class CollectRepository implements ICollectRepository {
         defaultValue: false,
       );
       return value is bool ? value : false;
-    } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取搜索页"不显示已看过"设置失败，使用默认值false',
+    } catch (e) {
+      KazumiLogger().w(
+        'GStorage: get search not show watched bangumis setting failed, using default false',
         error: e,
-        stackTrace: stackTrace,
       );
       return false;
     }
@@ -123,9 +116,8 @@ class CollectRepository implements ICollectRepository {
     try {
       await _settingBox.put(SettingBoxKey.searchNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '更新搜索页"不显示已看过"设置失败: value=$value',
+      KazumiLogger().e(
+        'GStorage: update search not show watched bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -141,9 +133,8 @@ class CollectRepository implements ICollectRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取搜索页"不显示已抛弃"设置失败，使用默认值false',
+      KazumiLogger().e(
+        'GStorage: get search not show abandoned bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -156,9 +147,8 @@ class CollectRepository implements ICollectRepository {
     try {
       await _settingBox.put(SettingBoxKey.searchNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '更新搜索页"不显示已抛弃"设置失败: value=$value',
+      KazumiLogger().e(
+        'GStorage: update search not show abandoned bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -176,9 +166,8 @@ class CollectRepository implements ICollectRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取时间表页"不显示已抛弃"设置失败，使用默认值false',
+      KazumiLogger().e(
+        'GStorage: get timeline not show abandoned bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -191,9 +180,8 @@ class CollectRepository implements ICollectRepository {
     try {
       await _settingBox.put(SettingBoxKey.timelineNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '更新时间表页"不显示已抛弃"设置失败: value=$value',
+      KazumiLogger().e(
+        'GStorage: update timeline not show abandoned bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -209,9 +197,8 @@ class CollectRepository implements ICollectRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取时间表页"不显示已看过"设置失败，使用默认值false',
+      KazumiLogger().e(
+        'GStorage: get timeline not show watched bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -224,9 +211,8 @@ class CollectRepository implements ICollectRepository {
     try {
       await _settingBox.put(SettingBoxKey.timelineNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '更新时间表页"不显示已看过"设置失败: value=$value',
+      KazumiLogger().e(
+        'GStorage: update timeline not show watched bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -244,9 +230,8 @@ class CollectRepository implements ICollectRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取隐私模式设置失败，使用默认值false',
+      KazumiLogger().e(
+        'GStorage: get private mode setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );

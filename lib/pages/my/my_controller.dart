@@ -1,5 +1,4 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -26,7 +25,7 @@ abstract class _MyController with Store {
         try {
           if (RegExp(pattern).hasMatch(danmaku)) return true;
         } catch (_) {
-          KazumiLogger().log(Level.error, '无效的弹幕屏蔽正则表达式: $pattern');
+          KazumiLogger().e('Danmaku: invalid danmaku shield regex pattern: $pattern');
           continue;
         }
       } else {
@@ -77,7 +76,7 @@ abstract class _MyController with Store {
 
       return true;
     } catch (err) {
-      KazumiLogger().log(Level.error, '检查更新失败 ${err.toString()}');
+      KazumiLogger().e('Update: check update failed', error: err);
       if (type == 'manual') {
         KazumiDialog.showToast(message: '检查更新失败，请稍后重试');
       }

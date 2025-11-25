@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/extension.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({
@@ -81,7 +80,7 @@ class NetworkImgLayer extends StatelessWidget {
                   fadeInDuration ?? const Duration(milliseconds: 120),
               filterQuality: FilterQuality.high,
               errorListener: (e) {
-                KazumiLogger().log(Level.warning, "网络图片加载错误 ${e.toString()}");
+                KazumiLogger().w("NetworkImage: network image load error", error: e);
               },
               errorWidget: (BuildContext context, String url, Object error) =>
                   placeholder(context),

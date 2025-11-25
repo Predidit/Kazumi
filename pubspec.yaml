@@ -70,7 +70,7 @@ dependencies:
   webdav_client: ^1.2.2
   tray_manager: ^0.5.0
   dlna_dart: ^0.0.8
-  logger: ^2.4.0
+  logger: ^2.6.2
   flutter_rating_bar: ^4.0.1
   scrollview_observer: ^1.22.0
   saver_gallery: ^4.0.0

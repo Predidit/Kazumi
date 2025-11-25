@@ -10,7 +10,6 @@ import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:hive/hive.dart';
 import 'package:mobx/mobx.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 
 part 'collect_controller.g.dart';
@@ -83,7 +82,7 @@ abstract class _CollectController with Store {
     try {
       await WebDav().ping();
     } catch (e) {
-      KazumiLogger().log(Level.error, 'WebDav连接失败: $e');
+      KazumiLogger().e('WebDav: WebDav connection failed', error: e);
       KazumiDialog.showToast(message: 'WebDav连接失败: $e');
       flag = false;
     }
@@ -107,7 +106,7 @@ abstract class _CollectController with Store {
         count++;
       }
       await _collectCrudRepository.clearFavorites();
-      KazumiLogger().log(Level.debug, '检测到$count条未分类追番记录, 已迁移');
+      KazumiLogger().d('GStorage: detected $count uncategorized favorites, migrated to collectibles');
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:kazumi/plugins/plugin_validity_tracker.dart';
 import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/plugin.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 
@@ -56,14 +55,14 @@ abstract class _PluginsController with Store {
   Future<void> loadAllPlugins() async {
     pluginList.clear();
     KazumiLogger()
-        .log(Level.info, 'Plugins Directory: ${newPluginDirectory!.path}');
+        .i('Plugins Directory: ${newPluginDirectory!.path}');
     if (await newPluginDirectory!.exists()) {
       final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
         KazumiLogger()
-            .log(Level.info, 'Current Plugin number: ${pluginList.length}');
+            .i('Plugin: Current Plugin number: ${pluginList.length}');
       } else {
         // No plugins.json
         var jsonFiles = await getPluginFiles();
@@ -78,7 +77,7 @@ abstract class _PluginsController with Store {
         savePlugins();
       }
     } else {
-      KazumiLogger().log(Level.warning, 'Plugin directory does not exist');
+      KazumiLogger().w('Plugin: plugin directory does not exist');
     }
   }
 
@@ -109,8 +108,8 @@ abstract class _PluginsController with Store {
       pluginList.add(plugin);
     }
     await savePlugins();
-    KazumiLogger().log(Level.info,
-        '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
+    KazumiLogger().i(
+        'Plugin: ${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
   }
 
   List<dynamic> pluginListToJson() {
@@ -165,7 +164,7 @@ abstract class _PluginsController with Store {
     final jsonData = jsonEncode(pluginListToJson());
     final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
     await pluginsFile.writeAsString(jsonData);
-    KazumiLogger().log(Level.info, '已更新插件文件 $pluginsFileName');
+    KazumiLogger().i('Plugin: updated plugin file $pluginsFileName');
   }
 
   Future<void> queryPluginHTTPList() async {

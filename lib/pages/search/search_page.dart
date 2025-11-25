@@ -6,6 +6,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -49,7 +50,7 @@ class _SearchPageState extends State<SearchPage> {
         !searchPageController.isLoading &&
         searchController.text != '' &&
         searchPageController.bangumiList.length >= 20) {
-      debugPrint('Search results is loading more');
+      KazumiLogger().i('SearchController: search results is loading more');
       searchPageController.searchBangumi(searchController.text, type: 'add');
     }
   }

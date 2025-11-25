@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -11,7 +11,6 @@ class PluginHTTP {
     try {
       var res = await Request().get('${Api.pluginShop}index.json');
       final jsonData = json.decode(res.data);
-      // debugPrint('${jsonData.toString()}');
       for (dynamic pluginJsonItem in jsonData) {
         try {
           PluginHTTPItem pluginHTTPItem = PluginHTTPItem.fromJson(pluginJsonItem);
@@ -19,7 +18,7 @@ class PluginHTTP {
         } catch (_) {}
       }
     } catch (e) {
-      debugPrint('获取插件仓库错误${e.toString()}');
+      KazumiLogger().e('Plugin: getPluginList error: ${e.toString()}');
     }
     return pluginHTTPItemList;
   }
@@ -31,7 +30,7 @@ class PluginHTTP {
       final jsonData = json.decode(res.data);
       plugin = Plugin.fromJson(jsonData);
     } catch(e) {
-      debugPrint('获取插件 $name 错误 ${e.toString()}');
+      KazumiLogger().e('Plugin: getPlugin error: ${e.toString()}');
     }
     return plugin;
   }

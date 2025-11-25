@@ -8,7 +8,6 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -155,41 +154,11 @@ class _AppWidgetState extends State<AppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      debugPrint("应用进入后台");
-      // bool webDavEnable =
-      //     await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      // bool webDavEnableHistory = await setting
-      //     .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      // if (webDavEnable && webDavEnableHistory) {
-      //   var webDav = WebDav();
-      //   webDav.updateHistory();
-      // }
+      KazumiLogger().i("AppLifecycleState.paused: Application moved to background");
     } else if (state == AppLifecycleState.resumed) {
-      debugPrint("应用回到前台");
-      // bool webDavEnable =
-      //     await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      // bool webDavEnableHistory = await setting
-      //     .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      // if (webDavEnable && webDavEnableHistory) {
-      //   try {
-      //     var webDav = WebDav();
-      //     webDav.downloadAndPatchHistory();
-      //   } catch (e) {
-      //     KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
-      //   }
-      // }
+      KazumiLogger().i("AppLifecycleState.resumed: Application moved to foreground");
     } else if (state == AppLifecycleState.inactive) {
-      debugPrint("应用处于非活动状态");
-      // if (Platform.isWindows || Platform.isLinux) {
-      //   bool webDavEnable =
-      //       await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      //   bool webDavEnableHistory = await setting
-      //       .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      //   if (webDavEnable && webDavEnableHistory) {
-      //     var webDav = WebDav();
-      //     webDav.updateHistory();
-      //   }
-      // }
+      KazumiLogger().i("AppLifecycleState.inactive: Application is inactive");
     }
   }
 
@@ -331,7 +300,7 @@ class _AppWidgetState extends State<AppWidget>
           FlutterDisplayMode.setPreferredMode(preferred);
         });
       } catch (e) {
-        KazumiLogger().log(Level.error, '高帧率设置失败 ${e.toString()}');
+        KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
       }
     }
 

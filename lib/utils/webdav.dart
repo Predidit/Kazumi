@@ -3,7 +3,6 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
@@ -52,13 +51,13 @@ class WebDav {
           await webDavLocalTempDirectory.create(recursive: true);
         }
         initialized = true;
-        KazumiLogger().log(Level.info, 'webDav backup directory create success');
+        KazumiLogger().i('WebDav: webDav backup directory create success');
       } catch (_) {
-        KazumiLogger().log(Level.error, 'webDav backup directory create failed');
+        KazumiLogger().e('WebDav: webDav backup directory create failed');
         rethrow;
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
+      KazumiLogger().e('WebDav: WebDAV ping failed', error: e);
       rethrow;
     }
   }
@@ -80,7 +79,7 @@ class WebDav {
     try {
       await client.remove(webDavPath);
     } catch (_) {
-      KazumiLogger().log(Level.warning, 'webDav former backup file not exist');
+      KazumiLogger().w('WebDav: former backup file not exist');
     }
     await client.rename(
         '$webDavPath.cache', webDavPath, true);
@@ -91,14 +90,14 @@ class WebDav {
 
   Future<void> updateHistory() async {
     if (isHistorySyncing) {
-      KazumiLogger().log(Level.warning, 'History is currently syncing');
+      KazumiLogger().w('WebDav: History is currently syncing');
       throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
     try {
       await update('histories');
     } catch (e) {
-      KazumiLogger().log(Level.error, 'webDav update history failed $e');
+      KazumiLogger().e('WebDav: update history failed', error: e);
       rethrow;
     } finally {
       isHistorySyncing = false;
@@ -115,7 +114,7 @@ class WebDav {
         await update('collectchanges');
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, 'webDav update collectibles failed $e');
+      KazumiLogger().e('WebDav: update collectibles failed', error: e);
       rethrow;
     }
   }
@@ -134,7 +133,7 @@ class WebDav {
 
   Future<void> downloadAndPatchHistory() async {
     if (isHistorySyncing) {
-      KazumiLogger().log(Level.warning, 'History is currently syncing');
+      KazumiLogger().w('WebDav: History is currently syncing');
       throw Exception('History is currently syncing');
     }
     isHistorySyncing = true;
@@ -145,7 +144,7 @@ class WebDav {
       await GStorage.patchHistory(existingFile.path);
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'webDav download and patch history failed $e');
+          .e('WebDav: download and patch history failed', error: e);
       rethrow;
     } finally {
       isHistorySyncing = false;
@@ -167,14 +166,14 @@ class WebDav {
     List<Future<void>> downloadFutures = [];
     if (collectiblesExists) {
       downloadFutures.add(download('collectibles').catchError((e) {
-        KazumiLogger().log(Level.error, 'webDav download collectibles failed $e');
-        throw Exception('webDav download collectibles failed');
+        KazumiLogger().e('WebDav: download collectibles failed', error: e);
+        throw Exception('WebDav: download collectibles failed');
       }));
     }
     if (changesExists) {
       downloadFutures.add(download('collectchanges').catchError((e) {
-        KazumiLogger().log(Level.error, 'webDav download collectchanges failed $e');
-        throw Exception('webDav download collectchanges failed');
+        KazumiLogger().e('WebDav: download collectchanges failed', error: e);
+        throw Exception('WebDav: download collectchanges failed');
       }));
     }
     if (downloadFutures.isNotEmpty) {
@@ -190,8 +189,8 @@ class WebDav {
           '${webDavLocalTempDirectory.path}/collectchanges.tmp');
       }  
     } catch (e) {
-      KazumiLogger().log(Level.error, 'webDav get collectibles failed: $e');
-      throw Exception('webDav get collectibles from file failed'); 
+      KazumiLogger().e('WebDav: get collectibles failed', error: e);
+      throw Exception('WebDav: get collectibles from file failed'); 
     }
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
@@ -203,7 +202,7 @@ class WebDav {
     try {
       await client.ping();
     } catch (e) {
-      KazumiLogger().log(Level.error, 'WebDAV ping failed: $e');
+      KazumiLogger().e('WebDav: WebDav ping failed', error: e);
       rethrow;
     }
   }

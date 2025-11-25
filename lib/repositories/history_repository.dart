@@ -2,7 +2,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 /// 历史记录数据访问接口
 ///
@@ -89,9 +88,8 @@ class HistoryRepository implements IHistoryRepository {
       );
       return histories;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取历史记录列表失败',
+      KazumiLogger().e(
+        'GStorage: get all histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -104,9 +102,8 @@ class HistoryRepository implements IHistoryRepository {
     try {
       return _historiesBox.get(History.getKey(adapterName, bangumiItem));
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取历史记录失败: ${bangumiItem.name}',
+      KazumiLogger().e(
+        'GStorage: get history failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -156,9 +153,8 @@ class HistoryRepository implements IHistoryRepository {
       // 保存到存储
       await _historiesBox.put(history.key, history);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '更新历史记录失败: ${bangumiItem.name}, episode=$episode',
+      KazumiLogger().e(
+        'GStorage: update history failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -171,9 +167,8 @@ class HistoryRepository implements IHistoryRepository {
       var history = _historiesBox.get(History.getKey(adapterName, bangumiItem));
       return history?.progresses[history.lastWatchEpisode];
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取上次观看进度失败: ${bangumiItem.name}',
+      KazumiLogger().e(
+        'GStorage: get last watching progress failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -187,9 +182,8 @@ class HistoryRepository implements IHistoryRepository {
       var history = _historiesBox.get(History.getKey(adapterName, bangumiItem));
       return history?.progresses[episode];
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '查找观看进度失败: ${bangumiItem.name}, episode=$episode',
+      KazumiLogger().e(
+        'GStorage: find progress failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -202,9 +196,8 @@ class HistoryRepository implements IHistoryRepository {
     try {
       await _historiesBox.delete(history.key);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '删除历史记录失败: ${history.bangumiItem.name}',
+      KazumiLogger().e(
+        'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -220,9 +213,8 @@ class HistoryRepository implements IHistoryRepository {
         await _historiesBox.put(history.key, history);
       }
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '清空观看进度失败: ${bangumiItem.name}, episode=$episode',
+      KazumiLogger().e(
+        'GStorage: clear progress failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -234,9 +226,8 @@ class HistoryRepository implements IHistoryRepository {
     try {
       await _historiesBox.clear();
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '清空所有历史记录失败',
+      KazumiLogger().e(
+        'GStorage: clear all histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -252,9 +243,8 @@ class HistoryRepository implements IHistoryRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取隐私模式设置失败，使用默认值false',
+      KazumiLogger().e(
+        'GStorage: get private mode setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );

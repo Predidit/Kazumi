@@ -1,6 +1,5 @@
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/request/api.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
@@ -37,14 +36,14 @@ class DanmakuRequest {
       String animeTitle = anime.animeTitle;
       double similarity = calculateSimilarity(animeTitle, title);
       if (similarity == 1) {
-        KazumiLogger().log(Level.debug, '完全匹配番剧弹幕 $title');
+        KazumiLogger().i('Danmaku: total match $title');
         return animeId;
       }
 
       if (similarity > maxSimilarity) {
         maxSimilarity = similarity;
         bestAnimeId = animeId;
-        KazumiLogger().log(Level.debug, '匹配番剧弹幕 $title --- $animeTitle 相似度: $similarity');
+        KazumiLogger().i('Danmaku: match anime danmaku $title --- $animeTitle similarity: $similarity');
       }
     }
 
@@ -108,7 +107,7 @@ class DanmakuRequest {
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
-    KazumiLogger().log(Level.info, "弹幕请求最终URL $endPoint");
+    KazumiLogger().i("Danmaku: final request URL $endPoint");
     final res = await Request().get(endPoint,
         data: withRelated,
         extra: {'customError': '弹幕检索错误: 获取弹幕失败'});

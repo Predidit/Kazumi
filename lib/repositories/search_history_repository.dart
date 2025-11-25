@@ -1,7 +1,6 @@
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 /// 搜索历史数据访问接口
 ///
@@ -52,9 +51,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       histories.sort((a, b) => b.timestamp - a.timestamp);
       return histories;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '获取搜索历史失败',
+      KazumiLogger().e(
+        'GStorage: get all search histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -70,9 +68,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       await _searchHistoryBox.put(timestamp.toString(), history);
       return true;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '保存搜索历史失败: keyword=$keyword',
+      KazumiLogger().e(
+        'GStorage: save search history failed. keyword=$keyword',
         error: e,
         stackTrace: stackTrace,
       );
@@ -85,9 +82,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
     try {
       await _searchHistoryBox.delete(history.key);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '删除搜索历史失败: key=${history.key}',
+      KazumiLogger().e(
+        'GStorage: delete search history failed. key=${history.key}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -99,9 +95,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
     try {
       await _searchHistoryBox.clear();
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
-        '清空搜索历史失败',
+      KazumiLogger().e(
+        'GStorage: clear all search histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -117,9 +112,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
         await deleteHistory(history);
       }
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '删除重复搜索历史失败: keyword=$keyword',
+      KazumiLogger().e(
+        'GStorage: delete duplicate search histories failed. keyword=$keyword',
         error: e,
         stackTrace: stackTrace,
       );
@@ -131,9 +125,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
     try {
       return _searchHistoryBox.length >= maxCount;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '检查搜索历史数量失败',
+      KazumiLogger().e(
+        'GStorage: check if search history is full failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -149,9 +142,8 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
         await deleteHistory(histories.last);
       }
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
-        '删除最旧搜索历史失败',
+      KazumiLogger().e(
+        'GStorage: delete oldest search history failed',
         error: e,
         stackTrace: stackTrace,
       );

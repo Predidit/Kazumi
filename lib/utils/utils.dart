@@ -13,7 +13,6 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/mortis.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -451,7 +450,7 @@ class Utils {
       }
     } catch (exception, stacktrace) {
       KazumiLogger()
-          .log(Level.error, exception.toString(), stackTrace: stacktrace);
+          .e('DisPlay: failed to exit full screen', error: exception, stackTrace: stacktrace);
     }
   }
 
@@ -471,7 +470,7 @@ class Utils {
       }
     } catch (exception, stacktrace) {
       KazumiLogger()
-          .log(Level.error, exception.toString(), stackTrace: stacktrace);
+          .e('Display: failed to enter landscape mode', error: exception, stackTrace: stacktrace);
     }
   }
 

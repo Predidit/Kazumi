@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
@@ -75,7 +75,7 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    debugPrint('webDav追番列表长度 ${tempBoxItems.length}');
+    KazumiLogger().i('WebDav: restoring collectibles. tempCollectiblesBox length ${tempBoxItems.length}');
 
     await collectibles.clear();
     for (var tempBoxItem in tempBoxItems) {
@@ -91,7 +91,7 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    debugPrint('webDav追番列表长度 ${tempBoxItems.length}');
+    KazumiLogger().i('WebDav: get collectibles from file. tempCollectiblesBox length ${tempBoxItems.length}');
 
     final List<CollectedBangumi> collectibles = [];
     for (var tempBoxItem in tempBoxItems) {
@@ -108,7 +108,7 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectChangesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    debugPrint('webDav追番变更列表长度 ${tempBoxItems.length}');
+    KazumiLogger().i('WebDav: get collectChanges from file. tempCollectChangesBox length ${tempBoxItems.length}');
 
     final List<CollectedBangumiChange> collectChanges = [];
     for (var tempBoxItem in tempBoxItems) {

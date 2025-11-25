@@ -63,7 +63,7 @@ class _PopularPageState extends State<PopularPage>
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
-      KazumiLogger().i('Fetching next recommendation batch');
+      KazumiLogger().i('PopularPageController: Fetching next recommendation batch');
       if (popularController.currentTag != '') {
         popularController.queryBangumiByTag();
       } else {

@@ -179,7 +179,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       playerController.dispose();
     } catch (e) {
-      KazumiLogger().e('播放器释放失败', error: e);
+      KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
     if (!Utils.isDesktop()) {
       try {
@@ -771,7 +771,7 @@ class _VideoPageState extends State<VideoPage>
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
-                  KazumiLogger().i('视频链接为 $urlItem');
+                  KazumiLogger().i('VideoPageController: video URL is $urlItem');
                   closeTabBodyAnimated();
                   changeEpisode(count0, currentRoad: currentRoad);
                 },

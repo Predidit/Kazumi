@@ -52,7 +52,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       return histories;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取搜索历史失败',
+        'GStorage: get all search histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -69,7 +69,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       return true;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '保存搜索历史失败: keyword=$keyword',
+        'GStorage: save search history failed. keyword=$keyword',
         error: e,
         stackTrace: stackTrace,
       );
@@ -83,7 +83,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       await _searchHistoryBox.delete(history.key);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '删除搜索历史失败: key=${history.key}',
+        'GStorage: delete search history failed. key=${history.key}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -96,7 +96,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       await _searchHistoryBox.clear();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '清空搜索历史失败',
+        'GStorage: clear all search histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -113,7 +113,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       }
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '删除重复搜索历史失败: keyword=$keyword',
+        'GStorage: delete duplicate search histories failed. keyword=$keyword',
         error: e,
         stackTrace: stackTrace,
       );
@@ -126,7 +126,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       return _searchHistoryBox.length >= maxCount;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '检查搜索历史数量失败',
+        'GStorage: check if search history is full failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -143,7 +143,7 @@ class SearchHistoryRepository implements ISearchHistoryRepository {
       }
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '删除最旧搜索历史失败',
+        'GStorage: delete oldest search history failed',
         error: e,
         stackTrace: stackTrace,
       );

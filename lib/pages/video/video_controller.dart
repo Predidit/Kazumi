@@ -71,7 +71,7 @@ abstract class _VideoPageController with Store {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
     String chapterName = roadList[currentRoad].identifier[episode - 1];
-    KazumiLogger().i('跳转到$chapterName');
+    KazumiLogger().i('VideoPageController: changed to $chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (urlItem.contains(currentPlugin.baseUrl) ||
         urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
@@ -92,7 +92,7 @@ abstract class _VideoPageController with Store {
         .then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
-    KazumiLogger().i('已加载评论列表长度 ${episodeCommentsList.length}');
+    KazumiLogger().i('VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }
 
   Future<void> queryRoads(String url, String pluginName, {CancelToken? cancelToken}) async {
@@ -113,8 +113,8 @@ abstract class _VideoPageController with Store {
         roadList.addAll(await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
-    KazumiLogger().i('播放列表长度 ${roadList.length}');
-    KazumiLogger().i('第一播放列表选集数 ${roadList[0].data.length}');
+    KazumiLogger().i('VideoPageController: road list length ${roadList.length}');
+    KazumiLogger().i('VideoPageController: first road episode count ${roadList[0].data.length}');
   }
 
   void cancelQueryRoads() {

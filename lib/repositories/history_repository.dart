@@ -89,7 +89,7 @@ class HistoryRepository implements IHistoryRepository {
       return histories;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取历史记录列表失败',
+        'GStorage: get all histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -103,7 +103,7 @@ class HistoryRepository implements IHistoryRepository {
       return _historiesBox.get(History.getKey(adapterName, bangumiItem));
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取历史记录失败: ${bangumiItem.name}',
+        'GStorage: get history failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -154,7 +154,7 @@ class HistoryRepository implements IHistoryRepository {
       await _historiesBox.put(history.key, history);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新历史记录失败: ${bangumiItem.name}, episode=$episode',
+        'GStorage: update history failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -168,7 +168,7 @@ class HistoryRepository implements IHistoryRepository {
       return history?.progresses[history.lastWatchEpisode];
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取上次观看进度失败: ${bangumiItem.name}',
+        'GStorage: get last watching progress failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -183,7 +183,7 @@ class HistoryRepository implements IHistoryRepository {
       return history?.progresses[episode];
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '查找观看进度失败: ${bangumiItem.name}, episode=$episode',
+        'GStorage: find progress failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -197,7 +197,7 @@ class HistoryRepository implements IHistoryRepository {
       await _historiesBox.delete(history.key);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '删除历史记录失败: ${history.bangumiItem.name}',
+        'GStorage: delete history failed. bangumi=${history.bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -214,7 +214,7 @@ class HistoryRepository implements IHistoryRepository {
       }
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '清空观看进度失败: ${bangumiItem.name}, episode=$episode',
+        'GStorage: clear progress failed. bangumi=${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
       );
@@ -227,7 +227,7 @@ class HistoryRepository implements IHistoryRepository {
       await _historiesBox.clear();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '清空所有历史记录失败',
+        'GStorage: clear all histories failed',
         error: e,
         stackTrace: stackTrace,
       );
@@ -244,7 +244,7 @@ class HistoryRepository implements IHistoryRepository {
       return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取隐私模式设置失败，使用默认值false',
+        'GStorage: get private mode setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );

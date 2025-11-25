@@ -76,12 +76,12 @@ class _InitPageState extends State<InitPage> {
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
-      KazumiLogger().i('开始从WEBDAV同步记录');
+      KazumiLogger().i('WebDav: Starting WebDav initialization');
       try {
         await webDav.init();
         try {
           await webDav.downloadAndPatchHistory();
-          KazumiLogger().i('同步观看记录完成');
+          KazumiLogger().i('WebDav: Completed syncing watch history');
         } catch (e) {
           KazumiDialog.showToast(message: "同步观看记录失败 ${e.toString()}");
         }

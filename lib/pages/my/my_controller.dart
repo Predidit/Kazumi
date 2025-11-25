@@ -76,7 +76,7 @@ abstract class _MyController with Store {
 
       return true;
     } catch (err) {
-      KazumiLogger().e('检查更新失败', error: err);
+      KazumiLogger().e('Update: check update failed', error: err);
       if (type == 'manual') {
         KazumiDialog.showToast(message: '检查更新失败，请稍后重试');
       }

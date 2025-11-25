@@ -112,7 +112,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           .node as Element);
       return _itemHtmlMap[index] = node.outerHtml;
     } catch (e) {
-      KazumiLogger().e('解析第 ${index + 1} 条HTML失败', error: e);
+      KazumiLogger().e('PluginTest: failed to parse HTML item ${index + 1}', error: e);
       return "解析失败：$e";
     }
   }
@@ -148,7 +148,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         }
       }
     } catch (e, stack) {
-      KazumiLogger().e("测试失败", error: e, stackTrace: stack);
+      KazumiLogger().e("PluginTest: test failed", error: e, stackTrace: stack);
     } finally {
       if (mounted) setState(() => isTesting = false);
     }

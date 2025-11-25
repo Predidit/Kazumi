@@ -212,7 +212,7 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
-    KazumiLogger().i('VideoURL初始化完成');
+    KazumiLogger().i('播放器初始化完成');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
@@ -228,7 +228,7 @@ abstract class _PlayerController with Store {
     playerLogSubscription = mediaPlayer!.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
-        KazumiLogger().w(event.toString());
+        KazumiLogger().i("MPV: ${event.toString()}", forceLog: true);
       }
     });
     await playerWidthSubscription?.cancel();
@@ -517,11 +517,11 @@ abstract class _PlayerController with Store {
   Future<void> getDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
     if (danmakuLoading) {
-      KazumiLogger().i('弹幕正在加载中，忽略重复请求');
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
       return;
     }
 
-    KazumiLogger().i('尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
+    KazumiLogger().i('PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
     danmakuLoading = true;
     try {
       danDanmakus.clear();
@@ -530,7 +530,7 @@ abstract class _PlayerController with Store {
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().w('获取弹幕错误', error: e);
+      KazumiLogger().w('PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID', error: e);
     } finally {
       danmakuLoading = false;
     }
@@ -538,18 +538,18 @@ abstract class _PlayerController with Store {
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
     if (danmakuLoading) {
-      KazumiLogger().i('弹幕正在加载中，忽略重复请求');
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
       return;
     }
 
-    KazumiLogger().i('尝试获取弹幕 $episodeID');
+    KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
       danDanmakus.clear();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().w('获取弹幕错误', error: e);
+      KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
     } finally {
       danmakuLoading = false;
     }
@@ -636,7 +636,7 @@ abstract class _PlayerController with Store {
       KazumiDialog.showToast(
         message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
       );
-      KazumiLogger().e('SyncPlay: 服务器地址不合法 $syncPlayEndPoint');
+      KazumiLogger().e('SyncPlay: invalid server address $syncPlayEndPoint');
       return;
     }
     syncplayController =

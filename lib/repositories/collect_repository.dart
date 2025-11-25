@@ -68,7 +68,7 @@ class CollectRepository implements ICollectRepository {
           .toSet();
     } catch (e) {
       KazumiLogger().w(
-        '获取收藏番剧ID失败: type=${type.label}',
+        'GStorage: get bangumi IDs by type failed. type=${type.label}',
         error: e,
       );
       return <int>{};
@@ -85,7 +85,7 @@ class CollectRepository implements ICollectRepository {
           .toSet();
     } catch (e) {
       KazumiLogger().w(
-        '批量获取收藏番剧ID失败: types=${types.map((t) => t.label).join(", ")}',
+        'GStorage: get bangumi IDs by types failed. types=${types.map((t) => t.label).join(", ")}',
         error: e,
       );
       return <int>{};
@@ -104,7 +104,7 @@ class CollectRepository implements ICollectRepository {
       return value is bool ? value : false;
     } catch (e) {
       KazumiLogger().w(
-        '获取搜索页"不显示已看过"设置失败，使用默认值false',
+        'GStorage: get search not show watched bangumis setting failed, using default false',
         error: e,
       );
       return false;
@@ -117,7 +117,7 @@ class CollectRepository implements ICollectRepository {
       await _settingBox.put(SettingBoxKey.searchNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新搜索页"不显示已看过"设置失败: value=$value',
+        'GStorage: update search not show watched bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -134,7 +134,7 @@ class CollectRepository implements ICollectRepository {
       return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取搜索页"不显示已抛弃"设置失败，使用默认值false',
+        'GStorage: get search not show abandoned bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -148,7 +148,7 @@ class CollectRepository implements ICollectRepository {
       await _settingBox.put(SettingBoxKey.searchNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新搜索页"不显示已抛弃"设置失败: value=$value',
+        'GStorage: update search not show abandoned bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -167,7 +167,7 @@ class CollectRepository implements ICollectRepository {
       return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取时间表页"不显示已抛弃"设置失败，使用默认值false',
+        'GStorage: get timeline not show abandoned bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -181,7 +181,7 @@ class CollectRepository implements ICollectRepository {
       await _settingBox.put(SettingBoxKey.timelineNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新时间表页"不显示已抛弃"设置失败: value=$value',
+        'GStorage: update timeline not show abandoned bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -198,7 +198,7 @@ class CollectRepository implements ICollectRepository {
       return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取时间表页"不显示已看过"设置失败，使用默认值false',
+        'GStorage: get timeline not show watched bangumis setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );
@@ -212,7 +212,7 @@ class CollectRepository implements ICollectRepository {
       await _settingBox.put(SettingBoxKey.timelineNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新时间表页"不显示已看过"设置失败: value=$value',
+        'GStorage: update timeline not show watched bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );
@@ -231,7 +231,7 @@ class CollectRepository implements ICollectRepository {
       return value is bool ? value : false;
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '获取隐私模式设置失败，使用默认值false',
+        'GStorage: get private mode setting failed, using default false',
         error: e,
         stackTrace: stackTrace,
       );

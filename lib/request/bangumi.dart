@@ -83,7 +83,7 @@ class BangumiHTTP {
         bangumiCalendar.add(bangumiDayList);
       }
     } catch (e) {
-      KazumiLogger().e('Fetch bangumi item to calendar failed', error: e);
+      KazumiLogger().e('Network: fetch bangumi item to calendar failed', error: e);
     }
     return bangumiCalendar;
   }
@@ -129,7 +129,7 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger()
-          .e('Resolve bangumi list failed', error: e);
+          .e('Network: resolve bangumi list failed', error: e);
     }
     return bangumiList;
   }
@@ -155,7 +155,7 @@ class BangumiHTTP {
         }
       }
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi trends list failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi trends list failed', error: e);
     }
     return bangumiList;
   }
@@ -193,12 +193,12 @@ class BangumiHTTP {
               bangumiList.add(bangumiItem);
             }
           } catch (e) {
-            KazumiLogger().e('Resolve search results failed', error: e);
+            KazumiLogger().e('Network: resolve search results failed', error: e);
           }
         }
       }
     } catch (e) {
-      KazumiLogger().e('Unknown search problem', error: e);
+      KazumiLogger().e('Network: unknown search problem', error: e);
     }
     return bangumiList;
   }
@@ -210,7 +210,7 @@ class BangumiHTTP {
       );
       return BangumiItem.fromJson(res.data);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi item failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi item failed', error: e);
       return null;
     }
   }
@@ -230,7 +230,7 @@ class BangumiHTTP {
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi episode failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi episode failed', error: e);
     }
     return episodeInfo;
   }
@@ -246,7 +246,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi comments failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi comments failed', error: e);
     }
     return commentResponse;
   }
@@ -264,7 +264,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi episode comments failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi episode comments failed', error: e);
     }
     return commentResponse;
   }
@@ -282,7 +282,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = CharacterCommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi character comments failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi character comments failed', error: e);
     }
     return commentResponse;
   }
@@ -297,7 +297,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       staffResponse = StaffResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi staff failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi staff failed', error: e);
     }
     return staffResponse;
   }
@@ -311,7 +311,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       charactersResponse = CharactersResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve bangumi characters failed', error: e);
+      KazumiLogger().e('Network: resolve bangumi characters failed', error: e);
     }
     return charactersResponse;
   }
@@ -328,7 +328,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       characterFullItem = CharacterFullItem.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().e('Resolve character info failed', error: e);
+      KazumiLogger().e('Network: resolve character info failed', error: e);
     }
     return characterFullItem;
   }

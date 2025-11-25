@@ -5,84 +5,234 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
 
+class KazumiLogFilter extends LogFilter {
+  bool _forceLog = false;
+
+  void setForceLog(bool force) {
+    _forceLog = force;
+  }
+
+  @override
+  bool shouldLog(LogEvent event) {
+    if (_forceLog) {
+      return true;
+    }
+    return event.level.index >= Logger.level.index;
+  }
+}
+
+class KazumiLogPrinter extends PrettyPrinter {
+  KazumiLogPrinter()
+      : super(
+          methodCount: 0,
+          errorMethodCount:
+              8,
+          lineLength: 120,
+          colors: true,
+          // Disable emojis for better compatibility
+          printEmojis: false,
+          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+        );
+
+  @override
+  List<String> log(LogEvent event) {
+    // For trace, debug, info - never show stack trace
+    if (event.level == Level.trace ||
+        event.level == Level.debug ||
+        event.level == Level.info) {
+      final messageStr = stringifyMessage(event.message);
+      final time = getTime(event.time);
+      final prefix = _getPrefix(event.level);
+      final levelName = _getLevelName(event.level);
+
+      return [
+        '$prefix $time $levelName $messageStr',
+      ];
+    }
+
+    // For warning, error, fatal - use default behavior which shows stack if provided
+    return super.log(event);
+  }
+
+  /// Colored prefix for log level
+  String _getPrefix(Level level) {
+    if (!colors) return _getLevelTag(level);
+
+    const reset = '\x1B[0m';
+    String colorCode;
+
+    switch (level) {
+      case Level.trace:
+        colorCode = '\x1B[90m'; // Bright Black
+      case Level.debug:
+        colorCode = '\x1B[36m'; // Cyan
+      case Level.info:
+        colorCode = '\x1B[32m'; // Green
+      case Level.warning:
+        colorCode = '\x1B[33m'; // Yellow
+      case Level.error:
+        colorCode = '\x1B[31m'; // Red
+      case Level.fatal:
+        colorCode = '\x1B[35m'; // Magenta
+      default:
+        colorCode = '';
+    }
+
+    return '$colorCode${_getLevelTag(level)}$reset';
+  }
+
+  /// Tag symbol for log level
+  String _getLevelTag(Level level) {
+    switch (level) {
+      case Level.trace:
+        return '[·]';
+      case Level.debug:
+        return '[*]';
+      case Level.info:
+        return '[i]';
+      case Level.warning:
+        return '[!]';
+      case Level.error:
+        return '[×]';
+      case Level.fatal:
+        return '[‼]';
+      default:
+        return '[-]';
+    }
+  }
+
+  String _getLevelName(Level level) {
+    return level.name.toUpperCase().padRight(7);
+  }
+}
+
+class KazumiLogOutput extends LogOutput {
+  static final Lock _logLock = Lock();
+  static String? _logFilePath;
+
+  static Future<String> _getLogFilePath() async {
+    if (_logFilePath != null) return _logFilePath!;
+
+    final dir = (await getApplicationSupportDirectory()).path;
+    final logDir = p.join(dir, "logs");
+    final directory = Directory(logDir);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    _logFilePath = p.join(logDir, "kazumi_logs.log");
+    return _logFilePath!;
+  }
+
+  @override
+  void output(OutputEvent event) {
+    for (var line in event.lines) {
+      print(line);
+    }
+
+    // Only write warning, error, fatal to file
+    if (event.level.index >= Level.warning.index) {
+      _writeToFile(event);
+    }
+  }
+
+  void _writeToFile(OutputEvent event) {
+    _logLock.synchronized(() async {
+      try {
+        final filePath = await _getLogFilePath();
+        final file = File(filePath);
+
+        final timestamp = DateTime.now().toString();
+        final levelName = event.level.name.toUpperCase();
+
+        final buffer = StringBuffer();
+        buffer.writeln('[$timestamp] [$levelName]');
+        for (var line in event.lines) {
+          buffer.writeln(line);
+        }
+        buffer.writeln();
+
+        await file.writeAsString(
+          buffer.toString(),
+          mode: FileMode.writeOnlyAppend,
+        );
+      } catch (e) {
+        print('Failed to write log to file: $e');
+      }
+    });
+  }
+}
+
 class KazumiLogger {
-  KazumiLogger._internal();
+  KazumiLogger._internal() {
+    _filter = KazumiLogFilter();
+    _logger = Logger(
+      filter: _filter,
+      printer: KazumiLogPrinter(),
+      output: KazumiLogOutput(),
+    );
+  }
+
   static final KazumiLogger _instance = KazumiLogger._internal();
   factory KazumiLogger() {
     return _instance;
   }
 
-  final Logger _logger = Logger();
-
-  /// Global lock to ensure file writing is executed synchronously
-  static final Lock _logLock = Lock();
-
-  Future<void> _writeToFile(Level level, dynamic message,
-      {Object? error, StackTrace? stackTrace}) async {
-    try {
-      String dir = (await getApplicationSupportDirectory()).path;
-      final String logDir = p.join(dir, "logs");
-      final String filename = p.join(logDir, "kazumi_logs.log");
-
-      final directory = Directory(logDir);
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-
-      final timestamp = DateTime.now().toString();
-      final levelName = level.name.toUpperCase();
-      final errorInfo = error != null ? '\nError: $error' : '';
-      final stackInfo = stackTrace != null ? '\nStackTrace:\n$stackTrace' : '';
-
-      await _logLock.synchronized(() async {
-        await File(filename).writeAsString(
-          '[$timestamp] [$levelName] $message$errorInfo$stackInfo\n\n',
-          mode: FileMode.writeOnlyAppend,
-        );
-      });
-    } catch (e) {
-      print('Failed to write log to file: $e');
-    }
-  }
+  late final Logger _logger;
+  late final KazumiLogFilter _filter;
 
   /// Trace log - lowest level, very detailed information
-  void t(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void t(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.t(message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 
   /// Debug log - detailed information for debugging
-  void d(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void d(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.d(message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 
   /// Info log - informational messages
-  void i(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void i(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.i(message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 
   /// Warning log - potentially harmful situations
-  void w(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void w(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.w(message, error: error, stackTrace: stackTrace);
-    _writeToFile(Level.warning, message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 
   /// Error log - error events that might still allow the app to continue
-  void e(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void e(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.e(message, error: error, stackTrace: stackTrace);
-    _writeToFile(Level.error, message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 
   /// Fatal log - very severe error events that will presumably lead the app to abort
-  void f(dynamic message, {Object? error, StackTrace? stackTrace}) {
+  void f(dynamic message,
+      {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
+    _filter.setForceLog(forceLog);
     _logger.f(message, error: error, stackTrace: stackTrace);
-    _writeToFile(Level.fatal, message, error: error, stackTrace: stackTrace);
+    _filter.setForceLog(false);
   }
 }
 
 Future<File> getLogsPath() async {
-  String dir = (await getApplicationSupportDirectory()).path;
-  final String logDir = p.join(dir, "logs");
-  final String filename = p.join(logDir, "kazumi_logs.log");
+  final dir = (await getApplicationSupportDirectory()).path;
+  final logDir = p.join(dir, "logs");
+  final filename = p.join(logDir, "kazumi_logs.log");
 
   final directory = Directory(logDir);
   if (!await directory.exists()) {
@@ -91,7 +241,7 @@ Future<File> getLogsPath() async {
 
   final file = File(filename);
   if (!await file.exists()) {
-    await KazumiLogger._logLock.synchronized(() async {
+    await KazumiLogOutput._logLock.synchronized(() async {
       if (!await file.exists()) {
         await file.create();
       }
@@ -101,23 +251,14 @@ Future<File> getLogsPath() async {
 }
 
 Future<bool> clearLogs() async {
-  String dir = (await getApplicationSupportDirectory()).path;
-  final String logDir = p.join(dir, "logs");
-  final String filename = p.join(logDir, "kazumi_logs.log");
-
-  final directory = Directory(logDir);
-  if (!await directory.exists()) {
-    await directory.create(recursive: true);
-  }
-
-  final file = File(filename);
   try {
-    await KazumiLogger._logLock.synchronized(() async {
+    final file = await getLogsPath();
+    await KazumiLogOutput._logLock.synchronized(() async {
       await file.writeAsString('');
     });
+    return true;
   } catch (e) {
     print('Error clearing file: $e');
     return false;
   }
-  return true;
 }

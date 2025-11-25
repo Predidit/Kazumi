@@ -80,7 +80,7 @@ class NetworkImgLayer extends StatelessWidget {
                   fadeInDuration ?? const Duration(milliseconds: 120),
               filterQuality: FilterQuality.high,
               errorListener: (e) {
-                KazumiLogger().w("网络图片加载错误", error: e);
+                KazumiLogger().w("NetworkImage: network image load error", error: e);
               },
               errorWidget: (BuildContext context, String url, Object error) =>
                   placeholder(context),

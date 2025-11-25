@@ -163,7 +163,7 @@ class Plugin {
         );
         searchItems.add(searchItem);
         KazumiLogger().i(
-            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =
@@ -269,7 +269,7 @@ class Plugin {
         );
         searchItems.add(searchItem);
         KazumiLogger().i(
-            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =

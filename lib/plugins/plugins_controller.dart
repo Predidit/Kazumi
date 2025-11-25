@@ -62,7 +62,7 @@ abstract class _PluginsController with Store {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
         KazumiLogger()
-            .i('Current Plugin number: ${pluginList.length}');
+            .i('Plugin: Current Plugin number: ${pluginList.length}');
       } else {
         // No plugins.json
         var jsonFiles = await getPluginFiles();
@@ -77,7 +77,7 @@ abstract class _PluginsController with Store {
         savePlugins();
       }
     } else {
-      KazumiLogger().w('Plugin directory does not exist');
+      KazumiLogger().w('Plugin: plugin directory does not exist');
     }
   }
 
@@ -109,7 +109,7 @@ abstract class _PluginsController with Store {
     }
     await savePlugins();
     KazumiLogger().i(
-        '${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
+        'Plugin: ${jsonFiles.length} plugin files copied to ${newPluginDirectory!.path}');
   }
 
   List<dynamic> pluginListToJson() {
@@ -164,7 +164,7 @@ abstract class _PluginsController with Store {
     final jsonData = jsonEncode(pluginListToJson());
     final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
     await pluginsFile.writeAsString(jsonData);
-    KazumiLogger().i('已更新插件文件 $pluginsFileName');
+    KazumiLogger().i('Plugin: updated plugin file $pluginsFileName');
   }
 
   Future<void> queryPluginHTTPList() async {

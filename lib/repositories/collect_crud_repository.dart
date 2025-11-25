@@ -65,7 +65,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       return _collectiblesBox.values.cast<CollectedBangumi>().toList();
     } catch (e) {
       KazumiLogger().w(
-        '获取所有收藏失败',
+        'GStorage: get all collectibles failed',
         error: e,
       );
       return [];
@@ -78,7 +78,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       return _collectiblesBox.get(id);
     } catch (e) {
       KazumiLogger().w(
-        '获取收藏失败: id=$id',
+        'GStorage: get collectible failed. id=$id',
         error: e,
       );
       return null;
@@ -92,7 +92,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       return collectible?.type ?? 0;
     } catch (e) {
       KazumiLogger().w(
-        '获取收藏类型失败: id=$id',
+        'GStorage: get collect type failed. id=$id',
         error: e,
       );
       return 0;
@@ -111,7 +111,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       await _collectiblesBox.flush();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '添加收藏失败: id=${bangumiItem.id}, type=$type',
+        'GStorage: add collectible failed. id=${bangumiItem.id}, type=$type',
         error: e,
         stackTrace: stackTrace,
       );
@@ -125,7 +125,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       final collectible = _collectiblesBox.get(bangumiItem.id);
       if (collectible == null) {
         KazumiLogger().i(
-          '更新收藏失败: 收藏不存在, id=${bangumiItem.id}',
+          'GStorage: update collectible failed. collectible not found, id=${bangumiItem.id}',
         );
         return;
       }
@@ -134,7 +134,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       await _collectiblesBox.flush();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '更新收藏失败: id=${bangumiItem.id}',
+        'GStorage: update collectible failed. id=${bangumiItem.id}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -149,7 +149,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       await _collectiblesBox.flush();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '删除收藏失败: id=$id',
+        'GStorage: delete collectible failed. id=$id',
         error: e,
         stackTrace: stackTrace,
       );
@@ -164,7 +164,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       await _collectChangesBox.flush();
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        '记录收藏变更失败: changeId=${change.id}',
+        'GStorage: record collect change failed. changeId=${change.id}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -178,7 +178,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       return _favoritesBox.values.cast<BangumiItem>().toList();
     } catch (e) {
       KazumiLogger().i(
-        '获取旧版收藏失败',
+        'GStorage: get favorites failed',
         error: e,
       );
       return [];
@@ -192,7 +192,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
       await _favoritesBox.flush();
     } catch (e) {
       KazumiLogger().i(
-        '清空旧版收藏失败',
+        'GStorage: clear favorites failed',
         error: e,
       );
       rethrow;

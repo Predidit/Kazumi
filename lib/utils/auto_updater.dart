@@ -89,7 +89,7 @@ class AutoUpdater {
         availableTypes.add(InstallationType.androidApk);
       }
     } catch (e) {
-      KazumiLogger().w('检测安装类型失败', error: e);
+      KazumiLogger().w('Update: detect installation types failed', error: e);
     }
 
     if (availableTypes.isEmpty) {
@@ -131,7 +131,7 @@ class AutoUpdater {
 
       return null;
     } catch (e) {
-      KazumiLogger().e('检查更新失败', error: e);
+      KazumiLogger().e('Update: check for updates failed', error: e);
       rethrow;
     }
   }
@@ -149,7 +149,7 @@ class AutoUpdater {
       }
     } catch (e) {
       // 自动检查失败时不显示错误
-      KazumiLogger().w('自动检查更新失败', error: e);
+      KazumiLogger().w('Update: auto check for updates failed', error: e);
     }
   }
 
@@ -377,7 +377,7 @@ class AutoUpdater {
       _downloadUpdate(downloadInfo, expectedHash);
     } catch (e) {
       KazumiDialog.showToast(message: '下载失败: ${e.toString()}');
-      KazumiLogger().e('下载更新失败', error: e);
+      KazumiLogger().e('Update: download update failed', error: e);
     }
   }
 
@@ -481,7 +481,7 @@ class AutoUpdater {
         },
       );
 
-      KazumiLogger().e('下载更新失败', error: e);
+      KazumiLogger().e('Update: download update failed', error: e);
     }
   }
 
@@ -599,18 +599,18 @@ class AutoUpdater {
         final localHash = await Utils.calculateFileHash(file);
         if (localHash == expectedHash) {
           // 文件已存在且哈希匹配，直接返回
-          KazumiLogger().i('文件已存在且哈希验证通过，跳过下载: $filePath');
+          KazumiLogger().i('Update: file already exists and hash verified, skipping download: $filePath');
           _downloadProgress.value = 1.0;
           return filePath;
         } else {
           // 文件存在但哈希不匹配，删除后重新下载
           KazumiLogger().i(
-              '检测到文件哈希不匹配 (本地: $localHash, 期望: $expectedHash)，删除后重新下载');
+              'Update: file hash mismatch detected (local: $localHash, expected: $expectedHash), deleting and re-downloading');
           await file.delete();
         }
       } catch (e) {
         // 验证过程中出错，删除文件重新下载
-        KazumiLogger().w('文件验证失败，删除后重新下载', error: e);
+        KazumiLogger().w('Update: file verification failed, deleting and re-downloading', error: e);
         if (await file.exists()) {
           await file.delete();
         }
@@ -637,7 +637,7 @@ class AutoUpdater {
       await file.delete();
       throw Exception('文件完整性验证失败: 期望 $expectedHash，实际 $downloadedHash');
     }
-    KazumiLogger().i('文件下载完成，哈希验证通过: $filePath');
+    KazumiLogger().i('Update: file downloaded and hash verified: $filePath');
 
     return filePath;
   }
@@ -678,7 +678,7 @@ class AutoUpdater {
       }
     } catch (e) {
       KazumiDialog.showToast(message: '启动安装程序失败: ${e.toString()}');
-      KazumiLogger().e('启动安装程序失败', error: e);
+      KazumiLogger().e('Update: launch installer failed', error: e);
     }
   }
 
@@ -698,7 +698,7 @@ class AutoUpdater {
       KazumiDialog.dismiss();
     } catch (e) {
       KazumiDialog.showToast(message: '无法打开文件管理器');
-      KazumiLogger().w('打开文件管理器失败', error: e);
+      KazumiLogger().w('Update: reveal in file manager failed', error: e);
     }
   }
 

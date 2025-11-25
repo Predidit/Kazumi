@@ -82,7 +82,7 @@ abstract class _CollectController with Store {
     try {
       await WebDav().ping();
     } catch (e) {
-      KazumiLogger().e('WebDav连接失败', error: e);
+      KazumiLogger().e('WebDav: WebDav connection failed', error: e);
       KazumiDialog.showToast(message: 'WebDav连接失败: $e');
       flag = false;
     }
@@ -106,7 +106,7 @@ abstract class _CollectController with Store {
         count++;
       }
       await _collectCrudRepository.clearFavorites();
-      KazumiLogger().d('检测到$count条未分类追番记录, 已迁移');
+      KazumiLogger().d('GStorage: detected $count uncategorized favorites, migrated to collectibles');
     }
   }
 

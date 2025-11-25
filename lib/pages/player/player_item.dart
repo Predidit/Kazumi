@@ -221,7 +221,7 @@ class _PlayerItemState extends State<PlayerItem>
       await playerController.seek(Duration(seconds: targetPosition));
       playerTimer = getPlayerTimer();
     } catch (e) {
-      KazumiLogger().e('快进快退失败', error: e);
+      KazumiLogger().e('PlayerController: seek failed', error: e);
     }
   }
 
@@ -504,7 +504,7 @@ class _PlayerItemState extends State<PlayerItem>
         hideVolumeUITimer = null;
       });
     } catch (e) {
-      KazumiLogger().e('音量操作失败', error: e);
+      KazumiLogger().e('PlayerController: volume change failed', error: e);
     }
   }
 

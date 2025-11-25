@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:logger/logger.dart';
@@ -5,16 +6,13 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
 
+const Symbol _forceLogKey = #_forceLog;
+
 class KazumiLogFilter extends LogFilter {
-  bool _forceLog = false;
-
-  void setForceLog(bool force) {
-    _forceLog = force;
-  }
-
   @override
   bool shouldLog(LogEvent event) {
-    if (_forceLog) {
+    final forceLog = Zone.current[_forceLogKey] as bool? ?? false;
+    if (forceLog) {
       return true;
     }
     return event.level.index >= Logger.level.index;
@@ -129,8 +127,9 @@ class KazumiLogOutput extends LogOutput {
       print(line);
     }
 
-    // Only write warning, error, fatal to file
-    if (event.level.index >= Level.warning.index) {
+    // Write to file if: warning/error/fatal OR forceLog is enabled
+    final forceLog = Zone.current[_forceLogKey] as bool? ?? false;
+    if (event.level.index >= Level.warning.index || forceLog) {
       _writeToFile(event);
     }
   }
@@ -164,9 +163,8 @@ class KazumiLogOutput extends LogOutput {
 
 class KazumiLogger {
   KazumiLogger._internal() {
-    _filter = KazumiLogFilter();
     _logger = Logger(
-      filter: _filter,
+      filter: KazumiLogFilter(),
       printer: KazumiLogPrinter(),
       output: KazumiLogOutput(),
     );
@@ -178,54 +176,48 @@ class KazumiLogger {
   }
 
   late final Logger _logger;
-  late final KazumiLogFilter _filter;
+  void _log(void Function() logFn, bool forceLog) {
+    if (forceLog) {
+      runZoned(logFn, zoneValues: {_forceLogKey: true});
+    } else {
+      logFn();
+    }
+  }
 
   /// Trace log - lowest level, very detailed information
   void t(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.t(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.t(message, error: error, stackTrace: stackTrace), forceLog);
   }
 
   /// Debug log - detailed information for debugging
   void d(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.d(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.d(message, error: error, stackTrace: stackTrace), forceLog);
   }
 
   /// Info log - informational messages
   void i(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.i(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.i(message, error: error, stackTrace: stackTrace), forceLog);
   }
 
   /// Warning log - potentially harmful situations
   void w(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.w(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.w(message, error: error, stackTrace: stackTrace), forceLog);
   }
 
   /// Error log - error events that might still allow the app to continue
   void e(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.e(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.e(message, error: error, stackTrace: stackTrace), forceLog);
   }
 
   /// Fatal log - very severe error events that will presumably lead the app to abort
   void f(dynamic message,
       {Object? error, StackTrace? stackTrace, bool forceLog = false}) {
-    _filter.setForceLog(forceLog);
-    _logger.f(message, error: error, stackTrace: stackTrace);
-    _filter.setForceLog(false);
+    _log(() => _logger.f(message, error: error, stackTrace: stackTrace), forceLog);
   }
 }
 

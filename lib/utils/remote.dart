@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dlna_dart/dlna.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 
 class RemotePlay {
@@ -58,7 +57,7 @@ class RemotePlay {
                                 DLNADevice(value.info).play();
                               } catch (e) {
                                 KazumiLogger()
-                                    .log(Level.error, 'DLNA Error: $e');
+                                    .e('DLNA Error', error: e);
                                 KazumiDialog.showToast(
                                   message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
                                 );

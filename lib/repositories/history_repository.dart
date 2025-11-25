@@ -2,7 +2,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 
 /// 历史记录数据访问接口
 ///
@@ -89,8 +88,7 @@ class HistoryRepository implements IHistoryRepository {
       );
       return histories;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
+      KazumiLogger().e(
         '获取历史记录列表失败',
         error: e,
         stackTrace: stackTrace,
@@ -104,8 +102,7 @@ class HistoryRepository implements IHistoryRepository {
     try {
       return _historiesBox.get(History.getKey(adapterName, bangumiItem));
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
+      KazumiLogger().e(
         '获取历史记录失败: ${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
@@ -156,8 +153,7 @@ class HistoryRepository implements IHistoryRepository {
       // 保存到存储
       await _historiesBox.put(history.key, history);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
+      KazumiLogger().e(
         '更新历史记录失败: ${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
@@ -171,8 +167,7 @@ class HistoryRepository implements IHistoryRepository {
       var history = _historiesBox.get(History.getKey(adapterName, bangumiItem));
       return history?.progresses[history.lastWatchEpisode];
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
+      KazumiLogger().e(
         '获取上次观看进度失败: ${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
@@ -187,8 +182,7 @@ class HistoryRepository implements IHistoryRepository {
       var history = _historiesBox.get(History.getKey(adapterName, bangumiItem));
       return history?.progresses[episode];
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
+      KazumiLogger().e(
         '查找观看进度失败: ${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
@@ -202,8 +196,7 @@ class HistoryRepository implements IHistoryRepository {
     try {
       await _historiesBox.delete(history.key);
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
+      KazumiLogger().e(
         '删除历史记录失败: ${history.bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
@@ -220,8 +213,7 @@ class HistoryRepository implements IHistoryRepository {
         await _historiesBox.put(history.key, history);
       }
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
+      KazumiLogger().e(
         '清空观看进度失败: ${bangumiItem.name}, episode=$episode',
         error: e,
         stackTrace: stackTrace,
@@ -234,8 +226,7 @@ class HistoryRepository implements IHistoryRepository {
     try {
       await _historiesBox.clear();
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.error,
+      KazumiLogger().e(
         '清空所有历史记录失败',
         error: e,
         stackTrace: stackTrace,
@@ -252,8 +243,7 @@ class HistoryRepository implements IHistoryRepository {
       );
       return value is bool ? value : false;
     } catch (e, stackTrace) {
-      KazumiLogger().log(
-        Level.warning,
+      KazumiLogger().e(
         '获取隐私模式设置失败，使用默认值false',
         error: e,
         stackTrace: stackTrace,

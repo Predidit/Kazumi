@@ -93,8 +93,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/keyboard');
                   },
                   leading: const Icon(Icons.keyboard_rounded),
-                  title: const Text('操作设置'),
-                  description: const Text('设置播放器按键映射'),
+                  title: Text('操作设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('设置播放器按键映射', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

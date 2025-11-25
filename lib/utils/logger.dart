@@ -146,7 +146,8 @@ class KazumiLogOutput extends LogOutput {
         final buffer = StringBuffer();
         buffer.writeln('[$timestamp] [$levelName]');
         for (var line in event.lines) {
-          buffer.writeln(line);
+          final cleanLine = _removeAnsiCodes(line);
+          buffer.writeln(cleanLine);
         }
         buffer.writeln();
 
@@ -158,6 +159,11 @@ class KazumiLogOutput extends LogOutput {
         print('Failed to write log to file: $e');
       }
     });
+  }
+
+  /// Remove ANSI escape codes from string to ensure clean log files
+  String _removeAnsiCodes(String text) {
+    return text.replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '');
   }
 }
 

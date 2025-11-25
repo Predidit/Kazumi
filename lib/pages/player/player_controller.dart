@@ -212,7 +212,7 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
-    KazumiLogger().i('播放器初始化完成');
+    KazumiLogger().i('PlayerController: video initialized');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=

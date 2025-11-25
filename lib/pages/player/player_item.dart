@@ -500,7 +500,7 @@ class _PlayerItemState extends State<PlayerItem>
         }
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, '倍速操作失败: ${e.toString()}');
+      KazumiLogger().e('PlayerController: speed change failed', error: e);
     }
   }
 

@@ -17,31 +17,41 @@ class AppDelegate: FlutterAppDelegate {
     var player: AVPlayer?
     var videoUrl: URL?
     var httpReferer: String = ""
+    var menuChannel: FlutterMethodChannel?
+
     
     override func applicationDidFinishLaunching(_ notification: Notification) {
-        setPlayerMenuEnabled(false)
+        setMenuEnabled(page: "Player", enable: false)
         let controller : FlutterViewController = mainFlutterWindow?.contentViewController as! FlutterViewController
         let channel = FlutterMethodChannel.init(name: "com.predidit.kazumi/intent", binaryMessenger: controller.engine.binaryMessenger)
+        self.menuChannel = FlutterMethodChannel.init(name: "com.predidit.kazumi/appmenu",binaryMessenger: controller.engine.binaryMessenger)
         channel.setMethodCallHandler({
             (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
-            switch call.method{
-            case "openWithReferer":
+            if call.method == "openWithReferer" {
                 guard let args = call.arguments else { return }
                 if let myArgs = args as? [String: Any],
-                let url = myArgs["url"] as? String,
-                let referer = myArgs["referer"] as? String {
+                   let url = myArgs["url"] as? String,
+                   let referer = myArgs["referer"] as? String {
                     self.openVideoWithReferer(url: url, referer: referer)
                 }
                 result(nil)
-            case "enablePlayerMenu":
-                self.setPlayerMenuEnabled(true)
-                result(nil)
-            case "disablePlayerMenu":
-                self.setPlayerMenuEnabled(false)
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        });
+        self.menuChannel?.setMethodCallHandler({call,result in
+            switch call.method {
+            case "setMenuEnabled":
+                guard let args = call.arguments as? [String: Any],
+                    let page = args["page"] as? String,
+                    let enable = args["enable"] as? Bool else {
+                    result(FlutterMethodNotImplemented)
+                    return }
+                self.setMenuEnabled(page: page, enable: enable)
                 result(nil)
             default:
                 result(FlutterMethodNotImplemented)
-        }
+            }
         });
     }
     
@@ -179,18 +189,7 @@ class AppDelegate: FlutterAppDelegate {
     var isPlayerActive: Bool = false
 
     func sendToFlutter(_ command: String){
-        guard
-            let window = NSApp.mainWindow,
-            let controller = window.contentViewController as? FlutterViewController
-        else {
-            print("Flutter controller not found.")
-            return
-        }
-        let channel = FlutterMethodChannel(
-            name: "macOS/player",
-            binaryMessenger: controller.engine.binaryMessenger
-        )
-        channel.invokeMethod(command, arguments: nil)
+        menuChannel?.invokeMethod(command, arguments: nil)
     }
     @IBAction func menuPlayPause(_ sender: Any) { sendToFlutter("playorpause") }
     @IBAction func menuNext(_ sender: Any) { sendToFlutter("next") }
@@ -209,9 +208,14 @@ class AppDelegate: FlutterAppDelegate {
     @IBAction func menuSpeedDown(_ sender: Any) { sendToFlutter("speeddown") }
 
 
-    func setPlayerMenuEnabled(_ enabled: Bool){
-        if let playerMenuItem = NSApp.mainMenu?.items.first(where: { $0.identifier?.rawValue == "PlayerMenu" }) {
-            playerMenuItem.isEnabled = enabled
+    func setMenuEnabled(page: String, enable: Bool) {
+        switch page {
+        case "Player":
+            if let menuItem = NSApp.mainMenu?.items.first(where: { $0.identifier?.rawValue == "PlayerMenu" }) {
+                menuItem.isEnabled = enable
+            }
+        default:
+            return
         }
     }
 }

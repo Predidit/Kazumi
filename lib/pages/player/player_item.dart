@@ -178,27 +178,6 @@ class _PlayerItemState extends State<PlayerItem>
     return false;
   }
 
-  void _disposeMacOSMenu(){
-    if(!Platform.isMacOS) return;
-    const MethodChannel channel = MethodChannel("com.predidit.kazumi/intent");
-    channel.invokeMethod("disablePlayerMenu");
-  }
-
-  void _initMacOSMenu(){
-    if(!Platform.isMacOS) return;
-    const MethodChannel playerMenu = MethodChannel("macOS/player");
-    const MethodChannel channel = MethodChannel("com.predidit.kazumi/intent");
-    channel.invokeMethod("enablePlayerMenu");
-    playerMenu.setMethodCallHandler((call) async {
-      final action = keyboardActions[call.method];
-      if (action != null) {
-        action();
-      }
-    });
-  }
-
-
-
   //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async{
     if (videoPageController.loading) return;
@@ -501,25 +480,24 @@ class _PlayerItemState extends State<PlayerItem>
 
 
   Future<void> handleSpeedChange(String type) async{
-    var currentSpeed = playerController.playerSpeed;
-    try{
-      switch (type){
-        case 'up':
-          currentSpeed = double.parse((currentSpeed + 0.25).toStringAsFixed(3));
-          if (currentSpeed <= 3.00){
-            setPlaybackSpeed(currentSpeed);
-          } else {
-            KazumiDialog.showToast(message: '已达倍速上限');
-          }
-          break;
-        case 'down':
-          currentSpeed = double.parse((currentSpeed - 0.25).toStringAsFixed(3));
-          if (currentSpeed >= 0.25){
-            setPlaybackSpeed(currentSpeed);
-          } else {
-            KazumiDialog.showToast(message: '已达倍速下限');
-          }
-          break;
+    try {
+      final currentSpeed = playerController.playerSpeed;
+      int index = defaultPlaySpeedList.indexOf(currentSpeed);
+      if (type == "up") {
+        if (index < defaultPlaySpeedList.length - 1) {
+          index++;
+          setPlaybackSpeed(defaultPlaySpeedList[index]);
+        } else {
+          KazumiDialog.showToast(message: '已达倍速上限');
+        }
+      } 
+      else if (type == "down") {
+        if (index > 0) {
+          index--;
+          setPlaybackSpeed(defaultPlaySpeedList[index]);
+        } else {
+          KazumiDialog.showToast(message: '已达倍速下限');
+        }
       }
     } catch (e) {
       KazumiLogger().log(Level.error, '倍速操作失败: ${e.toString()}');
@@ -1210,7 +1188,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
-    _initMacOSMenu();
+    Utils.initAppmenu("Player",keyboardActions);
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1276,8 +1254,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
-
-    _disposeMacOSMenu();
+    Utils.disposeAppmenu("Player");
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

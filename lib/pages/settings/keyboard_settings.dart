@@ -190,8 +190,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   ),
                 ),
               );
-              }).toList(),
-            
+            }).toList(),
           ),
         ),
       ),

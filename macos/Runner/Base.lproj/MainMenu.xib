@@ -187,6 +187,13 @@
                                     <action selector="menuPrevious:" target="-1" id="ydf-b2-Mwz"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Skip" image="NSTouchBarSkipAhead30SecondsTemplate" id="jFI-nV-KPO">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuSkip:" target="-1" id="MHM-Mm-dSL"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ruh-Xu-tvB"/>
                             <menuItem title="Volume Up" image="speaker.plus.fill" catalog="system" id="o2L-YK-Znd">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -205,16 +212,11 @@
                                     <action selector="menuToggleMute:" target="-1" id="dna-bl-RPf"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="dKr-8P-RX9"/>
                             <menuItem title="Toggle Danmaku" id="lmU-yX-0QG">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="menuToggleDanmaku:" target="-1" id="v0C-DN-WQV"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Skip" image="NSTouchBarSkipAhead30SecondsTemplate" id="jFI-nV-KPO">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="menuSkip:" target="-1" id="MHM-Mm-dSL"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Speed" id="weg-Na-dVX">

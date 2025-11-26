@@ -559,31 +559,23 @@ class Utils {
   /// 销毁全局菜单
   static Future<void> disposeAppmenu(String page) async {
     if (!Platform.isMacOS) return;  //暂时只适配macOS
-    if (page == "Player"){  //暂时只支持播放器
-      const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
-      await appmenu.invokeMethod("setMenuEnabled", {
-        "page": "Player",
-        "enable": false,
-      });    
-    } else {
-      return;
-    }
+    const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
+    await appmenu.invokeMethod("setMenuEnabled", {
+      "page": page,
+      "enable": false,
+    });
   }
   /// 初始化全局菜单
   static Future<void> initAppmenu(String page, Map<String, void Function()> actions) async {
     if (!Platform.isMacOS) return;  //暂时只适配macOS
-    if (page == "Player"){  //暂时只支持播放器
-      const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
-      await appmenu.invokeMethod("setMenuEnabled", {
-        "page": "Player",
-        "enable": true,
-      });
-      appmenu.setMethodCallHandler((call) async {
-        final action = actions[call.method];
-        action?.call();
-      });
-    } else {
-      return;
-    }
+    const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
+    await appmenu.invokeMethod("setMenuEnabled", {
+      "page": page,
+      "enable": true,
+    });
+    appmenu.setMethodCallHandler((call) async {
+      final action = actions[call.method];
+      action?.call();
+    });
   }
 }

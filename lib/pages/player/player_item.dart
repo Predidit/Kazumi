@@ -163,6 +163,14 @@ class _PlayerItemState extends State<PlayerItem>
       'speeddown': () async => handleSpeedChange('down'),
     };
   }
+  //初始化播放器菜单
+  void _initPlayerMenu(){
+    Utils.initAppmenu("Player",keyboardActions);
+  }
+  //销毁播放器菜单
+  void _disposePlayerMenu(){
+    Utils.disposeAppmenu("Player");
+  }
   bool handleShortcutInput(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {
       final func = entry.key;
@@ -1188,7 +1196,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
-    Utils.initAppmenu("Player",keyboardActions);
+    _initPlayerMenu();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1254,7 +1262,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
-    Utils.disposeAppmenu("Player");
+    _disposePlayerMenu();
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

@@ -165,11 +165,11 @@ class _PlayerItemState extends State<PlayerItem>
   }
   //初始化播放器菜单
   void _initPlayerMenu(){
-    Utils.initAppmenu("Player",keyboardActions);
+    Utils.initPlayerMenu(keyboardActions);
   }
   //销毁播放器菜单
   void _disposePlayerMenu(){
-    Utils.disposeAppmenu("Player");
+    Utils.disposePlayerMenu();
   }
   bool handleShortcutInput(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {

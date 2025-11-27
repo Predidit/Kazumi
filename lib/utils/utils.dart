@@ -556,21 +556,21 @@ class Utils {
     return digest.toString();
   }
 
-  /// 销毁全局菜单
-  static Future<void> disposeAppmenu(String page) async {
+  /// 销毁播放器菜单
+  static Future<void> disposePlayerMenu() async {
     if (!Platform.isMacOS) return;  //暂时只适配macOS
     const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
     await appmenu.invokeMethod("setMenuEnabled", {
-      "page": page,
+      "menu": "PlayerMenu",
       "enable": false,
     });
   }
-  /// 初始化全局菜单
-  static Future<void> initAppmenu(String page, Map<String, void Function()> actions) async {
+  /// 初始化播放器菜单
+  static Future<void> initPlayerMenu(Map<String, void Function()> actions) async {
     if (!Platform.isMacOS) return;  //暂时只适配macOS
     const MethodChannel appmenu = MethodChannel("com.predidit.kazumi/appmenu");
     await appmenu.invokeMethod("setMenuEnabled", {
-      "page": page,
+      "menu": "PlayerMenu",
       "enable": true,
     });
     appmenu.setMethodCallHandler((call) async {

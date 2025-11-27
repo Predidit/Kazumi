@@ -21,7 +21,7 @@ class AppDelegate: FlutterAppDelegate {
 
     
     override func applicationDidFinishLaunching(_ notification: Notification) {
-        setMenuEnabled(page: "Player", enable: false)
+        setMenuEnabled(menu: "Player", enable: false)
         let controller : FlutterViewController = mainFlutterWindow?.contentViewController as! FlutterViewController
         let channel = FlutterMethodChannel.init(name: "com.predidit.kazumi/intent", binaryMessenger: controller.engine.binaryMessenger)
         self.menuChannel = FlutterMethodChannel.init(name: "com.predidit.kazumi/appmenu",binaryMessenger: controller.engine.binaryMessenger)
@@ -43,11 +43,11 @@ class AppDelegate: FlutterAppDelegate {
             switch call.method {
             case "setMenuEnabled":
                 guard let args = call.arguments as? [String: Any],
-                    let page = args["page"] as? String,
+                    let menu = args["menu"] as? String,
                     let enable = args["enable"] as? Bool else {
                     result(FlutterMethodNotImplemented)
                     return }
-                self.setMenuEnabled(page: page, enable: enable)
+                self.setMenuEnabled(menu: menu, enable: enable)
                 result(nil)
             default:
                 result(FlutterMethodNotImplemented)
@@ -207,15 +207,9 @@ class AppDelegate: FlutterAppDelegate {
     @IBAction func menuSpeedUp(_ sender: Any) { sendToFlutter("speedup") }
     @IBAction func menuSpeedDown(_ sender: Any) { sendToFlutter("speeddown") }
 
-
-    func setMenuEnabled(page: String, enable: Bool) {
-        switch page {
-        case "Player":
-            if let menuItem = NSApp.mainMenu?.items.first(where: { $0.identifier?.rawValue == "PlayerMenu" }) {
-                menuItem.isEnabled = enable
-            }
-        default:
-            return
+    func setMenuEnabled(menu: String, enable: Bool) {
+        if let menuItem = NSApp.mainMenu?.items.first(where: { $0.identifier?.rawValue == menu }) {
+            menuItem.isEnabled = enable
         }
     }
 }

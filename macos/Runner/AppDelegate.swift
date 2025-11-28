@@ -17,10 +17,14 @@ class AppDelegate: FlutterAppDelegate {
     var player: AVPlayer?
     var videoUrl: URL?
     var httpReferer: String = ""
+    var menuChannel: FlutterMethodChannel?
+
     
     override func applicationDidFinishLaunching(_ notification: Notification) {
+        setMenuEnabled(menu: "Player", enable: false)
         let controller : FlutterViewController = mainFlutterWindow?.contentViewController as! FlutterViewController
         let channel = FlutterMethodChannel.init(name: "com.predidit.kazumi/intent", binaryMessenger: controller.engine.binaryMessenger)
+        self.menuChannel = FlutterMethodChannel.init(name: "com.predidit.kazumi/appmenu",binaryMessenger: controller.engine.binaryMessenger)
         channel.setMethodCallHandler({
             (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
             if call.method == "openWithReferer" {
@@ -32,6 +36,20 @@ class AppDelegate: FlutterAppDelegate {
                 }
                 result(nil)
             } else {
+                result(FlutterMethodNotImplemented)
+            }
+        });
+        self.menuChannel?.setMethodCallHandler({call,result in
+            switch call.method {
+            case "setMenuEnabled":
+                guard let args = call.arguments as? [String: Any],
+                    let menu = args["menu"] as? String,
+                    let enable = args["enable"] as? Bool else {
+                    result(FlutterMethodNotImplemented)
+                    return }
+                self.setMenuEnabled(menu: menu, enable: enable)
+                result(nil)
+            default:
                 result(FlutterMethodNotImplemented)
             }
         });
@@ -165,6 +183,33 @@ class AppDelegate: FlutterAppDelegate {
             } catch {
                 print("Failed to open app: \(error)")
             }
+        }
+    }
+
+    var isPlayerActive: Bool = false
+
+    func sendToFlutter(_ command: String){
+        menuChannel?.invokeMethod(command, arguments: nil)
+    }
+    @IBAction func menuPlayPause(_ sender: Any) { sendToFlutter("playorpause") }
+    @IBAction func menuNext(_ sender: Any) { sendToFlutter("next") }
+    @IBAction func menuPrevious(_ sender: Any) { sendToFlutter("prev") }
+    @IBAction func menuForward(_ sender: Any) { sendToFlutter("forward") }
+    @IBAction func menuRewind(_ sender: Any) { sendToFlutter("rewind") }
+    @IBAction func menuVolumeUp(_ sender: Any) { sendToFlutter("volumeup") }
+    @IBAction func menuVolumeDown(_ sender: Any) { sendToFlutter("volumedown") }
+    @IBAction func menuToggleMute(_ sender: Any) { sendToFlutter("togglemute") }
+    @IBAction func menuToggleDanmaku(_ sender: Any) { sendToFlutter("toggledanmaku") }
+    @IBAction func menuSkip(_ sender: Any) { sendToFlutter("skip") }
+    @IBAction func menuSpeed1(_ sender: Any) { sendToFlutter("speed1") }
+    @IBAction func menuSpeed2(_ sender: Any) { sendToFlutter("speed2") }
+    @IBAction func menuSpeed3(_ sender: Any) { sendToFlutter("speed3") }
+    @IBAction func menuSpeedUp(_ sender: Any) { sendToFlutter("speedup") }
+    @IBAction func menuSpeedDown(_ sender: Any) { sendToFlutter("speeddown") }
+
+    func setMenuEnabled(menu: String, enable: Bool) {
+        if let menuItem = NSApp.mainMenu?.items.first(where: { $0.identifier?.rawValue == menu }) {
+            menuItem.isEnabled = enable
         }
     }
 }

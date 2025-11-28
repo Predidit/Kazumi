@@ -113,6 +113,9 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         child: Focus(
           focusNode: focusNode,
           autofocus: true,
+          canRequestFocus: true,
+          skipTraversal: true,
+          descendantsAreFocusable: true,
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (listeningFunction == null) return KeyEventResult.ignored;
@@ -126,15 +129,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
-            children: [
-              Text('长按已设置的快捷键可删除，点击 + 可添加新的快捷键', 
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...shortcuts.entries.map((entry) {
+            children:
+              shortcuts.entries.map((entry) {
                 final func = entry.key;
                 final keys = entry.value;
                 return Card(
@@ -144,39 +140,48 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        shortcutsChineseName[func] ?? func,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                      Row(
+                        children: [
+                          Text(
+                            shortcutsChineseName[func] ?? func,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                          ),
+                          Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: () {
+                              keys.removeWhere((key) => key.isEmpty || key == '...');
+                              setState(() => keys.add(''));
+                              setting.put('shortcut_$func', keys);
+                              startListening(func, keys.length - 1);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            focusNode: FocusNode(canRequestFocus: false),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      if (keys.isNotEmpty) const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           for (int i = 0; i < keys.length; i++)
-                            GestureDetector(
-                              onLongPress: () {
-                                setState(() => keys.removeAt(i));
-                                setting.put('shortcut_$func', keys);
-                              },
-                              child: ActionChip(
-                                label: Text(
-                                  keyAliases[keys[i]] ??
-                                      (keys[i].isEmpty ? '未设置' : keys[i]),
-                                ),
-                                onPressed: () => startListening(func, i),
-                                avatar: const Icon(Icons.edit),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                focusNode: FocusNode(canRequestFocus: false),
-                              ),
-                            ),
-                          // 添加快捷键
                           ActionChip(
-                            label: const Text("+"),
-                            onPressed: () {
-                              setState(() => keys.add(''));
-                              setting.put('shortcut_$func', keys);
-                            },
+                            label: Text(keyAliases[keys[i]] ?? keys[i],),
+                            avatar: keys.length >=2 ?Icon(Icons.cancel) :Icon(Icons.edit),
+                            onPressed: (keys.length >=2)
+                              ?() {
+                                setState(() {
+                                  keys.removeAt(i);
+                                  listeningIndex = null;
+                                  if (keys.length >1){
+                                    keys.removeWhere((key) => key.isEmpty || key == '...');
+                                  }
+                                  setting.put('shortcut_$func', keys);
+                                });
+                              }
+                              :() => startListening(func, 0),
                             focusNode: FocusNode(canRequestFocus: false),
                           ),
                         ],
@@ -185,8 +190,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                   ),
                 ),
               );
-              }),
-            ],
+            }).toList(),
           ),
         ),
       ),

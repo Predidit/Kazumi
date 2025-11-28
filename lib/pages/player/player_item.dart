@@ -159,7 +159,17 @@ class _PlayerItemState extends State<PlayerItem>
       'speed1': () async => setPlaybackSpeed(1.0),
       'speed2': () async => setPlaybackSpeed(2.0),
       'speed3': () async => setPlaybackSpeed(3.0),
+      'speedup': () async => handleSpeedChange('up'),
+      'speeddown': () async => handleSpeedChange('down'),
     };
+  }
+  //初始化播放器菜单
+  void _initPlayerMenu(){
+    Utils.initPlayerMenu(keyboardActions);
+  }
+  //销毁播放器菜单
+  void _disposePlayerMenu(){
+    Utils.disposePlayerMenu();
   }
   bool handleShortcutInput(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {
@@ -474,6 +484,32 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> setPlaybackSpeed(double speed) async {
     await playerController.setPlaybackSpeed(speed);
+  }
+
+
+  Future<void> handleSpeedChange(String type) async{
+    try {
+      final currentSpeed = playerController.playerSpeed;
+      int index = defaultPlaySpeedList.indexOf(currentSpeed);
+      if (type == "up") {
+        if (index < defaultPlaySpeedList.length - 1) {
+          index++;
+          setPlaybackSpeed(defaultPlaySpeedList[index]);
+        } else {
+          KazumiDialog.showToast(message: '已达倍速上限');
+        }
+      } 
+      else if (type == "down") {
+        if (index > 0) {
+          index--;
+          setPlaybackSpeed(defaultPlaySpeedList[index]);
+        } else {
+          KazumiDialog.showToast(message: '已达倍速下限');
+        }
+      }
+    } catch (e) {
+      KazumiLogger().e('PlayerController: speed change failed', error: e);
+    }
   }
 
   Future<void> handleShortcutVolumeChange(String type) async {
@@ -1160,6 +1196,7 @@ class _PlayerItemState extends State<PlayerItem>
     super.initState();
     _loadShortcuts();
     _initKeyboardActions();
+    _initPlayerMenu();
     _fullscreenListener = mobx.reaction<bool>(
       (_) => videoPageController.isFullscreen,
       (_) {
@@ -1227,6 +1264,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideVolumeUITimer?.cancel();
     animationController?.dispose();
     animationController = null;
+    _disposePlayerMenu();
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

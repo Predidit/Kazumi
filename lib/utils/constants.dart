@@ -223,6 +223,8 @@ final List<String> defaultAnimeTags = const [
     'speed1': ['1'],
     'speed2': ['2'],
     'speed3': ['3'],
+    'speedup': ['X'],
+    'speeddown': ['Z'],
   };
 
 // 键位别名
@@ -256,4 +258,6 @@ final List<String> defaultAnimeTags = const [
     'speed1': '倍速：1x',
     'speed2': '倍速：2x',
     'speed3': '倍速：3x',
+    'speedup': '倍速加',
+    'speeddown': '倍速减',
   };

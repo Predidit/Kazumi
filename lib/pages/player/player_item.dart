@@ -72,6 +72,7 @@ class _PlayerItemState extends State<PlayerItem>
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
   late Map<String, List<String>> keyboardShortcuts;
+  late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
 
 
@@ -142,6 +143,9 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _initKeyboardActions(){
+    //需要实现长按的功能列表。
+    keyboardActionsNeedLongPress = ["forward"];
+    //快捷键功能对应表
     keyboardActions = {
       'playorpause': () => playerController.playOrPause(),
       'forward': () async => handleShortcutForwardDown(),
@@ -161,6 +165,10 @@ class _PlayerItemState extends State<PlayerItem>
       'speed3': () async => setPlaybackSpeed(3.0),
       'speedup': () async => handleSpeedChange('up'),
       'speeddown': () async => handleSpeedChange('down'),
+      // 开始对应长按功能
+      // 如需对应长按功能，例如对功能'func'对应长按，请分别添加'funcRepeat'和'funcUp'。
+      'forwardRepeat': () async => handleShortcutForwardRepeat(),
+      'forwardUp' : () async => handleShortcutForwardUp(),
     };
   }
   //初始化播放器菜单
@@ -186,19 +194,17 @@ class _PlayerItemState extends State<PlayerItem>
     }
     return false;
   }
-  // 快捷键长按（仅实现快进）
-  bool handleShortcutRepeat(String keyLabel) {
-    if (keyboardShortcuts["forward"]?.contains(keyLabel) == true) {
-      handleShortcutForwardRepeat();
-      return true;
-    }
-    return false;
-  }
-  // 快捷键抬起（仅实现快进）
-  bool handleShortcutUp(String keyLabel) {
-    if (keyboardShortcuts["forward"]?.contains(keyLabel) == true) {
-      handleShortcutForwardUp();
-      return true;
+  // 快捷键长按
+  bool handleShortcutLongPress(String keyLabel, String mode) {
+    for (final func in keyboardActionsNeedLongPress){
+      final keys = keyboardShortcuts[func];
+      if (keys?.contains(keyLabel) == true) {
+        final action = keyboardActions[func + mode];
+        if (action != null){
+          action();
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -1378,9 +1384,9 @@ class _PlayerItemState extends State<PlayerItem>
                               if (event is KeyDownEvent) {
                                 handled = handleShortcutDown(keyLabel);
                               } else if (event is KeyRepeatEvent) {
-                                handled = handleShortcutRepeat(keyLabel);
+                                handled = handleShortcutLongPress(keyLabel,"Repeat");
                               } else if (event is KeyUpEvent) {
-                                handled = handleShortcutUp(keyLabel);
+                                handled = handleShortcutLongPress(keyLabel,"Up");
                               }
                               return handled ? KeyEventResult.handled : KeyEventResult.ignored;
                             },

@@ -144,8 +144,8 @@ class _PlayerItemState extends State<PlayerItem>
   void _initKeyboardActions(){
     keyboardActions = {
       'playorpause': () => playerController.playOrPause(),
-      'forward': () async => handleShortcutSeek('forward'),
-      'rewind': () async => handleShortcutSeek('rewind'),
+      'forward': () async => handleShortcutForwardDown(),
+      'rewind': () async => handleShortcutRewind(),
       'next': () async => handlePreNextEpisode('next'),
       'prev': () async => handlePreNextEpisode('prev'),
       'volumeup': () async => handleShortcutVolumeChange('up'),
@@ -171,7 +171,8 @@ class _PlayerItemState extends State<PlayerItem>
   void _disposePlayerMenu(){
     Utils.disposePlayerMenu();
   }
-  bool handleShortcutInput(String keyLabel) {
+  //快捷键按下
+  bool handleShortcutDown(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {
       final func = entry.key;
       final keys = entry.value;
@@ -182,6 +183,22 @@ class _PlayerItemState extends State<PlayerItem>
           return true;
         }
       }
+    }
+    return false;
+  }
+  // 快捷键长按（仅实现快进）
+  bool handleShortcutRepeat(String keyLabel) {
+    if (keyboardShortcuts["forward"]?.contains(keyLabel) == true) {
+      handleShortcutForwardRepeat();
+      return true;
+    }
+    return false;
+  }
+  // 快捷键抬起（仅实现快进）
+  bool handleShortcutUp(String keyLabel) {
+    if (keyboardShortcuts["forward"]?.contains(keyLabel) == true) {
+      handleShortcutForwardUp();
+      return true;
     }
     return false;
   }
@@ -210,22 +227,14 @@ class _PlayerItemState extends State<PlayerItem>
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
-  //快进快退快捷键动作
-  Future<void> handleShortcutSeek(String direction) async {
+  //快退快捷键动作
+  Future<void> handleShortcutRewind() async {
     int skipTime = playerController.arrowKeySkipTime;
     int current = playerController.currentPosition.inSeconds;
-    int total = playerController.playerDuration.inSeconds;
     int targetPosition;
 
-    if (direction == 'forward') {
-      targetPosition = current + skipTime;
-      if (targetPosition > total) targetPosition = total;
-    } else if (direction == 'rewind') {
-      targetPosition = current - skipTime;
-      if (targetPosition < 0) targetPosition = 0;
-    } else {
-      return;
-    }
+    targetPosition = current - skipTime;
+    if (targetPosition < 0) targetPosition = 0;
 
     try {
       playerTimer?.cancel();
@@ -233,6 +242,37 @@ class _PlayerItemState extends State<PlayerItem>
       playerTimer = getPlayerTimer();
     } catch (e) {
       KazumiLogger().e('PlayerController: seek failed', error: e);
+    }
+  }
+  // 快进快捷键动作
+  Future<void> handleShortcutForwardDown() async {
+    lastPlayerSpeed = playerController.playerSpeed;
+  }
+  Future<void> handleShortcutForwardRepeat() async {
+    if (playerController.playerSpeed < 2.0) {
+      playerController.showPlaySpeed = true;
+      setPlaybackSpeed(2.0);
+    }
+  }
+  Future<void> handleShortcutForwardUp() async {
+    int skipTime = playerController.arrowKeySkipTime;
+    int current = playerController.currentPosition.inSeconds;
+    int total = playerController.duration.inSeconds;
+    int targetPosition;
+
+    targetPosition = current + skipTime;
+    if (targetPosition > total) targetPosition = total;
+    if (playerController.showPlaySpeed) {
+      playerController.showPlaySpeed = false;
+      setPlaybackSpeed(lastPlayerSpeed);
+    } else {
+      try {
+        playerTimer?.cancel();
+        playerController.seek(Duration(seconds: targetPosition));
+        playerTimer = getPlayerTimer();
+      } catch (e) {
+        KazumiLogger().e('PlayerController: seek failed', error: e);
+      }
     }
   }
 
@@ -1331,15 +1371,18 @@ class _PlayerItemState extends State<PlayerItem>
                             focusNode: widget.keyboardFocus,
                             autofocus: true,
                             onKeyEvent: (focusNode, KeyEvent event) {
+                              bool handled = false;
+                              final keyLabel = event.logicalKey.keyLabel.isNotEmpty
+                                ? event.logicalKey.keyLabel
+                                : event.logicalKey.debugName ?? '';
                               if (event is KeyDownEvent) {
-                                final keyLabel = event.logicalKey.keyLabel.isNotEmpty
-                                    ? event.logicalKey.keyLabel
-                                    : event.logicalKey.debugName ?? '';
-                                    if (handleShortcutInput(keyLabel)) {
-                                      return KeyEventResult.handled;
-                                    }
-                              } 
-                              return KeyEventResult.ignored;
+                                handled = handleShortcutDown(keyLabel);
+                              } else if (event is KeyRepeatEvent) {
+                                handled = handleShortcutRepeat(keyLabel);
+                              } else if (event is KeyUpEvent) {
+                                handled = handleShortcutUp(keyLabel);
+                              }
+                              return handled ? KeyEventResult.handled : KeyEventResult.ignored;
                             },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||

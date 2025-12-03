@@ -243,7 +243,7 @@ final List<String> defaultAnimeTags = const [
 //功能中文名对应
   final Map<String, String> shortcutsChineseName = {
     'playorpause': '播放 / 暂停',
-    'forward': '快进',
+    'forward': '快进 / 长按倍速',
     'rewind': '快退',
     'next': '下一集',
     'prev': '上一集',

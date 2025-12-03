@@ -102,44 +102,44 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/universal/media_kit_libs_video
 
 dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 261c101248573c1af0b0d87cfdf49036d5c9f2e9
+      ref: b58dbf8f6ba8a898292ea372b8c5efac26d1f38e
       path: ./libs/macos/media_kit_libs_macos_video
 
 dev_dependencies:

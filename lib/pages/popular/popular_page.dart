@@ -30,9 +30,8 @@ class _PopularPageState extends State<PopularPage>
   final MenuController _menuController = MenuController();
 
   bool _showBackToTop = false;
-  bool _isDropdownOpen = false;
 
-  bool _ignoreNextTap = false;
+  bool _isDropdownOpen = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -240,93 +239,84 @@ class _PopularPageState extends State<PopularPage>
 
                         return MouseRegion(
                           cursor: SystemMouseCursors.click,
-                          child: Listener(
-                            onPointerDown: (_) {
-                              if (_menuController.isOpen) {
-                                _ignoreNextTap = true;
-                              } else {
-                                _ignoreNextTap = false;
+                          child: MenuAnchor(
+                            controller: _menuController,
+                            style: MenuStyle(
+                              alignment: Alignment.bottomRight,
+                              maximumSize: WidgetStateProperty.all(
+                                  const Size(200, 400)),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onOpen: () {
+                              if (mounted) {
+                                setState(() => _isDropdownOpen = true);
                               }
                             },
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (_ignoreNextTap) {
-                                  _ignoreNextTap = false;
-
-                                  if (_menuController.isOpen) {
-                                    _menuController.close();
+                            onClose: () {
+                              if (mounted) {
+                                setState(() => _isDropdownOpen = false);
+                              }
+                            },
+                            builder: (context, controller, child) {
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  if (controller.isOpen) {
+                                    controller.close();
+                                  } else {
+                                    controller.open();
                                   }
-                                  return;
-                                }
-                                // 正常打开
-                                _menuController.open();
-                              },
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    isTrend
-                                        ? '热门番组'
-                                        : popularController.currentTag,
-                                    style: theme.textTheme.headlineMedium!
-                                        .copyWith(
-                                      fontWeight: fontWeight,
-                                      fontSize: fontSize,
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      isTrend
+                                          ? '热门番组'
+                                          : popularController.currentTag,
+                                      style: theme.textTheme.headlineMedium!
+                                          .copyWith(
+                                        fontWeight: fontWeight,
+                                        fontSize: fontSize,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    AnimatedRotation(
+                                      turns: _isDropdownOpen ? 0.5 : 0.0,
+                                      duration:
+                                      const Duration(milliseconds: 200),
+                                      child: child,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            menuChildren: [
+                              '',
+                              ...defaultAnimeTags
+                            ].map((tag) {
+                              final isSelected =
+                                  tag == popularController.currentTag;
+                              final primaryColor = theme.colorScheme.primary;
+
+                              return MenuItemButton(
+                                onPressed: () => _handleTagSelection(tag),
+                                child: Container(
+                                  constraints:
+                                  const BoxConstraints(minWidth: 100),
+                                  child: Text(
+                                    tag.isEmpty ? '热门番组' : tag,
+                                    style: TextStyle(
+                                      color: isSelected ? primaryColor : null,
+                                      fontWeight:
+                                      isSelected ? FontWeight.bold : null,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
-
-                                  MenuAnchor(
-                                    controller: _menuController,
-                                    alignmentOffset: const Offset(0, 0),
-                                    style: MenuStyle(
-                                      maximumSize: WidgetStateProperty.all(const Size(200, 400)),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    onOpen: () {
-                                      if (mounted) setState(() => _isDropdownOpen = true);
-                                    },
-                                    onClose: () {
-                                      if (mounted) setState(() => _isDropdownOpen = false);
-                                    },
-                                    builder: (context, controller, child) {
-                                      return AnimatedRotation(
-                                        turns: _isDropdownOpen ? 0.5 : 0.0,
-                                        duration: const Duration(milliseconds: 200),
-                                        child: Icon(Icons.keyboard_arrow_down,
-                                            size: fontSize,
-                                            color: theme.iconTheme.color),
-                                      );
-                                    },
-                                    menuChildren: [
-                                      '',
-                                      ...defaultAnimeTags
-                                    ].map((tag) {
-                                      final isSelected =
-                                          tag == popularController.currentTag;
-                                      final primaryColor = theme.colorScheme.primary;
-
-                                      return MenuItemButton(
-                                        onPressed: () => _handleTagSelection(tag),
-                                        child: Container(
-                                          constraints:
-                                          const BoxConstraints(minWidth: 100),
-                                          child: Text(
-                                            tag.isEmpty ? '热门番组' : tag,
-                                            style: TextStyle(
-                                              color: isSelected ? primaryColor : null,
-                                              fontWeight:
-                                              isSelected ? FontWeight.bold : null,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            }).toList(),
+                            child: Icon(Icons.keyboard_arrow_down,
+                                size: fontSize, color: theme.iconTheme.color),
                           ),
                         );
                       },

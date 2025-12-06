@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
-import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -12,7 +11,6 @@ import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
@@ -26,13 +24,14 @@ class PopularPage extends StatefulWidget {
 class _PopularPageState extends State<PopularPage>
     with AutomaticKeepAliveClientMixin {
   DateTime? _lastPressedAt;
-  late NavigationBarState navigationBarState;
-  final FocusNode _focusNode = FocusNode();
   final ScrollController scrollController = ScrollController();
   final PopularController popularController = Modular.get<PopularController>();
 
-  // Key used to position the dropdown menu for the tag selector
-  final GlobalKey selectorKey = GlobalKey();
+  final MenuController _menuController = MenuController();
+
+  bool _showBackToTop = false;
+
+  bool _isDropdownOpen = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -47,23 +46,30 @@ class _PopularPageState extends State<PopularPage>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
   void dispose() {
-    _focusNode.dispose();
     scrollController.removeListener(scrollListener);
     super.dispose();
   }
 
   void scrollListener() {
     popularController.scrollOffset = scrollController.offset;
+
+    // 返回顶部按钮逻辑
+    if (scrollController.offset >= 300 && !_showBackToTop) {
+      setState(() {
+        _showBackToTop = true;
+      });
+    } else if (scrollController.offset < 300 && _showBackToTop) {
+      setState(() {
+        _showBackToTop = false;
+      });
+    }
+
     if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200 &&
+        scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
-      KazumiLogger().i('PopularPageController: Fetching next recommendation batch');
+      KazumiLogger()
+          .i('PopularPageController: Fetching next recommendation batch');
       if (popularController.currentTag != '') {
         popularController.queryBangumiByTag();
       } else {
@@ -97,7 +103,7 @@ class _PopularPageState extends State<PopularPage>
     super.build(context);
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) {
+      onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) {
           return;
         }
@@ -153,17 +159,19 @@ class _PopularPageState extends State<PopularPage>
                 })),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
+        floatingActionButton: _showBackToTop
+            ? FloatingActionButton(
           onPressed: () => scrollController.animateTo(0,
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOut),
           child: const Icon(Icons.arrow_upward),
-        ),
+        )
+            : null,
       ),
     );
   }
 
-  Widget contentGrid(bangumiList) {
+  Widget contentGrid(List bangumiList) {
     int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
@@ -175,23 +183,20 @@ class _PopularPageState extends State<PopularPage>
       padding: const EdgeInsets.all(8),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          // 行间距
           mainAxisSpacing: StyleString.cardSpace - 2,
-          // 列间距
           crossAxisSpacing: StyleString.cardSpace,
-          // 列数
           crossAxisCount: crossCount,
           mainAxisExtent:
-              MediaQuery.of(context).size.width / crossCount / 0.65 +
-                  MediaQuery.textScalerOf(context).scale(32.0),
+          MediaQuery.of(context).size.width / crossCount / 0.65 +
+              MediaQuery.textScalerOf(context).scale(32.0),
         ),
         delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            return bangumiList!.isNotEmpty
+              (BuildContext context, int index) {
+            return bangumiList.isNotEmpty
                 ? BangumiCardV(bangumiItem: bangumiList[index])
                 : null;
           },
-          childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+          childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
         ),
       ),
     );
@@ -216,11 +221,11 @@ class _PopularPageState extends State<PopularPage>
               final double maxExtent = 120 - MediaQuery.of(context).padding.top;
               final t = (1 -
                   ((constraints.maxHeight - kToolbarHeight) /
-                          (maxExtent - kToolbarHeight))
+                      (maxExtent - kToolbarHeight))
                       .clamp(0.0, 1.0));
-              // 字重收缩后为 w500，展开时为 w700
               final fontWeight = t < 0.5 ? FontWeight.w700 : FontWeight.w500;
               final fontSize = lerpDouble(28, 20, t)!;
+
               return Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
@@ -231,24 +236,82 @@ class _PopularPageState extends State<PopularPage>
                     child: Observer(
                       builder: (_) {
                         final bool isTrend = popularController.currentTag == '';
-                        return InkWell(
-                          key: selectorKey,
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: showTagMenu,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
-                                style: theme.textTheme.headlineMedium!.copyWith(
-                                  fontWeight: fontWeight,
-                                  fontSize: fontSize,
+
+                        return MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              if (_menuController.isOpen) {
+                                _menuController.close();
+                              } else {
+                                _menuController.open();
+                              }
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  isTrend
+                                      ? '热门番组'
+                                      : popularController.currentTag,
+                                  style: theme.textTheme.headlineMedium!
+                                      .copyWith(
+                                    fontWeight: fontWeight,
+                                    fontSize: fontSize,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.keyboard_arrow_down,
-                                  size: fontSize, color: theme.iconTheme.color),
-                            ],
+                                const SizedBox(width: 4),
+
+                                MenuAnchor(
+                                  controller: _menuController,
+                                  alignmentOffset: const Offset(0, 0),
+                                  style: MenuStyle(
+                                    maximumSize: WidgetStateProperty.all(const Size(200, 400)),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  onOpen: () {
+                                    if (mounted) setState(() => _isDropdownOpen = true);
+                                  },
+                                  onClose: () {
+                                    if (mounted) setState(() => _isDropdownOpen = false);
+                                  },
+                                  builder: (context, controller, child) {
+                                    return AnimatedRotation(
+                                      turns: _isDropdownOpen ? 0.5 : 0.0,
+                                      duration: const Duration(milliseconds: 200),
+                                      child: Icon(Icons.keyboard_arrow_down,
+                                          size: fontSize,
+                                          color: theme.iconTheme.color),
+                                    );
+                                  },
+                                  menuChildren: [
+                                    '',
+                                    ...defaultAnimeTags
+                                  ].map((tag) {
+                                    final isSelected =
+                                        tag == popularController.currentTag;
+                                    final primaryColor = theme.colorScheme.primary;
+
+                                    return MenuItemButton(
+                                      onPressed: () => _handleTagSelection(tag),
+                                      child: Container(
+                                        constraints:
+                                        const BoxConstraints(minWidth: 100),
+                                        child: Text(
+                                          tag.isEmpty ? '热门番组' : tag,
+                                          style: TextStyle(
+                                            color: isSelected ? primaryColor : null,
+                                            fontWeight:
+                                            isSelected ? FontWeight.bold : null,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -261,6 +324,23 @@ class _PopularPageState extends State<PopularPage>
         ),
       ),
     );
+  }
+
+  Future<void> _handleTagSelection(String selected) async {
+    if (selected == '' && popularController.currentTag != '') {
+      scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      popularController.setCurrentTag('');
+      popularController.clearBangumiList();
+      if (popularController.trendList.isEmpty) {
+        await popularController.queryBangumiByTrend();
+      }
+    } else if (selected != '' && selected != popularController.currentTag) {
+      scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      popularController.setCurrentTag(selected);
+      await popularController.queryBangumiByTag(type: 'init');
+    }
   }
 
   List<Widget> buildActions() {
@@ -291,55 +371,5 @@ class _PopularPageState extends State<PopularPage>
       }
     }
     return actions;
-  }
-
-  Future<void> showTagMenu() async {
-    // Calculate the position of the button manually to position the dropdown menu.
-    // Using CustomDropdownMenu instead of PopupMenuButton to avoid flickering issues
-    // and to support different font sizes in the button and menu items.
-    final RenderBox renderBox =
-        selectorKey.currentContext!.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
-
-    final selected = await Navigator.push<String>(
-      context,
-      PageRouteBuilder(
-        opaque: false,
-        barrierDismissible: true,
-        barrierColor: Colors.transparent,
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return CustomDropdownMenu(
-            offset: offset,
-            buttonSize: size,
-            animation: animation,
-            maxWidth: 80,
-            items: [
-              '',
-              ...defaultAnimeTags,
-            ],
-            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 200),
-        reverseTransitionDuration: const Duration(milliseconds: 150),
-      ),
-    );
-
-    if (selected == null) return;
-    if (selected == '' && popularController.currentTag != '') {
-      scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      popularController.setCurrentTag('');
-      popularController.clearBangumiList();
-      if (popularController.trendList.isEmpty) {
-        await popularController.queryBangumiByTrend();
-      }
-    } else if (selected != '' && selected != popularController.currentTag) {
-      scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
-      popularController.setCurrentTag(selected);
-      await popularController.queryBangumiByTag(type: 'init');
-    }
   }
 }

@@ -265,5 +265,6 @@ class SettingBoxKey {
       searchNotShowAbandonedBangumis = 'searchNotShowAbandonedBangumis',
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
       timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
-      useSystemFont = 'useSystemFont';
+      useSystemFont = 'useSystemFont',
+      forceAdBlocker = 'forceAdBlocker';
 }

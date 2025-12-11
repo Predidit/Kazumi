@@ -33,6 +33,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useNativePlayer = true;
   bool usePost = false;
   bool useLegacyParser = false;
+  bool adBlocker = false;
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     useNativePlayer = plugin.useNativePlayer;
     usePost = plugin.usePost;
     useLegacyParser = plugin.useLegacyParser;
+    adBlocker = plugin.adBlocker;
   }
 
   @override
@@ -161,6 +163,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                         });
                       },
                     ),
+                    SwitchListTile(
+                      title: const Text('广告过滤'),
+                      subtitle: const Text('启用HLS广告过滤'),
+                      value: adBlocker,
+                      onChanged: (bool value) {
+                        setState(() {
+                          adBlocker = value;
+                        });
+                      },
+                    ),
                     const SizedBox(height: 20),
                     TextField(
                       controller: userAgentController,
@@ -197,6 +209,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   useNativePlayer: useNativePlayer,
                   usePost: usePost,
                   useLegacyParser: useLegacyParser,
+                  adBlocker: adBlocker,
                   userAgent: userAgentController.text,
                   baseUrl: baseURLController.text,
                   searchURL: searchURLController.text,
@@ -231,6 +244,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               plugin.useNativePlayer = useNativePlayer;
               plugin.usePost = usePost;
               plugin.useLegacyParser = useLegacyParser;
+              plugin.adBlocker = adBlocker;
               plugin.referer = refererController.text;
               pluginsController.updatePlugin(plugin);
               Navigator.of(context).pop();

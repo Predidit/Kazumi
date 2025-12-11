@@ -28,6 +28,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool privateMode;
   late bool playerDebugMode;
   late bool playerDisableAnimations;
+  late bool forceAdBlocker;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
@@ -54,6 +55,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     playerDisableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+    forceAdBlocker =
+        setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
     playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
 
     playerButtonSkipTime =
@@ -231,6 +234,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text('自动跳转', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('跳转到上次播放位置', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playResume,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    forceAdBlocker = value ?? !forceAdBlocker;
+                    await setting.put(SettingBoxKey.forceAdBlocker, forceAdBlocker);
+                    setState(() {});
+                  },
+                  title: Text('广告过滤', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('强制启用HLS广告过滤，忽略规则设置', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: forceAdBlocker,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

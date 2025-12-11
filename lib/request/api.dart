@@ -2,7 +2,7 @@ class Api {
   /// 当前版本
   static const String version = '1.9.2';
   /// 规则API级别
-  static const int apiLevel = 4;
+  static const int apiLevel = 5;
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
   /// Github 项目主页

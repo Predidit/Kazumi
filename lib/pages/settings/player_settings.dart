@@ -29,6 +29,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDebugMode;
   late bool playerDisableAnimations;
   late bool forceAdBlocker;
+  late bool autoPlayNext;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
@@ -53,6 +54,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
     playerDisableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     forceAdBlocker =
@@ -234,6 +236,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text('自动跳转', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('跳转到上次播放位置', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playResume,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    autoPlayNext = value ?? !autoPlayNext;
+                    await setting.put(SettingBoxKey.autoPlayNext, autoPlayNext);
+                    setState(() {});
+                  },
+                  title: Text('自动连播', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('当前视频播放完毕后自动播放下一集', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: autoPlayNext,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

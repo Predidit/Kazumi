@@ -236,6 +236,7 @@ class SettingBoxKey {
       themeColor = 'themeColor',
       privateMode = 'privateMode',
       autoPlay = 'autoPlay',
+      autoPlayNext = 'autoPlayNext',
       playResume = 'playResume',
       showPlayerError = 'showPlayerError',
       oledEnhance = 'oledEnhance',

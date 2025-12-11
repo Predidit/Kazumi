@@ -106,6 +106,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   // 硬件解码
   late bool haEnable;
+  late bool autoPlayNext;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -705,7 +706,7 @@ class _PlayerItemState extends State<PlayerItem>
           videoPageController.currentEpisode <
               videoPageController
                   .roadList[videoPageController.currentRoad].data.length &&
-          !videoPageController.loading) {
+          !videoPageController.loading && autoPlayNext) {
         KazumiDialog.showToast(
             message:
                 '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
@@ -1299,6 +1300,7 @@ class _PlayerItemState extends State<PlayerItem>
     _danmakuUseSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();

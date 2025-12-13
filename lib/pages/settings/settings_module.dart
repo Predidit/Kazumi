@@ -9,6 +9,7 @@ import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/decoder_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
+import 'package:kazumi/pages/settings/keyboard_settings.dart';
 
 class SettingsModule extends Module {
   @override
@@ -18,6 +19,7 @@ class SettingsModule extends Module {
       "/theme/display",
       child: (_) => const SetDisplayMode(),
     );
+    r.child("/keyboard", child: (_) => const KeyboardSettingsPage());
     r.child("/player", child: (_) => const PlayerSettingsPage());
     r.child("/player/decoder", child: (_) => const DecoderSettings());
     // r.child("/other", child: (_) => const OtherSettingsPage());

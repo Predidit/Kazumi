@@ -105,7 +105,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -117,7 +117,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: const Text('Github'),
+              title: Text('Github', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -126,14 +126,14 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingBoxKey.enableGitProxy, enableGitProxy);
                     setState(() {});
                   },
-                  title: const Text('Github镜像'),
-                  description: const Text('使用镜像访问规则托管仓库'),
+                  title: Text('Github镜像', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('使用镜像访问规则托管仓库', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: enableGitProxy,
                 ),
               ],
             ),
             SettingsSection(
-              title: const Text('WEBDAV'),
+              title: Text('WEBDAV', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -156,7 +156,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       setState(() {});
                     }
                   },
-                  title: const Text('WEBDAV同步'),
+                  title: Text('WEBDAV同步', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: webDavEnable,
                 ),
                 SettingsTile.switchTile(
@@ -170,39 +170,39 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingBoxKey.webDavEnableHistory, webDavEnableHistory);
                     setState(() {});
                   },
-                  title: const Text('观看记录同步'),
-                  description: const Text('允许自动同步观看记录'),
+                  title: Text('观看记录同步', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('允许自动同步观看记录', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: webDavEnableHistory,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
                     Modular.to.pushNamed('/settings/webdav/editor');
                   },
-                  title: const Text('WEBDAV配置'),
+                  title: Text('WEBDAV配置', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              bottomInfo: const Text('立即上传观看记录到WEBDAV'),
+              bottomInfo: Text('立即上传观看记录到WEBDAV', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile(
                   trailing: const Icon(Icons.cloud_upload_rounded),
                   onPressed: (_) {
                     updateWebdav();
                   },
-                  title: const Text('手动上传'),
+                  title: Text('手动上传', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              bottomInfo: const Text('立即下载观看记录到本地'),
+              bottomInfo: Text('立即下载观看记录到本地', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile(
                   trailing: const Icon(Icons.cloud_download_rounded),
                   onPressed: (_) {
                     downloadWebdav();
                   },
-                  title: const Text('手动下载'),
+                  title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

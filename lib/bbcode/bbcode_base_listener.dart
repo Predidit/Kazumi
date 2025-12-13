@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/bbcode/bbcode_elements.dart';
 
@@ -63,7 +62,7 @@ class BBCodeBaseListener implements BBCodeListener {
         break;
       default:
         KazumiLogger()
-            .log(Level.error, '未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }
@@ -172,7 +171,7 @@ class BBCodeBaseListener implements BBCodeListener {
         break;
       default:
         KazumiLogger()
-            .log(Level.error, '未识别 Tag: ${ctx.text}, 请提交 issue 包含 log, 番剧及集数');
+            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }

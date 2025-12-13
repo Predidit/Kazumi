@@ -8,7 +8,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -139,7 +138,7 @@ class _VideoPageState extends State<VideoPage>
       playerController.init(mediaUrl, offset: offset);
     });
     _logSubscription = webviewItemController.onLog.listen((event) {
-      debugPrint('[kazumi webview parser]: $event');
+      KazumiLogger().i('WebViewParser: $event');
       if (event == 'clear') {
         clearWebviewLog();
         return;
@@ -180,7 +179,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       playerController.dispose();
     } catch (e) {
-      KazumiLogger().log(Level.error, '播放器释放失败: $e');
+      KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
     if (!Utils.isDesktop()) {
       try {
@@ -381,7 +380,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool isWideScreen =
+    final bool islandScape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
@@ -425,10 +424,10 @@ class _VideoPageState extends State<VideoPage>
                       children: [
                         Flexible(
                           // make it unflexible when not wideScreen.
-                          flex: (isWideScreen) ? 1 : 0,
+                          flex: (islandScape) ? 1 : 0,
                           child: Container(
                             color: Colors.black,
-                            height: (isWideScreen)
+                            height: (islandScape)
                                 ? MediaQuery.sizeOf(context).height
                                 : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
@@ -436,12 +435,12 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                         // when not wideScreen, show tabBody on the bottom
-                        if (!isWideScreen) Expanded(child: tabBody),
+                        if (!islandScape) Expanded(child: tabBody),
                       ],
                     ),
 
                     // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
-                    if (isWideScreen && videoPageController.showTabBody) ...[
+                    if (islandScape && videoPageController.showTabBody) ...[
                       if (disableAnimations) ...[
                         sideTabMask,
                         sideTabBody,
@@ -772,7 +771,7 @@ class _VideoPageState extends State<VideoPage>
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
-                  KazumiLogger().log(Level.info, '视频链接为 $urlItem');
+                  KazumiLogger().i('VideoPageController: video URL is $urlItem');
                   closeTabBodyAnimated();
                   changeEpisode(count0, currentRoad: currentRoad);
                 },

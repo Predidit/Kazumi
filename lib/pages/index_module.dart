@@ -15,6 +15,10 @@ import 'package:kazumi/pages/info/info_module.dart';
 import 'package:kazumi/pages/settings/settings_module.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/search/search_module.dart';
+import 'package:kazumi/repositories/collect_repository.dart';
+import 'package:kazumi/repositories/search_history_repository.dart';
+import 'package:kazumi/repositories/collect_crud_repository.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 
 class IndexModule extends Module {
   @override
@@ -22,6 +26,13 @@ class IndexModule extends Module {
 
   @override
   void binds(i) {
+    // Repository层
+    i.addSingleton<ICollectRepository>(CollectRepository.new);
+    i.addSingleton<ISearchHistoryRepository>(SearchHistoryRepository.new);
+    i.addSingleton<ICollectCrudRepository>(CollectCrudRepository.new);
+    i.addSingleton<IHistoryRepository>(HistoryRepository.new);
+
+    // Controller层
     i.addSingleton(PopularController.new);
     i.addSingleton(PluginsController.new);
     i.addSingleton(VideoPageController.new);

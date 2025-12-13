@@ -25,6 +25,24 @@ mixin _$CollectController on _CollectController, Store {
     });
   }
 
+  late final _$addCollectAsyncAction =
+      AsyncAction('_CollectController.addCollect', context: context);
+
+  @override
+  Future<void> addCollect(BangumiItem bangumiItem, {dynamic type = 1}) {
+    return _$addCollectAsyncAction
+        .run(() => super.addCollect(bangumiItem, type: type));
+  }
+
+  late final _$deleteCollectAsyncAction =
+      AsyncAction('_CollectController.deleteCollect', context: context);
+
+  @override
+  Future<void> deleteCollect(BangumiItem bangumiItem) {
+    return _$deleteCollectAsyncAction
+        .run(() => super.deleteCollect(bangumiItem));
+  }
+
   @override
   String toString() {
     return '''

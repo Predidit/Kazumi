@@ -6,7 +6,6 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:mobx/mobx.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
@@ -72,7 +71,7 @@ abstract class _VideoPageController with Store {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
     String chapterName = roadList[currentRoad].identifier[episode - 1];
-    KazumiLogger().log(Level.info, '跳转到$chapterName');
+    KazumiLogger().i('VideoPageController: changed to $chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (urlItem.contains(currentPlugin.baseUrl) ||
         urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
@@ -93,7 +92,7 @@ abstract class _VideoPageController with Store {
         .then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
-    KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
+    KazumiLogger().i('VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }
 
   Future<void> queryRoads(String url, String pluginName, {CancelToken? cancelToken}) async {
@@ -114,8 +113,8 @@ abstract class _VideoPageController with Store {
         roadList.addAll(await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
-    KazumiLogger().log(Level.info, '播放列表长度 ${roadList.length}');
-    KazumiLogger().log(Level.info, '第一播放列表选集数 ${roadList[0].data.length}');
+    KazumiLogger().i('VideoPageController: road list length ${roadList.length}');
+    KazumiLogger().i('VideoPageController: first road episode count ${roadList[0].data.length}');
   }
 
   void cancelQueryRoads() {

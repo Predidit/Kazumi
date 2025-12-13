@@ -5,7 +5,6 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart' show parse;
@@ -113,7 +112,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
           .node as Element);
       return _itemHtmlMap[index] = node.outerHtml;
     } catch (e) {
-      KazumiLogger().log(Level.error, "解析第 ${index + 1} 条HTML失败：$e");
+      KazumiLogger().e('PluginTest: failed to parse HTML item ${index + 1}', error: e);
       return "解析失败：$e";
     }
   }
@@ -149,8 +148,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
         }
       }
     } catch (e, stack) {
-      errorMsg = "测试失败：$e";
-      KazumiLogger().log(Level.error, errorMsg, stackTrace: stack);
+      KazumiLogger().e("PluginTest: test failed", error: e, stackTrace: stack);
     } finally {
       if (mounted) setState(() => isTesting = false);
     }

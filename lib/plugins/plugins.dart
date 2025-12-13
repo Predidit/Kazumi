@@ -3,7 +3,6 @@ import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:html/parser.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
@@ -19,6 +18,7 @@ class Plugin {
   bool useNativePlayer;
   bool usePost;
   bool useLegacyParser;
+  bool adBlocker;
   String userAgent;
   String baseUrl;
   String searchURL;
@@ -39,6 +39,7 @@ class Plugin {
     required this.useNativePlayer,
     required this.usePost,
     required this.useLegacyParser,
+    required this.adBlocker,
     required this.userAgent,
     required this.baseUrl,
     required this.searchURL,
@@ -61,6 +62,7 @@ class Plugin {
         useNativePlayer: json['useNativePlayer'],
         usePost: json['usePost'] ?? false,
         useLegacyParser: json['useLegacyParser'] ?? false,
+        adBlocker: json['adBlocker'] ?? false,
         userAgent: json['userAgent'],
         baseUrl: json['baseURL'],
         searchURL: json['searchURL'],
@@ -83,6 +85,7 @@ class Plugin {
         useNativePlayer: true,
         usePost: false,
         useLegacyParser: false,
+        adBlocker: false,
         userAgent: '',
         baseUrl: '',
         searchURL: '',
@@ -105,6 +108,7 @@ class Plugin {
     data['useNativePlayer'] = useNativePlayer;
     data['usePost'] = usePost;
     data['useLegacyParser'] = useLegacyParser;
+    data['adBlocker'] = adBlocker;
     data['userAgent'] = userAgent;
     data['baseURL'] = baseUrl;
     data['searchURL'] = searchURL;
@@ -163,8 +167,8 @@ class Plugin {
           src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
         );
         searchItems.add(searchItem);
-        KazumiLogger().log(Level.info,
-            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+        KazumiLogger().i(
+            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =
@@ -269,8 +273,8 @@ class Plugin {
           src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
         );
         searchItems.add(searchItem);
-        KazumiLogger().log(Level.info,
-            '$name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+        KazumiLogger().i(
+            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =

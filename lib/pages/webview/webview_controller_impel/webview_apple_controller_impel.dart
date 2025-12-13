@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:flutter/material.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
@@ -104,7 +104,7 @@ class WebviewAppleItemControllerImpel
           ],
         ),
         onWebViewCreated: (controller) {
-          debugPrint('[WebView] Created');
+          KazumiLogger().i('WebView: created');
           webviewController = controller;
           initEventController.add(true);
         },
@@ -115,8 +115,7 @@ class WebviewAppleItemControllerImpel
           logEventController.add('loading completed: $url');
         },
         onReceivedError: (controller, request, error) {
-          debugPrint(
-              '[WebView] Error: ${error.toString()} - Request: ${request.url}');
+          KazumiLogger().e('WebView: error: ${error.toString()} - Request: ${request.url}');
         },
       ),
     );

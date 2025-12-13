@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 
 class ExternalPlayer {
@@ -15,7 +14,7 @@ class ExternalPlayer {
       return true;
     } on PlatformException catch (e) {
       KazumiLogger()
-          .log(Level.error, "Failed to open with mime: '${e.message}'.");
+          .e("ExternalPlayer: failed to open with mime", error: e);
       return false;
     }
   }
@@ -27,7 +26,7 @@ class ExternalPlayer {
       return true;
     } on PlatformException catch (e) {
       KazumiLogger()
-          .log(Level.error, "Failed to open with referer: '${e.message}'.");
+          .e("ExternalPlayer: failed to open with referer", error: e);
       return false;
     }
   }

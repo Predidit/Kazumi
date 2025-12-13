@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:mobx/mobx.dart';
 import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 import 'package:path_provider/path_provider.dart';
-import 'package:logger/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:kazumi/utils/logger.dart';
 
@@ -22,7 +21,7 @@ abstract class _ShadersController with Store {
     if (!await shadersDirectory.exists()) {
       await shadersDirectory.create(recursive: true);
       KazumiLogger()
-          .log(Level.info, 'Create GLSL Shader: ${shadersDirectory.path}');
+          .i('ShaderManager: Create GLSL Shader: ${shadersDirectory.path}');
     }
 
     final shaderFiles = assets.where((String asset) =>
@@ -35,7 +34,7 @@ abstract class _ShadersController with Store {
       final targetFile = File(path.join(shadersDirectory.path, fileName));
       if (await targetFile.exists()) {
         KazumiLogger()
-            .log(Level.info, 'GLSL Shader exists, skip: ${targetFile.path}');
+            .i('ShaderManager: GLSL Shader exists, skip: ${targetFile.path}');
         continue;
       }
 
@@ -44,13 +43,13 @@ abstract class _ShadersController with Store {
         final List<int> bytes = data.buffer.asUint8List();
         await targetFile.writeAsBytes(bytes);
         copiedFilesCount++;
-        KazumiLogger().log(Level.info, 'Copy: ${targetFile.path}');
+        KazumiLogger().i('ShaderManager: Copy: ${targetFile.path}');
       } catch (e) {
-        KazumiLogger().log(Level.fatal, 'Copy: ($filePath): $e');
+        KazumiLogger().e('ShaderManager: Copy: ($filePath)', error: e);
       }
     }
 
-    KazumiLogger().log(Level.info,
-        '$copiedFilesCount GLSL files copied to ${shadersDirectory.path}');
+    KazumiLogger().i(
+        'ShaderManager: $copiedFilesCount GLSL files copied to ${shadersDirectory.path}');
   }
 }

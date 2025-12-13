@@ -5,7 +5,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:mobx/mobx.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
@@ -67,7 +66,7 @@ abstract class _InfoController with Store {
     await BangumiHTTP.getBangumiCommentsByID(id, offset: offset).then((value) {
       commentsList.addAll(value.commentList);
     });
-    KazumiLogger().log(Level.info, '已加载评论列表长度 ${commentsList.length}');
+    KazumiLogger().i('InfoController: loaded comments list length ${commentsList.length}');
   }
 
   Future<void> queryBangumiCharactersByID(int id) async {
@@ -90,7 +89,7 @@ abstract class _InfoController with Store {
     } catch (e) {
       KazumiDialog.showToast(message: '$e');
     }
-    KazumiLogger().log(Level.info, '已加载角色列表长度 ${characterList.length}');
+    KazumiLogger().i('InfoController: loaded character list length ${characterList.length}');
   }
 
   Future<void> queryBangumiStaffsByID(int id) async {
@@ -98,6 +97,6 @@ abstract class _InfoController with Store {
     await BangumiHTTP.getBangumiStaffByID(id).then((value) {
       staffList.addAll(value.data);
     });
-    KazumiLogger().log(Level.info, '已加载制作人员列表长度 ${staffList.length}');
+    KazumiLogger().i('InfoController: loaded staff list length ${staffList.length}');
   }
 }

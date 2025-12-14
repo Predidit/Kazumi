@@ -449,7 +449,7 @@ class _TimelinePageState extends State<TimelinePage>
             },
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
+        floatingActionButton: FloatingActionButton(
           onPressed: () async {
             KazumiDialog.showBottomSheet(
               backgroundColor: Theme.of(context).colorScheme.surface,
@@ -475,8 +475,7 @@ class _TimelinePageState extends State<TimelinePage>
               },
             );
           },
-          icon: const Icon(Icons.sort),
-          label: const Text("时间表设置"),
+          child: const Icon(Icons.tune),
         ),
         body: Observer(builder: (context) {
           if (timelineController.isLoading &&

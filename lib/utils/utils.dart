@@ -21,6 +21,8 @@ import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_pla
 class Utils {
   static final Random random = Random();
 
+  static Size? _previousWindowSize;
+
   static bool? _isDocumentStartScriptSupported;
 
   /// 检查 Android WebView 是否支持 DOCUMENT_START_SCRIPT 特性
@@ -495,16 +497,16 @@ class Utils {
 
   // 进入桌面设备小窗模式
   static Future<void> enterDesktopPIPWindow() async {
+    _previousWindowSize = await windowManager.getSize();
     await windowManager.setAlwaysOnTop(true);
     await windowManager.setSize(const Size(480, 270));
   }
 
   // 退出桌面设备小窗模式
   static Future<void> exitDesktopPIPWindow() async {
-    bool isLowResolution = await Utils.isLowResolution();
     await windowManager.setAlwaysOnTop(false);
-    await windowManager.setSize(
-        isLowResolution ? const Size(800, 600) : const Size(1280, 860));
+    await windowManager.setSize(_previousWindowSize!);
+    _previousWindowSize = null;
     await windowManager.center();
   }
 

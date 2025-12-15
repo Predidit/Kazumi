@@ -499,6 +499,7 @@ class Utils {
   static Future<void> enterDesktopPIPWindow() async {
     _previousWindowSize = await windowManager.getSize();
     await windowManager.setAlwaysOnTop(true);
+    await windowManager.setAspectRatio(16 / 9);
     await windowManager.setSize(const Size(480, 270));
   }
 
@@ -507,6 +508,7 @@ class Utils {
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSize(_previousWindowSize!);
     _previousWindowSize = null;
+    await windowManager.setAspectRatio(0);
     await windowManager.center();
   }
 

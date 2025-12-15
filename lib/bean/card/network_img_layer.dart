@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/extension.dart';
 import 'package:kazumi/utils/logger.dart';
-
+import 'package:kazumi/utils/utils.dart';
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({
     super.key,
@@ -32,29 +32,35 @@ class NetworkImgLayer extends StatelessWidget {
 
     //// We need this to shink memory usage
     int? memCacheWidth, memCacheHeight;
-    double aspectRatio = (width / height).toDouble();
+    // 对桌面端，使用固定的缓存尺寸，以缓解窗口大小变化时频繁重新缓存和加载图片的问题
+    if(Utils.isDesktop()){
+      memCacheWidth = 400;
+      memCacheHeight = 615;
+    } else {
+      double aspectRatio = (width / height).toDouble();
 
-    void setMemCacheSizes() {
-      if (aspectRatio > 1) {
-        memCacheHeight = height.cacheSize(context);
-      } else if (aspectRatio < 1) {
-        memCacheWidth = width.cacheSize(context);
-      } else {
-        if (origAspectRatio != null && origAspectRatio! > 1) {
-          memCacheWidth = width.cacheSize(context);
-        } else if (origAspectRatio != null && origAspectRatio! < 1) {
+      void setMemCacheSizes() {
+        if (aspectRatio > 1) {
           memCacheHeight = height.cacheSize(context);
+        } else if (aspectRatio < 1) {
+          memCacheWidth = width.cacheSize(context);
         } else {
-          memCacheWidth = width.cacheSize(context);
-          memCacheHeight = height.cacheSize(context);
+          if (origAspectRatio != null && origAspectRatio! > 1) {
+            memCacheWidth = width.cacheSize(context);
+          } else if (origAspectRatio != null && origAspectRatio! < 1) {
+            memCacheHeight = height.cacheSize(context);
+          } else {
+            memCacheWidth = width.cacheSize(context);
+            memCacheHeight = height.cacheSize(context);
+          }
         }
       }
-    }
 
-    setMemCacheSizes();
+      setMemCacheSizes();
 
-    if (memCacheWidth == null && memCacheHeight == null) {
-      memCacheWidth = width.toInt();
+      if (memCacheWidth == null && memCacheHeight == null) {
+        memCacheWidth = width.toInt();
+      }
     }
 
     return src != '' && src != null

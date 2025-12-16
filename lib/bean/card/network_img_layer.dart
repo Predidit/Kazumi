@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/extension.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
-class NetworkImgLayer extends StatelessWidget {
+class NetworkImgLayer extends StatefulWidget {
   const NetworkImgLayer({
     super.key,
     this.src,
@@ -27,31 +26,31 @@ class NetworkImgLayer extends StatelessWidget {
   final double? origAspectRatio;
 
   @override
+  State<NetworkImgLayer> createState() => _NetworkImgLayerState();
+}
+
+class _NetworkImgLayerState extends State<NetworkImgLayer> {
+  int? memCacheWidth, memCacheHeight;
+  @override
   Widget build(BuildContext context) {
-    final String imageUrl = src ?? '';
+    final String imageUrl = widget.src ?? '';
 
     //// We need this to shink memory usage
-    int? memCacheWidth, memCacheHeight;
-    // 对桌面端，使用固定的缓存尺寸，以缓解窗口大小变化时频繁重新缓存和加载图片的问题
-    if(Utils.isDesktop()){
-      memCacheWidth = 400;
-      memCacheHeight = 615;
-    } else {
-      double aspectRatio = (width / height).toDouble();
-
+    if (memCacheWidth == null && memCacheHeight == null) {
+      double aspectRatio = (widget.width / widget.height).toDouble();
       void setMemCacheSizes() {
         if (aspectRatio > 1) {
-          memCacheHeight = height.cacheSize(context);
+          memCacheHeight = widget.height.cacheSize(context);
         } else if (aspectRatio < 1) {
-          memCacheWidth = width.cacheSize(context);
+          memCacheWidth = widget.width.cacheSize(context);
         } else {
-          if (origAspectRatio != null && origAspectRatio! > 1) {
-            memCacheWidth = width.cacheSize(context);
-          } else if (origAspectRatio != null && origAspectRatio! < 1) {
-            memCacheHeight = height.cacheSize(context);
+          if (widget.origAspectRatio != null && widget.origAspectRatio! > 1) {
+            memCacheWidth = widget.width.cacheSize(context);
+          } else if (widget.origAspectRatio != null && widget.origAspectRatio! < 1) {
+            memCacheHeight = widget.height.cacheSize(context);
           } else {
-            memCacheWidth = width.cacheSize(context);
-            memCacheHeight = height.cacheSize(context);
+            memCacheWidth = widget.width.cacheSize(context);
+            memCacheHeight = widget.height.cacheSize(context);
           }
         }
       }
@@ -59,31 +58,31 @@ class NetworkImgLayer extends StatelessWidget {
       setMemCacheSizes();
 
       if (memCacheWidth == null && memCacheHeight == null) {
-        memCacheWidth = width.toInt();
+        memCacheWidth = widget.width.toInt();
       }
     }
 
-    return src != '' && src != null
+    return widget.src != '' && widget.src != null
         ? ClipRRect(
             clipBehavior: Clip.antiAlias,
             borderRadius: BorderRadius.circular(
-              type == 'avatar'
+              widget.type == 'avatar'
                   ? 50
-                  : type == 'emote'
+                  : widget.type == 'emote'
                       ? 0
                       : StyleString.imgRadius.x,
             ),
             child: CachedNetworkImage(
               imageUrl: imageUrl,
-              width: width,
-              height: height,
+              width: widget.width,
+              height: widget.height,
               memCacheWidth: memCacheWidth,
               memCacheHeight: memCacheHeight,
               fit: BoxFit.cover,
               fadeOutDuration:
-                  fadeOutDuration ?? const Duration(milliseconds: 120),
+                  widget.fadeOutDuration ?? const Duration(milliseconds: 120),
               fadeInDuration:
-                  fadeInDuration ?? const Duration(milliseconds: 120),
+                  widget.fadeInDuration ?? const Duration(milliseconds: 120),
               filterQuality: FilterQuality.high,
               errorListener: (e) {
                 KazumiLogger().w("NetworkImage: network image load error", error: e);
@@ -98,28 +97,28 @@ class NetworkImgLayer extends StatelessWidget {
 
   Widget placeholder(BuildContext context) {
     return Container(
-      width: width,
-      height: height,
+      width: widget.width,
+      height: widget.height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onInverseSurface.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(type == 'avatar'
+        borderRadius: BorderRadius.circular(widget.type == 'avatar'
             ? 50
-            : type == 'emote'
+            : widget.type == 'emote'
                 ? 0
                 : StyleString.imgRadius.x),
       ),
-      child: type == 'bg'
+      child: widget.type == 'bg'
           ? const SizedBox()
           : Center(
               child: Image.asset(
-                type == 'avatar'
+                widget.type == 'avatar'
                     ? 'assets/images/noface.jpeg'
                     : 'assets/images/loading.png',
-                width: width,
-                height: height,
-                cacheWidth: width.cacheSize(context),
-                cacheHeight: height.cacheSize(context),
+                width: widget.width,
+                height: widget.height,
+                cacheWidth: widget.width.cacheSize(context),
+                cacheHeight: widget.height.cacheSize(context),
               ),
             ),
     );

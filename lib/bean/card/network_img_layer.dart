@@ -96,6 +96,9 @@ class _NetworkImgLayerState extends State<NetworkImgLayer> {
   }
 
   Widget placeholder(BuildContext context) {
+    final int? cacheW = widget.width.cacheSize(context);
+    final int? cacheH = widget.height.cacheSize(context);
+    
     return Container(
       width: widget.width,
       height: widget.height,
@@ -117,8 +120,8 @@ class _NetworkImgLayerState extends State<NetworkImgLayer> {
                     : 'assets/images/loading.png',
                 width: widget.width,
                 height: widget.height,
-                cacheWidth: widget.width.cacheSize(context),
-                cacheHeight: widget.height.cacheSize(context),
+                cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
+                cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
               ),
             ),
     );

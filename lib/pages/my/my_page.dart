@@ -102,7 +102,7 @@ class _MyPageState extends State<MyPage> {
                   },
                   leading: const Icon(Icons.vpn_key_rounded),
                   title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('配置HTTP/SOCKS5代理', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('配置HTTP代理', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

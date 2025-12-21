@@ -556,14 +556,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.1"
-  flutter_socks_proxy:
-    dependency: "direct main"
-    description:
-      name: flutter_socks_proxy
-      sha256: "5603ad90c2849d2e6f2b4ed3d337653b3a6c8fb471f535e3715254913a9206ce"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.3"
   flutter_svg:
     dependency: "direct main"
     description:

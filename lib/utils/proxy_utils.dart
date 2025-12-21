@@ -3,32 +3,21 @@ class ProxyUtils {
   // 防止实例化
   ProxyUtils._();
 
-  /// 解析代理 URL，返回 (协议, 主机, 端口)
+  /// 解析代理 URL，返回 (主机, 端口)
   ///
   /// 支持的格式:
   /// - http://127.0.0.1:7890
-  /// - https://127.0.0.1:7890
-  /// - socks5://127.0.0.1:7890
-  /// - socks://127.0.0.1:7890
-  /// - 127.0.0.1:7890 (默认 HTTP)
-  static (String, String, int)? parseProxyUrl(String url) {
+  /// - 127.0.0.1:7890
+  static (String, int)? parseProxyUrl(String url) {
     url = url.trim();
     if (url.isEmpty) return null;
 
-    String protocol = 'HTTP';
     String hostPort = url;
 
+    // 移除 http:// 前缀
     if (url.toLowerCase().startsWith('http://')) {
-      protocol = 'HTTP';
       hostPort = url.substring(7);
     } else if (url.toLowerCase().startsWith('https://')) {
-      protocol = 'HTTP';
-      hostPort = url.substring(8);
-    } else if (url.toLowerCase().startsWith('socks5://')) {
-      protocol = 'SOCKS5';
-      hostPort = url.substring(9);
-    } else if (url.toLowerCase().startsWith('socks://')) {
-      protocol = 'SOCKS5';
       hostPort = url.substring(8);
     }
 
@@ -40,15 +29,14 @@ class ProxyUtils {
     final port = int.tryParse(parts[1]);
     if (host.isEmpty || port == null) return null;
 
-    return (protocol, host, port);
+    return (host, port);
   }
 
-  /// 获取代理类型的显示文本
-  static String getProxyTypeHint(String proxyUrl) {
-    if (proxyUrl.isEmpty) return '';
-    final parsed = parseProxyUrl(proxyUrl);
-    if (parsed == null) return '格式错误';
-    return '${parsed.$1} 代理';
+  /// 获取格式化的代理 URL（用于 mpv）
+  static String? getFormattedProxyUrl(String url) {
+    final parsed = parseProxyUrl(url);
+    if (parsed == null) return null;
+    return 'http://${parsed.$1}:${parsed.$2}';
   }
 
   /// 验证代理 URL 是否有效

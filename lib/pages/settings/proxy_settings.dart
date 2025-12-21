@@ -63,7 +63,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     if (url.isNotEmpty) {
       final parsed = ProxyUtils.parseProxyUrl(url);
       if (parsed == null) {
-        KazumiDialog.showToast(message: '代理地址格式错误，请使用如 http://127.0.0.1:7890 或 socks5://127.0.0.1:7890 的格式');
+        KazumiDialog.showToast(message: '代理地址格式错误，请使用 http://127.0.0.1:7890 格式');
         return;
       }
     }
@@ -179,7 +179,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   },
                   title:
                       Text('启用代理', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('启用后所有网络请求将通过代理服务器',
+                  description: Text('启用后网络请求将通过代理服务器',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: proxyEnable,
                 ),
@@ -193,7 +193,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                       TextField(
                         controller: urlController,
                         decoration: InputDecoration(
-                          hintText: 'http://127.0.0.1:7890 或 socks5://127.0.0.1:7890',
+                          hintText: 'http://127.0.0.1:7890',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -220,7 +220,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                       if (proxyUrl.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
-                          ProxyUtils.getProxyTypeHint(proxyUrl),
+                          ProxyUtils.isValidProxyUrl(proxyUrl) ? '格式正确' : '格式错误',
                           style: TextStyle(
                             fontFamily: fontFamily,
                             fontSize: 12,

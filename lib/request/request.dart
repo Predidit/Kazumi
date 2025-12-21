@@ -8,7 +8,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:hive/hive.dart';
-import 'package:flutter_socks_proxy/socks_proxy.dart';
 
 class Request {
   static final Request _instance = Request._internal();
@@ -33,7 +32,7 @@ class Request {
     dio.options.headers['user-agent'] = Utils.getRandomUA();
   }
 
-  // 设置代理
+  // 设置代理（仅支持 HTTP 代理）
   static void setProxy() {
     final bool proxyEnable =
         setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
@@ -55,59 +54,30 @@ class Request {
       return;
     }
 
-    final (proxyType, proxyHost, proxyPort) = parsed;
+    final (proxyHost, proxyPort) = parsed;
 
-    if (proxyType == 'SOCKS5') {
-      // SOCKS5 代理使用 flutter_socks_proxy 库
-      try {
-        // 构建代理字符串，支持认证
-        String proxyString;
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () {
+        final HttpClient client = HttpClient();
+        client.findProxy = (Uri uri) {
+          return 'PROXY $proxyHost:$proxyPort';
+        };
+        // 处理代理认证
         if (proxyUsername.isNotEmpty && proxyPassword.isNotEmpty) {
-          proxyString = 'SOCKS5 $proxyUsername:$proxyPassword@$proxyHost:$proxyPort';
-        } else {
-          proxyString = 'SOCKS5 $proxyHost:$proxyPort';
+          client.addProxyCredentials(
+            proxyHost,
+            proxyPort,
+            'Basic',
+            HttpClientBasicCredentials(proxyUsername, proxyPassword),
+          );
         }
-
-        dio.httpClientAdapter = IOHttpClientAdapter(
-          createHttpClient: () {
-            final HttpClient client = createProxyHttpClient();
-            // 设置代理
-            client.findProxy = (url) => proxyString;
-            // 忽略证书验证
-            client.badCertificateCallback =
-                (X509Certificate cert, String host, int port) => true;
-            return client;
-          },
-        );
-        KazumiLogger().i('Proxy: SOCKS5 代理设置成功 $proxyHost:$proxyPort');
-      } catch (e) {
-        KazumiLogger().e('Proxy: SOCKS5 代理设置失败', error: e);
-      }
-    } else if (proxyType == 'HTTP') {
-      // HTTP 代理
-      dio.httpClientAdapter = IOHttpClientAdapter(
-        createHttpClient: () {
-          final HttpClient client = HttpClient();
-          client.findProxy = (Uri uri) {
-            return 'PROXY $proxyHost:$proxyPort';
-          };
-          // 处理代理认证
-          if (proxyUsername.isNotEmpty && proxyPassword.isNotEmpty) {
-            client.addProxyCredentials(
-              proxyHost,
-              proxyPort,
-              'Basic',
-              HttpClientBasicCredentials(proxyUsername, proxyPassword),
-            );
-          }
-          // 忽略证书验证
-          client.badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true;
-          return client;
-        },
-      );
-      KazumiLogger().i('Proxy: HTTP 代理设置成功 $proxyHost:$proxyPort');
-    }
+        // 忽略证书验证
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        return client;
+      },
+    );
+    KazumiLogger().i('Proxy: HTTP 代理设置成功 $proxyHost:$proxyPort');
   }
 
   // 禁用代理

@@ -103,6 +103,7 @@ class _PlayerItemState extends State<PlayerItem>
   late double _danmakuLineHeight;
   late int _danmakuFontWeight;
   late bool _danmakuUseSystemFont;
+  late int _danmakuDensity;
 
   // 硬件解码
   late bool haEnable;
@@ -626,9 +627,15 @@ class _PlayerItemState extends State<PlayerItem>
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
           playerController.danmakuOn == true) {
-        playerController.danDanmakus[playerController.currentPosition.inSeconds]
-            ?.asMap()
-            .forEach((idx, danmaku) async {
+        var danmakuList = playerController
+            .danDanmakus[playerController.currentPosition.inSeconds];
+        // 应用弹幕密度限制
+        if (danmakuList != null &&
+            _danmakuDensity > 0 &&
+            danmakuList.length > _danmakuDensity) {
+          danmakuList = danmakuList.sublist(0, _danmakuDensity);
+        }
+        danmakuList?.asMap().forEach((idx, danmaku) async {
           if (!_danmakuColor) {
             danmaku.color = Colors.white;
           }
@@ -644,13 +651,7 @@ class _PlayerItemState extends State<PlayerItem>
             return;
           }
           await Future.delayed(
-              Duration(
-                  milliseconds: idx *
-                      1000 ~/
-                      playerController
-                          .danDanmakus[
-                              playerController.currentPosition.inSeconds]!
-                          .length),
+              Duration(milliseconds: idx * 1000 ~/ danmakuList!.length),
               () => mounted &&
                       playerController.playerPlaying &&
                       !playerController.playerBuffering &&
@@ -1299,6 +1300,8 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     _danmakuUseSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
+    _danmakuDensity =
+        setting.get(SettingBoxKey.danmakuDensity, defaultValue: 0);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
     playerTimer = getPlayerTimer();

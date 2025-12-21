@@ -208,6 +208,11 @@ class BangumiHTTP {
       final res = await Request().get(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
       );
+      // 检查响应是否有效（排除错误响应）
+      if (res.data is! Map<String, dynamic> || res.data['id'] == null) {
+        KazumiLogger().e('Network: invalid response for bangumi info', error: res.data);
+        return null;
+      }
       return BangumiItem.fromJson(res.data);
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi item failed', error: e);

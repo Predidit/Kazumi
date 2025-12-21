@@ -232,6 +232,7 @@ class SettingBoxKey {
       danmakuDanDanSource = 'danmakuDanDanSource',
       danmakuFontWeight = 'danmakuFontWeight',
       danmakuFollowSpeed = 'danmakuFollowSpeed',
+      danmakuDensity = 'danmakuDensity',
       themeMode = 'themeMode',
       themeColor = 'themeColor',
       privateMode = 'privateMode',
@@ -267,5 +268,9 @@ class SettingBoxKey {
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
       timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
       useSystemFont = 'useSystemFont',
-      forceAdBlocker = 'forceAdBlocker';
+      forceAdBlocker = 'forceAdBlocker',
+      proxyEnable = 'proxyEnable',
+      proxyUrl = 'proxyUrl',
+      proxyUsername = 'proxyUsername',
+      proxyPassword = 'proxyPassword';
 }

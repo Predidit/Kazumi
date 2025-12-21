@@ -232,7 +232,6 @@ class SettingBoxKey {
       danmakuDanDanSource = 'danmakuDanDanSource',
       danmakuFontWeight = 'danmakuFontWeight',
       danmakuFollowSpeed = 'danmakuFollowSpeed',
-      danmakuDensity = 'danmakuDensity',
       themeMode = 'themeMode',
       themeColor = 'themeColor',
       privateMode = 'privateMode',

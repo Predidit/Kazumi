@@ -23,7 +23,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late int defaultDanmakuFontWeight;
   late double defaultDanmakuDuration;
   late double defaultDanmakuLineHeight;
-  late int defaultDanmakuDensity;
   final PopularController popularController = Modular.get<PopularController>();
   late bool danmakuBorder;
   late bool danmakuTop;
@@ -51,8 +50,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     defaultDanmakuLineHeight =
         setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
-    defaultDanmakuDensity =
-        setting.get(SettingBoxKey.danmakuDensity, defaultValue: 0);
     danmakuBorder =
         setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     danmakuTop = setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
@@ -112,13 +109,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     await setting.put(SettingBoxKey.danmakuLineHeight, i);
     setState(() {
       defaultDanmakuLineHeight = i;
-    });
-  }
-
-  void updateDanmakuDensity(int i) async {
-    await setting.put(SettingBoxKey.danmakuDensity, i);
-    setState(() {
-      defaultDanmakuDensity = i;
     });
   }
 
@@ -228,37 +218,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     onChanged: (value) {
                       updateDanmakuLineHeight(double.parse(value.toStringAsFixed(1)));
                     },
-                  ),
-                ),
-                SettingsTile(
-                  title: Text('弹幕密度', style: TextStyle(fontFamily: fontFamily)),
-                  description: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Slider(
-                        value: defaultDanmakuDensity.toDouble(),
-                        min: 0,
-                        max: 50,
-                        divisions: 50,
-                        label: defaultDanmakuDensity == 0
-                            ? '不限制'
-                            : '$defaultDanmakuDensity条/秒',
-                        onChanged: (value) {
-                          updateDanmakuDensity(value.toInt());
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Text(
-                          '限制每秒显示的弹幕数量，0为不限制',
-                          style: TextStyle(
-                            fontFamily: fontFamily,
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
                 SettingsTile.switchTile(

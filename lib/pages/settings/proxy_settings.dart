@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/proxy_manager.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -79,7 +80,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     });
 
     if (proxyEnable && url.isNotEmpty) {
-      Request.setProxy();
+      await ProxyManager.applyProxy();
     }
 
     KazumiDialog.showToast(message: '代理设置已保存');
@@ -105,10 +106,10 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     });
 
     if (value) {
-      Request.setProxy();
+      await ProxyManager.applyProxy();
       KazumiDialog.showToast(message: '代理已启用');
     } else {
-      Request.disableProxy();
+      await ProxyManager.clearProxy();
       KazumiDialog.showToast(message: '代理已禁用');
     }
   }
@@ -129,7 +130,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     await saveProxySettings();
     if (!proxyEnable) {
       await setting.put(SettingBoxKey.proxyEnable, true);
-      Request.setProxy();
+      await ProxyManager.applyProxy();
     }
 
     KazumiDialog.showToast(message: '正在测试代理连接...');
@@ -152,7 +153,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       // 恢复原来的代理状态
       if (!proxyEnable) {
         await setting.put(SettingBoxKey.proxyEnable, false);
-        Request.disableProxy();
+        await ProxyManager.clearProxy();
       }
     }
   }

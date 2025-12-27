@@ -164,12 +164,11 @@ class _PopularPageState extends State<PopularPage>
   }
 
   Widget contentGrid(bangumiList) {
-    int crossCount = 3;
+    int crossCount;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
-      crossCount = 5;
-    }
-    if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
-      crossCount = 6;
+      crossCount = 3 + ((MediaQuery.sizeOf(context).width-LayoutBreakpoint.compact['width']!) ~/ 200);
+    } else {
+      crossCount = 3;
     }
     return SliverPadding(
       padding: const EdgeInsets.all(8),

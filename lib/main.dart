@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
+import 'package:kazumi/utils/proxy_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:media_kit/media_kit.dart';
@@ -85,6 +86,7 @@ void main() async {
   }
   Request();
   await Request.setCookie();
+  ProxyManager.applyProxy();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),

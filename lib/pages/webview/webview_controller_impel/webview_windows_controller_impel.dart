@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class WebviewWindowsItemControllerImpel
     extends WebviewItemController<WebviewController> {
@@ -8,11 +11,37 @@ class WebviewWindowsItemControllerImpel
 
   @override
   Future<void> init() async {
+    await _setupProxy();
     webviewController ??= WebviewController();
     await webviewController!.initialize();
     await webviewController!
         .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
+  }
+
+  Future<void> _setupProxy() async {
+    final setting = GStorage.setting;
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (!proxyEnable) {
+      return;
+    }
+
+    final String proxyUrl =
+        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+    if (formattedProxy == null) {
+      return;
+    }
+
+    try {
+      await WebviewController.initializeEnvironment(
+        additionalArguments: '--proxy-server=$formattedProxy',
+      );
+      KazumiLogger().i('WebView: 代理设置成功 $formattedProxy');
+    } catch (e) {
+      KazumiLogger().e('WebView: 设置代理失败 $e');
+    }
   }
 
   @override

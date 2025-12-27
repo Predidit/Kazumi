@@ -1,7 +1,12 @@
 import 'dart:async';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
+import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
+    as android_webview;
 
 class WebviewAndroidItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
@@ -13,6 +18,7 @@ class WebviewAndroidItemControllerImpel
 
   @override
   Future<void> init() async {
+    await _setupProxy();
     headlessWebView ??= PlatformHeadlessInAppWebView(
       PlatformHeadlessInAppWebViewCreationParams(
         initialSettings: InAppWebViewSettings(
@@ -375,5 +381,44 @@ class WebviewAndroidItemControllerImpel
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+  }
+
+  Future<void> _setupProxy() async {
+    final setting = GStorage.setting;
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (!proxyEnable) {
+      return;
+    }
+
+    final String proxyUrl =
+        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+    if (formattedProxy == null) {
+      return;
+    }
+
+    try {
+      final proxyAvailable =
+          await android_webview.AndroidWebViewFeature.instance()
+              .isFeatureSupported(WebViewFeature.PROXY_OVERRIDE);
+      if (!proxyAvailable) {
+        KazumiLogger().w('WebView: 当前 Android 版本不支持代理');
+        return;
+      }
+
+      final proxyController = android_webview.AndroidProxyController.instance();
+      await proxyController.clearProxyOverride();
+      await proxyController.setProxyOverride(
+        settings: ProxySettings(
+          proxyRules: [
+            ProxyRule(url: formattedProxy),
+          ],
+        ),
+      );
+      KazumiLogger().i('WebView: 代理设置成功 $formattedProxy');
+    } catch (e) {
+      KazumiLogger().e('WebView: 设置代理失败 $e');
+    }
   }
 }

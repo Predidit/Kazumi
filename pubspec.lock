@@ -316,11 +316,9 @@ packages:
   desktop_webview_window:
     dependency: "direct main"
     description:
-      path: "."
-      ref: b107a03068b8c4249cec4a3b159d56f1326103c5
-      resolved-ref: b107a03068b8c4249cec4a3b159d56f1326103c5
-      url: "https://github.com/Predidit/linux_webview_window.git"
-    source: git
+      path: "../linux_webview_window"
+      relative: true
+    source: path
     version: "0.2.4"
   device_info_plus:
     dependency: "direct main"

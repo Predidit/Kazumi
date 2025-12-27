@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
 class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
@@ -8,24 +11,49 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
 
   @override
   Future<void> init() async {
+    final proxyConfig = _getProxyConfiguration();
     webviewController ??= await WebviewWindow.create(
-      configuration: const CreateConfiguration(headless: true, userScripts: [
-        UserScript(
-            source: blobScript,
-            injectionTime: UserScriptInjectionTime.documentStart,
-            forAllFrames: true),
-        UserScript(
-            source: iframeScript,
-            injectionTime: UserScriptInjectionTime.documentEnd,
-            forAllFrames: true),
-        UserScript(
-            source: videoScript,
-            injectionTime: UserScriptInjectionTime.documentEnd,
-            forAllFrames: true)
-      ]),
+      configuration: CreateConfiguration(
+        headless: true,
+        proxy: proxyConfig,
+        userScripts: const [
+          UserScript(
+              source: blobScript,
+              injectionTime: UserScriptInjectionTime.documentStart,
+              forAllFrames: true),
+          UserScript(
+              source: iframeScript,
+              injectionTime: UserScriptInjectionTime.documentEnd,
+              forAllFrames: true),
+          UserScript(
+              source: videoScript,
+              injectionTime: UserScriptInjectionTime.documentEnd,
+              forAllFrames: true)
+        ],
+      ),
     );
     bridgeInited = false;
     initEventController.add(true);
+  }
+
+  ProxyConfiguration? _getProxyConfiguration() {
+    final setting = GStorage.setting;
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (!proxyEnable) {
+      return null;
+    }
+
+    final String proxyUrl =
+        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
+    if (parsed == null) {
+      return null;
+    }
+
+    final (host, port) = parsed;
+    KazumiLogger().i('WebView: 代理设置成功 $host:$port');
+    return ProxyConfiguration(host: host, port: port);
   }
 
   Future<void> initBridge(bool useNativePlayer, bool useLegacyParser) async {

@@ -188,8 +188,6 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   """;
 
   Future<void> redirect2Blank() async {
-    await webviewController!.evaluateJavaScript('''
-      window.location.href = 'about:blank';
-    ''');
+     webviewController?.launch("about:blank");
   }
 }

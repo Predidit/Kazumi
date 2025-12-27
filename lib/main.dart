@@ -15,7 +15,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:kazumi/plugins/plugins_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,9 +64,16 @@ void main() async {
       .get(SettingBoxKey.showWindowButton, defaultValue: false);
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
+    bool isLowResolution = await Utils.isLowResolution();
     WindowOptions windowOptions = WindowOptions(
       skipTaskbar: false,
       minimumSize: const Size(320, 270),
+      center: Platform.isWindows ? true : false,
+      size: Platform.isWindows
+        ? isLowResolution
+          ? const Size(840, 600) 
+          : null
+        : null,
       // macOS always hide title bar regardless of showWindowButton setting
       titleBarStyle: (Platform.isMacOS || !showWindowButton)
           ? TitleBarStyle.hidden
@@ -79,14 +85,6 @@ void main() async {
       // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
       // Without this. the window will never show on Windows.
       await windowManager.show();
-      Size currentSize = await windowManager.getSize();
-      //当第一次启动时或从小窗模式退出后，调整窗口到合适大小
-      if (Modular.get<PluginsController>().pluginList.isEmpty || currentSize == Size(480, 270)) {
-        bool isLowResolution = await Utils.isLowResolution();
-        await windowManager.setSize(
-            isLowResolution ? const Size(800, 600) : const Size(1280, 860));
-        await windowManager.center();
-      }
       await windowManager.focus();
     });
   }

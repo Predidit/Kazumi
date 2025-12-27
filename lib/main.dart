@@ -86,7 +86,7 @@ void main() async {
   }
   Request();
   await Request.setCookie();
-  await ProxyManager.applyProxy();
+  ProxyManager.applyProxy();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),

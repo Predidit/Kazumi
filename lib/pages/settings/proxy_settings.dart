@@ -80,7 +80,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     });
 
     if (proxyEnable && url.isNotEmpty) {
-      await ProxyManager.applyProxy();
+      ProxyManager.applyProxy();
     }
 
     KazumiDialog.showToast(message: '代理设置已保存');
@@ -106,10 +106,10 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     });
 
     if (value) {
-      await ProxyManager.applyProxy();
+      ProxyManager.applyProxy();
       KazumiDialog.showToast(message: '代理已启用');
     } else {
-      await ProxyManager.clearProxy();
+      ProxyManager.clearProxy();
       KazumiDialog.showToast(message: '代理已禁用');
     }
   }
@@ -130,7 +130,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     await saveProxySettings();
     if (!proxyEnable) {
       await setting.put(SettingBoxKey.proxyEnable, true);
-      await ProxyManager.applyProxy();
+      ProxyManager.applyProxy();
     }
 
     KazumiDialog.showToast(message: '正在测试代理连接...');
@@ -153,7 +153,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       // 恢复原来的代理状态
       if (!proxyEnable) {
         await setting.put(SettingBoxKey.proxyEnable, false);
-        await ProxyManager.clearProxy();
+        ProxyManager.clearProxy();
       }
     }
   }

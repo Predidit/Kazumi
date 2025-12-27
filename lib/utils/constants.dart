@@ -261,10 +261,3 @@ final List<String> defaultAnimeTags = const [
     'speedup': '倍速加',
     'speeddown': '倍速减',
   };
-
-  final Map<String, double> lastWindowState = {
-    'x': 10.0,
-    'y': 10.0,
-    'width': 1280.0,
-    'height': 720.0,
-  };

@@ -15,7 +15,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:kazumi/utils/window_state.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,10 +63,8 @@ void main() async {
   }
   bool showWindowButton = await GStorage.setting
       .get(SettingBoxKey.showWindowButton, defaultValue: false);
-  bool customWindowStateMonitorOn = Platform.isLinux;
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
-    if (customWindowStateMonitorOn) windowManager.addListener(WindowState());
     WindowOptions windowOptions = WindowOptions(
       skipTaskbar: false,
       minimumSize: const Size(320, 270),
@@ -74,25 +72,21 @@ void main() async {
       titleBarStyle: (Platform.isMacOS || !showWindowButton)
           ? TitleBarStyle.hidden
           : TitleBarStyle.normal,
-      size: customWindowStateMonitorOn //设置上次关闭时的窗口大小，默认为1280x720
-      ? Size(
-          GStorage.setting.get('lastWindowState', defaultValue: {})['width'] ?? 1280.0,
-          GStorage.setting.get('lastWindowState', defaultValue: {})['height'] ?? 720.0,
-        )
-      : null,
       windowButtonVisibility: showWindowButton,
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
       // Without this. the window will never show on Windows.
-      if (customWindowStateMonitorOn){
-        //设置上次关闭时的窗口位置，默认为(10,10)
-        await windowManager.setPosition(
-          Offset(GStorage.setting.get('lastWindowState', defaultValue: {})['x'] ?? 10.0, GStorage.setting.get('lastWindowState', defaultValue: {})['y'] ?? 10.0),
-        );
-      }
       await windowManager.show();
+      Size currentSize = await windowManager.getSize();
+      //当第一次启动时或从小窗模式退出后，调整窗口到合适大小
+      if (Modular.get<PluginsController>().pluginList.isEmpty || currentSize == Size(480, 270)) {
+        bool isLowResolution = await Utils.isLowResolution();
+        await windowManager.setSize(
+            isLowResolution ? const Size(800, 600) : const Size(1280, 860));
+        await windowManager.center();
+      }
       await windowManager.focus();
     });
   }

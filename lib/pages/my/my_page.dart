@@ -98,7 +98,7 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    Modular.to.pushNamed('/settings/player/proxy');
+                    Modular.to.pushNamed('/settings/proxy');
                   },
                   leading: const Icon(Icons.vpn_key_rounded),
                   title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),

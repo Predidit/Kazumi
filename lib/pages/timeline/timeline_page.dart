@@ -54,7 +54,7 @@ class _TimelinePageState extends State<TimelinePage>
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }
-  String _currentSort = 'match';
+  String _currentSort = 'time';
   DateTime generateDateTime(int year, String season) {
     switch (season) {
       case '冬':
@@ -363,18 +363,13 @@ class _TimelinePageState extends State<TimelinePage>
                   selected: {_currentSort},
                   onSelectionChanged: (Set<String> value) {
                     final sort = value.first;
-
-                    setInnerState(() {
-                      _currentSort = sort;
-                    });
-
+                    setInnerState(() {_currentSort = sort;});
                     int type;
                     sort == 'heat'
                       ? type = 3
                       : sort == 'rank'
                         ? type = 2
                         : type = 1;
-
                     timelineController.changeSortType(type);
                   },
                 ),
@@ -451,20 +446,18 @@ class _TimelinePageState extends State<TimelinePage>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            showDialog(
+            KazumiDialog.showBottomSheet(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              isScrollControlled: true,
+              useSafeArea: true,
+              clipBehavior: Clip.antiAlias,
               context: context,
-              barrierDismissible: true,
               builder: (context) {
-                return Dialog(
-                  insetPadding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 300,
-                    ),
-                    child: showTimelineOptionsDialog(),
-                  ),
-                );
-              },
+                return showTimelineOptionsDialog();
+              }
             );
           },
           child: const Icon(Icons.tune),

@@ -19,7 +19,7 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
-  String _currentSort = 'match';
+  String _currentSort = '';
 
   /// Don't use modular singleton here. We may have multiple search pages.
   /// Use a new instance of SearchPageController for each search page.
@@ -88,7 +88,7 @@ class _SearchPageState extends State<SearchPage> {
                     ),
                     ButtonSegment(
                       value: 'match',
-                      label: Text('匹配'),
+                      label: Text('准确'),
                       icon: Icon(Icons.search),
                     ),
                   ],
@@ -167,19 +167,14 @@ class _SearchPageState extends State<SearchPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          showDialog(
+          showModalBottomSheet(
+            isScrollControlled: true,
+            useSafeArea: true,
+            clipBehavior: Clip.antiAlias,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             context: context,
-            barrierDismissible: true,
             builder: (context) {
-              return Dialog(
-                insetPadding: const EdgeInsets.symmetric(horizontal: 10),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 300,
-                  ),
-                  child: showSearchOptionsDialog(),
-                ),
-              );
+              return showSearchOptionsDialog();
             },
           );
         },

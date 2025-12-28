@@ -27,11 +27,6 @@ class _TimelinePageState extends State<TimelinePage>
   late NavigationBarState navigationBarState;
   TabController? tabController;
 
-  final List<Tab> optionTabs = [
-    Tab(text: "排序方式"),
-    Tab(text: "过滤器"),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -59,7 +54,7 @@ class _TimelinePageState extends State<TimelinePage>
     navigationBarState.updateSelectedIndex(0);
     Modular.to.navigate('/tab/popular/');
   }
-
+  String _currentSort = 'match';
   DateTime generateDateTime(int year, String season) {
     switch (season) {
       case '冬':
@@ -324,100 +319,105 @@ class _TimelinePageState extends State<TimelinePage>
         AnimeSeason(timelineController.selectedDate).toString();
   }
 
-  Widget showFilterSwitcher() {
-    return Wrap(
-      children: [
-        Observer(
-          builder: (context) => InkWell(
-            onTap: () {
-              timelineController.setNotShowAbandonedBangumis(
-                  !timelineController.notShowAbandonedBangumis);
-            },
-            child: ListTile(
-              title: const Text('不显示已抛弃的番剧'),
-              trailing: Switch(
-                value: timelineController.notShowAbandonedBangumis,
-                onChanged: (value) {
-                  timelineController.setNotShowAbandonedBangumis(value);
-                },
-              ),
-            ),
+  Widget showTimelineOptionsDialog() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '搜索设置',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-        ),
-        Observer(
-          builder: (context) => InkWell(
-            onTap: () {
-              timelineController.setNotShowWatchedBangumis(
-                  !timelineController.notShowWatchedBangumis);
-            },
-            child: ListTile(
-              title: const Text('不显示已看过的番剧'),
-              trailing: Switch(
-                value: timelineController.notShowWatchedBangumis,
-                onChanged: (value) {
-                  timelineController.setNotShowWatchedBangumis(value);
-                },
-              ),
-            ),
+
+          const SizedBox(height: 16),
+          const Text(
+            '排序方式',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 8),
 
-  Widget showSortSwitcher() {
-    return Wrap(
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('按热度排序'),
-              onTap: () {
-                KazumiDialog.dismiss();
-                timelineController.changeSortType(3);
-              },
-            ),
-            ListTile(
-              title: const Text('按评分排序'),
-              onTap: () {
-                KazumiDialog.dismiss();
-                timelineController.changeSortType(2);
-              },
-            ),
-            ListTile(
-              title: const Text('按时间排序'),
-              onTap: () {
-                KazumiDialog.dismiss();
-                timelineController.changeSortType(1);
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+          StatefulBuilder(
+            builder: (context, setInnerState) {
+              return SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'heat',
+                      label: Text('热度'),
+                      icon: Icon(Icons.local_fire_department),
+                    ),
+                    ButtonSegment(
+                      value: 'rank',
+                      label: Text('评分'),
+                      icon: Icon(Icons.equalizer),
+                    ),
+                    ButtonSegment(
+                      value: 'time',
+                      label: Text('时间'),
+                      icon: Icon(Icons.timelapse),
+                    ),
+                  ],
+                  selected: {_currentSort},
+                  onSelectionChanged: (Set<String> value) {
+                    final sort = value.first;
 
-  Widget showTimelineOptionTabBar({required List<Widget> options}) {
-    return DefaultTabController(
-        length: optionTabs.length,
-        child: Scaffold(
-            body: Column(
-          children: [
-            PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Material(
-                child: TabBar(
-                  tabs: optionTabs,
+                    setInnerState(() {
+                      _currentSort = sort;
+                    });
+
+                    int type;
+                    sort == 'heat'
+                      ? type = 3
+                      : sort == 'rank'
+                        ? type = 2
+                        : type = 1;
+
+                    timelineController.changeSortType(type);
+                  },
                 ),
-              ),
+              );
+            },
+          ),
+
+
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          const Text(
+            '过滤器',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          Observer(
+            builder: (_) => SwitchListTile(
+              title: const Text('不显示已看过的番剧'),
+              value: timelineController.notShowWatchedBangumis,
+              onChanged: (value) {
+                timelineController.setNotShowWatchedBangumis(value);
+              },
             ),
-            Expanded(
-                child: TabBarView(
-              children: options,
-            ))
-          ],
-        )));
+          ),
+
+          Observer(
+            builder: (_) => SwitchListTile(
+              title: const Text('不显示已抛弃的番剧'),
+              value: timelineController.notShowAbandonedBangumis,
+              onChanged: (value) {
+                  timelineController.setNotShowAbandonedBangumis(value);
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
 
   @override
@@ -451,27 +451,19 @@ class _TimelinePageState extends State<TimelinePage>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            KazumiDialog.showBottomSheet(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              isScrollControlled: true,
-              constraints: BoxConstraints(
-                maxHeight: (MediaQuery.sizeOf(context).height >=
-                        LayoutBreakpoint.compact['height']!)
-                    ? MediaQuery.of(context).size.height * 1 / 4
-                    : MediaQuery.of(context).size.height,
-                maxWidth: (MediaQuery.sizeOf(context).width >=
-                        LayoutBreakpoint.medium['width']!)
-                    ? MediaQuery.of(context).size.width * 9 / 16
-                    : MediaQuery.of(context).size.width,
-              ),
-              clipBehavior: Clip.antiAlias,
+            showDialog(
               context: context,
+              barrierDismissible: true,
               builder: (context) {
-                return showTimelineOptionTabBar(
-                    options: [showSortSwitcher(), showFilterSwitcher()]);
+                return Dialog(
+                  insetPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 300,
+                    ),
+                    child: showTimelineOptionsDialog(),
+                  ),
+                );
               },
             );
           },

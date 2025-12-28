@@ -19,16 +19,12 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final SearchController searchController = SearchController();
+  String _currentSort = 'match';
 
   /// Don't use modular singleton here. We may have multiple search pages.
   /// Use a new instance of SearchPageController for each search page.
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
-
-  final List<Tab> tabs = [
-    Tab(text: "排序方式"),
-    Tab(text: "过滤器"),
-  ];
 
   @override
   void initState() {
@@ -55,110 +51,105 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  Widget showFilterSwitcher() {
-    return Wrap(
-      children: [
-        Observer(
-          builder: (context) => InkWell(
-            onTap: () {
-              searchPageController.setNotShowWatchedBangumis(
-                  !searchPageController.notShowWatchedBangumis);
-            },
-            child: ListTile(
-              title: const Text('不显示已看过的番剧'),
-              trailing: Switch(
-                value: searchPageController.notShowWatchedBangumis,
-                onChanged: (value) {
-                  searchPageController.setNotShowWatchedBangumis(value);
-                },
-              ),
-            ),
+  Widget showSearchOptionsDialog() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '搜索设置',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-        ),
-        Observer(
-          builder: (context) => InkWell(
-            onTap: () {
-              searchPageController.setNotShowAbandonedBangumis(
-                  !searchPageController.notShowAbandonedBangumis);
-            },
-            child: ListTile(
-              title: const Text('不显示已抛弃的番剧'),
-              trailing: Switch(
-                value: searchPageController.notShowAbandonedBangumis,
-                onChanged: (value) {
-                  searchPageController.setNotShowAbandonedBangumis(value);
-                },
-              ),
-            ),
+
+          const SizedBox(height: 16),
+          const Text(
+            '排序方式',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 8),
 
-  Widget showSortSwitcher() {
-    return Wrap(
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('按热度排序'),
-              onTap: () {
-                Navigator.pop(context);
-                searchController.text = searchPageController.attachSortParams(
-                    searchController.text, 'heat');
-                searchPageController.searchBangumi(searchController.text,
-                    type: 'init');
-              },
-            ),
-            ListTile(
-              title: const Text('按评分排序'),
-              onTap: () {
-                Navigator.pop(context);
-                searchController.text = searchPageController.attachSortParams(
-                    searchController.text, 'rank');
-                searchPageController.searchBangumi(searchController.text,
-                    type: 'init');
-              },
-            ),
-            ListTile(
-              title: const Text('按匹配程度排序'),
-              onTap: () {
-                Navigator.pop(context);
-                searchController.text = searchPageController.attachSortParams(
-                    searchController.text, 'match');
-                searchPageController.searchBangumi(searchController.text,
-                    type: 'init');
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+          StatefulBuilder(
+            builder: (context, setInnerState) {
+              return SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'heat',
+                      label: Text('热度'),
+                      icon: Icon(Icons.local_fire_department),
+                    ),
+                    ButtonSegment(
+                      value: 'rank',
+                      label: Text('评分'),
+                      icon: Icon(Icons.equalizer),
+                    ),
+                    ButtonSegment(
+                      value: 'match',
+                      label: Text('匹配'),
+                      icon: Icon(Icons.search),
+                    ),
+                  ],
+                  selected: {_currentSort},
+                  onSelectionChanged: (value) {
+                    final sort = value.first;
+                    setInnerState(() => _currentSort = sort);
 
-  Widget showSearchOptionTabBar({required List<Widget> options}) {
-    return DefaultTabController(
-        length: tabs.length,
-        child: Scaffold(
-            body: Column(
-          children: [
-            PreferredSize(
-              preferredSize: Size.fromHeight(kToolbarHeight),
-              child: Material(
-                child: TabBar(
-                  tabs: tabs,
+                    searchController.text =
+                        searchPageController.attachSortParams(
+                      searchController.text,
+                      sort,
+                    );
+
+                    searchPageController.searchBangumi(
+                      searchController.text,
+                      type: 'init',
+                    );
+                  },
                 ),
-              ),
+              );
+            },
+          ),
+
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          const Text(
+            '过滤器',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          Observer(
+            builder: (_) => SwitchListTile(
+              title: const Text('不显示已看过的番剧'),
+              value: searchPageController.notShowWatchedBangumis,
+              onChanged: (value) {
+                searchPageController.setNotShowWatchedBangumis(value);
+              },
             ),
-            Expanded(
-                child: TabBarView(
-              children: options,
-            ))
-          ],
-        )));
+          ),
+
+          Observer(
+            builder: (_) => SwitchListTile(
+              title: const Text('不显示已抛弃的番剧'),
+              value: searchPageController.notShowAbandonedBangumis,
+              onChanged: (value) {
+                searchPageController.setNotShowAbandonedBangumis(value);
+              },
+            ),
+          ),
+
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -176,24 +167,19 @@ class _SearchPageState extends State<SearchPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          showModalBottomSheet(
-            isScrollControlled: true,
-            constraints: BoxConstraints(
-              maxHeight: (MediaQuery.sizeOf(context).height >=
-                      LayoutBreakpoint.compact['height']!)
-                  ? MediaQuery.of(context).size.height * 1 / 4
-                  : MediaQuery.of(context).size.height,
-              maxWidth: (MediaQuery.sizeOf(context).width >=
-                      LayoutBreakpoint.medium['width']!)
-                  ? MediaQuery.of(context).size.width * 9 / 16
-                  : MediaQuery.of(context).size.width,
-            ),
-            clipBehavior: Clip.antiAlias,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          showDialog(
             context: context,
+            barrierDismissible: true,
             builder: (context) {
-              return showSearchOptionTabBar(
-                  options: [showSortSwitcher(), showFilterSwitcher()]);
+              return Dialog(
+                insetPadding: const EdgeInsets.symmetric(horizontal: 10),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 300,
+                  ),
+                  child: showSearchOptionsDialog(),
+                ),
+              );
             },
           );
         },

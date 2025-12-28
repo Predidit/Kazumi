@@ -297,34 +297,16 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                 ],
               ],
             ),
-            SettingsSection(
-              title: Text('操作', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile(
-                  title: Text('', style: TextStyle(fontFamily: fontFamily)),
-                  description: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: testProxy,
-                          icon: const Icon(Icons.network_check),
-                          label: const Text('测试'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: saveProxySettings,
-                          icon: const Icon(Icons.save),
-                          label: const Text('保存'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await saveProxySettings();
+            if (proxyUrl.isNotEmpty && ProxyUtils.isValidProxyUrl(proxyUrl)) {
+              await testProxy();
+            }
+          },
+          child: const Icon(Icons.save),
         ),
       ),
     );

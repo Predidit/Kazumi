@@ -269,6 +269,7 @@ class SettingBoxKey {
       useSystemFont = 'useSystemFont',
       forceAdBlocker = 'forceAdBlocker',
       proxyEnable = 'proxyEnable',
+      proxyConfigured = 'proxyConfigured',
       proxyUrl = 'proxyUrl',
       proxyUsername = 'proxyUsername',
       proxyPassword = 'proxyPassword';

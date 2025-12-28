@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -55,37 +56,34 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
     await setting.put(SettingBoxKey.proxyUrl, url);
     await setting.put(SettingBoxKey.proxyUsername, usernameController.text);
     await setting.put(SettingBoxKey.proxyPassword, passwordController.text);
+    // 重置配置状态，等待测试结果
+    await setting.put(SettingBoxKey.proxyConfigured, false);
 
-    KazumiDialog.showToast(message: '配置已保存，开始测试');
-
-    final proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
-    if (!proxyEnable) {
-      await setting.put(SettingBoxKey.proxyEnable, true);
-    }
+    // 临时启用代理进行测试
+    await setting.put(SettingBoxKey.proxyEnable, true);
     ProxyManager.applyProxy();
 
     try {
       final response = await Request().get(
         'https://www.google.com',
-        extra: {'customError': true},
+        options: Options(
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
         shouldRethrow: true,
-      );
+      ).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
+        await setting.put(SettingBoxKey.proxyConfigured, true);
         KazumiDialog.showToast(message: '测试成功');
       } else {
-        KazumiDialog.showToast(message: '测试失败: HTTP ${response.statusCode}');
-        if (!proxyEnable) {
-          await setting.put(SettingBoxKey.proxyEnable, false);
-          ProxyManager.clearProxy();
-        }
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '测试失败: $e');
-      if (!proxyEnable) {
         await setting.put(SettingBoxKey.proxyEnable, false);
         ProxyManager.clearProxy();
+        KazumiDialog.showToast(message: '代理连接失败');
       }
+    } catch (e) {
+      await setting.put(SettingBoxKey.proxyEnable, false);
+      ProxyManager.clearProxy();
+      KazumiDialog.showToast(message: '代理连接失败');
     }
   }
 

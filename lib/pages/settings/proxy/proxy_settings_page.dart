@@ -33,25 +33,21 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   Future<void> updateProxyEnable(bool value) async {
     if (value) {
-      final proxyUrl = setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
-      if (proxyUrl.isEmpty) {
-        KazumiDialog.showToast(message: '请先配置代理地址');
+      final proxyConfigured =
+          setting.get(SettingBoxKey.proxyConfigured, defaultValue: false);
+      if (!proxyConfigured) {
+        KazumiDialog.showToast(message: '请先在代理配置中完成测试');
         return;
       }
+      await setting.put(SettingBoxKey.proxyEnable, true);
+      ProxyManager.applyProxy();
+    } else {
+      await setting.put(SettingBoxKey.proxyEnable, false);
+      ProxyManager.clearProxy();
     }
-
-    await setting.put(SettingBoxKey.proxyEnable, value);
     setState(() {
       proxyEnable = value;
     });
-
-    if (value) {
-      ProxyManager.applyProxy();
-      KazumiDialog.showToast(message: '代理已启用');
-    } else {
-      ProxyManager.clearProxy();
-      KazumiDialog.showToast(message: '代理已禁用');
-    }
   }
 
   @override

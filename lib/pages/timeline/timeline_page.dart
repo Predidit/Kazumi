@@ -327,7 +327,7 @@ class _TimelinePageState extends State<TimelinePage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '搜索设置',
+            '时间线设置',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
 

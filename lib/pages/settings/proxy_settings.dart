@@ -23,6 +23,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
   late String proxyPassword;
   bool showAuth = false;
 
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController urlController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -59,16 +60,11 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
   }
 
   Future<void> saveProxySettings() async {
-    final url = urlController.text.trim();
-
-    if (url.isNotEmpty) {
-      final parsed = ProxyUtils.parseProxyUrl(url);
-      if (parsed == null) {
-        KazumiDialog.showToast(message: '代理地址格式错误，请使用 http://127.0.0.1:7890 格式');
-        return;
-      }
+    if (!_formKey.currentState!.validate()) {
+      return;
     }
 
+    final url = urlController.text.trim();
     await setting.put(SettingBoxKey.proxyUrl, url);
     await setting.put(SettingBoxKey.proxyUsername, usernameController.text);
     await setting.put(SettingBoxKey.proxyPassword, passwordController.text);
@@ -92,12 +88,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       return;
     }
 
-    if (value) {
-      final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
-      if (parsed == null) {
-        KazumiDialog.showToast(message: '代理地址格式错误');
-        return;
-      }
+    if (value && !_formKey.currentState!.validate()) {
+      return;
     }
 
     await setting.put(SettingBoxKey.proxyEnable, value);
@@ -120,9 +112,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       return;
     }
 
-    final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
-    if (parsed == null) {
-      KazumiDialog.showToast(message: '代理地址格式错误');
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -168,7 +158,9 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('代理设置')),
-        body: SettingsList(
+        body: Form(
+          key: _formKey,
+          child: SettingsList(
           maxWidth: 800,
           sections: [
             SettingsSection(
@@ -187,51 +179,44 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                 SettingsTile(
                   title:
                       Text('代理地址', style: TextStyle(fontFamily: fontFamily)),
-                  description: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: urlController,
-                        decoration: InputDecoration(
-                          hintText: 'http://127.0.0.1:7890',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 12),
-                          suffixIcon: urlController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 20),
-                                  onPressed: () {
-                                    urlController.clear();
-                                    setState(() {
-                                      proxyUrl = '';
-                                    });
-                                  },
-                                )
-                              : null,
+                  description: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: TextFormField(
+                      controller: urlController,
+                      decoration: InputDecoration(
+                        hintText: 'http://127.0.0.1:7890',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            proxyUrl = value;
-                          });
-                        },
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                        suffixIcon: urlController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 20),
+                                onPressed: () {
+                                  urlController.clear();
+                                  setState(() {
+                                    proxyUrl = '';
+                                  });
+                                },
+                              )
+                            : null,
                       ),
-                      if (proxyUrl.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          ProxyUtils.isValidProxyUrl(proxyUrl) ? '格式正确' : '格式错误',
-                          style: TextStyle(
-                            fontFamily: fontFamily,
-                            fontSize: 12,
-                            color: ProxyUtils.isValidProxyUrl(proxyUrl)
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ],
-                    ],
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return null;
+                        }
+                        if (!ProxyUtils.isValidProxyUrl(value)) {
+                          return '格式错误，请使用 http://host:port 格式';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) {
+                        setState(() {
+                          proxyUrl = value;
+                        });
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -257,7 +242,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                         Text('用户名', style: TextStyle(fontFamily: fontFamily)),
                     description: Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: TextField(
+                      child: TextFormField(
                         controller: usernameController,
                         decoration: InputDecoration(
                           hintText: '代理用户名',
@@ -277,7 +262,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                     title: Text('密码', style: TextStyle(fontFamily: fontFamily)),
                     description: Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: TextField(
+                      child: TextFormField(
                         controller: passwordController,
                         obscureText: true,
                         decoration: InputDecoration(
@@ -298,6 +283,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
               ],
             ),
           ],
+        ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {

@@ -97,7 +97,15 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    webviewController!.dispose();
+    // It's a custom function to dispose the whole webview environment in Predidit's flutter-webview-windows fork.
+    // which allow re-initialization webview environment with different proxy settings.
+    // It's difficult to get a dispose finish callback from Microsoft Edge WebView2 SDK,
+    // so don't call webviewController.dispose() when we call WebviewController.disposeEnvironment(), WebViewController.disposeEnvironment() already do any necessary clean up internally.
+    // ohtherwise, app will crash due to resource conflict.
+    if (webviewController != null) {
+      WebviewController.disposeEnvironment();
+      webviewController = null;
+    }
   }
 
   // The webview_windows package does not have a method to unload the current page. 

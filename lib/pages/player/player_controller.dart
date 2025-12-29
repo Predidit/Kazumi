@@ -13,6 +13,7 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -329,6 +330,19 @@ abstract class _PlayerController with Store {
         await pp.setProperty("ao", "opensles");
       } else {
         await pp.setProperty("ao", "audiotrack");
+      }
+    }
+
+    // 设置 HTTP 代理
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (proxyEnable) {
+      final String proxyUrl =
+          setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+      final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+      if (formattedProxy != null) {
+        await pp.setProperty("http-proxy", formattedProxy);
+        KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
       }
     }
 

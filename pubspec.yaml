@@ -98,7 +98,7 @@ dependencies:
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
-      ref: b107a03068b8c4249cec4a3b159d56f1326103c5
+      ref: 5a07358
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git

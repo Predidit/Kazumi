@@ -267,5 +267,10 @@ class SettingBoxKey {
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
       timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
       useSystemFont = 'useSystemFont',
-      forceAdBlocker = 'forceAdBlocker';
+      forceAdBlocker = 'forceAdBlocker',
+      proxyEnable = 'proxyEnable',
+      proxyConfigured = 'proxyConfigured',
+      proxyUrl = 'proxyUrl',
+      proxyUsername = 'proxyUsername',
+      proxyPassword = 'proxyPassword';
 }

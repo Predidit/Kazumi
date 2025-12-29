@@ -8,6 +8,7 @@ import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
 import 'package:kazumi/pages/settings/decoder_settings.dart';
 import 'package:kazumi/pages/settings/super_resolution_settings.dart';
+import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 import 'package:kazumi/pages/settings/keyboard_settings.dart';
 
@@ -22,7 +23,7 @@ class SettingsModule extends Module {
     r.child("/keyboard", child: (_) => const KeyboardSettingsPage());
     r.child("/player", child: (_) => const PlayerSettingsPage());
     r.child("/player/decoder", child: (_) => const DecoderSettings());
-    // r.child("/other", child: (_) => const OtherSettingsPage());
+    r.module("/proxy", module: ProxyModule());
     r.child("/player/super", child: (_) => const SuperResolutionSettings());
     r.module("/webdav", module: WebDavModule());
     r.module("/about", module: AboutModule());

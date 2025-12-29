@@ -96,6 +96,14 @@ class _MyPageState extends State<MyPage> {
                   title: Text('操作设置', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('设置播放器按键映射', style: TextStyle(fontFamily: fontFamily)),
                 ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/proxy');
+                  },
+                  leading: const Icon(Icons.vpn_key_rounded),
+                  title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('配置HTTP代理', style: TextStyle(fontFamily: fontFamily)),
+                ),
               ],
             ),
             SettingsSection(

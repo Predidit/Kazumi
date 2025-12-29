@@ -4,18 +4,26 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:kazumi/request/interceptor.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/logger.dart';
+import 'package:hive/hive.dart';
 
 class Request {
   static final Request _instance = Request._internal();
   static late final Dio dio;
-  // Box setting = GStorage.setting;
-  // static Box localCache = GStorage.localCache;
-  // late bool enableSystemProxy;
+  static Box setting = GStorage.setting;
   factory Request() => _instance;
 
   // 初始化 （一般只在应用启动时调用）
   static Future<void> setCookie() async {
     setOptionsHeaders();
+    // 初始化时检查并设置代理
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (proxyEnable) {
+      setProxy();
+    }
   }
 
   // 设置请求头
@@ -24,26 +32,52 @@ class Request {
     dio.options.headers['user-agent'] = Utils.getRandomUA();
   }
 
-  // 设置代理
+  // 设置代理（仅支持 HTTP 代理）
   static void setProxy() {
-    // var systemProxyHost =
-    //     localCache.get(LocalCacheKey.systemProxyHost, defaultValue: '');
-    // var systemProxyPort =
-    //     localCache.get(LocalCacheKey.systemProxyPort, defaultValue: '');
-    // dio.httpClientAdapter = IOHttpClientAdapter(
-    //     createHttpClient: () {
-    //       final HttpClient client = HttpClient();
-    //       // Config the client.
-    //       client.findProxy = (Uri uri) {
-    //         // return 'PROXY host:port';
-    //         return 'PROXY $systemProxyHost:$systemProxyPort';
-    //       };
-    //       client.badCertificateCallback =
-    //           (X509Certificate cert, String host, int port) => true;
-    //       return client;
-    //     },
-    //   );
-    // debugPrint('代理设置更新成功');
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (!proxyEnable) {
+      disableProxy();
+      return;
+    }
+
+    final String proxyUrl =
+        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final String proxyUsername =
+        setting.get(SettingBoxKey.proxyUsername, defaultValue: '');
+    final String proxyPassword =
+        setting.get(SettingBoxKey.proxyPassword, defaultValue: '');
+
+    final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
+    if (parsed == null) {
+      KazumiLogger().w('Proxy: 代理地址格式错误或为空');
+      return;
+    }
+
+    final (proxyHost, proxyPort) = parsed;
+
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () {
+        final HttpClient client = HttpClient();
+        client.findProxy = (Uri uri) {
+          return 'PROXY $proxyHost:$proxyPort';
+        };
+        // 处理代理认证
+        if (proxyUsername.isNotEmpty && proxyPassword.isNotEmpty) {
+          client.addProxyCredentials(
+            proxyHost,
+            proxyPort,
+            'Basic',
+            HttpClientBasicCredentials(proxyUsername, proxyPassword),
+          );
+        }
+        // 忽略证书验证
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        return client;
+      },
+    );
+    KazumiLogger().i('Proxy: HTTP 代理设置成功 $proxyHost:$proxyPort');
   }
 
   // 禁用代理
@@ -54,7 +88,7 @@ class Request {
           return client;
         },
       );
-    print('代理禁用');
+    KazumiLogger().i('Proxy: 代理已禁用');
   }
 
   Request._internal() {

@@ -270,7 +270,5 @@ class SettingBoxKey {
       forceAdBlocker = 'forceAdBlocker',
       proxyEnable = 'proxyEnable',
       proxyConfigured = 'proxyConfigured',
-      proxyUrl = 'proxyUrl',
-      proxyUsername = 'proxyUsername',
-      proxyPassword = 'proxyPassword';
+      proxyUrl = 'proxyUrl';
 }

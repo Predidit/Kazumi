@@ -43,10 +43,6 @@ class Request {
 
     final String proxyUrl =
         setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
-    final String proxyUsername =
-        setting.get(SettingBoxKey.proxyUsername, defaultValue: '');
-    final String proxyPassword =
-        setting.get(SettingBoxKey.proxyPassword, defaultValue: '');
 
     final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
     if (parsed == null) {
@@ -62,15 +58,6 @@ class Request {
         client.findProxy = (Uri uri) {
           return 'PROXY $proxyHost:$proxyPort';
         };
-        // 处理代理认证
-        if (proxyUsername.isNotEmpty && proxyPassword.isNotEmpty) {
-          client.addProxyCredentials(
-            proxyHost,
-            proxyPort,
-            'Basic',
-            HttpClientBasicCredentials(proxyUsername, proxyPassword),
-          );
-        }
         // 忽略证书验证
         client.badCertificateCallback =
             (X509Certificate cert, String host, int port) => true;

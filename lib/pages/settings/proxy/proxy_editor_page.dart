@@ -19,26 +19,17 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
   Box setting = GStorage.setting;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController urlController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  bool passwordVisible = false;
 
   @override
   void initState() {
     super.initState();
     urlController.text =
         setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
-    usernameController.text =
-        setting.get(SettingBoxKey.proxyUsername, defaultValue: '');
-    passwordController.text =
-        setting.get(SettingBoxKey.proxyPassword, defaultValue: '');
   }
 
   @override
   void dispose() {
     urlController.dispose();
-    usernameController.dispose();
-    passwordController.dispose();
     super.dispose();
   }
 
@@ -54,8 +45,6 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
     }
 
     await setting.put(SettingBoxKey.proxyUrl, url);
-    await setting.put(SettingBoxKey.proxyUsername, usernameController.text);
-    await setting.put(SettingBoxKey.proxyPassword, passwordController.text);
     // 重置配置状态，等待测试结果
     await setting.put(SettingBoxKey.proxyConfigured, false);
 
@@ -116,33 +105,6 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
                       }
                       return null;
                     },
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: usernameController,
-                    decoration: const InputDecoration(
-                      labelText: '用户名（可选）',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: passwordController,
-                    obscureText: !passwordVisible,
-                    decoration: InputDecoration(
-                      labelText: '密码（可选）',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            passwordVisible = !passwordVisible;
-                          });
-                        },
-                        icon: Icon(passwordVisible
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded),
-                      ),
-                    ),
                   ),
                 ],
               ),

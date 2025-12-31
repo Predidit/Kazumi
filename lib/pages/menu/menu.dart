@@ -40,6 +40,17 @@ class NavigationBarState extends ChangeNotifier {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
+  final GlobalKey _pageViewKey = GlobalKey();
+
+  Widget _buildPageView() {
+    return PageView.builder(
+      key: _pageViewKey,
+      physics: const NeverScrollableScrollPhysics(),
+      controller: _page,
+      itemCount: menu.size,
+      itemBuilder: (_, __) => const RouterOutlet(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +70,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return Scaffold(
         body: Container(
           color: Theme.of(context).colorScheme.primaryContainer,
-          child: PageView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            controller: _page,
-            itemCount: menu.size,
-            itemBuilder: (_, __) => const RouterOutlet(),
-          ),
+          child: _buildPageView(),
         ),
         bottomNavigationBar: state.isHide
             ? const SizedBox(height: 0)
@@ -163,11 +169,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                   topLeft: Radius.circular(16.0),
                   bottomLeft: Radius.circular(16.0),
                 ),
-                child: PageView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: menu.size,
-                  itemBuilder: (_, __) => const RouterOutlet(),
-                ),
+                child: _buildPageView(),
               ),
             ),
           ),

@@ -28,10 +28,12 @@ class ApiInterceptor extends Interceptor {
         'X-Auth': 1,
         'X-AppId': mortis['id'],
         'X-Timestamp': timestamp,
-        'X-Signature': Utils.generateDandanSignature(Uri.parse(options.path).path, timestamp),
+        'X-Signature': Utils.generateDandanSignature(
+            Uri.parse(options.path).path, timestamp),
       };
     }
-    if (options.path.contains(Api.bangumiAPIDomain) || options.path.contains(Api.bangumiAPINextDomain)) {
+    if (options.path.contains(Api.bangumiAPIDomain) ||
+        options.path.contains(Api.bangumiAPINextDomain)) {
       options.headers = bangumiHTTPHeader;
     }
     handler.next(options);
@@ -61,6 +63,11 @@ class ApiInterceptor extends Interceptor {
   }
 
   static Future<String> dioError(DioException error) async {
+    bool proxyEnable =
+        await setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (proxyEnable) {
+      return '代理连接异常，请检查代理设置';
+    }
     switch (error.type) {
       case DioExceptionType.badCertificate:
         return '证书有误！';

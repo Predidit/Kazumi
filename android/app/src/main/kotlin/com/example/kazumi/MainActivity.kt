@@ -24,12 +24,15 @@ class MainActivity: FlutterActivity() {
                 } else {
                     result.error("INVALID_ARGUMENT", "URL and MIME type required", null)
                 }
-            }
-            if (call.method == "checkIfInMultiWindowMode") {
+            } else if (call.method == "checkIfInMultiWindowMode") {
                 val isInMultiWindow = checkIfInMultiWindowMode()
                 result.success(isInMultiWindow)
+            } else if (call.method == "getAndroidSdkVersion") {
+                val sdkVersion = getAndroidSdkVersion()
+                result.success(sdkVersion)
+            } else {
+                result.notImplemented()
             }
-            result.notImplemented()
         }
     }
 
@@ -46,5 +49,9 @@ class MainActivity: FlutterActivity() {
         } else {
             false 
         }
+    }
+
+    private fun getAndroidSdkVersion(): Int {
+        return Build.VERSION.SDK_INT
     }
 }

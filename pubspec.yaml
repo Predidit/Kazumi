@@ -20,7 +20,7 @@ version: 1.9.3+10903
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.38.5
+  flutter: 3.38.6
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,16 +38,16 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   flutter_modular: ^6.3.4
-  mobx: ^2.3.3
-  flutter_mobx: ^2.2.1
+  mobx: ^2.6.0
+  flutter_mobx: ^2.3.0
   dio: ^5.0.0
   cookie_jar: ^4.0.8
   dio_cookie_manager: ^3.1.1
   connectivity_plus: ^6.0.5
 
   path_provider: ^2.1.1
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
+  hive_ce: ^2.16.0
+  hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
   card_settings_ui: ^2.0.1
 
@@ -151,10 +151,10 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-  build_runner: ^2.4.6
-  mobx_codegen: ^2.3.0
-  hive_generator: ^2.0.0
+  flutter_lints: ^6.0.0
+  build_runner: ^2.10.4
+  mobx_codegen: ^2.7.5
+  hive_ce_generator: ^1.10.0
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.3
   msix: ^3.16.12

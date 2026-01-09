@@ -7,7 +7,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 class Request {
   static final Request _instance = Request._internal();

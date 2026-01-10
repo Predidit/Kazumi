@@ -738,6 +738,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           ),
                         ),
                       if (Utils.isDesktop())
+                        IconButton(
+                          icon: const Icon(
+                            Icons.photo_camera_outlined,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            widget.handleScreenShot();
+                          },
+                        ),
+                      if (Utils.isDesktop())
                         Expanded(
                           child: LayoutBuilder(
                             builder: (context, constraints) {

@@ -8,7 +8,7 @@ part of 'history_module.dart';
 
 class HistoryAdapter extends TypeAdapter<History> {
   @override
-  final int typeId = 1;
+  final typeId = 1;
 
   @override
   History read(BinaryReader reader) {
@@ -18,7 +18,7 @@ class HistoryAdapter extends TypeAdapter<History> {
     };
     return History(
       fields[3] as BangumiItem,
-      fields[1] as int,
+      (fields[1] as num).toInt(),
       fields[2] as String,
       fields[4] as DateTime,
       fields[5] as String,
@@ -59,7 +59,7 @@ class HistoryAdapter extends TypeAdapter<History> {
 
 class ProgressAdapter extends TypeAdapter<Progress> {
   @override
-  final int typeId = 2;
+  final typeId = 2;
 
   @override
   Progress read(BinaryReader reader) {
@@ -68,9 +68,9 @@ class ProgressAdapter extends TypeAdapter<Progress> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Progress(
-      fields[0] as int,
-      fields[1] as int,
-      fields[2] as int,
+      (fields[0] as num).toInt(),
+      (fields[1] as num).toInt(),
+      (fields[2] as num).toInt(),
     );
   }
 

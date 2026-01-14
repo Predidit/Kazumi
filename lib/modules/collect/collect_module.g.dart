@@ -8,7 +8,7 @@ part of 'collect_module.dart';
 
 class CollectedBangumiAdapter extends TypeAdapter<CollectedBangumi> {
   @override
-  final int typeId = 3;
+  final typeId = 3;
 
   @override
   CollectedBangumi read(BinaryReader reader) {
@@ -19,7 +19,7 @@ class CollectedBangumiAdapter extends TypeAdapter<CollectedBangumi> {
     return CollectedBangumi(
       fields[0] as BangumiItem,
       fields[1] as DateTime,
-      fields[2] as int,
+      (fields[2] as num).toInt(),
     );
   }
 

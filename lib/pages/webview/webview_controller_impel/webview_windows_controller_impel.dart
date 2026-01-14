@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:webview_windows/webview_windows.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class WebviewWindowsItemControllerImpel
     extends WebviewItemController<WebviewController> {
@@ -8,11 +11,37 @@ class WebviewWindowsItemControllerImpel
 
   @override
   Future<void> init() async {
+    await _setupProxy();
     webviewController ??= WebviewController();
     await webviewController!.initialize();
     await webviewController!
         .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
+  }
+
+  Future<void> _setupProxy() async {
+    final setting = GStorage.setting;
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (!proxyEnable) {
+      return;
+    }
+
+    final String proxyUrl =
+        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+    if (formattedProxy == null) {
+      return;
+    }
+
+    try {
+      await WebviewController.initializeEnvironment(
+        additionalArguments: '--proxy-server=$formattedProxy',
+      );
+      KazumiLogger().i('WebView: 代理设置成功 $formattedProxy');
+    } catch (e) {
+      KazumiLogger().e('WebView: 设置代理失败 $e');
+    }
   }
 
   @override
@@ -68,7 +97,15 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    webviewController!.dispose();
+    // It's a custom function to dispose the whole webview environment in Predidit's flutter-webview-windows fork.
+    // which allow re-initialization webview environment with different proxy settings.
+    // It's difficult to get a dispose finish callback from Microsoft Edge WebView2 SDK,
+    // so don't call webviewController.dispose() when we call WebviewController.disposeEnvironment(), WebViewController.disposeEnvironment() already do any necessary clean up internally.
+    // ohtherwise, app will crash due to resource conflict.
+    if (webviewController != null) {
+      WebviewController.disposeEnvironment();
+      webviewController = null;
+    }
   }
 
   // The webview_windows package does not have a method to unload the current page. 

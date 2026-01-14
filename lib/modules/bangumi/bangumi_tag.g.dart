@@ -8,7 +8,7 @@ part of 'bangumi_tag.dart';
 
 class BangumiTagAdapter extends TypeAdapter<BangumiTag> {
   @override
-  final int typeId = 4;
+  final typeId = 4;
 
   @override
   BangumiTag read(BinaryReader reader) {
@@ -18,8 +18,8 @@ class BangumiTagAdapter extends TypeAdapter<BangumiTag> {
     };
     return BangumiTag(
       name: fields[0] as String,
-      count: fields[1] as int,
-      totalCount: fields[2] as int,
+      count: (fields[1] as num).toInt(),
+      totalCount: (fields[2] as num).toInt(),
     );
   }
 

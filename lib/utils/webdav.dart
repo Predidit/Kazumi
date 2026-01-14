@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:webdav_client/webdav_client.dart' as webdav;
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';

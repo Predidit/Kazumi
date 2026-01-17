@@ -130,4 +130,46 @@ abstract class _CollectController with Store {
         .where((item) => !excludeIds.contains(item.id))
         .toList();
   }
+
+  /// 将"在看"番剧按周数分组
+  ///
+  /// 返回 Map<int, List<CollectedBangumi>>
+  /// key: 0-6 代表周一到周日, 7 代表其他
+  Map<int, List<CollectedBangumi>> getWatchingBangumiByWeekday() {
+    // 初始化 8 个分组 (周一到周日 + 其他)
+    Map<int, List<CollectedBangumi>> weekdayGroups = {
+      0: [], // 周一
+      1: [], // 周二
+      2: [], // 周三
+      3: [], // 周四
+      4: [], // 周五
+      5: [], // 周六
+      6: [], // 周日
+      7: [], // 其他
+    };
+
+    // 过滤出"在看"类型的番剧
+    final watchingList = collectibles.where((item) => item.type == 1).toList();
+
+    // 按周数分组
+    for (var collected in watchingList) {
+      int weekday = collected.bangumiItem.airWeekday;
+      // airWeekday: 1-7 (周一到周日), 0 表示未知
+      if (weekday >= 1 && weekday <= 7) {
+        // 将 1-7 映射到 0-6
+        weekdayGroups[weekday - 1]!.add(collected);
+      } else {
+        // 未知周数放入"其他"
+        weekdayGroups[7]!.add(collected);
+      }
+    }
+
+    // 对每个分组按时间排序
+    for (var group in weekdayGroups.values) {
+      group.sort((a, b) => b.time.millisecondsSinceEpoch
+          .compareTo(a.time.millisecondsSinceEpoch));
+    }
+
+    return weekdayGroups;
+  }
 }

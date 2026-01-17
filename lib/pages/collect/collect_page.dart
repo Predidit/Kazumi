@@ -159,14 +159,136 @@ class _CollectPageState extends State<CollectPage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 6;
     }
-    for (List<CollectedBangumi> collectedBangumiRenderItem
-        in collectedBangumiRenderItemList) {
-      gridViewList.add(
-        CustomScrollView(
-          slivers: [
+    
+    // 为每个标签页创建内容
+    for (int tabIndex = 0; tabIndex < collectedBangumiRenderItemList.length; tabIndex++) {
+      List<CollectedBangumi> collectedBangumiRenderItem = collectedBangumiRenderItemList[tabIndex];
+      
+      // 特殊处理"在看"标签页 (第一个标签，index = 0)
+      if (tabIndex == 0) {
+        gridViewList.add(_buildWatchingTabWithWeekday(crossCount));
+      } else {
+        gridViewList.add(_buildNormalTab(collectedBangumiRenderItem, crossCount));
+      }
+    }
+    return gridViewList;
+  }
+
+  // 构建普通标签页（想看、搁置、看过、抛弃）
+  Widget _buildNormalTab(List<CollectedBangumi> collectedBangumiRenderItem, int crossCount) {
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+              StyleString.cardSpace, StyleString.cardSpace, StyleString.cardSpace, 0),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              mainAxisSpacing: StyleString.cardSpace - 2,
+              crossAxisSpacing: StyleString.cardSpace,
+              crossAxisCount: crossCount,
+              mainAxisExtent:
+                  MediaQuery.of(context).size.width / crossCount / 0.65 +
+                      MediaQuery.textScalerOf(context).scale(32.0),
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return collectedBangumiRenderItem.isNotEmpty
+                    ? Stack(
+                        children: [
+                          BangumiCardV(
+                            bangumiItem: collectedBangumiRenderItem[index]
+                                .bangumiItem,
+                            canTap: !showDelete,
+                          ),
+                          Positioned(
+                            right: 5,
+                            bottom: 5,
+                            child: showDelete
+                                ? Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .secondaryContainer,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: CollectButton(
+                                      bangumiItem:
+                                          collectedBangumiRenderItem[index]
+                                              .bangumiItem,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    ),
+                                  )
+                                : Container(),
+                          ),
+                        ],
+                      )
+                    : null;
+              },
+              childCount: collectedBangumiRenderItem.isNotEmpty
+                  ? collectedBangumiRenderItem.length
+                  : 10,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 构建"在看"标签页，按周数分组
+  Widget _buildWatchingTabWithWeekday(int crossCount) {
+    final weekdayGroups = collectController.getWatchingBangumiByWeekday();
+    final weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', '其他'];
+    
+    return CustomScrollView(
+      slivers: [
+        // 为每个有内容的周数组创建一个分组
+        for (int weekdayIndex = 0; weekdayIndex < 8; weekdayIndex++)
+          if (weekdayGroups[weekdayIndex]!.isNotEmpty) ...[
+            // 周数标题
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    StyleString.cardSpace, 
+                    StyleString.cardSpace, 
+                    StyleString.cardSpace, 
+                    8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      weekdayNames[weekdayIndex],
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '(${weekdayGroups[weekdayIndex]!.length})',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // 该周数的番剧网格
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
-                  StyleString.cardSpace, StyleString.cardSpace, StyleString.cardSpace, 0),
+                  StyleString.cardSpace, 0, StyleString.cardSpace, 0),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   mainAxisSpacing: StyleString.cardSpace - 2,
@@ -178,52 +300,48 @@ class _CollectPageState extends State<CollectPage>
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    return collectedBangumiRenderItem.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
-                              ),
-                              Positioned(
-                                right: 5,
-                                bottom: 5,
-                                child: showDelete
-                                    ? Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondaryContainer,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSecondaryContainer,
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ],
-                          )
-                        : null;
+                    final item = weekdayGroups[weekdayIndex]![index];
+                    return Stack(
+                      children: [
+                        BangumiCardV(
+                          bangumiItem: item.bangumiItem,
+                          canTap: !showDelete,
+                        ),
+                        Positioned(
+                          right: 5,
+                          bottom: 5,
+                          child: showDelete
+                              ? Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: CollectButton(
+                                    bangumiItem: item.bangumiItem,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSecondaryContainer,
+                                  ),
+                                )
+                              : Container(),
+                        ),
+                      ],
+                    );
                   },
-                  childCount: collectedBangumiRenderItem.isNotEmpty
-                      ? collectedBangumiRenderItem.length
-                      : 10,
+                  childCount: weekdayGroups[weekdayIndex]!.length,
                 ),
               ),
             ),
           ],
+        // 底部留白
+        const SliverToBoxAdapter(
+          child: SizedBox(height: StyleString.cardSpace),
         ),
-      );
-    }
-    return gridViewList;
+      ],
+    );
   }
 }

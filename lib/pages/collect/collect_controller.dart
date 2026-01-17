@@ -4,6 +4,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
@@ -20,6 +21,14 @@ abstract class _CollectController with Store {
   final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
   final _collectRepository = Modular.get<ICollectRepository>();
 
+  Map<int, int> _watchingCalendarWeekdayById = {};
+
+  @observable
+  bool isWatchingCalendarLoading = false;
+
+  @observable
+  bool isWatchingCalendarReady = false;
+
   Box setting = GStorage.setting;
   List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
 
@@ -30,6 +39,34 @@ abstract class _CollectController with Store {
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());
+  }
+
+  @action
+  Future<void> loadWatchingCalendar() async {
+    if (isWatchingCalendarLoading) {
+      return;
+    }
+    isWatchingCalendarLoading = true;
+    try {
+      final calendar = await BangumiHTTP.getCalendar();
+      final map = <int, int>{};
+      for (int weekdayIndex = 0;
+          weekdayIndex < calendar.length && weekdayIndex < 7;
+          weekdayIndex++) {
+        for (final item in calendar[weekdayIndex]) {
+          map[item.id] = weekdayIndex;
+        }
+      }
+      _watchingCalendarWeekdayById = map;
+      isWatchingCalendarReady = true;
+    } catch (e) {
+      KazumiLogger().e('Resolve watching calendar failed', error: e);
+      // 失败时不阻塞 UI：继续使用 airWeekday 的降级分组
+      isWatchingCalendarReady = false;
+      _watchingCalendarWeekdayById = {};
+    } finally {
+      isWatchingCalendarLoading = false;
+    }
   }
 
   int getCollectType(BangumiItem bangumiItem) {
@@ -134,9 +171,9 @@ abstract class _CollectController with Store {
   /// 将"在看"番剧按周数分组
   ///
   /// 返回 Map<int, List<CollectedBangumi>>
-  /// key: 0-6 代表周一到周日, 7 代表其他
+  /// key: 0-6 代表周一到周日, 7 代表老番(不在时间表中)
   Map<int, List<CollectedBangumi>> getWatchingBangumiByWeekday() {
-    // 初始化 8 个分组 (周一到周日 + 其他)
+    // 初始化 8 个分组 (周一到周日 + 老番)
     Map<int, List<CollectedBangumi>> weekdayGroups = {
       0: [], // 周一
       1: [], // 周二
@@ -145,22 +182,30 @@ abstract class _CollectController with Store {
       4: [], // 周五
       5: [], // 周六
       6: [], // 周日
-      7: [], // 其他
+      7: [], // 老番
     };
 
     // 过滤出"在看"类型的番剧
     final watchingList = collectibles.where((item) => item.type == 1).toList();
 
-    // 按周数分组
+    // 按周数分组：优先使用时间表匹配；不在时间表的统一归为老番
     for (var collected in watchingList) {
-      int weekday = collected.bangumiItem.airWeekday;
-      // airWeekday: 1-7 (周一到周日), 0 表示未知
-      if (weekday >= 1 && weekday <= 7) {
-        // 将 1-7 映射到 0-6
-        weekdayGroups[weekday - 1]!.add(collected);
+      final id = collected.bangumiItem.id;
+      final calendarWeekdayIndex = _watchingCalendarWeekdayById[id];
+      if (calendarWeekdayIndex != null && calendarWeekdayIndex >= 0 && calendarWeekdayIndex <= 6) {
+        weekdayGroups[calendarWeekdayIndex]!.add(collected);
       } else {
-        // 未知周数放入"其他"
-        weekdayGroups[7]!.add(collected);
+        // 降级：时间表未就绪时，先按 airWeekday 分组；否则视为老番
+        if (!isWatchingCalendarReady && _watchingCalendarWeekdayById.isEmpty) {
+          final weekday = collected.bangumiItem.airWeekday;
+          if (weekday >= 1 && weekday <= 7) {
+            weekdayGroups[weekday - 1]!.add(collected);
+          } else {
+            weekdayGroups[7]!.add(collected);
+          }
+        } else {
+          weekdayGroups[7]!.add(collected);
+        }
       }
     }
 

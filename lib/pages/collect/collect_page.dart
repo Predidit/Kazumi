@@ -42,6 +42,8 @@ class _CollectPageState extends State<CollectPage>
   void initState() {
     super.initState();
     collectController.loadCollectibles();
+    // 预加载时间表用于“在看”按周分组；不在时间表的将归入“老番”
+    collectController.loadWatchingCalendar();
     tabController = TabController(vsync: this, length: tabs.length);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
@@ -241,7 +243,7 @@ class _CollectPageState extends State<CollectPage>
   // 构建"在看"标签页，按周数分组
   Widget _buildWatchingTabWithWeekday(int crossCount) {
     final weekdayGroups = collectController.getWatchingBangumiByWeekday();
-    final weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', '其他'];
+    final weekdayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', '老番'];
     
     return CustomScrollView(
       slivers: [

@@ -293,6 +293,7 @@
             run: |
               mkdir Payload
               cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+              find Payload/Runner.app/Frameworks -type d -name "*.framework" -exec codesign --force --sign - --preserve-metadata=identifier,entitlements {} \;
               zip -q -r Kazumi_ios_${{ env.tag }}_no_sign.ipa Payload
           - name: Upload iOS build
             uses: actions/upload-artifact@v4

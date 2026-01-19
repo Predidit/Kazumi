@@ -9,6 +9,7 @@ import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/utils/downloads.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -154,9 +155,12 @@ class _PopularPageState extends State<PopularPage>
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () => scrollController.animateTo(0,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeOut),
+          // onPressed: () => scrollController.animateTo(0,
+          //     duration: const Duration(milliseconds: 350),
+          //     curve: Curves.easeOut),
+          onPressed: () { // TODO: a hooker here, to test the M3U8 downloader
+            test();
+          },
           child: const Icon(Icons.arrow_upward),
         ),
       ),

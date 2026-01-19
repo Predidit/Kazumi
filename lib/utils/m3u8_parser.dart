@@ -1,5 +1,12 @@
 import 'package:dio/dio.dart' show Dio;
 
+/// TODO: M3U8 有点暗坑，主要在于主 m3u8 和从 m3u8 的区别
+/// 主 m3u8 文件会带有 #EXT-X-STREAM-INF 这种标签头，此时这个文件会指向另一个 m3u8 文件
+/// 此时从 m3u8 文件中会带有 #EXTINF 这种标签头，此时它就指向了 ts 文件
+/// 为了简化判断，个人认为可以在读到 #EXTINF 这种标签头时
+/// 就直接下载 ts 文件，否则则需要解析 m3u8 文件
+
+
 // 数据模型
 class M3U8Data {
   final List<M3U8Segment> segments;
@@ -17,9 +24,8 @@ class M3U8Segment {
 }
 
 class M3U8Parser {
-  // indexUrl 传入 以 /index.m3u8 结尾的 url
-  static Future<M3U8Data?> parse(Dio dio, String indexUrl) async {
-    final src = await _parseIndex(dio, indexUrl);
+  static Future<M3U8Data?> parse(Dio dio, String url) async {
+    final src = await _parseIndex(dio, url);
 
     if (src == null) {
       print("[kazumi downloader]: 无法获取 m3u8 数据");

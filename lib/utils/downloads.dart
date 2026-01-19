@@ -10,6 +10,11 @@ import 'package:path/path.dart' as path;
 /// [kazumi webview parser]:  (DM84)
 ///   Loading m3u8 source: https://vip.dytt-cinema.com/20251106/39808_a9a80dd4/index.m3u8
 /// xfdm 暂时没找到合适的
+/// 
+/// TODO:
+///   1. m3u8 文件应当考虑不直接拼接，而是借助索引（index.m3u8）的方式去实现
+///   2. 完成 Fail 的测试用例，多测几个用例
+///        此用例为失败用例： https://ai.girigirilove.net/zijian/oldanime/2025/10/cht/GNOSIACHT/04/playlist.m3u8
 
 class Downloads {
   late final Dio dio;
@@ -25,13 +30,15 @@ class Downloads {
   bool get isDownloadingM3u8 => _isDownloadingM3u8;
   bool get isDownloadingMP4 => _isDownloadingMP4;
 
-  Future<bool> downloadAndMergeTs(String url,
-      {String? album, String? fileName, bool delTemp = true}) async {
+  Future<bool> downloadTs(String url,
+      {String? album, String? fileName}) async {
     if (_isDownloadingM3u8) {
       print("[kazumi downloader]: 正在下载中，请稍后");
     }
 
     final m3u8Src = await M3U8Parser.parse(dio, url);
+    return Future.value(true); // 暂时短路下面的逻辑
+
     if (m3u8Src == null) {
       print("[kazumi downloader]: 分片源列表为空，无法下载 ts 文件");
       return false;
@@ -43,12 +50,11 @@ class Downloads {
       return false;
     }
 
-    final tempPath = path.join(savePath, "temp");
     final tsFiles = <File>[];
 
     _isDownloadingM3u8 = true;
     for (final segment in m3u8Src.segments) {
-      final tsFile = File(path.join(tempPath, segment.url.split('/').last));
+      final tsFile = File(path.join(savePath, segment.url.split('/').last));
       print("[kazumi downloader]: 正在下载 ${tsFile.path}");
       tsFiles.add(tsFile);
       if (tsFile.existsSync()) {
@@ -56,24 +62,6 @@ class Downloads {
         continue;
       }
       await _downloadFile(url: segment.url, savePath: tsFile.path);
-    }
-
-    final outputFile = File(path.join(savePath, fileName ?? "output.ts"));
-    final outputSink = outputFile.openWrite();
-    for (final tsFile in tsFiles) {
-      print("[kazumi downloader]: 正在合并 ${tsFile.path}");
-      if (tsFile.existsSync()) {
-        await outputSink.addStream(tsFile.openRead());
-      }
-    }
-    await outputSink.close();
-
-    if (delTemp) {
-      for (final tsFile in tsFiles) {
-        if (tsFile.existsSync()) {
-          await tsFile.delete();
-        }
-      }
     }
 
     _isDownloadingM3u8 = false;
@@ -154,6 +142,6 @@ void test() async {
   //   "https://v16-tiktokcdn-com.akamaized.net/1a4e3d45db24b04b9792187b64763d9a/69084faf/video/tos/alisg/tos-alisg-ve-0051c001-sg/oIu0QFDTNDBfbIPDIlEQTuBA2lSgglEY8ofwI3/?a=1233&bti=Nzg3NWYzLTQ6&ch=0&cr=0&dr=0&er=0&lr=default&cd=0%7C0%7C0%7C0&br=1870&bt=935&cs=0&ds=4&ft=.bvrXInz7ThFo_pPXq8Zmo&mime_type=video_mp4&qs=0&rc=ZztlODhoZjxoaDc0aDc6OkBpMzdqNWw5cjNoNjMzODYzNEAzLzJjXmFfNl4xYjVgY2MyYSNgZmFxMmRza21hLS1kMC1zcw%3D%3D&vvpl=1&l=20251102142227CD49B547C5785EB959BB&btag=e000a8000&vid=v10033g50000d3pen0vog65it2dgi4c0",
   //   fileName: "test.mp4",
   // );
-  await Downloads().downloadAndMergeTs(
+  await Downloads().downloadTs(
       "https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8");
 }

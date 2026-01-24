@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 
@@ -93,6 +94,8 @@ class BangumiTimelineCard extends StatelessWidget {
   Widget buildInfo(BuildContext context, TextScaler textScaler, bool isDesktop,
       bool isTablet) {
     final theme = Theme.of(context);
+    final showRating =
+        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     final colorScheme = theme.colorScheme;
     final nameStyle =
         theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
@@ -143,17 +146,20 @@ class BangumiTimelineCard extends StatelessWidget {
         const Spacer(),
         Row(
           children: [
-            if (bangumiItem.ratingScore > 0)
+            if (showRating ? bangumiItem.ratingScore > 0 : true)
               Row(
                 children: [
                   Icon(Icons.star_rounded,
                       size: 15, color: colorScheme.primary),
                   const SizedBox(width: 2),
-                  Text(bangumiItem.ratingScore.toStringAsFixed(1),
+                  Text(
+                      showRating
+                          ? bangumiItem.ratingScore.toStringAsFixed(1)
+                          : '***',
                       style: infoStyle),
                 ],
               ),
-            if (bangumiItem.rank > 0)
+            if (showRating ? bangumiItem.rank > 0 : true)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Row(
@@ -161,13 +167,17 @@ class BangumiTimelineCard extends StatelessWidget {
                     Icon(Icons.leaderboard,
                         size: 15, color: colorScheme.tertiary),
                     const SizedBox(width: 2),
-                    Text('Rank ${bangumiItem.rank}', style: infoStyle),
+                    Text(
+                        showRating ? 'Rank ${bangumiItem.rank}' : 'Rank ***',
+                        style: infoStyle),
                   ],
                 ),
               ),
             const Spacer(),
-            if (bangumiItem.votes > 0)
-              Text('评分人数: ${bangumiItem.votes}', style: subStyle),
+            if (showRating ? bangumiItem.votes > 0 : true)
+              Text(
+                  showRating ? '评分人数: ${bangumiItem.votes}' : '评分人数: ***',
+                  style: subStyle),
           ],
         ),
       ],

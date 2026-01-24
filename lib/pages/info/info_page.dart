@@ -37,6 +37,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late TabController sourceTabController;
   late TabController infoTabController;
+  late bool showRating;
 
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
@@ -135,6 +136,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: 5, vsync: this);
+    showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     infoTabController.addListener(() {
       int index = infoTabController.index;
       if (index == 1 &&
@@ -314,6 +316,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                     child: BangumiInfoCardV(
                                       bangumiItem: infoController.bangumiItem,
                                       isLoading: infoController.isLoading,
+                                      showRating: showRating,
                                     ),
                                   ),
                                 ),

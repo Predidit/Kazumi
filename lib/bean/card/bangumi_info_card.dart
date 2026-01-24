@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -14,10 +13,12 @@ class BangumiInfoCardV extends StatefulWidget {
     super.key,
     required this.bangumiItem,
     required this.isLoading,
+    required this.showRating,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
+  final bool showRating;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -117,8 +118,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
 
   @override
   Widget build(BuildContext context) {
-    final showRating =
-        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    final showRating = widget.showRating;
     return Container(
       height: 300,
       constraints: BoxConstraints(maxWidth: 950),

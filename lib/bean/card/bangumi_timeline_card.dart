@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 
@@ -10,6 +9,7 @@ class BangumiTimelineCard extends StatelessWidget {
   const BangumiTimelineCard({
     super.key,
     required this.bangumiItem,
+    required this.showRating,
     this.onTap,
     this.cardHeight = 120,
     this.cardWidth,
@@ -17,6 +17,7 @@ class BangumiTimelineCard extends StatelessWidget {
   });
 
   final BangumiItem bangumiItem;
+  final bool showRating;
   final VoidCallback? onTap;
   final bool enableHero;
   final double cardHeight;
@@ -94,8 +95,6 @@ class BangumiTimelineCard extends StatelessWidget {
   Widget buildInfo(BuildContext context, TextScaler textScaler, bool isDesktop,
       bool isTablet) {
     final theme = Theme.of(context);
-    final showRating =
-        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     final colorScheme = theme.colorScheme;
     final nameStyle =
         theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);

@@ -118,7 +118,6 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
 
   @override
   Widget build(BuildContext context) {
-    final showRating = widget.showRating;
     return Container(
       height: 300,
       constraints: BoxConstraints(maxWidth: 950),
@@ -184,7 +183,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              showRating
+                              widget.showRating
                                   ? '${widget.bangumiItem.votes} 人评分:'
                                   : '*** 人评分:',
                             ),
@@ -202,7 +201,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               Row(
                                 children: [
                                   Text(
-                                    showRating
+                                    widget.showRating
                                         ? '${widget.bangumiItem.ratingScore}'
                                         : '***',
                                     style: TextStyle(
@@ -215,7 +214,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                   const SizedBox(width: 8),
                                   RatingBarIndicator(
                                     itemCount: 5,
-                                    rating: showRating
+                                    rating: widget.showRating
                                         ? widget.bangumiItem.ratingScore
                                                 .toDouble() /
                                             2
@@ -234,7 +233,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               'Bangumi Ranked:',
                             ),
                             Text(
-                              showRating ? '#${widget.bangumiItem.rank}' : '***',
+                              widget.showRating
+                                  ? '#${widget.bangumiItem.rank}'
+                                  : '***',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -254,7 +255,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     ),
                   ),
                 ),
-                if (showRating &&
+                if (widget.showRating &&
                     MediaQuery.sizeOf(context).width >=
                         LayoutBreakpoint.compact['width']! &&
                     !widget.isLoading)

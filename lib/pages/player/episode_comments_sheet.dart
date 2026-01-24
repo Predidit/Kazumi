@@ -40,7 +40,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   /// episode input by [showEpisodeSelection]
   int ep = 0;
 
-  bool isAscending = true;
+  bool isAscending = false;
 
   @override
   void initState() {

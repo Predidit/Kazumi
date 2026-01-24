@@ -92,6 +92,9 @@ abstract class _VideoPageController with Store {
         .then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
+    episodeCommentsList.sort(
+      (a, b) => b.comment.createdAt.compareTo(a.comment.createdAt),
+    );
     KazumiLogger().i('VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }
 

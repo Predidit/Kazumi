@@ -7,6 +7,7 @@ import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
@@ -26,6 +27,7 @@ class _TimelinePageState extends State<TimelinePage>
       Modular.get<TimelineController>();
   late NavigationBarState navigationBarState;
   TabController? tabController;
+  late bool showRating;
 
   final List<Tab> optionTabs = [
     Tab(text: "排序方式"),
@@ -40,6 +42,7 @@ class _TimelinePageState extends State<TimelinePage>
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
+    showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
@@ -553,7 +556,9 @@ class _TimelinePageState extends State<TimelinePage>
                   if (filteredList.isEmpty) return null;
                   final item = filteredList[index];
                   return BangumiTimelineCard(
-                      bangumiItem: item, cardHeight: cardHeight);
+                      bangumiItem: item,
+                      cardHeight: cardHeight,
+                      showRating: showRating);
                 },
                 childCount: filteredList.isNotEmpty ? filteredList.length : 10,
               ),

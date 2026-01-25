@@ -30,6 +30,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool useDynamicColor;
   late bool showWindowButton;
   late bool useSystemFont;
+  late bool showRating;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
   final MenuController menuController = MenuController();
@@ -48,6 +49,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
     useSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
+    showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
@@ -347,6 +349,16 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   title: Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('关闭后使用 MI Sans 字体', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useSystemFont,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    showRating = value ?? !showRating;
+                    await setting.put(SettingBoxKey.showRating, showRating);
+                    setState(() {});
+                  },
+                  title: Text('显示评分', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('关闭后将在概览中隐藏评分信息', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: showRating,
                 ),
               ],
               bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台', style: TextStyle(fontFamily: fontFamily)),

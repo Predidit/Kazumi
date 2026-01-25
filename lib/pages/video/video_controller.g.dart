@@ -89,6 +89,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$isCommentsAscendingAtom =
+      Atom(name: '_VideoPageController.isCommentsAscending', context: context);
+
+  @override
+  bool get isCommentsAscending {
+    _$isCommentsAscendingAtom.reportRead();
+    return super.isCommentsAscending;
+  }
+
+  @override
+  set isCommentsAscending(bool value) {
+    _$isCommentsAscendingAtom.reportWrite(value, super.isCommentsAscending, () {
+      super.isCommentsAscending = value;
+    });
+  }
+
   late final _$isPipAtom =
       Atom(name: '_VideoPageController.isPip', context: context);
 
@@ -161,6 +177,7 @@ loading: ${loading},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
 isFullscreen: ${isFullscreen},
+isCommentsAscending: ${isCommentsAscending},
 isPip: ${isPip},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},

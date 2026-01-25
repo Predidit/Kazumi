@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 
@@ -40,8 +39,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   /// episode input by [showEpisodeSelection]
   int ep = 0;
 
-  bool isAscending = false;
-
   @override
   void initState() {
     super.initState();
@@ -49,7 +46,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await videoPageController.queryBangumiEpisodeCommentsByID(
+    await videoPageController
+        .queryBangumiEpisodeCommentsByID(
             videoPageController.bangumiItem.id, episode)
         .then((_) {
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
@@ -64,14 +62,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   void toggleSortOrder() {
-    setState(() {
-      isAscending = !isAscending;
-      videoPageController.episodeCommentsList.sort(
-        (a, b) => isAscending
-            ? a.comment.createdAt.compareTo(b.comment.createdAt)
-            : b.comment.createdAt.compareTo(a.comment.createdAt),
-      );
-    });
+    videoPageController.toggleSortOrder();
   }
 
   @override
@@ -191,18 +182,20 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             ),
           ),
           SizedBox(
-              height: 34,
-              child: TextButton(
-                style: ButtonStyle(
-                  padding: MaterialStateProperty.all(
-                      const EdgeInsets.symmetric(horizontal: 4.0)),
-                ),
-                onPressed: toggleSortOrder,
-                child: Text(
-                  isAscending ? '倒序' : '正序',
-                  style: const TextStyle(fontSize: 13),
-                ),
+            height: 34,
+            child: TextButton(
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 4.0)),
               ),
+              onPressed: toggleSortOrder,
+              child: Observer(builder: (context) {
+                return Text(
+                  videoPageController.isCommentsAscending ? '倒序' : '正序',
+                  style: const TextStyle(fontSize: 13),
+                );
+              }),
+            ),
           ),
         ],
       ),

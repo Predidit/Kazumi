@@ -38,6 +38,10 @@ abstract class _VideoPageController with Store {
   @observable
   bool isFullscreen = false;
 
+  /// 评论正序或倒序
+  @observable
+  bool isCommentsAscending = false;
+
   /// 画中画状态
   @observable
   bool isPip = false;
@@ -92,13 +96,19 @@ abstract class _VideoPageController with Store {
         .then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
-    episodeCommentsList.sort(
-      (a, b) => b.comment.createdAt.compareTo(a.comment.createdAt),
-    );
-    KazumiLogger().i('VideoPageController: loaded comments list length ${episodeCommentsList.length}');
+    if (!isCommentsAscending) {
+      episodeCommentsList
+          .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));
+    } else {
+      episodeCommentsList
+          .sort((a, b) => a.comment.createdAt.compareTo(b.comment.createdAt));
+    }
+    KazumiLogger().i(
+        'VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }
 
-  Future<void> queryRoads(String url, String pluginName, {CancelToken? cancelToken}) async {
+  Future<void> queryRoads(String url, String pluginName,
+      {CancelToken? cancelToken}) async {
     if (cancelToken != null) {
       _queryRoadsCancelToken?.cancel();
       _queryRoadsCancelToken = cancelToken;
@@ -113,11 +123,23 @@ abstract class _VideoPageController with Store {
     roadList.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
-        roadList.addAll(await plugin.querychapterRoads(url, cancelToken: cancelToken));
+        roadList.addAll(
+            await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
-    KazumiLogger().i('VideoPageController: road list length ${roadList.length}');
-    KazumiLogger().i('VideoPageController: first road episode count ${roadList[0].data.length}');
+    KazumiLogger()
+        .i('VideoPageController: road list length ${roadList.length}');
+    KazumiLogger().i(
+        'VideoPageController: first road episode count ${roadList[0].data.length}');
+  }
+
+  void toggleSortOrder() {
+    isCommentsAscending = !isCommentsAscending;
+    episodeCommentsList.sort(
+      (a, b) => isCommentsAscending
+          ? a.comment.createdAt.compareTo(b.comment.createdAt)
+          : b.comment.createdAt.compareTo(a.comment.createdAt),
+    );
   }
 
   void cancelQueryRoads() {

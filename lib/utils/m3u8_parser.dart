@@ -1,113 +1,93 @@
+import 'package:antlr4/antlr4.dart';
 import 'package:dio/dio.dart' show Dio;
 
-/// TODO: M3U8 有点暗坑，主要在于主 m3u8 和从 m3u8 的区别
+// TODO: M3U8 有点暗坑，主要在于主 m3u8 和从 m3u8 的区别
 /// 主 m3u8 文件会带有 #EXT-X-STREAM-INF 这种标签头，此时这个文件会指向另一个 m3u8 文件
 /// 此时从 m3u8 文件中会带有 #EXTINF 这种标签头，此时它就指向了 ts 文件
 /// 为了简化判断，个人认为可以在读到 #EXTINF 这种标签头时
 /// 就直接下载 ts 文件，否则则需要解析 m3u8 文件
 
-
-// 数据模型
-class M3U8Data {
-  final List<M3U8Segment> segments;
-  final String? keyUrl; // 加密密钥 URL（AES-128）
-  final String? iv; // 初始化向量
-
-  M3U8Data({required this.segments, this.keyUrl, this.iv});
+// TODO: 也许可能要大规模重构了
+// 爬取类型
+enum M3u8ParseType {
+  master, // 主 M3U8 （指向子 M3U8 文件）
+  media, // 直接指向媒体资源
+  other, // 暂时未知，有了再加
 }
 
-class M3U8Segment {
-  final String url;
-  final double duration;
+class M3u8ParseResult {
+  final M3u8ParseType type;
+  final String baseUrl;
+  // 不太确定是否会有多个子 m3u8 的情况
+  final List<String>? subM3u8Urls; // 指向子 m3u8 url 地址
+  final List<String>? segmentUrls; // 指向媒体切片地址
 
-  M3U8Segment({required this.url, required this.duration});
+  M3u8ParseResult({
+    required this.type,
+    required this.baseUrl,
+    this.subM3u8Urls,
+    this.segmentUrls,
+  });
 }
 
-class M3U8Parser {
-  static Future<M3U8Data?> parse(Dio dio, String url) async {
-    final src = await _parseIndex(dio, url);
+class M3u8Parser {
+  static Future<M3u8ParseResult?> parse(Dio dio, String url) async {
+    try {
+      // 由于依赖 `resolve` 方法，必须要把 `/` 也包括进来
+      final baseUrl = url.substring(0, url.lastIndexOf("/") + 1).trim();
+      print("[DEBUG]: URL: ${url}");
 
-    if (src == null) {
-      print("[kazumi downloader]: 无法获取 m3u8 数据");
+      final index = (await dio.get(url)).data;
+      M3u8ParseType parseType = M3u8ParseType.other;
+      final List<String> segmentUrls = [];
+      final List<String> subM3u8Urls = [];
+
+      final List<String> lines = index.split('\n');
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i].trim();
+
+        // 第一个标签会指向子 m3u8 文件
+        // 第二个标签则是指向媒体切片文件
+        // 相同的是它们都是一行标签一行值
+        if (!(line.startsWith("#EXT-X-STREAM-INF") ||
+            line.startsWith("#EXTINF"))) {
+          continue;
+        }
+
+        if (i + 1 >= lines.length) {
+          break;
+        }
+        i++; // 此时 line 包含标签信息，subPath 包含文件 url 信息
+        final subPath = lines[i].trim();
+        // 拼接完整 URL
+        final fullUrl = _getFullUrl(subPath, baseUrl);
+
+        if (line.startsWith('#EXTINF')) {
+          parseType = M3u8ParseType.media;
+          segmentUrls.add(fullUrl);
+        } else if (line.startsWith("#EXT-X-STREAM-INF")) {
+          parseType = M3u8ParseType.master;
+          subM3u8Urls.add(fullUrl);
+        }
+      }
+      print(
+          "[DEBUG]:\n\tBASE: ${baseUrl}\n\tSUB: ${subM3u8Urls}\n\tSEG: ${segmentUrls}");
+      return M3u8ParseResult(
+          type: parseType,
+          baseUrl: baseUrl,
+          subM3u8Urls: subM3u8Urls,
+          segmentUrls: segmentUrls);
+    } catch (e) {
+      print("[Kazumi M3U8Parser]: Can't parse the m3u8 file, error: $e");
       return null;
     }
-
-    final baseUrl = src["baseUrl"];
-    final hlsPath = src["hlsPath"];
-    final segmentSrc = src["segmentSrc"];
-
-    final m3u8Content = (await dio.get(segmentSrc!)).data;
-    final List<String> lines = m3u8Content.split('\n');
-    final segments = <M3U8Segment>[];
-    String? keyUrl; // AES 密钥 URL
-    String? iv; // 初始化向量
-
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (line.startsWith('#EXT-X-KEY')) {
-        // 解析加密信息（如 AES-128）
-        final keyParams = _parseKeyParams(line);
-        keyUrl = keyParams['URI']?.replaceAll('"', '');
-        iv = keyParams['IV']?.replaceAll('0x', '');
-      } else if (line.startsWith('#EXTINF:')) {
-        // 解析分片时长和 URL
-        final duration = double.parse(line.split(':')[1].split(',')[0]);
-        final tsUrl = lines[i + 1].trim();
-
-        // 拼接完整 URL（处理相对路径）
-        final fullUrl = _getFullUrl("${hlsPath!}/$tsUrl", baseUrl!);
-        segments.add(M3U8Segment(url: fullUrl, duration: duration));
-        i++; // 跳过下一行的 TS URL
-      }
-    }
-
-    return M3U8Data(
-      segments: segments,
-      keyUrl: keyUrl != null ? _getFullUrl(keyUrl, baseUrl!) : null,
-      iv: iv,
-    );
-  }
-
-  static Future<Map<String, String>?> _parseIndex(
-      Dio dio, String indexUrl) async {
-        // 由于依赖 `resolve` 方法，必须要把 `/` 也包括进来
-    String baseUrl = indexUrl.substring(0, indexUrl.lastIndexOf("/") + 1).trim();
-    final index = (await dio.get(indexUrl)).data;
-
-    final List<String> lines = index.split('\n');
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (line.endsWith('.m3u8')) {
-        final res = {
-          "baseUrl": baseUrl,
-          "hlsPath": line.substring(0, line.lastIndexOf("/")),
-          "segmentSrc": _getFullUrl(line, baseUrl)
-        };
-        print(res);
-        return res;
-      }
-    }
-    return null;
-  }
-
-  // 解析 #EXT-X-KEY 参数（如 URI、IV）
-  static Map<String, String> _parseKeyParams(String line) {
-    final params = <String, String>{};
-    final parts = line.split(';');
-    for (final part in parts) {
-      if (part.contains('=')) {
-        final keyValue = part.split('=');
-        params[keyValue[0].trim()] = keyValue[1].trim();
-      }
-    }
-    return params;
   }
 
   // 处理相对路径，拼接完整 URL
-  static String _getFullUrl(String tsUrl, String baseUrl) {
-    if (tsUrl.startsWith('http')) {
-      return tsUrl;
+  static String _getFullUrl(String subPath, String baseUrl) {
+    if (subPath.startsWith('http')) {
+      return subPath;
     }
-    return Uri.parse(baseUrl).resolve(tsUrl).toString();
+    return Uri.parse(baseUrl).resolve(subPath).toString();
   }
 }

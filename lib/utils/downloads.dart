@@ -10,11 +10,12 @@ import 'package:path/path.dart' as path;
 /// [kazumi webview parser]:  (DM84)
 ///   Loading m3u8 source: https://vip.dytt-cinema.com/20251106/39808_a9a80dd4/index.m3u8
 /// xfdm 暂时没找到合适的
-/// 
+///
 /// TODO:
 ///   1. m3u8 文件应当考虑不直接拼接，而是借助索引（index.m3u8）的方式去实现
 ///   2. 完成 Fail 的测试用例，多测几个用例
 ///        此用例为失败用例： https://ai.girigirilove.net/zijian/oldanime/2025/10/cht/GNOSIACHT/04/playlist.m3u8
+///  2026/1/26 该用例下载成功
 
 class Downloads {
   late final Dio dio;
@@ -30,19 +31,39 @@ class Downloads {
   bool get isDownloadingM3u8 => _isDownloadingM3u8;
   bool get isDownloadingMP4 => _isDownloadingMP4;
 
-  Future<bool> downloadTs(String url,
-      {String? album, String? fileName}) async {
+  Future<bool> downloadTs(String url, {String? album, String? fileName}) async {
     if (_isDownloadingM3u8) {
       print("[kazumi downloader]: 正在下载中，请稍后");
     }
 
-    final m3u8Src = await M3U8Parser.parse(dio, url);
-    return Future.value(true); // 暂时短路下面的逻辑
+    M3u8ParseResult? parseResult = await M3u8Parser.parse(dio, url);
 
-    if (m3u8Src == null) {
-      print("[kazumi downloader]: 分片源列表为空，无法下载 ts 文件");
+    if (parseResult == null) {
+      print("[kazumi downloader]: 解析错误，无法下载视频");
       return false;
     }
+
+    // TODO: 支持下载 playlist.m3u8 这种索引文件
+    // TODO: 下载文件分目录封装
+    switch (parseResult.type) {
+      case M3u8ParseType.master:
+        if (parseResult.subM3u8Urls == null) {
+          print("[kazumi downloader]: 不存在子 m3u8 文件，无法下载视频");
+          return false;
+        }
+        // TODO: 处理这里的 !
+        final String subM3u8Url = parseResult.subM3u8Urls!.first;
+        parseResult = await M3u8Parser.parse(dio, subM3u8Url);
+        break;
+      case M3u8ParseType.media:
+        // 这种情况下没必要在这里进行预处理，直接就是媒体文件
+        break;
+      case M3u8ParseType.other:
+        print("[kazumi downloader]: 暂未支持的 m3u8 类型");
+        return false;
+    }
+    // TODO: 处理这里的 !
+    final segmentUrls = parseResult!.segmentUrls;
 
     // 此处只是需要一个存储 m3u8 文件的目录
     final savePath = await _getSavePath(album: album);
@@ -53,15 +74,16 @@ class Downloads {
     final tsFiles = <File>[];
 
     _isDownloadingM3u8 = true;
-    for (final segment in m3u8Src.segments) {
-      final tsFile = File(path.join(savePath, segment.url.split('/').last));
+    // TODO: 处理这里的 !
+    for (final url in segmentUrls!) {
+      final tsFile = File(path.join(savePath, url.split('/').last));
       print("[kazumi downloader]: 正在下载 ${tsFile.path}");
       tsFiles.add(tsFile);
       if (tsFile.existsSync()) {
         print("[kazumi downloader]: 文件已存在，跳过");
         continue;
       }
-      await _downloadFile(url: segment.url, savePath: tsFile.path);
+      await _downloadFile(url: url, savePath: tsFile.path);
     }
 
     _isDownloadingM3u8 = false;
@@ -138,10 +160,13 @@ class Downloads {
 
 // 测试用例
 void test() async {
-  // await Downloads().downloadMP4(
+  final downloader = Downloads();
+  // await downloader.downloadMP4(
   //   "https://v16-tiktokcdn-com.akamaized.net/1a4e3d45db24b04b9792187b64763d9a/69084faf/video/tos/alisg/tos-alisg-ve-0051c001-sg/oIu0QFDTNDBfbIPDIlEQTuBA2lSgglEY8ofwI3/?a=1233&bti=Nzg3NWYzLTQ6&ch=0&cr=0&dr=0&er=0&lr=default&cd=0%7C0%7C0%7C0&br=1870&bt=935&cs=0&ds=4&ft=.bvrXInz7ThFo_pPXq8Zmo&mime_type=video_mp4&qs=0&rc=ZztlODhoZjxoaDc0aDc6OkBpMzdqNWw5cjNoNjMzODYzNEAzLzJjXmFfNl4xYjVgY2MyYSNgZmFxMmRza21hLS1kMC1zcw%3D%3D&vvpl=1&l=20251102142227CD49B547C5785EB959BB&btag=e000a8000&vid=v10033g50000d3pen0vog65it2dgi4c0",
   //   fileName: "test.mp4",
   // );
-  await Downloads().downloadTs(
-      "https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8");
+  // await downloader.downloadTs(
+  //     "https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8");
+  await downloader.downloadTs(
+      "https://ai.girigirilove.net/zijian/oldanime/2025/10/cht/GNOSIACHT/04/playlist.m3u8");
 }

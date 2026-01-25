@@ -78,6 +78,9 @@ class BangumiContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ts = MediaQuery.textScalerOf(context);
 
+    final int maxTextLines = Utils.isDesktop() ? 3 
+      : (Utils.isTablet() && MediaQuery.of(context).orientation == Orientation.landscape) ? 3 : 2;
+
     return Expanded(
       child: Padding(
         // 多列
@@ -92,7 +95,7 @@ class BangumiContent extends StatelessWidget {
             letterSpacing: 0.3,
           ),
           textScaler: ts.clamp(maxScaleFactor: 1.1),
-          maxLines: Utils.isDesktop() || Utils.isTablet() ? 3 : 2,
+          maxLines: maxTextLines,
           overflow: TextOverflow.ellipsis,
         ),
       ),

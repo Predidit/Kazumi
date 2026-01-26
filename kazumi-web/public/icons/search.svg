@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="searchBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6B8CFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A4B8FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="88" height="88" rx="20" fill="url(#searchBg)"/>
+  <circle cx="40" cy="40" r="18" stroke="#FFFFFF" stroke-width="5" fill="none"/>
+  <line x1="54" y1="54" x2="72" y2="72" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+</svg>

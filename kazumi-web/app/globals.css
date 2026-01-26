@@ -1,0 +1,980 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import '../styles/liquid-glass.css';
+
+/* Material Symbols font configuration */
+/* 使用本地字体文件，避免网络加载问题 */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('/fonts/MaterialSymbolsRounded.woff2') format('woff2');
+}
+
+/* 支持三种类名: material-symbols, material-symbols-rounded, material-symbols-outlined */
+.material-symbols,
+.material-symbols-rounded,
+.material-symbols-outlined {
+  font-family: 'Material Symbols Rounded', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* 确保字体加载完成前不显示文字 */
+.material-symbols-loading {
+  visibility: hidden;
+}
+
+/* 字体加载中时隐藏图标文字，显示占位符 */
+html.icons-loading .material-symbols,
+html.icons-loading .material-symbols-rounded,
+html.icons-loading .material-symbols-outlined {
+  color: transparent;
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* iOS Safe Area Utility Classes */
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+  .mt-safe {
+    margin-top: env(safe-area-inset-top);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Font loading with SF Pro Display and Inter fallback */
+/* SF Pro Display is system font on iOS/macOS, Inter is web fallback */
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: local('SF Pro Display Light'), local('SFProDisplay-Light');
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('SF Pro Display Regular'), local('SFProDisplay-Regular');
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('SF Pro Display Medium'), local('SFProDisplay-Medium');
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('SF Pro Display Semibold'), local('SFProDisplay-Semibold');
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('SF Pro Display Bold'), local('SFProDisplay-Bold');
+}
+
+:root {
+  --background: #f5f1e8;
+  --foreground: #2d2d2d;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  
+  /* High contrast text colors - WCAG 4.5:1 compliant */
+  --text-primary: #1a1a1a;      /* Contrast ratio ~15:1 on cream */
+  --text-secondary: #4a4a4a;    /* Contrast ratio ~7:1 on cream */
+  --text-muted: #666666;        /* Contrast ratio ~5:1 on cream */
+  --text-on-primary: #ffffff;   /* White on primary color */
+  
+  /* Primary color palette - 可被 ThemeProvider 覆盖 */
+  --primary-color: #FF6B6B;
+  --color-primary-50: rgb(255, 245, 245);
+  --color-primary-100: rgb(255, 227, 227);
+  --color-primary-200: rgb(255, 201, 201);
+  --color-primary-300: rgb(255, 168, 168);
+  --color-primary-400: rgb(255, 135, 135);
+  --color-primary-500: rgb(255, 107, 107);
+  --color-primary-600: rgb(250, 82, 82);
+  --color-primary-700: rgb(240, 62, 62);
+  --color-primary-800: rgb(224, 49, 49);
+  --color-primary-900: rgb(201, 42, 42);
+  
+  /* Legacy variables for compatibility */
+  --primary-500: var(--color-primary-500);
+  --primary-600: var(--color-primary-600);
+}
+
+/* Dark mode - 照抄原项目 theme_provider.dart */
+.dark {
+  --background: #1a1a1a;
+  --foreground: #f5f5f5;
+  --glass-bg: rgba(30, 30, 30, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  /* Dark mode text colors */
+  --text-primary: #f5f5f5;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  --text-on-primary: #ffffff;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: var(--foreground);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.4);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 107, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  color: var(--foreground);
+  background: linear-gradient(135deg, #f5f1e8 0%, #e8d5d5 100%);
+  background-attachment: fixed;
+  font-family: 'SF Pro Display', var(--font-inter), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* iOS-specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  body {
+    /* iOS Safari specific styles */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  button {
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+}
+
+/* PWA 模式下禁用长按复制粘贴等原生行为 */
+/* 让 PWA 表现得像原生应用 */
+html, body {
+  -webkit-touch-callout: none; /* 禁用长按弹出菜单 */
+  -webkit-user-select: none; /* 禁用文本选择 */
+  -ms-user-select: none;
+  user-select: none;
+  /* iOS Safari PWA 优化 - 允许正常滚动 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 允许输入框选择文本 */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 禁用图片长按保存 */
+img {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+/* 允许可点击元素的图片 */
+a img, button img {
+  pointer-events: auto;
+}
+
+/* 视频播放器禁用所有原生交互 */
+video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 107, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 107, 0.5);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Responsive font scaling utilities */
+  .text-responsive-xs {
+    font-size: clamp(0.75rem, 2vw, 0.875rem);
+  }
+  
+  .text-responsive-sm {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+  }
+  
+  .text-responsive-base {
+    font-size: clamp(1rem, 3vw, 1.125rem);
+  }
+  
+  .text-responsive-lg {
+    font-size: clamp(1.125rem, 3.5vw, 1.25rem);
+  }
+  
+  .text-responsive-xl {
+    font-size: clamp(1.25rem, 4vw, 1.5rem);
+  }
+  
+  .text-responsive-2xl {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+  }
+  
+  .text-responsive-3xl {
+    font-size: clamp(1.875rem, 6vw, 2.5rem);
+  }
+}
+
+/* Responsive layout utilities */
+@layer components {
+  /* Single column on mobile, multi-column on tablet/desktop */
+  .grid-responsive {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 744px) {
+    .grid-responsive {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .grid-responsive {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .grid-responsive {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+    }
+  }
+  
+  /* Responsive container with safe area padding */
+  .container-responsive {
+    width: 100%;
+    max-width: 100%;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  @media (min-width: 744px) {
+    .container-responsive {
+      padding-left: max(1.5rem, env(safe-area-inset-left));
+      padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-responsive {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+  
+  /* Responsive spacing */
+  .spacing-responsive {
+    padding: 1rem;
+  }
+  
+  @media (min-width: 744px) {
+    .spacing-responsive {
+      padding: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .spacing-responsive {
+      padding: 2rem;
+    }
+  }
+}
+
+/* Animations for NextEpisodeSuggestion */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+/* Slide animations */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
+/* Orientation-specific styles */
+@media (orientation: landscape) {
+  .landscape\:hidden {
+    display: none !important;
+  }
+  
+  .landscape\:flex {
+    display: flex !important;
+  }
+  
+  .landscape\:grid {
+    display: grid !important;
+  }
+  
+  /* Landscape layout adjustments */
+  .landscape\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .landscape\:grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  
+  .landscape\:h-screen {
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+  
+  .landscape\:w-1\/2 {
+    width: 50% !important;
+  }
+  
+  .landscape\:flex-row {
+    flex-direction: row !important;
+  }
+}
+
+@media (orientation: portrait) {
+  .portrait\:hidden {
+    display: none !important;
+  }
+  
+  .portrait\:flex {
+    display: flex !important;
+  }
+  
+  .portrait\:grid {
+    display: grid !important;
+  }
+  
+  .portrait\:grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .portrait\:flex-col {
+    flex-direction: column !important;
+  }
+}
+
+/* Dynamic viewport height for iOS Safari */
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Touch-friendly spacing */
+.touch-spacing {
+  padding: 0.75rem;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Responsive video player container */
+.video-container-responsive {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .video-container-responsive {
+    height: 100vh;
+    height: 100dvh;
+    aspect-ratio: auto;
+  }
+}
+
+/* iOS Safari Video Player Specific Styles */
+/* 防止 iOS Safari 接管视频控件 */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-current-time-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-time-remaining-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-timeline {
+  display: none !important;
+}
+
+video::-webkit-media-controls-mute-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-volume-slider {
+  display: none !important;
+}
+
+video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+/* 确保视频在 iOS 上内联播放 */
+video {
+  -webkit-playsinline: true;
+  object-fit: contain;
+}
+
+/* iOS Safari 全屏模式下的样式 */
+video::-webkit-media-controls-overlay-enclosure {
+  display: none !important;
+}
+
+/* 防止 iOS Safari 显示默认的加载指示器 */
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}
+
+/* Responsive navigation */
+.nav-responsive {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (min-width: 1024px) {
+  .nav-responsive {
+    position: fixed;
+    top: 0;
+    bottom: auto;
+    padding-bottom: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Color-independent status indicators */
+/* These use icons/patterns in addition to color for accessibility */
+.status-success {
+  position: relative;
+}
+
+.status-success::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  margin-right: 6px;
+}
+
+.status-warning {
+  position: relative;
+}
+
+.status-warning::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid currentColor;
+  margin-right: 6px;
+}
+
+.status-error {
+  position: relative;
+}
+
+.status-error::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: currentColor;
+  margin-right: 6px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .glass-panel,
+  .glass-card {
+    border-width: 2px;
+    border-color: currentColor;
+  }
+  
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus visible styles for keyboard navigation */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid #FF6B6B;
+  outline-offset: 2px;
+}
+
+/* Skip to main content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #FF6B6B;
+  color: white;
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============================================
+   iOS Safari PWA 深度优化 - 2025 最佳实践
+   ============================================ */
+
+/* iOS PWA 全屏模式优化 */
+@supports (display-mode: standalone) {
+  /* PWA 模式下的特殊样式 */
+  @media (display-mode: standalone) {
+    body {
+      /* 确保内容不被状态栏遮挡 */
+      padding-top: env(safe-area-inset-top);
+    }
+    
+    /* 底部导航栏安全区域 */
+    .nav-responsive {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+    }
+  }
+}
+
+/* iOS Safari 橡皮筋效果控制 */
+.no-bounce {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* 启用橡皮筋效果的容器 */
+.bounce-enabled {
+  overscroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari 固定背景优化 */
+/* 使用 transform 替代 background-attachment: fixed 以获得更好性能 */
+.fixed-bg {
+  position: relative;
+}
+
+.fixed-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, var(--background) 0%, #e8d5d5 100%);
+  /* GPU 加速 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.dark .fixed-bg::before {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+}
+
+/* iOS Safari 手势优化 */
+.gesture-area {
+  touch-action: pan-x pan-y;
+  -webkit-touch-callout: none;
+}
+
+/* 禁用水平滚动的手势区域 */
+.gesture-vertical-only {
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+/* 禁用垂直滚动的手势区域 (如视频播放器) */
+.gesture-horizontal-only {
+  touch-action: pan-x;
+  overscroll-behavior-y: none;
+}
+
+/* iOS Safari 滚动性能优化 */
+.scroll-container {
+  /* 启用 GPU 加速 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* 动量滚动 */
+  -webkit-overflow-scrolling: touch;
+  /* 防止滚动链 */
+  overscroll-behavior: contain;
+  /* 隐藏滚动条但保持功能 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* iOS Safari 列表虚拟化优化 */
+.virtual-list {
+  contain: strict;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* iOS Safari 图片懒加载优化 */
+.lazy-image {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* iOS Safari 输入框优化 - 防止缩放 */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  font-size: 16px; /* 防止 iOS 自动缩放 */
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0; /* 移除 iOS 默认圆角 */
+}
+
+/* iOS Safari 按钮优化 */
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iOS Safari 链接优化 */
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iOS Safari 模态框/底部弹窗优化 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  /* 防止背景滚动 */
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+.modal-content {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* iOS Safari 视频播放器容器优化 */
+.video-player-container {
+  /* 禁用所有默认手势 */
+  touch-action: none;
+  /* 防止意外选择 */
+  -webkit-user-select: none;
+  user-select: none;
+  /* GPU 加速 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* iOS Safari 弹幕画布优化 */
+.danmaku-canvas {
+  pointer-events: none;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  contain: strict;
+}
+
+/* iOS Safari 页面切换动画优化 */
+.page-transition {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* iOS Safari 下拉刷新区域 */
+.pull-to-refresh-container {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari 底部安全区域填充 */
+.bottom-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* iOS Safari 顶部安全区域填充 */
+.top-safe-area {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* iOS Safari 全安全区域 */
+.all-safe-area {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* iOS Safari 键盘弹出时的布局调整 */
+@supports (height: 100dvh) {
+  .keyboard-aware {
+    min-height: 100dvh;
+    transition: min-height 0.3s ease;
+  }
+}
+
+/* iOS Safari 横屏模式优化 */
+@media (orientation: landscape) {
+  /* 横屏时隐藏底部导航 */
+  .hide-in-landscape {
+    display: none !important;
+  }
+  
+  /* 横屏时的安全区域 */
+  .landscape-safe {
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
+}
+
+/* iOS Safari 深色模式媒体查询 */
+@media (prefers-color-scheme: dark) {
+  /* 系统深色模式时的 meta theme-color 会自动应用 */
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+/* iOS Safari 高对比度模式 */
+@media (prefers-contrast: high) {
+  .glass-panel,
+  .glass-card {
+    border-width: 2px;
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* iOS Safari 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .spring-animation {
+    transition: none !important;
+  }
+}

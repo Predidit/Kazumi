@@ -1,13 +1,5 @@
-import 'package:antlr4/antlr4.dart';
 import 'package:dio/dio.dart' show Dio;
 
-// TODO: M3U8 有点暗坑，主要在于主 m3u8 和从 m3u8 的区别
-/// 主 m3u8 文件会带有 #EXT-X-STREAM-INF 这种标签头，此时这个文件会指向另一个 m3u8 文件
-/// 此时从 m3u8 文件中会带有 #EXTINF 这种标签头，此时它就指向了 ts 文件
-/// 为了简化判断，个人认为可以在读到 #EXTINF 这种标签头时
-/// 就直接下载 ts 文件，否则则需要解析 m3u8 文件
-
-// TODO: 也许可能要大规模重构了
 // 爬取类型
 enum M3u8ParseType {
   master, // 主 M3U8 （指向子 M3U8 文件）
@@ -18,6 +10,9 @@ enum M3u8ParseType {
 class M3u8ParseResult {
   final M3u8ParseType type;
   final String baseUrl;
+  // 自身名称，对于 type == M3u8ParseType.media 的情况
+  // 应当下载自身以用于索引媒体切片
+  final String selfName;
   // 不太确定是否会有多个子 m3u8 的情况
   final List<String>? subM3u8Urls; // 指向子 m3u8 url 地址
   final List<String>? segmentUrls; // 指向媒体切片地址
@@ -25,18 +20,22 @@ class M3u8ParseResult {
   M3u8ParseResult({
     required this.type,
     required this.baseUrl,
+    required this.selfName,
     this.subM3u8Urls,
     this.segmentUrls,
   });
 }
 
 class M3u8Parser {
-  static Future<M3u8ParseResult?> parse(Dio dio, String url) async {
+  static Future<M3u8ParseResult?> parse(Dio dio, String? url) async {
     try {
-      // 由于依赖 `resolve` 方法，必须要把 `/` 也包括进来
-      final baseUrl = url.substring(0, url.lastIndexOf("/") + 1).trim();
-      print("[DEBUG]: URL: ${url}");
+      if (url == null || url.isEmpty) {
+        print("[Kazumi M3U8Parser]: Invalid url detected: $url");
+        return null;
+      }
 
+      final baseUrl = url.substring(0, url.lastIndexOf("/") + 1).trim();
+      final selfName = url.substring(url.lastIndexOf("/") + 1).trim();
       final index = (await dio.get(url)).data;
       M3u8ParseType parseType = M3u8ParseType.other;
       final List<String> segmentUrls = [];
@@ -71,10 +70,11 @@ class M3u8Parser {
         }
       }
       print(
-          "[DEBUG]:\n\tBASE: ${baseUrl}\n\tSUB: ${subM3u8Urls}\n\tSEG: ${segmentUrls}");
+          "[DEBUG]:\n\tBASE: ${baseUrl}\n\tSELF: ${selfName}\n\tSUB: ${subM3u8Urls}\n\tSEG: ${segmentUrls}");
       return M3u8ParseResult(
           type: parseType,
           baseUrl: baseUrl,
+          selfName: selfName,
           subM3u8Urls: subM3u8Urls,
           segmentUrls: segmentUrls);
     } catch (e) {

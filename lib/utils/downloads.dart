@@ -5,17 +5,12 @@ import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:path/path.dart' as path;
 
 /// 测试用例：
-/// [kazumi webview parser]:  (7sefun) => 可工作
+/// mp4 文件："https://v16.toutiao50.com/aab47935d4a24f11001d394a660fb58b/6979ab77/video/tos/alisg/tos-alisg-v-0051c001-sg/oMJvDJeGgEoTbUPGCtpfPleWKCLA9IlXLXtlEA/",
+/// [kazumi webview parser]:  (7sefun)
 ///   Loading video source: https://v16-tiktokcdn-com.akamaized.net/1a4e3d45db24b04b9792187b64763d9a/69084faf/video/tos/alisg/tos-alisg-ve-0051c001-sg/oIu0QFDTNDBfbIPDIlEQTuBA2lSgglEY8ofwI3/?a=1233&bti=Nzg3NWYzLTQ6&ch=0&cr=0&dr=0&er=0&lr=default&cd=0%7C0%7C0%7C0&br=1870&bt=935&cs=0&ds=4&ft=.bvrXInz7ThFo_pPXq8Zmo&mime_type=video_mp4&qs=0&rc=ZztlODhoZjxoaDc0aDc6OkBpMzdqNWw5cjNoNjMzODYzNEAzLzJjXmFfNl4xYjVgY2MyYSNgZmFxMmRza21hLS1kMC1zcw%3D%3D&vvpl=1&l=20251102142227CD49B547C5785EB959BB&btag=e000a8000&vid=v10033g50000d3pen0vog65it2dgi4c0
 /// [kazumi webview parser]:  (DM84)
 ///   Loading m3u8 source: https://vip.dytt-cinema.com/20251106/39808_a9a80dd4/index.m3u8
 /// xfdm 暂时没找到合适的
-///
-/// TODO:
-///   1. m3u8 文件应当考虑不直接拼接，而是借助索引（index.m3u8）的方式去实现
-///   2. 完成 Fail 的测试用例，多测几个用例
-///        此用例为失败用例： https://ai.girigirilove.net/zijian/oldanime/2025/10/cht/GNOSIACHT/04/playlist.m3u8
-///  2026/1/26 该用例下载成功
 
 class Downloads {
   late final Dio dio;
@@ -43,7 +38,6 @@ class Downloads {
       return false;
     }
 
-    // TODO: 支持下载 playlist.m3u8 这种索引文件
     switch (parseResult.type) {
       case M3u8ParseType.master:
         if (parseResult.subM3u8Urls == null) {
@@ -74,12 +68,17 @@ class Downloads {
 
     _isDownloadingM3u8 = true;
 
-    final indexUrl = "${parseResult?.baseUrl}/${parseResult?.selfName}";
-    final suffix = "ts";
-    final mediaFileNames = await _justifySubM3u8File(indexUrl, suffix);
+    final indexFileName = parseResult?.selfName;
+    final indexUrl = "${parseResult?.baseUrl}/$indexFileName";
+    segmentUrls.add(indexUrl);
 
+    final suffix = ".ts"; // 文件后缀名建议加上 `.`，查找会更准
+
+    print("[kazumi downloader]: 下载视频中");
     for (final url in segmentUrls) {
-      final file = File(path.join(savePath, url.split('/').last));
+      String fileName = _justifyMediaFileName(url.split("/").last, suffix);
+
+      final file = File(path.join(savePath, fileName));
       print("[kazumi downloader]: 正在下载 ${file.path}");
 
       if (file.existsSync()) {
@@ -89,34 +88,10 @@ class Downloads {
       await _downloadFile(url: url, savePath: file.path);
     }
 
+    await _justifyIndexFile(File(path.join(savePath, indexFileName)), suffix);
     _isDownloadingM3u8 = false;
 
     return true;
-  }
-
-  /// 此方法是因为在测试
-  /// https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8
-  /// 时发现 mixed.m3u8 文件内部指向的 ts 切片为：
-  /// filename.ts?hash=hashValue
-  /// 时，使用 VLC 和 Dragon 等 Linux 环境下的播放器无法正常播放
-  /// 而在调整了文件名和 mixed.m3u8 后发现可以正常播放
-  /// 而加入的调整
-  /// 此方法将删去指定文件后缀后多余的内容
-  ///
-  /// @param indexUrl: 指向媒体文件的 m3u8 文件的 url
-  /// @param suffix: 媒体文件后缀
-  ///
-  /// @retval 返回经过调整过后的媒体文件名列表
-  Future<List<String>?> _justifySubM3u8File(
-      String indexUrl, String suffix) async {
-    // 将后缀名转换为带 `.` 的后缀名
-    if (!suffix.contains(".")) {
-      suffix = ".${suffix}";
-    }
-    final suffixLen = suffix.length;
-    final indexContents = (await dio.get(indexUrl)).data;
-
-    print("[DEBUG]: Content: $indexContents");
   }
 
   /// 下载 MP4，album 可以是番剧名（用于做下载合集），fileName 是文件名
@@ -168,7 +143,7 @@ class Downloads {
           onReceiveProgress: (received, total) {
         if (total != -1) {
           print(
-              "[kazumi downloader]: 已下载 ${((received / total) * 100).toStringAsFixed(1)}%");
+              "[kazumi downloader]: 已下载 ${((received / total) * 100).toStringAsFixed(0)}%");
         } else {
           print("[kazumi downloader]: 下载完成");
         }
@@ -184,17 +159,72 @@ class Downloads {
       }
     }
   }
+
+  /// 在测试
+  /// https:///vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8 时
+  /// 发现 mixed.m3u8 文件内部指向的 ts 切片格式为：
+  /// filename.ts?hash=hashValue
+  /// 使用 VLC 和 Dragon 等 Linux 环境下的播放器无法正常播放
+  /// 而在调整了文件名和 mixed.m3u8 后发现可以正常播放而加入的调整
+  /// 此外 Windows 不支持 ? 作为文件名的一部分
+  /// 此处将删去指定文件后缀后多余的内容
+  String _justifyMediaFileName(String mediaFileName, String suffix) {
+    if (!suffix.contains(".")) {
+      suffix = ".$suffix";
+    }
+
+    if (mediaFileName.contains(suffix)) {
+      final startToSuffix = mediaFileName.lastIndexOf(suffix) + suffix.length;
+
+      // 此时说明文件后缀还有多余的字符，需要删掉
+      if (startToSuffix < mediaFileName.length) {
+        print("[kazumi downloader]: $mediaFileName 存在多余字符，已调整为：");
+        mediaFileName = mediaFileName.substring(0, startToSuffix);
+        print("[kazumi downloader]: $mediaFileName");
+      }
+    } else {
+      print("[kazumi downloader]: 在 $mediaFileName 中不存在 $suffix 后缀，已原样返回");
+    }
+    return mediaFileName;
+  }
+
+  /// 此方法和 [_justifyMediaFileName] 方法是配套的
+  /// 它负责检查 m3u8 索引文件内指向媒体切片的文件名
+  /// 若存在多余字符则会进行调整
+  Future<void> _justifyIndexFile(File indexFile, String suffix) async {
+    List<String> contents = (await indexFile.readAsString()).split("\n");
+
+    print("[kazumi downloader]: 调整 m3u8 索引文件中");
+    if (!suffix.contains(".")) {
+      suffix = ".$suffix";
+    }
+
+    for (int i = 0; i < contents.length; i++) {
+      if (i + 1 >= contents.length) {
+        break;
+      }
+
+      if (!contents[i].contains("#EXTINF")) {
+        continue;
+      }
+
+      final newFileName = _justifyMediaFileName(contents[i + 1], suffix);
+      contents[i + 1] = newFileName;
+    }
+    indexFile.writeAsString(contents.join("\n"));
+    print("[kazumi downloader]: 调整完成");
+  }
 }
 
 // 测试用例
 void test() async {
   final downloader = Downloads();
-  // await downloader.downloadMP4(
-  //   "https://v16-tiktokcdn-com.akamaized.net/1a4e3d45db24b04b9792187b64763d9a/69084faf/video/tos/alisg/tos-alisg-ve-0051c001-sg/oIu0QFDTNDBfbIPDIlEQTuBA2lSgglEY8ofwI3/?a=1233&bti=Nzg3NWYzLTQ6&ch=0&cr=0&dr=0&er=0&lr=default&cd=0%7C0%7C0%7C0&br=1870&bt=935&cs=0&ds=4&ft=.bvrXInz7ThFo_pPXq8Zmo&mime_type=video_mp4&qs=0&rc=ZztlODhoZjxoaDc0aDc6OkBpMzdqNWw5cjNoNjMzODYzNEAzLzJjXmFfNl4xYjVgY2MyYSNgZmFxMmRza21hLS1kMC1zcw%3D%3D&vvpl=1&l=20251102142227CD49B547C5785EB959BB&btag=e000a8000&vid=v10033g50000d3pen0vog65it2dgi4c0",
-  //   fileName: "test.mp4",
-  // );
-  await downloader.downloadTs(
-      "https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8");
+  await downloader.downloadMP4(
+    "https://v16.toutiao50.com/aab47935d4a24f11001d394a660fb58b/6979ab77/video/tos/alisg/tos-alisg-v-0051c001-sg/oMJvDJeGgEoTbUPGCtpfPleWKCLA9IlXLXtlEA/",
+    fileName: "test.mp4",
+  );
+  // await downloader.downloadTs(
+  //     "https://vip.dytt-cinema.com/20251029/38765_b0889565/index.m3u8");
   // await downloader.downloadTs(
   // "https://ai.girigirilove.net/zijian/oldanime/2025/10/cht/GNOSIACHT/04/playlist.m3u8");
 }

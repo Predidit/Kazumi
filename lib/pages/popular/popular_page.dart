@@ -64,7 +64,8 @@ class _PopularPageState extends State<PopularPage>
     if (scrollController.position.pixels >=
             scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
-      KazumiLogger().i('PopularPageController: Fetching next recommendation batch');
+      KazumiLogger()
+          .i('PopularPageController: Fetching next recommendation batch');
       if (popularController.currentTag != '') {
         popularController.queryBangumiByTag();
       } else {
@@ -155,12 +156,9 @@ class _PopularPageState extends State<PopularPage>
           ],
         ),
         floatingActionButton: FloatingActionButton(
-          // onPressed: () => scrollController.animateTo(0,
-          //     duration: const Duration(milliseconds: 350),
-          //     curve: Curves.easeOut),
-          onPressed: () { // TODO: a hooker here, to test the M3U8 downloader
-            test();
-          },
+          onPressed: () => scrollController.animateTo(0,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOut),
           child: const Icon(Icons.arrow_upward),
         ),
       ),

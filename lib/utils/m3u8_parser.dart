@@ -69,8 +69,6 @@ class M3u8Parser {
           subM3u8Urls.add(fullUrl);
         }
       }
-      print(
-          "[DEBUG]:\n\tBASE: ${baseUrl}\n\tSELF: ${selfName}\n\tSUB: ${subM3u8Urls}\n\tSEG: ${segmentUrls}");
       return M3u8ParseResult(
           type: parseType,
           baseUrl: baseUrl,

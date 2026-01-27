@@ -9,6 +9,7 @@ class BangumiTimelineCard extends StatelessWidget {
   const BangumiTimelineCard({
     super.key,
     required this.bangumiItem,
+    required this.showRating,
     this.onTap,
     this.cardHeight = 120,
     this.cardWidth,
@@ -16,6 +17,7 @@ class BangumiTimelineCard extends StatelessWidget {
   });
 
   final BangumiItem bangumiItem;
+  final bool showRating;
   final VoidCallback? onTap;
   final bool enableHero;
   final double cardHeight;
@@ -143,17 +145,20 @@ class BangumiTimelineCard extends StatelessWidget {
         const Spacer(),
         Row(
           children: [
-            if (bangumiItem.ratingScore > 0)
+            if (showRating ? bangumiItem.ratingScore > 0 : true)
               Row(
                 children: [
                   Icon(Icons.star_rounded,
                       size: 15, color: colorScheme.primary),
                   const SizedBox(width: 2),
-                  Text(bangumiItem.ratingScore.toStringAsFixed(1),
+                  Text(
+                      showRating
+                          ? bangumiItem.ratingScore.toStringAsFixed(1)
+                          : '***',
                       style: infoStyle),
                 ],
               ),
-            if (bangumiItem.rank > 0)
+            if (showRating ? bangumiItem.rank > 0 : true)
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Row(
@@ -161,13 +166,17 @@ class BangumiTimelineCard extends StatelessWidget {
                     Icon(Icons.leaderboard,
                         size: 15, color: colorScheme.tertiary),
                     const SizedBox(width: 2),
-                    Text('Rank ${bangumiItem.rank}', style: infoStyle),
+                    Text(
+                        showRating ? 'Rank ${bangumiItem.rank}' : 'Rank ***',
+                        style: infoStyle),
                   ],
                 ),
               ),
             const Spacer(),
-            if (bangumiItem.votes > 0)
-              Text('评分人数: ${bangumiItem.votes}', style: subStyle),
+            if (showRating ? bangumiItem.votes > 0 : true)
+              Text(
+                  showRating ? '评分人数: ${bangumiItem.votes}' : '评分人数: ***',
+                  style: subStyle),
           ],
         ),
       ],

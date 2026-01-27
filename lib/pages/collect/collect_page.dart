@@ -42,8 +42,7 @@ class _CollectPageState extends State<CollectPage>
   void initState() {
     super.initState();
     collectController.loadCollectibles();
-    // 预加载时间表用于“在看”按周分组；不在时间表的将归入“老番”
-    collectController.loadWatchingCalendar();
+    // 时间表数据已通过构造函数从缓存加载，无需再次请求网络
     tabController = TabController(vsync: this, length: tabs.length);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);

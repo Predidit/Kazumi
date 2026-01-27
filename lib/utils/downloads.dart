@@ -117,7 +117,7 @@ class Downloads {
   }
 
   Future<String?> _getSavePath({String? album, String? fileName}) async {
-    String? savePath = await FilePicker.getDirectoryPath();
+    String? savePath = await FilePicker.platform.getDirectoryPath();
 
     if (savePath == null) {
       print("[kazumi downloader]: 保存动作已取消");

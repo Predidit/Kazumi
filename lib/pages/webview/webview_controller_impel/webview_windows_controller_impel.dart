@@ -82,21 +82,21 @@ class WebviewWindowsItemControllerImpel
 
   @override
   Future<void> unloadPage() async {
-    subscriptions.forEach((s) {
+    for (var s in subscriptions) {
       try {
         s.cancel();
       } catch (_) {}
-    });
+    }
     await redirect2Blank();
   }
 
   @override
   void dispose() {
-    subscriptions.forEach((s) {
+    for (var s in subscriptions) {
       try {
         s.cancel();
       } catch (_) {}
-    });
+    }
     // It's a custom function to dispose the whole webview environment in Predidit's flutter-webview-windows fork.
     // which allow re-initialization webview environment with different proxy settings.
     // It's difficult to get a dispose finish callback from Microsoft Edge WebView2 SDK,

@@ -278,7 +278,7 @@ class Utils {
     }
   }
 
-  static oledDarkTheme(ThemeData defaultDarkTheme) {
+  static ThemeData oledDarkTheme(ThemeData defaultDarkTheme) {
     return defaultDarkTheme.copyWith(
       scaffoldBackgroundColor: Colors.black,
       colorScheme: defaultDarkTheme.colorScheme.copyWith(
@@ -292,7 +292,7 @@ class Utils {
     );
   }
 
-  static generateDanmakuColor(int colorValue) {
+  static Color generateDanmakuColor(int colorValue) {
     // 提取颜色分量
     int red = (colorValue >> 16) & 0xFF;
     int green = (colorValue >> 8) & 0xFF;

@@ -1049,7 +1049,7 @@ class _PlayerItemState extends State<PlayerItem>
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),
-                    value: selectedSyncPlayEndPoint,
+                    initialValue: selectedSyncPlayEndPoint,
                     items: syncPlayEndPoints.map((String value) {
                       return DropdownMenuItem<String>(
                         value: value,

@@ -118,8 +118,9 @@ class _PluginTestPageState extends State<PluginTestPage> {
   }
 
   void _toggleItemHtml(int index) {
-    if (_showItemHtmlIdx == index)
+    if (_showItemHtmlIdx == index) {
       return setState(() => _showItemHtmlIdx = null);
+    }
     setState(() => isTesting = true);
     _parseItemHtml(index);
     setState(() {

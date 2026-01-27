@@ -390,10 +390,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: b9c6bbfe174bcc1ec1e3a0de92e9b839fe553a46dd91862debfbbb5055ca876f
+      sha256: d974b6ba2606371ac71dd94254beefb6fa81185bde0b59bdc1df09885da85fde
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "10.3.9"
+    version: "10.3.8"
   fixnum:
     dependency: transitive
     description:

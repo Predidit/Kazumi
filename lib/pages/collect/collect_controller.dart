@@ -23,6 +23,11 @@ abstract class _CollectController with Store {
 
   Map<int, int> _watchingCalendarWeekdayById = {};
 
+  _CollectController() {
+    // 初始化时从缓存加载时间表数据
+    _loadCachedCalendar();
+  }
+
   @observable
   bool isWatchingCalendarLoading = false;
 
@@ -39,6 +44,32 @@ abstract class _CollectController with Store {
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());
+  }
+
+  /// 从缓存加载时间表数据
+  void _loadCachedCalendar() {
+    try {
+      final cachedData = setting.get(SettingBoxKey.cachedWatchingCalendar);
+      if (cachedData != null && cachedData is Map) {
+        _watchingCalendarWeekdayById = Map<int, int>.from(cachedData);
+        if (_watchingCalendarWeekdayById.isNotEmpty) {
+          isWatchingCalendarReady = true;
+          KazumiLogger().d('Loaded cached watching calendar with ${_watchingCalendarWeekdayById.length} items');
+        }
+      }
+    } catch (e) {
+      KazumiLogger().e('Failed to load cached calendar', error: e);
+    }
+  }
+
+  /// 缓存时间表数据到本地
+  Future<void> _saveCachedCalendar() async {
+    try {
+      await setting.put(SettingBoxKey.cachedWatchingCalendar, _watchingCalendarWeekdayById);
+      KazumiLogger().d('Saved watching calendar cache with ${_watchingCalendarWeekdayById.length} items');
+    } catch (e) {
+      KazumiLogger().e('Failed to save calendar cache', error: e);
+    }
   }
 
   @action
@@ -59,6 +90,8 @@ abstract class _CollectController with Store {
       }
       _watchingCalendarWeekdayById = map;
       isWatchingCalendarReady = true;
+      // 加载成功后缓存到本地
+      await _saveCachedCalendar();
     } catch (e) {
       KazumiLogger().e('Resolve watching calendar failed', error: e);
       // 失败时不阻塞 UI：继续使用 airWeekday 的降级分组

@@ -27,6 +27,11 @@ class M3u8ParseResult {
 }
 
 class M3u8Parser {
+  /// 指向子 M3U8 文件的标签
+  static const String tagForSubM3u8 = "#EXT-X-STREAM-INF";
+  /// 指向媒体切片的标签
+  static const String tagForMediaSegments = "#EXTINF";
+
   static Future<M3u8ParseResult?> parse(Dio dio, String? url) async {
     try {
       if (url == null || url.isEmpty) {
@@ -48,8 +53,7 @@ class M3u8Parser {
         // 第一个标签会指向子 m3u8 文件
         // 第二个标签则是指向媒体切片文件
         // 相同的是它们都是一行标签一行值
-        if (!(line.startsWith("#EXT-X-STREAM-INF") ||
-            line.startsWith("#EXTINF"))) {
+        if (!(line.startsWith(tagForSubM3u8) || line.startsWith(tagForMediaSegments))) {
           continue;
         }
 
@@ -61,10 +65,10 @@ class M3u8Parser {
         // 拼接完整 URL
         final fullUrl = _getFullUrl(subPath, baseUrl);
 
-        if (line.startsWith('#EXTINF')) {
+        if (line.startsWith(tagForMediaSegments)) {
           parseType = M3u8ParseType.media;
           segmentUrls.add(fullUrl);
-        } else if (line.startsWith("#EXT-X-STREAM-INF")) {
+        } else if (line.startsWith(tagForSubM3u8)) {
           parseType = M3u8ParseType.master;
           subM3u8Urls.add(fullUrl);
         }

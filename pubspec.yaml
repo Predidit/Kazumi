@@ -111,7 +111,7 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: 5bd14c6d13d901de79e44e9c21b2f3cd51afda85
       path: ./libs/universal/media_kit_libs_video
-  file_picker: ^10.3.8
+  file_picker: ^10.3.9
 
 dependency_overrides:
   media_kit_libs_linux:

@@ -117,7 +117,7 @@ class Downloads {
   }
 
   Future<String?> _getSavePath({String? album, String? fileName}) async {
-    String? savePath = await FilePicker.platform.getDirectoryPath();
+    String? savePath = await FilePicker.getDirectoryPath();
 
     if (savePath == null) {
       print("[kazumi downloader]: 保存动作已取消");
@@ -204,7 +204,7 @@ class Downloads {
         break;
       }
 
-      if (!contents[i].contains("#EXTINF")) {
+      if (!contents[i].contains(M3u8Parser.tagForMediaSegments)) {
         continue;
       }
 

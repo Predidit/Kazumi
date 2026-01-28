@@ -22,7 +22,8 @@ abstract class _CollectController with Store {
   final _collectRepository = Modular.get<ICollectRepository>();
 
   // 时间表缓存：key=番剧ID, value=星期(0-6)
-  Map<int, int> _watchingCalendarWeekdayById = {};
+  @observable
+  ObservableMap<int, int> _watchingCalendarWeekdayById = ObservableMap<int, int>();
 
   // 构造函数：初始化时从缓存加载时间表数据
   _CollectController() {
@@ -52,7 +53,9 @@ abstract class _CollectController with Store {
     try {
       final cachedData = setting.get(SettingBoxKey.cachedWatchingCalendar);
       if (cachedData != null && cachedData is Map) {
-        _watchingCalendarWeekdayById = Map<int, int>.from(cachedData);
+        _watchingCalendarWeekdayById = ObservableMap<int, int>.of(
+          Map<int, int>.from(cachedData),
+        );
         if (_watchingCalendarWeekdayById.isNotEmpty) {
           isWatchingCalendarReady = true;
           KazumiLogger().d('Loaded cached watching calendar with ${_watchingCalendarWeekdayById.length} items');
@@ -66,7 +69,10 @@ abstract class _CollectController with Store {
   /// 缓存时间表数据到本地
   Future<void> _saveCachedCalendar() async {
     try {
-      await setting.put(SettingBoxKey.cachedWatchingCalendar, _watchingCalendarWeekdayById);
+      await setting.put(
+        SettingBoxKey.cachedWatchingCalendar,
+        Map<int, int>.from(_watchingCalendarWeekdayById),
+      );
       KazumiLogger().d('Saved watching calendar cache with ${_watchingCalendarWeekdayById.length} items');
     } catch (e) {
       KazumiLogger().e('Failed to save calendar cache', error: e);
@@ -81,6 +87,10 @@ abstract class _CollectController with Store {
     isWatchingCalendarLoading = true;
     try {
       final calendar = await BangumiHTTP.getCalendar();
+      if (calendar.isEmpty) {
+        KazumiLogger().w('Resolve watching calendar failed: empty calendar');
+        return;
+      }
       final map = <int, int>{};
       for (int weekdayIndex = 0;
           weekdayIndex < calendar.length && weekdayIndex < 7;
@@ -89,7 +99,11 @@ abstract class _CollectController with Store {
           map[item.id] = weekdayIndex;
         }
       }
-      _watchingCalendarWeekdayById = map;
+      if (map.isEmpty) {
+        KazumiLogger().w('Resolve watching calendar failed: empty map');
+        return;
+      }
+      _watchingCalendarWeekdayById = ObservableMap<int, int>.of(map);
       isWatchingCalendarReady = true;
       // 加载成功后缓存到本地
       await _saveCachedCalendar();
@@ -97,10 +111,21 @@ abstract class _CollectController with Store {
       KazumiLogger().e('Resolve watching calendar failed', error: e);
       // 失败时不阻塞 UI：继续使用 airWeekday 的降级分组
       isWatchingCalendarReady = false;
-      _watchingCalendarWeekdayById = {};
+      _watchingCalendarWeekdayById = ObservableMap<int, int>();
     } finally {
       isWatchingCalendarLoading = false;
     }
+  }
+
+  /// 确保时间表已加载（用于刷新缓存）
+  Future<void> ensureWatchingCalendarLoaded() async {
+    if (isWatchingCalendarLoading) {
+      return;
+    }
+    if (isWatchingCalendarReady && _watchingCalendarWeekdayById.isNotEmpty) {
+      return;
+    }
+    await loadWatchingCalendar();
   }
 
   int getCollectType(BangumiItem bangumiItem) {

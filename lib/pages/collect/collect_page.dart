@@ -42,6 +42,7 @@ class _CollectPageState extends State<CollectPage>
   void initState() {
     super.initState();
     collectController.loadCollectibles();
+    collectController.ensureWatchingCalendarLoaded();
     tabController = TabController(vsync: this, length: tabs.length);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);

@@ -9,6 +9,24 @@ part of 'collect_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$CollectController on _CollectController, Store {
+  late final _$_watchingCalendarWeekdayByIdAtom = Atom(
+      name: '_CollectController._watchingCalendarWeekdayById',
+      context: context);
+
+  @override
+  ObservableMap<int, int> get _watchingCalendarWeekdayById {
+    _$_watchingCalendarWeekdayByIdAtom.reportRead();
+    return super._watchingCalendarWeekdayById;
+  }
+
+  @override
+  set _watchingCalendarWeekdayById(ObservableMap<int, int> value) {
+    _$_watchingCalendarWeekdayByIdAtom
+        .reportWrite(value, super._watchingCalendarWeekdayById, () {
+      super._watchingCalendarWeekdayById = value;
+    });
+  }
+
   late final _$isWatchingCalendarLoadingAtom = Atom(
       name: '_CollectController.isWatchingCalendarLoading', context: context);
 

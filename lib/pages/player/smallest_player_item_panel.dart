@@ -37,6 +37,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
+    required this.showSyncPlayChatPanel,
     this.disableAnimations = false,
   });
 
@@ -57,6 +58,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
+  final void Function() showSyncPlayChatPanel;
   final bool disableAnimations;
 
   @override
@@ -752,6 +754,19 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         ),
                       ),
                     ),
+                    MenuItemButton(
+                            onPressed: () {
+                              widget.showSyncPlayChatPanel();
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: const BoxConstraints(minWidth: 112),
+                              child: const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text("聊天室"),
+                              ),
+                            ),
+                          ),
                     MenuItemButton(
                       onPressed: () {
                         widget.showSyncPlayEndPointSwitchDialog();

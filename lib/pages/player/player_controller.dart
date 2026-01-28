@@ -655,10 +655,10 @@ abstract class _PlayerController with Store {
     int syncPlayEndPointPort = 0;
     KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
-      final parts = syncPlayEndPoint.split(':');
-      if (parts.length == 2) {
-        syncPlayEndPointHost = parts[0];
-        syncPlayEndPointPort = int.parse(parts[1]);
+      final parsed = _parseSyncPlayEndPoint(syncPlayEndPoint);
+      if (parsed != null) {
+        syncPlayEndPointHost = parsed.host;
+        syncPlayEndPointPort = parsed.port;
       }
     } catch (_) {}
     if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
@@ -672,6 +672,8 @@ abstract class _PlayerController with Store {
         SyncplayClient(host: syncPlayEndPointHost, port: syncPlayEndPointPort);
     try {
       await syncplayController!.connect(enableTLS: enableTLS);
+      KazumiLogger().i(
+          'SyncPlay: connected to $syncPlayEndPointHost:$syncPlayEndPointPort');
       syncplayController!.onGeneralMessage.listen(
         (message) {
           // print('SyncPlay: general message: ${message.toString()}');
@@ -794,6 +796,49 @@ abstract class _PlayerController with Store {
     }
   }
 
+  _ParsedSyncPlayEndPoint? _parseSyncPlayEndPoint(String endPoint) {
+    final input = endPoint.trim();
+    if (input.isEmpty) {
+      return null;
+    }
+
+    String host = '';
+    String portStr = '';
+
+    if (input.startsWith('[')) {
+      final closeIndex = input.indexOf(']');
+      if (closeIndex == -1) {
+        return null;
+      }
+      host = input.substring(1, closeIndex);
+      final rest = input.substring(closeIndex + 1);
+      if (!rest.startsWith(':')) {
+        return null;
+      }
+      portStr = rest.substring(1);
+    } else {
+      final lastColonIndex = input.lastIndexOf(':');
+      if (lastColonIndex == -1) {
+        return null;
+      }
+      host = input.substring(0, lastColonIndex);
+      portStr = input.substring(lastColonIndex + 1);
+    }
+
+    host = host.trim();
+    portStr = portStr.trim();
+    if (host.isEmpty || portStr.isEmpty) {
+      return null;
+    }
+
+    final port = int.tryParse(portStr);
+    if (port == null || port <= 0 || port > 65535) {
+      return null;
+    }
+
+    return _ParsedSyncPlayEndPoint(host: host, port: port);
+  }
+
   void setSyncPlayCurrentPosition(
       {bool? forceSyncPlaying, double? forceSyncPosition}) {
     if (syncplayController == null) {
@@ -841,4 +886,11 @@ abstract class _PlayerController with Store {
     syncplayRoom = '';
     syncplayClientRtt = 0;
   }
+}
+
+class _ParsedSyncPlayEndPoint {
+  final String host;
+  final int port;
+
+  const _ParsedSyncPlayEndPoint({required this.host, required this.port});
 }

@@ -314,7 +314,6 @@ abstract class _PlayerController with Store {
       ),
     );
 
-    // 记录播放器内部日志
     playerLog.clear();
     setupPlayerDebugInfoSubscription();
 
@@ -350,9 +349,20 @@ abstract class _PlayerController with Store {
       AudioTrack.auto(),
     );
 
+    // Android 11 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+    // 同时避免 Android 10 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+    bool enableGPUNext = false;
+    if (Platform.isAndroid) {
+      final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+      if (androidSdkVersion >= 30) {
+        enableGPUNext = true;
+      }
+    }
+
     videoController ??= VideoController(
       mediaPlayer!,
       configuration: VideoControllerConfiguration(
+        vo: enableGPUNext ? 'gpu-next' : null,
         enableHardwareAcceleration: hAenable,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,

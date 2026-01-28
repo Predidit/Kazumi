@@ -349,12 +349,13 @@ abstract class _PlayerController with Store {
       AudioTrack.auto(),
     );
 
-    // Android 11 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
-    // 同时避免 Android 10 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+    // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+    // GPU-NEXT 需要 Vulkan 1.2 支持
+    // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
     bool enableGPUNext = false;
     if (Platform.isAndroid) {
       final int androidSdkVersion = await Utils.getAndroidSdkVersion();
-      if (androidSdkVersion >= 30) {
+      if (androidSdkVersion >= 34) {
         enableGPUNext = true;
       }
     }

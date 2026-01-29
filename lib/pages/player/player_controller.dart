@@ -651,7 +651,7 @@ abstract class _PlayerController with Store {
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode,
-      {bool enableTLS = false}) async {
+      {bool enableTLS = true}) async {
     await syncplayController?.disconnect();
     final String syncPlayEndPoint = setting.get(SettingBoxKey.syncPlayEndPoint,
         defaultValue: defaultSyncPlayEndPoint);
@@ -749,7 +749,7 @@ abstract class _PlayerController with Store {
         (message) {
           final String sender = (message['username'] ?? '').toString();
           final String text = (message['message'] ?? '').toString();
-          final String displayText = '【💬 聊天室消息】$sender 说：$text';
+          final String displayText = '【💬 聊天室消息】$sender：$text';
 
           if (message['username'] != username) {
             /*
@@ -758,7 +758,7 @@ abstract class _PlayerController with Store {
                     'SyncPlay: ${message['username']} 说: ${message['message']}',
                 duration: const Duration(seconds: 5));
             */
-            
+
             // 只有在弹幕开启时才渲染弹幕
             if (danmakuOn)
             {

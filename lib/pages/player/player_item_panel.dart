@@ -130,42 +130,27 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              PopupMenuButton<DanmakuDestination>(
-                tooltip: '选择发送目标',
-                padding: EdgeInsets.zero,
-                onSelected: (v) {
+              TextButton(
+                onPressed: () {
                   setState(() {
-                  _selectedDestination = v;
-                  playerController.danmakuDestination = v;
-                });
+                    // 切换发送目标
+                    _selectedDestination =
+                        _selectedDestination == DanmakuDestination.chatRoom
+                            ? DanmakuDestination.remoteDanmaku
+                            : DanmakuDestination.chatRoom;
+                    playerController.danmakuDestination = _selectedDestination;
+                  });
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: DanmakuDestination.chatRoom,
-                    child: ListTile(
-                      leading: Icon(Icons.chat_bubble_outline),
-                      title: Text('发送到聊天室'),
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: DanmakuDestination.remoteDanmaku,
-                    child: ListTile(
-                      leading: Icon(Icons.cloud_upload_outlined),
-                      title: Text('发送到远程弹幕库'),
-                    ),
-                  ),
-                ],
-                child: Row(
-                  children: [
-                    Icon(
-                      _selectedDestination == DanmakuDestination.chatRoom
-                          ? Icons.chat_bubble_outline
-                          : Icons.cloud_upload_outlined,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                    const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  ],
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  backgroundColor: Colors.transparent,
+                ),
+                child: Text(
+                  _selectedDestination == DanmakuDestination.chatRoom
+                      ? '发送到聊天室'
+                      : '发送到远程弹幕库',
+                  style: const TextStyle(fontSize: 14),
                 ),
               ),
               const SizedBox(width: 6),
@@ -190,6 +175,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               ),
             ],
           ),
+
         ),
         onTapAlwaysCalled: true,
         onTap: () {

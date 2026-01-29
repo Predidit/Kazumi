@@ -321,7 +321,7 @@ class _VideoPageState extends State<VideoPage>
       }
 
       final sender = playerController.syncplayController?.username ?? '我';
-      final String displayText = '【💬 聊天室消息】$sender 说：$msg';
+      final String displayText = '【💬 聊天室消息】$sender：$msg';
 
       // 在播放器渲染自己发送的弹幕
       playerController.danmakuController.addDanmaku(
@@ -351,60 +351,98 @@ class _VideoPageState extends State<VideoPage>
       isScrollControlled: true,
       context: context,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 8,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 34),
-                  child: TextField(
-                    style: const TextStyle(fontSize: 15),
-                    controller: textController,
-                    autofocus: true,
-                    textAlignVertical: TextAlignVertical.center,
-                    decoration: const InputDecoration(
-                      filled: true,
-                      floatingLabelBehavior: FloatingLabelBehavior.never,
-                      hintText: '发个友善的弹幕见证当下',
-                      hintStyle: TextStyle(fontSize: 14),
-                      alignLabelWithHint: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.all(Radius.circular(20)),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 8,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 34),
+                      child: TextField(
+                        style: const TextStyle(fontSize: 15, color: Colors.white),
+                        controller: textController,
+                        autofocus: true,
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white38,
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '发个友善的弹幕见证当下',
+                          hintStyle:
+                              const TextStyle(fontSize: 14, color: Colors.white60),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 12),
+                          border: const OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                          ),
+                          suffixIconConstraints: const BoxConstraints(minWidth: 0),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  // 使用 ModalBottomSheet 自己的 setState 刷新
+                                  setModalState(() {
+                                    playerController.danmakuDestination =
+                                        playerController.danmakuDestination ==
+                                                DanmakuDestination.chatRoom
+                                            ? DanmakuDestination.remoteDanmaku
+                                            : DanmakuDestination.chatRoom;
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  backgroundColor: Colors.transparent,
+                                ),
+                                child: Text(
+                                  playerController.danmakuDestination ==
+                                          DanmakuDestination.chatRoom
+                                      ? '发送到远程弹幕库'
+                                      : '发送到聊天室',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton(
+                                onPressed: () {
+                                  sendDanmaku(textController.text);
+                                  textController.clear();
+                                  Navigator.pop(context);
+                                },
+                                icon: Icon(
+                                  Icons.send_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        onSubmitted: (msg) {
+                          sendDanmaku(msg);
+                          textController.clear();
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
-                    onSubmitted: (msg) {
-                      sendDanmaku(msg);
-                      textController.clear();
-                      Navigator.pop(context);
-                    },
                   ),
-                ),
+                ],
               ),
-              IconButton(
-                onPressed: () {
-                  sendDanmaku(textController.text);
-                  textController.clear();
-                  Navigator.pop(context);
-                },
-                icon: Icon(
-                  Icons.send_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

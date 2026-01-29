@@ -417,6 +417,21 @@ class Utils {
     await landScape();
   }
 
+  static Future<int> getAndroidSdkVersion() async {
+    if (Platform.isAndroid) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      try {
+        final int sdkVersion =
+            await platform.invokeMethod('getAndroidSdkVersion');
+        return sdkVersion;
+      } on PlatformException catch (e) {
+        KazumiLogger().e("Failed to get Android SDK version: '${e.message}'.");
+        return 0;
+      }
+    }
+    return 0;
+  }
+
   //退出全屏显示
   static Future<void> exitFullScreen({bool lockOrientation = true}) async {
     // if (Platform.isWindows) {

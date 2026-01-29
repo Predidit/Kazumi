@@ -758,15 +758,20 @@ abstract class _PlayerController with Store {
                     'SyncPlay: ${message['username']} 说: ${message['message']}',
                 duration: const Duration(seconds: 5));
             */
-            danmakuController.addDanmaku(
-              DanmakuContentItem(
-                displayText,
-                color: Colors.orange,
-                isColorful: true,
-                type: DanmakuItemType.bottom,
-                extra: DateTime.now().millisecondsSinceEpoch,
-              ),
-            );
+            
+            // 只有在弹幕开启时才渲染弹幕
+            if (danmakuOn)
+            {
+              danmakuController.addDanmaku(
+                DanmakuContentItem(
+                  displayText,
+                  color: Colors.orange,
+                  isColorful: true,
+                  type: DanmakuItemType.bottom,
+                  extra: DateTime.now().millisecondsSinceEpoch,
+                ),
+              );
+            }
           }
         },
       );

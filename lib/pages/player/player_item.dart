@@ -1050,6 +1050,7 @@ class _PlayerItemState extends State<PlayerItem>
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),
+                    isExpanded: true,
                     value: selectedSyncPlayEndPoint,
                     items: syncPlayEndPoints.map((String value) {
                       return DropdownMenuItem<String>(
@@ -1060,6 +1061,14 @@ class _PlayerItemState extends State<PlayerItem>
                         ),
                       );
                     }).toList(),
+                    selectedItemBuilder: (context) {
+                      return syncPlayEndPoints.map((String value) {
+                        return Text(
+                          value,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      }).toList();
+                    },
                     onChanged: (String? newValue) {
                       if (newValue != null) {
                         if (newValue == defaultCustomSyncPlayEndPoint) {

@@ -19,6 +19,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/utils/syncplay.dart';
+import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -655,7 +656,7 @@ abstract class _PlayerController with Store {
     int syncPlayEndPointPort = 0;
     KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
-      final parsed = _parseSyncPlayEndPoint(syncPlayEndPoint);
+      final parsed = parseSyncPlayEndPoint(syncPlayEndPoint);
       if (parsed != null) {
         syncPlayEndPointHost = parsed.host;
         syncPlayEndPointPort = parsed.port;
@@ -796,48 +797,6 @@ abstract class _PlayerController with Store {
     }
   }
 
-  _ParsedSyncPlayEndPoint? _parseSyncPlayEndPoint(String endPoint) {
-    final input = endPoint.trim();
-    if (input.isEmpty) {
-      return null;
-    }
-
-    String host = '';
-    String portStr = '';
-
-    if (input.startsWith('[')) {
-      final closeIndex = input.indexOf(']');
-      if (closeIndex == -1) {
-        return null;
-      }
-      host = input.substring(1, closeIndex);
-      final rest = input.substring(closeIndex + 1);
-      if (!rest.startsWith(':')) {
-        return null;
-      }
-      portStr = rest.substring(1);
-    } else {
-      final lastColonIndex = input.lastIndexOf(':');
-      if (lastColonIndex == -1) {
-        return null;
-      }
-      host = input.substring(0, lastColonIndex);
-      portStr = input.substring(lastColonIndex + 1);
-    }
-
-    host = host.trim();
-    portStr = portStr.trim();
-    if (host.isEmpty || portStr.isEmpty) {
-      return null;
-    }
-
-    final port = int.tryParse(portStr);
-    if (port == null || port <= 0 || port > 65535) {
-      return null;
-    }
-
-    return _ParsedSyncPlayEndPoint(host: host, port: port);
-  }
 
   void setSyncPlayCurrentPosition(
       {bool? forceSyncPlaying, double? forceSyncPosition}) {
@@ -886,11 +845,4 @@ abstract class _PlayerController with Store {
     syncplayRoom = '';
     syncplayClientRtt = 0;
   }
-}
-
-class _ParsedSyncPlayEndPoint {
-  final String host;
-  final int port;
-
-  const _ParsedSyncPlayEndPoint({required this.host, required this.port});
 }

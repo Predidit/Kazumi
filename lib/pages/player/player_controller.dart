@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/pages/player/player_item_chat_panel.dart';
+import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
@@ -41,6 +42,7 @@ abstract class _PlayerController with Store {
   bool danmakuOn = false;
   @observable
   bool danmakuLoading = false;
+  DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
 
   // 一起看控制器
   SyncplayClient? syncplayController;
@@ -166,13 +168,6 @@ abstract class _PlayerController with Store {
   StreamSubscription<Playlist>? playerPlaylistSubscription;
   StreamSubscription<Track>? playerTracksSubscription;
   StreamSubscription<double?>? playerAudioBitrateSubscription;
-
-  // SyncPlay 聊天历史
-  final List<Map<String, dynamic>> syncplayChatHistory = [];
-
-  // SyncPlay 聊天记录清空状态
-  @observable
-  bool syncplayChatHistoryClearedForCurrentRoom = false;
 
   Future<void> init(String url, {int offset = 0}) async {
     videoUrl = url;
@@ -323,7 +318,6 @@ abstract class _PlayerController with Store {
       ),
     );
 
-    // 记录播放器内部日志
     playerLog.clear();
     setupPlayerDebugInfoSubscription();
 
@@ -753,20 +747,26 @@ abstract class _PlayerController with Store {
       );
       syncplayController!.onChatMessage.listen(
         (message) {
-          if (message['username'] != username) {
-            syncplayChatHistory.add({
-              'name': message['username'],
-              'message': message['message'],
-              'time': DateTime.now(),
-            });
-            
-            // 更新聊天室消息列表
-            SyncPlayChatPanel.currentState?.notifyNewMessage();
+          final String sender = (message['username'] ?? '').toString();
+          final String text = (message['message'] ?? '').toString();
+          final String displayText = '【💬 聊天室消息】$sender 说：$text';
 
+          if (message['username'] != username) {
+            /*
             KazumiDialog.showToast(
                 message:
                     'SyncPlay: ${message['username']} 说: ${message['message']}',
                 duration: const Duration(seconds: 5));
+            */
+            danmakuController.addDanmaku(
+              DanmakuContentItem(
+                displayText,
+                color: Colors.orange,
+                isColorful: true,
+                type: DanmakuItemType.bottom,
+                extra: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
           }
         },
       );
@@ -809,7 +809,6 @@ abstract class _PlayerController with Store {
         },
       );
       await syncplayController!.joinRoom(room, username);
-      syncplayChatHistoryClearedForCurrentRoom = false;
       syncplayRoom = room;
     } catch (e) {
       print('SyncPlay: error: $e');
@@ -863,6 +862,5 @@ abstract class _PlayerController with Store {
     syncplayController = null;
     syncplayRoom = '';
     syncplayClientRtt = 0;
-    syncplayChatHistoryClearedForCurrentRoom = false;
   }
 }

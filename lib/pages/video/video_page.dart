@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
@@ -297,12 +298,12 @@ class _VideoPageState extends State<VideoPage>
   /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
     keyboardFocus.requestFocus();
+
     if (playerController.danDanmakus.isEmpty) {
-      KazumiDialog.showToast(
-        message: '当前剧集不支持弹幕发送的说',
-      );
+      KazumiDialog.showToast(message: '当前剧集不支持弹幕发送的说');
       return;
     }
+
     if (msg.isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
       return;
@@ -310,10 +311,37 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.showToast(message: '弹幕内容过长');
       return;
     }
-    // Todo 接口方限制
 
-    playerController.danmakuController
+    final destination = playerController.danmakuDestination;
+
+    if (destination == DanmakuDestination.chatRoom) {
+      if (playerController.syncplayRoom.isEmpty) {
+        KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
+        return;
+      }
+
+      final sender = playerController.syncplayController?.username ?? '我';
+      final String displayText = '【💬 聊天室消息】$sender 说：$msg';
+
+      // 在播放器渲染自己发送的弹幕
+      playerController.danmakuController.addDanmaku(
+        DanmakuContentItem(
+          displayText,
+          color: Colors.orange,
+          isColorful: true,
+          type: DanmakuItemType.bottom,
+          extra: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+
+      // 发送弹幕到聊天室
+      playerController.sendSyncPlayChatMessage(msg);
+    } else {
+      // Todo 接口方限制
+
+      playerController.danmakuController
         .addDanmaku(DanmakuContentItem(msg, selfSend: true));
+    }
   }
 
   void showMobileDanmakuInput() {

@@ -41,7 +41,6 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
-    required this.showSyncPlayChatPanel,
     this.disableAnimations = false,
   });
 
@@ -66,11 +65,15 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
-  final void Function() showSyncPlayChatPanel;
   final bool disableAnimations;
 
   @override
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
+}
+
+enum DanmakuDestination {
+  chatRoom,
+  remoteDanmaku,
 }
 
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
@@ -92,6 +95,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
+
+  DanmakuDestination _selectedDestination = DanmakuDestination.remoteDanmaku;
 
   Widget get danmakuTextField {
     return Container(
@@ -121,24 +126,69 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             borderRadius:
                 BorderRadius.all(Radius.circular(Utils.isDesktop() ? 8 : 20)),
           ),
-          suffixIcon: TextButton(
-            onPressed: () {
-              textFieldFocus.unfocus();
-              widget.sendDanmaku(textController.text);
-              textController.clear();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Colors.white60,
-              backgroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).disabledColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+          suffixIconConstraints: const BoxConstraints(minWidth: 0),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PopupMenuButton<DanmakuDestination>(
+                tooltip: '选择发送目标',
+                padding: EdgeInsets.zero,
+                onSelected: (v) {
+                  setState(() {
+                  _selectedDestination = v;
+                  playerController.danmakuDestination = v;
+                });
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: DanmakuDestination.chatRoom,
+                    child: ListTile(
+                      leading: Icon(Icons.chat_bubble_outline),
+                      title: Text('发送到聊天室'),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: DanmakuDestination.remoteDanmaku,
+                    child: ListTile(
+                      leading: Icon(Icons.cloud_upload_outlined),
+                      title: Text('发送到远程弹幕库'),
+                    ),
+                  ),
+                ],
+                child: Row(
+                  children: [
+                    Icon(
+                      _selectedDestination == DanmakuDestination.chatRoom
+                          ? Icons.chat_bubble_outline
+                          : Icons.cloud_upload_outlined,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                    const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  ],
+                ),
               ),
-            ),
-            child: const Text('发送'),
+              const SizedBox(width: 6),
+              TextButton(
+                onPressed: () {
+                  textFieldFocus.unfocus();
+                  widget.sendDanmaku(textController.text);
+                  textController.clear();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Colors.white60,
+                  backgroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).disabledColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+                  ),
+                ),
+                child: const Text('发送'),
+              ),
+            ],
           ),
         ),
         onTapAlwaysCalled: true,
@@ -1240,19 +1290,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text("加入房间"),
-                              ),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showSyncPlayChatPanel();
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: const BoxConstraints(minWidth: 112),
-                              child: const Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("聊天室"),
                               ),
                             ),
                           ),

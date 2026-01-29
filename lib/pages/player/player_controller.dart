@@ -19,6 +19,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/utils/syncplay.dart';
+import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -655,10 +656,10 @@ abstract class _PlayerController with Store {
     int syncPlayEndPointPort = 0;
     KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
-      final parts = syncPlayEndPoint.split(':');
-      if (parts.length == 2) {
-        syncPlayEndPointHost = parts[0];
-        syncPlayEndPointPort = int.parse(parts[1]);
+      final parsed = parseSyncPlayEndPoint(syncPlayEndPoint);
+      if (parsed != null) {
+        syncPlayEndPointHost = parsed.host;
+        syncPlayEndPointPort = parsed.port;
       }
     } catch (_) {}
     if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
@@ -672,6 +673,8 @@ abstract class _PlayerController with Store {
         SyncplayClient(host: syncPlayEndPointHost, port: syncPlayEndPointPort);
     try {
       await syncplayController!.connect(enableTLS: enableTLS);
+      KazumiLogger().i(
+          'SyncPlay: connected to $syncPlayEndPointHost:$syncPlayEndPointPort');
       syncplayController!.onGeneralMessage.listen(
         (message) {
           // print('SyncPlay: general message: ${message.toString()}');
@@ -793,6 +796,7 @@ abstract class _PlayerController with Store {
       print('SyncPlay: error: $e');
     }
   }
+
 
   void setSyncPlayCurrentPosition(
       {bool? forceSyncPlaying, double? forceSyncPosition}) {

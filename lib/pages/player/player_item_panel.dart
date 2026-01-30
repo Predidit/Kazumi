@@ -41,6 +41,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
+    required this.showDanmakuDestinationPickerAndSend,
     this.disableAnimations = false,
   });
 
@@ -65,6 +66,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
+  final void Function(String) showDanmakuDestinationPickerAndSend;
   final bool disableAnimations;
 
   @override
@@ -119,24 +121,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             borderRadius:
                 BorderRadius.all(Radius.circular(Utils.isDesktop() ? 8 : 20)),
           ),
-          suffixIcon: TextButton(
-            onPressed: () {
-              textFieldFocus.unfocus();
-              widget.sendDanmaku(textController.text);
-              textController.clear();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Colors.white60,
-              backgroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).disabledColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+          suffixIconConstraints: const BoxConstraints(minWidth: 0),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                onPressed: () {
+                  textFieldFocus.unfocus();
+                  widget.showDanmakuDestinationPickerAndSend(textController.text);
+                  textController.clear();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Colors.white60,
+                  backgroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).disabledColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+                  ),
+                ),
+                child: const Text('发送'),
               ),
-            ),
-            child: const Text('发送'),
+            ],
           ),
         ),
         onTapAlwaysCalled: true,
@@ -146,7 +154,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
         onSubmitted: (msg) {
           textFieldFocus.unfocus();
-          widget.sendDanmaku(msg);
+          widget.showDanmakuDestinationPickerAndSend(msg);
           widget.cancelHideTimer();
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;

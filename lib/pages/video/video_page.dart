@@ -156,7 +156,7 @@ class _VideoPageState extends State<VideoPage>
     });
     _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
       final localUsername = playerController.syncplayController?.username ?? '';
-      final String displayText = '【💬聊天室消息】${event.username}：${event.message}';
+      final String displayText = '${event.username}：${event.message}';
 
       // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
       if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
@@ -343,7 +343,7 @@ class _VideoPageState extends State<VideoPage>
       }
 
       final sender = playerController.syncplayController?.username ?? '我';
-      final String displayText = '【💬聊天室消息】$sender：$msg';
+      final String displayText = '$sender：$msg';
 
       // 在播放器渲染自己发送的弹幕
       playerController.danmakuController.addDanmaku(

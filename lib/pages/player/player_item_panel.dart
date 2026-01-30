@@ -71,11 +71,6 @@ class PlayerItemPanel extends StatefulWidget {
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
 }
 
-enum DanmakuDestination {
-  chatRoom,
-  remoteDanmaku,
-}
-
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
   Box setting = GStorage.setting;
   late bool haEnable;
@@ -95,8 +90,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
-
-  DanmakuDestination _selectedDestination = DanmakuDestination.remoteDanmaku;
 
   Widget get danmakuTextField {
     return Container(
@@ -132,32 +125,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             children: [
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    // 切换发送目标
-                    _selectedDestination =
-                        _selectedDestination == DanmakuDestination.chatRoom
-                            ? DanmakuDestination.remoteDanmaku
-                            : DanmakuDestination.chatRoom;
-                    playerController.danmakuDestination = _selectedDestination;
-                  });
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  backgroundColor: Colors.transparent,
-                ),
-                child: Text(
-                  _selectedDestination == DanmakuDestination.chatRoom
-                      ? '发送到聊天室'
-                      : '发送到远程弹幕库',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-              const SizedBox(width: 6),
-              TextButton(
-                onPressed: () {
                   textFieldFocus.unfocus();
-                  widget.sendDanmaku(textController.text);
+                  _showDanmakuDestinationPickerAndSend(textController.text);
                   textController.clear();
                 },
                 style: TextButton.styleFrom(
@@ -175,7 +144,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               ),
             ],
           ),
-
         ),
         onTapAlwaysCalled: true,
         onTap: () {
@@ -184,7 +152,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
         onSubmitted: (msg) {
           textFieldFocus.unfocus();
-          widget.sendDanmaku(msg);
+          _showDanmakuDestinationPickerAndSend(msg);
           widget.cancelHideTimer();
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;
@@ -199,6 +167,44 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
       ),
     );
+  }
+
+  Future<void> _showDanmakuDestinationPickerAndSend(String msg) async {
+    if (msg.trim().isEmpty) {
+      KazumiDialog.showToast(message: '弹幕内容为空');
+      return;
+    }
+
+    final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
+      context: context,
+      shape: const BeveledRectangleBorder(),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('发送到聊天室'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.chatRoom),
+              ),
+              ListTile(
+                title: const Text('发送到远程弹幕库'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+      });
+      playerController.danmakuDestination = result;
+      widget.sendDanmaku(msg);
+      textController.clear();
+    }
   }
 
   // 选择倍速

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
@@ -298,12 +297,12 @@ class _VideoPageState extends State<VideoPage>
   /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
     keyboardFocus.requestFocus();
-
     if (playerController.danDanmakus.isEmpty) {
-      KazumiDialog.showToast(message: '当前剧集不支持弹幕发送的说');
+      KazumiDialog.showToast(
+        message: '当前剧集不支持弹幕发送的说',
+      );
       return;
     }
-
     if (msg.isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
       return;
@@ -383,51 +382,21 @@ class _VideoPageState extends State<VideoPage>
                             borderRadius: BorderRadius.all(Radius.circular(20)),
                           ),
                           suffixIconConstraints: const BoxConstraints(minWidth: 0),
-                          suffixIcon: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  // 使用 ModalBottomSheet 自己的 setState 刷新
-                                  setModalState(() {
-                                    playerController.danmakuDestination =
-                                        playerController.danmakuDestination ==
-                                                DanmakuDestination.chatRoom
-                                            ? DanmakuDestination.remoteDanmaku
-                                            : DanmakuDestination.chatRoom;
-                                  });
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  backgroundColor: Colors.transparent,
-                                ),
-                                child: Text(
-                                  playerController.danmakuDestination ==
-                                          DanmakuDestination.chatRoom
-                                      ? '发送到远程弹幕库'
-                                      : '发送到聊天室',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              IconButton(
-                                onPressed: () {
-                                  sendDanmaku(textController.text);
-                                  textController.clear();
-                                  Navigator.pop(context);
-                                },
-                                icon: Icon(
-                                  Icons.send_rounded,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ],
+                          suffixIcon: IconButton(
+                          onPressed: () {
+                            final msg = textController.text;
+                            Navigator.pop(context);
+                            _showDestinationPickerAndSendFromVideoPage(msg);
+                            textController.clear();
+                          },
+                          icon: Icon(
+                            Icons.send_rounded,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
+                        ),
                         onSubmitted: (msg) {
-                          sendDanmaku(msg);
+                          _showDestinationPickerAndSendFromVideoPage(msg);
                           textController.clear();
                           Navigator.pop(context);
                         },
@@ -443,6 +412,38 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
+  Future<void> _showDestinationPickerAndSendFromVideoPage(String msg) async {
+    if (msg.trim().isEmpty) {
+      KazumiDialog.showToast(message: '弹幕内容为空');
+      return;
+    }
+    final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
+      context: context,
+      shape: const BeveledRectangleBorder(),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('发送到聊天室'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.chatRoom),
+              ),
+              ListTile(
+                title: const Text('发送到远程弹幕库'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      playerController.danmakuDestination = result;
+      sendDanmaku(msg);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

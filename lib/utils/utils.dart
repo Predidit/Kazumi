@@ -318,6 +318,24 @@ class Utils {
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
+  /// 安全退出应用
+  static void safeExit() {
+    if (kIsWeb) return;
+    if (Platform.isAndroid) {
+      try {
+        const MethodChannel('com.predidit.kazumi/intent')
+            .invokeMethod('exitApp');
+      } catch (e) {
+        // Fallback for unexpected bridge failures
+        exit(0);
+      }
+    } else if (Platform.isIOS) {
+      SystemNavigator.pop();
+    } else {
+      exit(0);
+    }
+  }
+
   /// 判断设备是否为宽屏
   static bool isWideScreen() {
     final MediaQueryData mediaQuery = MediaQueryData.fromView(

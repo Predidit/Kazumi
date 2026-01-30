@@ -180,6 +180,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       shape: const BeveledRectangleBorder(),
       builder: (context) {
         return SafeArea(
+          left: false,
+          right: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

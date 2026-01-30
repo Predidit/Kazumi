@@ -41,6 +41,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
+    required this.showDanmakuDestinationPickerAndSend,
     this.disableAnimations = false,
   });
 
@@ -65,6 +66,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
+  final void Function(String) showDanmakuDestinationPickerAndSend;
   final bool disableAnimations;
 
   @override
@@ -126,7 +128,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               TextButton(
                 onPressed: () {
                   textFieldFocus.unfocus();
-                  _showDanmakuDestinationPickerAndSend(textController.text);
+                  widget.showDanmakuDestinationPickerAndSend(textController.text);
                   textController.clear();
                 },
                 style: TextButton.styleFrom(
@@ -152,7 +154,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
         onSubmitted: (msg) {
           textFieldFocus.unfocus();
-          _showDanmakuDestinationPickerAndSend(msg);
+          widget.showDanmakuDestinationPickerAndSend(msg);
           widget.cancelHideTimer();
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;
@@ -167,46 +169,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
       ),
     );
-  }
-
-  Future<void> _showDanmakuDestinationPickerAndSend(String msg) async {
-    if (msg.trim().isEmpty) {
-      KazumiDialog.showToast(message: '弹幕内容为空');
-      return;
-    }
-
-    final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
-      context: context,
-      shape: const BeveledRectangleBorder(),
-      builder: (context) {
-        return SafeArea(
-          left: false,
-          right: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('发送到聊天室'),
-                onTap: () => Navigator.of(context).pop(DanmakuDestination.chatRoom),
-              ),
-              ListTile(
-                title: const Text('发送到远程弹幕库'),
-                onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (result != null) {
-      setState(() {
-      });
-      playerController.danmakuDestination = result;
-      widget.sendDanmaku(msg);
-      textController.clear();
-    }
   }
 
   // 选择倍速

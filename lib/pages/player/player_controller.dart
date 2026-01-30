@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:media_kit/media_kit.dart';
@@ -31,6 +30,20 @@ enum DanmakuDestination {
   remoteDanmaku,
 }
 
+class SyncPlayChatMessage {
+  final String username;
+  final String message;
+  final bool fromRemote;
+  final DateTime time;
+
+  SyncPlayChatMessage({
+    required this.username,
+    required this.message,
+    this.fromRemote = true,
+    DateTime? time,
+  }) : time = time ?? DateTime.now();
+}
+
 class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
@@ -47,6 +60,10 @@ abstract class _PlayerController with Store {
   @observable
   bool danmakuLoading = false;
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
+  final StreamController<SyncPlayChatMessage> syncPlayChatStreamController =
+    StreamController<SyncPlayChatMessage>.broadcast();
+  Stream<SyncPlayChatMessage> get syncPlayChatStream =>
+      syncPlayChatStreamController.stream;
 
   // 一起看控制器
   SyncplayClient? syncplayController;
@@ -753,30 +770,19 @@ abstract class _PlayerController with Store {
         (message) {
           final String sender = (message['username'] ?? '').toString();
           final String text = (message['message'] ?? '').toString();
-          final String displayText = '【💬 聊天室消息】$sender：$text';
+          final bool fromRemote = message['username'] != username;
 
-          if (message['username'] != username) {
-            /*
-            KazumiDialog.showToast(
-                message:
-                    'SyncPlay: ${message['username']} 说: ${message['message']}',
-                duration: const Duration(seconds: 5));
-            */
-
-            // 只有在弹幕开启时才渲染弹幕
-            if (danmakuOn)
-            {
-              danmakuController.addDanmaku(
-                DanmakuContentItem(
-                  displayText,
-                  color: Colors.orange,
-                  isColorful: true,
-                  type: DanmakuItemType.bottom,
-                  extra: DateTime.now().millisecondsSinceEpoch,
-                ),
-              );
-            }
+          // 将消息转发到流
+          if (!syncPlayChatStreamController.isClosed) {
+            syncPlayChatStreamController.add(SyncPlayChatMessage(
+              username: sender,
+              message: text,
+              fromRemote: fromRemote,
+            ));
           }
+        },
+        onError: (error) {
+          print('SyncPlay: error: ${error.message}');
         },
       );
       syncplayController!.onPositionChangedMessage.listen(

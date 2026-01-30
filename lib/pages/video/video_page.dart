@@ -69,6 +69,9 @@ class _VideoPageState extends State<VideoPage>
   // disable animation.
   late final bool disableAnimations;
 
+  // SyncPlayChatMessage
+  late final StreamSubscription<SyncPlayChatMessage> _syncChatSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -151,6 +154,23 @@ class _VideoPageState extends State<VideoPage>
         webviewLogLines.add(event);
       });
     });
+    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
+      final localUsername = playerController.syncplayController?.username ?? '';
+      final String displayText = '【💬聊天室消息】${event.username}：${event.message}';
+
+      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
+      if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
+        playerController.danmakuController.addDanmaku(
+          DanmakuContentItem(
+            displayText,
+            color: Colors.orange,
+            isColorful: true,
+            type: DanmakuItemType.bottom,
+            extra: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -175,6 +195,9 @@ class _VideoPageState extends State<VideoPage>
     } catch (_) {}
     try {
       _logSubscription.cancel();
+    } catch (_) {}
+    try {
+      _syncChatSubscription.cancel();
     } catch (_) {}
     try {
       playerController.dispose();
@@ -320,7 +343,7 @@ class _VideoPageState extends State<VideoPage>
       }
 
       final sender = playerController.syncplayController?.username ?? '我';
-      final String displayText = '【💬 聊天室消息】$sender：$msg';
+      final String displayText = '【💬聊天室消息】$sender：$msg';
 
       // 在播放器渲染自己发送的弹幕
       playerController.danmakuController.addDanmaku(
@@ -364,45 +387,43 @@ class _VideoPageState extends State<VideoPage>
                     child: Container(
                       constraints: const BoxConstraints(maxHeight: 34),
                       child: TextField(
-                        style: const TextStyle(fontSize: 15, color: Colors.white),
+                        style: const TextStyle(fontSize: 15),
                         controller: textController,
                         autofocus: true,
                         textAlignVertical: TextAlignVertical.center,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           filled: true,
-                          fillColor: Colors.white38,
                           floatingLabelBehavior: FloatingLabelBehavior.never,
                           hintText: '发个友善的弹幕见证当下',
-                          hintStyle:
-                              const TextStyle(fontSize: 14, color: Colors.white60),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 12),
-                          border: const OutlineInputBorder(
+                          hintStyle: TextStyle(fontSize: 14),
+                          alignLabelWithHint: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          border: OutlineInputBorder(
                             borderSide: BorderSide.none,
                             borderRadius: BorderRadius.all(Radius.circular(20)),
                           ),
-                          suffixIconConstraints: const BoxConstraints(minWidth: 0),
-                          suffixIcon: IconButton(
-                          onPressed: () {
-                            final msg = textController.text;
-                            Navigator.pop(context);
-                            _showDestinationPickerAndSendFromVideoPage(msg);
-                            textController.clear();
-                          },
-                          icon: Icon(
-                            Icons.send_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
                         ),
                         onSubmitted: (msg) {
-                          _showDestinationPickerAndSendFromVideoPage(msg);
+                          showDanmakuDestinationPickerAndSend(msg);
                           textController.clear();
                           Navigator.pop(context);
                         },
                       ),
                     ),
                   ),
+                  IconButton(
+                    onPressed: () {
+                      final msg = textController.text;
+                      Navigator.pop(context);
+                      showDanmakuDestinationPickerAndSend(msg);
+                      textController.clear();
+                    },
+                    icon: Icon(
+                      Icons.send_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  )
                 ],
               ),
             );
@@ -412,11 +433,12 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  Future<void> _showDestinationPickerAndSendFromVideoPage(String msg) async {
+  void showDanmakuDestinationPickerAndSend(String msg) async {
     if (msg.trim().isEmpty) {
       KazumiDialog.showToast(message: '弹幕内容为空');
       return;
     }
+
     final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
       context: context,
       shape: const BeveledRectangleBorder(),
@@ -435,6 +457,7 @@ class _VideoPageState extends State<VideoPage>
                 title: const Text('发送到远程弹幕库'),
                 onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
               ),
+              const SizedBox(height: 8),
             ],
           ),
         );
@@ -442,6 +465,8 @@ class _VideoPageState extends State<VideoPage>
     );
 
     if (result != null) {
+      setState(() {
+      });
       playerController.danmakuDestination = result;
       sendDanmaku(msg);
     }
@@ -733,6 +758,7 @@ class _VideoPageState extends State<VideoPage>
                   keyboardFocus: keyboardFocus,
                   sendDanmaku: sendDanmaku,
                   disableAnimations: disableAnimations,
+                  showDanmakuDestinationPickerAndSend: showDanmakuDestinationPickerAndSend,
                 ),
         ),
 

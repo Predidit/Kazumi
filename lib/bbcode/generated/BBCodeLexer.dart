@@ -53,7 +53,7 @@ class BBCodeLexer extends Lexer {
   }
 
 
-  BBCodeLexer(CharStream input) : super(input) {
+  BBCodeLexer(super.input) {
     interpreter = LexerATNSimulator(_ATN, _decisionToDFA, _sharedContextCache, recog: this);
   }
 

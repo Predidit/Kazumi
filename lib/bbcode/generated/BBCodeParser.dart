@@ -55,107 +55,107 @@ class BBCodeParser extends Parser {
    return _ATN;
   }
 
-  BBCodeParser(TokenStream input) : super(input) {
+  BBCodeParser(super.input) {
     interpreter = ParserATNSimulator(this, _ATN, _decisionToDFA, _sharedContextCache);
   }
 
   DocumentContext document() {
-    dynamic _localctx = DocumentContext(context, state);
-    enterRule(_localctx, 0, RULE_document);
-    int _la;
+    dynamic localctx = DocumentContext(context, state);
+    enterRule(localctx, 0, RULE_document);
+    int la;
     try {
-      enterOuterAlt(_localctx, 1);
+      enterOuterAlt(localctx, 1);
       state = 15;
       errorHandler.sync(this);
-      _la = tokenStream.LA(1)!;
-      while ((((_la) & ~0x3f) == 0 && ((1 << _la) & 536870894) != 0)) {
+      la = tokenStream.LA(1)!;
+      while ((((la) & ~0x3f) == 0 && ((1 << la) & 536870894) != 0)) {
         state = 12;
         element();
         state = 17;
         errorHandler.sync(this);
-        _la = tokenStream.LA(1)!;
+        la = tokenStream.LA(1)!;
       }
       state = 18;
       match(TOKEN_EOF);
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   ElementContext element() {
-    dynamic _localctx = ElementContext(context, state);
-    enterRule(_localctx, 2, RULE_element);
+    dynamic localctx = ElementContext(context, state);
+    enterRule(localctx, 2, RULE_element);
     try {
       state = 24;
       errorHandler.sync(this);
       switch (interpreter!.adaptivePredict(tokenStream, 1, context)) {
       case 1:
-        enterOuterAlt(_localctx, 1);
+        enterOuterAlt(localctx, 1);
         state = 20;
         tag();
         break;
       case 2:
-        enterOuterAlt(_localctx, 2);
+        enterOuterAlt(localctx, 2);
         state = 21;
         plain();
         break;
       case 3:
-        enterOuterAlt(_localctx, 3);
+        enterOuterAlt(localctx, 3);
         state = 22;
         bgm();
         break;
       case 4:
-        enterOuterAlt(_localctx, 4);
+        enterOuterAlt(localctx, 4);
         state = 23;
         sticker();
         break;
       }
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   TagContext tag() {
-    dynamic _localctx = TagContext(context, state);
-    enterRule(_localctx, 4, RULE_tag);
-    int _la;
+    dynamic localctx = TagContext(context, state);
+    enterRule(localctx, 4, RULE_tag);
+    int la;
     try {
-      enterOuterAlt(_localctx, 1);
+      enterOuterAlt(localctx, 1);
       state = 26;
       match(TOKEN_T__0);
       state = 27;
-      _localctx.tagName = match(TOKEN_STRING);
+      localctx.tagName = match(TOKEN_STRING);
       state = 30;
       errorHandler.sync(this);
-      _la = tokenStream.LA(1)!;
-      if (_la == TOKEN_T__1) {
+      la = tokenStream.LA(1)!;
+      if (la == TOKEN_T__1) {
         state = 28;
         match(TOKEN_T__1);
         state = 29;
-        _localctx.attr = match(TOKEN_STRING);
+        localctx.attr = match(TOKEN_STRING);
       }
 
       state = 32;
       match(TOKEN_T__2);
       state = 36;
       errorHandler.sync(this);
-      _la = tokenStream.LA(1)!;
-      while ((((_la) & ~0x3f) == 0 && ((1 << _la) & 536870894) != 0)) {
+      la = tokenStream.LA(1)!;
+      while ((((la) & ~0x3f) == 0 && ((1 << la) & 536870894) != 0)) {
         state = 33;
-        _localctx.content = element();
+        localctx.content = element();
         state = 38;
         errorHandler.sync(this);
-        _la = tokenStream.LA(1)!;
+        la = tokenStream.LA(1)!;
       }
       state = 39;
       match(TOKEN_T__3);
@@ -164,21 +164,21 @@ class BBCodeParser extends Parser {
       state = 41;
       match(TOKEN_T__2);
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   PlainContext plain() {
-    dynamic _localctx = PlainContext(context, state);
-    enterRule(_localctx, 6, RULE_plain);
-    int _la;
+    dynamic localctx = PlainContext(context, state);
+    enterRule(localctx, 6, RULE_plain);
+    int la;
     try {
-      int _alt;
+      int alt;
       state = 50;
       errorHandler.sync(this);
       switch (tokenStream.LA(1)!) {
@@ -189,16 +189,16 @@ class BBCodeParser extends Parser {
       case TOKEN_T__5:
       case TOKEN_T__6:
       case TOKEN_STRING:
-        enterOuterAlt(_localctx, 1);
+        enterOuterAlt(localctx, 1);
         state = 44; 
         errorHandler.sync(this);
-        _alt = 1;
+        alt = 1;
         do {
-          switch (_alt) {
+          switch (alt) {
           case 1:
             state = 43;
-            _la = tokenStream.LA(1)!;
-            if (!((((_la) & ~0x3f) == 0 && ((1 << _la) & 268435694) != 0))) {
+            la = tokenStream.LA(1)!;
+            if (!((((la) & ~0x3f) == 0 && ((1 << la) & 268435694) != 0))) {
             errorHandler.recoverInline(this);
             } else {
               if ( tokenStream.LA(1)! == IntStream.EOF ) matchedEOF = true;
@@ -211,16 +211,16 @@ class BBCodeParser extends Parser {
           }
           state = 46; 
           errorHandler.sync(this);
-          _alt = interpreter!.adaptivePredict(tokenStream, 4, context);
-        } while (_alt != 2 && _alt != ATN.INVALID_ALT_NUMBER);
+          alt = interpreter!.adaptivePredict(tokenStream, 4, context);
+        } while (alt != 2 && alt != ATN.INVALID_ALT_NUMBER);
         break;
       case TOKEN_T__7:
-        enterOuterAlt(_localctx, 2);
+        enterOuterAlt(localctx, 2);
         state = 48;
         match(TOKEN_T__7);
         break;
       case TOKEN_T__8:
-        enterOuterAlt(_localctx, 3);
+        enterOuterAlt(localctx, 3);
         state = 49;
         match(TOKEN_T__8);
         break;
@@ -228,24 +228,24 @@ class BBCodeParser extends Parser {
         throw NoViableAltException(this);
       }
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   BgmContext bgm() {
-    dynamic _localctx = BgmContext(context, state);
-    enterRule(_localctx, 8, RULE_bgm);
-    int _la;
+    dynamic localctx = BgmContext(context, state);
+    enterRule(localctx, 8, RULE_bgm);
+    int la;
     try {
-      enterOuterAlt(_localctx, 1);
+      enterOuterAlt(localctx, 1);
       state = 52;
-      _la = tokenStream.LA(1)!;
-      if (!(_la == TOKEN_T__9 || _la == TOKEN_T__10)) {
+      la = tokenStream.LA(1)!;
+      if (!(la == TOKEN_T__9 || la == TOKEN_T__10)) {
       errorHandler.recoverInline(this);
       } else {
         if ( tokenStream.LA(1)! == IntStream.EOF ) matchedEOF = true;
@@ -253,28 +253,28 @@ class BBCodeParser extends Parser {
         consume();
       }
       state = 53;
-      _localctx.id = match(TOKEN_STRING);
+      localctx.id = match(TOKEN_STRING);
       state = 54;
       match(TOKEN_T__6);
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   StickerContext sticker() {
-    dynamic _localctx = StickerContext(context, state);
-    enterRule(_localctx, 10, RULE_sticker);
-    int _la;
+    dynamic localctx = StickerContext(context, state);
+    enterRule(localctx, 10, RULE_sticker);
+    int la;
     try {
-      enterOuterAlt(_localctx, 1);
+      enterOuterAlt(localctx, 1);
       state = 56;
-      _la = tokenStream.LA(1)!;
-      if (!((((_la) & ~0x3f) == 0 && ((1 << _la) & 268431360) != 0))) {
+      la = tokenStream.LA(1)!;
+      if (!((((la) & ~0x3f) == 0 && ((1 << la) & 268431360) != 0))) {
       errorHandler.recoverInline(this);
       } else {
         if ( tokenStream.LA(1)! == IntStream.EOF ) matchedEOF = true;
@@ -282,13 +282,13 @@ class BBCodeParser extends Parser {
         consume();
       }
     } on RecognitionException catch (re) {
-      _localctx.exception = re;
+      localctx.exception = re;
       errorHandler.reportError(this, re);
       errorHandler.recover(this, re);
     } finally {
       exitRule();
     }
-    return _localctx;
+    return localctx;
   }
 
   static const List<int> _serializedATN = [
@@ -320,7 +320,7 @@ class DocumentContext extends ParserRuleContext {
   TerminalNode? EOF() => getToken(BBCodeParser.TOKEN_EOF, 0);
   List<ElementContext> elements() => getRuleContexts<ElementContext>();
   ElementContext? element(int i) => getRuleContext<ElementContext>(i);
-  DocumentContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  DocumentContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_document;
   @override
@@ -338,7 +338,7 @@ class ElementContext extends ParserRuleContext {
   PlainContext? plain() => getRuleContext<PlainContext>(0);
   BgmContext? bgm() => getRuleContext<BgmContext>(0);
   StickerContext? sticker() => getRuleContext<StickerContext>(0);
-  ElementContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  ElementContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_element;
   @override
@@ -359,7 +359,7 @@ class TagContext extends ParserRuleContext {
   TerminalNode? STRING(int i) => getToken(BBCodeParser.TOKEN_STRING, i);
   List<ElementContext> elements() => getRuleContexts<ElementContext>();
   ElementContext? element(int i) => getRuleContext<ElementContext>(i);
-  TagContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  TagContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_tag;
   @override
@@ -375,7 +375,7 @@ class TagContext extends ParserRuleContext {
 class PlainContext extends ParserRuleContext {
   List<TerminalNode> STRINGs() => getTokens(BBCodeParser.TOKEN_STRING);
   TerminalNode? STRING(int i) => getToken(BBCodeParser.TOKEN_STRING, i);
-  PlainContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  PlainContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_plain;
   @override
@@ -391,7 +391,7 @@ class PlainContext extends ParserRuleContext {
 class BgmContext extends ParserRuleContext {
   Token? id;
   TerminalNode? STRING() => getToken(BBCodeParser.TOKEN_STRING, 0);
-  BgmContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  BgmContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_bgm;
   @override
@@ -405,7 +405,7 @@ class BgmContext extends ParserRuleContext {
 }
 
 class StickerContext extends ParserRuleContext {
-  StickerContext([ParserRuleContext? parent, int? invokingState]) : super(parent, invokingState);
+  StickerContext([ParserRuleContext? super.parent, super.invokingState]);
   @override
   int get ruleIndex => RULE_sticker;
   @override

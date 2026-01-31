@@ -29,7 +29,7 @@ class MenuRoute {
     return menuList.map((e) => ModuleRoute(e.path, module: e.module)).toList();
   }
 
-  getPath(int index) {
+  String getPath(int index) {
     return menuList[index].path;
   }
 }

@@ -11,6 +11,7 @@ import 'package:kazumi/pages/settings/super_resolution_settings.dart';
 import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 import 'package:kazumi/pages/settings/keyboard_settings.dart';
+import 'package:kazumi/pages/settings/timed_shutdown_settings.dart';
 
 class SettingsModule extends Module {
   @override
@@ -30,5 +31,6 @@ class SettingsModule extends Module {
     r.module("/plugin", module: PluginModule());
     r.module("/history", module: HistoryModule());
     r.module("/danmaku", module: DanmakuModule());
+    r.child("/timed_shutdown", child: (_) => const TimedShutdownSettingsPage());
   }
 }

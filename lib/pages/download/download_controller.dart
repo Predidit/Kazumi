@@ -5,11 +5,8 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
@@ -18,8 +15,7 @@ class DownloadController = _DownloadController with _$DownloadController;
 
 abstract class _DownloadController with Store {
   final _repository = Modular.get<IDownloadRepository>();
-  final _downloadManager = DownloadManager();
-  Box setting = GStorage.setting;
+  final _downloadManager = Modular.get<IDownloadManager>();
 
   @observable
   ObservableList<DownloadRecord> records = ObservableList<DownloadRecord>();
@@ -87,15 +83,6 @@ abstract class _DownloadController with Store {
       int bangumiId, String pluginName, int episodeNumber) {
     final episode = getEpisode(bangumiId, pluginName, episodeNumber);
     return _downloadManager.getLocalVideoPath(episode);
-  }
-
-  /// Construct full episode page URL from plugin baseUrl + relative path
-  String _buildFullUrl(Plugin plugin, String urlItem) {
-    if (urlItem.contains(plugin.baseUrl) ||
-        urlItem.contains(plugin.baseUrl.replaceAll('https', 'http'))) {
-      return urlItem;
-    }
-    return plugin.baseUrl + urlItem;
   }
 
   Future<void> startDownload({
@@ -181,7 +168,7 @@ abstract class _DownloadController with Store {
     // Skip if already cancelled/deleted
     if (episode.status != DownloadStatus.resolving) return;
 
-    final fullUrl = _buildFullUrl(plugin, request.episodePageUrl);
+    final fullUrl = plugin.buildFullUrl(request.episodePageUrl);
 
     KazumiLogger().i(
         'DownloadController: resolving video URL for episode ${request.episodeNumber} from $fullUrl');
@@ -245,29 +232,19 @@ abstract class _DownloadController with Store {
     refreshRecords();
 
     // Now enqueue the actual download
-    bool forceAdBlocker =
-        setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
-    bool adBlockerEnabled = forceAdBlocker || plugin.adBlocker;
+    final httpHeaders = plugin.buildHttpHeaders();
+    bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
 
-    final httpHeaders = {
-      'user-agent':
-          plugin.userAgent.isEmpty ? Utils.getRandomUA() : plugin.userAgent,
-      if (plugin.referer.isNotEmpty) 'referer': plugin.referer,
-    };
-
-    await _downloadManager.enqueue(
+    await _downloadManager.enqueue(DownloadRequest(
       recordKey: request.recordKey,
       bangumiId: request.bangumiId,
       pluginName: request.pluginName,
       episodeNumber: request.episodeNumber,
       m3u8Url: m3u8Url,
-      episodeName: freshEpisode.episodeName,
-      road: freshEpisode.road,
-      episodePageUrl: freshEpisode.episodePageUrl,
       httpHeaders: httpHeaders,
       adBlockerEnabled: adBlockerEnabled,
       episode: freshEpisode,
-    );
+    ));
   }
 
   void _failEpisode(String recordKey, int episodeNumber, String message) {
@@ -328,28 +305,19 @@ abstract class _DownloadController with Store {
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
 
-      bool forceAdBlocker =
-          setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
-      bool adBlockerEnabled = forceAdBlocker || plugin.adBlocker;
-      final httpHeaders = {
-        'user-agent':
-            plugin.userAgent.isEmpty ? Utils.getRandomUA() : plugin.userAgent,
-        if (plugin.referer.isNotEmpty) 'referer': plugin.referer,
-      };
+      final httpHeaders = plugin.buildHttpHeaders();
+      bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
 
-      await _downloadManager.enqueue(
+      await _downloadManager.enqueue(DownloadRequest(
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
         episodeNumber: episodeNumber,
         m3u8Url: episode.networkM3u8Url,
-        episodeName: episode.episodeName,
-        road: episode.road,
-        episodePageUrl: episode.episodePageUrl,
         httpHeaders: httpHeaders,
         adBlockerEnabled: adBlockerEnabled,
         episode: episode,
-      );
+      ));
     } else {
       // Need to re-resolve via WebView
       episode.status = DownloadStatus.resolving;

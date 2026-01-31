@@ -31,10 +31,43 @@ class DownloadTask {
 typedef ProgressCallback = void Function(
     String recordKey, int episodeNumber, DownloadEpisode episode);
 
-class DownloadManager {
-  static final DownloadManager _instance = DownloadManager._internal();
-  factory DownloadManager() => _instance;
-  DownloadManager._internal();
+class DownloadRequest {
+  final String recordKey;
+  final int bangumiId;
+  final String pluginName;
+  final int episodeNumber;
+  final String m3u8Url;
+  final Map<String, String> httpHeaders;
+  final bool adBlockerEnabled;
+  final DownloadEpisode episode;
+
+  const DownloadRequest({
+    required this.recordKey,
+    required this.bangumiId,
+    required this.pluginName,
+    required this.episodeNumber,
+    required this.m3u8Url,
+    required this.httpHeaders,
+    required this.adBlockerEnabled,
+    required this.episode,
+  });
+}
+
+abstract class IDownloadManager {
+  ProgressCallback? onProgress;
+
+  bool isDownloading(String recordKey, int episodeNumber);
+  Future<void> enqueue(DownloadRequest request);
+  void pause(String recordKey, int episodeNumber);
+  Future<void> resume(DownloadRequest request);
+  void cancel(String recordKey, int episodeNumber);
+  String? getLocalVideoPath(DownloadEpisode? episode);
+  Future<void> deleteEpisodeFiles(int bangumiId, String pluginName, int episodeNumber);
+  Future<void> deleteRecordFiles(int bangumiId, String pluginName);
+}
+
+class DownloadManager implements IDownloadManager {
+  DownloadManager();
 
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
@@ -42,16 +75,18 @@ class DownloadManager {
   ));
 
   final Map<String, DownloadTask> _activeTasks = {};
-  final List<DownloadTask> _queue = [];
+  final List<DownloadRequest> _queue = [];
   int maxParallelEpisodes = 2;
   int maxParallelSegments = 3;
   int _runningCount = 0;
 
+  @override
   ProgressCallback? onProgress;
 
   String _taskKey(String recordKey, int episodeNumber) =>
       '${recordKey}_$episodeNumber';
 
+  @override
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
@@ -64,25 +99,14 @@ class DownloadManager {
     return '$downloadBase/${bangumiId}_$pluginName/$episodeNumber';
   }
 
-  Future<void> enqueue({
-    required String recordKey,
-    required int bangumiId,
-    required String pluginName,
-    required int episodeNumber,
-    required String m3u8Url,
-    required String episodeName,
-    required int road,
-    required String episodePageUrl,
-    required Map<String, String> httpHeaders,
-    required bool adBlockerEnabled,
-    required DownloadEpisode episode,
-  }) async {
-    final key = _taskKey(recordKey, episodeNumber);
+  @override
+  Future<void> enqueue(DownloadRequest request) async {
+    final key = _taskKey(request.recordKey, request.episodeNumber);
     if (_activeTasks.containsKey(key)) return;
 
     final task = DownloadTask(
-      recordKey: recordKey,
-      episodeNumber: episodeNumber,
+      recordKey: request.recordKey,
+      episodeNumber: request.episodeNumber,
     );
 
     if (_runningCount < maxParallelEpisodes) {
@@ -90,20 +114,21 @@ class DownloadManager {
       _activeTasks[key] = task;
       _runEpisodeDownload(
         task: task,
-        bangumiId: bangumiId,
-        pluginName: pluginName,
-        m3u8Url: m3u8Url,
-        httpHeaders: httpHeaders,
-        adBlockerEnabled: adBlockerEnabled,
-        episode: episode,
+        bangumiId: request.bangumiId,
+        pluginName: request.pluginName,
+        m3u8Url: request.m3u8Url,
+        httpHeaders: request.httpHeaders,
+        adBlockerEnabled: request.adBlockerEnabled,
+        episode: request.episode,
       );
     } else {
-      episode.status = DownloadStatus.pending;
-      _queue.add(task);
+      request.episode.status = DownloadStatus.pending;
+      _queue.add(request);
       _activeTasks[key] = task;
     }
   }
 
+  @override
   void pause(String recordKey, int episodeNumber) {
     final key = _taskKey(recordKey, episodeNumber);
     final task = _activeTasks[key];
@@ -113,22 +138,14 @@ class DownloadManager {
     }
   }
 
-  Future<void> resume({
-    required String recordKey,
-    required int bangumiId,
-    required String pluginName,
-    required int episodeNumber,
-    required String m3u8Url,
-    required Map<String, String> httpHeaders,
-    required bool adBlockerEnabled,
-    required DownloadEpisode episode,
-  }) async {
-    final key = _taskKey(recordKey, episodeNumber);
+  @override
+  Future<void> resume(DownloadRequest request) async {
+    final key = _taskKey(request.recordKey, request.episodeNumber);
     _activeTasks.remove(key);
 
     final task = DownloadTask(
-      recordKey: recordKey,
-      episodeNumber: episodeNumber,
+      recordKey: request.recordKey,
+      episodeNumber: request.episodeNumber,
     );
     _activeTasks[key] = task;
 
@@ -136,18 +153,19 @@ class DownloadManager {
       _runningCount++;
       _runEpisodeDownload(
         task: task,
-        bangumiId: bangumiId,
-        pluginName: pluginName,
-        m3u8Url: m3u8Url,
-        httpHeaders: httpHeaders,
-        adBlockerEnabled: adBlockerEnabled,
-        episode: episode,
+        bangumiId: request.bangumiId,
+        pluginName: request.pluginName,
+        m3u8Url: request.m3u8Url,
+        httpHeaders: request.httpHeaders,
+        adBlockerEnabled: request.adBlockerEnabled,
+        episode: request.episode,
       );
     } else {
-      _queue.add(task);
+      _queue.add(request);
     }
   }
 
+  @override
   void cancel(String recordKey, int episodeNumber) {
     final key = _taskKey(recordKey, episodeNumber);
     final task = _activeTasks[key];
@@ -155,16 +173,31 @@ class DownloadManager {
       task.cancelToken.cancel('cancelled');
       _activeTasks.remove(key);
       _queue.removeWhere(
-        (t) => t.recordKey == recordKey && t.episodeNumber == episodeNumber,
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber,
       );
     }
   }
 
   void _processQueue() {
     while (_runningCount < maxParallelEpisodes && _queue.isNotEmpty) {
-      // Queue items need to be re-triggered externally with proper params
-      // For now, just remove from queue
-      _queue.removeAt(0);
+      final request = _queue.removeAt(0);
+      final key = _taskKey(request.recordKey, request.episodeNumber);
+      final existingTask = _activeTasks[key];
+      if (existingTask == null || existingTask.isPaused || existingTask.cancelToken.isCancelled) {
+        _activeTasks.remove(key);
+        continue;
+      }
+
+      _runningCount++;
+      _runEpisodeDownload(
+        task: existingTask,
+        bangumiId: request.bangumiId,
+        pluginName: request.pluginName,
+        m3u8Url: request.m3u8Url,
+        httpHeaders: request.httpHeaders,
+        adBlockerEnabled: request.adBlockerEnabled,
+        episode: request.episode,
+      );
     }
   }
 
@@ -616,6 +649,7 @@ class DownloadManager {
     }
   }
 
+  @override
   Future<void> deleteEpisodeFiles(
       int bangumiId, String pluginName, int episodeNumber) async {
     final base = await _downloadBaseDir;
@@ -625,6 +659,7 @@ class DownloadManager {
     }
   }
 
+  @override
   Future<void> deleteRecordFiles(int bangumiId, String pluginName) async {
     final base = await _downloadBaseDir;
     final dir = Directory('$base/${bangumiId}_$pluginName');
@@ -633,6 +668,7 @@ class DownloadManager {
     }
   }
 
+  @override
   String? getLocalVideoPath(DownloadEpisode? episode) {
     if (episode == null) return null;
     if (episode.status != DownloadStatus.completed) return null;

@@ -9,6 +9,7 @@ abstract class IDownloadRepository {
   Future<void> deleteRecord(String key);
   Future<void> updateEpisode(String recordKey, int episodeNumber, DownloadEpisode episode);
   Future<void> deleteEpisode(String recordKey, int episodeNumber);
+  bool getForceAdBlocker();
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -80,6 +81,11 @@ class DownloadRepository implements IDownloadRepository {
       );
       rethrow;
     }
+  }
+
+  @override
+  bool getForceAdBlocker() {
+    return GStorage.setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
   }
 
   @override

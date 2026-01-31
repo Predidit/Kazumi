@@ -271,5 +271,6 @@ class SettingBoxKey {
       proxyEnable = 'proxyEnable',
       proxyConfigured = 'proxyConfigured',
       proxyUrl = 'proxyUrl',
-      showRating = 'showRating';
+      showRating = 'showRating',
+      cachedWatchingCalendar = 'cachedWatchingCalendar';
 }

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -36,7 +36,7 @@ class WebviewItemControllerImpel
     videoLoadingEventController.add(true);
     await webviewController!
         .setNavigationDelegate(NavigationDelegate(onUrlChange: (currentUrl) {
-      debugPrint('Current URL: ${currentUrl.url}');
+      KazumiLogger().i('WebView: current URL: ${currentUrl.url}');
       if (useNativePlayer && !useLegacyParser) {
         addBlobParser();
         addInviewIframeBridge();

@@ -11,18 +11,38 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:logger/logger.dart';
+import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/utils/syncplay.dart';
+import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 part 'player_controller.g.dart';
+
+enum DanmakuDestination {
+  chatRoom,
+  remoteDanmaku,
+}
+
+class SyncPlayChatMessage {
+  final String username;
+  final String message;
+  final bool fromRemote;
+  final DateTime time;
+
+  SyncPlayChatMessage({
+    required this.username,
+    required this.message,
+    this.fromRemote = true,
+    DateTime? time,
+  }) : time = time ?? DateTime.now();
+}
 
 class PlayerController = _PlayerController with _$PlayerController;
 
@@ -37,6 +57,13 @@ abstract class _PlayerController with Store {
   Map<int, List<Danmaku>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
+  @observable
+  bool danmakuLoading = false;
+  DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
+  final StreamController<SyncPlayChatMessage> syncPlayChatStreamController =
+    StreamController<SyncPlayChatMessage>.broadcast();
+  Stream<SyncPlayChatMessage> get syncPlayChatStream =>
+      syncPlayChatStreamController.stream;
 
   // 一起看控制器
   SyncplayClient? syncplayController;
@@ -191,7 +218,7 @@ abstract class _PlayerController with Store {
           .roadList[videoPageController.currentRoad]
           .identifier[videoPageController.currentEpisode - 1]);
     } catch (e) {
-      KazumiLogger().log(Level.error, '从标题解析集数错误 ${e.toString()}');
+      KazumiLogger().e('PlayerController: failed to extract episode number from title', error: e);
     }
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
@@ -211,7 +238,7 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
-    KazumiLogger().log(Level.info, 'VideoURL初始化完成');
+    KazumiLogger().i('PlayerController: video initialized');
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
@@ -227,7 +254,7 @@ abstract class _PlayerController with Store {
     playerLogSubscription = mediaPlayer!.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
-        KazumiLogger().simpleLog(event.toString());
+        KazumiLogger().i("MPV: ${event.toString()}", forceLog: true);
       }
     });
     await playerWidthSubscription?.cancel();
@@ -289,6 +316,9 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+    bool forceAdBlocker =
+        setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    bool adBlockerEnabled = forceAdBlocker || videoPageController.currentPlugin.adBlocker;
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
@@ -305,10 +335,10 @@ abstract class _PlayerController with Store {
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
         osc: false,
         logLevel: MPVLogLevel.values[playerLogLevel],
+        adBlocker: adBlockerEnabled,
       ),
     );
 
-    // 记录播放器内部日志
     playerLog.clear();
     setupPlayerDebugInfoSubscription();
 
@@ -327,13 +357,38 @@ abstract class _PlayerController with Store {
       }
     }
 
+    // 设置 HTTP 代理
+    final bool proxyEnable =
+        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    if (proxyEnable) {
+      final String proxyUrl =
+          setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+      final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
+      if (formattedProxy != null) {
+        await pp.setProperty("http-proxy", formattedProxy);
+        KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+      }
+    }
+
     await mediaPlayer!.setAudioTrack(
       AudioTrack.auto(),
     );
 
+    // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+    // GPU-NEXT 需要 Vulkan 1.2 支持
+    // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+    bool enableGPUNext = false;
+    if (Platform.isAndroid) {
+      final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+      if (androidSdkVersion >= 34) {
+        enableGPUNext = true;
+      }
+    }
+
     videoController ??= VideoController(
       mediaPlayer!,
       configuration: VideoControllerConfiguration(
+        vo: enableGPUNext ? 'gpu-next' : null,
         enableHardwareAcceleration: hAenable,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,
@@ -351,8 +406,8 @@ abstract class _PlayerController with Store {
             duration: const Duration(seconds: 5),
             showActionButton: true);
       }
-      KazumiLogger().log(
-          Level.error, 'Player intent error: ${event.toString()} $videoUrl');
+      KazumiLogger().e(
+          'PlayerController: Player intent error $videoUrl', error: event);
     });
 
     if (superResolutionType != 1) {
@@ -403,8 +458,19 @@ abstract class _PlayerController with Store {
     try {
       mediaPlayer!.setRate(playerSpeed);
     } catch (e) {
-      KazumiLogger().log(Level.error, '设置播放速度失败 ${e.toString()}');
+      KazumiLogger().e('PlayerController: failed to set playback speed', error: e);
     }
+    try {
+      updateDanmakuSpeed();
+    } catch (_) {}
+  }
+
+  void updateDanmakuSpeed() {
+    final baseDuration = setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
+    final followSpeed = setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+
+    final duration = followSpeed ? (baseDuration / playerSpeed) : baseDuration;
+    danmakuController.updateOption(danmakuController.option.copyWith(duration: duration));
   }
 
   Future<void> setVolume(double value) async {
@@ -504,7 +570,13 @@ abstract class _PlayerController with Store {
 
   Future<void> getDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
-    KazumiLogger().log(Level.info, '尝试获取弹幕 [BgmBangumiID] $bgmBangumiID');
+    if (danmakuLoading) {
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
+      return;
+    }
+
+    KazumiLogger().i('PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
+    danmakuLoading = true;
     try {
       danDanmakus.clear();
       bangumiID =
@@ -512,18 +584,28 @@ abstract class _PlayerController with Store {
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+      KazumiLogger().w('PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID', error: e);
+    } finally {
+      danmakuLoading = false;
     }
   }
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
-    KazumiLogger().log(Level.info, '尝试获取弹幕 $episodeID');
+    if (danmakuLoading) {
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
+      return;
+    }
+
+    KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
+    danmakuLoading = true;
     try {
       danDanmakus.clear();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
-      KazumiLogger().log(Level.warning, '获取弹幕错误 ${e.toString()}');
+      KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
+    } finally {
+      danmakuLoading = false;
     }
   }
 
@@ -590,31 +672,33 @@ abstract class _PlayerController with Store {
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode,
-      {bool enableTLS = false}) async {
+      {bool enableTLS = true}) async {
     await syncplayController?.disconnect();
     final String syncPlayEndPoint = setting.get(SettingBoxKey.syncPlayEndPoint,
         defaultValue: defaultSyncPlayEndPoint);
     String syncPlayEndPointHost = '';
     int syncPlayEndPointPort = 0;
-    debugPrint('SyncPlay: 连接到服务器 $syncPlayEndPoint');
+    KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');
     try {
-      final parts = syncPlayEndPoint.split(':');
-      if (parts.length == 2) {
-        syncPlayEndPointHost = parts[0];
-        syncPlayEndPointPort = int.parse(parts[1]);
+      final parsed = parseSyncPlayEndPoint(syncPlayEndPoint);
+      if (parsed != null) {
+        syncPlayEndPointHost = parsed.host;
+        syncPlayEndPointPort = parsed.port;
       }
     } catch (_) {}
     if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
       KazumiDialog.showToast(
         message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
       );
-      KazumiLogger().log(Level.error, 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint');
+      KazumiLogger().e('SyncPlay: invalid server address $syncPlayEndPoint');
       return;
     }
     syncplayController =
         SyncplayClient(host: syncPlayEndPointHost, port: syncPlayEndPointPort);
     try {
       await syncplayController!.connect(enableTLS: enableTLS);
+      KazumiLogger().i(
+          'SyncPlay: connected to $syncPlayEndPointHost:$syncPlayEndPointPort');
       syncplayController!.onGeneralMessage.listen(
         (message) {
           // print('SyncPlay: general message: ${message.toString()}');
@@ -684,12 +768,21 @@ abstract class _PlayerController with Store {
       );
       syncplayController!.onChatMessage.listen(
         (message) {
-          if (message['username'] != username) {
-            KazumiDialog.showToast(
-                message:
-                    'SyncPlay: ${message['username']} 说: ${message['message']}',
-                duration: const Duration(seconds: 5));
+          final String sender = (message['username'] ?? '').toString();
+          final String text = (message['message'] ?? '').toString();
+          final bool fromRemote = message['username'] != username;
+
+          // 将消息转发到流
+          if (!syncPlayChatStreamController.isClosed) {
+            syncPlayChatStreamController.add(SyncPlayChatMessage(
+              username: sender,
+              message: text,
+              fromRemote: fromRemote,
+            ));
           }
+        },
+        onError: (error) {
+          print('SyncPlay: error: ${error.message}');
         },
       );
       syncplayController!.onPositionChangedMessage.listen(
@@ -736,6 +829,7 @@ abstract class _PlayerController with Store {
       print('SyncPlay: error: $e');
     }
   }
+
 
   void setSyncPlayCurrentPosition(
       {bool? forceSyncPlaying, double? forceSyncPosition}) {

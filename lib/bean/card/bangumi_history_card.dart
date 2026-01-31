@@ -9,7 +9,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 
 // 视频历史记录卡片 - 水平布局
@@ -127,7 +126,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
             KazumiDialog.dismiss();
             Modular.to.pushNamed('/video/');
           } catch (_) {
-            KazumiLogger().log(Level.warning, "获取视频播放列表失败");
+            KazumiLogger().w("QueryManager: failed to query roads");
             KazumiDialog.dismiss();
           }
         },

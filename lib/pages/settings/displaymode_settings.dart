@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -62,6 +62,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: AppBar(title: const Text('屏幕帧率设置')),
       body: (modes.isEmpty)
@@ -70,7 +71,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
               maxWidth: 1000,
               sections: [
                 SettingsSection(
-                  title: const Text('没有生效? 重启app试试'),
+                  title: Text('没有生效? 重启app试试', style: TextStyle(fontFamily: fontFamily)),
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
                             radioValue: e,
@@ -84,8 +85,8 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
                               await fetchAll();
                             },
                             title: e == DisplayMode.auto
-                                ? const Text('自动')
-                                : Text('$e${e == active ? "  [系统]" : ""}'),
+                                ? Text('自动', style: TextStyle(fontFamily: fontFamily))
+                                : Text('$e${e == active ? "  [系统]" : ""}', style: TextStyle(fontFamily: fontFamily)),
                           ))
                       .toList(),
                 ),

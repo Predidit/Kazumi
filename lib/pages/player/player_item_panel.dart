@@ -7,14 +7,13 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:saver_gallery/saver_gallery.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 
@@ -26,6 +25,8 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showDanmakuSwitch,
     required this.changeEpisode,
     required this.handleFullscreen,
+    required this.handleScreenShot,
+    required this.handlePreNextEpisode,
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
@@ -36,9 +37,11 @@ class PlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
+    required this.showDanmakuDestinationPickerAndSend,
     this.disableAnimations = false,
   });
 
@@ -48,6 +51,7 @@ class PlayerItemPanel extends StatefulWidget {
   final Future<void> Function(int, {int currentRoad, int offset}) changeEpisode;
   final void Function() openMenu;
   final void Function() handleFullscreen;
+  final void Function() handleScreenShot;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
@@ -56,10 +60,13 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() startHideTimer;
   final void Function() cancelHideTimer;
   final void Function() handleDanmaku;
+  final void Function(String direction) handlePreNextEpisode;
+  final void Function() skipOP;
   final void Function(String) sendDanmaku;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
+  final void Function(String) showDanmakuDestinationPickerAndSend;
   final bool disableAnimations;
 
   @override
@@ -76,24 +83,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();
+  final FocusNode textFieldFocus = FocusNode();  
+  // SVG Caches
+  String? cachedSvgString;
+  Widget? cachedDanmakuOnIcon;
+  Widget? cachedDanmakuOffIcon;
+  Widget? cachedDanmakuSettingIcon;
 
-  Future<void> _handleScreenshot() async {
-    KazumiDialog.showToast(message: '截图中...');
-    try {
-      Uint8List? screenshot =
-          await playerController.screenshot(format: 'image/png');
-      final result = await SaverGallery.saveImage(screenshot!,
-          fileName: DateTime.timestamp().toString(), skipIfExists: false);
-      if (result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存到相簿成功');
-      } else {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
-      }
-    } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
-    }
-  }
+  static const double _danmakuIconSize = 24.0;
+  static const double _loadingIndicatorStrokeWidth = 2.0;
 
   Widget get danmakuTextField {
     return Container(
@@ -123,24 +121,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             borderRadius:
                 BorderRadius.all(Radius.circular(Utils.isDesktop() ? 8 : 20)),
           ),
-          suffixIcon: TextButton(
-            onPressed: () {
-              textFieldFocus.unfocus();
-              widget.sendDanmaku(textController.text);
-              textController.clear();
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : Colors.white60,
-              backgroundColor: playerController.danmakuOn
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Theme.of(context).disabledColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+          suffixIconConstraints: const BoxConstraints(minWidth: 0),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                onPressed: () {
+                  textFieldFocus.unfocus();
+                  widget.showDanmakuDestinationPickerAndSend(textController.text);
+                  textController.clear();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : Colors.white60,
+                  backgroundColor: playerController.danmakuOn
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).disabledColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Utils.isDesktop() ? 8 : 20),
+                  ),
+                ),
+                child: const Text('发送'),
               ),
-            ),
-            child: const Text('发送'),
+            ],
           ),
         ),
         onTapAlwaysCalled: true,
@@ -150,7 +154,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         },
         onSubmitted: (msg) {
           textFieldFocus.unfocus();
-          widget.sendDanmaku(msg);
+          widget.showDanmakuDestinationPickerAndSend(msg);
           widget.cancelHideTimer();
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;
@@ -290,6 +294,72 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    cacheSvgIcons();
+  }
+  
+  void cacheSvgIcons() {
+    cachedDanmakuOffIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_off.svg',
+        height: _danmakuIconSize,
+      ),
+    );
+
+    cachedDanmakuSettingIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_setting.svg',
+        height: _danmakuIconSize,
+      ),
+    );
+  }
+  
+  Widget danmakuOnIcon(BuildContext context) {
+    final colorHex = Theme.of(context)
+        .colorScheme
+        .primary
+        .toARGB32()
+        .toRadixString(16)
+        .substring(2);
+
+    if (cachedSvgString != colorHex) {
+      cachedSvgString = colorHex;
+      final svgString = danmakuOnSvg.replaceFirst('00AEEC', colorHex);
+      cachedDanmakuOnIcon = RepaintBoundary(
+        child: SvgPicture.string(
+          svgString,
+          height: _danmakuIconSize,
+        ),
+      );
+    }
+
+    return cachedDanmakuOnIcon!;
+  }
+
+  Widget _buildDanmakuToggleButton(BuildContext context) {
+    return IconButton(
+      color: Colors.white,
+      icon: playerController.danmakuLoading
+          ? SizedBox(
+              width: _danmakuIconSize,
+              height: _danmakuIconSize,
+              child: CircularProgressIndicator(
+                strokeWidth: _loadingIndicatorStrokeWidth,
+              ),
+            )
+          : (playerController.danmakuOn
+              ? danmakuOnIcon(context)
+              : cachedDanmakuOffIcon!),
+      onPressed: playerController.danmakuLoading
+          ? null
+          : () {
+              widget.handleDanmaku();
+            },
+      tooltip: playerController.danmakuLoading
+          ? '弹幕加载中...'
+          : (playerController.danmakuOn
+              ? '关闭弹幕'
+              : '打开弹幕'),
+    );
   }
 
   Widget forwardIcon() {
@@ -304,8 +374,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),
@@ -573,14 +642,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   Widget get bottomControlWidget {
-    final svgString = danmakuOnSvg.replaceFirst(
-        '00AEEC',
-        Theme.of(context)
-            .colorScheme
-            .primary
-            .toARGB32()
-            .toRadixString(16)
-            .substring(2));
     return Observer(
       builder: (context) {
         return SafeArea(
@@ -668,27 +729,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: const Icon(Icons.skip_next_rounded),
-                          onPressed: () {
-                            if (videoPageController.loading) {
-                              return;
-                            }
-                            if (videoPageController.currentEpisode ==
-                                videoPageController
-                                    .roadList[videoPageController.currentRoad]
-                                    .data
-                                    .length) {
-                              KazumiDialog.showToast(
-                                message: '已经是最新一集',
-                              );
-                              return;
-                            }
-                            KazumiDialog.showToast(
-                                message:
-                                    '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
-                            widget.changeEpisode(
-                                videoPageController.currentEpisode + 1,
-                                currentRoad: videoPageController.currentRoad);
-                          },
+                          onPressed: () => widget.handlePreNextEpisode('next'),
                         ),
                       if (Utils.isDesktop())
                         Container(
@@ -713,24 +754,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    IconButton(
-                                      color: Colors.white,
-                                      icon: playerController.danmakuOn
-                                          ? SvgPicture.string(
-                                              svgString,
-                                              height: 24,
-                                            )
-                                          : SvgPicture.asset(
-                                              'assets/images/danmaku_off.svg',
-                                              height: 24,
-                                            ),
-                                      onPressed: () {
-                                        widget.handleDanmaku();
-                                      },
-                                      tooltip: playerController.danmakuOn
-                                          ? '关闭弹幕(d)'
-                                          : '打开弹幕(d)',
-                                    ),
+                                    _buildDanmakuToggleButton(context),
                                     IconButton(
                                       onPressed: () {
                                         widget.keyboardFocus.requestFocus();
@@ -756,16 +780,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                             context: context,
                                             builder: (context) {
                                               return DanmakuSettingsSheet(
-                                                  danmakuController:
-                                                      playerController
-                                                          .danmakuController);
+                                                danmakuController:
+                                                    playerController
+                                                        .danmakuController,
+                                                onUpdateDanmakuSpeed:
+                                                    playerController.updateDanmakuSpeed,
+                                              );
                                             });
                                       },
                                       color: Colors.white,
-                                      icon: SvgPicture.asset(
-                                        'assets/images/danmaku_setting.svg',
-                                        height: 24,
-                                      ),
+                                      icon: cachedDanmakuSettingIcon!,
                                     ),
                                     if (isSpaceEnough) danmakuTextField,
                                   ],
@@ -778,19 +802,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: playerController.danmakuOn
-                              ? SvgPicture.string(
-                                  svgString,
-                                  height: 24,
-                                )
-                              : SvgPicture.asset(
-                                  'assets/images/danmaku_off.svg',
-                                  height: 24,
-                                ),
+                              ? danmakuOnIcon(context)
+                              : cachedDanmakuOffIcon!,
                           onPressed: () {
                             widget.handleDanmaku();
                           },
                           tooltip:
-                              playerController.danmakuOn ? '关闭弹幕(d)' : '打开弹幕(d)',
+                              playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
                         ),
                         if (playerController.danmakuOn) ...[
                           IconButton(
@@ -812,15 +830,15 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                   context: context,
                                   builder: (context) {
                                     return DanmakuSettingsSheet(
-                                        danmakuController:
-                                            playerController.danmakuController);
+                                      danmakuController:
+                                          playerController.danmakuController,
+                                      onUpdateDanmakuSpeed:
+                                          playerController.updateDanmakuSpeed,
+                                    );
                                   });
                             },
                             color: Colors.white,
-                            icon: SvgPicture.asset(
-                              'assets/images/danmaku_setting.svg',
-                              height: 24,
-                            ),
+                            icon: cachedDanmakuSettingIcon!,
                           ),
                           Expanded(child: danmakuTextField),
                         ],
@@ -1297,7 +1315,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         color: Colors.white,
                       ),
                       onPressed: () {
-                        _handleScreenshot();
+                        widget.handleScreenShot();
                       },
                     ),
               IconButton(

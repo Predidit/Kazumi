@@ -13,10 +13,12 @@ class BangumiInfoCardV extends StatefulWidget {
     super.key,
     required this.bangumiItem,
     required this.isLoading,
+    required this.showRating,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
+  final bool showRating;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -181,7 +183,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              '${widget.bangumiItem.votes} 人评分:',
+                              widget.showRating
+                                  ? '${widget.bangumiItem.votes} 人评分:'
+                                  : '*** 人评分:',
                             ),
                             if (widget.isLoading)
                               // Skeleton Loader 占位符
@@ -197,7 +201,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               Row(
                                 children: [
                                   Text(
-                                    '${widget.bangumiItem.ratingScore}',
+                                    widget.showRating
+                                        ? '${widget.bangumiItem.ratingScore}'
+                                        : '***',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -208,9 +214,11 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                   const SizedBox(width: 8),
                                   RatingBarIndicator(
                                     itemCount: 5,
-                                    rating: widget.bangumiItem.ratingScore
-                                            .toDouble() /
-                                        2,
+                                    rating: widget.showRating
+                                        ? widget.bangumiItem.ratingScore
+                                                .toDouble() /
+                                            2
+                                        : 0,
                                     itemBuilder: (context, index) => Icon(
                                       Icons.star_rounded,
                                       color:
@@ -225,7 +233,9 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               'Bangumi Ranked:',
                             ),
                             Text(
-                              '#${widget.bangumiItem.rank}',
+                              widget.showRating
+                                  ? '#${widget.bangumiItem.rank}'
+                                  : '***',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -245,7 +255,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     ),
                   ),
                 ),
-                if (MediaQuery.sizeOf(context).width >=
+                if (widget.showRating &&
+                    MediaQuery.sizeOf(context).width >=
                         LayoutBreakpoint.compact['width']! &&
                     !widget.isLoading)
                   voteBarChart,

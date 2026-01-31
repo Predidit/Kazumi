@@ -46,7 +46,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await videoPageController.queryBangumiEpisodeCommentsByID(
+    await videoPageController
+        .queryBangumiEpisodeCommentsByID(
             videoPageController.bangumiItem.id, episode)
         .then((_) {
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
@@ -58,6 +59,10 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void toggleSortOrder() {
+    videoPageController.toggleSortOrder();
   }
 
   @override
@@ -174,6 +179,22 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                 '手动切换',
                 style: TextStyle(fontSize: 13),
               ),
+            ),
+          ),
+          SizedBox(
+            height: 34,
+            child: TextButton(
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 4.0)),
+              ),
+              onPressed: toggleSortOrder,
+              child: Observer(builder: (context) {
+                return Text(
+                  videoPageController.isCommentsAscending ? '倒序' : '正序',
+                  style: const TextStyle(fontSize: 13),
+                );
+              }),
             ),
           ),
         ],

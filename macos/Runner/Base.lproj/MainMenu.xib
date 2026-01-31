@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23504" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24127" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23504"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24127"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -153,15 +153,108 @@
                         </items>
                     </menu>
                 </menuItem>
-                <menuItem title="View" id="H8h-7b-M4v">
+                <menuItem title="Player" identifier="PlayerMenu" id="vQb-zP-A4Q">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="View" id="HyV-fh-RgO">
+                    <menu key="submenu" title="Player" id="ufy-gc-bv9">
                         <items>
-                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                            <menuItem title="Play / Pause" image="playpause.fill" catalog="system" id="Yz8-Qq-Cit">
+                                <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="toggleFullScreen:" target="-1" id="dU3-MA-1Rq"/>
+                                    <action selector="menuPlayPause:" target="-1" id="NHI-W0-zAE"/>
                                 </connections>
+                            </menuItem>
+                            <menuItem title="Forward" image="forward.fill" catalog="system" id="1oV-tb-v1I">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuForward:" target="-1" id="lyl-Fh-Jp6"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Rewind" image="backward.fill" catalog="system" id="hfw-bJ-3tF">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuRewind:" target="-1" id="f1W-5c-HuA"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Next" image="forward.end.fill" catalog="system" id="cVr-GM-2GR">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuNext:" target="-1" id="hdP-70-tVI"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Previous" image="backward.end.fill" catalog="system" id="Ox4-Od-VDn">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuPrevious:" target="-1" id="ydf-b2-Mwz"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Skip" image="NSTouchBarSkipAhead30SecondsTemplate" id="jFI-nV-KPO">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuSkip:" target="-1" id="MHM-Mm-dSL"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ruh-Xu-tvB"/>
+                            <menuItem title="Volume Up" image="speaker.plus.fill" catalog="system" id="o2L-YK-Znd">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuVolumeUp:" target="-1" id="pqi-ks-VQC"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Volume Down" image="speaker.minus.fill" catalog="system" id="CEJ-Pz-JnN">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuVolumeDown:" target="-1" id="C4z-PB-KaE"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Toggle Mute" image="speaker.slash.fill" catalog="system" id="0go-7w-Agj">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuToggleMute:" target="-1" id="dna-bl-RPf"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="dKr-8P-RX9"/>
+                            <menuItem title="Toggle Danmaku" id="lmU-yX-0QG">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="menuToggleDanmaku:" target="-1" id="v0C-DN-WQV"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Speed" id="weg-Na-dVX">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Speed" id="FYI-7j-0Xf">
+                                    <items>
+                                        <menuItem title="1x" id="bfm-UB-X5j">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="menuSpeed1:" target="-1" id="aRw-nP-8ho"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="2x" id="jBw-Xy-dFw">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="menuSpeed2:" target="-1" id="Agr-AV-U8w"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="3x" id="kW7-vW-l12">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="menuSpeed3:" target="-1" id="EsI-b2-hxk"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Speed Up" image="gauge.with.dots.needle.67percent" catalog="system" id="kCQ-C0-LpW">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="menuSpeedUp:" target="-1" id="J2g-cH-8Da"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Speed Down" image="gauge.with.dots.needle.33percent" catalog="system" id="V9W-wp-A8v">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="menuSpeedDown:" target="-1" id="gqy-pK-cyG"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
                             </menuItem>
                         </items>
                     </menu>
@@ -179,6 +272,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="performZoom:" target="-1" id="DIl-cC-cCs"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleFullScreen:" target="-1" id="dU3-MA-1Rq"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="eu3-7i-yIM"/>
@@ -201,7 +300,7 @@
         <window title="APP_NAME" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" titlebarAppearsTransparent="YES" titleVisibility="hidden" id="QvC-M9-y7g" customClass="MainFlutterWindow" customModule="Kazumi" customModuleProvider="target">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" fullSizeContentView="YES"/>
             <rect key="contentRect" x="335" y="390" width="800" height="600"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1415"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1680" height="1019"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
                 <autoresizingMask key="autoresizingMask"/>
@@ -209,4 +308,17 @@
             <point key="canvasLocation" x="139" y="144"/>
         </window>
     </objects>
+    <resources>
+        <image name="NSTouchBarSkipAhead30SecondsTemplate" width="20" height="22"/>
+        <image name="backward.end.fill" catalog="system" width="15" height="12"/>
+        <image name="backward.fill" catalog="system" width="20" height="12"/>
+        <image name="forward.end.fill" catalog="system" width="15" height="12"/>
+        <image name="forward.fill" catalog="system" width="20" height="12"/>
+        <image name="gauge.with.dots.needle.33percent" catalog="system" width="15" height="15"/>
+        <image name="gauge.with.dots.needle.67percent" catalog="system" width="15" height="15"/>
+        <image name="playpause.fill" catalog="system" width="22" height="12"/>
+        <image name="speaker.minus.fill" catalog="system" width="19" height="14"/>
+        <image name="speaker.plus.fill" catalog="system" width="19" height="14"/>
+        <image name="speaker.slash.fill" catalog="system" width="14" height="16"/>
+    </resources>
 </document>

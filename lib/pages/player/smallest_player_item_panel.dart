@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -11,7 +11,7 @@ import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
@@ -33,6 +33,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.startHideTimer,
     required this.cancelHideTimer,
     required this.handleDanmaku,
+    required this.skipOP,
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
@@ -43,6 +44,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
   final void Function() handleDanmaku;
+  final void Function() skipOP;
   final void Function() handleFullscreen;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
@@ -72,6 +74,14 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
+  
+  // SVG Caches
+  String? cachedSvgString;
+  Widget? cachedDanmakuOnIcon;
+  Widget? cachedDanmakuOffIcon;
+
+  static const double _danmakuIconSize = 24.0;
+  static const double _loadingIndicatorStrokeWidth = 2.0;
 
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
@@ -143,6 +153,65 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    cacheSvgIcons();
+  }
+  
+  void cacheSvgIcons() {
+    cachedDanmakuOffIcon = RepaintBoundary(
+      child: SvgPicture.asset(
+        'assets/images/danmaku_off.svg',
+        height: _danmakuIconSize,
+      ),
+    );
+  }
+  
+  Widget danmakuOnIcon(BuildContext context) {
+    final colorHex = Theme.of(context)
+        .colorScheme
+        .primary
+        .toARGB32()
+        .toRadixString(16)
+        .substring(2);
+
+    if (cachedSvgString != colorHex) {
+      cachedSvgString = colorHex;
+      final svgString = danmakuOnSvg.replaceFirst('00AEEC', colorHex);
+      cachedDanmakuOnIcon = RepaintBoundary(
+        child: SvgPicture.string(
+          svgString,
+          height: _danmakuIconSize,
+        ),
+      );
+    }
+
+    return cachedDanmakuOnIcon!;
+  }
+
+  Widget _buildDanmakuToggleButton(BuildContext context) {
+    return IconButton(
+      color: Colors.white,
+      icon: playerController.danmakuLoading
+          ? SizedBox(
+              width: _danmakuIconSize,
+              height: _danmakuIconSize,
+              child: CircularProgressIndicator(
+                strokeWidth: _loadingIndicatorStrokeWidth,
+              ),
+            )
+          : (playerController.danmakuOn
+              ? danmakuOnIcon(context)
+              : cachedDanmakuOffIcon!),
+      onPressed: playerController.danmakuLoading
+          ? null
+          : () {
+              widget.handleDanmaku();
+            },
+      tooltip: playerController.danmakuLoading
+          ? '弹幕加载中...'
+          : (playerController.danmakuOn
+              ? '关闭弹幕'
+              : '打开弹幕'),
+    );
   }
 
   Widget forwardIcon() {
@@ -157,8 +226,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             height: 24,
           ),
           onPressed: () {
-            playerController.seek(playerController.currentPosition +
-                Duration(seconds: playerController.buttonSkipTime));
+            widget.skipOP();
           },
         ),
       ),
@@ -468,14 +536,6 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   }
 
   Widget get topControlWidget {
-    final svgString = danmakuOnSvg.replaceFirst(
-        '00AEEC',
-        Theme.of(context)
-            .colorScheme
-            .primary
-            .toARGB32()
-            .toRadixString(16)
-            .substring(2));
     return Observer(builder: (context) {
       return EmbeddedNativeControlArea(
         child: Row(
@@ -506,22 +566,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: const Icon(Icons.picture_in_picture,
                       color: Colors.white)),
             // 弹幕开关
-            IconButton(
-              color: Colors.white,
-              icon: playerController.danmakuOn
-                  ? SvgPicture.string(
-                      svgString,
-                      height: 24,
-                    )
-                  : SvgPicture.asset(
-                      'assets/images/danmaku_off.svg',
-                      height: 24,
-                    ),
-              onPressed: () {
-                widget.handleDanmaku();
-              },
-              tooltip: playerController.danmakuOn ? '关闭弹幕' : '打开弹幕',
-            ),
+            _buildDanmakuToggleButton(context),
             // 追番
             CollectButton(
               bangumiItem: videoPageController.bangumiItem,
@@ -769,8 +814,11 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       context: context,
                       builder: (context) {
                         return DanmakuSettingsSheet(
-                            danmakuController:
-                                playerController.danmakuController);
+                          danmakuController:
+                              playerController.danmakuController,
+                          onUpdateDanmakuSpeed:
+                              playerController.updateDanmakuSpeed,
+                        );
                       },
                     );
                   },

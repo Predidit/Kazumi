@@ -4,11 +4,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -155,41 +154,11 @@ class _AppWidgetState extends State<AppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      debugPrint("应用进入后台");
-      // bool webDavEnable =
-      //     await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      // bool webDavEnableHistory = await setting
-      //     .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      // if (webDavEnable && webDavEnableHistory) {
-      //   var webDav = WebDav();
-      //   webDav.updateHistory();
-      // }
+      KazumiLogger().i("AppLifecycleState.paused: Application moved to background");
     } else if (state == AppLifecycleState.resumed) {
-      debugPrint("应用回到前台");
-      // bool webDavEnable =
-      //     await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      // bool webDavEnableHistory = await setting
-      //     .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      // if (webDavEnable && webDavEnableHistory) {
-      //   try {
-      //     var webDav = WebDav();
-      //     webDav.downloadAndPatchHistory();
-      //   } catch (e) {
-      //     KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
-      //   }
-      // }
+      KazumiLogger().i("AppLifecycleState.resumed: Application moved to foreground");
     } else if (state == AppLifecycleState.inactive) {
-      debugPrint("应用处于非活动状态");
-      // if (Platform.isWindows || Platform.isLinux) {
-      //   bool webDavEnable =
-      //       await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-      //   bool webDavEnableHistory = await setting
-      //       .get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-      //   if (webDavEnable && webDavEnableHistory) {
-      //     var webDav = WebDav();
-      //     webDav.updateHistory();
-      //   }
-      // }
+      KazumiLogger().i("AppLifecycleState.inactive: Application is inactive");
     }
   }
 
@@ -231,6 +200,8 @@ class _AppWidgetState extends State<AppWidget>
     }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    bool useSystemFont =
+        setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
     final defaultThemeMode =
         setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
     if (defaultThemeMode == 'dark') {
@@ -242,8 +213,10 @@ class _AppWidgetState extends State<AppWidget>
     if (defaultThemeMode == 'system') {
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
+    themeProvider.setFontFamily(useSystemFont, notify: false);
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,
+        fontFamily: themeProvider.currentFontFamily,
         brightness: Brightness.dark,
         colorSchemeSeed: color,
         progressIndicatorTheme: progressIndicatorTheme2024,
@@ -253,6 +226,7 @@ class _AppWidgetState extends State<AppWidget>
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
+          fontFamily: themeProvider.currentFontFamily,
           brightness: Brightness.light,
           colorSchemeSeed: color,
           progressIndicatorTheme: progressIndicatorTheme2024,
@@ -266,6 +240,8 @@ class _AppWidgetState extends State<AppWidget>
         if (themeProvider.useDynamicColor) {
           themeProvider.setTheme(
             ThemeData(
+                useMaterial3: true,
+                fontFamily: themeProvider.currentFontFamily,
                 colorScheme: theme,
                 brightness: Brightness.light,
                 progressIndicatorTheme: progressIndicatorTheme2024,
@@ -273,12 +249,16 @@ class _AppWidgetState extends State<AppWidget>
                 pageTransitionsTheme: pageTransitionsTheme2024),
             oledEnhance
                 ? Utils.oledDarkTheme(ThemeData(
+                    useMaterial3: true,
+                    fontFamily: themeProvider.currentFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
                     sliderTheme: sliderTheme2024,
                     pageTransitionsTheme: pageTransitionsTheme2024))
                 : ThemeData(
+                    useMaterial3: true,
+                    fontFamily: themeProvider.currentFontFamily,
                     colorScheme: darkTheme,
                     brightness: Brightness.dark,
                     progressIndicatorTheme: progressIndicatorTheme2024,
@@ -320,7 +300,7 @@ class _AppWidgetState extends State<AppWidget>
           FlutterDisplayMode.setPreferredMode(preferred);
         });
       } catch (e) {
-        KazumiLogger().log(Level.error, '高帧率设置失败 ${e.toString()}');
+        KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
       }
     }
 

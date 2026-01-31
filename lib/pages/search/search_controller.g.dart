@@ -41,24 +41,49 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
-  late final _$showWatchedBangumisAtom =
-      Atom(name: '_SearchPageController.showWatchedBangumis', context: context);
+  late final _$notShowWatchedBangumisAtom = Atom(
+      name: '_SearchPageController.notShowWatchedBangumis', context: context);
 
   @override
   bool get notShowWatchedBangumis {
-    _$showWatchedBangumisAtom.reportRead();
+    _$notShowWatchedBangumisAtom.reportRead();
     return super.notShowWatchedBangumis;
   }
 
-  bool _showWatchedBangumisIsInitialized = false;
+  bool _notShowWatchedBangumisIsInitialized = false;
 
   @override
   set notShowWatchedBangumis(bool value) {
-    _$showWatchedBangumisAtom.reportWrite(value,
-        _showWatchedBangumisIsInitialized ? super.notShowWatchedBangumis : null,
-        () {
+    _$notShowWatchedBangumisAtom.reportWrite(
+        value,
+        _notShowWatchedBangumisIsInitialized
+            ? super.notShowWatchedBangumis
+            : null, () {
       super.notShowWatchedBangumis = value;
-      _showWatchedBangumisIsInitialized = true;
+      _notShowWatchedBangumisIsInitialized = true;
+    });
+  }
+
+  late final _$notShowAbandonedBangumisAtom = Atom(
+      name: '_SearchPageController.notShowAbandonedBangumis', context: context);
+
+  @override
+  bool get notShowAbandonedBangumis {
+    _$notShowAbandonedBangumisAtom.reportRead();
+    return super.notShowAbandonedBangumis;
+  }
+
+  bool _notShowAbandonedBangumisIsInitialized = false;
+
+  @override
+  set notShowAbandonedBangumis(bool value) {
+    _$notShowAbandonedBangumisAtom.reportWrite(
+        value,
+        _notShowAbandonedBangumisIsInitialized
+            ? super.notShowAbandonedBangumis
+            : null, () {
+      super.notShowAbandonedBangumis = value;
+      _notShowAbandonedBangumisIsInitialized = true;
     });
   }
 
@@ -122,14 +147,24 @@ mixin _$SearchPageController on _SearchPageController, Store {
         .run(() => super.clearSearchHistory());
   }
 
-  late final _$setShowWatchedBangumisAsyncAction = AsyncAction(
-      '_SearchPageController.setShowWatchedBangumis',
+  late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
+      '_SearchPageController.setNotShowWatchedBangumis',
       context: context);
 
   @override
   Future<void> setNotShowWatchedBangumis(bool value) {
-    return _$setShowWatchedBangumisAsyncAction
+    return _$setNotShowWatchedBangumisAsyncAction
         .run(() => super.setNotShowWatchedBangumis(value));
+  }
+
+  late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
+      '_SearchPageController.setNotShowAbandonedBangumis',
+      context: context);
+
+  @override
+  Future<void> setNotShowAbandonedBangumis(bool value) {
+    return _$setNotShowAbandonedBangumisAsyncAction
+        .run(() => super.setNotShowAbandonedBangumis(value));
   }
 
   late final _$_SearchPageControllerActionController =
@@ -147,22 +182,12 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
-  Set<String> loadWatchedBangumiNames() {
-    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
-        name: '_SearchPageController.loadWatchedBangumiNames');
-    try {
-      return super.loadWatchedBangumiNames();
-    } finally {
-      _$_SearchPageControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
-showWatchedBangumis: ${notShowWatchedBangumis},
+notShowWatchedBangumis: ${notShowWatchedBangumis},
+notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
 searchHistories: ${searchHistories}
     ''';

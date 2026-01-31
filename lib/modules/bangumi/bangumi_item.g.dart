@@ -8,7 +8,7 @@ part of 'bangumi_item.dart';
 
 class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
   @override
-  final int typeId = 0;
+  final typeId = 0;
 
   @override
   BangumiItem read(BinaryReader reader) {
@@ -17,19 +17,19 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return BangumiItem(
-      id: fields[0] as int,
-      type: fields[1] as int,
+      id: (fields[0] as num).toInt(),
+      type: (fields[1] as num).toInt(),
       name: fields[2] as String,
       nameCn: fields[3] as String,
       summary: fields[4] as String,
       airDate: fields[5] as String,
-      airWeekday: fields[6] as int,
-      rank: fields[7] as int,
+      airWeekday: (fields[6] as num).toInt(),
+      rank: (fields[7] as num).toInt(),
       images: (fields[8] as Map).cast<String, String>(),
       tags: fields[9] == null ? [] : (fields[9] as List).cast<BangumiTag>(),
       alias: fields[10] == null ? [] : (fields[10] as List).cast<String>(),
-      ratingScore: fields[11] == null ? 0.0 : fields[11] as double,
-      votes: fields[12] == null ? 0 : fields[12] as int,
+      ratingScore: fields[11] == null ? 0.0 : (fields[11] as num).toDouble(),
+      votes: fields[12] == null ? 0 : (fields[12] as num).toInt(),
       votesCount: fields[13] == null ? [] : (fields[13] as List).cast<int>(),
       info: fields[14] == null ? '' : fields[14] as String,
     );

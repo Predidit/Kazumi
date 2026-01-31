@@ -9,7 +9,7 @@ part of 'collect_change_module.dart';
 class CollectedBangumiChangeAdapter
     extends TypeAdapter<CollectedBangumiChange> {
   @override
-  final int typeId = 5;
+  final typeId = 5;
 
   @override
   CollectedBangumiChange read(BinaryReader reader) {
@@ -18,11 +18,11 @@ class CollectedBangumiChangeAdapter
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return CollectedBangumiChange(
-      fields[0] as int,
-      fields[1] as int,
-      fields[2] as int,
-      fields[3] as int,
-      fields[4] as int,
+      (fields[0] as num).toInt(),
+      (fields[1] as num).toInt(),
+      (fields[2] as num).toInt(),
+      (fields[3] as num).toInt(),
+      (fields[4] as num).toInt(),
     );
   }
 

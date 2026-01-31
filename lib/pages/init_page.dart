@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -8,9 +8,9 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
@@ -32,14 +32,30 @@ class _InitPageState extends State<InitPage> {
 
   @override
   void initState() {
-    _pluginInit();
-    _webDavInit();
+    super.initState();
+    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
     _migrateStorage();
     _loadShaders();
     _loadDanmakuShield();
+    _webDavInit();
+
+    await _checkRunningOnX11();
+    await _pluginInit();
+
+    _navigateToHome();
     _update();
-    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    super.initState();
+  }
+
+  void _navigateToHome() {
+    // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
+    // setDynamic here to avoid white screen flash when themeMode is dark.
+    themeProvider.setDynamic(
+        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
+    Modular.to.navigate('/tab/popular/');
   }
 
   // migrate collect from old version (favorites)
@@ -60,20 +76,58 @@ class _InitPageState extends State<InitPage> {
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
       var webDav = WebDav();
-      KazumiLogger().log(Level.info, '开始从WEBDAV同步记录');
+      KazumiLogger().i('WebDav: Starting WebDav initialization');
       try {
         await webDav.init();
         try {
           await webDav.downloadAndPatchHistory();
-          KazumiLogger().log(Level.info, '同步观看记录完成');
+          KazumiLogger().i('WebDav: Completed syncing watch history');
         } catch (e) {
-          KazumiDialog.showToast(message:"同步观看记录失败 ${e.toString()}");
-          //KazumiLogger().log(Level.error, '同步观看记录失败 ${e.toString()}');
+          KazumiDialog.showToast(message: "同步观看记录失败 ${e.toString()}");
         }
       } catch (e) {
-        KazumiDialog.showToast(message:"初始化WebDav失败 ${e.toString()}");
-        //KazumiLogger().log(Level.error, '初始化WebDav失败 ${e.toString()}');
+        KazumiDialog.showToast(message: "初始化WebDav失败 ${e.toString()}");
       }
+    }
+  }
+
+  Future<void> _checkRunningOnX11() async {
+    if (!Platform.isLinux) {
+      return;
+    }
+    bool isRunningOnX11 = await Utils.isRunningOnX11();
+    if (isRunningOnX11) {
+      await KazumiDialog.show(
+        clickMaskDismiss: false,
+        builder: (context) {
+          return PopScope(
+            canPop: false,
+            child: AlertDialog(
+              title: const Text('X11环境检测'),
+              content: const Text(
+                  '检测到您当前运行在X11环境下，Kazumi在X11环境下可能出现性能问题或界面异常，建议切换到Wayland以获得更好的体验。您是否希望在X11下继续使用Kazumi？'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    exit(0);
+                  },
+                  child: Text(
+                    '退出',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    KazumiDialog.dismiss();
+                  },
+                  child: const Text('继续'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
     }
   }
 
@@ -113,10 +167,9 @@ class _InitPageState extends State<InitPage> {
                     } catch (_) {}
                     KazumiDialog.dismiss();
                     if (!Platform.isAndroid) {
-                      Modular.to.navigate('/tab/popular/');
                       return;
                     }
-                    _switchUpdateMirror();
+                    await _switchUpdateMirror();
                   },
                   child: const Text('已阅读并同意'),
                 ),
@@ -125,12 +178,6 @@ class _InitPageState extends State<InitPage> {
           );
         },
       );
-    } else {
-      // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
-      // setDynamic here to avoid white screen flash when themeMode is dark.
-      themeProvider.setDynamic(
-          setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
-      Modular.to.navigate('/tab/popular/');
     }
   }
 
@@ -171,7 +218,6 @@ class _InitPageState extends State<InitPage> {
                 onPressed: () {
                   setting.put(SettingBoxKey.autoUpdate, true);
                   KazumiDialog.dismiss();
-                  Modular.to.navigate('/tab/popular/');
                 },
                 child: const Text(
                   'Github',
@@ -181,7 +227,6 @@ class _InitPageState extends State<InitPage> {
                 onPressed: () {
                   setting.put(SettingBoxKey.autoUpdate, false);
                   KazumiDialog.dismiss();
-                  Modular.to.navigate('/tab/popular/');
                 },
                 child: Text(
                   'F-Droid',
@@ -199,7 +244,6 @@ class _InitPageState extends State<InitPage> {
   Future<void> _update() async {
     // Don't check update when there is no plugin.
     // We will progress init workflow instead.
-    await Future.delayed(const Duration(seconds: 1));
     if (pluginsController.pluginList.isNotEmpty) {
       bool autoUpdate =
           setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
@@ -224,18 +268,6 @@ class _InitPageState extends State<InitPage> {
 
   @override
   Widget build(BuildContext context) {
-    /// 适配平板设备
-    Box setting = GStorage.setting;
-    bool isWideScreen = MediaQuery.of(context).size.shortestSide >= 600 &&
-        (MediaQuery.of(context).size.shortestSide /
-                MediaQuery.of(context).size.longestSide >=
-            9 / 16);
-    if (isWideScreen) {
-      KazumiLogger().log(Level.info, '当前设备宽屏');
-    } else {
-      KazumiLogger().log(Level.info, '当前设备非宽屏');
-    }
-    setting.put(SettingBoxKey.isWideScreen, isWideScreen);
     return const LoadingWidget();
   }
 }

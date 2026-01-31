@@ -45,6 +45,6 @@ add_dependencies(${BINARY_NAME} flutter_assemble)
 # These files are not needed for the application and can be safely removed.
 add_custom_command(TARGET ${BINARY_NAME}
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/${BINARY_NAME}.exp"
-  COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/${BINARY_NAME}.lib"
+  COMMAND ${CMAKE_COMMAND} -E remove "$<TARGET_FILE_DIR:${BINARY_NAME}>/${BINARY_NAME}.exp"
+  COMMAND ${CMAKE_COMMAND} -E remove "$<TARGET_FILE_DIR:${BINARY_NAME}>/${BINARY_NAME}.lib"
 )

@@ -1,4 +1,3 @@
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -32,7 +31,7 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'Resolve calendar failed ${e.toString()}');
+          .e('Resolve calendar failed', error: e);
     }
     return bangumiCalendar;
   }
@@ -71,7 +70,7 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'Resolve bangumi list failed ${e.toString()}');
+          .e('Resolve bangumi list failed', error: e);
     }
     try {
       for (int weekday = 1; weekday <= 7; weekday++) {
@@ -84,8 +83,7 @@ class BangumiHTTP {
         bangumiCalendar.add(bangumiDayList);
       }
     } catch (e) {
-      KazumiLogger().log(
-          Level.error, 'Fetch bangumi item to calendar failed ${e.toString()}');
+      KazumiLogger().e('Network: fetch bangumi item to calendar failed', error: e);
     }
     return bangumiCalendar;
   }
@@ -131,7 +129,7 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger()
-          .log(Level.error, 'Resolve bangumi list failed ${e.toString()}');
+          .e('Network: resolve bangumi list failed', error: e);
     }
     return bangumiList;
   }
@@ -157,8 +155,7 @@ class BangumiHTTP {
         }
       }
     } catch (e) {
-      KazumiLogger().log(
-          Level.error, 'Resolve bangumi trends list failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi trends list failed', error: e);
     }
     return bangumiList;
   }
@@ -196,13 +193,12 @@ class BangumiHTTP {
               bangumiList.add(bangumiItem);
             }
           } catch (e) {
-            KazumiLogger().log(
-                Level.error, 'Resolve search results failed ${e.toString()}');
+            KazumiLogger().e('Network: resolve search results failed', error: e);
           }
         }
       }
     } catch (e) {
-      KazumiLogger().log(Level.error, 'Unknown search problem ${e.toString()}');
+      KazumiLogger().e('Network: unknown search problem', error: e);
     }
     return bangumiList;
   }
@@ -214,8 +210,7 @@ class BangumiHTTP {
       );
       return BangumiItem.fromJson(res.data);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi item failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi item failed', error: e);
       return null;
     }
   }
@@ -235,8 +230,7 @@ class BangumiHTTP {
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi episode failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi episode failed', error: e);
     }
     return episodeInfo;
   }
@@ -252,8 +246,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi comments failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi comments failed', error: e);
     }
     return commentResponse;
   }
@@ -271,8 +264,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().log(Level.error,
-          'Resolve bangumi episode comments failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi episode comments failed', error: e);
     }
     return commentResponse;
   }
@@ -290,8 +282,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       commentResponse = CharacterCommentResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().log(Level.error,
-          'Resolve bangumi character comments failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi character comments failed', error: e);
     }
     return commentResponse;
   }
@@ -306,8 +297,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       staffResponse = StaffResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve bangumi staff failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi staff failed', error: e);
     }
     return staffResponse;
   }
@@ -321,8 +311,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       charactersResponse = CharactersResponse.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger().log(
-          Level.error, 'Resolve bangumi characters failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve bangumi characters failed', error: e);
     }
     return charactersResponse;
   }
@@ -339,8 +328,7 @@ class BangumiHTTP {
       final jsonData = res.data;
       characterFullItem = CharacterFullItem.fromJson(jsonData);
     } catch (e) {
-      KazumiLogger()
-          .log(Level.error, 'Resolve character info failed ${e.toString()}');
+      KazumiLogger().e('Network: resolve character info failed', error: e);
     }
     return characterFullItem;
   }

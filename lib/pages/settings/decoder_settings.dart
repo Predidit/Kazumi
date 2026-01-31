@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -20,6 +20,7 @@ class _DecoderSettingsState extends State<DecoderSettings> {
 
   @override
   Widget build(BuildContext context) {
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: const SysAppBar(
         title: Text('硬件解码器'),
@@ -28,11 +29,11 @@ class _DecoderSettingsState extends State<DecoderSettings> {
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: const Text('选择不受支持的解码器将回退到软件解码'),
+            title: Text('选择不受支持的解码器将回退到软件解码', style: TextStyle(fontFamily: fontFamily)),
             tiles: hardwareDecodersList.entries
                 .map((e) => SettingsTile<String>.radioTile(
-                      title: Text(e.key),
-                      description: Text(e.value),
+                      title: Text(e.key, style: TextStyle(fontFamily: fontFamily)),
+                      description: Text(e.value, style: TextStyle(fontFamily: fontFamily)),
                       radioValue: e.key,
                       groupValue: decoder.value,
                       onChanged: (String? value) {

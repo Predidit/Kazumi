@@ -1,7 +1,7 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:hive/hive.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:mobx/mobx.dart';
 
 part 'history_controller.g.dart';
@@ -9,76 +9,51 @@ part 'history_controller.g.dart';
 class HistoryController = _HistoryController with _$HistoryController;
 
 abstract class _HistoryController with Store {
-  Box setting = GStorage.setting;
-  var storedHistories = GStorage.histories;
+  final _historyRepository = Modular.get<IHistoryRepository>();
 
   @observable
   ObservableList<History> histories = ObservableList<History>(); 
 
   void init() {
-    var temp = storedHistories.values.toList();
-    temp.sort(
-      (a, b) =>
-          b.lastWatchTime.millisecondsSinceEpoch -
-          a.lastWatchTime.millisecondsSinceEpoch,
-    );
+    final temp = _historyRepository.getAllHistories();
     histories.clear();
     histories.addAll(temp);
   }
 
-  void updateHistory(
-      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc, String lastWatchEpisodeName) {
-    bool privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
-    if (privateMode) {
-      return;
-    }
-    var history = storedHistories.get(History.getKey(adapterName, bangumiItem)) ??
-        History(bangumiItem, episode, adapterName, DateTime.now(), lastSrc, lastWatchEpisodeName);
-    history.lastWatchEpisode = episode;
-    history.lastWatchTime = DateTime.now();
-    if (lastSrc != '') {
-      history.lastSrc = lastSrc;
-    }
-    if (lastWatchEpisodeName != '') {
-      history.lastWatchEpisodeName = lastWatchEpisodeName;
-    }
-
-    var prog = history.progresses[episode];
-    if (prog == null) {
-      history.progresses[episode] =
-          Progress(episode, road, progress.inMilliseconds);
-    } else {
-      prog.progress = progress;
-    }
-
-    storedHistories.put(history.key, history);
+  Future<void> updateHistory(
+      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc, String lastWatchEpisodeName) async {
+    await _historyRepository.updateHistory(
+      episode: episode,
+      road: road,
+      adapterName: adapterName,
+      bangumiItem: bangumiItem,
+      progress: progress,
+      lastSrc: lastSrc,
+      lastWatchEpisodeName: lastWatchEpisodeName,
+    );
     init();
   }
 
   Progress? lastWatching(BangumiItem bangumiItem, String adapterName) {
-    var history = storedHistories.get(History.getKey(adapterName, bangumiItem));
-    return history?.progresses[history.lastWatchEpisode];
+    return _historyRepository.getLastWatchingProgress(bangumiItem, adapterName);
   }
 
   Progress? findProgress(BangumiItem bangumiItem, String adapterName, int episode) {
-    var history = storedHistories.get(History.getKey(adapterName, bangumiItem));
-    return history?.progresses[episode];
+    return _historyRepository.findProgress(bangumiItem, adapterName, episode);
   }
 
-  void deleteHistory(History history) {
-    storedHistories.delete(history.key);
+  Future<void> deleteHistory(History history) async {
+    await _historyRepository.deleteHistory(history);
     init();
   }
 
-  void clearProgress(BangumiItem bangumiItem, String adapterName, int episode) {
-    var history = storedHistories.get(History.getKey(adapterName, bangumiItem));
-    history!.progresses[episode]!.progress = Duration.zero;
+  Future<void> clearProgress(BangumiItem bangumiItem, String adapterName, int episode) async {
+    await _historyRepository.clearProgress(bangumiItem, adapterName, episode);
     init();
   }
 
-  void clearAll() {
-    GStorage.histories.clear();
+  Future<void> clearAll() async {
+    await _historyRepository.clearAllHistories();
     histories.clear();
-    // init();
   }
 }

@@ -4,7 +4,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -316,7 +315,7 @@ class _SourceSheetState extends State<SourceSheet>
                                     Modular.to.pushNamed('/video/');
                                   } catch (_) {
                                     KazumiLogger()
-                                        .log(Level.warning, "获取视频播放列表失败");
+                                        .w("QueryManager: failed to query video playlist");
                                     KazumiDialog.dismiss();
                                   }
                                 },

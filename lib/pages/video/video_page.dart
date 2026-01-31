@@ -8,11 +8,10 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/webview/webview_item.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -69,6 +68,9 @@ class _VideoPageState extends State<VideoPage>
 
   // disable animation.
   late final bool disableAnimations;
+
+  // SyncPlayChatMessage
+  late final StreamSubscription<SyncPlayChatMessage> _syncChatSubscription;
 
   @override
   void initState() {
@@ -139,7 +141,7 @@ class _VideoPageState extends State<VideoPage>
       playerController.init(mediaUrl, offset: offset);
     });
     _logSubscription = webviewItemController.onLog.listen((event) {
-      debugPrint('[kazumi webview parser]: $event');
+      KazumiLogger().i('WebViewParser: $event');
       if (event == 'clear') {
         clearWebviewLog();
         return;
@@ -151,6 +153,23 @@ class _VideoPageState extends State<VideoPage>
       setState(() {
         webviewLogLines.add(event);
       });
+    });
+    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
+      final localUsername = playerController.syncplayController?.username ?? '';
+      final String displayText = '${event.username}：${event.message}';
+
+      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
+      if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
+        playerController.danmakuController.addDanmaku(
+          DanmakuContentItem(
+            displayText,
+            color: Colors.orange,
+            isColorful: true,
+            type: DanmakuItemType.bottom,
+            extra: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
     });
   }
 
@@ -178,9 +197,12 @@ class _VideoPageState extends State<VideoPage>
       _logSubscription.cancel();
     } catch (_) {}
     try {
+      _syncChatSubscription.cancel();
+    } catch (_) {}
+    try {
       playerController.dispose();
     } catch (e) {
-      KazumiLogger().log(Level.error, '播放器释放失败: $e');
+      KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
     if (!Utils.isDesktop()) {
       try {
@@ -311,10 +333,37 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.showToast(message: '弹幕内容过长');
       return;
     }
-    // Todo 接口方限制
 
-    playerController.danmakuController
+    final destination = playerController.danmakuDestination;
+
+    if (destination == DanmakuDestination.chatRoom) {
+      if (playerController.syncplayRoom.isEmpty) {
+        KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
+        return;
+      }
+
+      final sender = playerController.syncplayController?.username ?? '我';
+      final String displayText = '$sender：$msg';
+
+      // 在播放器渲染自己发送的弹幕
+      playerController.danmakuController.addDanmaku(
+        DanmakuContentItem(
+          displayText,
+          color: Colors.orange,
+          isColorful: true,
+          type: DanmakuItemType.bottom,
+          extra: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+
+      // 发送弹幕到聊天室
+      playerController.sendSyncPlayChatMessage(msg);
+    } else {
+      // Todo 接口方限制
+
+      playerController.danmakuController
         .addDanmaku(DanmakuContentItem(msg, selfSend: true));
+    }
   }
 
   void showMobileDanmakuInput() {
@@ -324,64 +373,108 @@ class _VideoPageState extends State<VideoPage>
       isScrollControlled: true,
       context: context,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 8,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 34),
-                  child: TextField(
-                    style: const TextStyle(fontSize: 15),
-                    controller: textController,
-                    autofocus: true,
-                    textAlignVertical: TextAlignVertical.center,
-                    decoration: const InputDecoration(
-                      filled: true,
-                      floatingLabelBehavior: FloatingLabelBehavior.never,
-                      hintText: '发个友善的弹幕见证当下',
-                      hintStyle: TextStyle(fontSize: 14),
-                      alignLabelWithHint: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide.none,
-                        borderRadius: BorderRadius.all(Radius.circular(20)),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 8,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 34),
+                      child: TextField(
+                        style: const TextStyle(fontSize: 15),
+                        controller: textController,
+                        autofocus: true,
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: const InputDecoration(
+                          filled: true,
+                          floatingLabelBehavior: FloatingLabelBehavior.never,
+                          hintText: '发个友善的弹幕见证当下',
+                          hintStyle: TextStyle(fontSize: 14),
+                          alignLabelWithHint: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide.none,
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                          ),
+                        ),
+                        onSubmitted: (msg) {
+                          showDanmakuDestinationPickerAndSend(msg);
+                          textController.clear();
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
-                    onSubmitted: (msg) {
-                      sendDanmaku(msg);
-                      textController.clear();
-                      Navigator.pop(context);
-                    },
                   ),
-                ),
+                  IconButton(
+                    onPressed: () {
+                      final msg = textController.text;
+                      Navigator.pop(context);
+                      showDanmakuDestinationPickerAndSend(msg);
+                      textController.clear();
+                    },
+                    icon: Icon(
+                      Icons.send_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  )
+                ],
               ),
-              IconButton(
-                onPressed: () {
-                  sendDanmaku(textController.text);
-                  textController.clear();
-                  Navigator.pop(context);
-                },
-                icon: Icon(
-                  Icons.send_rounded,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
+  void showDanmakuDestinationPickerAndSend(String msg) async {
+    if (msg.trim().isEmpty) {
+      KazumiDialog.showToast(message: '弹幕内容为空');
+      return;
+    }
+
+    final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
+      context: context,
+      shape: const BeveledRectangleBorder(),
+      builder: (context) {
+        return SafeArea(
+          left: false,
+          right: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('发送到聊天室'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.chatRoom),
+              ),
+              ListTile(
+                title: const Text('发送到远程弹幕库'),
+                onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (result != null) {
+      setState(() {
+      });
+      playerController.danmakuDestination = result;
+      sendDanmaku(msg);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool isWideScreen =
+    final bool islandScape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       openTabBodyAnimated();
@@ -425,10 +518,10 @@ class _VideoPageState extends State<VideoPage>
                       children: [
                         Flexible(
                           // make it unflexible when not wideScreen.
-                          flex: (isWideScreen) ? 1 : 0,
+                          flex: (islandScape) ? 1 : 0,
                           child: Container(
                             color: Colors.black,
-                            height: (isWideScreen)
+                            height: (islandScape)
                                 ? MediaQuery.sizeOf(context).height
                                 : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
@@ -436,12 +529,12 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                         // when not wideScreen, show tabBody on the bottom
-                        if (!isWideScreen) Expanded(child: tabBody),
+                        if (!islandScape) Expanded(child: tabBody),
                       ],
                     ),
 
                     // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
-                    if (isWideScreen && videoPageController.showTabBody) ...[
+                    if (islandScape && videoPageController.showTabBody) ...[
                       if (disableAnimations) ...[
                         sideTabMask,
                         sideTabBody,
@@ -665,6 +758,7 @@ class _VideoPageState extends State<VideoPage>
                   keyboardFocus: keyboardFocus,
                   sendDanmaku: sendDanmaku,
                   disableAnimations: disableAnimations,
+                  showDanmakuDestinationPickerAndSend: showDanmakuDestinationPickerAndSend,
                 ),
         ),
 
@@ -772,7 +866,7 @@ class _VideoPageState extends State<VideoPage>
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
-                  KazumiLogger().log(Level.info, '视频链接为 $urlItem');
+                  KazumiLogger().i('VideoPageController: video URL is $urlItem');
                   closeTabBodyAnimated();
                   changeEpisode(count0, currentRoad: currentRoad);
                 },

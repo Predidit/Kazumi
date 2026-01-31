@@ -6,7 +6,6 @@ import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:mobx/mobx.dart';
-import 'package:logger/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
@@ -38,6 +37,10 @@ abstract class _VideoPageController with Store {
   /// 全屏状态
   @observable
   bool isFullscreen = false;
+
+  /// 评论正序或倒序
+  @observable
+  bool isCommentsAscending = false;
 
   /// 画中画状态
   @observable
@@ -72,7 +75,7 @@ abstract class _VideoPageController with Store {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
     String chapterName = roadList[currentRoad].identifier[episode - 1];
-    KazumiLogger().log(Level.info, '跳转到$chapterName');
+    KazumiLogger().i('VideoPageController: changed to $chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
     if (urlItem.contains(currentPlugin.baseUrl) ||
         urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
@@ -93,10 +96,19 @@ abstract class _VideoPageController with Store {
         .then((value) {
       episodeCommentsList.addAll(value.commentList);
     });
-    KazumiLogger().log(Level.info, '已加载评论列表长度 ${episodeCommentsList.length}');
+    if (!isCommentsAscending) {
+      episodeCommentsList
+          .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));
+    } else {
+      episodeCommentsList
+          .sort((a, b) => a.comment.createdAt.compareTo(b.comment.createdAt));
+    }
+    KazumiLogger().i(
+        'VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }
 
-  Future<void> queryRoads(String url, String pluginName, {CancelToken? cancelToken}) async {
+  Future<void> queryRoads(String url, String pluginName,
+      {CancelToken? cancelToken}) async {
     if (cancelToken != null) {
       _queryRoadsCancelToken?.cancel();
       _queryRoadsCancelToken = cancelToken;
@@ -111,11 +123,23 @@ abstract class _VideoPageController with Store {
     roadList.clear();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
-        roadList.addAll(await plugin.querychapterRoads(url, cancelToken: cancelToken));
+        roadList.addAll(
+            await plugin.querychapterRoads(url, cancelToken: cancelToken));
       }
     }
-    KazumiLogger().log(Level.info, '播放列表长度 ${roadList.length}');
-    KazumiLogger().log(Level.info, '第一播放列表选集数 ${roadList[0].data.length}');
+    KazumiLogger()
+        .i('VideoPageController: road list length ${roadList.length}');
+    KazumiLogger().i(
+        'VideoPageController: first road episode count ${roadList[0].data.length}');
+  }
+
+  void toggleSortOrder() {
+    isCommentsAscending = !isCommentsAscending;
+    episodeCommentsList.sort(
+      (a, b) => isCommentsAscending
+          ? a.comment.createdAt.compareTo(b.comment.createdAt)
+          : b.comment.createdAt.compareTo(a.comment.createdAt),
+    );
   }
 
   void cancelQueryRoads() {

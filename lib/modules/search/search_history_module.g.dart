@@ -8,7 +8,7 @@ part of 'search_history_module.dart';
 
 class SearchHistoryAdapter extends TypeAdapter<SearchHistory> {
   @override
-  final int typeId = 6;
+  final typeId = 6;
 
   @override
   SearchHistory read(BinaryReader reader) {
@@ -18,7 +18,7 @@ class SearchHistoryAdapter extends TypeAdapter<SearchHistory> {
     };
     return SearchHistory(
       fields[0] as String,
-      fields[1] as int,
+      (fields[1] as num).toInt(),
     );
   }
 

@@ -19,6 +19,8 @@ import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/history_repository.dart';
+import 'package:kazumi/repositories/download_repository.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 
 class IndexModule extends Module {
   @override
@@ -31,6 +33,7 @@ class IndexModule extends Module {
     i.addSingleton<ISearchHistoryRepository>(SearchHistoryRepository.new);
     i.addSingleton<ICollectCrudRepository>(CollectCrudRepository.new);
     i.addSingleton<IHistoryRepository>(HistoryRepository.new);
+    i.addSingleton<IDownloadRepository>(DownloadRepository.new);
 
     // Controller层
     i.addSingleton(PopularController.new);
@@ -41,6 +44,7 @@ class IndexModule extends Module {
     i.addSingleton(HistoryController.new);
     i.addSingleton(MyController.new);
     i.addSingleton(ShadersController.new);
+    i.addSingleton(DownloadController.new);
   }
 
   @override

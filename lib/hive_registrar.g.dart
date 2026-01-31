@@ -7,6 +7,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 
@@ -16,6 +17,8 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(BangumiTagAdapter());
     registerAdapter(CollectedBangumiAdapter());
     registerAdapter(CollectedBangumiChangeAdapter());
+    registerAdapter(DownloadEpisodeAdapter());
+    registerAdapter(DownloadRecordAdapter());
     registerAdapter(HistoryAdapter());
     registerAdapter(ProgressAdapter());
     registerAdapter(SearchHistoryAdapter());
@@ -28,6 +31,8 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(BangumiTagAdapter());
     registerAdapter(CollectedBangumiAdapter());
     registerAdapter(CollectedBangumiChangeAdapter());
+    registerAdapter(DownloadEpisodeAdapter());
+    registerAdapter(DownloadRecordAdapter());
     registerAdapter(HistoryAdapter());
     registerAdapter(ProgressAdapter());
     registerAdapter(SearchHistoryAdapter());

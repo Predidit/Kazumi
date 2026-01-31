@@ -22,6 +22,7 @@ import 'package:kazumi/utils/syncplay.dart';
 import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 
 part 'player_controller.g.dart';
 
@@ -190,8 +191,29 @@ abstract class _PlayerController with Store {
   StreamSubscription<Track>? playerTracksSubscription;
   StreamSubscription<double?>? playerAudioBitrateSubscription;
 
+  bool _isLocalPlayback = false;
+
   Future<void> init(String url, {int offset = 0}) async {
-    videoUrl = url;
+    // Check for local cached version
+    _isLocalPlayback = false;
+    try {
+      final downloadController = Modular.get<DownloadController>();
+      final localPath = downloadController.getLocalVideoPath(
+        videoPageController.bangumiItem.id,
+        videoPageController.currentPlugin.name,
+        videoPageController.currentEpisode,
+      );
+      if (localPath != null) {
+        videoUrl = localPath;
+        _isLocalPlayback = true;
+        KazumiLogger().i('PlayerController: using local cache $localPath');
+      } else {
+        videoUrl = url;
+      }
+    } catch (_) {
+      videoUrl = url;
+    }
+
     playing = false;
     loading = true;
     isBuffering = true;
@@ -318,17 +340,21 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     bool forceAdBlocker =
         setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
-    bool adBlockerEnabled = forceAdBlocker || videoPageController.currentPlugin.adBlocker;
+    bool adBlockerEnabled = _isLocalPlayback
+        ? false
+        : (forceAdBlocker || videoPageController.currentPlugin.adBlocker);
     if (videoPageController.currentPlugin.userAgent == '') {
       userAgent = Utils.getRandomUA();
     } else {
       userAgent = videoPageController.currentPlugin.userAgent;
     }
     String referer = videoPageController.currentPlugin.referer;
-    var httpHeaders = {
-      'user-agent': userAgent,
-      if (referer.isNotEmpty) 'referer': referer,
-    };
+    var httpHeaders = _isLocalPlayback
+        ? <String, String>{}
+        : {
+            'user-agent': userAgent,
+            if (referer.isNotEmpty) 'referer': referer,
+          };
 
     mediaPlayer = Player(
       configuration: PlayerConfiguration(

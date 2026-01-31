@@ -8,6 +8,7 @@ import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 
 class GStorage {
   /// Don't use favorites box, it's replaced by collectibles.
@@ -18,6 +19,7 @@ class GStorage {
   static late Box<String> shieldList;
   static late final Box<dynamic> setting;
   static late Box<SearchHistory> searchHistory;
+  static late Box<DownloadRecord> downloads;
 
   static Future init() async {
     Hive.registerAdapter(BangumiItemAdapter());
@@ -27,6 +29,8 @@ class GStorage {
     Hive.registerAdapter(HistoryAdapter());
     Hive.registerAdapter(CollectedBangumiChangeAdapter());
     Hive.registerAdapter(SearchHistoryAdapter());
+    Hive.registerAdapter(DownloadRecordAdapter());
+    Hive.registerAdapter(DownloadEpisodeAdapter());
     favorites = await Hive.openBox('favorites');
     collectibles = await Hive.openBox('collectibles');
     histories = await Hive.openBox('histories');
@@ -34,6 +38,7 @@ class GStorage {
     collectChanges = await Hive.openBox('collectchanges');
     shieldList = await Hive.openBox('shieldList');
     searchHistory = await Hive.openBox('searchHistory');
+    downloads = await Hive.openBox('downloads');
   }
 
   static Future<void> backupBox(String boxName, String backupFilePath) async {
@@ -271,5 +276,7 @@ class SettingBoxKey {
       proxyEnable = 'proxyEnable',
       proxyConfigured = 'proxyConfigured',
       proxyUrl = 'proxyUrl',
-      showRating = 'showRating';
+      showRating = 'showRating',
+      downloadParallelEpisodes = 'downloadParallelEpisodes',
+      downloadParallelSegments = 'downloadParallelSegments';
 }

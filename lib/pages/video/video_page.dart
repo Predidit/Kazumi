@@ -21,6 +21,9 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/download/download_episode_sheet.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -38,6 +41,8 @@ class _VideoPageState extends State<VideoPage>
   final HistoryController historyController = Modular.get<HistoryController>();
   final WebviewItemController webviewItemController =
       Modular.get<WebviewItemController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
   late bool playResume;
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
@@ -842,9 +847,62 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
           ),
+          SizedBox(
+            height: 34,
+            child: IconButton(
+              icon: const Icon(Icons.download_rounded, size: 20),
+              tooltip: '批量下载',
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) =>
+                      DownloadEpisodeSheet(road: currentRoad),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildDownloadStatusIcon(int episodeNumber) {
+    final episode = downloadController.getEpisode(
+      videoPageController.bangumiItem.id,
+      videoPageController.currentPlugin.name,
+      episodeNumber,
+    );
+    if (episode == null) return const SizedBox.shrink();
+    switch (episode.status) {
+      case DownloadStatus.completed:
+        return Icon(Icons.offline_pin,
+            size: 16, color: Theme.of(context).colorScheme.primary);
+      case DownloadStatus.downloading:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            value: episode.progressPercent,
+            strokeWidth: 2,
+          ),
+        );
+      case DownloadStatus.failed:
+        return Icon(Icons.error_outline,
+            size: 16, color: Theme.of(context).colorScheme.error);
+      case DownloadStatus.paused:
+        return Icon(Icons.pause_circle_outline,
+            size: 16, color: Theme.of(context).colorScheme.outline);
+      case DownloadStatus.pending:
+      case DownloadStatus.resolving:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget get menuBody {
@@ -903,6 +961,7 @@ class _VideoPageState extends State<VideoPage>
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
                           )),
+                          _buildDownloadStatusIcon(count0),
                           const SizedBox(width: 2),
                         ],
                       ),

@@ -263,6 +263,21 @@ class Plugin {
     return resp.data.toString();
   }
 
+  String buildFullUrl(String urlItem) {
+    if (urlItem.contains(baseUrl) ||
+        urlItem.contains(baseUrl.replaceAll('https', 'http'))) {
+      return urlItem;
+    }
+    return baseUrl + urlItem;
+  }
+
+  Map<String, String> buildHttpHeaders() {
+    return {
+      'user-agent': userAgent.isEmpty ? Utils.getRandomUA() : userAgent,
+      if (referer.isNotEmpty) 'referer': referer,
+    };
+  }
+
   PluginSearchResponse testQueryBangumi(String htmlString) {
     List<SearchItem> searchItems = [];
     var htmlElement = parse(htmlString).documentElement!;

@@ -685,20 +685,47 @@ class AutoUpdater {
   /// 在文件管理器中显示文件
   void _revealInFileManager(String filePath) async {
     try {
+      final type = await FileSystemEntity.type(filePath);
+      String targetDirOrFile;
+
+      // 如果传入的本来就是目录则打开这个目录
+      // 如果是文件则打开包含它的目录
+      if (type == FileSystemEntityType.notFound) {
+        KazumiDialog.showToast(message: '文件或目录不存在');
+        return;
+      } else if (type == FileSystemEntityType.directory) {
+        targetDirOrFile = filePath;
+      } else {
+        targetDirOrFile = File(filePath).parent.path;
+      }
+
       if (Platform.isWindows) {
-        await Process.start('explorer.exe', ['/select,', filePath],
-            runInShell: true);
+        if (type == FileSystemEntityType.file) {
+          final arg = '/select,${filePath.replaceAll('/', r'\')}';
+          await Process.start('explorer.exe', [arg], runInShell: true);
+        } else {
+          await Process.start('explorer.exe', [targetDirOrFile.replaceAll('/', r'\')], runInShell: true);
+        }
       } else if (Platform.isMacOS) {
-        await Process.start('open', ['-R', filePath]);
+        if (type == FileSystemEntityType.file) {
+          await Process.start('open', ['-R', filePath]);
+        } else {
+          await Process.start('open', [targetDirOrFile]);
+        }
       } else if (Platform.isLinux) {
         // 尝试打开包含文件的文件夹
-        final directory = Directory(filePath).parent.path;
-        await Process.start('xdg-open', [directory]);
+        await Process.start('xdg-open', [targetDirOrFile]);
+      } else {
+        KazumiDialog.showToast(message: '此平台不支持通过此方法打开文件管理器');
       }
-      KazumiDialog.dismiss();
     } catch (e) {
       KazumiDialog.showToast(message: '无法打开文件管理器');
       KazumiLogger().w('Update: reveal in file manager failed', error: e);
+    } finally {
+      try {
+        // 确保对话框被关闭
+        KazumiDialog.dismiss();
+      } catch (_) {}
     }
   }
 

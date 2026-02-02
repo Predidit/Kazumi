@@ -16,6 +16,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -261,8 +262,57 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     });
   }
 
+  void _showCustomTimerInputDialog() {
+    String input = "";
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('自定义定时'),
+        content: TextField(
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          decoration: const InputDecoration(
+            labelText: '分钟数',
+            hintText: '请输入定时分钟数（最长1440分钟）',
+          ),
+          onChanged: (value) {
+            input = value;
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: Text(
+              '取消',
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              final int? minutes = int.tryParse(input.trim());
+              if (minutes == null || minutes <= 0) {
+                KazumiDialog.showToast(message: '请输入大于0的数字');
+                return;
+              }
+              if (minutes > 1440) {
+                KazumiDialog.showToast(message: '最长不能超过24小时（1440分钟）');
+                return;
+              }
+              KazumiDialog.dismiss();
+              TimedShutdownService().start(minutes);
+              KazumiDialog.showToast(message: '已设置 $minutes 分钟后定时关闭');
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      );
+    });
+  }
+
   @override
   void initState() {
+
     super.initState();
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
@@ -1204,10 +1254,88 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           ),
                         ),
                       ),
+                      // 定时关闭
+                      SubmenuButton(
+                        menuChildren: [
+                          MenuItemButton(
+                            onPressed: () {
+                              TimedShutdownService().cancel();
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "不开启",
+                                  style: TextStyle(
+                                    color: !TimedShutdownService().isActive
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          for (final int minutes in [15, 30, 60])
+                            MenuItemButton(
+                              onPressed: () {
+                                TimedShutdownService().start(minutes);
+                                KazumiDialog.showToast(message: '已设置 $minutes 分钟后定时关闭');
+                              },
+                              child: Container(
+                                height: 48,
+                                constraints: BoxConstraints(minWidth: 112),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    "$minutes 分钟",
+                                    style: TextStyle(
+                                      color: TimedShutdownService().setMinutes == minutes
+                                          ? Theme.of(context).colorScheme.primary
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          MenuItemButton(
+                            onPressed: () {
+                              _showCustomTimerInputDialog();
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text("自定义"),
+                              ),
+                            ),
+                          ),
+                        ],
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: TimedShutdownService().remainingSecondsNotifier,
+                              builder: (context, remainingSeconds, child) {
+                                return Text(
+                                  remainingSeconds > 0
+                                      ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
+                                      : "定时关闭",
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
                       SubmenuButton(
                         menuChildren: [
                           MenuItemButton(
                             child: Container(
+
                               height: 48,
                               constraints: BoxConstraints(minWidth: 112),
                               child: Align(

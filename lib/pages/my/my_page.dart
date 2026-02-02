@@ -131,7 +131,7 @@ class _MyPageState extends State<MyPage> {
                   },
                   leading: const Icon(Icons.timer_rounded),
                   title: Text('定时关闭', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设定时间后自动关闭应用', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('设定时间后自动暂停视频', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

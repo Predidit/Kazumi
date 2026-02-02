@@ -1,18 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 
-/// Global service to manage timed app shutdown
+/// Global service to manage timed shutdown (Bilibili-style: pause video instead of exit)
 class TimedShutdownService {
   static final TimedShutdownService _instance = TimedShutdownService._internal();
   factory TimedShutdownService() => _instance;
   TimedShutdownService._internal();
 
   Timer? _shutdownTimer;
-  Timer? _warningCountdownTimer;
   int _remainingSeconds = 0;
-  bool _isWarningDialogShowing = false;
+  bool _isDialogShowing = false;
+  
+  /// Last set minutes, used for repeat functionality
+  int _lastSetMinutes = 0;
   
   /// Remaining time in seconds notifier
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
@@ -34,11 +37,12 @@ class TimedShutdownService {
     cancel();
     if (minutes <= 0) return;
 
+    _lastSetMinutes = minutes;
     _remainingSeconds = minutes * 60;
     remainingSecondsNotifier.value = _remainingSeconds;
     setMinutesNotifier.value = minutes;
     
-    // Update remaining time every second
+    // Update remaining time every second (runs globally, not tied to playback)
     _shutdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
@@ -46,18 +50,24 @@ class TimedShutdownService {
       }
       
       if (_remainingSeconds <= 0) {
-        cancel(); // Use standard cancel for cleanup
-        _showWarningDialog();
+        timer.cancel();
+        _shutdownTimer = null;
+        _onTimerExpired();
       }
     });
+  }
+
+  /// Repeat the timer with the last set duration
+  void repeat() {
+    if (_lastSetMinutes > 0) {
+      start(_lastSetMinutes);
+    }
   }
 
   /// Cancel the current shutdown timer
   void cancel() {
     _shutdownTimer?.cancel();
     _shutdownTimer = null;
-    _warningCountdownTimer?.cancel();
-    _warningCountdownTimer = null;
     _remainingSeconds = 0;
     if (remainingSecondsNotifier.value != 0) {
       remainingSecondsNotifier.value = 0;
@@ -66,90 +76,66 @@ class TimedShutdownService {
       setMinutesNotifier.value = 0;
     }
     
-    // If warning dialog is showing, dismiss it
-    if (_isWarningDialogShowing) {
+    // If dialog is showing, dismiss it
+    if (_isDialogShowing) {
       KazumiDialog.dismiss();
-      _isWarningDialogShowing = false;
+      _isDialogShowing = false;
     }
   }
 
-  /// Show the 30-second warning dialog before shutdown
-  void _showWarningDialog() {
-    if (_isWarningDialogShowing) return;
-    _isWarningDialogShowing = true;
+  /// Called when timer expires: pause video and show dialog
+  void _onTimerExpired() {
+    // Reset UI state so it doesn't show 00:00
+    setMinutesNotifier.value = 0;
     
-    int warningCountdown = 30;
+    // Pause video if playing
+    try {
+      final playerController = Modular.get<PlayerController>();
+      if (playerController.playing) {
+        playerController.pause();
+      }
+    } catch (_) {
+      // PlayerController not available (e.g., not in player page)
+    }
+    
+    _showTimerExpiredDialog();
+  }
+
+  /// Show the timer expired dialog with repeat/close options
+  void _showTimerExpiredDialog() {
+    if (_isDialogShowing) return;
+    _isDialogShowing = true;
 
     KazumiDialog.show(
       clickMaskDismiss: false,
       onDismiss: () {
-        _isWarningDialogShowing = false;
-        _warningCountdownTimer?.cancel();
-        _warningCountdownTimer = null;
+        _isDialogShowing = false;
       },
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            // Start countdown timer if not already started
-            _warningCountdownTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
-              warningCountdown--;
-              if (warningCountdown <= 0) {
-                timer.cancel();
+        return AlertDialog(
+          title: const Text('定时关闭'),
+          content: const Text('定时时间已到，视频已暂停'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _isDialogShowing = false;
                 KazumiDialog.dismiss();
-                Utils.safeExit();
-              } else {
-                setState(() {});
-              }
-            });
-
-            return AlertDialog(
-              title: const Text('定时关闭'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.timer_off_rounded,
-                    size: 48,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('应用即将关闭'),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$warningCountdown 秒后自动关闭',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ],
+                repeat();
+                KazumiDialog.showToast(message: '已重新开始 $_lastSetMinutes 分钟定时');
+              },
+              child: const Text('重复'),
+            ),
+            TextButton(
+              onPressed: () {
+                _isDialogShowing = false;
+                KazumiDialog.dismiss();
+              },
+              child: Text(
+                '关闭',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    _warningCountdownTimer?.cancel();
-                    _warningCountdownTimer = null;
-                    _isWarningDialogShowing = false;
-                    KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '已取消本次定时关闭');
-                  },
-                  child: const Text('取消关闭'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    _warningCountdownTimer?.cancel();
-                    KazumiDialog.dismiss();
-                    Utils.safeExit();
-                  },
-                  child: Text(
-                    '立即关闭',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                ),
-              ],
-            );
-          },
+            ),
+          ],
         );
       },
     );
@@ -163,5 +149,4 @@ class TimedShutdownService {
     final seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
-
 }

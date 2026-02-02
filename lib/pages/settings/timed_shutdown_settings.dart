@@ -44,10 +44,10 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
   void _applySelection(int minutes) {
     if (minutes > 0) {
       _shutdownService.start(minutes);
-      KazumiDialog.showToast(message: '已设置 $minutes 分钟后关闭应用');
+      KazumiDialog.showToast(message: '已设置 $minutes 分钟后暂停视频');
     } else {
       _shutdownService.cancel();
-      KazumiDialog.showToast(message: '已取消定时关闭');
+      KazumiDialog.showToast(message: '已取消定时');
     }
   }
 
@@ -157,7 +157,7 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
                               ),
                             ),
                             description: Text(
-                              '点击可取消定时关闭',
+                              '点击可取消定时',
                               style: TextStyle(fontFamily: fontFamily),
                             ),
                             onPressed: (_) {
@@ -181,7 +181,9 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
                                   : null,
                             ),
                             title: Text(
-                              option['label'],
+                              _isOptionSelected(option['minutes'], setMinutes) && isTimerActive
+                                  ? '${option['label']} (${_shutdownService.formatRemainingTime()})'
+                                  : option['label'],
                               style: TextStyle(
                                 fontFamily: fontFamily,
                                 color: _isOptionSelected(option['minutes'], setMinutes)
@@ -201,7 +203,7 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
                           ),
                       ],
                       bottomInfo: Text(
-                        '选择定时关闭时间后，应用将在指定时间后自动关闭。关闭前会弹出30秒倒计时提醒。',
+                        '选择定时后，计时结束时将暂停视频播放并弹出提醒。',
                         style: TextStyle(fontFamily: fontFamily),
                       ),
                     ),

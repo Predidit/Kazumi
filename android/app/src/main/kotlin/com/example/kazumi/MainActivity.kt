@@ -30,9 +30,6 @@ class MainActivity: FlutterActivity() {
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)
-            } else if (call.method == "exitApp") {
-                finishAndRemoveTask()
-                System.exit(0)
             } else {
                 result.notImplemented()
             }

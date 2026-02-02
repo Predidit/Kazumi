@@ -128,6 +128,7 @@ class M3u8Parser {
     final segments = <M3u8Segment>[];
     double targetDuration = 0;
     bool hasEndList = false;
+    bool isExplicitVod = false;
     bool isLiveEvent = false;
     int currentDiscontinuityGroup = 0;
     M3u8Key? currentKey;
@@ -140,6 +141,8 @@ class M3u8Parser {
         targetDuration = double.parse(line.substring('#EXT-X-TARGETDURATION:'.length));
       } else if (line == '#EXT-X-ENDLIST') {
         hasEndList = true;
+      } else if (line == '#EXT-X-PLAYLIST-TYPE:VOD') {
+        isExplicitVod = true;
       } else if (line == '#EXT-X-PLAYLIST-TYPE:EVENT') {
         isLiveEvent = true;
       } else if (line == '#EXT-X-DISCONTINUITY') {
@@ -166,7 +169,7 @@ class M3u8Parser {
     // 2. Has #EXT-X-PLAYLIST-TYPE:VOD, or
     // 3. Has finite segments and is not explicitly a live EVENT stream.
     // Many third-party video sources omit #EXT-X-ENDLIST for VOD content.
-    final bool isVod = hasEndList || (!isLiveEvent && segments.isNotEmpty);
+    final bool isVod = hasEndList || isExplicitVod || (!isLiveEvent && segments.isNotEmpty);
 
     return M3u8MediaPlaylist(
       segments: segments,

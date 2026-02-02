@@ -19,7 +19,10 @@ void main() {
   // Test 5: EVENT 类型的 playlist
   testEventPlaylist();
 
-  // Test 6: 嵌套 M3U8 展开
+  // Test 6: 显式 PLAYLIST-TYPE:VOD（无 ENDLIST）
+  testExplicitVodTag();
+
+  // Test 7: 嵌套 M3U8 展开
   testNestedM3u8();
 
   print('\n=== 所有测试完成 ===');
@@ -119,8 +122,37 @@ https://example.com/seg_00001.ts
   print('');
 }
 
+void testExplicitVodTag() {
+  print('--- Test 6: 显式 PLAYLIST-TYPE:VOD（无 ENDLIST） ---');
+  const content = '''
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+https://example.com/seg_00000.ts
+#EXTINF:10.0,
+https://example.com/seg_00001.ts
+''';
+
+  final playlist = M3u8Parser.parseMediaPlaylist(content, 'https://example.com/vod.m3u8');
+  print('isVod: ${playlist.isVod ? "✓ true (显式 VOD 标签生效)" : "✗ false (未识别 VOD 标签)"}');
+
+  // 边界情况: 有 VOD 标签但无分片（不应崩溃）
+  const emptyVod = '''
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:10
+''';
+  final emptyPlaylist = M3u8Parser.parseMediaPlaylist(emptyVod, 'https://example.com/empty.m3u8');
+  print('空分片 VOD: isVod=${emptyPlaylist.isVod ? "✓ true (仅靠 VOD 标签判定)" : "✗ false"}, segments=${emptyPlaylist.segments.length}');
+  print('');
+}
+
 void testNestedM3u8() async {
-  print('--- Test 6: 嵌套 M3U8 展开 ---');
+  print('--- Test 7: 嵌套 M3U8 展开 ---');
 
   // 模拟: 外层 playlist 中有一个 segment 指向另一个 m3u8
   const outerContent = '''

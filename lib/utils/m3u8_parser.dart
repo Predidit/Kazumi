@@ -6,6 +6,17 @@ class M3u8Key {
   M3u8Key({required this.method, required this.uri, this.iv});
 
   @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is M3u8Key &&
+          method == other.method &&
+          uri == other.uri &&
+          iv == other.iv;
+
+  @override
+  int get hashCode => Object.hash(method, uri, iv);
+
+  @override
   String toString() {
     final sb = StringBuffer('#EXT-X-KEY:METHOD=$method,URI="$uri"');
     if (iv != null) {
@@ -235,5 +246,78 @@ class M3u8Parser {
 
     sb.writeln('#EXT-X-ENDLIST');
     return sb.toString();
+  }
+
+  static bool _isM3u8Url(String url) {
+    final path = Uri.parse(url).path.toLowerCase();
+    return path.endsWith('.m3u8');
+  }
+
+  /// 展开嵌套 M3U8 片段。
+  /// [fetcher] 异步回调，给定 URL 返回 M3U8 文本内容。
+  /// [maxDepth] 递归深度上限，防止无限嵌套。
+  static Future<List<M3u8Segment>> resolveNestedSegments(
+    List<M3u8Segment> segments,
+    Future<String> Function(String url) fetcher, {
+    int maxDepth = 3,
+  }) async {
+    if (maxDepth <= 0) return segments;
+    if (!segments.any((s) => _isM3u8Url(s.uri))) return segments;
+
+    final result = <M3u8Segment>[];
+    int groupOffset = 0;
+
+    for (final seg in segments) {
+      if (!_isM3u8Url(seg.uri)) {
+        result.add(M3u8Segment(
+          duration: seg.duration,
+          uri: seg.uri,
+          discontinuityGroup: seg.discontinuityGroup + groupOffset,
+          key: seg.key,
+        ));
+        continue;
+      }
+
+      // 该 segment 的 URI 指向嵌套 m3u8，展开
+      try {
+        final content = await fetcher(seg.uri);
+        final nested = parseMediaPlaylist(content, seg.uri);
+        final resolved = await resolveNestedSegments(
+          nested.segments, fetcher, maxDepth: maxDepth - 1,
+        );
+
+        if (resolved.isEmpty) continue;
+
+        final nestedBase = seg.discontinuityGroup + groupOffset;
+        int maxNestedGroup = 0;
+        for (final ns in resolved) {
+          if (ns.discontinuityGroup > maxNestedGroup) {
+            maxNestedGroup = ns.discontinuityGroup;
+          }
+        }
+
+        for (final ns in resolved) {
+          result.add(M3u8Segment(
+            duration: ns.duration,
+            uri: ns.uri,
+            discontinuityGroup: ns.discontinuityGroup + nestedBase,
+            key: ns.key,
+          ));
+        }
+
+        // 后续 segment 的 group 需要额外偏移，避免碰撞
+        groupOffset += maxNestedGroup;
+      } catch (e) {
+        // 获取/解析失败，保留原始 segment
+        result.add(M3u8Segment(
+          duration: seg.duration,
+          uri: seg.uri,
+          discontinuityGroup: seg.discontinuityGroup + groupOffset,
+          key: seg.key,
+        ));
+      }
+    }
+
+    return result;
   }
 }

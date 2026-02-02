@@ -251,7 +251,18 @@ class DownloadManager implements IDownloadManager {
 
       final playlist = M3u8Parser.parseMediaPlaylist(mediaM3u8Content, mediaM3u8Url);
 
-      if (!playlist.isVod) {
+      // 展开嵌套 m3u8 片段（部分源将实际内容嵌套在 m3u8 引用中）
+      final resolvedSegments = await M3u8Parser.resolveNestedSegments(
+        playlist.segments,
+        (url) => _fetchM3u8(url, httpHeaders, task.cancelToken),
+      );
+      final resolvedPlaylist = M3u8MediaPlaylist(
+        segments: resolvedSegments,
+        targetDuration: playlist.targetDuration,
+        isVod: playlist.isVod,
+      );
+
+      if (!resolvedPlaylist.isVod) {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = '不支持下载直播流 (无有效分片)';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
@@ -259,7 +270,7 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      if (playlist.segments.isEmpty) {
+      if (resolvedPlaylist.segments.isEmpty) {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = 'M3U8 中未找到可下载的分片';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
@@ -268,7 +279,7 @@ class DownloadManager implements IDownloadManager {
       }
 
       // Step 3: Ad filtering
-      List<M3u8Segment> segments = playlist.segments;
+      List<M3u8Segment> segments = resolvedPlaylist.segments;
       if (adBlockerEnabled) {
         segments = M3u8AdFilter.filterAds(segments);
       }
@@ -283,7 +294,7 @@ class DownloadManager implements IDownloadManager {
       final keys = M3u8Parser.extractUniqueKeys(
         M3u8MediaPlaylist(
           segments: segments,
-          targetDuration: playlist.targetDuration,
+          targetDuration: resolvedPlaylist.targetDuration,
           isVod: true,
         ),
       );
@@ -387,7 +398,7 @@ class DownloadManager implements IDownloadManager {
       // Step 7: Write local M3U8
       final targetDuration = adBlockerEnabled
           ? M3u8AdFilter.calculateTargetDuration(segments)
-          : playlist.targetDuration;
+          : resolvedPlaylist.targetDuration;
       final localM3u8 = M3u8Parser.buildLocalM3u8(
         segments,
         targetDuration: targetDuration,

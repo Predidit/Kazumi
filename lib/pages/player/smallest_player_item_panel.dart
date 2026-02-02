@@ -16,6 +16,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
@@ -876,6 +877,83 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text("外部播放"),
+                    ),
+                  ),
+                ),
+                // 定时关闭
+                SubmenuButton(
+                  menuChildren: [
+                    MenuItemButton(
+                      onPressed: () {
+                        TimedShutdownService().cancel();
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "不开启",
+                            style: TextStyle(
+                              color: !TimedShutdownService().isActive
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    for (final int minutes in [15, 30, 60])
+                      MenuItemButton(
+                        onPressed: () {
+                          TimedShutdownService().start(minutes);
+                          KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
+                        },
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "$minutes 分钟",
+                              style: TextStyle(
+                                color: TimedShutdownService().setMinutes == minutes
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    MenuItemButton(
+                      onPressed: () {
+                        TimedShutdownService.showCustomTimerDialog(context: context);
+                      },
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text("自定义"),
+                        ),
+                      ),
+                    ),
+                  ],
+                  child: Container(
+                    height: 48,
+                    constraints: BoxConstraints(minWidth: 112),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: TimedShutdownService().remainingSecondsNotifier,
+                        builder: (context, remainingSeconds, child) {
+                          return Text(
+                            remainingSeconds > 0
+                                ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
+                                : "定时关闭",
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

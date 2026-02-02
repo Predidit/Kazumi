@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -148,5 +149,121 @@ class TimedShutdownService {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  /// Format minutes to readable display string (e.g., "1 小时 30 分钟")
+  String formatMinutesToDisplay(int totalMinutes) {
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (hours > 0 && minutes > 0) {
+      return '$hours 小时 $minutes 分钟';
+    } else if (hours > 0) {
+      return '$hours 小时';
+    } else {
+      return '$minutes 分钟';
+    }
+  }
+
+  /// Show custom timer picker dialog and start timer if user confirms
+  /// Returns the total minutes selected, or null if cancelled
+  static Future<int?> showCustomTimerDialog({
+    required BuildContext context,
+    String title = '自定义定时',
+    bool autoStart = true,
+  }) async {
+    int selectedHours = 0;
+    int selectedMinutes = 0;
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(title),
+              content: SizedBox(
+                height: 200,
+                child: Row(
+                  children: [
+                    // Hours picker
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('时', style: TextStyle(fontSize: 14)),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: CupertinoPicker(
+                              scrollController: FixedExtentScrollController(initialItem: selectedHours),
+                              itemExtent: 40,
+                              onSelectedItemChanged: (index) {
+                                setState(() => selectedHours = index);
+                              },
+                              children: List.generate(25, (index) => Center(
+                                child: Text(index.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 20)),
+                              )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    // Minutes picker
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text('分', style: TextStyle(fontSize: 14)),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: CupertinoPicker(
+                              scrollController: FixedExtentScrollController(initialItem: selectedMinutes),
+                              itemExtent: 40,
+                              onSelectedItemChanged: (index) {
+                                setState(() => selectedMinutes = index);
+                              },
+                              children: List.generate(60, (index) => Center(
+                                child: Text(index.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 20)),
+                              )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    '取消',
+                    style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final totalMinutes = selectedHours * 60 + selectedMinutes;
+                    if (totalMinutes <= 0) {
+                      KazumiDialog.showToast(message: '请选择有效的时间');
+                      return;
+                    }
+                    Navigator.of(context).pop(totalMinutes);
+                  },
+                  child: const Text('确定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result != null && autoStart) {
+      TimedShutdownService().start(result);
+      KazumiDialog.showToast(
+        message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(result)} 后定时关闭',
+      );
+    }
+
+    return result;
   }
 }

@@ -263,56 +263,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   }
 
   void _showCustomTimerInputDialog() {
-    String input = "";
-    KazumiDialog.show(builder: (context) {
-      return AlertDialog(
-        title: const Text('自定义定时'),
-        content: TextField(
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
-          decoration: const InputDecoration(
-            labelText: '分钟数',
-            hintText: '请输入定时分钟数（最长1440分钟）',
-          ),
-          onChanged: (value) {
-            input = value;
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              final int? minutes = int.tryParse(input.trim());
-              if (minutes == null || minutes <= 0) {
-                KazumiDialog.showToast(message: '请输入大于0的数字');
-                return;
-              }
-              if (minutes > 1440) {
-                KazumiDialog.showToast(message: '最长不能超过24小时（1440分钟）');
-                return;
-              }
-              KazumiDialog.dismiss();
-              TimedShutdownService().start(minutes);
-              KazumiDialog.showToast(message: '已设置 $minutes 分钟后定时关闭');
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      );
-    });
+    TimedShutdownService.showCustomTimerDialog(context: context);
   }
 
   @override
   void initState() {
-
     super.initState();
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
@@ -25,8 +24,7 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
     {'label': '自定义', 'minutes': -1}, // -1 indicates custom
   ];
 
-  @override
-  void onBackPressed(BuildContext context) {
+  void _handleBackPressed() {
     if (KazumiDialog.observer.hasKazumiDialog) {
       KazumiDialog.dismiss();
     }
@@ -44,7 +42,8 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
   void _applySelection(int minutes) {
     if (minutes > 0) {
       _shutdownService.start(minutes);
-      KazumiDialog.showToast(message: '已设置 $minutes 分钟后暂停视频');
+      final displayTime = _shutdownService.formatMinutesToDisplay(minutes);
+      KazumiDialog.showToast(message: '已设置 $displayTime 后暂停视频');
     } else {
       _shutdownService.cancel();
       KazumiDialog.showToast(message: '已取消定时');
@@ -52,52 +51,11 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
   }
 
   Future<void> _showCustomInputDialog() async {
-    final result = await KazumiDialog.show<int>(builder: (context) {
-      String input = "";
-      return AlertDialog(
-        title: const Text('自定义时间'),
-        content: TextField(
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
-          decoration: const InputDecoration(
-            labelText: '请输入分钟数',
-            hintText: '例如: 45',
-            suffixText: '分钟',
-          ),
-          onChanged: (value) {
-            input = value;
-          },
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              final int? newValue = int.tryParse(input.trim());
-              if (newValue == null || newValue <= 0) {
-                KazumiDialog.showToast(message: '请输入大于0的数字');
-                return;
-              }
-              if (newValue > 1440) {
-                KazumiDialog.showToast(message: '最长不能超过24小时（1440分钟）');
-                return;
-              }
-              KazumiDialog.dismiss(popWith: newValue);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      );
-    });
-
+    final result = await TimedShutdownService.showCustomTimerDialog(
+      context: context,
+      title: '自定义时间',
+      autoStart: false,
+    );
     if (result != null) {
       _applySelection(result);
     }
@@ -126,7 +84,7 @@ class _TimedShutdownSettingsPageState extends State<TimedShutdownSettingsPage> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, Object? result) {
-        onBackPressed(context);
+        _handleBackPressed();
       },
       child: Scaffold(
         appBar: const SysAppBar(title: Text('定时关闭')),

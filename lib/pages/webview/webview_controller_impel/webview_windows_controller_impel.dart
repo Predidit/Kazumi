@@ -9,12 +9,14 @@ class WebviewWindowsItemControllerImpel
     extends WebviewItemController<WebviewController> {
   final List<StreamSubscription> subscriptions = [];
 
+  HeadlessWebview? headlessWebview;
+
   @override
   Future<void> init() async {
     await _setupProxy();
-    webviewController ??= WebviewController();
-    await webviewController!.initialize();
-    await webviewController!
+    headlessWebview ??= HeadlessWebview();
+    await headlessWebview!.run();
+    await headlessWebview!
         .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
   }
@@ -53,7 +55,7 @@ class WebviewWindowsItemControllerImpel
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoLoadingEventController.add(true);
-    subscriptions.add(webviewController!.onM3USourceLoaded.listen((data) {
+    subscriptions.add(headlessWebview!.onM3USourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -65,7 +67,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading m3u8 source: $url');
       videoParserEventController.add((url, offset));
     }));
-    subscriptions.add(webviewController!.onVideoSourceLoaded.listen((data) {
+    subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -77,7 +79,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading video source: $url');
       videoParserEventController.add((url, offset));
     }));
-    await webviewController!.loadUrl(url);
+    await headlessWebview!.loadUrl(url);
   }
 
   @override
@@ -97,15 +99,11 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    // It's a custom function to dispose the whole webview environment in Predidit's flutter-webview-windows fork.
-    // which allow re-initialization webview environment with different proxy settings.
-    // It's difficult to get a dispose finish callback from Microsoft Edge WebView2 SDK,
-    // so don't call webviewController.dispose() when we call WebviewController.disposeEnvironment(), WebViewController.disposeEnvironment() already do any necessary clean up internally.
-    // ohtherwise, app will crash due to resource conflict.
-    if (webviewController != null) {
-      WebviewController.disposeEnvironment();
-      webviewController = null;
+    if (headlessWebview != null) {
+      headlessWebview!.dispose();
+      headlessWebview = null;
     }
+    WebviewController.disposeEnvironment();
   }
 
   // The webview_windows package does not have a method to unload the current page. 
@@ -113,7 +111,7 @@ class WebviewWindowsItemControllerImpel
   // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly. 
   // Therefore, this method is used to redirect to a blank page instead.
   Future<void> redirect2Blank() async {
-    await webviewController!.executeScript('''
+    await headlessWebview!.executeScript('''
       window.location.href = 'about:blank';
     ''');
   }

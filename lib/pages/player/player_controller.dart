@@ -196,22 +196,30 @@ abstract class _PlayerController with Store {
   Future<void> init(String url, {int offset = 0}) async {
     // Check for local cached version
     _isLocalPlayback = false;
-    try {
-      final downloadController = Modular.get<DownloadController>();
-      final localPath = downloadController.getLocalVideoPath(
-        videoPageController.bangumiItem.id,
-        videoPageController.currentPlugin.name,
-        videoPageController.currentEpisode,
-      );
-      if (localPath != null) {
-        videoUrl = localPath;
-        _isLocalPlayback = true;
-        KazumiLogger().i('PlayerController: using local cache $localPath');
-      } else {
+
+    // 离线模式下直接使用传入的本地路径
+    if (videoPageController.isOfflineMode) {
+      videoUrl = url;
+      _isLocalPlayback = true;
+      KazumiLogger().i('PlayerController: offline mode, using local path $url');
+    } else {
+      try {
+        final downloadController = Modular.get<DownloadController>();
+        final localPath = downloadController.getLocalVideoPath(
+          videoPageController.bangumiItem.id,
+          videoPageController.currentPlugin.name,
+          videoPageController.currentEpisode,
+        );
+        if (localPath != null) {
+          videoUrl = localPath;
+          _isLocalPlayback = true;
+          KazumiLogger().i('PlayerController: using local cache $localPath');
+        } else {
+          videoUrl = url;
+        }
+      } catch (_) {
         videoUrl = url;
       }
-    } catch (_) {
-      videoUrl = url;
     }
 
     playing = false;
@@ -245,8 +253,11 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    getDanDanmakuByBgmBangumiID(
-        videoPageController.bangumiItem.id, episodeFromTitle);
+    // 离线模式下跳过弹幕请求，避免网络超时等待
+    if (!videoPageController.isOfflineMode) {
+      getDanDanmakuByBgmBangumiID(
+          videoPageController.bangumiItem.id, episodeFromTitle);
+    }
     mediaPlayer ??= await createVideoController(offset: offset);
 
     if (Utils.isDesktop()) {
@@ -340,15 +351,19 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     bool forceAdBlocker =
         setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    // 离线模式下不需要 adBlocker 和 HTTP 头
     bool adBlockerEnabled = _isLocalPlayback
         ? false
         : (forceAdBlocker || videoPageController.currentPlugin.adBlocker);
-    if (videoPageController.currentPlugin.userAgent == '') {
-      userAgent = Utils.getRandomUA();
-    } else {
-      userAgent = videoPageController.currentPlugin.userAgent;
+    String referer = '';
+    if (!_isLocalPlayback) {
+      if (videoPageController.currentPlugin.userAgent == '') {
+        userAgent = Utils.getRandomUA();
+      } else {
+        userAgent = videoPageController.currentPlugin.userAgent;
+      }
+      referer = videoPageController.currentPlugin.referer;
     }
-    String referer = videoPageController.currentPlugin.referer;
     var httpHeaders = _isLocalPlayback
         ? <String, String>{}
         : {
@@ -645,7 +660,10 @@ abstract class _PlayerController with Store {
   }
 
   void lanunchExternalPlayer() async {
-    String referer = videoPageController.currentPlugin.referer;
+    // 离线模式下没有 referer
+    String referer = videoPageController.isOfflineMode
+        ? ''
+        : videoPageController.currentPlugin.referer;
     if ((Platform.isAndroid || Platform.isWindows) && referer.isEmpty) {
       if (await ExternalPlayer.launchURLWithMIME(videoUrl, 'video/mp4')) {
         KazumiDialog.dismiss();

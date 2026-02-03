@@ -105,13 +105,75 @@ class _VideoPageState extends State<VideoPage>
       parent: animation,
       curve: Curves.easeIn,
     ));
+
+    playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
+    disableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+
+    if (videoPageController.isOfflineMode) {
+      // 离线模式：跳过 WebView 订阅，直接初始化播放器
+      _initOfflineMode();
+    } else {
+      // 在线模式：设置 WebView 订阅
+      _initOnlineMode();
+    }
+
+    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
+      final localUsername = playerController.syncplayController?.username ?? '';
+      final String displayText = '${event.username}：${event.message}';
+
+      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
+      if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
+        playerController.danmakuController.addDanmaku(
+          DanmakuContentItem(
+            displayText,
+            color: Colors.orange,
+            isColorful: true,
+            type: DanmakuItemType.bottom,
+            extra: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
+    });
+  }
+
+  void _initOfflineMode() {
+    videoPageController.showTabBody = true;
+    videoPageController.historyOffset = 0;
+    currentRoad = videoPageController.currentRoad;
+
+    // 检查历史记录（使用离线插件名）
+    var progress = historyController.lastWatching(
+        videoPageController.bangumiItem,
+        videoPageController.offlinePluginName);
+    if (progress != null && playResume) {
+      // 在离线模式下，只恢复播放进度，不改变集数（因为用户已选择特定集数）
+      videoPageController.historyOffset = progress.progress.inSeconds;
+    }
+
+    // 设置空的订阅（避免 dispose 时出错）
+    _initSubscription = const Stream<bool>.empty().listen((_) {});
+    _videoLoadedSubscription = const Stream<bool>.empty().listen((_) {});
+    _videoURLSubscription = const Stream<(String, int)>.empty().listen((_) {});
+    _logSubscription = const Stream<String>.empty().listen((_) {});
+
+    // 初始化播放器（loading 已在 initForOfflinePlayback 中设置为 false）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (videoPageController.offlineVideoPath != null) {
+        playerController.init(
+          videoPageController.offlineVideoPath!,
+          offset: videoPageController.historyOffset,
+        );
+      }
+    });
+  }
+
+  void _initOnlineMode() {
     videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
-    playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
-    disableAnimations =
-        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
@@ -160,23 +222,6 @@ class _VideoPageState extends State<VideoPage>
         webviewLogLines.add(event);
       });
     });
-    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
-      final localUsername = playerController.syncplayController?.username ?? '';
-      final String displayText = '${event.username}：${event.message}';
-
-      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
-      if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
-        playerController.danmakuController.addDanmaku(
-          DanmakuContentItem(
-            displayText,
-            color: Colors.orange,
-            isColorful: true,
-            type: DanmakuItemType.bottom,
-            extra: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
-      }
-    });
   }
 
   @override
@@ -217,6 +262,8 @@ class _VideoPageState extends State<VideoPage>
     }
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
+    // 重置离线模式
+    videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
     tabController.dispose();
     // Cancel timed shutdown when leaving anime page
@@ -515,9 +562,11 @@ class _VideoPageState extends State<VideoPage>
           }
         }
         return Observer(builder: (context) {
+          // 离线模式始终使用原生播放器
+          final useNativePlayer = videoPageController.isOfflineMode ||
+              videoPageController.currentPlugin.useNativePlayer;
           return Scaffold(
-            appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                    videoPageController.isFullscreen)
+            appBar: ((useNativePlayer || videoPageController.isFullscreen)
                 ? null
                 : SysAppBar(title: Text(videoPageController.title))),
             body: SafeArea(
@@ -618,6 +667,9 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get playerBody {
+    // 离线模式始终使用原生播放器
+    final useNativePlayer = videoPageController.isOfflineMode ||
+        videoPageController.currentPlugin.useNativePlayer;
     return Stack(
       children: [
         // webview log component (not player log, used for video parsing)
@@ -625,8 +677,7 @@ class _VideoPageState extends State<VideoPage>
           child: Stack(
             children: [
               Positioned.fill(
-                child: (videoPageController.currentPlugin.useNativePlayer &&
-                        playerController.loading)
+                child: (useNativePlayer && playerController.loading)
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -671,8 +722,7 @@ class _VideoPageState extends State<VideoPage>
               ),
               Visibility(
                 visible: (videoPageController.loading ||
-                        (videoPageController.currentPlugin.useNativePlayer &&
-                            playerController.loading)) &&
+                        (useNativePlayer && playerController.loading)) &&
                     showDebugLog,
                 child: Container(
                   color: Colors.black,
@@ -694,8 +744,7 @@ class _VideoPageState extends State<VideoPage>
                   ),
                 ),
               ),
-              ((videoPageController.currentPlugin.useNativePlayer ||
-                      videoPageController.isFullscreen))
+              ((useNativePlayer || videoPageController.isFullscreen))
                   ? Stack(
                       children: [
                         Positioned(
@@ -762,8 +811,7 @@ class _VideoPageState extends State<VideoPage>
           ),
         ),
         Positioned.fill(
-          child: (!videoPageController.currentPlugin.useNativePlayer ||
-                  playerController.loading)
+          child: (!useNativePlayer || playerController.loading)
               ? Container()
               : PlayerItem(
                   openMenu: openTabBodyAnimated,
@@ -780,13 +828,14 @@ class _VideoPageState extends State<VideoPage>
 
         /// workaround for webview_windows
         /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
-        Positioned(
-            child: SizedBox(
-                height: (videoPageController.loading ||
-                        videoPageController.currentPlugin.useNativePlayer)
-                    ? 0
-                    : null,
-                child: const WebviewItem()))
+        /// 离线模式下不需要 WebView
+        if (!videoPageController.isOfflineMode)
+          Positioned(
+              child: SizedBox(
+                  height: (videoPageController.loading || useNativePlayer)
+                      ? 0
+                      : null,
+                  child: const WebviewItem()))
       ],
     );
   }
@@ -858,27 +907,31 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
           ),
-          SizedBox(
-            height: 34,
-            child: IconButton(
-              icon: const Icon(Icons.download_rounded, size: 20),
-              tooltip: '批量下载',
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) =>
-                      DownloadEpisodeSheet(road: currentRoad),
-                );
-              },
+          // 离线模式下隐藏下载按钮
+          if (!videoPageController.isOfflineMode)
+            SizedBox(
+              height: 34,
+              child: IconButton(
+                icon: const Icon(Icons.download_rounded, size: 20),
+                tooltip: '批量下载',
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) =>
+                        DownloadEpisodeSheet(road: currentRoad),
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
   Widget _buildDownloadStatusIcon(int episodeNumber) {
+    // 离线模式下不显示下载状态图标
+    if (videoPageController.isOfflineMode) return const SizedBox.shrink();
     final episode = downloadController.getEpisode(
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,

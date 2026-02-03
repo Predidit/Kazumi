@@ -4,8 +4,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/download/download_player_page.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -286,18 +287,45 @@ class _DownloadPageState extends State<DownloadPage> {
       KazumiDialog.showToast(message: '本地文件不存在');
       return;
     }
-    final title = episode.episodeName.isNotEmpty
-        ? '${record.bangumiName} - ${episode.episodeName}'
-        : '${record.bangumiName} - 第${episode.episodeNumber}集';
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DownloadPlayerPage(
-          videoPath: localPath,
-          title: title,
-        ),
-      ),
+
+    // 构建 BangumiItem
+    final bangumiItem = BangumiItem(
+      id: record.bangumiId,
+      type: 2,
+      name: record.bangumiName,
+      nameCn: record.bangumiName,
+      summary: '',
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: {'large': record.bangumiCover},
+      tags: [],
+      alias: [],
+      ratingScore: 0.0,
+      votes: 0,
+      votesCount: [],
+      info: '',
     );
+
+    // 获取所有已下载集数
+    final downloadedEpisodes = record.episodes.values
+        .where((e) => e.status == DownloadStatus.completed)
+        .toList();
+
+    // 初始化离线模式
+    final videoPageController = Modular.get<VideoPageController>();
+    videoPageController.initForOfflinePlayback(
+      bangumiItem: bangumiItem,
+      pluginName: record.pluginName,
+      episodeNumber: episode.episodeNumber,
+      episodeName: episode.episodeName,
+      road: episode.road,
+      videoPath: localPath,
+      downloadedEpisodes: downloadedEpisodes,
+    );
+
+    // 导航到 VideoPage
+    Modular.to.pushNamed('/video/');
   }
 
   void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {

@@ -7,7 +7,8 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/repositories/download_repository.dart';
+import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/providers/providers.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:mobx/mobx.dart';
@@ -84,6 +85,10 @@ abstract class _VideoPageController with Store {
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
+
+  /// Repository 层依赖（用于离线模式）
+  final IDownloadRepository _downloadRepository = Modular.get<IDownloadRepository>();
+  final IDownloadManager _downloadManager = Modular.get<IDownloadManager>();
 
   /// 当前活动的视频源提供者（用于取消正在进行的解析）
   IVideoSourceProvider? _activeVideoSourceProvider;
@@ -194,8 +199,7 @@ abstract class _VideoPageController with Store {
     // 从 roadList.data 中获取实际的 episodeNumber
     final actualEpisodeNumber = int.parse(roadList[currentRoad].data[episode - 1]);
 
-    final downloadController = Modular.get<DownloadController>();
-    final localPath = downloadController.getLocalVideoPath(
+    final localPath = _getLocalVideoPath(
       bangumiItem.id,
       _offlinePluginName,
       actualEpisodeNumber,
@@ -212,6 +216,12 @@ abstract class _VideoPageController with Store {
     // 直接初始化播放器
     final playerController = Modular.get<PlayerController>();
     playerController.init(localPath, offset: offset);
+  }
+
+  /// 获取本地视频路径（通过 Repository 层）
+  String? _getLocalVideoPath(int bangumiId, String pluginName, int episodeNumber) {
+    final episode = _downloadRepository.getEpisode(bangumiId, pluginName, episodeNumber);
+    return _downloadManager.getLocalVideoPath(episode);
   }
 
   /// 使用 VideoSourceProvider 解析视频源（原生播放器模式）

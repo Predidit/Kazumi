@@ -54,11 +54,7 @@ class CachedVideoSourceProvider implements IVideoSourceProvider {
 
   /// 从 DownloadRepository 获取本地视频路径
   String? _getLocalVideoPath() {
-    final recordKey = '${pluginName}_$bangumiId';
-    final record = _repository.getRecord(recordKey);
-    if (record == null) return null;
-
-    final episode = record.episodes[episodeNumber];
+    final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     if (episode == null) return null;
 
     // 只有下载完成的视频才返回路径

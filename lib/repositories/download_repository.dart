@@ -10,6 +10,26 @@ abstract class IDownloadRepository {
   Future<void> updateEpisode(String recordKey, int episodeNumber, DownloadEpisode episode);
   Future<void> deleteEpisode(String recordKey, int episodeNumber);
   bool getForceAdBlocker();
+
+  /// 获取指定番剧的下载记录
+  ///
+  /// [bangumiId] 番剧 ID
+  /// [pluginName] 插件名称
+  DownloadRecord? getRecordByBangumiId(int bangumiId, String pluginName);
+
+  /// 获取指定集数的下载信息
+  ///
+  /// [bangumiId] 番剧 ID
+  /// [pluginName] 插件名称
+  /// [episodeNumber] 集数编号
+  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber);
+
+  /// 获取已完成下载的集数列表
+  ///
+  /// [bangumiId] 番剧 ID
+  /// [pluginName] 插件名称
+  /// 返回所有已完成下载的集数
+  List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName);
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -108,5 +128,28 @@ class DownloadRepository implements IDownloadRepository {
       );
       rethrow;
     }
+  }
+
+  @override
+  DownloadRecord? getRecordByBangumiId(int bangumiId, String pluginName) {
+    final key = '${pluginName}_$bangumiId';
+    return getRecord(key);
+  }
+
+  @override
+  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber) {
+    final record = getRecordByBangumiId(bangumiId, pluginName);
+    return record?.episodes[episodeNumber];
+  }
+
+  @override
+  List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName) {
+    final record = getRecordByBangumiId(bangumiId, pluginName);
+    if (record == null) return [];
+
+    return record.episodes.values
+        .where((e) => e.status == DownloadStatus.completed)
+        .toList()
+      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
   }
 }

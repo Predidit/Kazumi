@@ -68,20 +68,22 @@ abstract class _DownloadController with Store {
   }
 
   DownloadRecord? getRecord(int bangumiId, String pluginName) {
-    final key = '${pluginName}_$bangumiId';
-    return _repository.getRecord(key);
+    return _repository.getRecordByBangumiId(bangumiId, pluginName);
   }
 
   DownloadEpisode? getEpisode(
       int bangumiId, String pluginName, int episodeNumber) {
-    final record = getRecord(bangumiId, pluginName);
-    return record?.episodes[episodeNumber];
+    return _repository.getEpisode(bangumiId, pluginName, episodeNumber);
   }
 
   String? getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
-    final episode = getEpisode(bangumiId, pluginName, episodeNumber);
+    final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     return _downloadManager.getLocalVideoPath(episode);
+  }
+
+  List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName) {
+    return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
   Future<void> startDownload({

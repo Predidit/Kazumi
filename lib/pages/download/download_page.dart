@@ -307,10 +307,11 @@ class _DownloadPageState extends State<DownloadPage> {
       info: '',
     );
 
-    // 获取所有已下载集数
-    final downloadedEpisodes = record.episodes.values
-        .where((e) => e.status == DownloadStatus.completed)
-        .toList();
+    // 获取所有已下载集数（通过 Controller 委托给 Repository 层）
+    final downloadedEpisodes = downloadController.getCompletedEpisodes(
+      record.bangumiId,
+      record.pluginName,
+    );
 
     // 初始化离线模式
     final videoPageController = Modular.get<VideoPageController>();

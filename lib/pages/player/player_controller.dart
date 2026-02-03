@@ -25,6 +25,25 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 part 'player_controller.g.dart';
 
+enum DanmakuDestination {
+  chatRoom,
+  remoteDanmaku,
+}
+
+class SyncPlayChatMessage {
+  final String username;
+  final String message;
+  final bool fromRemote;
+  final DateTime time;
+
+  SyncPlayChatMessage({
+    required this.username,
+    required this.message,
+    this.fromRemote = true,
+    DateTime? time,
+  }) : time = time ?? DateTime.now();
+}
+
 class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
@@ -40,6 +59,11 @@ abstract class _PlayerController with Store {
   bool danmakuOn = false;
   @observable
   bool danmakuLoading = false;
+  DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
+  final StreamController<SyncPlayChatMessage> syncPlayChatStreamController =
+    StreamController<SyncPlayChatMessage>.broadcast();
+  Stream<SyncPlayChatMessage> get syncPlayChatStream =>
+      syncPlayChatStreamController.stream;
 
   // 一起看控制器
   SyncplayClient? syncplayController;
@@ -648,7 +672,7 @@ abstract class _PlayerController with Store {
       String username,
       Future<void> Function(int episode, {int currentRoad, int offset})
           changeEpisode,
-      {bool enableTLS = false}) async {
+      {bool enableTLS = true}) async {
     await syncplayController?.disconnect();
     final String syncPlayEndPoint = setting.get(SettingBoxKey.syncPlayEndPoint,
         defaultValue: defaultSyncPlayEndPoint);
@@ -744,12 +768,21 @@ abstract class _PlayerController with Store {
       );
       syncplayController!.onChatMessage.listen(
         (message) {
-          if (message['username'] != username) {
-            KazumiDialog.showToast(
-                message:
-                    'SyncPlay: ${message['username']} 说: ${message['message']}',
-                duration: const Duration(seconds: 5));
+          final String sender = (message['username'] ?? '').toString();
+          final String text = (message['message'] ?? '').toString();
+          final bool fromRemote = message['username'] != username;
+
+          // 将消息转发到流
+          if (!syncPlayChatStreamController.isClosed) {
+            syncPlayChatStreamController.add(SyncPlayChatMessage(
+              username: sender,
+              message: text,
+              fromRemote: fromRemote,
+            ));
           }
+        },
+        onError: (error) {
+          print('SyncPlay: error: ${error.message}');
         },
       );
       syncplayController!.onPositionChangedMessage.listen(

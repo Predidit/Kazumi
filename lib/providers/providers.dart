@@ -1,0 +1,29 @@
+/// Video Source Provider 模块
+///
+/// 提供视频源解析的抽象层，支持：
+/// - WebView 在线解析
+/// - 本地缓存读取
+/// - 组合策略（优先缓存）
+///
+/// 使用示例：
+/// ```dart
+/// final provider = WebViewVideoSourceProvider();
+/// try {
+///   final source = await provider.resolve(
+///     episodeUrl,
+///     useNativePlayer: true,
+///     useLegacyParser: false,
+///   );
+///   print('Video URL: ${source.url}');
+/// } on VideoSourceTimeoutException {
+///   print('解析超时');
+/// } finally {
+///   provider.dispose();
+/// }
+/// ```
+library;
+
+export 'video_source_provider.dart';
+export 'webview_video_source_provider.dart';
+export 'cached_video_source_provider.dart';
+export 'composite_video_source_provider.dart';

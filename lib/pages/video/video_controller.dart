@@ -4,7 +4,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/providers/providers.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -70,6 +72,9 @@ abstract class _VideoPageController with Store {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
 
+  /// 当前活动的视频源提供者（用于取消正在进行的解析）
+  IVideoSourceProvider? _activeVideoSourceProvider;
+
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
     currentEpisode = episode;
@@ -83,10 +88,71 @@ abstract class _VideoPageController with Store {
     } else {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
-    final webviewItemController = Modular.get<WebviewItemController>();
-    await webviewItemController.loadUrl(
-        urlItem, currentPlugin.useNativePlayer, currentPlugin.useLegacyParser,
-        offset: offset);
+
+    if (currentPlugin.useNativePlayer) {
+      // 原生播放器模式：使用独立的 Provider 实例（避免与 DownloadController 状态冲突）
+      await _resolveWithProvider(urlItem, offset);
+    } else {
+      // WebView 渲染模式：使用共享的 WebviewItemController（需要可见 WebView）
+      final webviewItemController = Modular.get<WebviewItemController>();
+      await webviewItemController.loadUrl(
+          urlItem, currentPlugin.useNativePlayer, currentPlugin.useLegacyParser,
+          offset: offset);
+    }
+  }
+
+  /// 使用 VideoSourceProvider 解析视频源（原生播放器模式）
+  Future<void> _resolveWithProvider(String url, int offset) async {
+    // 取消之前的解析
+    _activeVideoSourceProvider?.cancel();
+    _activeVideoSourceProvider?.dispose();
+
+    loading = true;
+    final provider = WebViewVideoSourceProvider();
+    _activeVideoSourceProvider = provider;
+
+    try {
+      final source = await provider.resolve(
+        url,
+        useNativePlayer: true,
+        useLegacyParser: currentPlugin.useLegacyParser,
+        offset: offset,
+      );
+
+      // 检查是否被取消（provider 已被替换）
+      if (_activeVideoSourceProvider != provider) {
+        KazumiLogger().i('VideoPageController: resolution cancelled (replaced)');
+        return;
+      }
+
+      loading = false;
+      KazumiLogger().i('VideoPageController: resolved video URL: ${source.url}');
+
+      // 直接初始化播放器
+      final playerController = Modular.get<PlayerController>();
+      playerController.init(source.url, offset: source.offset);
+    } on VideoSourceTimeoutException {
+      KazumiLogger().w('VideoPageController: video URL resolution timed out');
+      loading = false;
+    } on VideoSourceCancelledException {
+      KazumiLogger().i('VideoPageController: video URL resolution cancelled');
+      // 不设置 loading = false，因为可能是切换到新的集数
+    } catch (e) {
+      KazumiLogger().e('VideoPageController: video URL resolution failed', error: e);
+      loading = false;
+    } finally {
+      if (_activeVideoSourceProvider == provider) {
+        provider.dispose();
+        _activeVideoSourceProvider = null;
+      }
+    }
+  }
+
+  /// 取消当前视频源解析
+  void cancelVideoSourceResolution() {
+    _activeVideoSourceProvider?.cancel();
+    _activeVideoSourceProvider?.dispose();
+    _activeVideoSourceProvider = null;
   }
 
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {

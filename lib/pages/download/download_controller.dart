@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -6,7 +5,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/providers/providers.dart';
 import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
@@ -174,38 +173,23 @@ abstract class _DownloadController with Store {
         'DownloadController: resolving video URL for episode ${request.episodeNumber} from $fullUrl');
 
     String? m3u8Url;
-    WebviewItemController? webview;
+    final provider = WebViewVideoSourceProvider();
     try {
-      webview = WebviewItemControllerFactory.getController();
-      await webview.init();
-
-      final completer = Completer<String>();
-
-      final subscription = webview.onVideoURLParser.listen((event) {
-        final (url, _) = event;
-        if (!completer.isCompleted) {
-          completer.complete(url);
-        }
-      });
-
-      await webview.loadUrl(
+      final source = await provider.resolve(
         fullUrl,
-        plugin.useNativePlayer,
-        plugin.useLegacyParser,
+        useNativePlayer: plugin.useNativePlayer,
+        useLegacyParser: plugin.useLegacyParser,
+        timeout: const Duration(seconds: 30),
       );
-
-      m3u8Url = await completer.future.timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => '',
-      );
-
-      await subscription.cancel();
+      m3u8Url = source.url;
+    } on VideoSourceTimeoutException {
+      KazumiLogger().w('DownloadController: WebView resolution timed out');
+    } on VideoSourceCancelledException {
+      KazumiLogger().i('DownloadController: WebView resolution cancelled');
     } catch (e) {
       KazumiLogger().e('DownloadController: WebView resolution failed', error: e);
     } finally {
-      try {
-        webview?.dispose();
-      } catch (_) {}
+      provider.dispose();
     }
 
     if (m3u8Url == null || m3u8Url.isEmpty) {

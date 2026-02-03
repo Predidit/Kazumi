@@ -125,14 +125,6 @@ class _MyPageState extends State<MyPage> {
                   title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('设置同步参数', style: TextStyle(fontFamily: fontFamily)),
                 ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    Modular.to.pushNamed('/settings/timed_shutdown');
-                  },
-                  leading: const Icon(Icons.timer_rounded),
-                  title: Text('定时关闭', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设定时间后自动暂停视频', style: TextStyle(fontFamily: fontFamily)),
-                ),
               ],
             ),
             SettingsSection(

@@ -927,7 +927,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       ),
                     MenuItemButton(
                       onPressed: () {
-                        TimedShutdownService.showCustomTimerDialog(context: context);
+                        TimedShutdownService.showCustomTimerDialog();
                       },
                       child: Container(
                         height: 48,

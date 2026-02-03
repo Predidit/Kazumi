@@ -21,6 +21,7 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -190,6 +191,8 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.episodeCommentsList.clear();
     Utils.unlockScreenRotation();
     tabController.dispose();
+    // Cancel timed shutdown when leaving anime page
+    TimedShutdownService().cancel();
     super.dispose();
   }
 

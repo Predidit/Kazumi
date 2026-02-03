@@ -262,9 +262,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     });
   }
 
-  void _showCustomTimerInputDialog() {
-    TimedShutdownService.showCustomTimerDialog(context: context);
-  }
+
 
   @override
   void initState() {
@@ -1236,7 +1234,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             MenuItemButton(
                               onPressed: () {
                                 TimedShutdownService().start(minutes);
-                                KazumiDialog.showToast(message: '已设置 $minutes 分钟后定时关闭');
+                                KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
                               },
                               child: Container(
                                 height: 48,
@@ -1256,7 +1254,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ),
                           MenuItemButton(
                             onPressed: () {
-                              _showCustomTimerInputDialog();
+                              TimedShutdownService.showCustomTimerDialog();
                             },
                             child: Container(
                               height: 48,

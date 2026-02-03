@@ -165,17 +165,16 @@ class TimedShutdownService {
   }
 
   /// Show custom timer picker dialog and start timer if user confirms
-  /// Returns the total minutes selected, or null if cancelled
-  static Future<int?> showCustomTimerDialog({
-    required BuildContext context,
+  /// Uses KazumiDialog to avoid context-related resource leaks
+  static void showCustomTimerDialog({
     String title = '自定义定时',
     bool autoStart = true,
-  }) async {
+    void Function(int)? onResult,
+  }) {
     int selectedHours = 0;
     int selectedMinutes = 0;
 
-    final result = await showDialog<int>(
-      context: context,
+    KazumiDialog.show(
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
@@ -233,7 +232,7 @@ class TimedShutdownService {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => KazumiDialog.dismiss(),
                   child: Text(
                     '取消',
                     style: TextStyle(color: Theme.of(context).colorScheme.outline),
@@ -246,7 +245,14 @@ class TimedShutdownService {
                       KazumiDialog.showToast(message: '请选择有效的时间');
                       return;
                     }
-                    Navigator.of(context).pop(totalMinutes);
+                    KazumiDialog.dismiss();
+                    if (autoStart) {
+                      TimedShutdownService().start(totalMinutes);
+                      KazumiDialog.showToast(
+                        message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
+                      );
+                    }
+                    onResult?.call(totalMinutes);
                   },
                   child: const Text('确定'),
                 ),
@@ -256,14 +262,5 @@ class TimedShutdownService {
         );
       },
     );
-
-    if (result != null && autoStart) {
-      TimedShutdownService().start(result);
-      KazumiDialog.showToast(
-        message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(result)} 后定时关闭',
-      );
-    }
-
-    return result;
   }
 }

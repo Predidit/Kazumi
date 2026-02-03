@@ -22,7 +22,6 @@ import 'package:kazumi/utils/syncplay.dart';
 import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 part 'player_controller.g.dart';
 

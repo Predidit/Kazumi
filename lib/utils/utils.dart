@@ -318,18 +318,6 @@ class Utils {
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
-  /// 安全退出应用
-  static void safeExit() {
-    if (kIsWeb) return;
-    if (Platform.isAndroid || Platform.isIOS) {
-      SystemNavigator.pop();
-    } else {
-      exit(0);
-    }
-    // Note: User feedback indicated exit(0) is preferred for safety across platforms.
-    // iOS still uses pop() to follow guidelines unless explicitly asked to change.
-  }
-
   /// 判断设备是否为宽屏
   static bool isWideScreen() {
     final MediaQueryData mediaQuery = MediaQueryData.fromView(

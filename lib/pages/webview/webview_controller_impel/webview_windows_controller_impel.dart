@@ -99,10 +99,10 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    if (headlessWebview != null) {
-      headlessWebview!.dispose();
-      headlessWebview = null;
-    }
+    // disposeEnvironment() 内部已通过 headless_instances_.clear() 销毁所有 headless 实例，
+    // 不要额外调用 headlessWebview.dispose()，否则两个异步方法通道调用可能产生竞争，
+    // 导致 disposeEnvironment 先到达原生侧清除实例后，disposeHeadless 找不到条目抛出异常。
+    headlessWebview = null;
     WebviewController.disposeEnvironment();
   }
 

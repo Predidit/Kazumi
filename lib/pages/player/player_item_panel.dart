@@ -43,6 +43,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
     required this.showDanmakuDestinationPickerAndSend,
+    required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
 
@@ -68,6 +69,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
   final void Function(String) showDanmakuDestinationPickerAndSend;
+  final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
 
   @override
@@ -1241,7 +1243,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           for (final int minutes in [15, 30, 60])
                             MenuItemButton(
                               onPressed: () {
-                                TimedShutdownService().start(minutes);
+                                TimedShutdownService().start(minutes, onExpired: widget.pauseForTimedShutdown);
                                 KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
                               },
                               child: Container(
@@ -1262,7 +1264,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ),
                           MenuItemButton(
                             onPressed: () {
-                              TimedShutdownService.showCustomTimerDialog();
+                              TimedShutdownService.showCustomTimerDialog(
+                                onExpired: widget.pauseForTimedShutdown,
+                              );
                             },
                             child: Container(
                               height: 48,

@@ -2,10 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
+import 'package:kazumi/utils/logger.dart';
 
-/// Global service to manage timed shutdown (Bilibili-style: pause video instead of exit)
 class TimedShutdownService {
   static final TimedShutdownService _instance = TimedShutdownService._internal();
   factory TimedShutdownService() => _instance;
@@ -14,9 +12,11 @@ class TimedShutdownService {
   Timer? _shutdownTimer;
   int _remainingSeconds = 0;
   bool _isDialogShowing = false;
-  
   /// Last set minutes, used for repeat functionality
   int _lastSetMinutes = 0;
+
+  /// Callback to invoke when timer expires (e.g., pause video)
+  VoidCallback? _onExpiredCallback;
   
   /// Remaining time in seconds notifier
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
@@ -34,7 +34,8 @@ class TimedShutdownService {
   int get remainingSeconds => remainingSecondsNotifier.value;
 
   /// Start the shutdown timer with the given duration in minutes
-  void start(int minutes) {
+  /// [onExpired] callback is invoked when timer expires (before showing dialog)
+  void start(int minutes, {VoidCallback? onExpired}) {
     cancel();
     if (minutes <= 0) return;
 
@@ -42,6 +43,7 @@ class TimedShutdownService {
     _remainingSeconds = minutes * 60;
     remainingSecondsNotifier.value = _remainingSeconds;
     setMinutesNotifier.value = minutes;
+    _onExpiredCallback = onExpired;
     
     // Update remaining time every second (runs globally, not tied to playback)
     _shutdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -61,7 +63,7 @@ class TimedShutdownService {
   /// Repeat the timer with the last set duration
   void repeat() {
     if (_lastSetMinutes > 0) {
-      start(_lastSetMinutes);
+      start(_lastSetMinutes, onExpired: _onExpiredCallback);
     }
   }
 
@@ -70,6 +72,7 @@ class TimedShutdownService {
     _shutdownTimer?.cancel();
     _shutdownTimer = null;
     _remainingSeconds = 0;
+    _onExpiredCallback = null;
     if (remainingSecondsNotifier.value != 0) {
       remainingSecondsNotifier.value = 0;
     }
@@ -84,19 +87,16 @@ class TimedShutdownService {
     }
   }
 
-  /// Called when timer expires: pause video and show dialog
+  /// Called when timer expires: invoke callback and show dialog
   void _onTimerExpired() {
     // Reset UI state so it doesn't show 00:00
     setMinutesNotifier.value = 0;
     
-    // Pause video if playing
+    // Invoke the callback if set (e.g., pause video)
     try {
-      final playerController = Modular.get<PlayerController>();
-      if (playerController.playing) {
-        playerController.pause();
-      }
-    } catch (_) {
-      // PlayerController not available (e.g., not in player page)
+      _onExpiredCallback?.call();
+    } catch (e) {
+      KazumiLogger().e('TimedShutdownService: onExpired callback failed', error: e);
     }
     
     _showTimerExpiredDialog();
@@ -166,9 +166,11 @@ class TimedShutdownService {
 
   /// Show custom timer picker dialog and start timer if user confirms
   /// Uses KazumiDialog to avoid context-related resource leaks
+  /// [onExpired] callback is invoked when timer expires (before showing dialog)
   static void showCustomTimerDialog({
     String title = '自定义定时',
     bool autoStart = true,
+    VoidCallback? onExpired,
     void Function(int)? onResult,
   }) {
     int selectedHours = 0;
@@ -247,7 +249,7 @@ class TimedShutdownService {
                     }
                     KazumiDialog.dismiss();
                     if (autoStart) {
-                      TimedShutdownService().start(totalMinutes);
+                      TimedShutdownService().start(totalMinutes, onExpired: onExpired);
                       KazumiDialog.showToast(
                         message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
                       );

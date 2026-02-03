@@ -320,6 +320,13 @@ class _VideoPageState extends State<VideoPage>
     Navigator.of(context).pop();
   }
 
+  /// Callback for timed shutdown - pauses video when timer expires
+  void pauseForTimedShutdown() {
+    if (playerController.playing) {
+      playerController.pause();
+    }
+  }
+
   /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
     keyboardFocus.requestFocus();
@@ -762,6 +769,7 @@ class _VideoPageState extends State<VideoPage>
                   sendDanmaku: sendDanmaku,
                   disableAnimations: disableAnimations,
                   showDanmakuDestinationPickerAndSend: showDanmakuDestinationPickerAndSend,
+                  pauseForTimedShutdown: pauseForTimedShutdown,
                 ),
         ),
 

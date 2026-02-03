@@ -38,6 +38,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.showVideoInfo,
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
+    required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
 
@@ -58,6 +59,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
+  final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
 
   @override
@@ -906,7 +908,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     for (final int minutes in [15, 30, 60])
                       MenuItemButton(
                         onPressed: () {
-                          TimedShutdownService().start(minutes);
+                          TimedShutdownService().start(minutes, onExpired: widget.pauseForTimedShutdown);
                           KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
                         },
                         child: Container(
@@ -927,7 +929,9 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       ),
                     MenuItemButton(
                       onPressed: () {
-                        TimedShutdownService.showCustomTimerDialog();
+                        TimedShutdownService.showCustomTimerDialog(
+                          onExpired: widget.pauseForTimedShutdown,
+                        );
                       },
                       child: Container(
                         height: 48,

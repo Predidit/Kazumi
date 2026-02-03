@@ -91,9 +91,19 @@ class _DownloadPageState extends State<DownloadPage> {
               onSelected: (value) {
                 if (value == 'delete') {
                   _confirmDeleteRecord(record);
+                } else if (value == 'resume_all') {
+                  downloadController.resumeAllDownloads(
+                    record.bangumiId,
+                    record.pluginName,
+                  );
+                  KazumiDialog.showToast(message: '已开始恢复下载');
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'resume_all',
+                  child: Text('开始全部'),
+                ),
                 const PopupMenuItem(
                   value: 'delete',
                   child: Text('删除全部'),
@@ -110,7 +120,7 @@ class _DownloadPageState extends State<DownloadPage> {
 
   Widget _buildEpisodeTile(DownloadRecord record, DownloadEpisode episode) {
     final statusIcon = _getStatusIcon(episode);
-    final statusText = _getStatusText(episode);
+    final statusText = _getStatusText(record, episode);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -193,13 +203,19 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  String _getStatusText(DownloadEpisode episode) {
+  String _getStatusText(DownloadRecord record, DownloadEpisode episode) {
     switch (episode.status) {
       case DownloadStatus.completed:
         return '已完成  ${downloadController.formatBytes(episode.totalBytes)}';
       case DownloadStatus.downloading:
+        final speed = downloadController.getSpeed(
+          record.bangumiId,
+          record.pluginName,
+          episode.episodeNumber,
+        );
+        final speedText = speed > 0 ? ' · ${downloadController.formatSpeed(speed)}' : '';
         return '${(episode.progressPercent * 100).toStringAsFixed(0)}%  '
-            '${episode.downloadedSegments}/${episode.totalSegments}';
+            '${episode.downloadedSegments}/${episode.totalSegments}$speedText';
       case DownloadStatus.failed:
         return episode.errorMessage.isNotEmpty ? episode.errorMessage : '下载失败';
       case DownloadStatus.paused:
@@ -260,6 +276,22 @@ class _DownloadPageState extends State<DownloadPage> {
             episodeNumber: episode.episodeNumber,
           ),
           tooltip: '重试',
+          visualDensity: VisualDensity.compact,
+        ));
+        break;
+      case DownloadStatus.pending:
+        buttons.add(IconButton(
+          icon: Icon(Icons.priority_high,
+              size: 20, color: Theme.of(context).colorScheme.primary),
+          onPressed: () {
+            downloadController.priorityDownload(
+              bangumiId: record.bangumiId,
+              pluginName: record.pluginName,
+              episodeNumber: episode.episodeNumber,
+            );
+            KazumiDialog.showToast(message: '已插队优先下载');
+          },
+          tooltip: '优先下载',
           visualDensity: VisualDensity.compact,
         ));
         break;

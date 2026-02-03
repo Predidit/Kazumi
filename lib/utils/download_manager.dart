@@ -5,6 +5,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:path_provider/path_provider.dart';
 
 class _NotM3u8Exception implements Exception {
@@ -29,7 +30,7 @@ class DownloadTask {
 }
 
 typedef ProgressCallback = void Function(
-    String recordKey, int episodeNumber, DownloadEpisode episode);
+    String recordKey, int episodeNumber, DownloadEpisode episode, double speed);
 
 class DownloadRequest {
   final String recordKey;
@@ -58,16 +59,45 @@ abstract class IDownloadManager {
 
   bool isDownloading(String recordKey, int episodeNumber);
   Future<void> enqueue(DownloadRequest request);
+  Future<void> enqueuePriority(DownloadRequest request);
   void pause(String recordKey, int episodeNumber);
   Future<void> resume(DownloadRequest request);
   void cancel(String recordKey, int episodeNumber);
   String? getLocalVideoPath(DownloadEpisode? episode);
   Future<void> deleteEpisodeFiles(int bangumiId, String pluginName, int episodeNumber);
   Future<void> deleteRecordFiles(int bangumiId, String pluginName);
+  double getSpeed(String recordKey, int episodeNumber);
+}
+
+/// Tracks download speed for a single episode
+class _SpeedTracker {
+  int _lastBytes = 0;
+  DateTime _lastTime = DateTime.now();
+  double currentSpeed = 0.0; // bytes/sec
+
+  void update(int totalBytes) {
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastTime).inMilliseconds;
+    if (elapsed > 500) {
+      // Update speed every 500ms
+      final bytesDownloaded = totalBytes - _lastBytes;
+      currentSpeed = bytesDownloaded / (elapsed / 1000);
+      _lastBytes = totalBytes;
+      _lastTime = now;
+    }
+  }
+
+  void reset() {
+    _lastBytes = 0;
+    _lastTime = DateTime.now();
+    currentSpeed = 0.0;
+  }
 }
 
 class DownloadManager implements IDownloadManager {
-  DownloadManager();
+  DownloadManager() {
+    _loadSettings();
+  }
 
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
@@ -76,12 +106,31 @@ class DownloadManager implements IDownloadManager {
 
   final Map<String, DownloadTask> _activeTasks = {};
   final List<DownloadRequest> _queue = [];
+  final Map<String, _SpeedTracker> _speedTrackers = {};
   int maxParallelEpisodes = 2;
   int maxParallelSegments = 3;
   int _runningCount = 0;
 
   @override
   ProgressCallback? onProgress;
+
+  void _loadSettings() {
+    final setting = GStorage.setting;
+    maxParallelEpisodes = setting.get(
+      SettingBoxKey.downloadParallelEpisodes,
+      defaultValue: 2,
+    );
+    maxParallelSegments = setting.get(
+      SettingBoxKey.downloadParallelSegments,
+      defaultValue: 3,
+    );
+  }
+
+  @override
+  double getSpeed(String recordKey, int episodeNumber) {
+    final key = _taskKey(recordKey, episodeNumber);
+    return _speedTrackers[key]?.currentSpeed ?? 0.0;
+  }
 
   String _taskKey(String recordKey, int episodeNumber) =>
       '${recordKey}_$episodeNumber';
@@ -126,6 +175,35 @@ class DownloadManager implements IDownloadManager {
       _queue.add(request);
       _activeTasks[key] = task;
     }
+  }
+
+  @override
+  Future<void> enqueuePriority(DownloadRequest request) async {
+    final key = _taskKey(request.recordKey, request.episodeNumber);
+
+    // Remove from queue if already waiting
+    _queue.removeWhere(
+      (r) => r.recordKey == request.recordKey && r.episodeNumber == request.episodeNumber,
+    );
+    _activeTasks.remove(key);
+
+    final task = DownloadTask(
+      recordKey: request.recordKey,
+      episodeNumber: request.episodeNumber,
+    );
+
+    // Start immediately, bypassing the parallel limit (priority download)
+    _runningCount++;
+    _activeTasks[key] = task;
+    _runEpisodeDownload(
+      task: task,
+      bangumiId: request.bangumiId,
+      pluginName: request.pluginName,
+      m3u8Url: request.m3u8Url,
+      httpHeaders: request.httpHeaders,
+      adBlockerEnabled: request.adBlockerEnabled,
+      episode: request.episode,
+    );
   }
 
   @override
@@ -335,6 +413,9 @@ class DownloadManager implements IDownloadManager {
       int failedCount = 0;
       final semaphore = _Semaphore(maxParallelSegments);
 
+      // Initialize speed tracker for this episode
+      _speedTrackers[key] = _SpeedTracker();
+
       if (pendingIndices.isEmpty) {
         // All segments already downloaded
       } else {
@@ -358,6 +439,8 @@ class DownloadManager implements IDownloadManager {
             episode.totalBytes = totalBytes;
             episode.progressPercent =
                 episode.downloadedSegments / episode.totalSegments;
+            // Update speed tracker
+            _speedTrackers[key]?.update(totalBytes);
             _notifyProgress(task.recordKey, task.episodeNumber, episode);
             completedCount++;
             semaphore.release();
@@ -469,19 +552,44 @@ class DownloadManager implements IDownloadManager {
 
       // Use stream response for resume support
       final requestHeaders = Map<String, String>.from(httpHeaders);
-      if (existingBytes > 0) {
+      bool useRange = existingBytes > 0;
+      if (useRange) {
         requestHeaders['Range'] = 'bytes=$existingBytes-';
       }
 
-      final response = await _dio.get<ResponseBody>(
-        videoUrl,
-        options: Options(
-          headers: requestHeaders,
-          responseType: ResponseType.stream,
-          receiveTimeout: const Duration(minutes: 30),
-        ),
-        cancelToken: task.cancelToken,
-      );
+      Response<ResponseBody> response;
+      try {
+        response = await _dio.get<ResponseBody>(
+          videoUrl,
+          options: Options(
+            headers: requestHeaders,
+            responseType: ResponseType.stream,
+            receiveTimeout: const Duration(minutes: 30),
+          ),
+          cancelToken: task.cancelToken,
+        );
+      } on DioException catch (e) {
+        // Handle 416 Range Not Satisfiable - delete local file and retry without Range
+        if (e.response?.statusCode == 416 && useRange) {
+          KazumiLogger().w(
+            'DownloadManager: 416 Range Not Satisfiable, deleting local file and retrying',
+          );
+          await file.delete();
+          existingBytes = 0;
+          requestHeaders.remove('Range');
+          response = await _dio.get<ResponseBody>(
+            videoUrl,
+            options: Options(
+              headers: requestHeaders,
+              responseType: ResponseType.stream,
+              receiveTimeout: const Duration(minutes: 30),
+            ),
+            cancelToken: task.cancelToken,
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       // Parse total size from Content-Range or Content-Length
       final contentRange = response.headers.value('content-range');
@@ -500,6 +608,9 @@ class DownloadManager implements IDownloadManager {
           mode: existingBytes > 0 ? FileMode.append : FileMode.write);
       int received = existingBytes;
 
+      // Initialize speed tracker for direct file download
+      _speedTrackers[key] = _SpeedTracker();
+
       try {
         await for (final chunk in response.data!.stream) {
           if (task.isPaused || task.cancelToken.isCancelled) break;
@@ -507,6 +618,8 @@ class DownloadManager implements IDownloadManager {
           received += chunk.length;
           episode.totalBytes = received;
           episode.progressPercent = totalSize > 0 ? received / totalSize : 0;
+          // Update speed tracker
+          _speedTrackers[key]?.update(received);
           _notifyProgress(task.recordKey, task.episodeNumber, episode);
         }
       } finally {
@@ -557,13 +670,16 @@ class DownloadManager implements IDownloadManager {
 
   void _onTaskComplete(String key) {
     _activeTasks.remove(key);
+    _speedTrackers.remove(key);
     _runningCount--;
     _processQueue();
   }
 
   void _notifyProgress(
       String recordKey, int episodeNumber, DownloadEpisode episode) {
-    onProgress?.call(recordKey, episodeNumber, episode);
+    final key = _taskKey(recordKey, episodeNumber);
+    final speed = _speedTrackers[key]?.currentSpeed ?? 0.0;
+    onProgress?.call(recordKey, episodeNumber, episode, speed);
   }
 
   Future<String> _fetchM3u8(

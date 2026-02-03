@@ -33,12 +33,14 @@ abstract class _DownloadController with Store {
     records.clear();
     records.addAll(temp);
 
-    // Reset any 'downloading' or 'resolving' states to 'paused' on startup
+    // Reset any incomplete states to 'paused' on startup
+    // This includes 'pending' because the in-memory queue is lost on restart
     for (final record in records) {
       bool changed = false;
       for (final entry in record.episodes.entries) {
         if (entry.value.status == DownloadStatus.downloading ||
-            entry.value.status == DownloadStatus.resolving) {
+            entry.value.status == DownloadStatus.resolving ||
+            entry.value.status == DownloadStatus.pending) {
           entry.value.status = DownloadStatus.paused;
           changed = true;
         }
@@ -51,10 +53,31 @@ abstract class _DownloadController with Store {
     _downloadManager.onProgress = _onDownloadProgress;
   }
 
+  /// Speed data (in-memory, not persisted)
+  final Map<String, double> _speeds = {};
+
   void _onDownloadProgress(
-      String recordKey, int episodeNumber, DownloadEpisode episode) {
+      String recordKey, int episodeNumber, DownloadEpisode episode, double speed) {
     _repository.updateEpisode(recordKey, episodeNumber, episode);
+    // Store speed in memory
+    final key = '${recordKey}_$episodeNumber';
+    _speeds[key] = speed;
     refreshRecords();
+  }
+
+  /// Get current download speed for an episode (bytes/sec)
+  double getSpeed(int bangumiId, String pluginName, int episodeNumber) {
+    final key = '${pluginName}_${bangumiId}_$episodeNumber';
+    return _speeds[key] ?? 0.0;
+  }
+
+  /// Format speed to human-readable string
+  String formatSpeed(double bytesPerSec) {
+    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)} B/s';
+    if (bytesPerSec < 1024 * 1024) {
+      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
+    }
+    return '${(bytesPerSec / 1024 / 1024).toStringAsFixed(1)} MB/s';
   }
 
   @action
@@ -460,6 +483,94 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     refreshRecords();
+  }
+
+  /// Priority download - skip the queue and start immediately
+  Future<void> priorityDownload({
+    required int bangumiId,
+    required String pluginName,
+    required int episodeNumber,
+  }) async {
+    final recordKey = '${pluginName}_$bangumiId';
+    final record = _repository.getRecord(recordKey);
+    if (record == null) return;
+    final episode = record.episodes[episodeNumber];
+    if (episode == null) return;
+
+    final plugin = _findPlugin(pluginName);
+    if (plugin == null) {
+      _failEpisode(recordKey, episodeNumber, '找不到插件 $pluginName');
+      return;
+    }
+
+    // Remove from resolve queue if waiting
+    _resolveQueue.removeWhere((r) =>
+        r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+
+    if (episode.networkM3u8Url.isNotEmpty) {
+      episode.status = DownloadStatus.downloading;
+      episode.errorMessage = '';
+      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      refreshRecords();
+
+      final httpHeaders = plugin.buildHttpHeaders();
+      bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
+
+      await _downloadManager.enqueuePriority(DownloadRequest(
+        recordKey: recordKey,
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        episodeNumber: episodeNumber,
+        m3u8Url: episode.networkM3u8Url,
+        httpHeaders: httpHeaders,
+        adBlockerEnabled: adBlockerEnabled,
+        episode: episode,
+      ));
+    } else {
+      // Need to resolve first - add to front of resolve queue
+      episode.status = DownloadStatus.resolving;
+      episode.errorMessage = '';
+      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      refreshRecords();
+
+      _resolveQueue.insert(0, _ResolveRequest(
+        recordKey: recordKey,
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        episodeNumber: episodeNumber,
+        episodePageUrl: episode.episodePageUrl,
+      ));
+      _processResolveQueue();
+    }
+  }
+
+  /// Resume all incomplete downloads for a record
+  Future<void> resumeAllDownloads(int bangumiId, String pluginName) async {
+    final recordKey = '${pluginName}_$bangumiId';
+    final record = _repository.getRecord(recordKey);
+    if (record == null) return;
+
+    final incompleteEpisodes = record.episodes.entries
+        .where((e) =>
+            e.value.status == DownloadStatus.paused ||
+            e.value.status == DownloadStatus.failed ||
+            e.value.status == DownloadStatus.pending)
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    for (final entry in incompleteEpisodes) {
+      await retryDownload(
+        bangumiId: bangumiId,
+        pluginName: pluginName,
+        episodeNumber: entry.key,
+      );
+    }
+
+    if (incompleteEpisodes.isNotEmpty) {
+      KazumiLogger().i(
+        'DownloadController: resumed ${incompleteEpisodes.length} downloads for $recordKey',
+      );
+    }
   }
 
   int completedCount(DownloadRecord record) {

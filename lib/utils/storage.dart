@@ -21,7 +21,12 @@ class GStorage {
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
 
+  /// Hive directory path, initialized during init()
+  static String? _hivePath;
+
   static Future init() async {
+    _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
+
     Hive.registerAdapter(BangumiItemAdapter());
     Hive.registerAdapter(BangumiTagAdapter());
     Hive.registerAdapter(CollectedBangumiAdapter());
@@ -31,14 +36,60 @@ class GStorage {
     Hive.registerAdapter(SearchHistoryAdapter());
     Hive.registerAdapter(DownloadRecordAdapter());
     Hive.registerAdapter(DownloadEpisodeAdapter());
-    favorites = await Hive.openBox('favorites');
-    collectibles = await Hive.openBox('collectibles');
-    histories = await Hive.openBox('histories');
-    setting = await Hive.openBox('setting');
-    collectChanges = await Hive.openBox('collectchanges');
-    shieldList = await Hive.openBox('shieldList');
-    searchHistory = await Hive.openBox('searchHistory');
-    downloads = await Hive.openBox('downloads');
+
+    // Open each box with automatic recovery on corruption
+    favorites = await _openBoxSafe<BangumiItem>('favorites');
+    collectibles = await _openBoxSafe<CollectedBangumi>('collectibles');
+    histories = await _openBoxSafe<History>('histories');
+    setting = await _openBoxSafe<dynamic>('setting');
+    collectChanges = await _openBoxSafe<CollectedBangumiChange>('collectchanges');
+    shieldList = await _openBoxSafe<String>('shieldList');
+    searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
+    downloads = await _openBoxSafe<DownloadRecord>('downloads');
+  }
+
+  /// Open a Hive box with automatic recovery on corruption.
+  /// If the box is corrupted, delete it and create a new empty one.
+  static Future<Box<T>> _openBoxSafe<T>(String boxName) async {
+    try {
+      return await Hive.openBox<T>(boxName);
+    } catch (e) {
+      KazumiLogger().e('GStorage: Box "$boxName" corrupted, attempting recovery', error: e);
+
+      // Delete the corrupted box files
+      await _deleteBoxFiles(boxName);
+
+      // Try to open again (will create a new empty box)
+      try {
+        final box = await Hive.openBox<T>(boxName);
+        KazumiLogger().i('GStorage: Box "$boxName" recovered successfully (data lost)');
+        return box;
+      } catch (e2) {
+        KazumiLogger().e('GStorage: Failed to recover box "$boxName"', error: e2);
+        rethrow;
+      }
+    }
+  }
+
+  /// Delete Hive box files for a given box name
+  static Future<void> _deleteBoxFiles(String boxName) async {
+    if (_hivePath == null) return;
+
+    final boxFile = File('$_hivePath/$boxName.hive');
+    final lockFile = File('$_hivePath/$boxName.lock');
+
+    try {
+      if (await boxFile.exists()) {
+        await boxFile.delete();
+        KazumiLogger().i('GStorage: Deleted corrupted box file: $boxName.hive');
+      }
+      if (await lockFile.exists()) {
+        await lockFile.delete();
+        KazumiLogger().i('GStorage: Deleted lock file: $boxName.lock');
+      }
+    } catch (e) {
+      KazumiLogger().e('GStorage: Failed to delete box files for "$boxName"', error: e);
+    }
   }
 
   static Future<void> backupBox(String boxName, String backupFilePath) async {

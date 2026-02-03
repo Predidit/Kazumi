@@ -43,6 +43,13 @@ class DownloadRepository implements IDownloadRepository {
         try {
           final record = _downloadsBox.get(key);
           if (record != null) {
+            // Merge in-memory progress into the record
+            final cachedEpisodes = _progressCache[key as String];
+            if (cachedEpisodes != null) {
+              for (final entry in cachedEpisodes.entries) {
+                record.episodes[entry.key] = entry.value;
+              }
+            }
             result.add(record);
           }
         } catch (e) {
@@ -59,7 +66,17 @@ class DownloadRepository implements IDownloadRepository {
   @override
   DownloadRecord? getRecord(String key) {
     try {
-      return _downloadsBox.get(key);
+      final record = _downloadsBox.get(key);
+      if (record != null) {
+        // Merge in-memory progress into the record
+        final cachedEpisodes = _progressCache[key];
+        if (cachedEpisodes != null) {
+          for (final entry in cachedEpisodes.entries) {
+            record.episodes[entry.key] = entry.value;
+          }
+        }
+      }
+      return record;
     } catch (e) {
       KazumiLogger().w('DownloadRepository: get record failed. key=$key', error: e);
       return null;
@@ -96,14 +113,33 @@ class DownloadRepository implements IDownloadRepository {
     }
   }
 
+  /// Track last persisted status to avoid unnecessary writes
+  final Map<String, int> _lastPersistedStatus = {};
+
+  /// In-memory cache for progress updates (not persisted until status changes)
+  final Map<String, Map<int, DownloadEpisode>> _progressCache = {};
+
   @override
   Future<void> updateEpisode(String recordKey, int episodeNumber, DownloadEpisode episode) async {
     try {
-      final record = _downloadsBox.get(recordKey);
-      if (record == null) return;
-      record.episodes[episodeNumber] = episode;
-      await _downloadsBox.put(recordKey, record);
-      await _downloadsBox.flush();
+      // Update in-memory cache
+      _progressCache.putIfAbsent(recordKey, () => {});
+      _progressCache[recordKey]![episodeNumber] = episode;
+
+      // Only persist to Hive when status changes (not on every progress update)
+      // This dramatically reduces disk I/O and prevents corruption on crash
+      final statusKey = '${recordKey}_$episodeNumber';
+      final lastStatus = _lastPersistedStatus[statusKey];
+      final shouldPersist = lastStatus != episode.status;
+
+      if (shouldPersist) {
+        final record = _downloadsBox.get(recordKey);
+        if (record == null) return;
+        record.episodes[episodeNumber] = episode;
+        await _downloadsBox.put(recordKey, record);
+        await _downloadsBox.flush();
+        _lastPersistedStatus[statusKey] = episode.status;
+      }
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'DownloadRepository: update episode failed. key=$recordKey, ep=$episodeNumber',
@@ -112,6 +148,17 @@ class DownloadRepository implements IDownloadRepository {
       );
       rethrow;
     }
+  }
+
+  /// Get episode with in-memory progress if available
+  DownloadEpisode? getEpisodeWithProgress(String recordKey, int episodeNumber) {
+    // Check in-memory cache first
+    final cached = _progressCache[recordKey]?[episodeNumber];
+    if (cached != null) return cached;
+
+    // Fall back to Hive
+    final record = getRecord(recordKey);
+    return record?.episodes[episodeNumber];
   }
 
   @override

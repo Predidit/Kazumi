@@ -37,12 +37,23 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   List<DownloadRecord> getAllRecords() {
+    final List<DownloadRecord> result = [];
     try {
-      return _downloadsBox.values.cast<DownloadRecord>().toList();
+      for (final key in _downloadsBox.keys) {
+        try {
+          final record = _downloadsBox.get(key);
+          if (record != null) {
+            result.add(record);
+          }
+        } catch (e) {
+          // 单条记录读取失败，跳过该记录并记录日志
+          KazumiLogger().w('DownloadRepository: failed to read record key=$key, skipping', error: e);
+        }
+      }
     } catch (e) {
       KazumiLogger().w('DownloadRepository: get all records failed', error: e);
-      return [];
     }
+    return result;
   }
 
   @override

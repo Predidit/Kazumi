@@ -44,7 +44,12 @@ class _InitPageState extends State<InitPage> {
     _loadShaders();
     _loadDanmakuShield();
     _webDavInit();
-    downloadController.init();
+    try {
+      downloadController.init();
+    } catch (e) {
+      KazumiLogger().e('InitPage: downloadController.init() failed', error: e);
+      // 下载记录初始化失败不应阻止应用启动
+    }
 
     await _checkRunningOnX11();
     await _pluginInit();

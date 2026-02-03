@@ -2,7 +2,6 @@ import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -181,16 +180,8 @@ abstract class _VideoPageController with Store {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
 
-    if (currentPlugin.useNativePlayer) {
-      // 原生播放器模式：使用独立的 Provider 实例（避免与 DownloadController 状态冲突）
-      await _resolveWithProvider(urlItem, offset);
-    } else {
-      // WebView 渲染模式：使用共享的 WebviewItemController（需要可见 WebView）
-      final webviewItemController = Modular.get<WebviewItemController>();
-      await webviewItemController.loadUrl(
-          urlItem, currentPlugin.useNativePlayer, currentPlugin.useLegacyParser,
-          offset: offset);
-    }
+    // 统一使用 Provider 模式解析视频源
+    await _resolveWithProvider(urlItem, offset);
   }
 
   /// 离线模式下切换集数

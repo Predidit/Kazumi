@@ -5,8 +5,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/webview/webview_item.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -40,8 +38,6 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  final WebviewItemController webviewItemController =
-      Modular.get<WebviewItemController>();
   final DownloadController downloadController =
       Modular.get<DownloadController>();
   late bool playResume;
@@ -58,19 +54,6 @@ class _VideoPageState extends State<VideoPage>
 
   // 当前播放列表
   late int currentRoad;
-
-  // webview init events listener
-  late final StreamSubscription<bool> _initSubscription;
-
-  // webview logs events listener
-  late final StreamSubscription<String> _logSubscription;
-
-  // webview video loaded events listener
-  late final StreamSubscription<bool> _videoLoadedSubscription;
-
-  // webview video source events listener
-  // The first parameter is the video source URL and the second parameter is the video offset (start position)
-  late final StreamSubscription<(String, int)> _videoURLSubscription;
 
   // disable animation.
   late final bool disableAnimations;
@@ -151,12 +134,6 @@ class _VideoPageState extends State<VideoPage>
       videoPageController.historyOffset = progress.progress.inSeconds;
     }
 
-    // 设置空的订阅（避免 dispose 时出错）
-    _initSubscription = const Stream<bool>.empty().listen((_) {});
-    _videoLoadedSubscription = const Stream<bool>.empty().listen((_) {});
-    _videoURLSubscription = const Stream<(String, int)>.empty().listen((_) {});
-    _logSubscription = const Stream<String>.empty().listen((_) {});
-
     // 初始化播放器（loading 已在 initForOfflinePlayback 中设置为 false）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (videoPageController.offlineVideoPath != null) {
@@ -191,36 +168,11 @@ class _VideoPageState extends State<VideoPage>
     }
     currentRoad = videoPageController.currentRoad;
 
-    // webview events listener
-    _initSubscription = webviewItemController.onInitialized.listen((event) {
-      if (event) {
-        changeEpisode(videoPageController.currentEpisode,
-            currentRoad: videoPageController.currentRoad,
-            offset: videoPageController.historyOffset);
-      }
-    });
-    _videoLoadedSubscription =
-        webviewItemController.onVideoLoading.listen((event) {
-      videoPageController.loading = event;
-    });
-    _videoURLSubscription =
-        webviewItemController.onVideoURLParser.listen((event) {
-      final (mediaUrl, offset) = event;
-      playerController.init(mediaUrl, offset: offset);
-    });
-    _logSubscription = webviewItemController.onLog.listen((event) {
-      KazumiLogger().i('WebViewParser: $event');
-      if (event == 'clear') {
-        clearWebviewLog();
-        return;
-      }
-      if (event == 'showDebug') {
-        showDebugConsole();
-        return;
-      }
-      setState(() {
-        webviewLogLines.add(event);
-      });
+    // 使用 Provider 模式启动播放
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      changeEpisode(videoPageController.currentEpisode,
+          currentRoad: videoPageController.currentRoad,
+          offset: videoPageController.historyOffset);
     });
   }
 
@@ -236,18 +188,6 @@ class _VideoPageState extends State<VideoPage>
       animation.dispose();
     } catch (_) {}
     try {
-      _initSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoLoadedSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoURLSubscription.cancel();
-    } catch (_) {}
-    try {
-      _logSubscription.cancel();
-    } catch (_) {}
-    try {
       _syncChatSubscription.cancel();
     } catch (_) {}
     try {
@@ -255,6 +195,8 @@ class _VideoPageState extends State<VideoPage>
     } catch (e) {
       KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
+    // 取消正在进行的视频源解析
+    videoPageController.cancelVideoSourceResolution();
     if (!Utils.isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -825,17 +767,6 @@ class _VideoPageState extends State<VideoPage>
                   pauseForTimedShutdown: pauseForTimedShutdown,
                 ),
         ),
-
-        /// workaround for webview_windows
-        /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
-        /// 离线模式下不需要 WebView
-        if (!videoPageController.isOfflineMode)
-          Positioned(
-              child: SizedBox(
-                  height: (videoPageController.loading || useNativePlayer)
-                      ? 0
-                      : null,
-                  child: const WebviewItem()))
       ],
     );
   }

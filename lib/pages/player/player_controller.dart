@@ -253,11 +253,8 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    // 离线模式下跳过弹幕请求，避免网络超时等待
-    if (!videoPageController.isOfflineMode) {
-      getDanDanmakuByBgmBangumiID(
-          videoPageController.bangumiItem.id, episodeFromTitle);
-    }
+    // 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
+    _loadDanmaku(episodeFromTitle);
     mediaPlayer ??= await createVideoController(offset: offset);
 
     if (Utils.isDesktop()) {
@@ -607,6 +604,81 @@ abstract class _PlayerController with Store {
   void setArrowKeyForwardTime(int time) {
     arrowKeySkipTime = time;
     setting.put(SettingBoxKey.arrowKeySkipTime, time);
+  }
+
+  /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
+  Future<void> _loadDanmaku(int episode) async {
+    if (videoPageController.isOfflineMode) {
+      // 离线模式：先从缓存加载，无缓存时尝试在线获取
+      await _loadCachedDanmaku(episode);
+    } else {
+      // 在线模式：从网络获取弹幕
+      getDanDanmakuByBgmBangumiID(
+          videoPageController.bangumiItem.id, episode);
+    }
+  }
+
+  /// 从下载缓存加载弹幕，如果缓存为空且有网络则尝试在线获取
+  Future<void> _loadCachedDanmaku(int episode) async {
+    if (danmakuLoading) {
+      KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
+      return;
+    }
+
+    KazumiLogger().i('PlayerController: attempting to load cached danmaku for episode $episode');
+    danmakuLoading = true;
+    try {
+      danDanmakus.clear();
+      final downloadController = Modular.get<DownloadController>();
+      final cachedDanmakus = downloadController.getCachedDanmakus(
+        videoPageController.bangumiItem.id,
+        videoPageController.offlinePluginName,
+        videoPageController.actualEpisodeNumber,
+      );
+
+      if (cachedDanmakus != null && cachedDanmakus.isNotEmpty) {
+        addDanmakus(cachedDanmakus);
+        KazumiLogger().i('PlayerController: loaded ${cachedDanmakus.length} cached danmakus');
+      } else {
+        // 缓存为空，尝试在线获取
+        KazumiLogger().i('PlayerController: no cached danmaku, attempting online fetch');
+        try {
+          bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(
+              videoPageController.bangumiItem.id);
+          if (bangumiID != 0) {
+            var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+            if (res.isNotEmpty) {
+              addDanmakus(res);
+              KazumiLogger().i('PlayerController: fetched ${res.length} danmakus online');
+              // 将获取的弹幕保存到缓存，供下次离线使用
+              _saveDanmakuToCache(downloadController, res);
+            }
+          }
+        } catch (e) {
+          KazumiLogger().w('PlayerController: failed to fetch danmaku online (may be offline)', error: e);
+        }
+      }
+    } catch (e) {
+      KazumiLogger().w('PlayerController: failed to load cached danmaku', error: e);
+    } finally {
+      danmakuLoading = false;
+    }
+  }
+
+  /// 将弹幕保存到下载缓存
+  void _saveDanmakuToCache(DownloadController downloadController, List<Danmaku> danmakus) {
+    try {
+      downloadController.updateCachedDanmakus(
+        videoPageController.bangumiItem.id,
+        videoPageController.offlinePluginName,
+        videoPageController.actualEpisodeNumber,
+        danmakus,
+        bangumiID,
+      );
+      KazumiLogger().i('PlayerController: saved ${danmakus.length} danmakus to cache');
+    } catch (e) {
+      KazumiLogger().w('PlayerController: failed to save danmaku to cache', error: e);
+    }
   }
 
   Future<void> getDanDanmakuByBgmBangumiID(

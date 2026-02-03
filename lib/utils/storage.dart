@@ -278,5 +278,6 @@ class SettingBoxKey {
       proxyUrl = 'proxyUrl',
       showRating = 'showRating',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
-      downloadParallelSegments = 'downloadParallelSegments';
+      downloadParallelSegments = 'downloadParallelSegments',
+      downloadDanmaku = 'downloadDanmaku';
 }

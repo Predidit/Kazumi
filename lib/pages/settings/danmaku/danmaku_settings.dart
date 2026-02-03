@@ -34,6 +34,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
   late bool danmakuFollowSpeed;
+  late bool downloadDanmaku;
 
   @override
   void initState() {
@@ -68,6 +69,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
     danmakuFollowSpeed =
         setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+    downloadDanmaku =
+        setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
   }
 
   void onBackPressed(BuildContext context) {
@@ -164,6 +167,22 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   },
                   title: Text('DanDan', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDanDanSource,
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('离线缓存', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    downloadDanmaku = value ?? !downloadDanmaku;
+                    await setting.put(
+                        SettingBoxKey.downloadDanmaku, downloadDanmaku);
+                    setState(() {});
+                  },
+                  title: Text('下载时缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('下载视频时同步缓存弹幕，供离线播放时使用', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: downloadDanmaku,
                 ),
               ],
             ),

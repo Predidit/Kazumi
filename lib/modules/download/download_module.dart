@@ -79,6 +79,14 @@ class DownloadEpisode {
   @HiveField(13, defaultValue: '')
   String episodePageUrl;
 
+  /// 缓存的弹幕数据 (JSON 字符串格式)
+  @HiveField(14, defaultValue: '')
+  String danmakuData;
+
+  /// DanDanPlay 番剧 ID (用于弹幕查询缓存)
+  @HiveField(15, defaultValue: 0)
+  int danDanBangumiID;
+
   DownloadEpisode(
     this.episodeNumber,
     this.episodeName,
@@ -93,8 +101,10 @@ class DownloadEpisode {
     this.completedAt,
     this.errorMessage,
     this.totalBytes,
-    this.episodePageUrl,
-  );
+    this.episodePageUrl, {
+    this.danmakuData = '',
+    this.danDanBangumiID = 0,
+  });
 }
 
 class DownloadStatus {

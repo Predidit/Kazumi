@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/providers/providers.dart';
+import 'package:kazumi/request/damaku.dart';
 import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
@@ -84,6 +89,47 @@ abstract class _DownloadController with Store {
 
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName) {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
+  }
+
+  /// 获取缓存的弹幕数据
+  /// 返回 null 表示没有缓存
+  List<Danmaku>? getCachedDanmakus(int bangumiId, String pluginName, int episodeNumber) {
+    final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+    if (episode == null || episode.danmakuData.isEmpty) {
+      return null;
+    }
+    try {
+      final List<dynamic> jsonList = jsonDecode(episode.danmakuData);
+      return jsonList.map((json) => Danmaku.fromJson(json)).toList();
+    } catch (e) {
+      KazumiLogger().w('DownloadController: failed to parse cached danmaku', error: e);
+      return null;
+    }
+  }
+
+  /// 更新缓存的弹幕数据（用于离线播放时在线获取后保存）
+  Future<void> updateCachedDanmakus(
+    int bangumiId,
+    String pluginName,
+    int episodeNumber,
+    List<Danmaku> danmakus,
+    int danDanBangumiID,
+  ) async {
+    final recordKey = '${pluginName}_$bangumiId';
+    final record = _repository.getRecord(recordKey);
+    if (record == null) return;
+    final episode = record.episodes[episodeNumber];
+    if (episode == null) return;
+
+    try {
+      final danmakuJson = jsonEncode(danmakus.map((d) => d.toJson()).toList());
+      episode.danmakuData = danmakuJson;
+      episode.danDanBangumiID = danDanBangumiID;
+      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      KazumiLogger().i('DownloadController: updated cached danmakus for episode $episodeNumber');
+    } catch (e) {
+      KazumiLogger().w('DownloadController: failed to update cached danmaku', error: e);
+    }
   }
 
   Future<void> startDownload({
@@ -231,6 +277,60 @@ abstract class _DownloadController with Store {
       adBlockerEnabled: adBlockerEnabled,
       episode: freshEpisode,
     ));
+
+    // 检查是否启用弹幕缓存（并行获取，不阻塞视频下载）
+    final Box setting = GStorage.setting;
+    final bool downloadDanmaku = setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
+    if (downloadDanmaku) {
+      // 异步获取弹幕，不等待完成
+      _fetchAndCacheDanmakuAsync(
+        request.recordKey,
+        request.bangumiId,
+        request.episodeNumber,
+      );
+    }
+  }
+
+  /// 异步获取并缓存弹幕数据（不阻塞视频下载）
+  void _fetchAndCacheDanmakuAsync(String recordKey, int bangumiId, int episodeNumber) {
+    // 使用 Future 在后台执行，不阻塞调用者
+    Future(() async {
+      try {
+        KazumiLogger().i('DownloadController: fetching danmaku for episode $episodeNumber (async)');
+
+        // 获取 DanDan 番剧 ID
+        final danDanBangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+        if (danDanBangumiID == 0) {
+          KazumiLogger().w('DownloadController: failed to get DanDan bangumiID for $bangumiId');
+          return;
+        }
+
+        // 获取弹幕列表
+        final danmakus = await DanmakuRequest.getDanDanmaku(danDanBangumiID, episodeNumber);
+        if (danmakus.isEmpty) {
+          KazumiLogger().i('DownloadController: no danmaku found for episode $episodeNumber');
+          return;
+        }
+
+        // 序列化弹幕数据
+        final danmakuJson = jsonEncode(danmakus.map((d) => d.toJson()).toList());
+
+        // 更新存储（重新获取最新的 episode 数据）
+        final record = _repository.getRecord(recordKey);
+        if (record == null) return;
+        final episode = record.episodes[episodeNumber];
+        if (episode == null) return;
+
+        episode.danmakuData = danmakuJson;
+        episode.danDanBangumiID = danDanBangumiID;
+        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+
+        KazumiLogger().i('DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
+      } catch (e) {
+        // 弹幕获取失败不影响下载
+        KazumiLogger().w('DownloadController: failed to fetch danmaku', error: e);
+      }
+    });
   }
 
   void _failEpisode(String recordKey, int episodeNumber, String message) {

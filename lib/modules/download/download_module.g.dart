@@ -80,13 +80,15 @@ class DownloadEpisodeAdapter extends TypeAdapter<DownloadEpisode> {
       fields[11] == null ? '' : fields[11] as String,
       fields[12] == null ? 0 : (fields[12] as num).toInt(),
       fields[13] == null ? '' : fields[13] as String,
+      danmakuData: fields[14] == null ? '' : fields[14] as String,
+      danDanBangumiID: fields[15] == null ? 0 : (fields[15] as num).toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, DownloadEpisode obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.episodeNumber)
       ..writeByte(1)
@@ -114,7 +116,11 @@ class DownloadEpisodeAdapter extends TypeAdapter<DownloadEpisode> {
       ..writeByte(12)
       ..write(obj.totalBytes)
       ..writeByte(13)
-      ..write(obj.episodePageUrl);
+      ..write(obj.episodePageUrl)
+      ..writeByte(14)
+      ..write(obj.danmakuData)
+      ..writeByte(15)
+      ..write(obj.danDanBangumiID);
   }
 
   @override

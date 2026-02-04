@@ -9,6 +9,58 @@ part of 'collect_controller.dart';
 // ignore_for_file: non_constant_identifier_names, unnecessary_brace_in_string_interps, unnecessary_lambdas, prefer_expression_function_bodies, lines_longer_than_80_chars, avoid_as, avoid_annotating_with_dynamic, no_leading_underscores_for_local_identifiers
 
 mixin _$CollectController on _CollectController, Store {
+  late final _$_watchingCalendarWeekdayByIdAtom = Atom(
+      name: '_CollectController._watchingCalendarWeekdayById',
+      context: context);
+
+  @override
+  ObservableMap<int, int> get _watchingCalendarWeekdayById {
+    _$_watchingCalendarWeekdayByIdAtom.reportRead();
+    return super._watchingCalendarWeekdayById;
+  }
+
+  @override
+  set _watchingCalendarWeekdayById(ObservableMap<int, int> value) {
+    _$_watchingCalendarWeekdayByIdAtom
+        .reportWrite(value, super._watchingCalendarWeekdayById, () {
+      super._watchingCalendarWeekdayById = value;
+    });
+  }
+
+  late final _$isWatchingCalendarLoadingAtom = Atom(
+      name: '_CollectController.isWatchingCalendarLoading', context: context);
+
+  @override
+  bool get isWatchingCalendarLoading {
+    _$isWatchingCalendarLoadingAtom.reportRead();
+    return super.isWatchingCalendarLoading;
+  }
+
+  @override
+  set isWatchingCalendarLoading(bool value) {
+    _$isWatchingCalendarLoadingAtom
+        .reportWrite(value, super.isWatchingCalendarLoading, () {
+      super.isWatchingCalendarLoading = value;
+    });
+  }
+
+  late final _$isWatchingCalendarReadyAtom = Atom(
+      name: '_CollectController.isWatchingCalendarReady', context: context);
+
+  @override
+  bool get isWatchingCalendarReady {
+    _$isWatchingCalendarReadyAtom.reportRead();
+    return super.isWatchingCalendarReady;
+  }
+
+  @override
+  set isWatchingCalendarReady(bool value) {
+    _$isWatchingCalendarReadyAtom
+        .reportWrite(value, super.isWatchingCalendarReady, () {
+      super.isWatchingCalendarReady = value;
+    });
+  }
+
   late final _$collectiblesAtom =
       Atom(name: '_CollectController.collectibles', context: context);
 
@@ -23,6 +75,15 @@ mixin _$CollectController on _CollectController, Store {
     _$collectiblesAtom.reportWrite(value, super.collectibles, () {
       super.collectibles = value;
     });
+  }
+
+  late final _$loadWatchingCalendarAsyncAction =
+      AsyncAction('_CollectController.loadWatchingCalendar', context: context);
+
+  @override
+  Future<void> loadWatchingCalendar() {
+    return _$loadWatchingCalendarAsyncAction
+        .run(() => super.loadWatchingCalendar());
   }
 
   late final _$addCollectAsyncAction =
@@ -46,6 +107,8 @@ mixin _$CollectController on _CollectController, Store {
   @override
   String toString() {
     return '''
+isWatchingCalendarLoading: ${isWatchingCalendarLoading},
+isWatchingCalendarReady: ${isWatchingCalendarReady},
 collectibles: ${collectibles}
     ''';
   }

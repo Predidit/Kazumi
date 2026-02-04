@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -504,13 +503,8 @@ class _VideoPageState extends State<VideoPage>
           }
         }
         return Observer(builder: (context) {
-          // 离线模式始终使用原生播放器
-          final useNativePlayer = videoPageController.isOfflineMode ||
-              videoPageController.currentPlugin.useNativePlayer;
           return Scaffold(
-            appBar: ((useNativePlayer || videoPageController.isFullscreen)
-                ? null
-                : SysAppBar(title: Text(videoPageController.title))),
+            appBar: null,
             body: SafeArea(
                 top: !videoPageController.isFullscreen,
                 // set iOS and Android navigation bar to immersive
@@ -609,9 +603,6 @@ class _VideoPageState extends State<VideoPage>
   }
 
   Widget get playerBody {
-    // 离线模式始终使用原生播放器
-    final useNativePlayer = videoPageController.isOfflineMode ||
-        videoPageController.currentPlugin.useNativePlayer;
     return Stack(
       children: [
         // webview log component (not player log, used for video parsing)
@@ -619,7 +610,7 @@ class _VideoPageState extends State<VideoPage>
           child: Stack(
             children: [
               Positioned.fill(
-                child: (useNativePlayer && playerController.loading)
+                child: playerController.loading
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -664,7 +655,7 @@ class _VideoPageState extends State<VideoPage>
               ),
               Visibility(
                 visible: (videoPageController.loading ||
-                        (useNativePlayer && playerController.loading)) &&
+                        playerController.loading) &&
                     showDebugLog,
                 child: Container(
                   color: Colors.black,
@@ -686,8 +677,7 @@ class _VideoPageState extends State<VideoPage>
                   ),
                 ),
               ),
-              ((useNativePlayer || videoPageController.isFullscreen))
-                  ? Stack(
+              Stack(
                       children: [
                         Positioned(
                           top: 0,
@@ -747,13 +737,12 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                       ],
-                    )
-                  : Container(),
+                    ),
             ],
           ),
         ),
         Positioned.fill(
-          child: (!useNativePlayer || playerController.loading)
+          child: playerController.loading
               ? Container()
               : PlayerItem(
                   openMenu: openTabBodyAnimated,

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/webview/webview_controller.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebviewItemControllerImpel

@@ -89,8 +89,8 @@ abstract class _VideoPageController with Store {
   final IDownloadRepository _downloadRepository = Modular.get<IDownloadRepository>();
   final IDownloadManager _downloadManager = Modular.get<IDownloadManager>();
 
-  /// 当前活动的视频源提供者（用于取消正在进行的解析）
-  IVideoSourceProvider? _activeVideoSourceProvider;
+  /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
+  WebViewVideoSourceProvider? _videoSourceProvider;
 
   /// 初始化离线播放模式
   void initForOfflinePlayback({
@@ -217,27 +217,19 @@ abstract class _VideoPageController with Store {
 
   /// 使用 VideoSourceProvider 解析视频源（原生播放器模式）
   Future<void> _resolveWithProvider(String url, int offset) async {
-    // 取消之前的解析
-    _activeVideoSourceProvider?.cancel();
-    _activeVideoSourceProvider?.dispose();
+    // 取消上一次正在进行的解析，但不 dispose Provider
+    _videoSourceProvider?.cancel();
 
     loading = true;
-    final provider = WebViewVideoSourceProvider();
-    _activeVideoSourceProvider = provider;
+    _videoSourceProvider ??= WebViewVideoSourceProvider();
 
     try {
-      final source = await provider.resolve(
+      final source = await _videoSourceProvider!.resolve(
         url,
         useNativePlayer: true,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: offset,
       );
-
-      // 检查是否被取消（provider 已被替换）
-      if (_activeVideoSourceProvider != provider) {
-        KazumiLogger().i('VideoPageController: resolution cancelled (replaced)');
-        return;
-      }
 
       loading = false;
       KazumiLogger().i('VideoPageController: resolved video URL: ${source.url}');
@@ -254,19 +246,13 @@ abstract class _VideoPageController with Store {
     } catch (e) {
       KazumiLogger().e('VideoPageController: video URL resolution failed', error: e);
       loading = false;
-    } finally {
-      if (_activeVideoSourceProvider == provider) {
-        provider.dispose();
-        _activeVideoSourceProvider = null;
-      }
     }
   }
 
-  /// 取消当前视频源解析
+  /// 取消当前视频源解析并销毁 Provider（页面退出时调用）
   void cancelVideoSourceResolution() {
-    _activeVideoSourceProvider?.cancel();
-    _activeVideoSourceProvider?.dispose();
-    _activeVideoSourceProvider = null;
+    _videoSourceProvider?.dispose();
+    _videoSourceProvider = null;
   }
 
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {

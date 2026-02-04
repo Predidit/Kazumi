@@ -389,6 +389,18 @@ class DownloadManager implements IDownloadManager {
       episode.downloadedSegments = 0;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
 
+      // Clean up .tmp files from previous incomplete downloads
+      final episodeDirObj = Directory(episodeDir);
+      if (await episodeDirObj.exists()) {
+        await for (final entity in episodeDirObj.list()) {
+          if (entity.path.endsWith('.tmp')) {
+            try {
+              await entity.delete();
+            } catch (_) {}
+          }
+        }
+      }
+
       // Check which segments already exist (for resume)
       final existingSegments = <int>{};
       for (int i = 0; i < segments.length; i++) {
@@ -538,12 +550,14 @@ class DownloadManager implements IDownloadManager {
       episode.downloadDirectory = episodeDir;
 
       final filePath = '$episodeDir/video.mp4';
+      final tmpPath = '$filePath.tmp';
 
       // Check for existing partial download (for resume)
+      // For direct downloads, .tmp files contain valid partial data and can be resumed
       int existingBytes = 0;
-      final file = File(filePath);
-      if (await file.exists()) {
-        existingBytes = await file.length();
+      final tmpFile = File(tmpPath);
+      if (await tmpFile.exists()) {
+        existingBytes = await tmpFile.length();
       }
 
       episode.totalSegments = 1;
@@ -572,9 +586,9 @@ class DownloadManager implements IDownloadManager {
         // Handle 416 Range Not Satisfiable - delete local file and retry without Range
         if (e.response?.statusCode == 416 && useRange) {
           KazumiLogger().w(
-            'DownloadManager: 416 Range Not Satisfiable, deleting local file and retrying',
+            'DownloadManager: 416 Range Not Satisfiable, deleting tmp file and retrying',
           );
-          await file.delete();
+          await tmpFile.delete();
           existingBytes = 0;
           requestHeaders.remove('Range');
           response = await _dio.get<ResponseBody>(
@@ -604,7 +618,7 @@ class DownloadManager implements IDownloadManager {
         totalSize = existingBytes + contentLength;
       }
 
-      final raf = await file.open(
+      final raf = await tmpFile.open(
           mode: existingBytes > 0 ? FileMode.append : FileMode.write);
       int received = existingBytes;
 
@@ -634,6 +648,9 @@ class DownloadManager implements IDownloadManager {
         _onTaskComplete(key);
         return;
       }
+
+      // Rename .tmp to final path
+      await File(tmpPath).rename(filePath);
 
       // Mark completed
       episode.status = DownloadStatus.completed;
@@ -755,18 +772,24 @@ class DownloadManager implements IDownloadManager {
     CancelToken cancelToken, {
     int maxRetries = 3,
   }) async {
+    final tmpPath = '$savePath.tmp';
     int retryCount = 0;
     while (true) {
       try {
         await _dio.download(
           url,
-          savePath,
+          tmpPath,
           options: Options(headers: headers),
           cancelToken: cancelToken,
         );
-        final file = File(savePath);
-        return await file.length();
+        await File(tmpPath).rename(savePath);
+        return await File(savePath).length();
       } catch (e) {
+        // Clean up incomplete .tmp file on failure
+        try {
+          final tmpFile = File(tmpPath);
+          if (await tmpFile.exists()) await tmpFile.delete();
+        } catch (_) {}
         if (cancelToken.isCancelled) rethrow;
         retryCount++;
         if (retryCount >= maxRetries) rethrow;

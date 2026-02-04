@@ -849,14 +849,13 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  Widget _buildDownloadStatusIcon(int episodeNumber) {
+  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
     // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
-    final episode = downloadController.getEpisode(
-      videoPageController.bangumiItem.id,
-      videoPageController.currentPlugin.name,
-      episodeNumber,
-    );
+    final bangumiId = videoPageController.bangumiItem.id;
+    final pluginName = videoPageController.currentPlugin.name;
+    final episode = downloadController.getEpisodeByUrl(bangumiId, pluginName, episodePageUrl)
+        ?? downloadController.getEpisode(bangumiId, pluginName, episodeNumber);
     if (episode == null) return const SizedBox.shrink();
     switch (episode.status) {
       case DownloadStatus.completed:
@@ -945,7 +944,7 @@ class _VideoPageState extends State<VideoPage>
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
                           )),
-                          _buildDownloadStatusIcon(count0),
+                          _buildDownloadStatusIcon(count0, urlItem),
                           const SizedBox(width: 2),
                         ],
                       ),

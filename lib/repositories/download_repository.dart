@@ -30,6 +30,14 @@ abstract class IDownloadRepository {
   /// [pluginName] 插件名称
   /// 返回所有已完成下载的集数
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName);
+
+  /// 通过集数页面 URL 查找下载记录
+  ///
+  /// [bangumiId] 番剧 ID
+  /// [pluginName] 插件名称
+  /// [episodePageUrl] 集数页面 URL
+  /// 当 URL 为空时返回 null（兼容旧数据）
+  DownloadEpisode? getEpisodeByUrl(int bangumiId, String pluginName, String episodePageUrl);
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -209,5 +217,18 @@ class DownloadRepository implements IDownloadRepository {
         .where((e) => e.status == DownloadStatus.completed)
         .toList()
       ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+  }
+
+  @override
+  DownloadEpisode? getEpisodeByUrl(int bangumiId, String pluginName, String episodePageUrl) {
+    if (episodePageUrl.isEmpty) return null;
+    final record = getRecordByBangumiId(bangumiId, pluginName);
+    if (record == null) return null;
+    for (final episode in record.episodes.values) {
+      if (episode.episodePageUrl == episodePageUrl) {
+        return episode;
+      }
+    }
+    return null;
   }
 }

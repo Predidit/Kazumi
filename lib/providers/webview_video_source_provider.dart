@@ -17,7 +17,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   @override
   Future<VideoSource> resolve(
     String episodeUrl, {
-    required bool useNativePlayer,
     required bool useLegacyParser,
     int offset = 0,
     Duration timeout = const Duration(seconds: 30),
@@ -51,9 +50,10 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       });
 
       // 加载 URL 并等待解析结果
+      // Provider 层始终以原生播放器模式解析（WebView 仅用于 URL 提取）
       await _webview!.loadUrl(
         episodeUrl,
-        useNativePlayer,
+        true,
         useLegacyParser,
         offset: offset,
       );

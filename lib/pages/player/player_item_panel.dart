@@ -1064,17 +1064,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     final bangumiItem = videoPageController.bangumiItem;
     final plugin = videoPageController.currentPlugin;
 
-    // 检查是否已下载
-    final record = downloadController.getRecord(bangumiItem.id, plugin.name);
-    if (record != null) {
-      final episode = record.episodes[currentEpisode];
-      if (episode != null &&
-          (episode.status == DownloadStatus.completed ||
-           episode.status == DownloadStatus.downloading ||
-           episode.status == DownloadStatus.pending)) {
-        KazumiDialog.showToast(message: '当前集已在下载列表中');
-        return;
-      }
+    // 检查是否已下载（优先使用 URL 匹配，兼容列表重排序）
+    final episodePageUrl = roadData.data[currentEpisode - 1];
+    final existingEpisode = downloadController.getEpisodeByUrl(
+        bangumiItem.id, plugin.name, episodePageUrl);
+    if (existingEpisode != null &&
+        (existingEpisode.status == DownloadStatus.completed ||
+         existingEpisode.status == DownloadStatus.downloading ||
+         existingEpisode.status == DownloadStatus.pending)) {
+      KazumiDialog.showToast(message: '当前集已在下载列表中');
+      return;
     }
 
     downloadController.startDownload(

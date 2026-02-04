@@ -32,13 +32,15 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,
     );
-    final downloadedEpisodes = <int>{};
+    final downloadedUrls = <String>{};
     if (record != null) {
       for (final entry in record.episodes.entries) {
         if (entry.value.status == DownloadStatus.completed ||
             entry.value.status == DownloadStatus.downloading ||
             entry.value.status == DownloadStatus.pending) {
-          downloadedEpisodes.add(entry.key);
+          if (entry.value.episodePageUrl.isNotEmpty) {
+            downloadedUrls.add(entry.value.episodePageUrl);
+          }
         }
       }
     }
@@ -81,7 +83,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                       setState(() {
                         _selectedEpisodes.clear();
                         for (int i = 1; i <= episodeCount; i++) {
-                          if (!downloadedEpisodes.contains(i)) {
+                          final url = currentRoadData.data[i - 1];
+                          if (!downloadedUrls.contains(url)) {
                             _selectedEpisodes.add(i);
                           }
                         }
@@ -114,8 +117,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 itemCount: episodeCount,
                 itemBuilder: (context, index) {
                   final episodeNumber = index + 1;
-                  final isDownloaded =
-                      downloadedEpisodes.contains(episodeNumber);
+                  final episodeUrl = currentRoadData.data[index];
+                  final isDownloaded = downloadedUrls.contains(episodeUrl);
                   final isSelected =
                       _selectedEpisodes.contains(episodeNumber);
                   final identifier = currentRoadData.identifier[index];

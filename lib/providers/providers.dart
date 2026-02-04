@@ -11,7 +11,6 @@
 /// try {
 ///   final source = await provider.resolve(
 ///     episodeUrl,
-///     useNativePlayer: true,
 ///     useLegacyParser: false,
 ///   );
 ///   print('Video URL: ${source.url}');

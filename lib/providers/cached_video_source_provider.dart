@@ -32,7 +32,6 @@ class CachedVideoSourceProvider implements IVideoSourceProvider {
   @override
   Future<VideoSource> resolve(
     String episodeUrl, {
-    required bool useNativePlayer,
     required bool useLegacyParser,
     int offset = 0,
     Duration timeout = const Duration(seconds: 30),

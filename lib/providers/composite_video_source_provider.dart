@@ -23,7 +23,6 @@ class CompositeVideoSourceProvider implements IVideoSourceProvider {
   @override
   Future<VideoSource> resolve(
     String episodeUrl, {
-    required bool useNativePlayer,
     required bool useLegacyParser,
     int offset = 0,
     Duration timeout = const Duration(seconds: 30),
@@ -34,7 +33,6 @@ class CompositeVideoSourceProvider implements IVideoSourceProvider {
         _activeProvider = _cacheProvider;
         final result = await _cacheProvider.resolve(
           episodeUrl,
-          useNativePlayer: useNativePlayer,
           useLegacyParser: useLegacyParser,
           offset: offset,
           timeout: timeout,
@@ -54,7 +52,6 @@ class CompositeVideoSourceProvider implements IVideoSourceProvider {
     _activeProvider = _webviewProvider;
     final result = await _webviewProvider.resolve(
       episodeUrl,
-      useNativePlayer: useNativePlayer,
       useLegacyParser: useLegacyParser,
       offset: offset,
       timeout: timeout,

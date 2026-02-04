@@ -104,6 +104,11 @@ abstract class _DownloadController with Store {
     return _repository.getEpisode(bangumiId, pluginName, episodeNumber);
   }
 
+  DownloadEpisode? getEpisodeByUrl(
+      int bangumiId, String pluginName, String episodePageUrl) {
+    return _repository.getEpisodeByUrl(bangumiId, pluginName, episodePageUrl);
+  }
+
   String? getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
@@ -177,6 +182,17 @@ abstract class _DownloadController with Store {
           DateTime.now(),
         );
 
+    // 检查是否已有相同 URL 的下载（防止列表重排序后重复下载）
+    if (episodePageUrl.isNotEmpty) {
+      for (final entry in record.episodes.entries) {
+        if (entry.value.episodePageUrl == episodePageUrl) {
+          KazumiLogger().i(
+              'DownloadController: episode URL already exists at position ${entry.key}, skipping');
+          return;
+        }
+      }
+    }
+
     final episode = DownloadEpisode(
       episodeNumber,
       episodeName,
@@ -248,7 +264,6 @@ abstract class _DownloadController with Store {
     try {
       final source = await provider.resolve(
         fullUrl,
-        useNativePlayer: plugin.useNativePlayer,
         useLegacyParser: plugin.useLegacyParser,
         timeout: const Duration(seconds: 30),
       );

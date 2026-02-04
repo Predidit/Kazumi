@@ -192,7 +192,12 @@ abstract class _VideoPageController with Store {
   /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
   Future<void> _changeOfflineEpisode(int episode, int offset) async {
     // 从 roadList.data 中获取实际的 episodeNumber
-    final actualEpisodeNumber = int.parse(roadList[currentRoad].data[episode - 1]);
+    final actualEpisodeNumber = int.tryParse(roadList[currentRoad].data[episode - 1]);
+    if (actualEpisodeNumber == null) {
+      KazumiLogger().e('VideoPageController: failed to parse episode number from roadList data: ${roadList[currentRoad].data[episode - 1]}');
+      KazumiDialog.showToast(message: '集数解析失败');
+      return;
+    }
 
     final localPath = _getLocalVideoPath(
       bangumiItem.id,
@@ -230,7 +235,6 @@ abstract class _VideoPageController with Store {
     try {
       final source = await _videoSourceProvider!.resolve(
         url,
-        useNativePlayer: true,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: offset,
       );

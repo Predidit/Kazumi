@@ -65,7 +65,6 @@ abstract class IVideoSourceProvider {
   /// 解析视频源 URL
   ///
   /// [episodeUrl] 集数页面 URL
-  /// [useNativePlayer] 是否使用原生播放器模式
   /// [useLegacyParser] 是否使用旧版解析器（iframe 监听）
   /// [offset] 播放偏移量（秒）
   /// [timeout] 解析超时时间
@@ -78,7 +77,6 @@ abstract class IVideoSourceProvider {
   /// - [VideoSourceCancelledException] 解析被取消
   Future<VideoSource> resolve(
     String episodeUrl, {
-    required bool useNativePlayer,
     required bool useLegacyParser,
     int offset = 0,
     Duration timeout = const Duration(seconds: 30),

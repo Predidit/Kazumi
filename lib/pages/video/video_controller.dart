@@ -104,7 +104,6 @@ abstract class _VideoPageController with Store {
   }) {
     this.bangumiItem = bangumiItem;
     _offlinePluginName = pluginName;
-    currentEpisode = episodeNumber;
     currentRoad = road;
     title = bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
     isOfflineMode = true;
@@ -114,7 +113,12 @@ abstract class _VideoPageController with Store {
 
     // 构建仅包含已下载集数的 roadList
     _buildOfflineRoadList(downloadedEpisodes);
-    KazumiLogger().i('VideoPageController: initialized for offline playback, episode $episodeNumber');
+
+    // currentEpisode 是列表中的 1-based 位置，而非实际集数编号
+    // 在 roadList.data 中查找 episodeNumber 对应的位置
+    final index = roadList[currentRoad].data.indexOf(episodeNumber.toString());
+    currentEpisode = index >= 0 ? index + 1 : 1;
+    KazumiLogger().i('VideoPageController: initialized for offline playback, episode $episodeNumber (position: $currentEpisode)');
   }
 
   /// 构建离线模式的 roadList

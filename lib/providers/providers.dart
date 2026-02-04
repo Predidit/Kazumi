@@ -2,8 +2,6 @@
 ///
 /// 提供视频源解析的抽象层，支持：
 /// - WebView 在线解析
-/// - 本地缓存读取
-/// - 组合策略（优先缓存）
 ///
 /// 使用示例：
 /// ```dart
@@ -24,5 +22,3 @@ library;
 
 export 'video_source_provider.dart';
 export 'webview_video_source_provider.dart';
-export 'cached_video_source_provider.dart';
-export 'composite_video_source_provider.dart';

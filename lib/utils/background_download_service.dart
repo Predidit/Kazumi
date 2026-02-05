@@ -90,10 +90,8 @@ class BackgroundDownloadService {
       await init();
     }
 
-    // 检查通知权限 (Android 13+)
     final needsPermission = await needsNotificationPermission();
     if (needsPermission) {
-      // 如果设置了回调，让 UI 层显示解释对话框
       if (onNotificationPermissionRequired != null) {
         final userAgreed = await onNotificationPermissionRequired!();
         if (userAgreed) {
@@ -196,12 +194,8 @@ class BackgroundDownloadService {
     required int completedCount,
   }) async {
     if (!isSupported) return;
-
-    // 停止前台服务
     await stopService();
-
-    // 可选：显示一个普通通知告知用户下载完成
-    // 这里暂时不实现，因为需要额外的通知插件
+    // TODO: 显示普通通知告知用户下载完成（需要额外的通知插件）
   }
 
   /// 处理通知栏按钮点击
@@ -244,44 +238,38 @@ void _backgroundCallback() {
 class _DownloadTaskHandler extends TaskHandler {
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
-    // 服务启动时的初始化
     debugPrint('BackgroundDownloadService: task handler started');
   }
 
   @override
   void onRepeatEvent(DateTime timestamp) {
-    // 周期性事件（已配置为 nothing，不会触发）
+    // eventAction 配置为 nothing，不会触发
   }
 
   @override
   void onNotificationButtonPressed(String id) {
-    // 通知栏按钮点击
     debugPrint('BackgroundDownloadService: notification button pressed: $id');
-    // 发送消息到主 Isolate
     FlutterForegroundTask.sendDataToMain({'action': 'button_pressed', 'id': id});
   }
 
   @override
   void onNotificationPressed() {
-    // 点击通知本身，发送导航消息到主 Isolate，然后打开 app
     FlutterForegroundTask.sendDataToMain({'action': 'navigate_to_download'});
     FlutterForegroundTask.launchApp();
   }
 
   @override
   void onNotificationDismissed() {
-    // 通知被划掉（前台服务通知通常不可划掉）
+    // 前台服务通知通常不可划掉
   }
 
   @override
   Future<void> onDestroy(DateTime timestamp) async {
-    // 服务销毁时的清理
     debugPrint('BackgroundDownloadService: task handler destroyed');
   }
 
   @override
   void onReceiveData(Object data) {
-    // 接收来自主 Isolate 的数据
     debugPrint('BackgroundDownloadService: received data: $data');
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
@@ -13,6 +14,14 @@ class _NotM3u8Exception implements Exception {
   _NotM3u8Exception(this.message);
   @override
   String toString() => message;
+}
+
+class _InsufficientStorageException implements Exception {
+  final int availableBytes;
+  final int requiredBytes;
+  _InsufficientStorageException(this.availableBytes, this.requiredBytes);
+  @override
+  String toString() => '存储空间不足';
 }
 
 class DownloadTask {
@@ -114,6 +123,9 @@ class DownloadManager implements IDownloadManager {
   @override
   ProgressCallback? onProgress;
 
+  static const _minRequiredSpace = 100 * 1024 * 1024; // 100MB minimum
+  static const _storageChannel = MethodChannel('com.predidit.kazumi/storage');
+
   void _loadSettings() {
     final setting = GStorage.setting;
     maxParallelEpisodes = setting.get(
@@ -124,6 +136,66 @@ class DownloadManager implements IDownloadManager {
       SettingBoxKey.downloadParallelSegments,
       defaultValue: 3,
     );
+  }
+
+  /// Check available storage space on the device
+  /// Returns available bytes, or -1 if unable to determine
+  Future<int> _getAvailableStorage(String path) async {
+    if (Platform.isAndroid) {
+      try {
+        final result = await _storageChannel.invokeMethod<int>(
+          'getAvailableStorage',
+          {'path': path},
+        );
+        return result ?? -1;
+      } on MissingPluginException {
+        return -1;
+      } catch (e) {
+        KazumiLogger().w('DownloadManager: failed to get storage info', error: e);
+        return -1;
+      }
+    }
+    // For other platforms, return -1 to skip the check
+    return -1;
+  }
+
+  /// Check if there's enough storage space before downloading
+  /// Throws _InsufficientStorageException if space is insufficient
+  Future<void> _checkStorageSpace(String downloadDir, {int requiredBytes = 0}) async {
+    final available = await _getAvailableStorage(downloadDir);
+    if (available == -1) return; // Skip check if unable to determine
+
+    final required = requiredBytes > 0 ? requiredBytes : _minRequiredSpace;
+    if (available < required) {
+      throw _InsufficientStorageException(available, required);
+    }
+  }
+
+  /// Format bytes to human-readable string
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(1)} GB';
+  }
+
+  /// Extract user-friendly error message from FileSystemException
+  String _getStorageErrorMessage(FileSystemException e) {
+    // POSIX error code 28 = ENOSPC (No space left on device)
+    if (e.osError?.errorCode == 28) {
+      return '存储空间不足，请清理后重试';
+    }
+    // POSIX error code 13 = EACCES (Permission denied)
+    if (e.osError?.errorCode == 13) {
+      return '存储权限被拒绝';
+    }
+    // POSIX error code 30 = EROFS (Read-only file system)
+    if (e.osError?.errorCode == 30) {
+      return '存储为只读，无法写入';
+    }
+    return '存储错误: ${e.message}';
   }
 
   @override
@@ -362,11 +434,14 @@ class DownloadManager implements IDownloadManager {
         segments = M3u8AdFilter.filterAds(segments);
       }
 
-      // Step 4: Create download directory
+      // Step 4: Create download directory and check storage space
       final base = await _downloadBaseDir;
       final episodeDir = getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
       await Directory(episodeDir).create(recursive: true);
       episode.downloadDirectory = episodeDir;
+
+      // Check storage space before downloading segments
+      await _checkStorageSpace(base);
 
       // Step 5: Download encryption keys
       final keys = M3u8Parser.extractUniqueKeys(
@@ -513,6 +588,16 @@ class DownloadManager implements IDownloadManager {
         'DownloadManager: episode ${task.episodeNumber} completed. '
         '${segments.length} segments, ${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
+    } on _InsufficientStorageException catch (e) {
+      episode.status = DownloadStatus.failed;
+      episode.errorMessage = '存储空间不足 (可用: ${_formatBytes(e.availableBytes)})';
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
+    } on FileSystemException catch (e) {
+      episode.status = DownloadStatus.failed;
+      episode.errorMessage = _getStorageErrorMessage(e);
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      KazumiLogger().e('DownloadManager: file system error', error: e);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
         if (task.isPaused) {
@@ -548,6 +633,9 @@ class DownloadManager implements IDownloadManager {
       final episodeDir = getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
       await Directory(episodeDir).create(recursive: true);
       episode.downloadDirectory = episodeDir;
+
+      // Check storage space before downloading
+      await _checkStorageSpace(base);
 
       final filePath = '$episodeDir/video.mp4';
       final tmpPath = '$filePath.tmp';
@@ -665,6 +753,16 @@ class DownloadManager implements IDownloadManager {
         'DownloadManager: episode ${task.episodeNumber} completed (direct download). '
         '${(episode.totalBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
+    } on _InsufficientStorageException catch (e) {
+      episode.status = DownloadStatus.failed;
+      episode.errorMessage = '存储空间不足 (可用: ${_formatBytes(e.availableBytes)})';
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
+    } on FileSystemException catch (e) {
+      episode.status = DownloadStatus.failed;
+      episode.errorMessage = _getStorageErrorMessage(e);
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
+      KazumiLogger().e('DownloadManager: file system error', error: e);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
         if (task.isPaused) {

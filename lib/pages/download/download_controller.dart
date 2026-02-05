@@ -26,9 +26,9 @@ abstract class _DownloadController with Store {
   @observable
   ObservableList<DownloadRecord> records = ObservableList<DownloadRecord>();
 
-  /// Queue for episodes waiting to be resolved via WebView (one at a time)
   final List<_ResolveRequest> _resolveQueue = [];
   bool _isResolving = false;
+  bool _isBackgroundServiceInitialized = false;
 
   void init() {
     final temp = _repository.getAllRecords();
@@ -56,20 +56,16 @@ abstract class _DownloadController with Store {
     _initBackgroundService();
   }
 
-  /// Initialize background download service (Android only)
   Future<void> _initBackgroundService() async {
     if (!_backgroundService.isSupported) return;
+    if (_isBackgroundServiceInitialized) return;
 
     await _backgroundService.init();
-
-    // Set up notification button callbacks
     _backgroundService.onPauseAll = pauseAllDownloads;
-
-    // Listen for data from background isolate (notification button presses)
     _backgroundService.addTaskDataCallback(_onTaskData);
+    _isBackgroundServiceInitialized = true;
   }
 
-  /// Handle data received from background task handler
   void _onTaskData(Object data) {
     if (data is Map) {
       final action = data['action'];
@@ -81,28 +77,21 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Speed data (in-memory, not persisted)
   final Map<String, double> _speeds = {};
-
-  /// Throttle UI updates to prevent ANR on high-frequency progress callbacks
   DateTime _lastUiUpdateTime = DateTime.now();
   static const _uiUpdateInterval = Duration(milliseconds: 500);
 
   void _onDownloadProgress(
       String recordKey, int episodeNumber, DownloadEpisode episode, double speed) {
-    // Always persist to Hive (important for data integrity)
     _repository.updateEpisode(recordKey, episodeNumber, episode);
 
-    // Store speed in memory
     final key = '${recordKey}_$episodeNumber';
     _speeds[key] = speed;
 
-    // Check if this is a final state that requires immediate UI update
     final isFinalState = episode.status == DownloadStatus.completed ||
         episode.status == DownloadStatus.failed ||
         episode.status == DownloadStatus.paused;
 
-    // Throttle UI updates: only update if enough time has passed or it's a final state
     final now = DateTime.now();
     if (isFinalState || now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
       _lastUiUpdateTime = now;
@@ -111,18 +100,15 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Update background service notification with current download progress
   Future<void> _updateBackgroundNotification() async {
     if (!_backgroundService.isRunning) return;
 
     final stats = _getDownloadStats();
     if (stats.activeCount == 0 && stats.pendingCount == 0) {
-      // All downloads completed or paused
       await _backgroundService.stopService();
       return;
     }
 
-    // Calculate average speed from active downloads
     double totalSpeed = 0;
     for (final entry in _speeds.entries) {
       totalSpeed += entry.value;

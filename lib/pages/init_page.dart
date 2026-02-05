@@ -63,11 +63,11 @@ class _InitPageState extends State<InitPage> {
   void _setupBackgroundDownloadNavigation() {
     final backgroundService = BackgroundDownloadService();
 
-    // 设置点击通知导航回调
     backgroundService.onNavigateToDownloadRequested = () {
-      // Delay slightly to ensure app is in foreground and UI is ready
       Future.delayed(const Duration(milliseconds: 300), () {
         try {
+          // 检查当前是否已在下载页面，避免重复导航
+          if (Modular.to.path.contains('/download')) return;
           Modular.to.pushNamed('/settings/download/');
         } catch (e) {
           KazumiLogger().w('InitPage: failed to navigate to download page', error: e);

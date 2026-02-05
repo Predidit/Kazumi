@@ -53,7 +53,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       // Provider 层始终以原生播放器模式解析（WebView 仅用于 URL 提取）
       await _webview!.loadUrl(
         episodeUrl,
-        true,
         useLegacyParser,
         offset: offset,
       );

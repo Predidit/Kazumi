@@ -694,11 +694,9 @@ class _PlayerItemState extends State<PlayerItem>
       // 历史记录相关
       if (playerController.playerPlaying && !videoPageController.loading) {
         if (!WebDav().isHistorySyncing) {
-          // 离线模式使用 offlinePluginName，在线模式使用 currentPlugin.name
           final pluginName = videoPageController.isOfflineMode
               ? videoPageController.offlinePluginName
               : videoPageController.currentPlugin.name;
-          // 使用 actualEpisodeNumber 获取实际的集数编号（离线模式下 currentEpisode 是列表位置）
           historyController.updateHistory(
               videoPageController.actualEpisodeNumber,
               videoPageController.currentRoad,

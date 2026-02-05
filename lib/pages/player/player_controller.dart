@@ -253,7 +253,6 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = videoPageController.currentEpisode;
     }
-    // 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
     _loadDanmaku(episodeFromTitle);
     mediaPlayer ??= await createVideoController(offset: offset);
 
@@ -609,16 +608,13 @@ abstract class _PlayerController with Store {
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
   Future<void> _loadDanmaku(int episode) async {
     if (videoPageController.isOfflineMode) {
-      // 离线模式：先从缓存加载，无缓存时尝试在线获取
       await _loadCachedDanmaku(episode);
     } else {
-      // 在线模式：从网络获取弹幕
       getDanDanmakuByBgmBangumiID(
           videoPageController.bangumiItem.id, episode);
     }
   }
 
-  /// 从下载缓存加载弹幕，如果缓存为空且有网络则尝试在线获取
   Future<void> _loadCachedDanmaku(int episode) async {
     if (danmakuLoading) {
       KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
@@ -640,7 +636,6 @@ abstract class _PlayerController with Store {
         addDanmakus(cachedDanmakus);
         KazumiLogger().i('PlayerController: loaded ${cachedDanmakus.length} cached danmakus');
       } else {
-        // 缓存为空，尝试在线获取
         KazumiLogger().i('PlayerController: no cached danmaku, attempting online fetch');
         try {
           bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(
@@ -650,7 +645,6 @@ abstract class _PlayerController with Store {
             if (res.isNotEmpty) {
               addDanmakus(res);
               KazumiLogger().i('PlayerController: fetched ${res.length} danmakus online');
-              // 将获取的弹幕保存到缓存，供下次离线使用
               _saveDanmakuToCache(downloadController, res);
             }
           }
@@ -665,7 +659,6 @@ abstract class _PlayerController with Store {
     }
   }
 
-  /// 将弹幕保存到下载缓存
   void _saveDanmakuToCache(DownloadController downloadController, List<Danmaku> danmakus) {
     try {
       downloadController.updateCachedDanmakus(

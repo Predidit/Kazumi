@@ -48,7 +48,6 @@ class _InitPageState extends State<InitPage> {
       downloadController.init();
     } catch (e) {
       KazumiLogger().e('InitPage: downloadController.init() failed', error: e);
-      // 下载记录初始化失败不应阻止应用启动
     }
 
     await _checkRunningOnX11();

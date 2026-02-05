@@ -282,6 +282,7 @@ class _VideoPageState extends State<VideoPage>
     clearWebviewLog();
     hideDebugConsole();
     videoPageController.loading = true;
+    videoPageController.errorMessage = null;
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
     await playerController.stop();
@@ -637,54 +638,53 @@ class _VideoPageState extends State<VideoPage>
   Widget get playerBody {
     return Stack(
       children: [
-        // webview log component (not player log, used for video parsing)
         Positioned.fill(
           child: Stack(
             children: [
-              Positioned.fill(
-                child: playerController.loading
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .tertiaryContainer),
-                            const SizedBox(height: 10),
-                            const Text('视频资源解析成功, 播放器加载中',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                )),
-                          ],
-                        ),
-                      )
-                    : Container(),
-              ),
-              Visibility(
-                visible: videoPageController.loading,
-                child: Container(
+              if (videoPageController.loading || 
+                  playerController.loading || 
+                  videoPageController.errorMessage != null)
+                Container(
                   color: Colors.black,
-                  child: Align(
-                      alignment: Alignment.center,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .tertiaryContainer),
-                            const SizedBox(height: 10),
-                            const Text('视频资源解析中',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                )),
-                          ],
-                        ),
-                      )),
+                  child: Observer(
+                    builder: (context) {
+                      return Center(
+                        child: videoPageController.errorMessage != null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.error_outline,
+                                      color: Theme.of(context).colorScheme.error,
+                                      size: 48),
+                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                                    child: Text(
+                                      videoPageController.errorMessage!,
+                                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                      color: Theme.of(context).colorScheme.tertiaryContainer),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    videoPageController.loading
+                                        ? '视频资源解析中'
+                                        : '视频资源解析成功, 播放器加载中',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                      );
+                    }
+                  ),
                 ),
-              ),
               Visibility(
                 visible:
                     (videoPageController.loading || playerController.loading) &&

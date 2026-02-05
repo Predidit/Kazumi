@@ -37,6 +37,9 @@ abstract class _VideoPageController with Store {
   bool loading = true;
 
   @observable
+  String? errorMessage;
+
+  @observable
   int currentEpisode = 1;
 
   @observable
@@ -174,6 +177,7 @@ abstract class _VideoPageController with Store {
       {int currentRoad = 0, int offset = 0}) async {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
+    errorMessage = null;
 
     if (isOfflineMode) {
       await _changeOfflineEpisode(episode, offset);
@@ -290,14 +294,14 @@ abstract class _VideoPageController with Store {
       final playerController = Modular.get<PlayerController>();
       await playerController.init(params);
     } on VideoSourceTimeoutException {
-      KazumiLogger().w('VideoPageController: video URL resolution timed out');
       loading = false;
+      errorMessage = '视频解析超时，请重试';
     } on VideoSourceCancelledException {
       KazumiLogger().i('VideoPageController: video URL resolution cancelled');
       // 不设置 loading = false，因为可能是切换到新的集数
     } catch (e) {
-      KazumiLogger().e('VideoPageController: video URL resolution failed', error: e);
       loading = false;
+      errorMessage = '视频解析失败：${e.toString()}';
     }
   }
 

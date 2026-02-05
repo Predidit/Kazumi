@@ -25,6 +25,10 @@ class BackgroundDownloadService {
   /// 点击通知栏时的导航回调（由 UI 层设置）
   void Function()? onNavigateToDownloadRequested;
 
+  /// 需要通知权限时的回调（由 UI 层设置，用于显示解释对话框）
+  /// 返回 true 表示用户同意请求权限，false 表示用户拒绝
+  Future<bool> Function()? onNotificationPermissionRequired;
+
   /// 是否支持后台下载（仅 Android）
   bool get isSupported => Platform.isAndroid;
 
@@ -63,6 +67,20 @@ class BackgroundDownloadService {
     KazumiLogger().i('BackgroundDownloadService: initialized');
   }
 
+  /// 检查是否需要请求通知权限
+  Future<bool> needsNotificationPermission() async {
+    if (!isSupported) return false;
+    final permission = await FlutterForegroundTask.checkNotificationPermission();
+    return permission != NotificationPermission.granted;
+  }
+
+  /// 请求通知权限（由 UI 层在用户确认后调用）
+  Future<bool> requestNotificationPermission() async {
+    if (!isSupported) return true;
+    final result = await FlutterForegroundTask.requestNotificationPermission();
+    return result == NotificationPermission.granted;
+  }
+
   /// 启动后台下载服务
   Future<bool> startService() async {
     if (!isSupported) return false;
@@ -73,12 +91,25 @@ class BackgroundDownloadService {
     }
 
     // 检查通知权限 (Android 13+)
-    final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
-    if (notificationPermission != NotificationPermission.granted) {
-      final result = await FlutterForegroundTask.requestNotificationPermission();
-      if (result != NotificationPermission.granted) {
-        KazumiLogger().w('BackgroundDownloadService: notification permission denied');
-        // 权限被拒绝时仍然尝试启动服务，只是通知可能不显示
+    final needsPermission = await needsNotificationPermission();
+    if (needsPermission) {
+      // 如果设置了回调，让 UI 层显示解释对话框
+      if (onNotificationPermissionRequired != null) {
+        final userAgreed = await onNotificationPermissionRequired!();
+        if (userAgreed) {
+          final granted = await requestNotificationPermission();
+          if (!granted) {
+            KazumiLogger().w('BackgroundDownloadService: notification permission denied by user');
+          }
+        } else {
+          KazumiLogger().i('BackgroundDownloadService: user declined permission dialog');
+        }
+      } else {
+        // 没有设置回调，直接请求权限（兼容旧行为）
+        final granted = await requestNotificationPermission();
+        if (!granted) {
+          KazumiLogger().w('BackgroundDownloadService: notification permission denied');
+        }
       }
     }
 

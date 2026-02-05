@@ -59,9 +59,11 @@ class _InitPageState extends State<InitPage> {
     _update();
   }
 
-  /// Setup navigation callback for background download notification
+  /// Setup callbacks for background download service
   void _setupBackgroundDownloadNavigation() {
     final backgroundService = BackgroundDownloadService();
+
+    // 设置点击通知导航回调
     backgroundService.onNavigateToDownloadRequested = () {
       // Delay slightly to ensure app is in foreground and UI is ready
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -71,6 +73,36 @@ class _InitPageState extends State<InitPage> {
           KazumiLogger().w('InitPage: failed to navigate to download page', error: e);
         }
       });
+    };
+
+    // 设置通知权限请求回调
+    backgroundService.onNotificationPermissionRequired = () async {
+      final result = await KazumiDialog.show<bool>(
+        clickMaskDismiss: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('需要通知权限'),
+            content: const Text(
+              '开启通知权限后，可以在后台下载时显示进度，并防止系统终止下载任务。\n\n'
+              '如果拒绝，下载功能仍可使用，但在后台时可能被系统中断。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: false),
+                child: Text(
+                  '稍后再说',
+                  style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: true),
+                child: const Text('允许'),
+              ),
+            ],
+          );
+        },
+      );
+      return result ?? false;
     };
   }
 

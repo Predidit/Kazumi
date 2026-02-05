@@ -218,6 +218,9 @@ abstract class _VideoPageController with Store {
       episode: actualEpisodeNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
+      episodeTitle: roadList[currentRoad].identifier[episode - 1],
+      referer: '',
+      currentRoad: currentRoad,
     );
 
     final playerController = Modular.get<PlayerController>();
@@ -263,6 +266,9 @@ abstract class _VideoPageController with Store {
           if (currentPlugin.referer.isNotEmpty) 'referer': currentPlugin.referer,
         },
         adBlockerEnabled: forceAdBlocker || currentPlugin.adBlocker,
+        episodeTitle: roadList[currentRoad].identifier[currentEpisode - 1],
+        referer: currentPlugin.referer,
+        currentRoad: currentRoad,
       );
 
       final playerController = Modular.get<PlayerController>();

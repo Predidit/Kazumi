@@ -9,7 +9,6 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:mobx/mobx.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/request/damaku.dart';
-import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -35,6 +34,9 @@ class PlaybackInitParams {
   final int episode;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
+  final String episodeTitle;
+  final String referer;
+  final int currentRoad;
 
   const PlaybackInitParams({
     required this.videoUrl,
@@ -45,6 +47,9 @@ class PlaybackInitParams {
     required this.episode,
     required this.httpHeaders,
     required this.adBlockerEnabled,
+    required this.episodeTitle,
+    required this.referer,
+    required this.currentRoad,
   });
 }
 
@@ -70,9 +75,12 @@ class SyncPlayChatMessage {
 class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
-  final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
+
+  late int bangumiId;
+  late int currentEpisode;
+  late int currentRoad;
+  late String referer;
 
   // 弹幕控制
   late DanmakuController danmakuController;
@@ -213,11 +221,15 @@ abstract class _PlayerController with Store {
   StreamSubscription<Track>? playerTracksSubscription;
   StreamSubscription<double?>? playerAudioBitrateSubscription;
 
-  bool _isLocalPlayback = false;
+  bool isLocalPlayback = false;
 
   Future<void> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
-    _isLocalPlayback = params.isLocalPlayback;
+    isLocalPlayback = params.isLocalPlayback;
+    bangumiId = params.bangumiId;
+    currentEpisode = params.episode;
+    currentRoad = params.currentRoad;
+    referer = params.referer;
 
     KazumiLogger().i('PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
 
@@ -243,9 +255,7 @@ abstract class _PlayerController with Store {
     } catch (_) {}
     int episodeFromTitle = 0;
     try {
-      episodeFromTitle = Utils.extractEpisodeNumber(videoPageController
-          .roadList[videoPageController.currentRoad]
-          .identifier[params.episode - 1]);
+      episodeFromTitle = Utils.extractEpisodeNumber(params.episodeTitle);
     } catch (e) {
       KazumiLogger().e('PlayerController: failed to extract episode number from title', error: e);
     }
@@ -274,7 +284,7 @@ abstract class _PlayerController with Store {
     loading = false;
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
-          "${videoPageController.bangumiItem.id}[${videoPageController.currentEpisode}]") {
+          "$bangumiId[$currentEpisode]") {
         setSyncPlayPlayingBangumi(
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
@@ -592,7 +602,7 @@ abstract class _PlayerController with Store {
 
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
   Future<void> _loadDanmaku(int bangumiId, String pluginName, int episode) async {
-    if (_isLocalPlayback) {
+    if (isLocalPlayback) {
       await _loadCachedDanmaku(bangumiId, pluginName, episode);
     } else {
       getDanDanmakuByBgmBangumiID(bangumiId, episode);
@@ -709,10 +719,6 @@ abstract class _PlayerController with Store {
   }
 
   void lanunchExternalPlayer() async {
-    // 离线模式下没有 referer
-    String referer = videoPageController.isOfflineMode
-        ? ''
-        : videoPageController.currentPlugin.referer;
     if ((Platform.isAndroid || Platform.isWindows) && referer.isEmpty) {
       if (await ExternalPlayer.launchURLWithMIME(videoUrl, 'video/mp4')) {
         KazumiDialog.dismiss();
@@ -848,13 +854,13 @@ abstract class _PlayerController with Store {
             int episode = int.tryParse(match.group(2) ?? '0') ?? 0;
             if (bangumiID != 0 &&
                 episode != 0 &&
-                episode != videoPageController.currentEpisode) {
+                episode != currentEpisode) {
               KazumiDialog.showToast(
                   message:
                       'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到第 $episode 话',
                   duration: const Duration(seconds: 3));
               changeEpisode(episode,
-                  currentRoad: videoPageController.currentRoad);
+                  currentRoad: currentRoad);
             }
           }
         },
@@ -942,7 +948,7 @@ abstract class _PlayerController with Store {
   Future<void> setSyncPlayPlayingBangumi(
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
     await syncplayController!.setSyncPlayPlaying(
-        "${videoPageController.bangumiItem.id}[${videoPageController.currentEpisode}]",
+        "$bangumiId[$currentEpisode]",
         10800,
         220514438);
     setSyncPlayCurrentPosition(

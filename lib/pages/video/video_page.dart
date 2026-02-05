@@ -145,6 +145,10 @@ class _VideoPageState extends State<VideoPage>
           episode: videoPageController.actualEpisodeNumber,
           httpHeaders: {},
           adBlockerEnabled: false,
+          episodeTitle: videoPageController.roadList[videoPageController.currentRoad]
+              .identifier[videoPageController.currentEpisode - 1],
+          referer: '',
+          currentRoad: videoPageController.currentRoad,
         );
         await playerController.init(params);
       }

@@ -34,10 +34,13 @@ void main() async {
   }
 
   try {
-    await Hive.initFlutter(
-        '${(await getApplicationSupportDirectory()).path}/hive');
+    final hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
+    await Hive.initFlutter(hivePath);
     await GStorage.init();
-  } catch (_) {
+  } catch (e) {
+    // Log the error for debugging (if logger is available)
+    debugPrint('Storage initialization failed: $e');
+
     if (Platform.isWindows) {
       await windowManager.ensureInitialized();
       windowManager.waitUntilReadyToShow(null, () async {

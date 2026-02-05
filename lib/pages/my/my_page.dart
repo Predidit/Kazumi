@@ -61,6 +61,22 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
+                    Modular.to.pushNamed('/settings/download/');
+                  },
+                  leading: const Icon(Icons.download_rounded),
+                  title: Text('下载管理', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看和管理离线下载', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/download-settings');
+                  },
+                  leading: const Icon(Icons.settings_rounded),
+                  title: Text('下载设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('配置下载并发数等参数', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
                     Modular.to.pushNamed('/settings/plugin/');
                   },
                   leading: const Icon(Icons.extension),

@@ -2,11 +2,8 @@ import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/webview/webview_item.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -21,6 +18,9 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/download/download_episode_sheet.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class VideoPage extends StatefulWidget {
@@ -37,8 +37,8 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  final WebviewItemController webviewItemController =
-      Modular.get<WebviewItemController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
   late bool playResume;
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
@@ -53,19 +53,6 @@ class _VideoPageState extends State<VideoPage>
 
   // 当前播放列表
   late int currentRoad;
-
-  // webview init events listener
-  late final StreamSubscription<bool> _initSubscription;
-
-  // webview logs events listener
-  late final StreamSubscription<String> _logSubscription;
-
-  // webview video loaded events listener
-  late final StreamSubscription<bool> _videoLoadedSubscription;
-
-  // webview video source events listener
-  // The first parameter is the video source URL and the second parameter is the video offset (start position)
-  late final StreamSubscription<(String, int)> _videoURLSubscription;
 
   // disable animation.
   late final bool disableAnimations;
@@ -100,61 +87,19 @@ class _VideoPageState extends State<VideoPage>
       parent: animation,
       curve: Curves.easeIn,
     ));
-    videoPageController.currentEpisode = 1;
-    videoPageController.currentRoad = 0;
-    videoPageController.historyOffset = 0;
-    videoPageController.showTabBody = true;
+
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
     disableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
-    var progress = historyController.lastWatching(
-        videoPageController.bangumiItem,
-        videoPageController.currentPlugin.name);
-    if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.currentEpisode = progress.episode;
-          videoPageController.currentRoad = progress.road;
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
-          }
-        }
-      }
-    }
-    currentRoad = videoPageController.currentRoad;
 
-    // webview events listener
-    _initSubscription = webviewItemController.onInitialized.listen((event) {
-      if (event) {
-        changeEpisode(videoPageController.currentEpisode,
-            currentRoad: videoPageController.currentRoad,
-            offset: videoPageController.historyOffset);
-      }
-    });
-    _videoLoadedSubscription =
-        webviewItemController.onVideoLoading.listen((event) {
-      videoPageController.loading = event;
-    });
-    _videoURLSubscription =
-        webviewItemController.onVideoURLParser.listen((event) {
-      final (mediaUrl, offset) = event;
-      playerController.init(mediaUrl, offset: offset);
-    });
-    _logSubscription = webviewItemController.onLog.listen((event) {
-      KazumiLogger().i('WebViewParser: $event');
-      if (event == 'clear') {
-        clearWebviewLog();
-        return;
-      }
-      if (event == 'showDebug') {
-        showDebugConsole();
-        return;
-      }
-      setState(() {
-        webviewLogLines.add(event);
-      });
-    });
+    if (videoPageController.isOfflineMode) {
+      // 离线模式：跳过 WebView 订阅，直接初始化播放器
+      _initOfflineMode();
+    } else {
+      // 在线模式：设置 WebView 订阅
+      _initOnlineMode();
+    }
+
     _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
       final localUsername = playerController.syncplayController?.username ?? '';
       final String displayText = '${event.username}：${event.message}';
@@ -174,6 +119,62 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
+  void _initOfflineMode() {
+    videoPageController.showTabBody = true;
+    videoPageController.historyOffset = 0;
+    currentRoad = videoPageController.currentRoad;
+
+    // 检查历史记录（使用离线插件名）
+    var progress = historyController.lastWatching(
+        videoPageController.bangumiItem,
+        videoPageController.offlinePluginName);
+    if (progress != null && playResume) {
+      // 在离线模式下，只恢复播放进度，不改变集数（因为用户已选择特定集数）
+      videoPageController.historyOffset = progress.progress.inSeconds;
+    }
+
+    // 初始化播放器（loading 已在 initForOfflinePlayback 中设置为 false）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (videoPageController.offlineVideoPath != null) {
+        playerController.init(
+          videoPageController.offlineVideoPath!,
+          offset: videoPageController.historyOffset,
+        );
+      }
+    });
+  }
+
+  void _initOnlineMode() {
+    videoPageController.currentEpisode = 1;
+    videoPageController.currentRoad = 0;
+    videoPageController.historyOffset = 0;
+    videoPageController.showTabBody = true;
+
+    var progress = historyController.lastWatching(
+        videoPageController.bangumiItem,
+        videoPageController.currentPlugin.name);
+    if (progress != null) {
+      if (videoPageController.roadList.length > progress.road) {
+        if (videoPageController.roadList[progress.road].data.length >=
+            progress.episode) {
+          videoPageController.currentEpisode = progress.episode;
+          videoPageController.currentRoad = progress.road;
+          if (playResume) {
+            videoPageController.historyOffset = progress.progress.inSeconds;
+          }
+        }
+      }
+    }
+    currentRoad = videoPageController.currentRoad;
+
+    // 使用 Provider 模式启动播放
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      changeEpisode(videoPageController.currentEpisode,
+          currentRoad: videoPageController.currentRoad,
+          offset: videoPageController.historyOffset);
+    });
+  }
+
   @override
   void dispose() {
     try {
@@ -186,18 +187,6 @@ class _VideoPageState extends State<VideoPage>
       animation.dispose();
     } catch (_) {}
     try {
-      _initSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoLoadedSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoURLSubscription.cancel();
-    } catch (_) {}
-    try {
-      _logSubscription.cancel();
-    } catch (_) {}
-    try {
       _syncChatSubscription.cancel();
     } catch (_) {}
     try {
@@ -205,6 +194,8 @@ class _VideoPageState extends State<VideoPage>
     } catch (e) {
       KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
     }
+    // 取消正在进行的视频源解析
+    videoPageController.cancelVideoSourceResolution();
     if (!Utils.isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -212,6 +203,8 @@ class _VideoPageState extends State<VideoPage>
     }
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
+    // 重置离线模式
+    videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
     tabController.dispose();
     // Cancel timed shutdown when leaving anime page
@@ -511,10 +504,7 @@ class _VideoPageState extends State<VideoPage>
         }
         return Observer(builder: (context) {
           return Scaffold(
-            appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                    videoPageController.isFullscreen)
-                ? null
-                : SysAppBar(title: Text(videoPageController.title))),
+            appBar: null,
             body: SafeArea(
                 top: !videoPageController.isFullscreen,
                 // set iOS and Android navigation bar to immersive
@@ -620,8 +610,7 @@ class _VideoPageState extends State<VideoPage>
           child: Stack(
             children: [
               Positioned.fill(
-                child: (videoPageController.currentPlugin.useNativePlayer &&
-                        playerController.loading)
+                child: playerController.loading
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -666,8 +655,7 @@ class _VideoPageState extends State<VideoPage>
               ),
               Visibility(
                 visible: (videoPageController.loading ||
-                        (videoPageController.currentPlugin.useNativePlayer &&
-                            playerController.loading)) &&
+                        playerController.loading) &&
                     showDebugLog,
                 child: Container(
                   color: Colors.black,
@@ -689,9 +677,7 @@ class _VideoPageState extends State<VideoPage>
                   ),
                 ),
               ),
-              ((videoPageController.currentPlugin.useNativePlayer ||
-                      videoPageController.isFullscreen))
-                  ? Stack(
+              Stack(
                       children: [
                         Positioned(
                           top: 0,
@@ -751,14 +737,12 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                       ],
-                    )
-                  : Container(),
+                    ),
             ],
           ),
         ),
         Positioned.fill(
-          child: (!videoPageController.currentPlugin.useNativePlayer ||
-                  playerController.loading)
+          child: playerController.loading
               ? Container()
               : PlayerItem(
                   openMenu: openTabBodyAnimated,
@@ -772,16 +756,6 @@ class _VideoPageState extends State<VideoPage>
                   pauseForTimedShutdown: pauseForTimedShutdown,
                 ),
         ),
-
-        /// workaround for webview_windows
-        /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
-        Positioned(
-            child: SizedBox(
-                height: (videoPageController.loading ||
-                        videoPageController.currentPlugin.useNativePlayer)
-                    ? 0
-                    : null,
-                child: const WebviewItem()))
       ],
     );
   }
@@ -853,9 +827,65 @@ class _VideoPageState extends State<VideoPage>
               ),
             ),
           ),
+          // 离线模式下隐藏下载按钮
+          if (!videoPageController.isOfflineMode)
+            SizedBox(
+              height: 34,
+              child: IconButton(
+                icon: const Icon(Icons.download_rounded, size: 20),
+                tooltip: '批量下载',
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) =>
+                        DownloadEpisodeSheet(road: currentRoad),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
+    // 离线模式下不显示下载状态图标
+    if (videoPageController.isOfflineMode) return const SizedBox.shrink();
+    final bangumiId = videoPageController.bangumiItem.id;
+    final pluginName = videoPageController.currentPlugin.name;
+    final episode = downloadController.getEpisodeByUrl(bangumiId, pluginName, episodePageUrl)
+        ?? downloadController.getEpisode(bangumiId, pluginName, episodeNumber);
+    if (episode == null) return const SizedBox.shrink();
+    switch (episode.status) {
+      case DownloadStatus.completed:
+        return Icon(Icons.offline_pin,
+            size: 16, color: Theme.of(context).colorScheme.primary);
+      case DownloadStatus.downloading:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            value: episode.progressPercent,
+            strokeWidth: 2,
+          ),
+        );
+      case DownloadStatus.failed:
+        return Icon(Icons.error_outline,
+            size: 16, color: Theme.of(context).colorScheme.error);
+      case DownloadStatus.paused:
+        return Icon(Icons.pause_circle_outline,
+            size: 16, color: Theme.of(context).colorScheme.outline);
+      case DownloadStatus.pending:
+      case DownloadStatus.resolving:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget get menuBody {
@@ -914,6 +944,7 @@ class _VideoPageState extends State<VideoPage>
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
                           )),
+                          _buildDownloadStatusIcon(count0, urlItem),
                           const SizedBox(width: 2),
                         ],
                       ),

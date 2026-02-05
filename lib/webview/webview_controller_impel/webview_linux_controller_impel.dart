@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/webview/webview_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';

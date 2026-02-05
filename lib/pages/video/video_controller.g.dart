@@ -153,6 +153,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$isOfflineModeAtom =
+      Atom(name: '_VideoPageController.isOfflineMode', context: context);
+
+  @override
+  bool get isOfflineMode {
+    _$isOfflineModeAtom.reportRead();
+    return super.isOfflineMode;
+  }
+
+  @override
+  set isOfflineMode(bool value) {
+    _$isOfflineModeAtom.reportWrite(value, super.isOfflineMode, () {
+      super.isOfflineMode = value;
+    });
+  }
+
   late final _$roadListAtom =
       Atom(name: '_VideoPageController.roadList', context: context);
 
@@ -181,6 +197,7 @@ isCommentsAscending: ${isCommentsAscending},
 isPip: ${isPip},
 showTabBody: ${showTabBody},
 historyOffset: ${historyOffset},
+isOfflineMode: ${isOfflineMode},
 roadList: ${roadList}
     ''';
   }

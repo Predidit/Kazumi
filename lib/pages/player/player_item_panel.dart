@@ -17,6 +17,9 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/download/download_episode_sheet.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -85,6 +88,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
+  final DownloadController downloadController = Modular.get<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();  
   // SVG Caches
@@ -1053,6 +1057,50 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     );
   }
 
+  void _downloadCurrentEpisode() {
+    final currentEpisode = videoPageController.currentEpisode;
+    final currentRoad = videoPageController.currentRoad;
+    final roadData = videoPageController.roadList[currentRoad];
+    final bangumiItem = videoPageController.bangumiItem;
+    final plugin = videoPageController.currentPlugin;
+
+    // 检查是否已下载（优先使用 URL 匹配，兼容列表重排序）
+    final episodePageUrl = roadData.data[currentEpisode - 1];
+    final existingEpisode = downloadController.getEpisodeByUrl(
+        bangumiItem.id, plugin.name, episodePageUrl);
+    if (existingEpisode != null &&
+        (existingEpisode.status == DownloadStatus.completed ||
+         existingEpisode.status == DownloadStatus.downloading ||
+         existingEpisode.status == DownloadStatus.pending)) {
+      KazumiDialog.showToast(message: '当前集已在下载列表中');
+      return;
+    }
+
+    downloadController.startDownload(
+      bangumiId: bangumiItem.id,
+      bangumiName: bangumiItem.nameCn.isNotEmpty
+          ? bangumiItem.nameCn
+          : bangumiItem.name,
+      bangumiCover: bangumiItem.images['large'] ?? '',
+      pluginName: plugin.name,
+      episodeNumber: currentEpisode,
+      episodeName: roadData.identifier[currentEpisode - 1],
+      road: currentRoad,
+      episodePageUrl: roadData.data[currentEpisode - 1],
+    );
+    KazumiDialog.showToast(message: '已添加到下载队列');
+  }
+
+  void _showBatchDownloadSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DownloadEpisodeSheet(
+        road: videoPageController.currentRoad,
+      ),
+    );
+  }
+
   Widget get topControlWidget {
     return Observer(
       builder: (context) {
@@ -1214,6 +1262,45 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text("外部播放"),
+                          ),
+                        ),
+                      ),
+                      // 下载
+                      SubmenuButton(
+                        menuChildren: [
+                          MenuItemButton(
+                            onPressed: () {
+                              _downloadCurrentEpisode();
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text("下载当前集"),
+                              ),
+                            ),
+                          ),
+                          MenuItemButton(
+                            onPressed: () {
+                              _showBatchDownloadSheet();
+                            },
+                            child: Container(
+                              height: 48,
+                              constraints: BoxConstraints(minWidth: 112),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text("批量下载"),
+                              ),
+                            ),
+                          ),
+                        ],
+                        child: Container(
+                          height: 48,
+                          constraints: BoxConstraints(minWidth: 112),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text("下载"),
                           ),
                         ),
                       ),

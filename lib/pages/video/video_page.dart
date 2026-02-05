@@ -129,17 +129,24 @@ class _VideoPageState extends State<VideoPage>
         videoPageController.bangumiItem,
         videoPageController.offlinePluginName);
     if (progress != null && playResume) {
-      // 在离线模式下，只恢复播放进度，不改变集数（因为用户已选择特定集数）
+      // 在离线模式下，只恢复播放进度，不改变集数
       videoPageController.historyOffset = progress.progress.inSeconds;
     }
 
-    // 初始化播放器（loading 已在 initForOfflinePlayback 中设置为 false）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 初始化播放器
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (videoPageController.offlineVideoPath != null) {
-        playerController.init(
-          videoPageController.offlineVideoPath!,
+        final params = PlaybackInitParams(
+          videoUrl: videoPageController.offlineVideoPath!,
           offset: videoPageController.historyOffset,
+          isLocalPlayback: true,
+          bangumiId: videoPageController.bangumiItem.id,
+          pluginName: videoPageController.offlinePluginName,
+          episode: videoPageController.actualEpisodeNumber,
+          httpHeaders: {},
+          adBlockerEnabled: false,
         );
+        await playerController.init(params);
       }
     });
   }

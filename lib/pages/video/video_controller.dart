@@ -18,6 +18,8 @@ import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:dio/dio.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:kazumi/utils/storage.dart';
 
 part 'video_controller.g.dart';
 
@@ -86,6 +88,7 @@ abstract class _VideoPageController with Store {
   final HistoryController historyController = Modular.get<HistoryController>();
   final IDownloadRepository downloadRepository = Modular.get<IDownloadRepository>();
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
+  final Box setting = GStorage.setting;
 
   /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
   WebViewVideoSourceProvider? _videoSourceProvider;
@@ -206,8 +209,19 @@ abstract class _VideoPageController with Store {
 
     KazumiLogger().i('VideoPageController: offline episode changed to $actualEpisodeNumber (index: $episode), path: $localPath');
 
+    final params = PlaybackInitParams(
+      videoUrl: localPath,
+      offset: offset,
+      isLocalPlayback: true,
+      bangumiId: bangumiItem.id,
+      pluginName: _offlinePluginName,
+      episode: actualEpisodeNumber,
+      httpHeaders: {},
+      adBlockerEnabled: false,
+    );
+
     final playerController = Modular.get<PlayerController>();
-    playerController.init(localPath, offset: offset);
+    await playerController.init(params);
   }
 
   /// 获取本地视频路径
@@ -233,8 +247,26 @@ abstract class _VideoPageController with Store {
       loading = false;
       KazumiLogger().i('VideoPageController: resolved video URL: ${source.url}');
 
+      final bool forceAdBlocker = setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+      
+      final params = PlaybackInitParams(
+        videoUrl: source.url,
+        offset: source.offset,
+        isLocalPlayback: false,
+        bangumiId: bangumiItem.id,
+        pluginName: currentPlugin.name,
+        episode: currentEpisode,
+        httpHeaders: {
+          'user-agent': currentPlugin.userAgent.isEmpty
+              ? Utils.getRandomUA()
+              : currentPlugin.userAgent,
+          if (currentPlugin.referer.isNotEmpty) 'referer': currentPlugin.referer,
+        },
+        adBlockerEnabled: forceAdBlocker || currentPlugin.adBlocker,
+      );
+
       final playerController = Modular.get<PlayerController>();
-      playerController.init(source.url, offset: source.offset);
+      await playerController.init(params);
     } on VideoSourceTimeoutException {
       KazumiLogger().w('VideoPageController: video URL resolution timed out');
       loading = false;

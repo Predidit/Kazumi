@@ -26,6 +26,28 @@ import 'package:kazumi/pages/download/download_controller.dart';
 
 part 'player_controller.g.dart';
 
+class PlaybackInitParams {
+  final String videoUrl;
+  final int offset;
+  final bool isLocalPlayback;
+  final int bangumiId;
+  final String pluginName;
+  final int episode;
+  final Map<String, String> httpHeaders;
+  final bool adBlockerEnabled;
+
+  const PlaybackInitParams({
+    required this.videoUrl,
+    required this.offset,
+    required this.isLocalPlayback,
+    required this.bangumiId,
+    required this.pluginName,
+    required this.episode,
+    required this.httpHeaders,
+    required this.adBlockerEnabled,
+  });
+}
+
 enum DanmakuDestination {
   chatRoom,
   remoteDanmaku,
@@ -193,34 +215,11 @@ abstract class _PlayerController with Store {
 
   bool _isLocalPlayback = false;
 
-  Future<void> init(String url, {int offset = 0}) async {
-    // Check for local cached version
-    _isLocalPlayback = false;
+  Future<void> init(PlaybackInitParams params) async {
+    videoUrl = params.videoUrl;
+    _isLocalPlayback = params.isLocalPlayback;
 
-    // 离线模式下直接使用传入的本地路径
-    if (videoPageController.isOfflineMode) {
-      videoUrl = url;
-      _isLocalPlayback = true;
-      KazumiLogger().i('PlayerController: offline mode, using local path $url');
-    } else {
-      try {
-        final downloadController = Modular.get<DownloadController>();
-        final localPath = downloadController.getLocalVideoPath(
-          videoPageController.bangumiItem.id,
-          videoPageController.currentPlugin.name,
-          videoPageController.currentEpisode,
-        );
-        if (localPath != null) {
-          videoUrl = localPath;
-          _isLocalPlayback = true;
-          KazumiLogger().i('PlayerController: using local cache $localPath');
-        } else {
-          videoUrl = url;
-        }
-      } catch (_) {
-        videoUrl = url;
-      }
-    }
+    KazumiLogger().i('PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
 
     playing = false;
     loading = true;
@@ -246,15 +245,19 @@ abstract class _PlayerController with Store {
     try {
       episodeFromTitle = Utils.extractEpisodeNumber(videoPageController
           .roadList[videoPageController.currentRoad]
-          .identifier[videoPageController.currentEpisode - 1]);
+          .identifier[params.episode - 1]);
     } catch (e) {
       KazumiLogger().e('PlayerController: failed to extract episode number from title', error: e);
     }
     if (episodeFromTitle == 0) {
-      episodeFromTitle = videoPageController.currentEpisode;
+      episodeFromTitle = params.episode;
     }
-    _loadDanmaku(episodeFromTitle);
-    mediaPlayer ??= await createVideoController(offset: offset);
+    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    mediaPlayer ??= await createVideoController(
+      params.httpHeaders,
+      params.adBlockerEnabled,
+      offset: params.offset,
+    );
 
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
@@ -331,8 +334,11 @@ abstract class _PlayerController with Store {
     await playerAudioBitrateSubscription?.cancel();
   }
 
-  Future<Player> createVideoController({int offset = 0}) async {
-    String userAgent = '';
+  Future<Player> createVideoController(
+    Map<String, String> httpHeaders,
+    bool adBlockerEnabled,
+    {int offset = 0}
+  ) async {
     superResolutionType =
         setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
@@ -345,27 +351,6 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
-    bool forceAdBlocker =
-        setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
-    // 离线模式下不需要 adBlocker 和 HTTP 头
-    bool adBlockerEnabled = _isLocalPlayback
-        ? false
-        : (forceAdBlocker || videoPageController.currentPlugin.adBlocker);
-    String referer = '';
-    if (!_isLocalPlayback) {
-      if (videoPageController.currentPlugin.userAgent == '') {
-        userAgent = Utils.getRandomUA();
-      } else {
-        userAgent = videoPageController.currentPlugin.userAgent;
-      }
-      referer = videoPageController.currentPlugin.referer;
-    }
-    var httpHeaders = _isLocalPlayback
-        ? <String, String>{}
-        : {
-            'user-agent': userAgent,
-            if (referer.isNotEmpty) 'referer': referer,
-          };
 
     mediaPlayer = Player(
       configuration: PlayerConfiguration(
@@ -606,16 +591,15 @@ abstract class _PlayerController with Store {
   }
 
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
-  Future<void> _loadDanmaku(int episode) async {
-    if (videoPageController.isOfflineMode) {
-      await _loadCachedDanmaku(episode);
+  Future<void> _loadDanmaku(int bangumiId, String pluginName, int episode) async {
+    if (_isLocalPlayback) {
+      await _loadCachedDanmaku(bangumiId, pluginName, episode);
     } else {
-      getDanDanmakuByBgmBangumiID(
-          videoPageController.bangumiItem.id, episode);
+      getDanDanmakuByBgmBangumiID(bangumiId, episode);
     }
   }
 
-  Future<void> _loadCachedDanmaku(int episode) async {
+  Future<void> _loadCachedDanmaku(int bangumiId, String pluginName, int episode) async {
     if (danmakuLoading) {
       KazumiLogger().i('PlayerController: danmaku is loading, ignore duplicate request');
       return;
@@ -627,9 +611,9 @@ abstract class _PlayerController with Store {
       danDanmakus.clear();
       final downloadController = Modular.get<DownloadController>();
       final cachedDanmakus = downloadController.getCachedDanmakus(
-        videoPageController.bangumiItem.id,
-        videoPageController.offlinePluginName,
-        videoPageController.actualEpisodeNumber,
+        bangumiId,
+        pluginName,
+        episode,
       );
 
       if (cachedDanmakus != null && cachedDanmakus.isNotEmpty) {
@@ -639,13 +623,13 @@ abstract class _PlayerController with Store {
         KazumiLogger().i('PlayerController: no cached danmaku, attempting online fetch');
         try {
           bangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(
-              videoPageController.bangumiItem.id);
+              bangumiId);
           if (bangumiID != 0) {
             var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
             if (res.isNotEmpty) {
               addDanmakus(res);
               KazumiLogger().i('PlayerController: fetched ${res.length} danmakus online');
-              _saveDanmakuToCache(downloadController, res);
+              _saveDanmakuToCache(downloadController, bangumiId, pluginName, episode, res);
             }
           }
         } catch (e) {
@@ -659,12 +643,12 @@ abstract class _PlayerController with Store {
     }
   }
 
-  void _saveDanmakuToCache(DownloadController downloadController, List<Danmaku> danmakus) {
+  void _saveDanmakuToCache(DownloadController downloadController, int bangumiId, String pluginName, int episode, List<Danmaku> danmakus) {
     try {
       downloadController.updateCachedDanmakus(
-        videoPageController.bangumiItem.id,
-        videoPageController.offlinePluginName,
-        videoPageController.actualEpisodeNumber,
+        bangumiId,
+        pluginName,
+        episode,
         danmakus,
         bangumiID,
       );

@@ -170,11 +170,15 @@ abstract class _DownloadController with Store {
             episode.status == DownloadStatus.pending) {
           pendingCount++;
           totalCount++;
+          // pending/resolving treated as 0% progress
         } else if (episode.status == DownloadStatus.paused ||
             episode.status == DownloadStatus.failed) {
-          // Include paused/failed in total for context, but with 0 progress contribution
           totalCount++;
           totalProgress += episode.progressPercent;
+        } else if (episode.status == DownloadStatus.completed) {
+          // Completed tasks count as 100% progress
+          totalCount++;
+          totalProgress += 1.0;
         }
       }
     }

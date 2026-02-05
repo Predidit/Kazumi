@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -92,6 +93,14 @@ abstract class _VideoPageController with Store {
 
   /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
   WebViewVideoSourceProvider? _videoSourceProvider;
+
+  /// 视频提供者日志流控制器
+  final StreamController<String> _logStreamController = 
+      StreamController<String>.broadcast();
+  
+  Stream<String> get logStream => _logStreamController.stream;
+
+  StreamSubscription<String>? _logSubscription;
 
   /// 初始化离线播放模式
   void initForOfflinePlayback({
@@ -240,6 +249,13 @@ abstract class _VideoPageController with Store {
     loading = true;
     _videoSourceProvider ??= WebViewVideoSourceProvider();
 
+    await _logSubscription?.cancel();
+    _logSubscription = _videoSourceProvider!.onLog.listen((log) {
+      if (!_logStreamController.isClosed) {
+        _logStreamController.add(log);
+      }
+    });
+
     try {
       final source = await _videoSourceProvider!.resolve(
         url,
@@ -287,6 +303,11 @@ abstract class _VideoPageController with Store {
 
   /// 取消当前视频源解析并销毁 Provider（页面退出时调用）
   void cancelVideoSourceResolution() {
+    _logSubscription?.cancel();
+    _logSubscription = null;
+    if (!_logStreamController.isClosed) {
+      _logStreamController.close();
+    }
     _videoSourceProvider?.dispose();
     _videoSourceProvider = null;
   }

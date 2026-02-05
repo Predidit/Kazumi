@@ -42,6 +42,7 @@ class _VideoPageState extends State<VideoPage>
   late bool playResume;
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
+  StreamSubscription<String>? _logSubscription;
   final FocusNode keyboardFocus = FocusNode();
 
   ScrollController scrollController = ScrollController();
@@ -180,6 +181,17 @@ class _VideoPageState extends State<VideoPage>
     }
     currentRoad = videoPageController.currentRoad;
 
+    _logSubscription = videoPageController.logStream.listen((log) {
+      if (mounted) {
+        setState(() {
+          webviewLogLines.add(log);
+          if (webviewLogLines.length > 100) {
+            webviewLogLines.removeAt(0);
+          }
+        });
+      }
+    });
+
     // 使用 Provider 模式启动播放
     WidgetsBinding.instance.addPostFrameCallback((_) {
       changeEpisode(videoPageController.currentEpisode,
@@ -201,6 +213,9 @@ class _VideoPageState extends State<VideoPage>
     } catch (_) {}
     try {
       _syncChatSubscription.cancel();
+    } catch (_) {}
+    try {
+      _logSubscription?.cancel();
     } catch (_) {}
     try {
       playerController.dispose();

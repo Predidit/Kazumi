@@ -79,16 +79,31 @@ abstract class _DownloadController with Store {
   /// Speed data (in-memory, not persisted)
   final Map<String, double> _speeds = {};
 
+  /// Throttle UI updates to prevent ANR on high-frequency progress callbacks
+  DateTime _lastUiUpdateTime = DateTime.now();
+  static const _uiUpdateInterval = Duration(milliseconds: 500);
+
   void _onDownloadProgress(
       String recordKey, int episodeNumber, DownloadEpisode episode, double speed) {
+    // Always persist to Hive (important for data integrity)
     _repository.updateEpisode(recordKey, episodeNumber, episode);
+
     // Store speed in memory
     final key = '${recordKey}_$episodeNumber';
     _speeds[key] = speed;
-    refreshRecords();
 
-    // Update background service notification
-    _updateBackgroundNotification();
+    // Check if this is a final state that requires immediate UI update
+    final isFinalState = episode.status == DownloadStatus.completed ||
+        episode.status == DownloadStatus.failed ||
+        episode.status == DownloadStatus.paused;
+
+    // Throttle UI updates: only update if enough time has passed or it's a final state
+    final now = DateTime.now();
+    if (isFinalState || now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
+      _lastUiUpdateTime = now;
+      refreshRecords();
+      _updateBackgroundNotification();
+    }
   }
 
   /// Update background service notification with current download progress

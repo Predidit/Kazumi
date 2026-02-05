@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/utils/background_download_service.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -46,6 +47,7 @@ class _InitPageState extends State<InitPage> {
     _webDavInit();
     try {
       downloadController.init();
+      _setupBackgroundDownloadNavigation();
     } catch (e) {
       KazumiLogger().e('InitPage: downloadController.init() failed', error: e);
     }
@@ -55,6 +57,21 @@ class _InitPageState extends State<InitPage> {
 
     _navigateToHome();
     _update();
+  }
+
+  /// Setup navigation callback for background download notification
+  void _setupBackgroundDownloadNavigation() {
+    final backgroundService = BackgroundDownloadService();
+    backgroundService.onNavigateToDownloadRequested = () {
+      // Delay slightly to ensure app is in foreground and UI is ready
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          Modular.to.pushNamed('/settings/download/');
+        } catch (e) {
+          KazumiLogger().w('InitPage: failed to navigate to download page', error: e);
+        }
+      });
+    };
   }
 
   void _navigateToHome() {

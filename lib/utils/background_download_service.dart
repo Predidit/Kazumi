@@ -22,6 +22,9 @@ class BackgroundDownloadService {
   void Function()? onPauseAll;
   void Function()? onCancelAll;
 
+  /// 点击通知栏时的导航回调（由 UI 层设置）
+  void Function()? onNavigateToDownloadRequested;
+
   /// 是否支持后台下载（仅 Android）
   bool get isSupported => Platform.isAndroid;
 
@@ -180,6 +183,11 @@ class BackgroundDownloadService {
         onCancelAll?.call();
         break;
     }
+  }
+
+  /// 处理点击通知栏请求导航到下载页
+  void handleNavigateToDownload() {
+    onNavigateToDownloadRequested?.call();
   }
 
   /// 添加任务数据回调（用于接收来自 TaskHandler 的消息）

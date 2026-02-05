@@ -76,14 +76,7 @@ abstract class _DownloadController with Store {
       if (action == 'button_pressed') {
         _backgroundService.handleNotificationAction(data['id'] as String);
       } else if (action == 'navigate_to_download') {
-        // Delay slightly to ensure app is in foreground and UI is ready
-        Future.delayed(const Duration(milliseconds: 300), () {
-          try {
-            Modular.to.pushNamed('/settings/download/');
-          } catch (e) {
-            KazumiLogger().w('DownloadController: failed to navigate to download page', error: e);
-          }
-        });
+        _backgroundService.handleNavigateToDownload();
       }
     }
   }

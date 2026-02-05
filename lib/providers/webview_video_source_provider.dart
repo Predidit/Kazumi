@@ -19,7 +19,7 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
     String episodeUrl, {
     required bool useLegacyParser,
     int offset = 0,
-    Duration timeout = const Duration(seconds: 30),
+    Duration timeout = const Duration(seconds: 15),
   }) async {
     // 取消之前的解析（如果正在进行）
     _cancelCurrentResolve();

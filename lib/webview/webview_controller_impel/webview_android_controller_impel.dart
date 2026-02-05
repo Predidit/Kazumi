@@ -11,7 +11,6 @@ import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
 class WebviewAndroidItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
   PlatformHeadlessInAppWebView? headlessWebView;
-  Timer? loadingMonitorTimer;
   bool hasInjectedScripts = false;
   bool shouldInjectIframeRedirect = false;
 
@@ -64,21 +63,6 @@ class WebviewAndroidItemControllerImpel
     videoLoadingEventController.add(true);
 
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
-    loadingMonitorTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (isVideoSourceLoaded || isIframeLoaded) {
-        timer.cancel();
-      } else {
-        count++;
-        if (count >= 15) {
-          timer.cancel();
-
-          logEventController.add('clear');
-          logEventController.add('解析视频资源超时');
-          logEventController.add('请切换到其他播放列表或视频源');
-          logEventController.add('showDebug');
-        }
-      }
-    });
   }
 
   void addJavaScriptHandlers(bool useLegacyParser) {
@@ -291,14 +275,12 @@ class WebviewAndroidItemControllerImpel
 
   @override
   Future<void> unloadPage() async {
-    loadingMonitorTimer?.cancel();
     await webviewController!
         .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
   }
 
   @override
   void dispose() {
-    loadingMonitorTimer?.cancel();
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;

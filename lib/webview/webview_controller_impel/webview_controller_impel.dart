@@ -165,7 +165,7 @@ class WebviewItemControllerImpel
     if (useNativePlayer && !useLegacyParser) {
       logEventController.add('Injecting blob parser script (onLoadStart)');
       await webviewController?.evaluateJavascript(source: """
-        window.flutter_inappwebview.callHandler('LogBridge', 'BlobParser script loaded: ' + window.location.href);
+        try { window.flutter_inappwebview.callHandler('LogBridge', 'BlobParser script loaded: ' + window.location.href); } catch(e) {}
         const _r_text = window.Response.prototype.text;
         window.Response.prototype.text = function () {
             return new Promise((resolve, reject) => {
@@ -275,7 +275,7 @@ class WebviewItemControllerImpel
       logEventController.add('Injecting IframeRedirect script (onLoadStart)');
       shouldInjectIframeRedirect = false;
       await webviewController?.evaluateJavascript(source: """
-        window.flutter_inappwebview.callHandler('LogBridge', 'IframeRedirectBridge script loaded: ' + window.location.href);
+        try { window.flutter_inappwebview.callHandler('LogBridge', 'IframeRedirectBridge script loaded: ' + window.location.href); } catch(e) {}
         const _observer = new MutationObserver((mutations) => {
           window.flutter_inappwebview.callHandler('LogBridge', 'Scanning for iframes...');
           for (const mutation of mutations) {

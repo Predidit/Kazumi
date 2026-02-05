@@ -14,7 +14,6 @@ class WebviewItemControllerImpel
   Timer? loadingMonitorTimer;
   bool hasRegisteredHandlers = false;
   bool shouldInjectIframeRedirect = false;
-  bool useNativePlayer = false;
   bool useLegacyParser = false;
 
   @override
@@ -56,16 +55,15 @@ class WebviewItemControllerImpel
   }
 
   @override
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0}) async {
     await unloadPage();
     if (!hasRegisteredHandlers) {
-      _addJavaScriptHandlers(useNativePlayer, useLegacyParser);
+      _addJavaScriptHandlers(useLegacyParser);
       hasRegisteredHandlers = true;
     }
     count = 0;
     this.offset = offset;
-    this.useNativePlayer = useNativePlayer;
     this.useLegacyParser = useLegacyParser;
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
@@ -89,7 +87,7 @@ class WebviewItemControllerImpel
     });
   }
 
-  void _addJavaScriptHandlers(bool useNativePlayer, bool useLegacyParser) {
+  void _addJavaScriptHandlers(bool useLegacyParser) {
     logEventController.add('Adding LogBridge handler');
     webviewController?.addJavaScriptHandler(
         handlerName: 'LogBridge',
@@ -101,19 +99,7 @@ class WebviewItemControllerImpel
           logEventController.add(message);
         });
 
-    if (!useNativePlayer) {
-      logEventController.add('Adding IframeRedirectBridge handler');
-      webviewController?.addJavaScriptHandler(
-          handlerName: 'IframeRedirectBridge',
-          callback: (args) {
-            String message = args[0].toString();
-            logEventController.add('Redirect to: $message');
-            Future.delayed(const Duration(seconds: 2), () {
-              isIframeLoaded = true;
-              videoLoadingEventController.add(false);
-            });
-          });
-    } else if (useLegacyParser) {
+    if (useLegacyParser) {
       logEventController.add('Adding JSBridgeDebug handler');
       webviewController?.addJavaScriptHandler(
           handlerName: 'JSBridgeDebug',
@@ -162,7 +148,7 @@ class WebviewItemControllerImpel
   }
 
   Future<void> _onLoadStart() async {
-    if (useNativePlayer && !useLegacyParser) {
+    if (!useLegacyParser) {
       logEventController.add('Injecting blob parser script (onLoadStart)');
       await webviewController?.evaluateJavascript(source: """
         try { window.flutter_inappwebview.callHandler('LogBridge', 'BlobParser script loaded: ' + window.location.href); } catch(e) {}
@@ -270,66 +256,10 @@ class WebviewItemControllerImpel
         }
       """);
     }
-
-    if (!useNativePlayer && shouldInjectIframeRedirect) {
-      logEventController.add('Injecting IframeRedirect script (onLoadStart)');
-      shouldInjectIframeRedirect = false;
-      await webviewController?.evaluateJavascript(source: """
-        try { window.flutter_inappwebview.callHandler('LogBridge', 'IframeRedirectBridge script loaded: ' + window.location.href); } catch(e) {}
-        const _observer = new MutationObserver((mutations) => {
-          window.flutter_inappwebview.callHandler('LogBridge', 'Scanning for iframes...');
-          for (const mutation of mutations) {
-            if (mutation.type === "attributes" && mutation.target.nodeName === "IFRAME") {
-              if (processIframeElement(mutation.target)) return;
-              continue;
-            }
-            for (const node of mutation.addedNodes) {
-              if (node.nodeName === "IFRAME") {
-                if (processIframeElement(node)) return;
-              }
-              if (node.querySelectorAll) {
-                for (const iframe of node.querySelectorAll("iframe")) {
-                  if (processIframeElement(iframe)) return;
-                }
-              }
-            }
-          }
-        });
-
-        function processIframeElement(iframe) {
-          window.flutter_inappwebview.callHandler('LogBridge', 'Processing iframe element');
-          let src = iframe.getAttribute("src");
-          if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-            _observer.disconnect();
-            window.flutter_inappwebview.callHandler("IframeRedirectBridge", src);
-            window.location.href = src;
-            return true;
-          }
-        }
-
-        function setupIframeProcessing() {
-          for (const iframe of document.querySelectorAll("iframe")) {
-            if (processIframeElement(iframe)) return;
-          }
-          _observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ["src"],
-          });
-        }
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', setupIframeProcessing);
-        } else {
-          setupIframeProcessing();
-        }
-      """);
-    }
   }
 
   Future<void> _onLoadStop() async {
-    if (useNativePlayer && !useLegacyParser) {
+    if (!useLegacyParser) {
       logEventController.add('Injecting video tag parser script (onLoadStop)');
       await webviewController?.evaluateJavascript(source: """
         window.flutter_inappwebview.callHandler('LogBridge', 'VideoTagParser script loaded: ' + window.location.href);
@@ -392,7 +322,7 @@ class WebviewItemControllerImpel
       """);
     }
 
-    if (useNativePlayer && useLegacyParser) {
+    if (useLegacyParser) {
       logEventController.add('Injecting JSBridgeDebug script (onLoadStop)');
       await webviewController?.evaluateJavascript(source: """
         window.flutter_inappwebview.callHandler('LogBridge', 'JSBridgeDebug script loaded: ' + window.location.href);

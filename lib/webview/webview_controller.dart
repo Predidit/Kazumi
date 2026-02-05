@@ -48,7 +48,7 @@ abstract class WebviewItemController<T> {
   Stream<(String, int)> get onVideoURLParser => videoParserEventController.stream;
 
   /// Webview load URL method
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0});
 
   /// Webview unload page method

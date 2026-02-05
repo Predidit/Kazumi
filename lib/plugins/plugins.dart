@@ -15,6 +15,7 @@ class Plugin {
   String version;
   bool muliSources;
   bool useWebview;
+  /// Deprecated (always true)
   bool useNativePlayer;
   bool usePost;
   bool useLegacyParser;

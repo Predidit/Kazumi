@@ -103,6 +103,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 ],
               ),
             ),
+            SizedBox(height: 8),
             // Grid
             Expanded(
               child: GridView.builder(

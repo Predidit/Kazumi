@@ -40,7 +40,11 @@ class _DownloadPageState extends State<DownloadPage> {
           itemCount: downloadController.records.length,
           itemBuilder: (context, index) {
             final record = downloadController.records[index];
-            return _buildRecordCard(record);
+            return Observer(
+              builder: (context) {
+                return _buildRecordCard(record);
+              }
+            );
           },
         );
       }),

@@ -224,7 +224,8 @@ class _DownloadTaskHandler extends TaskHandler {
 
   @override
   void onNotificationPressed() {
-    // 点击通知本身，打开 app
+    // 点击通知本身，发送导航消息到主 Isolate，然后打开 app
+    FlutterForegroundTask.sendDataToMain({'action': 'navigate_to_download'});
     FlutterForegroundTask.launchApp();
   }
 

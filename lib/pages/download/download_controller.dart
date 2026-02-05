@@ -6,6 +6,7 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
+import 'package:kazumi/utils/background_download_service.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -20,6 +21,7 @@ class DownloadController = _DownloadController with _$DownloadController;
 abstract class _DownloadController with Store {
   final _repository = Modular.get<IDownloadRepository>();
   final _downloadManager = Modular.get<IDownloadManager>();
+  final _backgroundService = BackgroundDownloadService();
 
   @observable
   ObservableList<DownloadRecord> records = ObservableList<DownloadRecord>();
@@ -51,6 +53,27 @@ abstract class _DownloadController with Store {
     }
 
     _downloadManager.onProgress = _onDownloadProgress;
+    _initBackgroundService();
+  }
+
+  /// Initialize background download service (Android only)
+  Future<void> _initBackgroundService() async {
+    if (!_backgroundService.isSupported) return;
+
+    await _backgroundService.init();
+
+    // Set up notification button callbacks
+    _backgroundService.onPauseAll = pauseAllDownloads;
+
+    // Listen for data from background isolate (notification button presses)
+    _backgroundService.addTaskDataCallback(_onTaskData);
+  }
+
+  /// Handle data received from background task handler
+  void _onTaskData(Object data) {
+    if (data is Map && data['action'] == 'button_pressed') {
+      _backgroundService.handleNotificationAction(data['id'] as String);
+    }
   }
 
   /// Speed data (in-memory, not persisted)
@@ -63,6 +86,79 @@ abstract class _DownloadController with Store {
     final key = '${recordKey}_$episodeNumber';
     _speeds[key] = speed;
     refreshRecords();
+
+    // Update background service notification
+    _updateBackgroundNotification();
+  }
+
+  /// Update background service notification with current download progress
+  Future<void> _updateBackgroundNotification() async {
+    if (!_backgroundService.isRunning) return;
+
+    final stats = _getDownloadStats();
+    if (stats.activeCount == 0 && stats.pendingCount == 0) {
+      // All downloads completed or paused
+      await _backgroundService.stopService();
+      return;
+    }
+
+    // Calculate average speed from active downloads
+    double totalSpeed = 0;
+    for (final entry in _speeds.entries) {
+      totalSpeed += entry.value;
+    }
+
+    await _backgroundService.updateProgress(
+      activeCount: stats.activeCount,
+      totalCount: stats.totalCount,
+      overallProgress: stats.overallProgress,
+      speedText: formatSpeed(totalSpeed),
+    );
+  }
+
+  /// Start background service if not already running and there are active downloads
+  Future<void> _startBackgroundServiceIfNeeded() async {
+    if (!_backgroundService.isSupported || _backgroundService.isRunning) return;
+
+    final started = await _backgroundService.startService();
+    if (started) {
+      KazumiLogger().i('DownloadController: background service started');
+    }
+  }
+
+  /// Get current download statistics across all records
+  ({int activeCount, int pendingCount, int totalCount, double overallProgress}) _getDownloadStats() {
+    int activeCount = 0;
+    int pendingCount = 0;
+    int totalCount = 0;
+    double totalProgress = 0;
+
+    for (final record in records) {
+      for (final episode in record.episodes.values) {
+        if (episode.status == DownloadStatus.downloading) {
+          activeCount++;
+          totalCount++;
+          totalProgress += episode.progressPercent;
+        } else if (episode.status == DownloadStatus.resolving ||
+            episode.status == DownloadStatus.pending) {
+          pendingCount++;
+          totalCount++;
+        } else if (episode.status == DownloadStatus.paused ||
+            episode.status == DownloadStatus.failed) {
+          // Include paused/failed in total for context, but with 0 progress contribution
+          totalCount++;
+          totalProgress += episode.progressPercent;
+        }
+      }
+    }
+
+    final overallProgress = totalCount > 0 ? totalProgress / totalCount : 0.0;
+    return (
+      activeCount: activeCount,
+      pendingCount: pendingCount,
+      totalCount: totalCount,
+      overallProgress: overallProgress,
+    );
   }
 
   /// Get current download speed for an episode (bytes/sec)
@@ -301,6 +397,9 @@ abstract class _DownloadController with Store {
         request.recordKey, request.episodeNumber, freshEpisode);
     refreshRecords();
 
+    // Start background service if not already running (Android only)
+    await _startBackgroundServiceIfNeeded();
+
     // Now enqueue the actual download
     final httpHeaders = plugin.buildHttpHeaders();
     bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
@@ -403,6 +502,34 @@ abstract class _DownloadController with Store {
     }
   }
 
+  /// Pause all active downloads (called from notification button)
+  Future<void> pauseAllDownloads() async {
+    KazumiLogger().i('DownloadController: pausing all downloads');
+
+    // Clear resolve queue
+    _resolveQueue.clear();
+
+    // Pause all downloading/resolving episodes
+    for (final record in records) {
+      for (final entry in record.episodes.entries) {
+        final episode = entry.value;
+        if (episode.status == DownloadStatus.downloading ||
+            episode.status == DownloadStatus.resolving ||
+            episode.status == DownloadStatus.pending) {
+          final recordKey = '${record.pluginName}_${record.bangumiId}';
+          _downloadManager.pause(recordKey, entry.key);
+          episode.status = DownloadStatus.paused;
+          await _repository.updateEpisode(recordKey, entry.key, episode);
+        }
+      }
+    }
+
+    refreshRecords();
+
+    // Stop background service
+    await _backgroundService.stopService();
+  }
+
   Future<void> retryDownload({
     required int bangumiId,
     required String pluginName,
@@ -428,6 +555,9 @@ abstract class _DownloadController with Store {
       episode.downloadedSegments = 0;
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
+
+      // Start background service if not already running
+      await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
       bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
@@ -527,6 +657,9 @@ abstract class _DownloadController with Store {
       episode.errorMessage = '';
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
+
+      // Start background service if not already running
+      await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
       bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;

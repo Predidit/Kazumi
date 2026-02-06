@@ -16,8 +16,7 @@ class WebviewWindowsItemControllerImpel
     await _setupProxy();
     headlessWebview ??= HeadlessWebview();
     await headlessWebview!.run();
-    await headlessWebview!
-        .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
+    await headlessWebview!.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
   }
 
@@ -56,6 +55,7 @@ class WebviewWindowsItemControllerImpel
     isVideoSourceLoaded = false;
     videoLoadingEventController.add(true);
     subscriptions.add(headlessWebview!.onM3USourceLoaded.listen((data) {
+      if (headlessWebview == null) return;
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -68,6 +68,7 @@ class WebviewWindowsItemControllerImpel
       videoParserEventController.add((url, offset));
     }));
     subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
+      if (headlessWebview == null) return;
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -106,13 +107,18 @@ class WebviewWindowsItemControllerImpel
     WebviewController.disposeEnvironment();
   }
 
-  // The webview_windows package does not have a method to unload the current page. 
-  // The loadUrl method opens a new tab, which can lead to memory leaks. 
-  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly. 
+  // The webview_windows package does not have a method to unload the current page.
+  // The loadUrl method opens a new tab, which can lead to memory leaks.
+  // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly.
   // Therefore, this method is used to redirect to a blank page instead.
   Future<void> redirect2Blank() async {
-    await headlessWebview!.executeScript('''
-      window.location.href = 'about:blank';
-    ''');
+    if (headlessWebview == null) return;
+    try {
+      await headlessWebview!.executeScript('''
+        window.location.href = 'about:blank';
+      ''');
+    } catch (e) {
+      KazumiLogger().d('WebView: redirect2Blank skipped (likely disposed): $e');
+    }
   }
 }

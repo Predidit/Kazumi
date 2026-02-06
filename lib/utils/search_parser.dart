@@ -8,17 +8,17 @@ class SearchParser {
 
   String? parseId() {
     final match = _idRegExp.firstMatch(query);
-    return match != null ? match.group(1) : null;
+    return match?.group(1);
   }
 
   String? parseTag() {
     final match = _tagRegExp.firstMatch(query);
-    return match != null ? match.group(1) : null;
+    return match?.group(1);
   }
 
   String? parseSort() {
     final match = _sortRegExp.firstMatch(query);
-    return match != null ? match.group(1) : null;
+    return match?.group(1);
   }
 
   String parseKeywords() {

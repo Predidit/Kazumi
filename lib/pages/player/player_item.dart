@@ -44,6 +44,7 @@ class PlayerItem extends StatefulWidget {
     required this.keyboardFocus,
     required this.sendDanmaku,
     required this.showDanmakuDestinationPickerAndSend,
+    required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
 
@@ -56,6 +57,7 @@ class PlayerItem extends StatefulWidget {
   final FocusNode keyboardFocus;
   final bool disableAnimations;
   final void Function(String) showDanmakuDestinationPickerAndSend;
+  final VoidCallback pauseForTimedShutdown;
 
   @override
   State<PlayerItem> createState() => _PlayerItemState();
@@ -692,10 +694,13 @@ class _PlayerItemState extends State<PlayerItem>
       // 历史记录相关
       if (playerController.playerPlaying && !videoPageController.loading) {
         if (!WebDav().isHistorySyncing) {
+          final pluginName = videoPageController.isOfflineMode
+              ? videoPageController.offlinePluginName
+              : videoPageController.currentPlugin.name;
           historyController.updateHistory(
-              videoPageController.currentEpisode,
+              videoPageController.actualEpisodeNumber,
               videoPageController.currentRoad,
-              videoPageController.currentPlugin.name,
+              pluginName,
               videoPageController.bangumiItem,
               playerController.playerPosition,
               videoPageController.src,
@@ -1052,7 +1057,7 @@ class _PlayerItemState extends State<PlayerItem>
                       border: OutlineInputBorder(),
                     ),
                     isExpanded: true,
-                    value: selectedSyncPlayEndPoint,
+                    initialValue: selectedSyncPlayEndPoint,
                     items: syncPlayEndPoints.map((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
@@ -1514,6 +1519,7 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
                             showDanmakuDestinationPickerAndSend: widget.showDanmakuDestinationPickerAndSend,
+                            pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             handleScreenShot: handleScreenshot,
                             skipOP: skipOP,
@@ -1539,6 +1545,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             skipOP: skipOP,
                           ),

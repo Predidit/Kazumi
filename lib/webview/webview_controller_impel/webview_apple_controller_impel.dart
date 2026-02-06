@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/webview/webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
 class WebviewAppleItemControllerImpel
     extends WebviewItemController<PlatformInAppWebViewController> {
   PlatformHeadlessInAppWebView? headlessWebView;
-  Timer? loadingMonitorTimer;
   bool hasInjectedScripts = false;
 
   @override
@@ -123,12 +122,12 @@ class WebviewAppleItemControllerImpel
   }
 
   @override
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0}) async {
     await unloadPage();
     if (!hasInjectedScripts) {
-      addJavaScriptHandlers(useNativePlayer, useLegacyParser);
-      await addUserScripts(useNativePlayer, useLegacyParser);
+      addJavaScriptHandlers(useLegacyParser);
+      await addUserScripts(useLegacyParser);
       hasInjectedScripts = true;
     }
     count = 0;
@@ -138,25 +137,9 @@ class WebviewAppleItemControllerImpel
     videoLoadingEventController.add(true);
 
     await webviewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
-
-    loadingMonitorTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (isVideoSourceLoaded || isIframeLoaded) {
-        timer.cancel();
-      } else {
-        count++;
-        if (count >= 15) {
-          timer.cancel();
-
-          logEventController.add('clear');
-          logEventController.add('解析视频资源超时');
-          logEventController.add('请切换到其他播放列表或视频源');
-          logEventController.add('showDebug');
-        }
-      }
-    });
   }
 
-  void addJavaScriptHandlers(bool useNativePlayer, bool useLegacyParser) {
+  void addJavaScriptHandlers(bool useLegacyParser) {
     logEventController.add('Adding LogBridge handler');
     webviewController?.addJavaScriptHandler(
         handlerName: 'LogBridge',
@@ -168,19 +151,7 @@ class WebviewAppleItemControllerImpel
           logEventController.add(message);
         });
 
-    if (!useNativePlayer) {
-      logEventController.add('Adding IframeRedirectBridge handler');
-      webviewController?.addJavaScriptHandler(
-          handlerName: 'IframeRedirectBridge',
-          callback: (args) {
-            String message = args[0].toString();
-            logEventController.add('Redirect to: $message');
-            Future.delayed(const Duration(seconds: 2), () {
-              isIframeLoaded = true;
-              videoLoadingEventController.add(false);
-            });
-          });
-    } else if (useLegacyParser) {
+    if (useLegacyParser) {
       logEventController.add('Adding JSBridgeDebug handler');
       webviewController?.addJavaScriptHandler(
           handlerName: 'JSBridgeDebug',
@@ -229,30 +200,10 @@ class WebviewAppleItemControllerImpel
   }
 
   Future<void> addUserScripts(
-      bool useNativePlayer, bool useLegacyParser) async {
+      bool useLegacyParser) async {
     final List<UserScript> scripts = [];
 
-    if (!useNativePlayer) {
-      logEventController.add('Adding IframeRedirectBridge UserScript');
-      const String iframeRedirectScript = """
-        window.flutter_inappwebview.callHandler('LogBridge', 'IframeRedirectBridge script loaded: ' + window.location.href);
-        var iframes = document.getElementsByTagName('iframe');
-        for (var i = 0; i < iframes.length; i++) {
-              var iframe = iframes[i];
-              var src = iframe.getAttribute('src');
-              if (src && src.trim() !== '' && (src.startsWith('http') || src.startsWith('//')) && !src.includes('googleads') && !src.includes('adtrafficquality') && !src.includes('googlesyndication.com') && !src.includes('google.com') && !src.includes('prestrain.html') && !src.includes('prestrain%2Ehtml')) {
-                  window.flutter_inappwebview.callHandler('IframeRedirectBridge', src);
-                  window.location.href = src;
-                  break; 
-              }
-          }
-      """;
-      scripts.add(UserScript(
-        source: iframeRedirectScript,
-        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_END,
-        forMainFrameOnly: true,
-      ));
-    } else if (useLegacyParser) {
+    if (useLegacyParser) {
       logEventController.add('Adding JSBridgeDebug UserScript');
       const String jsBridgeDebugScript = """
         window.flutter_inappwebview.callHandler('LogBridge', 'JSBridgeDebug script loaded: ' + window.location.href);
@@ -367,14 +318,12 @@ class WebviewAppleItemControllerImpel
 
   @override
   Future<void> unloadPage() async {
-    loadingMonitorTimer?.cancel();
     await webviewController!
         .loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
   }
 
   @override
   void dispose() {
-    loadingMonitorTimer?.cancel();
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;

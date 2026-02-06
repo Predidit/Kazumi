@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:webview_windows/webview_windows.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/webview/webview_controller.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -9,12 +9,14 @@ class WebviewWindowsItemControllerImpel
     extends WebviewItemController<WebviewController> {
   final List<StreamSubscription> subscriptions = [];
 
+  HeadlessWebview? headlessWebview;
+
   @override
   Future<void> init() async {
     await _setupProxy();
-    webviewController ??= WebviewController();
-    await webviewController!.initialize();
-    await webviewController!
+    headlessWebview ??= HeadlessWebview();
+    await headlessWebview!.run();
+    await headlessWebview!
         .setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
     initEventController.add(true);
   }
@@ -45,7 +47,7 @@ class WebviewWindowsItemControllerImpel
   }
 
   @override
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0}) async {
     await unloadPage();
     count = 0;
@@ -53,7 +55,7 @@ class WebviewWindowsItemControllerImpel
     isIframeLoaded = false;
     isVideoSourceLoaded = false;
     videoLoadingEventController.add(true);
-    subscriptions.add(webviewController!.onM3USourceLoaded.listen((data) {
+    subscriptions.add(headlessWebview!.onM3USourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -65,7 +67,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading m3u8 source: $url');
       videoParserEventController.add((url, offset));
     }));
-    subscriptions.add(webviewController!.onVideoSourceLoaded.listen((data) {
+    subscriptions.add(headlessWebview!.onVideoSourceLoaded.listen((data) {
       String url = data['url'] ?? '';
       if (url.isEmpty) {
         return;
@@ -77,7 +79,7 @@ class WebviewWindowsItemControllerImpel
       logEventController.add('Loading video source: $url');
       videoParserEventController.add((url, offset));
     }));
-    await webviewController!.loadUrl(url);
+    await headlessWebview!.loadUrl(url);
   }
 
   @override
@@ -97,15 +99,11 @@ class WebviewWindowsItemControllerImpel
         s.cancel();
       } catch (_) {}
     });
-    // It's a custom function to dispose the whole webview environment in Predidit's flutter-webview-windows fork.
-    // which allow re-initialization webview environment with different proxy settings.
-    // It's difficult to get a dispose finish callback from Microsoft Edge WebView2 SDK,
-    // so don't call webviewController.dispose() when we call WebviewController.disposeEnvironment(), WebViewController.disposeEnvironment() already do any necessary clean up internally.
-    // ohtherwise, app will crash due to resource conflict.
-    if (webviewController != null) {
-      WebviewController.disposeEnvironment();
-      webviewController = null;
-    }
+    // disposeEnvironment() 内部已通过 headless_instances_.clear() 销毁所有 headless 实例，
+    // 不要额外调用 headlessWebview.dispose()，否则两个异步方法通道调用可能产生竞争，
+    // 导致 disposeEnvironment 先到达原生侧清除实例后，disposeHeadless 找不到条目抛出异常。
+    headlessWebview = null;
+    WebviewController.disposeEnvironment();
   }
 
   // The webview_windows package does not have a method to unload the current page. 
@@ -113,7 +111,7 @@ class WebviewWindowsItemControllerImpel
   // Directly disposing of the webview controller would require reinitialization when switching episodes, which is costly. 
   // Therefore, this method is used to redirect to a blank page instead.
   Future<void> redirect2Blank() async {
-    await webviewController!.executeScript('''
+    await headlessWebview!.executeScript('''
       window.location.href = 'about:blank';
     ''');
   }

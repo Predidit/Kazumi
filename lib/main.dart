@@ -17,8 +17,6 @@ import 'package:kazumi/pages/error/storage_error_page.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-// TODO: Issue 1171 https://github.com/Predidit/Kazumi/issues/1171
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
@@ -36,10 +34,13 @@ void main() async {
   }
 
   try {
-    await Hive.initFlutter(
-        '${(await getApplicationSupportDirectory()).path}/hive');
+    final hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
+    await Hive.initFlutter(hivePath);
     await GStorage.init();
-  } catch (_) {
+  } catch (e) {
+    // Log the error for debugging (if logger is available)
+    debugPrint('Storage initialization failed: $e');
+
     if (Platform.isWindows) {
       await windowManager.ensureInitialized();
       windowManager.waitUntilReadyToShow(null, () async {

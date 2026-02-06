@@ -2,11 +2,8 @@ import 'dart:async';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/pages/webview/webview_item.dart';
-import 'package:kazumi/pages/webview/webview_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
@@ -21,6 +18,10 @@ import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/download/download_episode_sheet.dart';
+import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -36,11 +37,12 @@ class _VideoPageState extends State<VideoPage>
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  final WebviewItemController webviewItemController =
-      Modular.get<WebviewItemController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
   late bool playResume;
   bool showDebugLog = false;
   List<String> webviewLogLines = [];
+  StreamSubscription<String>? _logSubscription;
   final FocusNode keyboardFocus = FocusNode();
 
   ScrollController scrollController = ScrollController();
@@ -52,19 +54,6 @@ class _VideoPageState extends State<VideoPage>
 
   // 当前播放列表
   late int currentRoad;
-
-  // webview init events listener
-  late final StreamSubscription<bool> _initSubscription;
-
-  // webview logs events listener
-  late final StreamSubscription<String> _logSubscription;
-
-  // webview video loaded events listener
-  late final StreamSubscription<bool> _videoLoadedSubscription;
-
-  // webview video source events listener
-  // The first parameter is the video source URL and the second parameter is the video offset (start position)
-  late final StreamSubscription<(String, int)> _videoURLSubscription;
 
   // disable animation.
   late final bool disableAnimations;
@@ -99,13 +88,82 @@ class _VideoPageState extends State<VideoPage>
       parent: animation,
       curve: Curves.easeIn,
     ));
+
+    playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
+    disableAnimations =
+        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+
+    if (videoPageController.isOfflineMode) {
+      // 离线模式：跳过 WebView 订阅，直接初始化播放器
+      _initOfflineMode();
+    } else {
+      // 在线模式：设置 WebView 订阅
+      _initOnlineMode();
+    }
+
+    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
+      final localUsername = playerController.syncplayController?.username ?? '';
+      final String displayText = '${event.username}：${event.message}';
+
+      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
+      if (playerController.danmakuOn &&
+          event.username != localUsername &&
+          event.fromRemote) {
+        playerController.danmakuController.addDanmaku(
+          DanmakuContentItem(
+            displayText,
+            color: Colors.orange,
+            isColorful: true,
+            type: DanmakuItemType.bottom,
+            extra: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      }
+    });
+  }
+
+  void _initOfflineMode() {
+    videoPageController.showTabBody = true;
+    videoPageController.historyOffset = 0;
+    currentRoad = videoPageController.currentRoad;
+
+    // 检查历史记录（使用离线插件名）
+    var progress = historyController.lastWatching(
+        videoPageController.bangumiItem, videoPageController.offlinePluginName);
+    if (progress != null && playResume) {
+      // 在离线模式下，只恢复播放进度，不改变集数
+      videoPageController.historyOffset = progress.progress.inSeconds;
+    }
+
+    // 初始化播放器
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (videoPageController.offlineVideoPath != null) {
+        final params = PlaybackInitParams(
+          videoUrl: videoPageController.offlineVideoPath!,
+          offset: videoPageController.historyOffset,
+          isLocalPlayback: true,
+          bangumiId: videoPageController.bangumiItem.id,
+          pluginName: videoPageController.offlinePluginName,
+          episode: videoPageController.actualEpisodeNumber,
+          httpHeaders: {},
+          adBlockerEnabled: false,
+          episodeTitle: videoPageController
+              .roadList[videoPageController.currentRoad]
+              .identifier[videoPageController.currentEpisode - 1],
+          referer: '',
+          currentRoad: videoPageController.currentRoad,
+        );
+        await playerController.init(params);
+      }
+    });
+  }
+
+  void _initOnlineMode() {
     videoPageController.currentEpisode = 1;
     videoPageController.currentRoad = 0;
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
-    playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
-    disableAnimations =
-        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
+
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
@@ -123,53 +181,22 @@ class _VideoPageState extends State<VideoPage>
     }
     currentRoad = videoPageController.currentRoad;
 
-    // webview events listener
-    _initSubscription = webviewItemController.onInitialized.listen((event) {
-      if (event) {
-        changeEpisode(videoPageController.currentEpisode,
-            currentRoad: videoPageController.currentRoad,
-            offset: videoPageController.historyOffset);
+    _logSubscription = videoPageController.logStream.listen((log) {
+      if (mounted) {
+        setState(() {
+          webviewLogLines.add(log);
+          if (webviewLogLines.length > 100) {
+            webviewLogLines.removeAt(0);
+          }
+        });
       }
     });
-    _videoLoadedSubscription =
-        webviewItemController.onVideoLoading.listen((event) {
-      videoPageController.loading = event;
-    });
-    _videoURLSubscription =
-        webviewItemController.onVideoURLParser.listen((event) {
-      final (mediaUrl, offset) = event;
-      playerController.init(mediaUrl, offset: offset);
-    });
-    _logSubscription = webviewItemController.onLog.listen((event) {
-      KazumiLogger().i('WebViewParser: $event');
-      if (event == 'clear') {
-        clearWebviewLog();
-        return;
-      }
-      if (event == 'showDebug') {
-        showDebugConsole();
-        return;
-      }
-      setState(() {
-        webviewLogLines.add(event);
-      });
-    });
-    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
-      final localUsername = playerController.syncplayController?.username ?? '';
-      final String displayText = '${event.username}：${event.message}';
 
-      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
-      if (playerController.danmakuOn && event.username != localUsername && event.fromRemote) {
-        playerController.danmakuController.addDanmaku(
-          DanmakuContentItem(
-            displayText,
-            color: Colors.orange,
-            isColorful: true,
-            type: DanmakuItemType.bottom,
-            extra: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
-      }
+    // 使用 Provider 模式启动播放
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      changeEpisode(videoPageController.currentEpisode,
+          currentRoad: videoPageController.currentRoad,
+          offset: videoPageController.historyOffset);
     });
   }
 
@@ -185,25 +212,20 @@ class _VideoPageState extends State<VideoPage>
       animation.dispose();
     } catch (_) {}
     try {
-      _initSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoLoadedSubscription.cancel();
-    } catch (_) {}
-    try {
-      _videoURLSubscription.cancel();
-    } catch (_) {}
-    try {
-      _logSubscription.cancel();
-    } catch (_) {}
-    try {
       _syncChatSubscription.cancel();
+    } catch (_) {}
+    try {
+      _logSubscription?.cancel();
     } catch (_) {}
     try {
       playerController.dispose();
     } catch (e) {
-      KazumiLogger().e('VideoPageController: failed to dispose playerController', error: e);
+      KazumiLogger().e(
+          'VideoPageController: failed to dispose playerController',
+          error: e);
     }
+    // 取消正在进行的视频源解析
+    videoPageController.cancelVideoSourceResolution();
     if (!Utils.isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
@@ -211,8 +233,12 @@ class _VideoPageState extends State<VideoPage>
     }
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
+    // 重置离线模式
+    videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
     tabController.dispose();
+    // Cancel timed shutdown when leaving anime page
+    TimedShutdownService().cancel();
     super.dispose();
   }
 
@@ -256,6 +282,7 @@ class _VideoPageState extends State<VideoPage>
     clearWebviewLog();
     hideDebugConsole();
     videoPageController.loading = true;
+    videoPageController.errorMessage = null;
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
     await playerController.stop();
@@ -317,6 +344,13 @@ class _VideoPageState extends State<VideoPage>
     Navigator.of(context).pop();
   }
 
+  /// Callback for timed shutdown - pauses video when timer expires
+  void pauseForTimedShutdown() {
+    if (playerController.playing) {
+      playerController.pause();
+    }
+  }
+
   /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
     keyboardFocus.requestFocus();
@@ -362,7 +396,7 @@ class _VideoPageState extends State<VideoPage>
       // Todo 接口方限制
 
       playerController.danmakuController
-        .addDanmaku(DanmakuContentItem(msg, selfSend: true));
+          .addDanmaku(DanmakuContentItem(msg, selfSend: true));
     }
   }
 
@@ -439,7 +473,8 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
 
-    final DanmakuDestination? result = await showModalBottomSheet<DanmakuDestination>(
+    final DanmakuDestination? result =
+        await showModalBottomSheet<DanmakuDestination>(
       context: context,
       shape: const BeveledRectangleBorder(),
       builder: (context) {
@@ -451,11 +486,13 @@ class _VideoPageState extends State<VideoPage>
             children: [
               ListTile(
                 title: const Text('发送到聊天室'),
-                onTap: () => Navigator.of(context).pop(DanmakuDestination.chatRoom),
+                onTap: () =>
+                    Navigator.of(context).pop(DanmakuDestination.chatRoom),
               ),
               ListTile(
                 title: const Text('发送到远程弹幕库'),
-                onTap: () => Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
+                onTap: () =>
+                    Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
               ),
               const SizedBox(height: 8),
             ],
@@ -465,8 +502,7 @@ class _VideoPageState extends State<VideoPage>
     );
 
     if (result != null) {
-      setState(() {
-      });
+      setState(() {});
       playerController.danmakuDestination = result;
       sendDanmaku(msg);
     }
@@ -501,10 +537,7 @@ class _VideoPageState extends State<VideoPage>
         }
         return Observer(builder: (context) {
           return Scaffold(
-            appBar: ((videoPageController.currentPlugin.useNativePlayer ||
-                    videoPageController.isFullscreen)
-                ? null
-                : SysAppBar(title: Text(videoPageController.title))),
+            appBar: null,
             body: SafeArea(
                 top: !videoPageController.isFullscreen,
                 // set iOS and Android navigation bar to immersive
@@ -605,60 +638,57 @@ class _VideoPageState extends State<VideoPage>
   Widget get playerBody {
     return Stack(
       children: [
-        // webview log component (not player log, used for video parsing)
         Positioned.fill(
           child: Stack(
             children: [
-              Positioned.fill(
-                child: (videoPageController.currentPlugin.useNativePlayer &&
-                        playerController.loading)
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .tertiaryContainer),
-                            const SizedBox(height: 10),
-                            const Text('视频资源解析成功, 播放器加载中',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                )),
-                          ],
-                        ),
-                      )
-                    : Container(),
-              ),
-              Visibility(
-                visible: videoPageController.loading,
-                child: Container(
+              if (videoPageController.loading || 
+                  playerController.loading || 
+                  videoPageController.errorMessage != null)
+                Container(
                   color: Colors.black,
-                  child: Align(
-                      alignment: Alignment.center,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .tertiaryContainer),
-                            const SizedBox(height: 10),
-                            const Text('视频资源解析中',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                )),
-                          ],
-                        ),
-                      )),
+                  child: Observer(
+                    builder: (context) {
+                      return Center(
+                        child: videoPageController.errorMessage != null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.error_outline,
+                                      color: Theme.of(context).colorScheme.error,
+                                      size: 48),
+                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                                    child: Text(
+                                      videoPageController.errorMessage!,
+                                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                      color: Theme.of(context).colorScheme.tertiaryContainer),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    videoPageController.loading
+                                        ? '视频资源解析中'
+                                        : '视频资源解析成功, 播放器加载中',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                      );
+                    }
+                  ),
                 ),
-              ),
               Visibility(
-                visible: (videoPageController.loading ||
-                        (videoPageController.currentPlugin.useNativePlayer &&
-                            playerController.loading)) &&
-                    showDebugLog,
+                visible:
+                    (videoPageController.loading || playerController.loading) &&
+                        showDebugLog,
                 child: Container(
                   color: Colors.black,
                   child: Align(
@@ -679,76 +709,70 @@ class _VideoPageState extends State<VideoPage>
                   ),
                 ),
               ),
-              ((videoPageController.currentPlugin.useNativePlayer ||
-                      videoPageController.isFullscreen))
-                  ? Stack(
-                      children: [
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: EmbeddedNativeControlArea(
-                            requireOffset: !videoPageController.isFullscreen,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_back,
-                                      color: Colors.white),
-                                  onPressed: () => onBackPressed(context),
-                                ),
-                                const Expanded(
-                                    child: dtb.DragToMoveArea(
-                                        child: SizedBox(height: 40))),
-                                IconButton(
-                                  icon: const Icon(Icons.refresh_outlined,
-                                      color: Colors.white),
-                                  onPressed: () {
-                                    changeEpisode(
-                                        videoPageController.currentEpisode,
-                                        currentRoad:
-                                            videoPageController.currentRoad);
-                                  },
-                                ),
-                                Visibility(
-                                  visible: MediaQuery.sizeOf(context).width >
-                                      MediaQuery.sizeOf(context).height,
-                                  child: IconButton(
-                                    onPressed: () {
-                                      videoPageController.showTabBody =
-                                          !videoPageController.showTabBody;
-                                      openTabBodyAnimated();
-                                    },
-                                    icon: Icon(
-                                      videoPageController.showTabBody
-                                          ? Icons.menu_open
-                                          : Icons.menu_open_outlined,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                      showDebugLog
-                                          ? Icons.bug_report
-                                          : Icons.bug_report_outlined,
-                                      color: Colors.white),
-                                  onPressed: () {
-                                    switchDebugConsole();
-                                  },
-                                ),
-                              ],
+              Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: EmbeddedNativeControlArea(
+                      requireOffset: !videoPageController.isFullscreen,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back,
+                                color: Colors.white),
+                            onPressed: () => onBackPressed(context),
+                          ),
+                          const Expanded(
+                              child: dtb.DragToMoveArea(
+                                  child: SizedBox(height: 40))),
+                          IconButton(
+                            icon: const Icon(Icons.refresh_outlined,
+                                color: Colors.white),
+                            onPressed: () {
+                              changeEpisode(videoPageController.currentEpisode,
+                                  currentRoad: videoPageController.currentRoad);
+                            },
+                          ),
+                          Visibility(
+                            visible: MediaQuery.sizeOf(context).width >
+                                MediaQuery.sizeOf(context).height,
+                            child: IconButton(
+                              onPressed: () {
+                                videoPageController.showTabBody =
+                                    !videoPageController.showTabBody;
+                                openTabBodyAnimated();
+                              },
+                              icon: Icon(
+                                videoPageController.showTabBody
+                                    ? Icons.menu_open
+                                    : Icons.menu_open_outlined,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    )
-                  : Container(),
+                          IconButton(
+                            icon: Icon(
+                                showDebugLog
+                                    ? Icons.bug_report
+                                    : Icons.bug_report_outlined,
+                                color: Colors.white),
+                            onPressed: () {
+                              switchDebugConsole();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
         Positioned.fill(
-          child: (!videoPageController.currentPlugin.useNativePlayer ||
-                  playerController.loading)
+          child: playerController.loading
               ? Container()
               : PlayerItem(
                   openMenu: openTabBodyAnimated,
@@ -758,19 +782,11 @@ class _VideoPageState extends State<VideoPage>
                   keyboardFocus: keyboardFocus,
                   sendDanmaku: sendDanmaku,
                   disableAnimations: disableAnimations,
-                  showDanmakuDestinationPickerAndSend: showDanmakuDestinationPickerAndSend,
+                  showDanmakuDestinationPickerAndSend:
+                      showDanmakuDestinationPickerAndSend,
+                  pauseForTimedShutdown: pauseForTimedShutdown,
                 ),
         ),
-
-        /// workaround for webview_windows
-        /// The webview_windows component cannot be removed from the widget tree; otherwise, it can never be reinitialized.
-        Positioned(
-            child: SizedBox(
-                height: (videoPageController.loading ||
-                        videoPageController.currentPlugin.useNativePlayer)
-                    ? 0
-                    : null,
-                child: const WebviewItem()))
       ],
     );
   }
@@ -847,6 +863,46 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
+  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
+    // 离线模式下不显示下载状态图标
+    if (videoPageController.isOfflineMode) return const SizedBox.shrink();
+    final bangumiId = videoPageController.bangumiItem.id;
+    final pluginName = videoPageController.currentPlugin.name;
+    final episode = downloadController.getEpisodeByUrl(
+            bangumiId, pluginName, episodePageUrl) ??
+        downloadController.getEpisode(bangumiId, pluginName, episodeNumber);
+    if (episode == null) return const SizedBox.shrink();
+    switch (episode.status) {
+      case DownloadStatus.completed:
+        return Icon(Icons.offline_pin,
+            size: 16, color: Theme.of(context).colorScheme.primary);
+      case DownloadStatus.downloading:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            value: episode.progressPercent,
+            strokeWidth: 2,
+          ),
+        );
+      case DownloadStatus.failed:
+        return Icon(Icons.error_outline,
+            size: 16, color: Theme.of(context).colorScheme.error);
+      case DownloadStatus.paused:
+        return Icon(Icons.pause_circle_outline,
+            size: 16, color: Theme.of(context).colorScheme.outline);
+      case DownloadStatus.pending:
+      case DownloadStatus.resolving:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   Widget get menuBody {
     var cardList = <Widget>[];
     for (var road in videoPageController.roadList) {
@@ -866,7 +922,8 @@ class _VideoPageState extends State<VideoPage>
                       videoPageController.currentRoad == currentRoad) {
                     return;
                   }
-                  KazumiLogger().i('VideoPageController: video URL is $urlItem');
+                  KazumiLogger()
+                      .i('VideoPageController: video URL is $urlItem');
                   closeTabBodyAnimated();
                   changeEpisode(count0, currentRoad: currentRoad);
                 },
@@ -903,6 +960,7 @@ class _VideoPageState extends State<VideoPage>
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurface),
                           )),
+                          _buildDownloadStatusIcon(count0, urlItem),
                           const SizedBox(width: 2),
                         ],
                       ),
@@ -950,109 +1008,123 @@ class _VideoPageState extends State<VideoPage>
       episodeNum = videoPageController.currentEpisode;
     }
 
-    return Container(
-      color: Theme.of(context).canvasColor,
-      child: DefaultTabController(
-        length: 2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                TabBar(
-                  controller: tabController,
-                  dividerHeight: 0,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelPadding:
-                      const EdgeInsetsDirectional.only(start: 30, end: 30),
-                  onTap: (index) {
-                    if (index == 0) {
-                      menuJumpToCurrentEpisode();
-                    }
-                  },
-                  tabs: const [
-                    Tab(text: '选集'),
-                    Tab(text: '评论'),
-                  ],
-                ),
-                if (MediaQuery.sizeOf(context).width <=
-                    MediaQuery.sizeOf(context).height) ...[
-                  const Spacer(),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: playerController.danmakuOn
-                            ? Theme.of(context).hintColor
-                            : Theme.of(context).disabledColor,
-                        width: 0.5,
+    return Scaffold(
+      floatingActionButton: videoPageController.isOfflineMode
+          ? null
+          : FloatingActionButton(
+              child: const Icon(Icons.download_rounded),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) => DownloadEpisodeSheet(road: currentRoad),
+                );
+              },
+            ),
+      body: Container(
+        color: Theme.of(context).canvasColor,
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  TabBar(
+                    controller: tabController,
+                    dividerHeight: 0,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    labelPadding:
+                        const EdgeInsetsDirectional.only(start: 30, end: 30),
+                    onTap: (index) {
+                      if (index == 0) {
+                        menuJumpToCurrentEpisode();
+                      }
+                    },
+                    tabs: const [
+                      Tab(text: '选集'),
+                      Tab(text: '评论'),
+                    ],
+                  ),
+                  if (MediaQuery.sizeOf(context).width <=
+                      MediaQuery.sizeOf(context).height) ...[
+                    const Spacer(),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color: playerController.danmakuOn
+                              ? Theme.of(context).hintColor
+                              : Theme.of(context).disabledColor,
+                          width: 0.5,
+                        ),
                       ),
-                    ),
-                    width: 120,
-                    height: 31,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (playerController.danmakuOn &&
-                            !videoPageController.loading) {
-                          showMobileDanmakuInput();
-                        } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
-                        } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
-                        }
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            playerController.danmakuOn
-                                ? '  点我发弹幕  '
-                                : '  已关闭弹幕  ',
-                            softWrap: false,
-                            overflow: TextOverflow.clip,
-                            style: TextStyle(
+                      width: 120,
+                      height: 31,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (playerController.danmakuOn &&
+                              !videoPageController.loading) {
+                            showMobileDanmakuInput();
+                          } else if (videoPageController.loading) {
+                            KazumiDialog.showToast(message: '请等待视频加载完成');
+                          } else {
+                            KazumiDialog.showToast(message: '请先打开弹幕');
+                          }
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              playerController.danmakuOn
+                                  ? '  点我发弹幕  '
+                                  : '  已关闭弹幕  ',
+                              softWrap: false,
+                              overflow: TextOverflow.clip,
+                              style: TextStyle(
+                                color: playerController.danmakuOn
+                                    ? Theme.of(context).hintColor
+                                    : Theme.of(context).disabledColor,
+                              ),
+                            ),
+                            Icon(
+                              Icons.send_rounded,
+                              size: 20,
                               color: playerController.danmakuOn
                                   ? Theme.of(context).hintColor
                                   : Theme.of(context).disabledColor,
                             ),
-                          ),
-                          Icon(
-                            Icons.send_rounded,
-                            size: 20,
-                            color: playerController.danmakuOn
-                                ? Theme.of(context).hintColor
-                                : Theme.of(context).disabledColor,
-                          ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: 8),
+                ],
+              ),
+              Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
+              Expanded(
+                child: TabBarView(
+                  controller: tabController,
+                  children: [
+                    GridViewObserver(
+                      controller: observerController,
+                      child: Column(
+                        children: [
+                          menuBar,
+                          menuBody,
                         ],
                       ),
                     ),
-                  ),
-                ],
-                const SizedBox(width: 8),
-              ],
-            ),
-            Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
-            Expanded(
-              child: TabBarView(
-                controller: tabController,
-                children: [
-                  GridViewObserver(
-                    controller: observerController,
-                    child: Column(
-                      children: [
-                        menuBar,
-                        menuBody,
-                      ],
+                    EpisodeInfo(
+                      episode: episodeNum,
+                      child: EpisodeCommentsSheet(),
                     ),
-                  ),
-                  EpisodeInfo(
-                    episode: episodeNum,
-                    child: EpisodeCommentsSheet(),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

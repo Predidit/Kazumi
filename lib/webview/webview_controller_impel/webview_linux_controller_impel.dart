@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:kazumi/pages/webview/webview_controller.dart';
+import 'package:kazumi/webview/webview_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
@@ -56,17 +56,17 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
     return ProxyConfiguration(host: host, port: port);
   }
 
-  Future<void> initBridge(bool useNativePlayer, bool useLegacyParser) async {
-    await initJSBridge(useNativePlayer, useLegacyParser);
+  Future<void> initBridge(bool useLegacyParser) async {
+    await initJSBridge(useLegacyParser);
     bridgeInited = true;
   }
 
   @override
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0}) async {
     await unloadPage();
     if (!bridgeInited) {
-      await initBridge(useNativePlayer, useLegacyParser);
+      await initBridge(useLegacyParser);
     }
     count = 0;
     this.offset = offset;
@@ -87,7 +87,7 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
     bridgeInited = false;
   }
 
-  Future<void> initJSBridge(bool useNativePlayer, bool useLegacyParser) async {
+  Future<void> initJSBridge(bool useLegacyParser) async {
     webviewController!.addOnWebMessageReceivedCallback((message) async {
       if (message.contains('iframeMessage:')) {
         String messageItem =
@@ -102,7 +102,6 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
             !messageItem.contains('adtrafficquality')) {
           if (Utils.decodeVideoSource(messageItem) !=
                   Uri.encodeFull(messageItem) &&
-              useNativePlayer &&
               useLegacyParser) {
             logEventController.add('Parsing video source $messageItem');
             isIframeLoaded = true;
@@ -127,10 +126,8 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
           isIframeLoaded = true;
           isVideoSourceLoaded = true;
           videoLoadingEventController.add(false);
-          if (useNativePlayer) {
-            unloadPage();
-            videoParserEventController.add((videoUrl, offset));
-          }
+          unloadPage();
+          videoParserEventController.add((videoUrl, offset));
         }
       }
     });
@@ -216,6 +213,6 @@ class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
   """;
 
   Future<void> redirect2Blank() async {
-     webviewController?.launch("about:blank");
+    webviewController?.launch("about:blank");
   }
 }

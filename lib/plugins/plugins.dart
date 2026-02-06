@@ -15,6 +15,7 @@ class Plugin {
   String version;
   bool muliSources;
   bool useWebview;
+  /// Deprecated (always true)
   bool useNativePlayer;
   bool usePost;
   bool useLegacyParser;
@@ -261,6 +262,21 @@ class Plugin {
     }
 
     return resp.data.toString();
+  }
+
+  String buildFullUrl(String urlItem) {
+    if (urlItem.contains(baseUrl) ||
+        urlItem.contains(baseUrl.replaceAll('https', 'http'))) {
+      return urlItem;
+    }
+    return baseUrl + urlItem;
+  }
+
+  Map<String, String> buildHttpHeaders() {
+    return {
+      'user-agent': userAgent.isEmpty ? Utils.getRandomUA() : userAgent,
+      if (referer.isNotEmpty) 'referer': referer,
+    };
   }
 
   PluginSearchResponse testQueryBangumi(String htmlString) {

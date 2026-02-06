@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:kazumi/pages/webview/webview_controller_impel/webview_android_controller_impel.dart';
-import 'package:kazumi/pages/webview/webview_controller_impel/webview_controller_impel.dart';
-import 'package:kazumi/pages/webview/webview_controller_impel/webview_windows_controller_impel.dart';
-import 'package:kazumi/pages/webview/webview_controller_impel/webview_linux_controller_impel.dart';
-import 'package:kazumi/pages/webview/webview_controller_impel/webview_apple_controller_impel.dart';
+import 'package:kazumi/webview/webview_controller_impel/webview_android_controller_impel.dart';
+import 'package:kazumi/webview/webview_controller_impel/webview_controller_impel.dart';
+import 'package:kazumi/webview/webview_controller_impel/webview_windows_controller_impel.dart';
+import 'package:kazumi/webview/webview_controller_impel/webview_linux_controller_impel.dart';
+import 'package:kazumi/webview/webview_controller_impel/webview_apple_controller_impel.dart';
 import 'package:kazumi/utils/utils.dart';
 
 abstract class WebviewItemController<T> {
@@ -48,7 +48,7 @@ abstract class WebviewItemController<T> {
   Stream<(String, int)> get onVideoURLParser => videoParserEventController.stream;
 
   /// Webview load URL method
-  Future<void> loadUrl(String url, bool useNativePlayer, bool useLegacyParser,
+  Future<void> loadUrl(String url, bool useLegacyParser,
       {int offset = 0});
 
   /// Webview unload page method

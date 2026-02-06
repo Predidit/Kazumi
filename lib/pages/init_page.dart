@@ -14,6 +14,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -27,6 +28,7 @@ class _InitPageState extends State<InitPage> {
   final CollectController collectController = Modular.get<CollectController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
   final MyController myController = Modular.get<MyController>();
+  final DownloadController downloadController = Modular.get<DownloadController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
 
@@ -42,6 +44,11 @@ class _InitPageState extends State<InitPage> {
     _loadShaders();
     _loadDanmakuShield();
     _webDavInit();
+    try {
+      downloadController.init();
+    } catch (e) {
+      KazumiLogger().e('InitPage: downloadController.init() failed', error: e);
+    }
 
     await _checkRunningOnX11();
     await _pluginInit();

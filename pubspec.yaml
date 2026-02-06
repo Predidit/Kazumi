@@ -62,7 +62,7 @@ dependencies:
   window_manager: ^0.5.1
   xpath_selector: ^3.0.2
   xpath_selector_html_parser: ^3.0.1
-  webview_flutter: ^4.13.1
+
   canvas_danmaku: ^0.3.1
   webdav_client: ^1.2.2
   tray_manager: ^0.5.0
@@ -95,7 +95,7 @@ dependencies:
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
-      ref: 5a07358
+      ref: 297b39532c426263d2fa9fde4d70d2b5bdfc8059
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git

@@ -361,8 +361,6 @@ abstract class _DownloadController with Store {
       m3u8Url = source.url;
     } on VideoSourceTimeoutException {
       KazumiLogger().w('DownloadController: WebView resolution timed out');
-    } on VideoSourceCancelledException {
-      KazumiLogger().i('DownloadController: WebView resolution cancelled');
     } catch (e) {
       KazumiLogger()
           .e('DownloadController: WebView resolution failed', error: e);

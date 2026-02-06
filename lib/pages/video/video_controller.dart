@@ -296,9 +296,6 @@ abstract class _VideoPageController with Store {
     } on VideoSourceTimeoutException {
       loading = false;
       errorMessage = '视频解析超时，请重试';
-    } on VideoSourceCancelledException {
-      KazumiLogger().i('VideoPageController: video URL resolution cancelled');
-      // 不设置 loading = false，因为可能是切换到新的集数
     } catch (e) {
       loading = false;
       errorMessage = '视频解析失败：${e.toString()}';

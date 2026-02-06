@@ -3,6 +3,7 @@ import 'package:kazumi/pages/about/about_module.dart';
 import 'package:kazumi/pages/plugin_editor/plugin_module.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/history/history_module.dart';
+import 'package:kazumi/pages/settings/interface_settings.dart';
 import 'package:kazumi/pages/settings/theme_settings_page.dart';
 import 'package:kazumi/pages/settings/player_settings.dart';
 import 'package:kazumi/pages/settings/displaymode_settings.dart';
@@ -25,6 +26,7 @@ class SettingsModule extends Module {
     r.child("/keyboard", child: (_) => const KeyboardSettingsPage());
     r.child("/player", child: (_) => const PlayerSettingsPage());
     r.child("/player/decoder", child: (_) => const DecoderSettings());
+    r.child("/interface", child: (_) => const InterfaceSettingsPage());
     r.module("/proxy", module: ProxyModule());
     r.child("/player/super", child: (_) => const SuperResolutionSettings());
     r.module("/webdav", module: WebDavModule());

@@ -131,7 +131,8 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    KazumiLogger().i('WebDav: restoring collectibles. tempCollectiblesBox length ${tempBoxItems.length}');
+    KazumiLogger().i(
+        'WebDav: restoring collectibles. tempCollectiblesBox length ${tempBoxItems.length}');
 
     await collectibles.clear();
     for (var tempBoxItem in tempBoxItems) {
@@ -147,7 +148,8 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectiblesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    KazumiLogger().i('WebDav: get collectibles from file. tempCollectiblesBox length ${tempBoxItems.length}');
+    KazumiLogger().i(
+        'WebDav: get collectibles from file. tempCollectiblesBox length ${tempBoxItems.length}');
 
     final List<CollectedBangumi> collectibles = [];
     for (var tempBoxItem in tempBoxItems) {
@@ -164,7 +166,8 @@ class GStorage {
     final tempBox =
         await Hive.openBox('tempCollectChangesBox', bytes: backupContent);
     final tempBoxItems = tempBox.toMap().entries;
-    KazumiLogger().i('WebDav: get collectChanges from file. tempCollectChangesBox length ${tempBoxItems.length}');
+    KazumiLogger().i(
+        'WebDav: get collectChanges from file. tempCollectChangesBox length ${tempBoxItems.length}');
 
     final List<CollectedBangumiChange> collectChanges = [];
     for (var tempBoxItem in tempBoxItems) {
@@ -194,8 +197,8 @@ class GStorage {
       // We can directly remove the item from the remote list.
       if (change.action == 3) {
         // Action 3: delete
-        remoteCollectibles.removeWhere(
-            (b) => b.bangumiItem.id == change.bangumiID);
+        remoteCollectibles
+            .removeWhere((b) => b.bangumiItem.id == change.bangumiID);
       } else {
         // For add/update, we still need to look up the local collectible.
         final changedBangumiID = change.bangumiID.toString();
@@ -299,6 +302,7 @@ class SettingBoxKey {
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
       enableSystemProxy = 'enableSystemProxy',
+      defaultStartupPage = 'defaultStartupPage',
       /// Deprecated
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',

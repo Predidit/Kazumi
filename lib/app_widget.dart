@@ -28,6 +28,7 @@ class _AppWidgetState extends State<AppWidget>
 
   final TrayManager trayManager = TrayManager.instance;
   bool showingExitDialog = false;
+  late final String defaultStartupPage;
 
   @override
   void initState() {
@@ -36,6 +37,9 @@ class _AppWidgetState extends State<AppWidget>
     setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+
+    defaultStartupPage = setting.get(SettingBoxKey.defaultStartupPage,
+        defaultValue: '/tab/popular/');
   }
 
   void setPreventClose() async {
@@ -154,9 +158,11 @@ class _AppWidgetState extends State<AppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      KazumiLogger().i("AppLifecycleState.paused: Application moved to background");
+      KazumiLogger()
+          .i("AppLifecycleState.paused: Application moved to background");
     } else if (state == AppLifecycleState.resumed) {
-      KazumiLogger().i("AppLifecycleState.resumed: Application moved to foreground");
+      KazumiLogger()
+          .i("AppLifecycleState.resumed: Application moved to foreground");
     } else if (state == AppLifecycleState.inactive) {
       KazumiLogger().i("AppLifecycleState.inactive: Application is inactive");
     }
@@ -303,6 +309,8 @@ class _AppWidgetState extends State<AppWidget>
         KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
       }
     }
+    // 设置启动页，这种方法只适配于 /tab 路由下的页面（即首页的四个选项）
+    Modular.setInitialRoute(defaultStartupPage);
 
     return app;
   }

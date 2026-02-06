@@ -8,6 +8,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/background_download_service.dart';
 import 'package:kazumi/utils/download_manager.dart';
+import 'package:kazumi/utils/format_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/providers/providers.dart';
@@ -177,14 +178,7 @@ abstract class _DownloadController with Store {
     return _speeds[key] ?? 0.0;
   }
 
-  /// Format speed to human-readable string
-  String formatSpeed(double bytesPerSec) {
-    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)} B/s';
-    if (bytesPerSec < 1024 * 1024) {
-      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
-    }
-    return '${(bytesPerSec / 1024 / 1024).toStringAsFixed(1)} MB/s';
-  }
+
 
   @action
   void refreshRecords() {
@@ -737,14 +731,6 @@ abstract class _DownloadController with Store {
         .length;
   }
 
-  String formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(1)} GB';
-  }
 }
 
 class _ResolveRequest {

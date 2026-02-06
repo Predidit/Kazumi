@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
+import 'package:kazumi/utils/format_utils.dart' as fmt;
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -142,7 +143,7 @@ class DownloadManager implements IDownloadManager {
   /// Returns available bytes, or -1 if unable to determine
   Future<int> _getAvailableStorage(String path) async {
     try {
-      if (Platform.isAndroid) {
+      if (Platform.isAndroid || Platform.isIOS) {
         final result = await _storageChannel.invokeMethod<int>(
           'getAvailableStorage',
           {'path': path},
@@ -194,16 +195,6 @@ class DownloadManager implements IDownloadManager {
     if (available < required) {
       throw _InsufficientStorageException(available, required);
     }
-  }
-
-  /// Format bytes to human-readable string
-  String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(1)} GB';
   }
 
   /// Extract user-friendly error message from FileSystemException
@@ -615,7 +606,7 @@ class DownloadManager implements IDownloadManager {
       );
     } on _InsufficientStorageException catch (e) {
       episode.status = DownloadStatus.failed;
-      episode.errorMessage = '存储空间不足 (可用: ${_formatBytes(e.availableBytes)})';
+      episode.errorMessage = '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {
@@ -780,7 +771,7 @@ class DownloadManager implements IDownloadManager {
       );
     } on _InsufficientStorageException catch (e) {
       episode.status = DownloadStatus.failed;
-      episode.errorMessage = '存储空间不足 (可用: ${_formatBytes(e.availableBytes)})';
+      episode.errorMessage = '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {

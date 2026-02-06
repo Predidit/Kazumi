@@ -31,6 +31,9 @@ class FlutterWindow : public Win32Window {
 
   // Register Intent MethodChannel
   void RegisterIntentChannel();
+
+  // Register Storage MethodChannel
+  void RegisterStorageChannel();
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

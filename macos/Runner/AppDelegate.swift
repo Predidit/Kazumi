@@ -39,6 +39,27 @@ class AppDelegate: FlutterAppDelegate {
                 result(FlutterMethodNotImplemented)
             }
         });
+
+        let storageChannel = FlutterMethodChannel.init(name: "com.predidit.kazumi/storage", binaryMessenger: controller.engine.binaryMessenger)
+        storageChannel.setMethodCallHandler({
+            (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
+            if call.method == "getAvailableStorage" {
+                do {
+                    let attrs = try FileManager.default.attributesOfFileSystem(
+                        forPath: NSHomeDirectory()
+                    )
+                    if let freeSize = attrs[.systemFreeSize] as? Int64 {
+                        result(freeSize)
+                    } else {
+                        result(-1)
+                    }
+                } catch {
+                    result(-1)
+                }
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        });
         self.menuChannel?.setMethodCallHandler({call,result in
             switch call.method {
             case "setMenuEnabled":

@@ -187,6 +187,22 @@ abstract class _VideoPageController with Store {
     String chapterName = roadList[currentRoad].identifier[episode - 1];
     KazumiLogger().i('VideoPageController: changed to $chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
+
+    // Cache-first: 检查该集是否已下载到本地
+    // urlItem 正规化前即为 episodePageUrl，与下载时存储的值一致
+    final cachedEpisode = downloadRepository.getEpisodeByUrl(
+      bangumiItem.id,
+      currentPlugin.name,
+      urlItem,
+    );
+    if (cachedEpisode != null) {
+      final localPath = downloadManager.getLocalVideoPath(cachedEpisode);
+      if (localPath != null) {
+        await _playFromCache(localPath, episode, offset);
+        return;
+      }
+    }
+
     if (urlItem.contains(currentPlugin.baseUrl) ||
         urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
       urlItem = urlItem;
@@ -244,6 +260,30 @@ abstract class _VideoPageController with Store {
   String? _getLocalVideoPath(int bangumiId, String pluginName, int episodeNumber) {
     final episode = downloadRepository.getEpisode(bangumiId, pluginName, episodeNumber);
     return downloadManager.getLocalVideoPath(episode);
+  }
+
+  /// 在线模式下从本地缓存播放（cache-first）
+  Future<void> _playFromCache(String localPath, int episode, int offset) async {
+    loading = false;
+    KazumiLogger().i('VideoPageController: cache hit, playing from local: $localPath');
+    KazumiDialog.showToast(message: '已使用本地缓存播放');
+
+    final params = PlaybackInitParams(
+      videoUrl: localPath,
+      offset: offset,
+      isLocalPlayback: false,
+      bangumiId: bangumiItem.id,
+      pluginName: currentPlugin.name,
+      episode: currentEpisode,
+      httpHeaders: {},
+      adBlockerEnabled: false,
+      episodeTitle: roadList[currentRoad].identifier[episode - 1],
+      referer: '',
+      currentRoad: currentRoad,
+    );
+
+    final playerController = Modular.get<PlayerController>();
+    await playerController.init(params);
   }
 
   /// 使用 VideoSourceProvider 解析视频源

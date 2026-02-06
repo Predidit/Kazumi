@@ -141,22 +141,47 @@ class DownloadManager implements IDownloadManager {
   /// Check available storage space on the device
   /// Returns available bytes, or -1 if unable to determine
   Future<int> _getAvailableStorage(String path) async {
-    if (Platform.isAndroid) {
-      try {
+    try {
+      if (Platform.isAndroid) {
         final result = await _storageChannel.invokeMethod<int>(
           'getAvailableStorage',
           {'path': path},
         );
         return result ?? -1;
-      } on MissingPluginException {
-        return -1;
-      } catch (e) {
-        KazumiLogger().w('DownloadManager: failed to get storage info', error: e);
-        return -1;
+      } else if (Platform.isMacOS || Platform.isLinux) {
+        return _getAvailableStorageUnix(path);
+      } else if (Platform.isWindows) {
+        return _getAvailableStorageWindows(path);
       }
+    } on MissingPluginException {
+      return -1;
+    } catch (e) {
+      KazumiLogger().w('DownloadManager: failed to get storage info', error: e);
     }
-    // For other platforms, return -1 to skip the check
     return -1;
+  }
+
+  Future<int> _getAvailableStorageUnix(String path) async {
+    final result = await Process.run('df', ['-k', path]);
+    if (result.exitCode != 0) return -1;
+    final lines = (result.stdout as String).split('\n');
+    if (lines.length < 2) return -1;
+    final parts = lines[1].split(RegExp(r'\s+'));
+    // df -k output: Filesystem 1K-blocks Used Available ...
+    if (parts.length < 4) return -1;
+    final availableKB = int.tryParse(parts[3]);
+    return availableKB != null ? availableKB * 1024 : -1;
+  }
+
+  Future<int> _getAvailableStorageWindows(String path) async {
+    final driveLetter = path.substring(0, 1).toUpperCase();
+    final result = await Process.run('wmic', [
+      'logicaldisk', 'where', "DeviceID='$driveLetter:'",
+      'get', 'FreeSpace', '/value',
+    ]);
+    if (result.exitCode != 0) return -1;
+    final match = RegExp(r'FreeSpace=(\d+)').firstMatch(result.stdout as String);
+    return match != null ? (int.tryParse(match.group(1)!) ?? -1) : -1;
   }
 
   /// Check if there's enough storage space before downloading

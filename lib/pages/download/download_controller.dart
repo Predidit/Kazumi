@@ -152,15 +152,6 @@ abstract class _DownloadController with Store {
             episode.status == DownloadStatus.pending) {
           pendingCount++;
           totalCount++;
-          // pending/resolving treated as 0% progress
-        } else if (episode.status == DownloadStatus.paused ||
-            episode.status == DownloadStatus.failed) {
-          totalCount++;
-          totalProgress += episode.progressPercent;
-        } else if (episode.status == DownloadStatus.completed) {
-          // Completed tasks count as 100% progress
-          totalCount++;
-          totalProgress += 1.0;
         }
       }
     }
@@ -506,6 +497,7 @@ abstract class _DownloadController with Store {
         episode.status = DownloadStatus.paused;
         await _repository.updateEpisode(recordKey, episodeNumber, episode);
         refreshRecords();
+        _updateBackgroundNotification();
       }
     }
   }
@@ -605,6 +597,7 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
   Future<void> deleteRecord(int bangumiId, String pluginName) async {
@@ -620,6 +613,7 @@ abstract class _DownloadController with Store {
     await _downloadManager.deleteRecordFiles(bangumiId, pluginName);
     await _repository.deleteRecord(recordKey);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
   Future<void> deleteEpisode(
@@ -633,6 +627,7 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
   Future<void> priorityDownload({

@@ -243,8 +243,8 @@ class _DownloadTaskHandler extends TaskHandler {
   }
 
   @override
-  Future<void> onDestroy(DateTime timestamp) async {
-    debugPrint('BackgroundDownloadService: task handler destroyed');
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    debugPrint('BackgroundDownloadService: task handler destroyed (isTimeout: $isTimeout)');
   }
 
   @override

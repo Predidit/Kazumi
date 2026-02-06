@@ -78,6 +78,7 @@ dependencies:
   flutter_svg: ^2.2.3
   antlr4: ^4.13.2
   fl_chart: ^1.1.1
+  flutter_foreground_task: ^9.0.0
   skeletonizer: ^2.1.2
   flutter_inappwebview_platform_interface: ^1.3.0+1
   flutter_inappwebview_ios: ^1.1.2

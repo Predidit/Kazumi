@@ -6,7 +6,9 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
+import 'package:kazumi/utils/background_download_service.dart';
 import 'package:kazumi/utils/download_manager.dart';
+import 'package:kazumi/utils/format_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/providers/providers.dart';
@@ -20,13 +22,14 @@ class DownloadController = _DownloadController with _$DownloadController;
 abstract class _DownloadController with Store {
   final _repository = Modular.get<IDownloadRepository>();
   final _downloadManager = Modular.get<IDownloadManager>();
+  final _backgroundService = BackgroundDownloadService();
 
   @observable
   ObservableList<DownloadRecord> records = ObservableList<DownloadRecord>();
 
-  /// Queue for episodes waiting to be resolved via WebView (one at a time)
   final List<_ResolveRequest> _resolveQueue = [];
   bool _isResolving = false;
+  bool _isBackgroundServiceInitialized = false;
 
   void init() {
     final temp = _repository.getAllRecords();
@@ -51,10 +54,33 @@ abstract class _DownloadController with Store {
     }
 
     _downloadManager.onProgress = _onDownloadProgress;
+    _initBackgroundService();
   }
 
-  /// Speed data (in-memory, not persisted)
+  Future<void> _initBackgroundService() async {
+    if (!_backgroundService.isSupported) return;
+    if (_isBackgroundServiceInitialized) return;
+
+    await _backgroundService.init();
+    _backgroundService.onPauseAll = pauseAllDownloads;
+    _backgroundService.addTaskDataCallback(_onTaskData);
+    _isBackgroundServiceInitialized = true;
+  }
+
+  void _onTaskData(Object data) {
+    if (data is Map) {
+      final action = data['action'];
+      if (action == 'button_pressed') {
+        _backgroundService.handleNotificationAction(data['id'] as String);
+      } else if (action == 'navigate_to_download') {
+        _backgroundService.handleNavigateToDownload();
+      }
+    }
+  }
+
   final Map<String, double> _speeds = {};
+  DateTime _lastUiUpdateTime = DateTime.now();
+  static const _uiUpdateInterval = Duration(milliseconds: 500);
 
   void _onDownloadProgress(String recordKey, int episodeNumber,
       DownloadEpisode episode, double speed) {
@@ -63,26 +89,88 @@ abstract class _DownloadController with Store {
       return;
     }
     _repository.updateEpisode(recordKey, episodeNumber, episode);
-    // Store speed in memory
+
     final key = '${recordKey}_$episodeNumber';
     _speeds[key] = speed;
-    refreshRecords();
+
+    final isFinalState = episode.status == DownloadStatus.completed ||
+        episode.status == DownloadStatus.failed ||
+        episode.status == DownloadStatus.paused;
+
+    final now = DateTime.now();
+    if (isFinalState || now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
+      _lastUiUpdateTime = now;
+      refreshRecords();
+      _updateBackgroundNotification();
+    }
   }
 
-  /// Get current download speed for an episode (bytes/sec)
+  Future<void> _updateBackgroundNotification() async {
+    if (!_backgroundService.isRunning) return;
+
+    final stats = _getDownloadStats();
+    if (stats.activeCount == 0 && stats.pendingCount == 0) {
+      await _backgroundService.stopService();
+      return;
+    }
+
+    double totalSpeed = 0;
+    for (final entry in _speeds.entries) {
+      totalSpeed += entry.value;
+    }
+
+    await _backgroundService.updateProgress(
+      activeCount: stats.activeCount,
+      totalCount: stats.totalCount,
+      overallProgress: stats.overallProgress,
+      speedText: formatSpeed(totalSpeed),
+    );
+  }
+
+  Future<void> _startBackgroundServiceIfNeeded() async {
+    if (!_backgroundService.isSupported || _backgroundService.isRunning) return;
+
+    final started = await _backgroundService.startService();
+    if (started) {
+      KazumiLogger().i('DownloadController: background service started');
+    }
+  }
+
+  ({int activeCount, int pendingCount, int totalCount, double overallProgress}) _getDownloadStats() {
+    int activeCount = 0;
+    int pendingCount = 0;
+    int totalCount = 0;
+    double totalProgress = 0;
+
+    for (final record in records) {
+      for (final episode in record.episodes.values) {
+        if (episode.status == DownloadStatus.downloading) {
+          activeCount++;
+          totalCount++;
+          totalProgress += episode.progressPercent;
+        } else if (episode.status == DownloadStatus.resolving ||
+            episode.status == DownloadStatus.pending) {
+          pendingCount++;
+          totalCount++;
+        }
+      }
+    }
+
+    final overallProgress = totalCount > 0 ? totalProgress / totalCount : 0.0;
+    return (
+      activeCount: activeCount,
+      pendingCount: pendingCount,
+      totalCount: totalCount,
+      overallProgress: overallProgress,
+    );
+  }
+
   double getSpeed(int bangumiId, String pluginName, int episodeNumber) {
     final key = '${pluginName}_${bangumiId}_$episodeNumber';
     return _speeds[key] ?? 0.0;
   }
 
-  /// Format speed to human-readable string
-  String formatSpeed(double bytesPerSec) {
-    if (bytesPerSec < 1024) return '${bytesPerSec.toStringAsFixed(0)} B/s';
-    if (bytesPerSec < 1024 * 1024) {
-      return '${(bytesPerSec / 1024).toStringAsFixed(1)} KB/s';
-    }
-    return '${(bytesPerSec / 1024 / 1024).toStringAsFixed(1)} MB/s';
-  }
+
 
   @action
   void refreshRecords() {
@@ -124,8 +212,6 @@ abstract class _DownloadController with Store {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
-  /// 获取缓存的弹幕数据
-  /// 返回 null 表示没有缓存
   List<Danmaku>? getCachedDanmakus(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode =
@@ -143,7 +229,6 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// 更新缓存的弹幕数据（用于离线播放时在线获取后保存）
   Future<void> updateCachedDanmakus(
     int bangumiId,
     String pluginName,
@@ -192,7 +277,6 @@ abstract class _DownloadController with Store {
           DateTime.now(),
         );
 
-    // 检查是否已有相同 URL 的下载（防止列表重排序后重复下载）
     if (episodePageUrl.isNotEmpty) {
       for (final entry in record.episodes.entries) {
         if (entry.value.episodePageUrl == episodePageUrl) {
@@ -213,7 +297,7 @@ abstract class _DownloadController with Store {
       0,
       '',
       '',
-      '', // networkM3u8Url - will be filled after WebView resolves
+      '',
       null,
       '',
       0,
@@ -224,7 +308,6 @@ abstract class _DownloadController with Store {
     await _repository.putRecord(record);
     refreshRecords();
 
-    // Queue for WebView resolution
     _resolveQueue.add(_ResolveRequest(
       recordKey: recordKey,
       bangumiId: bangumiId,
@@ -235,7 +318,6 @@ abstract class _DownloadController with Store {
     _processResolveQueue();
   }
 
-  /// Process the resolve queue one at a time (sequential WebView resolution)
   Future<void> _processResolveQueue() async {
     if (_isResolving || _resolveQueue.isEmpty) return;
     _isResolving = true;
@@ -248,7 +330,6 @@ abstract class _DownloadController with Store {
     _isResolving = false;
   }
 
-  /// Resolve a single episode's M3U8 URL via headless WebView, then enqueue download
   Future<void> _resolveAndEnqueue(_ResolveRequest request) async {
     final plugin = _findPlugin(request.pluginName);
     if (plugin == null) {
@@ -262,7 +343,6 @@ abstract class _DownloadController with Store {
     final episode = record.episodes[request.episodeNumber];
     if (episode == null) return;
 
-    // Skip if already cancelled/deleted
     if (episode.status != DownloadStatus.resolving) return;
 
     final fullUrl = plugin.buildFullUrl(request.episodePageUrl);
@@ -304,7 +384,6 @@ abstract class _DownloadController with Store {
     final freshEpisode = freshRecord.episodes[request.episodeNumber];
     if (freshEpisode == null) return;
 
-    // Check if user cancelled during resolution
     if (freshEpisode.status != DownloadStatus.resolving) return;
 
     freshEpisode.networkM3u8Url = m3u8Url;
@@ -313,7 +392,8 @@ abstract class _DownloadController with Store {
         request.recordKey, request.episodeNumber, freshEpisode);
     refreshRecords();
 
-    // Now enqueue the actual download
+    await _startBackgroundServiceIfNeeded();
+
     final httpHeaders = plugin.buildHttpHeaders();
     bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
 
@@ -328,12 +408,10 @@ abstract class _DownloadController with Store {
       episode: freshEpisode,
     ));
 
-    // 检查是否启用弹幕缓存（并行获取，不阻塞视频下载）
     final Box setting = GStorage.setting;
     final bool downloadDanmaku =
         setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
     if (downloadDanmaku) {
-      // 异步获取弹幕，不等待完成
       _fetchAndCacheDanmakuAsync(
         request.recordKey,
         request.bangumiId,
@@ -342,10 +420,8 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// 异步获取并缓存弹幕数据（不阻塞视频下载）
   void _fetchAndCacheDanmakuAsync(
       String recordKey, int bangumiId, int episodeNumber) {
-    // 使用 Future 在后台执行，不阻塞调用者
     Future(() async {
       try {
         KazumiLogger().i(
@@ -411,7 +487,6 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     _downloadManager.pause(recordKey, episodeNumber);
 
-    // Also remove from resolve queue if still pending
     _resolveQueue.removeWhere(
         (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
@@ -422,8 +497,33 @@ abstract class _DownloadController with Store {
         episode.status = DownloadStatus.paused;
         await _repository.updateEpisode(recordKey, episodeNumber, episode);
         refreshRecords();
+        _updateBackgroundNotification();
       }
     }
+  }
+
+  Future<void> pauseAllDownloads() async {
+    KazumiLogger().i('DownloadController: pausing all downloads');
+
+    _resolveQueue.clear();
+
+    for (final record in records) {
+      for (final entry in record.episodes.entries) {
+        final episode = entry.value;
+        if (episode.status == DownloadStatus.downloading ||
+            episode.status == DownloadStatus.resolving ||
+            episode.status == DownloadStatus.pending) {
+          final recordKey = '${record.pluginName}_${record.bangumiId}';
+          _downloadManager.pause(recordKey, entry.key);
+          episode.status = DownloadStatus.paused;
+          await _repository.updateEpisode(recordKey, entry.key, episode);
+        }
+      }
+    }
+
+    refreshRecords();
+
+    await _backgroundService.stopService();
   }
 
   Future<void> retryDownload({
@@ -452,6 +552,8 @@ abstract class _DownloadController with Store {
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
 
+      await _startBackgroundServiceIfNeeded();
+
       final httpHeaders = plugin.buildHttpHeaders();
       bool adBlockerEnabled =
           _repository.getForceAdBlocker() || plugin.adBlocker;
@@ -467,7 +569,6 @@ abstract class _DownloadController with Store {
         episode: episode,
       ));
     } else {
-      // Need to re-resolve via WebView
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
       episode.progressPercent = 0.0;
@@ -496,6 +597,7 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
   Future<void> deleteRecord(int bangumiId, String pluginName) async {
@@ -511,6 +613,7 @@ abstract class _DownloadController with Store {
     await _downloadManager.deleteRecordFiles(bangumiId, pluginName);
     await _repository.deleteRecord(recordKey);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
   Future<void> deleteEpisode(
@@ -524,9 +627,9 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     refreshRecords();
+    _updateBackgroundNotification();
   }
 
-  /// Priority download - skip the queue and start immediately
   Future<void> priorityDownload({
     required int bangumiId,
     required String pluginName,
@@ -544,7 +647,6 @@ abstract class _DownloadController with Store {
       return;
     }
 
-    // Remove from resolve queue if waiting
     _resolveQueue.removeWhere(
         (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
@@ -553,6 +655,8 @@ abstract class _DownloadController with Store {
       episode.errorMessage = '';
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
+
+      await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
       bool adBlockerEnabled =
@@ -569,7 +673,6 @@ abstract class _DownloadController with Store {
         episode: episode,
       ));
     } else {
-      // Need to resolve first - add to front of resolve queue
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
@@ -588,7 +691,6 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Resume all incomplete downloads for a record
   Future<void> resumeAllDownloads(int bangumiId, String pluginName) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
@@ -623,14 +725,6 @@ abstract class _DownloadController with Store {
         .length;
   }
 
-  String formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(1)} GB';
-  }
 }
 
 class _ResolveRequest {

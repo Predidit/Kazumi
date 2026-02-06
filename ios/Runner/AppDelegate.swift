@@ -32,6 +32,29 @@ import AVKit
                 result(FlutterMethodNotImplemented)
             }
         }
+
+        let storageChannel = FlutterMethodChannel(
+            name: "com.predidit.kazumi/storage",
+            binaryMessenger: engineBridge.applicationRegistrar.messenger()
+        )
+        storageChannel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+            if call.method == "getAvailableStorage" {
+                do {
+                    let attrs = try FileManager.default.attributesOfFileSystem(
+                        forPath: NSHomeDirectory()
+                    )
+                    if let freeSize = attrs[.systemFreeSize] as? Int64 {
+                        result(freeSize)
+                    } else {
+                        result(-1)
+                    }
+                } catch {
+                    result(-1)
+                }
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
     }
     
     // TODO: ADD VLC SUPPORT

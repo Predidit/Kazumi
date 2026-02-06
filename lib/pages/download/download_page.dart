@@ -7,6 +7,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/utils/format_utils.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -206,14 +207,14 @@ class _DownloadPageState extends State<DownloadPage> {
   String _getStatusText(DownloadRecord record, DownloadEpisode episode) {
     switch (episode.status) {
       case DownloadStatus.completed:
-        return '已完成  ${downloadController.formatBytes(episode.totalBytes)}';
+        return '已完成  ${formatBytes(episode.totalBytes)}';
       case DownloadStatus.downloading:
         final speed = downloadController.getSpeed(
           record.bangumiId,
           record.pluginName,
           episode.episodeNumber,
         );
-        final speedText = speed > 0 ? ' · ${downloadController.formatSpeed(speed)}' : '';
+        final speedText = speed > 0 ? ' · ${formatSpeed(speed)}' : '';
         return '${(episode.progressPercent * 100).toStringAsFixed(0)}%  '
             '${episode.downloadedSegments}/${episode.totalSegments}$speedText';
       case DownloadStatus.failed:

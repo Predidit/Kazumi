@@ -407,6 +407,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  flutter_foreground_task:
+    dependency: "direct main"
+    description:
+      name: flutter_foreground_task
+      sha256: "48ea45056155a99fb30b15f14f4039a044d925bc85f381ed0b2d3b00a60b99de"
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.2.0"
   flutter_inappwebview_android:
     dependency: "direct main"
     description:

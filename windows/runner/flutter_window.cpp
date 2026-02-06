@@ -47,6 +47,9 @@ bool FlutterWindow::OnCreate() {
   // Register Intent MethodChannel
   RegisterIntentChannel();
 
+  // Register Storage MethodChannel
+  RegisterStorageChannel();
+
   return true;
 }
 
@@ -108,6 +111,40 @@ void FlutterWindow::RegisterIntentChannel() {
         }
       } else {
         result->Error("InvalidArguments", "Arguments are not a map");
+      }
+    } else {
+      result->NotImplemented();
+    }
+  });
+}
+
+// Storage MethodChannel setup
+void FlutterWindow::RegisterStorageChannel() {
+  auto storage_channel =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "com.predidit.kazumi/storage",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  storage_channel->SetMethodCallHandler([](const auto& call, auto result) {
+    if (call.method_name().compare("getAvailableStorage") == 0) {
+      std::wstring path = L"C:\\";
+      const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
+      if (arguments) {
+        auto path_it = arguments->find(flutter::EncodableValue("path"));
+        if (path_it != arguments->end()) {
+          const std::string& path_str = std::get<std::string>(path_it->second);
+          // Extract drive root from path (e.g. "C:\Users\..." -> "C:\")
+          if (path_str.length() >= 2 && path_str[1] == ':') {
+            path = std::wstring(1, static_cast<wchar_t>(path_str[0])) + L":\\";
+          }
+        }
+      }
+
+      ULARGE_INTEGER free_bytes_available;
+      if (GetDiskFreeSpaceExW(path.c_str(), &free_bytes_available, nullptr, nullptr)) {
+        result->Success(flutter::EncodableValue(static_cast<int64_t>(free_bytes_available.QuadPart)));
+      } else {
+        result->Success(flutter::EncodableValue(static_cast<int64_t>(-1)));
       }
     } else {
       result->NotImplemented();

@@ -1,6 +1,7 @@
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
+#include <sys/statvfs.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -11,6 +12,7 @@ struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
   FlMethodChannel* intent_method_channel;
+  FlMethodChannel* storage_method_channel;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -20,6 +22,39 @@ static FlMethodResponse* is_running_on_x11() {
   gboolean is_x11 = GDK_IS_X11_DISPLAY(display);
   g_autoptr(FlValue) result = fl_value_new_bool(is_x11);
   return FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+}
+
+static void storage_method_call_handler(FlMethodChannel* channel,
+                                         FlMethodCall* method_call,
+                                         gpointer user_data) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (strcmp(fl_method_call_get_name(method_call), "getAvailableStorage") == 0) {
+    const gchar* path = "/";
+    FlValue* args = fl_method_call_get_args(method_call);
+    if (fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+      FlValue* path_value = fl_value_lookup_string(args, "path");
+      if (path_value != nullptr && fl_value_get_type(path_value) == FL_VALUE_TYPE_STRING) {
+        path = fl_value_get_string(path_value);
+      }
+    }
+
+    struct statvfs stat;
+    if (statvfs(path, &stat) == 0) {
+      gint64 available = (gint64)stat.f_bavail * (gint64)stat.f_frsize;
+      g_autoptr(FlValue) result = fl_value_new_int(available);
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    } else {
+      g_autoptr(FlValue) result = fl_value_new_int(-1);
+      response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    }
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("Failed to send response: %s", error->message);
+  }
 }
 
 static void intent_method_call_handler(FlMethodChannel* channel,
@@ -89,6 +124,11 @@ static void my_application_activate(GApplication* application) {
   fl_method_channel_set_method_call_handler(
       self->intent_method_channel, intent_method_call_handler, self, nullptr);
 
+  self->storage_method_channel = fl_method_channel_new(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)), "com.predidit.kazumi/storage", FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->storage_method_channel, storage_method_call_handler, self, nullptr);
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -134,6 +174,7 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->intent_method_channel);
+  g_clear_object(&self->storage_method_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

@@ -1,7 +1,8 @@
 package com.example.kazumi
 
 import android.content.Intent
-import android.os.Build;
+import android.os.Build
+import android.os.StatFs
 import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.NonNull
@@ -11,6 +12,7 @@ import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
+    private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -34,6 +36,16 @@ class MainActivity: FlutterActivity() {
                 result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "getAvailableStorage") {
+                val path = call.argument<String>("path") ?: filesDir.absolutePath
+                val availableBytes = getAvailableStorage(path)
+                result.success(availableBytes)
+            } else {
+                result.notImplemented()
+            }
+        }
     }
 
     private fun openWithMime(url: String, mimeType: String) {
@@ -53,5 +65,14 @@ class MainActivity: FlutterActivity() {
 
     private fun getAndroidSdkVersion(): Int {
         return Build.VERSION.SDK_INT
+    }
+
+    private fun getAvailableStorage(path: String): Long {
+        return try {
+            val stat = StatFs(path)
+            stat.availableBlocksLong * stat.blockSizeLong
+        } catch (e: Exception) {
+            -1L
+        }
     }
 }

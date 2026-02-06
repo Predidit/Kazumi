@@ -13,7 +13,11 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   StreamSubscription? _subscription;
   StreamSubscription? _logSubscription;
   Completer<VideoSource>? _completer;
-  bool _isCancelled = false;
+  
+  /// 单个 Provider 实例不能实现并发解析，单个 Provider 实例只能持有一个 Webview
+  /// 但是 Provider 可以在正在进行的解析未完成时，取消该解析并开始新的解析
+  /// 通过递增 ID 标识最新请求，取消旧请求
+  int resolveId = 0;
 
   final StreamController<String> _logController = 
       StreamController<String>.broadcast();
@@ -26,9 +30,13 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
     int offset = 0,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    // 取消之前的解析（如果正在进行）
-    _cancelCurrentResolve();
-    _isCancelled = false;
+    resolveId++;
+    final currentResolveId = resolveId;
+    if (_completer != null && !_completer!.isCompleted) {
+      _completer!.completeError(const VideoSourceCancelledException());
+    }
+    await _subscription?.cancel();
+    _subscription = null;
 
     // 复用或初始化 WebView
     if (_webview == null) {
@@ -42,16 +50,12 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       });
     }
 
-    if (_isCancelled) {
-      throw const VideoSourceCancelledException();
-    }
-
     _completer = Completer<VideoSource>();
 
     try {
       // 订阅视频源解析结果
       _subscription = _webview!.onVideoURLParser.listen((event) {
-        if (_completer != null && !_completer!.isCompleted) {
+        if (currentResolveId == resolveId && _completer != null && !_completer!.isCompleted) {
           _completer!.complete(VideoSource(
             url: event.$1,
             offset: event.$2,
@@ -61,7 +65,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       });
 
       // 加载 URL 并等待解析结果
-      // Provider 层始终以原生播放器模式解析（WebView 仅用于 URL 提取）
       await _webview!.loadUrl(
         episodeUrl,
         useLegacyParser,
@@ -78,38 +81,33 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
 
       return result;
     } catch (e) {
-      if (_isCancelled) {
+      if (currentResolveId != resolveId) {
         throw const VideoSourceCancelledException();
       }
       rethrow;
     } finally {
-      // 解析完成：取消订阅并卸载页面，但保留 WebView 实例
-      await _subscription?.cancel();
-      _subscription = null;
-      _completer = null;
-      await _webview?.unloadPage();
+      if (currentResolveId == resolveId) {
+        await _subscription?.cancel();
+        _subscription = null;
+        _completer = null;
+        await _webview?.unloadPage();
+      }
     }
   }
 
-  /// 取消当前正在进行的解析，但不销毁 WebView
-  void _cancelCurrentResolve() {
-    _isCancelled = true;
+  @override
+  void cancel() {
     if (_completer != null && !_completer!.isCompleted) {
       _completer!.completeError(const VideoSourceCancelledException());
     }
     _subscription?.cancel();
     _subscription = null;
-    _completer = null;
-  }
-
-  @override
-  void cancel() {
-    _cancelCurrentResolve();
   }
 
   @override
   void dispose() {
-    _cancelCurrentResolve();
+    cancel();
+    _completer = null;
     _logSubscription?.cancel();
     _logSubscription = null;
     _logController.close();

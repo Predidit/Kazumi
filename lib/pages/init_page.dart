@@ -59,14 +59,12 @@ class _InitPageState extends State<InitPage> {
     _update();
   }
 
-  /// Setup callbacks for background download service
   void _setupBackgroundDownloadNavigation() {
     final backgroundService = BackgroundDownloadService();
 
     backgroundService.onNavigateToDownloadRequested = () {
       Future.delayed(const Duration(milliseconds: 300), () {
         try {
-          // 检查当前是否已在下载页面，避免重复导航
           if (Modular.to.path.contains('/download')) return;
           Modular.to.pushNamed('/settings/download/');
         } catch (e) {
@@ -75,7 +73,6 @@ class _InitPageState extends State<InitPage> {
       });
     };
 
-    // 设置通知权限请求回调
     backgroundService.onNotificationPermissionRequired = () async {
       final result = await KazumiDialog.show<bool>(
         clickMaskDismiss: false,

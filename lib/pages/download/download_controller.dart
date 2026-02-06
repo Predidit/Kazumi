@@ -123,7 +123,6 @@ abstract class _DownloadController with Store {
     );
   }
 
-  /// Start background service if not already running and there are active downloads
   Future<void> _startBackgroundServiceIfNeeded() async {
     if (!_backgroundService.isSupported || _backgroundService.isRunning) return;
 
@@ -133,7 +132,6 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Get current download statistics across all records
   ({int activeCount, int pendingCount, int totalCount, double overallProgress}) _getDownloadStats() {
     int activeCount = 0;
     int pendingCount = 0;
@@ -172,7 +170,6 @@ abstract class _DownloadController with Store {
     );
   }
 
-  /// Get current download speed for an episode (bytes/sec)
   double getSpeed(int bangumiId, String pluginName, int episodeNumber) {
     final key = '${pluginName}_${bangumiId}_$episodeNumber';
     return _speeds[key] ?? 0.0;
@@ -219,8 +216,6 @@ abstract class _DownloadController with Store {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
-  /// 获取缓存的弹幕数据
-  /// 返回 null 表示没有缓存
   List<Danmaku>? getCachedDanmakus(int bangumiId, String pluginName, int episodeNumber) {
     final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     if (episode == null || episode.danmakuData.isEmpty) {
@@ -235,7 +230,6 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// 更新缓存的弹幕数据（用于离线播放时在线获取后保存）
   Future<void> updateCachedDanmakus(
     int bangumiId,
     String pluginName,
@@ -282,7 +276,6 @@ abstract class _DownloadController with Store {
           DateTime.now(),
         );
 
-    // 检查是否已有相同 URL 的下载（防止列表重排序后重复下载）
     if (episodePageUrl.isNotEmpty) {
       for (final entry in record.episodes.entries) {
         if (entry.value.episodePageUrl == episodePageUrl) {
@@ -303,7 +296,7 @@ abstract class _DownloadController with Store {
       0,
       '',
       '',
-      '', // networkM3u8Url - will be filled after WebView resolves
+      '',
       null,
       '',
       0,
@@ -314,7 +307,6 @@ abstract class _DownloadController with Store {
     await _repository.putRecord(record);
     refreshRecords();
 
-    // Queue for WebView resolution
     _resolveQueue.add(_ResolveRequest(
       recordKey: recordKey,
       bangumiId: bangumiId,
@@ -325,7 +317,6 @@ abstract class _DownloadController with Store {
     _processResolveQueue();
   }
 
-  /// Process the resolve queue one at a time (sequential WebView resolution)
   Future<void> _processResolveQueue() async {
     if (_isResolving || _resolveQueue.isEmpty) return;
     _isResolving = true;
@@ -338,7 +329,6 @@ abstract class _DownloadController with Store {
     _isResolving = false;
   }
 
-  /// Resolve a single episode's M3U8 URL via headless WebView, then enqueue download
   Future<void> _resolveAndEnqueue(_ResolveRequest request) async {
     final plugin = _findPlugin(request.pluginName);
     if (plugin == null) {
@@ -351,7 +341,6 @@ abstract class _DownloadController with Store {
     final episode = record.episodes[request.episodeNumber];
     if (episode == null) return;
 
-    // Skip if already cancelled/deleted
     if (episode.status != DownloadStatus.resolving) return;
 
     final fullUrl = plugin.buildFullUrl(request.episodePageUrl);
@@ -392,7 +381,6 @@ abstract class _DownloadController with Store {
     final freshEpisode = freshRecord.episodes[request.episodeNumber];
     if (freshEpisode == null) return;
 
-    // Check if user cancelled during resolution
     if (freshEpisode.status != DownloadStatus.resolving) return;
 
     freshEpisode.networkM3u8Url = m3u8Url;
@@ -401,10 +389,8 @@ abstract class _DownloadController with Store {
         request.recordKey, request.episodeNumber, freshEpisode);
     refreshRecords();
 
-    // Start background service if not already running (Android only)
     await _startBackgroundServiceIfNeeded();
 
-    // Now enqueue the actual download
     final httpHeaders = plugin.buildHttpHeaders();
     bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
 
@@ -419,11 +405,9 @@ abstract class _DownloadController with Store {
       episode: freshEpisode,
     ));
 
-    // 检查是否启用弹幕缓存（并行获取，不阻塞视频下载）
     final Box setting = GStorage.setting;
     final bool downloadDanmaku = setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
     if (downloadDanmaku) {
-      // 异步获取弹幕，不等待完成
       _fetchAndCacheDanmakuAsync(
         request.recordKey,
         request.bangumiId,
@@ -432,9 +416,7 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// 异步获取并缓存弹幕数据（不阻塞视频下载）
   void _fetchAndCacheDanmakuAsync(String recordKey, int bangumiId, int episodeNumber) {
-    // 使用 Future 在后台执行，不阻塞调用者
     Future(() async {
       try {
         KazumiLogger().i('DownloadController: fetching danmaku for episode $episodeNumber (async)');
@@ -491,7 +473,6 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     _downloadManager.pause(recordKey, episodeNumber);
 
-    // Also remove from resolve queue if still pending
     _resolveQueue.removeWhere((r) =>
         r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
@@ -506,14 +487,11 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Pause all active downloads (called from notification button)
   Future<void> pauseAllDownloads() async {
     KazumiLogger().i('DownloadController: pausing all downloads');
 
-    // Clear resolve queue
     _resolveQueue.clear();
 
-    // Pause all downloading/resolving episodes
     for (final record in records) {
       for (final entry in record.episodes.entries) {
         final episode = entry.value;
@@ -530,7 +508,6 @@ abstract class _DownloadController with Store {
 
     refreshRecords();
 
-    // Stop background service
     await _backgroundService.stopService();
   }
 
@@ -560,7 +537,6 @@ abstract class _DownloadController with Store {
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
 
-      // Start background service if not already running
       await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
@@ -577,7 +553,6 @@ abstract class _DownloadController with Store {
         episode: episode,
       ));
     } else {
-      // Need to re-resolve via WebView
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
       episode.progressPercent = 0.0;
@@ -634,7 +609,6 @@ abstract class _DownloadController with Store {
     refreshRecords();
   }
 
-  /// Priority download - skip the queue and start immediately
   Future<void> priorityDownload({
     required int bangumiId,
     required String pluginName,
@@ -652,7 +626,6 @@ abstract class _DownloadController with Store {
       return;
     }
 
-    // Remove from resolve queue if waiting
     _resolveQueue.removeWhere((r) =>
         r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
@@ -662,7 +635,6 @@ abstract class _DownloadController with Store {
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
 
-      // Start background service if not already running
       await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
@@ -679,7 +651,6 @@ abstract class _DownloadController with Store {
         episode: episode,
       ));
     } else {
-      // Need to resolve first - add to front of resolve queue
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
@@ -696,7 +667,6 @@ abstract class _DownloadController with Store {
     }
   }
 
-  /// Resume all incomplete downloads for a record
   Future<void> resumeAllDownloads(int bangumiId, String pluginName) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);

@@ -79,7 +79,6 @@ abstract class IDownloadManager {
   double getSpeed(String recordKey, int episodeNumber);
 }
 
-/// Tracks download speed for a single episode
 class _SpeedTracker {
   int _lastBytes = 0;
   DateTime _lastTime = DateTime.now();
@@ -89,7 +88,6 @@ class _SpeedTracker {
     final now = DateTime.now();
     final elapsed = now.difference(_lastTime).inMilliseconds;
     if (elapsed > 500) {
-      // Update speed every 500ms
       final bytesDownloaded = totalBytes - _lastBytes;
       currentSpeed = bytesDownloaded / (elapsed / 1000);
       _lastBytes = totalBytes;
@@ -139,7 +137,6 @@ class DownloadManager implements IDownloadManager {
     );
   }
 
-  /// Check available storage space on the device via platform MethodChannel
   /// Returns available bytes, or -1 if unable to determine
   Future<int> _getAvailableStorage(String path) async {
     try {
@@ -156,8 +153,6 @@ class DownloadManager implements IDownloadManager {
     }
   }
 
-  /// Check if there's enough storage space before downloading
-  /// Throws _InsufficientStorageException if space is insufficient
   Future<void> _checkStorageSpace(String downloadDir, {int requiredBytes = 0}) async {
     final available = await _getAvailableStorage(downloadDir);
     if (available == -1) return; // Skip check if unable to determine
@@ -168,7 +163,6 @@ class DownloadManager implements IDownloadManager {
     }
   }
 
-  /// Extract user-friendly error message from FileSystemException
   String _getStorageErrorMessage(FileSystemException e) {
     // POSIX error code 28 = ENOSPC (No space left on device)
     if (e.osError?.errorCode == 28) {
@@ -240,7 +234,6 @@ class DownloadManager implements IDownloadManager {
   Future<void> enqueuePriority(DownloadRequest request) async {
     final key = _taskKey(request.recordKey, request.episodeNumber);
 
-    // Remove from queue if already waiting
     _queue.removeWhere(
       (r) => r.recordKey == request.recordKey && r.episodeNumber == request.episodeNumber,
     );
@@ -349,7 +342,6 @@ class DownloadManager implements IDownloadManager {
   }) async {
     final key = _taskKey(task.recordKey, task.episodeNumber);
     try {
-      // Step 1: Fetch M3U8 content
       episode.status = DownloadStatus.downloading;
       episode.networkM3u8Url = m3u8Url;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
@@ -358,7 +350,6 @@ class DownloadManager implements IDownloadManager {
       try {
         m3u8Content = await _fetchM3u8(m3u8Url, httpHeaders, task.cancelToken);
       } on _NotM3u8Exception {
-        // URL is not an M3U8 playlist, fall back to direct file download
         KazumiLogger().i(
           'DownloadManager: URL is not M3U8, falling back to direct file download '
           'for episode ${task.episodeNumber}',
@@ -374,7 +365,6 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      // Step 2: Parse M3U8
       final type = M3u8Parser.detectType(m3u8Content);
       String mediaM3u8Content = m3u8Content;
       String mediaM3u8Url = m3u8Url;
@@ -415,22 +405,16 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      // Step 3: Ad filtering
       List<M3u8Segment> segments = resolvedPlaylist.segments;
       if (adBlockerEnabled) {
         segments = M3u8AdFilter.filterAds(segments);
       }
 
-      // Step 4: Create download directory and check storage space
       final base = await _downloadBaseDir;
       final episodeDir = getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
       await Directory(episodeDir).create(recursive: true);
       episode.downloadDirectory = episodeDir;
-
-      // Check storage space before downloading segments
       await _checkStorageSpace(base);
-
-      // Step 5: Download encryption keys
       final keys = M3u8Parser.extractUniqueKeys(
         M3u8MediaPlaylist(
           segments: segments,
@@ -446,12 +430,9 @@ class DownloadManager implements IDownloadManager {
         keyUriToLocal[keys[i].uri] = keyFile;
       }
 
-      // Step 6: Download TS segments
       episode.totalSegments = segments.length;
       episode.downloadedSegments = 0;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
-
-      // Clean up .tmp files from previous incomplete downloads
       final episodeDirObj = Directory(episodeDir);
       if (await episodeDirObj.exists()) {
         await for (final entity in episodeDirObj.list()) {
@@ -463,7 +444,6 @@ class DownloadManager implements IDownloadManager {
         }
       }
 
-      // Check which segments already exist (for resume)
       final existingSegments = <int>{};
       for (int i = 0; i < segments.length; i++) {
         final segFile = File('$episodeDir/seg_${i.toString().padLeft(5, '0')}.ts');
@@ -473,7 +453,6 @@ class DownloadManager implements IDownloadManager {
         }
       }
 
-      // Download remaining segments with concurrency control
       final pendingIndices = <int>[];
       for (int i = 0; i < segments.length; i++) {
         if (!existingSegments.contains(i)) {
@@ -487,11 +466,9 @@ class DownloadManager implements IDownloadManager {
       int failedCount = 0;
       final semaphore = _Semaphore(maxParallelSegments);
 
-      // Initialize speed tracker for this episode
       _speedTrackers[key] = _SpeedTracker();
 
       if (pendingIndices.isEmpty) {
-        // All segments already downloaded
       } else {
         for (final idx in pendingIndices) {
           if (task.isPaused || task.cancelToken.isCancelled) break;
@@ -513,7 +490,6 @@ class DownloadManager implements IDownloadManager {
             episode.totalBytes = totalBytes;
             episode.progressPercent =
                 episode.downloadedSegments / episode.totalSegments;
-            // Update speed tracker
             _speedTrackers[key]?.update(totalBytes);
             _notifyProgress(task.recordKey, task.episodeNumber, episode);
             completedCount++;
@@ -552,7 +528,6 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      // Step 7: Write local M3U8
       final targetDuration = adBlockerEnabled
           ? M3u8AdFilter.calculateTargetDuration(segments)
           : resolvedPlaylist.targetDuration;
@@ -564,7 +539,6 @@ class DownloadManager implements IDownloadManager {
       final m3u8Path = '$episodeDir/playlist.m3u8';
       await File(m3u8Path).writeAsString(localM3u8);
 
-      // Step 8: Mark completed
       episode.status = DownloadStatus.completed;
       episode.localM3u8Path = m3u8Path;
       episode.progressPercent = 1.0;
@@ -605,7 +579,6 @@ class DownloadManager implements IDownloadManager {
     }
   }
 
-  /// Download a direct video file (non-M3U8) with resume support
   Future<void> _runDirectFileDownload({
     required DownloadTask task,
     required int bangumiId,
@@ -620,15 +593,11 @@ class DownloadManager implements IDownloadManager {
       final episodeDir = getEpisodeDir(base, bangumiId, pluginName, task.episodeNumber);
       await Directory(episodeDir).create(recursive: true);
       episode.downloadDirectory = episodeDir;
-
-      // Check storage space before downloading
       await _checkStorageSpace(base);
 
       final filePath = '$episodeDir/video.mp4';
       final tmpPath = '$filePath.tmp';
 
-      // Check for existing partial download (for resume)
-      // For direct downloads, .tmp files contain valid partial data and can be resumed
       int existingBytes = 0;
       final tmpFile = File(tmpPath);
       if (await tmpFile.exists()) {
@@ -639,7 +608,6 @@ class DownloadManager implements IDownloadManager {
       episode.downloadedSegments = 0;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
 
-      // Use stream response for resume support
       final requestHeaders = Map<String, String>.from(httpHeaders);
       bool useRange = existingBytes > 0;
       if (useRange) {
@@ -658,7 +626,6 @@ class DownloadManager implements IDownloadManager {
           cancelToken: task.cancelToken,
         );
       } on DioException catch (e) {
-        // Handle 416 Range Not Satisfiable - delete local file and retry without Range
         if (e.response?.statusCode == 416 && useRange) {
           KazumiLogger().w(
             'DownloadManager: 416 Range Not Satisfiable, deleting tmp file and retrying',
@@ -680,13 +647,11 @@ class DownloadManager implements IDownloadManager {
         }
       }
 
-      // Parse total size from Content-Range or Content-Length
       final contentRange = response.headers.value('content-range');
       final contentLength = int.tryParse(
           response.headers.value(Headers.contentLengthHeader) ?? '') ?? 0;
       int totalSize;
       if (contentRange != null) {
-        // Format: "bytes start-end/total"
         final totalMatch = RegExp(r'/(\d+)').firstMatch(contentRange);
         totalSize = totalMatch != null ? int.parse(totalMatch.group(1)!) : 0;
       } else {
@@ -697,7 +662,6 @@ class DownloadManager implements IDownloadManager {
           mode: existingBytes > 0 ? FileMode.append : FileMode.write);
       int received = existingBytes;
 
-      // Initialize speed tracker for direct file download
       _speedTrackers[key] = _SpeedTracker();
 
       try {
@@ -724,10 +688,8 @@ class DownloadManager implements IDownloadManager {
         return;
       }
 
-      // Rename .tmp to final path
       await File(tmpPath).rename(filePath);
 
-      // Mark completed
       episode.status = DownloadStatus.completed;
       episode.localM3u8Path = filePath;
       episode.downloadedSegments = 1;
@@ -786,11 +748,8 @@ class DownloadManager implements IDownloadManager {
 
   Future<String> _fetchM3u8(
       String url, Map<String, String> headers, CancelToken cancelToken) async {
-    // Use a separate CancelToken to abort large non-M3U8 responses
-    // without cancelling the entire download task
     final fetchToken = CancelToken();
 
-    // Forward cancellation from the task's main token
     if (cancelToken.isCancelled) {
       throw DioException(
         type: DioExceptionType.cancel,
@@ -808,12 +767,10 @@ class DownloadManager implements IDownloadManager {
         ),
         cancelToken: fetchToken,
         onReceiveProgress: (received, total) {
-          // Check if parent task was cancelled
           if (cancelToken.isCancelled) {
             fetchToken.cancel('task cancelled');
             return;
           }
-          // Abort if response is too large (> 2MB, definitely not M3U8)
           if (received > 2 * 1024 * 1024) {
             fetchToken.cancel('too large');
           }
@@ -822,7 +779,6 @@ class DownloadManager implements IDownloadManager {
 
       final content = response.data!;
 
-      // Validate M3U8 content
       final trimmed = content.trimLeft();
       if (!trimmed.startsWith('#EXTM3U')) {
         throw _NotM3u8Exception('URL 不是 M3U8 播放列表');
@@ -830,9 +786,7 @@ class DownloadManager implements IDownloadManager {
 
       return content;
     } on DioException catch (e) {
-      // Re-throw if the main task was cancelled/paused
       if (cancelToken.isCancelled) rethrow;
-      // fetchToken cancelled due to too-large response
       if (e.type == DioExceptionType.cancel) {
         throw _NotM3u8Exception('响应过大，非 M3U8 播放列表');
       }
@@ -870,7 +824,6 @@ class DownloadManager implements IDownloadManager {
         await File(tmpPath).rename(savePath);
         return await File(savePath).length();
       } catch (e) {
-        // Clean up incomplete .tmp file on failure
         try {
           final tmpFile = File(tmpPath);
           if (await tmpFile.exists()) await tmpFile.delete();

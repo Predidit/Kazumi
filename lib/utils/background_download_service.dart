@@ -18,24 +18,15 @@ class BackgroundDownloadService {
   bool _isInitialized = false;
   bool _isRunning = false;
 
-  /// 通知栏按钮回调
   void Function()? onPauseAll;
   void Function()? onCancelAll;
-
-  /// 点击通知栏时的导航回调（由 UI 层设置）
   void Function()? onNavigateToDownloadRequested;
 
-  /// 需要通知权限时的回调（由 UI 层设置，用于显示解释对话框）
   /// 返回 true 表示用户同意请求权限，false 表示用户拒绝
   Future<bool> Function()? onNotificationPermissionRequired;
 
-  /// 是否支持后台下载（仅 Android）
   bool get isSupported => Platform.isAndroid;
-
-  /// 服务是否正在运行
   bool get isRunning => _isRunning;
-
-  /// 初始化服务配置
   Future<void> init() async {
     if (!isSupported || _isInitialized) return;
 
@@ -60,28 +51,24 @@ class BackgroundDownloadService {
       ),
     );
 
-    // Initialize communication port for receiving data from task handler
     FlutterForegroundTask.initCommunicationPort();
 
     _isInitialized = true;
     KazumiLogger().i('BackgroundDownloadService: initialized');
   }
 
-  /// 检查是否需要请求通知权限
   Future<bool> needsNotificationPermission() async {
     if (!isSupported) return false;
     final permission = await FlutterForegroundTask.checkNotificationPermission();
     return permission != NotificationPermission.granted;
   }
 
-  /// 请求通知权限（由 UI 层在用户确认后调用）
   Future<bool> requestNotificationPermission() async {
     if (!isSupported) return true;
     final result = await FlutterForegroundTask.requestNotificationPermission();
     return result == NotificationPermission.granted;
   }
 
-  /// 启动后台下载服务
   Future<bool> startService() async {
     if (!isSupported) return false;
     if (_isRunning) return true;
@@ -135,7 +122,6 @@ class BackgroundDownloadService {
     }
   }
 
-  /// 停止后台下载服务
   Future<void> stopService() async {
     if (!isSupported || !_isRunning) return;
 
@@ -148,7 +134,6 @@ class BackgroundDownloadService {
     }
   }
 
-  /// 更新通知栏内容
   Future<void> updateNotification({
     required String title,
     required String text,
@@ -165,7 +150,6 @@ class BackgroundDownloadService {
     }
   }
 
-  /// 更新下载进度通知
   Future<void> updateProgress({
     required int activeCount,
     required int totalCount,
@@ -189,7 +173,6 @@ class BackgroundDownloadService {
     await updateNotification(title: title, text: text);
   }
 
-  /// 显示下载完成通知
   Future<void> showCompletedNotification({
     required int completedCount,
   }) async {
@@ -198,7 +181,6 @@ class BackgroundDownloadService {
     // TODO: 显示普通通知告知用户下载完成（需要额外的通知插件）
   }
 
-  /// 处理通知栏按钮点击
   void handleNotificationAction(String buttonId) {
     switch (buttonId) {
       case 'pause_all':
@@ -210,17 +192,14 @@ class BackgroundDownloadService {
     }
   }
 
-  /// 处理点击通知栏请求导航到下载页
   void handleNavigateToDownload() {
     onNavigateToDownloadRequested?.call();
   }
 
-  /// 添加任务数据回调（用于接收来自 TaskHandler 的消息）
   void addTaskDataCallback(void Function(Object) callback) {
     FlutterForegroundTask.addTaskDataCallback(callback);
   }
 
-  /// 移除任务数据回调
   void removeTaskDataCallback(void Function(Object) callback) {
     FlutterForegroundTask.removeTaskDataCallback(callback);
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -34,6 +35,9 @@ abstract class _VideoPageController with Store {
 
   @observable
   bool loading = true;
+
+  @observable
+  String? errorMessage;
 
   @observable
   int currentEpisode = 1;
@@ -92,6 +96,14 @@ abstract class _VideoPageController with Store {
 
   /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
   WebViewVideoSourceProvider? _videoSourceProvider;
+
+  /// 视频提供者日志流控制器
+  final StreamController<String> _logStreamController = 
+      StreamController<String>.broadcast();
+  
+  Stream<String> get logStream => _logStreamController.stream;
+
+  StreamSubscription<String>? _logSubscription;
 
   /// 初始化离线播放模式
   void initForOfflinePlayback({
@@ -165,6 +177,7 @@ abstract class _VideoPageController with Store {
       {int currentRoad = 0, int offset = 0}) async {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
+    errorMessage = null;
 
     if (isOfflineMode) {
       await _changeOfflineEpisode(episode, offset);
@@ -240,6 +253,13 @@ abstract class _VideoPageController with Store {
     loading = true;
     _videoSourceProvider ??= WebViewVideoSourceProvider();
 
+    await _logSubscription?.cancel();
+    _logSubscription = _videoSourceProvider!.onLog.listen((log) {
+      if (!_logStreamController.isClosed) {
+        _logStreamController.add(log);
+      }
+    });
+
     try {
       final source = await _videoSourceProvider!.resolve(
         url,
@@ -274,19 +294,24 @@ abstract class _VideoPageController with Store {
       final playerController = Modular.get<PlayerController>();
       await playerController.init(params);
     } on VideoSourceTimeoutException {
-      KazumiLogger().w('VideoPageController: video URL resolution timed out');
       loading = false;
+      errorMessage = '视频解析超时，请重试';
     } on VideoSourceCancelledException {
       KazumiLogger().i('VideoPageController: video URL resolution cancelled');
       // 不设置 loading = false，因为可能是切换到新的集数
     } catch (e) {
-      KazumiLogger().e('VideoPageController: video URL resolution failed', error: e);
       loading = false;
+      errorMessage = '视频解析失败：${e.toString()}';
     }
   }
 
   /// 取消当前视频源解析并销毁 Provider（页面退出时调用）
   void cancelVideoSourceResolution() {
+    _logSubscription?.cancel();
+    _logSubscription = null;
+    if (!_logStreamController.isClosed) {
+      _logStreamController.close();
+    }
     _videoSourceProvider?.dispose();
     _videoSourceProvider = null;
   }

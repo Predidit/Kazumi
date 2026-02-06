@@ -82,8 +82,12 @@ abstract class _DownloadController with Store {
   DateTime _lastUiUpdateTime = DateTime.now();
   static const _uiUpdateInterval = Duration(milliseconds: 500);
 
-  void _onDownloadProgress(
-      String recordKey, int episodeNumber, DownloadEpisode episode, double speed) {
+  void _onDownloadProgress(String recordKey, int episodeNumber,
+      DownloadEpisode episode, double speed) {
+    final record = _repository.getRecord(recordKey);
+    if (record == null || !record.episodes.containsKey(episodeNumber)) {
+      return;
+    }
     _repository.updateEpisode(recordKey, episodeNumber, episode);
 
     final key = '${recordKey}_$episodeNumber';
@@ -208,7 +212,8 @@ abstract class _DownloadController with Store {
 
   String? getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
-    final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+    final episode =
+        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     return _downloadManager.getLocalVideoPath(episode);
   }
 
@@ -216,8 +221,10 @@ abstract class _DownloadController with Store {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
-  List<Danmaku>? getCachedDanmakus(int bangumiId, String pluginName, int episodeNumber) {
-    final episode = _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+  List<Danmaku>? getCachedDanmakus(
+      int bangumiId, String pluginName, int episodeNumber) {
+    final episode =
+        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     if (episode == null || episode.danmakuData.isEmpty) {
       return null;
     }
@@ -225,7 +232,8 @@ abstract class _DownloadController with Store {
       final List<dynamic> jsonList = jsonDecode(episode.danmakuData);
       return jsonList.map((json) => Danmaku.fromJson(json)).toList();
     } catch (e) {
-      KazumiLogger().w('DownloadController: failed to parse cached danmaku', error: e);
+      KazumiLogger()
+          .w('DownloadController: failed to parse cached danmaku', error: e);
       return null;
     }
   }
@@ -248,9 +256,11 @@ abstract class _DownloadController with Store {
       episode.danmakuData = danmakuJson;
       episode.danDanBangumiID = danDanBangumiID;
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
-      KazumiLogger().i('DownloadController: updated cached danmakus for episode $episodeNumber');
+      KazumiLogger().i(
+          'DownloadController: updated cached danmakus for episode $episodeNumber');
     } catch (e) {
-      KazumiLogger().w('DownloadController: failed to update cached danmaku', error: e);
+      KazumiLogger()
+          .w('DownloadController: failed to update cached danmaku', error: e);
     }
   }
 
@@ -332,7 +342,8 @@ abstract class _DownloadController with Store {
   Future<void> _resolveAndEnqueue(_ResolveRequest request) async {
     final plugin = _findPlugin(request.pluginName);
     if (plugin == null) {
-      _failEpisode(request.recordKey, request.episodeNumber, '找不到插件 ${request.pluginName}');
+      _failEpisode(request.recordKey, request.episodeNumber,
+          '找不到插件 ${request.pluginName}');
       return;
     }
 
@@ -362,7 +373,8 @@ abstract class _DownloadController with Store {
     } on VideoSourceCancelledException {
       KazumiLogger().i('DownloadController: WebView resolution cancelled');
     } catch (e) {
-      KazumiLogger().e('DownloadController: WebView resolution failed', error: e);
+      KazumiLogger()
+          .e('DownloadController: WebView resolution failed', error: e);
     } finally {
       provider.dispose();
     }
@@ -406,7 +418,8 @@ abstract class _DownloadController with Store {
     ));
 
     final Box setting = GStorage.setting;
-    final bool downloadDanmaku = setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
+    final bool downloadDanmaku =
+        setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
     if (downloadDanmaku) {
       _fetchAndCacheDanmakuAsync(
         request.recordKey,
@@ -416,27 +429,34 @@ abstract class _DownloadController with Store {
     }
   }
 
-  void _fetchAndCacheDanmakuAsync(String recordKey, int bangumiId, int episodeNumber) {
+  void _fetchAndCacheDanmakuAsync(
+      String recordKey, int bangumiId, int episodeNumber) {
     Future(() async {
       try {
-        KazumiLogger().i('DownloadController: fetching danmaku for episode $episodeNumber (async)');
+        KazumiLogger().i(
+            'DownloadController: fetching danmaku for episode $episodeNumber (async)');
 
         // 获取 DanDan 番剧 ID
-        final danDanBangumiID = await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+        final danDanBangumiID =
+            await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bangumiId);
         if (danDanBangumiID == 0) {
-          KazumiLogger().w('DownloadController: failed to get DanDan bangumiID for $bangumiId');
+          KazumiLogger().w(
+              'DownloadController: failed to get DanDan bangumiID for $bangumiId');
           return;
         }
 
         // 获取弹幕列表
-        final danmakus = await DanmakuRequest.getDanDanmaku(danDanBangumiID, episodeNumber);
+        final danmakus =
+            await DanmakuRequest.getDanDanmaku(danDanBangumiID, episodeNumber);
         if (danmakus.isEmpty) {
-          KazumiLogger().i('DownloadController: no danmaku found for episode $episodeNumber');
+          KazumiLogger().i(
+              'DownloadController: no danmaku found for episode $episodeNumber');
           return;
         }
 
         // 序列化弹幕数据
-        final danmakuJson = jsonEncode(danmakus.map((d) => d.toJson()).toList());
+        final danmakuJson =
+            jsonEncode(danmakus.map((d) => d.toJson()).toList());
 
         // 更新存储（重新获取最新的 episode 数据）
         final record = _repository.getRecord(recordKey);
@@ -448,10 +468,12 @@ abstract class _DownloadController with Store {
         episode.danDanBangumiID = danDanBangumiID;
         await _repository.updateEpisode(recordKey, episodeNumber, episode);
 
-        KazumiLogger().i('DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
+        KazumiLogger().i(
+            'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
       } catch (e) {
         // 弹幕获取失败不影响下载
-        KazumiLogger().w('DownloadController: failed to fetch danmaku', error: e);
+        KazumiLogger()
+            .w('DownloadController: failed to fetch danmaku', error: e);
       }
     });
   }
@@ -465,7 +487,8 @@ abstract class _DownloadController with Store {
     episode.errorMessage = message;
     _repository.updateEpisode(recordKey, episodeNumber, episode);
     refreshRecords();
-    KazumiLogger().w('DownloadController: episode $episodeNumber failed: $message');
+    KazumiLogger()
+        .w('DownloadController: episode $episodeNumber failed: $message');
   }
 
   Future<void> pauseDownload(
@@ -473,8 +496,8 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     _downloadManager.pause(recordKey, episodeNumber);
 
-    _resolveQueue.removeWhere((r) =>
-        r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+    _resolveQueue.removeWhere(
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
     final record = _repository.getRecord(recordKey);
     if (record != null) {
@@ -540,7 +563,8 @@ abstract class _DownloadController with Store {
       await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
-      bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
+      bool adBlockerEnabled =
+          _repository.getForceAdBlocker() || plugin.adBlocker;
 
       await _downloadManager.enqueue(DownloadRequest(
         recordKey: recordKey,
@@ -575,8 +599,8 @@ abstract class _DownloadController with Store {
       int bangumiId, String pluginName, int episodeNumber) async {
     final recordKey = '${pluginName}_$bangumiId';
     _downloadManager.cancel(recordKey, episodeNumber);
-    _resolveQueue.removeWhere((r) =>
-        r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+    _resolveQueue.removeWhere(
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
     await _downloadManager.deleteEpisodeFiles(
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
@@ -589,6 +613,7 @@ abstract class _DownloadController with Store {
     if (record != null) {
       for (final ep in record.episodes.keys) {
         _downloadManager.cancel(recordKey, ep);
+        _speeds.remove('${recordKey}_$ep');
       }
     }
     _resolveQueue.removeWhere((r) => r.recordKey == recordKey);
@@ -601,8 +626,9 @@ abstract class _DownloadController with Store {
       int bangumiId, String pluginName, int episodeNumber) async {
     final recordKey = '${pluginName}_$bangumiId';
     _downloadManager.cancel(recordKey, episodeNumber);
-    _resolveQueue.removeWhere((r) =>
-        r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+    _speeds.remove('${recordKey}_$episodeNumber');
+    _resolveQueue.removeWhere(
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
     await _downloadManager.deleteEpisodeFiles(
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
@@ -626,8 +652,8 @@ abstract class _DownloadController with Store {
       return;
     }
 
-    _resolveQueue.removeWhere((r) =>
-        r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+    _resolveQueue.removeWhere(
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
 
     if (episode.networkM3u8Url.isNotEmpty) {
       episode.status = DownloadStatus.downloading;
@@ -638,7 +664,8 @@ abstract class _DownloadController with Store {
       await _startBackgroundServiceIfNeeded();
 
       final httpHeaders = plugin.buildHttpHeaders();
-      bool adBlockerEnabled = _repository.getForceAdBlocker() || plugin.adBlocker;
+      bool adBlockerEnabled =
+          _repository.getForceAdBlocker() || plugin.adBlocker;
 
       await _downloadManager.enqueuePriority(DownloadRequest(
         recordKey: recordKey,
@@ -656,13 +683,15 @@ abstract class _DownloadController with Store {
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       refreshRecords();
 
-      _resolveQueue.insert(0, _ResolveRequest(
-        recordKey: recordKey,
-        bangumiId: bangumiId,
-        pluginName: pluginName,
-        episodeNumber: episodeNumber,
-        episodePageUrl: episode.episodePageUrl,
-      ));
+      _resolveQueue.insert(
+          0,
+          _ResolveRequest(
+            recordKey: recordKey,
+            bangumiId: bangumiId,
+            pluginName: pluginName,
+            episodeNumber: episodeNumber,
+            episodePageUrl: episode.episodePageUrl,
+          ));
       _processResolveQueue();
     }
   }

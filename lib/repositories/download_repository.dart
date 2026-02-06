@@ -111,6 +111,8 @@ class DownloadRepository implements IDownloadRepository {
     try {
       await _downloadsBox.delete(key);
       await _downloadsBox.flush();
+      _progressCache.remove(key);
+      _lastPersistedStatus.removeWhere((k, v) => k.startsWith('${key}_'));
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'DownloadRepository: delete record failed. key=$key',
@@ -182,8 +184,12 @@ class DownloadRepository implements IDownloadRepository {
       record.episodes.remove(episodeNumber);
       if (record.episodes.isEmpty) {
         await _downloadsBox.delete(recordKey);
+        _progressCache.remove(recordKey);
+        _lastPersistedStatus.removeWhere((k, v) => k.startsWith('${recordKey}_'));
       } else {
         await _downloadsBox.put(recordKey, record);
+        _progressCache[recordKey]?.remove(episodeNumber);
+        _lastPersistedStatus.remove('${recordKey}_$episodeNumber');
       }
       await _downloadsBox.flush();
     } catch (e, stackTrace) {

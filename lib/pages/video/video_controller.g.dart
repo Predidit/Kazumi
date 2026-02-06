@@ -41,6 +41,22 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
+  late final _$errorMessageAtom =
+      Atom(name: '_VideoPageController.errorMessage', context: context);
+
+  @override
+  String? get errorMessage {
+    _$errorMessageAtom.reportRead();
+    return super.errorMessage;
+  }
+
+  @override
+  set errorMessage(String? value) {
+    _$errorMessageAtom.reportWrite(value, super.errorMessage, () {
+      super.errorMessage = value;
+    });
+  }
+
   late final _$currentEpisodeAtom =
       Atom(name: '_VideoPageController.currentEpisode', context: context);
 
@@ -190,6 +206,7 @@ mixin _$VideoPageController on _VideoPageController, Store {
     return '''
 episodeCommentsList: ${episodeCommentsList},
 loading: ${loading},
+errorMessage: ${errorMessage},
 currentEpisode: ${currentEpisode},
 currentRoad: ${currentRoad},
 isFullscreen: ${isFullscreen},

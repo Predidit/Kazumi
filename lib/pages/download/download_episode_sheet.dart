@@ -120,8 +120,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   final episodeNumber = index + 1;
                   final episodeUrl = currentRoadData.data[index];
                   final isDownloaded = downloadedUrls.contains(episodeUrl);
-                  final isSelected =
-                      _selectedEpisodes.contains(episodeNumber);
+                  final isSelected = _selectedEpisodes.contains(episodeNumber);
                   final identifier = currentRoadData.identifier[index];
 
                   return Material(
@@ -131,12 +130,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                             .surfaceContainerHighest
                             .withValues(alpha: 0.5)
                         : isSelected
-                            ? Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                            : Theme.of(context)
-                                .colorScheme
-                                .onInverseSurface,
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : Theme.of(context).colorScheme.onInverseSurface,
                     borderRadius: BorderRadius.circular(8),
                     clipBehavior: Clip.hardEdge,
                     child: InkWell(
@@ -155,8 +150,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                         children: [
                           Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 identifier,
                                 maxLines: 2,
@@ -165,9 +160,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isDownloaded
-                                      ? Theme.of(context)
-                                          .colorScheme
-                                          .outline
+                                      ? Theme.of(context).colorScheme.outline
                                       : null,
                                 ),
                               ),
@@ -180,8 +173,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                               child: Icon(
                                 Icons.check_circle,
                                 size: 14,
-                                color:
-                                    Theme.of(context).colorScheme.outline,
+                                color: Theme.of(context).colorScheme.outline,
                               ),
                             ),
                           if (isSelected)
@@ -191,9 +183,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                               child: Icon(
                                 Icons.check_circle,
                                 size: 14,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                         ],
@@ -215,11 +205,14 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                       child: const Text('取消'),
                     ),
                     const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: _selectedEpisodes.isEmpty
-                          ? null
-                          : () => _startBatchDownload(context),
-                      child: Text('开始下载(${_selectedEpisodes.length})'),
+                    SizedBox(
+                      width: 140,
+                      child: FilledButton(
+                        onPressed: _selectedEpisodes.isEmpty
+                            ? null
+                            : () => _startBatchDownload(context),
+                        child: Text('开始下载(${_selectedEpisodes.length})'),
+                      ),
                     ),
                   ],
                 ),

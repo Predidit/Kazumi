@@ -12,7 +12,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   WebviewItemController? _webview;
   StreamSubscription? _subscription;
   StreamSubscription? _logSubscription;
-  Completer<VideoSource>? _completer;
   
   /// 单个 Provider 实例不能实现并发解析，单个 Provider 实例只能持有一个 Webview
   /// 但是 Provider 可以在正在进行的解析未完成时，取消该解析并开始新的解析
@@ -32,9 +31,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   }) async {
     resolveId++;
     final currentResolveId = resolveId;
-    if (_completer != null && !_completer!.isCompleted) {
-      _completer!.completeError(const VideoSourceCancelledException());
-    }
     await _subscription?.cancel();
     _subscription = null;
 
@@ -50,19 +46,29 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       });
     }
 
-    _completer = Completer<VideoSource>();
+    final localCompleter = Completer<VideoSource>();
+    StreamSubscription? currentSubscription;
 
     try {
+      if (currentResolveId != resolveId) {
+        throw const VideoSourceCancelledException();
+      }
+
       // 订阅视频源解析结果
-      _subscription = _webview!.onVideoURLParser.listen((event) {
-        if (currentResolveId == resolveId && _completer != null && !_completer!.isCompleted) {
-          _completer!.complete(VideoSource(
+      currentSubscription = _webview!.onVideoURLParser.listen((event) {
+        if (currentResolveId == resolveId && !localCompleter.isCompleted) {
+          localCompleter.complete(VideoSource(
             url: event.$1,
             offset: event.$2,
             type: VideoSourceType.online,
           ));
         }
       });
+      _subscription = currentSubscription;
+
+      if (currentResolveId != resolveId) {
+        throw const VideoSourceCancelledException();
+      }
 
       // 加载 URL 并等待解析结果
       await _webview!.loadUrl(
@@ -71,25 +77,37 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
         offset: offset,
       );
 
-      // 等待结果或超时
-      final result = await _completer!.future.timeout(
+      if (currentResolveId != resolveId) {
+        throw const VideoSourceCancelledException();
+      }
+
+      final result = await localCompleter.future.timeout(
         timeout,
         onTimeout: () {
+          if (currentResolveId != resolveId) {
+            throw const VideoSourceCancelledException();
+          }
           throw VideoSourceTimeoutException(timeout);
         },
       );
 
+      if (currentResolveId != resolveId) {
+        throw const VideoSourceCancelledException();
+      }
+
       return result;
     } catch (e) {
+      if (e is VideoSourceCancelledException) {
+        rethrow;
+      }
       if (currentResolveId != resolveId) {
         throw const VideoSourceCancelledException();
       }
       rethrow;
     } finally {
+      await currentSubscription?.cancel();
       if (currentResolveId == resolveId) {
-        await _subscription?.cancel();
         _subscription = null;
-        _completer = null;
         await _webview?.unloadPage();
       }
     }
@@ -97,9 +115,7 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
 
   @override
   void cancel() {
-    if (_completer != null && !_completer!.isCompleted) {
-      _completer!.completeError(const VideoSourceCancelledException());
-    }
+    resolveId++;
     _subscription?.cancel();
     _subscription = null;
   }
@@ -107,7 +123,6 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   @override
   void dispose() {
     cancel();
-    _completer = null;
     _logSubscription?.cancel();
     _logSubscription = null;
     _logController.close();

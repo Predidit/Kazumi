@@ -25,16 +25,16 @@ class NavigationBarState extends ChangeNotifier {
 
   int getDefaultSelectedIndex() {
     final defaultPage = GStorage.setting
-        .get(SettingBoxKey.defaultStartupPage, defaultValue: "/tab/popular");
+        .get(SettingBoxKey.defaultStartupPage, defaultValue: "/tab/popular/");
 
     switch (defaultPage) {
-      case "/tab/popular":
+      case "/tab/popular/":
         return 0;
-      case "/tab/timeline":
+      case "/tab/timeline/":
         return 1;
-      case "/tab/collect":
+      case "/tab/collect/":
         return 2;
-      case "/tab/my":
+      case "/tab/my/":
         return 3;
       default:
         return 0;

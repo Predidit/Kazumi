@@ -17,7 +17,6 @@ class InterfaceSettingsPage extends StatefulWidget {
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   Box setting = GStorage.setting;
   late bool showRating;
-  // 启动应用时的默认界面
   late String defaultPage;
 
   static const List<DropdownMenuItem> defaultPageSettingList = [
@@ -45,13 +44,6 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
     defaultPage = setting.get(SettingBoxKey.defaultStartupPage,
         defaultValue: '/tab/popular/');
-  }
-
-  void onBackPressed(BuildContext context) {
-    if (KazumiDialog.observer.hasKazumiDialog) {
-      KazumiDialog.dismiss();
-      return;
-    }
   }
 
   @override

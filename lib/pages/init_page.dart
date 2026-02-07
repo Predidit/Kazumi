@@ -29,7 +29,8 @@ class _InitPageState extends State<InitPage> {
   final CollectController collectController = Modular.get<CollectController>();
   final ShadersController shadersController = Modular.get<ShadersController>();
   final MyController myController = Modular.get<MyController>();
-  final DownloadController downloadController = Modular.get<DownloadController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
 
@@ -55,7 +56,7 @@ class _InitPageState extends State<InitPage> {
     await _checkRunningOnX11();
     await _pluginInit();
 
-    _navigateToHome();
+    _startDefaultPage();
     _update();
   }
 
@@ -68,7 +69,8 @@ class _InitPageState extends State<InitPage> {
           if (Modular.to.path.contains('/download')) return;
           Modular.to.pushNamed('/settings/download/');
         } catch (e) {
-          KazumiLogger().w('InitPage: failed to navigate to download page', error: e);
+          KazumiLogger()
+              .w('InitPage: failed to navigate to download page', error: e);
         }
       });
     };
@@ -88,7 +90,8 @@ class _InitPageState extends State<InitPage> {
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
                 child: Text(
                   '稍后再说',
-                  style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.outline),
                 ),
               ),
               TextButton(
@@ -103,12 +106,16 @@ class _InitPageState extends State<InitPage> {
     };
   }
 
-  void _navigateToHome() {
+  void _startDefaultPage() {
+    final defaultStartupPage = setting.get(
+      SettingBoxKey.defaultStartupPage,
+      defaultValue: '/tab/popular/',
+    );
     // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
     // setDynamic here to avoid white screen flash when themeMode is dark.
     themeProvider.setDynamic(
         setting.get(SettingBoxKey.useDynamicColor, defaultValue: false));
-    Modular.to.navigate('/tab/popular/');
+    Modular.to.navigate(defaultStartupPage);
   }
 
   // migrate collect from old version (favorites)

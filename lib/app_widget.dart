@@ -154,9 +154,11 @@ class _AppWidgetState extends State<AppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      KazumiLogger().i("AppLifecycleState.paused: Application moved to background");
+      KazumiLogger()
+          .i("AppLifecycleState.paused: Application moved to background");
     } else if (state == AppLifecycleState.resumed) {
-      KazumiLogger().i("AppLifecycleState.resumed: Application moved to foreground");
+      KazumiLogger()
+          .i("AppLifecycleState.resumed: Application moved to foreground");
     } else if (state == AppLifecycleState.inactive) {
       KazumiLogger().i("AppLifecycleState.inactive: Application is inactive");
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {
@@ -12,7 +13,7 @@ class ScaffoldMenu extends StatefulWidget {
 }
 
 class NavigationBarState extends ChangeNotifier {
-  int _selectedIndex = 0;
+  late int _selectedIndex = getDefaultSelectedIndex();
   bool _isHide = false;
   bool _isBottom = false;
 
@@ -21,6 +22,24 @@ class NavigationBarState extends ChangeNotifier {
   bool get isHide => _isHide;
 
   bool get isBottom => _isBottom;
+
+  int getDefaultSelectedIndex() {
+    final defaultPage = GStorage.setting
+        .get(SettingBoxKey.defaultStartupPage, defaultValue: "/tab/popular/");
+
+    switch (defaultPage) {
+      case "/tab/popular/":
+        return 0;
+      case "/tab/timeline/":
+        return 1;
+      case "/tab/collect/":
+        return 2;
+      case "/tab/my/":
+        return 3;
+      default:
+        return 0;
+    }
+  }
 
   void updateSelectedIndex(int pageIndex) {
     _selectedIndex = pageIndex;

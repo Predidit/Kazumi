@@ -1,4 +1,9 @@
+import 'package:dio/dio.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/proxy_manager.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
@@ -9,13 +14,43 @@ import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
 
 class BangumiHTTP {
+  static final Box _setting = GStorage.setting;
+
+  static bool _isConnectionError(DioException e) {
+    return e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError;
+  }
+
+  static Future<Response> _requestWithProxyRetry(
+    Future<Response> Function() request,
+  ) async {
+    try {
+      return await request();
+    } on DioException catch (e) {
+      final proxyEnabled =
+          _setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+      if (proxyEnabled && _isConnectionError(e)) {
+        await _setting.put(SettingBoxKey.proxyEnable, false);
+        ProxyManager.clearProxy();
+        KazumiLogger().w('Proxy: 代理连接失败，已自动禁用');
+        KazumiDialog.showToast(message: '代理连接失败，已自动禁用');
+        return await request();
+      }
+      rethrow;
+    }
+  }
   // why the api havn't been replaced by getCalendarBySearch?
   // Because getCalendarBySearch is not stable, it will miss some bangumi items.
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
-      var res = await Request().get(
-        Api.bangumiAPINextDomain + Api.bangumiCalendar,
+      var res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.bangumiAPINextDomain + Api.bangumiCalendar,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       for (int i = 1; i <= 7; i++) {
@@ -57,9 +92,12 @@ class BangumiHTTP {
     try {
       final url = Api.formatUrl(
           Api.bangumiAPIDomain + Api.bangumiRankSearch, [limit, offset]);
-      final res = await Request().post(
-        url,
-        data: params,
+      final res = await _requestWithProxyRetry(
+        () => Request().post(
+          url,
+          data: params,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -116,9 +154,12 @@ class BangumiHTTP {
       };
     }
     try {
-      final res = await Request().post(
-        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch, [100, 0]),
-        data: params,
+      final res = await _requestWithProxyRetry(
+        () => Request().post(
+          Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch, [100, 0]),
+          data: params,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -143,9 +184,12 @@ class BangumiHTTP {
       'offset': offset,
     };
     try {
-      final res = await Request().get(
-        Api.bangumiAPINextDomain + Api.bangumiTrendsNext,
-        data: params,
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.bangumiAPINextDomain + Api.bangumiTrendsNext,
+          data: params,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -178,10 +222,13 @@ class BangumiHTTP {
     };
 
     try {
-      final res = await Request().post(
-        Api.formatUrl(
-            Api.bangumiAPIDomain + Api.bangumiRankSearch, [20, offset]),
-        data: params,
+      final res = await _requestWithProxyRetry(
+        () => Request().post(
+          Api.formatUrl(
+              Api.bangumiAPIDomain + Api.bangumiRankSearch, [20, offset]),
+          data: params,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -205,8 +252,11 @@ class BangumiHTTP {
 
   static Future<BangumiItem?> getBangumiInfoByID(int id) async {
     try {
-      final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
+          shouldRethrow: true,
+        ),
       );
       return BangumiItem.fromJson(res.data);
     } catch (e) {
@@ -223,9 +273,12 @@ class BangumiHTTP {
       'limit': 1
     };
     try {
-      final res = await Request().get(
-        Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
-        data: params,
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
+          data: params,
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
@@ -239,9 +292,12 @@ class BangumiHTTP {
       {int offset = 0}) async {
     CommentResponse commentResponse = CommentResponse.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
-            [id, 20, offset]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
+              [id, 20, offset]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
@@ -256,10 +312,13 @@ class BangumiHTTP {
     EpisodeCommentResponse commentResponse =
         EpisodeCommentResponse.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
-            [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(
+              Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
+              [id]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
@@ -274,10 +333,13 @@ class BangumiHTTP {
     CharacterCommentResponse commentResponse =
         CharacterCommentResponse.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
-            [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(
+              Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
+              [id]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       commentResponse = CharacterCommentResponse.fromJson(jsonData);
@@ -290,9 +352,12 @@ class BangumiHTTP {
   static Future<StaffResponse> getBangumiStaffByID(int id) async {
     StaffResponse staffResponse = StaffResponse.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(
+              Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       staffResponse = StaffResponse.fromJson(jsonData);
@@ -305,8 +370,11 @@ class BangumiHTTP {
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
     CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       charactersResponse = CharactersResponse.fromJson(jsonData);
@@ -319,11 +387,14 @@ class BangumiHTTP {
   static Future<CharacterFullItem> getCharacterByCharacterID(int id) async {
     CharacterFullItem characterFullItem = CharacterFullItem.fromTemplate();
     try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain +
-                Api.bangumiCharacterInfoByCharacterIDNext,
-            [id]),
+      final res = await _requestWithProxyRetry(
+        () => Request().get(
+          Api.formatUrl(
+              Api.bangumiAPINextDomain +
+                  Api.bangumiCharacterInfoByCharacterIDNext,
+              [id]),
+          shouldRethrow: true,
+        ),
       );
       final jsonData = res.data;
       characterFullItem = CharacterFullItem.fromJson(jsonData);

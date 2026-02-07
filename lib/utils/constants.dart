@@ -124,6 +124,14 @@ const Map<String, String> hardwareDecodersList = {
   'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
 };
 
+/// Android 可选视频渲染器
+const Map<String, String> androidVideoRenderersList = {
+  'auto': '自动选择',
+  'gpu': '基于 OpenGL, 通用和稳健的选项',
+  'gpu-next': '基于 Vulkan, 在新设备上表现最好',
+  'mediacodec_embed': '功耗最低，不支持超分辨率',
+};
+
 /// 超分辨率滤镜
 const List<String> mpvAnime4KShaders = [
   'Anime4K_Clamp_Highlights.glsl',

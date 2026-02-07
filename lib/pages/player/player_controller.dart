@@ -112,7 +112,8 @@ abstract class _PlayerController with Store {
 
   /// 视频超分
   /// 1. OFF
-  /// 2. Anime4K
+  /// 2. Anime4K Efficiency
+  /// 3. Anime4K Quality
   @observable
   int superResolutionType = 1;
 
@@ -406,21 +407,37 @@ abstract class _PlayerController with Store {
       AudioTrack.auto(),
     );
 
-    // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
-    // GPU-NEXT 需要 Vulkan 1.2 支持
-    // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
-    bool enableGPUNext = false;
+    String? videoRenderer;
     if (Platform.isAndroid) {
-      final int androidSdkVersion = await Utils.getAndroidSdkVersion();
-      if (androidSdkVersion >= 34) {
-        enableGPUNext = true;
+      final String androidVideoRenderer = setting.get(
+        SettingBoxKey.androidVideoRenderer, 
+        defaultValue: 'auto'
+      );
+      
+      if (androidVideoRenderer == 'auto') {
+        // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+        // GPU-NEXT 需要 Vulkan 1.2 支持
+        // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+        final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+        if (androidSdkVersion >= 34) {
+          videoRenderer = 'gpu-next';
+        } else {
+          videoRenderer = 'gpu';
+        }
+      } else {
+        videoRenderer = androidVideoRenderer;
       }
+    }
+
+    if (videoRenderer == 'mediacodec_embed') {
+      hardwareDecoder = 'mediacodec';
+      superResolutionType = 1;
     }
 
     videoController ??= VideoController(
       mediaPlayer!,
       configuration: VideoControllerConfiguration(
-        vo: enableGPUNext ? 'gpu-next' : null,
+        vo: videoRenderer,
         enableHardwareAcceleration: hAenable,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,

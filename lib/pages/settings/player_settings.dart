@@ -193,6 +193,15 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text('硬件解码器', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('仅在硬件解码启用时生效', style: TextStyle(fontFamily: fontFamily)),
                 ),
+                if (Platform.isAndroid) ...[
+                  SettingsTile.navigation(
+                    onPressed: (_) async {
+                      await Modular.to.pushNamed('/settings/player/renderer');
+                    },
+                    title: Text('视频渲染器', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('选择视频输出方式', style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                ],
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     lowMemoryMode = value ?? !lowMemoryMode;

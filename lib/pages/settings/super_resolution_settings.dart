@@ -40,7 +40,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
         sections: [
           SettingsSection(
               title: Text(
-                  '超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换硬件解码器为 auto-copy', style: TextStyle(fontFamily: fontFamily)),
+                  '超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换视频渲染器为 gpu', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile<String>.radioTile(
                   title: Text("OFF", style: TextStyle(fontFamily: fontFamily)),

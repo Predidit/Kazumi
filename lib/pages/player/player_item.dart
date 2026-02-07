@@ -31,9 +31,6 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 
-
-
-
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
     super.key,
@@ -78,7 +75,6 @@ class _PlayerItemState extends State<PlayerItem>
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
-
 
   // 1. 在看
   // 2. 想看
@@ -147,7 +143,7 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  void _initKeyboardActions(){
+  void _initKeyboardActions() {
     //需要实现长按的功能列表。
     keyboardActionsNeedLongPress = ["forward"];
     //快捷键功能对应表
@@ -173,17 +169,20 @@ class _PlayerItemState extends State<PlayerItem>
       // 开始对应长按功能
       // 如需对应长按功能，例如对功能'func'对应长按，请分别添加'funcRepeat'和'funcUp'。
       'forwardRepeat': () async => handleShortcutForwardRepeat(),
-      'forwardUp' : () async => handleShortcutForwardUp(),
+      'forwardUp': () async => handleShortcutForwardUp(),
     };
   }
+
   //初始化播放器菜单
-  void _initPlayerMenu(){
+  void _initPlayerMenu() {
     Utils.initPlayerMenu(keyboardActions);
   }
+
   //销毁播放器菜单
-  void _disposePlayerMenu(){
+  void _disposePlayerMenu() {
     Utils.disposePlayerMenu();
   }
+
   //快捷键按下
   bool handleShortcutDown(String keyLabel) {
     for (final entry in keyboardShortcuts.entries) {
@@ -199,13 +198,14 @@ class _PlayerItemState extends State<PlayerItem>
     }
     return false;
   }
+
   // 快捷键长按
   bool handleShortcutLongPress(String keyLabel, String mode) {
-    for (final func in keyboardActionsNeedLongPress){
+    for (final func in keyboardActionsNeedLongPress) {
       final keys = keyboardShortcuts[func];
       if (keys?.contains(keyLabel) == true) {
         final action = keyboardActions[func + mode];
-        if (action != null){
+        if (action != null) {
           action();
           return true;
         }
@@ -215,15 +215,19 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   //上一集下一集动作
-  Future<void> handlePreNextEpisode(String direction) async{
+  Future<void> handlePreNextEpisode(String direction) async {
     if (videoPageController.loading) return;
     final currentRoad = videoPageController.currentRoad;
     final episodes = videoPageController.roadList[currentRoad].data;
     int targetEpisode;
-    if (direction == 'next'){targetEpisode = videoPageController.currentEpisode + 1;}
-    else if (direction == 'prev') {targetEpisode = videoPageController.currentEpisode - 1;}
-    else {return;}
-    
+    if (direction == 'next') {
+      targetEpisode = videoPageController.currentEpisode + 1;
+    } else if (direction == 'prev') {
+      targetEpisode = videoPageController.currentEpisode - 1;
+    } else {
+      return;
+    }
+
     if (targetEpisode > episodes.length) {
       KazumiDialog.showToast(message: '已经是最新一集');
       return;
@@ -232,8 +236,9 @@ class _PlayerItemState extends State<PlayerItem>
       KazumiDialog.showToast(message: '已经是第一集');
       return;
     }
-    
-    final identifier = videoPageController.roadList[currentRoad].identifier[targetEpisode - 1];
+
+    final identifier =
+        videoPageController.roadList[currentRoad].identifier[targetEpisode - 1];
     KazumiDialog.showToast(message: '正在加载$identifier');
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
@@ -255,16 +260,19 @@ class _PlayerItemState extends State<PlayerItem>
       KazumiLogger().e('PlayerController: seek failed', error: e);
     }
   }
+
   // 快进快捷键动作
   Future<void> handleShortcutForwardDown() async {
     lastPlayerSpeed = playerController.playerSpeed;
   }
+
   Future<void> handleShortcutForwardRepeat() async {
     if (playerController.playerSpeed < 2.0) {
       playerController.showPlaySpeed = true;
       setPlaybackSpeed(2.0);
     }
   }
+
   Future<void> handleShortcutForwardUp() async {
     int skipTime = playerController.arrowKeySkipTime;
     int current = playerController.currentPosition.inSeconds;
@@ -288,21 +296,18 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   //全屏快捷键动作
-  void handleShortcutFullscreen(){
+  void handleShortcutFullscreen() {
     if (!videoPageController.isPip) handleFullscreen();
   }
-  
+
   //退出全屏快捷键动作
-  void handleShortcutExitFullscreen(){
-    if (videoPageController.isFullscreen &&
-        !Utils.isTablet()) {
+  void handleShortcutExitFullscreen() {
+    if (videoPageController.isFullscreen && !Utils.isTablet()) {
       try {
-        playerController.danmakuController
-            .clear();
+        playerController.danmakuController.clear();
       } catch (_) {}
       Utils.exitFullScreen();
-      videoPageController.isFullscreen =
-          !videoPageController.isFullscreen;
+      videoPageController.isFullscreen = !videoPageController.isFullscreen;
     } else if (!Platform.isMacOS) {
       playerController.pause();
       windowManager.hide();
@@ -347,10 +352,11 @@ class _PlayerItemState extends State<PlayerItem>
       mouseScrollerTimer = null;
     });
   }
-  
+
   //跳过指定秒数
   Future<void> skipOP() async {
-    await playerController.seek(playerController.currentPosition + Duration(seconds: playerController.buttonSkipTime));
+    await playerController.seek(playerController.currentPosition +
+        Duration(seconds: playerController.buttonSkipTime));
   }
 
   void handleDanmaku() {
@@ -404,7 +410,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
   }
-  
+
   //截图
   Future<void> handleScreenshot() async {
     KazumiDialog.showToast(message: '截图中...');
@@ -439,6 +445,31 @@ class _PlayerItemState extends State<PlayerItem>
   // 启用超分辨率（质量档）时弹出提示
   Future<void> handleSuperResolutionChange(int shaderIndex) async {
     if (!mounted) return;
+
+    // mediacodec_embed 不支持超分辨率
+    if (Platform.isAndroid && shaderIndex != 1) {
+      final String androidVideoRenderer =
+          setting.get(SettingBoxKey.androidVideoRenderer, defaultValue: 'auto');
+
+      if (androidVideoRenderer == 'mediacodec_embed') {
+        await KazumiDialog.show(builder: (context) {
+          return AlertDialog(
+            title: const Text('兼容性提示'),
+            content: const Text('MediaCodec 渲染器不支持超分辨率功能。\n\n'
+                '如需使用超分辨率，请在播放设置中将视频渲染器切换为 gpu 或 gpu-next。'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('确定'),
+              ),
+            ],
+          );
+        });
+        return;
+      }
+    }
 
     final bool isHighMode = shaderIndex == 3;
     final bool alreadyShown =
@@ -537,8 +568,7 @@ class _PlayerItemState extends State<PlayerItem>
     await playerController.setPlaybackSpeed(speed);
   }
 
-
-  Future<void> handleSpeedChange(String type) async{
+  Future<void> handleSpeedChange(String type) async {
     try {
       final currentSpeed = playerController.playerSpeed;
       int index = defaultPlaySpeedList.indexOf(currentSpeed);
@@ -549,8 +579,7 @@ class _PlayerItemState extends State<PlayerItem>
         } else {
           KazumiDialog.showToast(message: '已达倍速上限');
         }
-      } 
-      else if (type == "down") {
+      } else if (type == "down") {
         if (index > 0) {
           index--;
           setPlaybackSpeed(defaultPlaySpeedList[index]);
@@ -713,7 +742,8 @@ class _PlayerItemState extends State<PlayerItem>
           videoPageController.currentEpisode <
               videoPageController
                   .roadList[videoPageController.currentRoad].data.length &&
-          !videoPageController.loading && autoPlayNext) {
+          !videoPageController.loading &&
+          autoPlayNext) {
         KazumiDialog.showToast(
             message:
                 '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
@@ -1404,17 +1434,22 @@ class _PlayerItemState extends State<PlayerItem>
                             autofocus: true,
                             onKeyEvent: (focusNode, KeyEvent event) {
                               bool handled = false;
-                              final keyLabel = event.logicalKey.keyLabel.isNotEmpty
-                                ? event.logicalKey.keyLabel
-                                : event.logicalKey.debugName ?? '';
+                              final keyLabel =
+                                  event.logicalKey.keyLabel.isNotEmpty
+                                      ? event.logicalKey.keyLabel
+                                      : event.logicalKey.debugName ?? '';
                               if (event is KeyDownEvent) {
                                 handled = handleShortcutDown(keyLabel);
                               } else if (event is KeyRepeatEvent) {
-                                handled = handleShortcutLongPress(keyLabel,"Repeat");
+                                handled =
+                                    handleShortcutLongPress(keyLabel, "Repeat");
                               } else if (event is KeyUpEvent) {
-                                handled = handleShortcutLongPress(keyLabel,"Up");
+                                handled =
+                                    handleShortcutLongPress(keyLabel, "Up");
                               }
-                              return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+                              return handled
+                                  ? KeyEventResult.handled
+                                  : KeyEventResult.ignored;
                             },
                             child: const PlayerItemSurface())),
                     (playerController.isBuffering ||
@@ -1488,7 +1523,9 @@ class _PlayerItemState extends State<PlayerItem>
                           strokeWidth: _border ? 1.5 : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
-                          fontFamily: _danmakuUseSystemFont ? null : customAppFontFamily,
+                          fontFamily: _danmakuUseSystemFont
+                              ? null
+                              : customAppFontFamily,
                         ),
                       ),
                     ),
@@ -1518,7 +1555,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
-                            showDanmakuDestinationPickerAndSend: widget.showDanmakuDestinationPickerAndSend,
+                            showDanmakuDestinationPickerAndSend:
+                                widget.showDanmakuDestinationPickerAndSend,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             handleScreenShot: handleScreenshot,

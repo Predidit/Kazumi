@@ -19,17 +19,21 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
   Box setting = GStorage.setting;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController urlController = TextEditingController();
+  final TextEditingController testUrlController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     urlController.text =
         setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    testUrlController.text =
+        setting.get(SettingBoxKey.proxyTestUrl, defaultValue: 'https://www.google.com');
   }
 
   @override
   void dispose() {
     urlController.dispose();
+    testUrlController.dispose();
     super.dispose();
   }
 
@@ -44,7 +48,12 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
       return;
     }
 
+    final testUrl = testUrlController.text.trim().isEmpty
+        ? 'https://www.google.com'
+        : testUrlController.text.trim();
+
     await setting.put(SettingBoxKey.proxyUrl, url);
+    await setting.put(SettingBoxKey.proxyTestUrl, testUrl);
     // 重置配置状态，等待测试结果
     await setting.put(SettingBoxKey.proxyConfigured, false);
 
@@ -53,22 +62,17 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
     ProxyManager.applyProxy();
 
     try {
-      final response = await Request().get(
-        'https://www.google.com',
+      await Request().get(
+        testUrl,
         options: Options(
           sendTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
+          validateStatus: (status) => true,
         ),
         shouldRethrow: true,
       ).timeout(const Duration(seconds: 15));
-      if (response.statusCode == 200) {
-        await setting.put(SettingBoxKey.proxyConfigured, true);
-        KazumiDialog.showToast(message: '测试成功');
-      } else {
-        await setting.put(SettingBoxKey.proxyEnable, false);
-        ProxyManager.clearProxy();
-        KazumiDialog.showToast(message: '代理连接失败');
-      }
+      await setting.put(SettingBoxKey.proxyConfigured, true);
+      KazumiDialog.showToast(message: '测试成功');
     } catch (e) {
       await setting.put(SettingBoxKey.proxyEnable, false);
       ProxyManager.clearProxy();
@@ -105,6 +109,15 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: testUrlController,
+                    decoration: const InputDecoration(
+                      labelText: '测试地址',
+                      hintText: 'https://www.google.com',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ],
               ),

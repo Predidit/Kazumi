@@ -309,7 +309,8 @@ class _AppWidgetState extends State<AppWidget>
         KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
       }
     }
-    // 设置启动页，这种方法只适配于 /tab 路由下的页面（即首页的四个选项）
+    // 设置默认启动页
+    // 这种方法只适配于 /tab 路由下的页面（即首页的四个选项）
     Modular.setInitialRoute(defaultStartupPage);
 
     return app;

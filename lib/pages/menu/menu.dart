@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/appbar/drag_to_move_bar.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';
@@ -57,8 +58,41 @@ class NavigationBarState extends ChangeNotifier {
   }
 }
 
+// 通用导航项
+class _NavItem {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  const _NavItem(this.icon, this.selectedIcon, this.label);
+}
+
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
+  final GlobalKey _pageViewKey = GlobalKey();
+  
+  // 通用导航内容
+  static const List<_NavItem> _navItems = <_NavItem>[
+    _NavItem(Icons.home_outlined, Icons.home, '推荐'),
+    _NavItem(Icons.timeline_outlined, Icons.timeline, '时间表'),
+    _NavItem(Icons.favorite_border, Icons.favorite, '追番'),
+    _NavItem(Icons.settings_outlined, Icons.settings, '我的'),
+  ];
+  static List<NavigationDestination> get _bottomDestinations => _navItems
+      .map((e) => NavigationDestination(selectedIcon: Icon(e.selectedIcon), icon: Icon(e.icon), label: e.label))
+      .toList();
+  static List<NavigationRailDestination> get _sideDestinations => _navItems
+      .map((e) => NavigationRailDestination(selectedIcon: Icon(e.selectedIcon), icon: Icon(e.icon), label: Text(e.label)))
+      .toList();
+
+  Widget _buildPageView() {
+    return PageView.builder(
+      key: _pageViewKey,
+      physics: const NeverScrollableScrollPhysics(),
+      controller: _page,
+      itemCount: menu.size,
+      itemBuilder: (_, __) => const RouterOutlet(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,38 +112,12 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     return Scaffold(
         body: Container(
           color: Theme.of(context).colorScheme.primaryContainer,
-          child: PageView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            controller: _page,
-            itemCount: menu.size,
-            itemBuilder: (_, __) => const RouterOutlet(),
-          ),
+          child: _buildPageView(),
         ),
         bottomNavigationBar: state.isHide
             ? const SizedBox(height: 0)
             : NavigationBar(
-                destinations: const <Widget>[
-                  NavigationDestination(
-                    selectedIcon: Icon(Icons.home),
-                    icon: Icon(Icons.home_outlined),
-                    label: '推荐',
-                  ),
-                  NavigationDestination(
-                    selectedIcon: Icon(Icons.timeline),
-                    icon: Icon(Icons.timeline_outlined),
-                    label: '时间表',
-                  ),
-                  NavigationDestination(
-                    selectedIcon: Icon(Icons.favorite),
-                    icon: Icon(Icons.favorite_outlined),
-                    label: '追番',
-                  ),
-                  NavigationDestination(
-                    selectedIcon: Icon(Icons.settings),
-                    icon: Icon(Icons.settings),
-                    label: '我的',
-                  ),
-                ],
+                destinations: _bottomDestinations,
                 selectedIndex: state.selectedIndex,
                 onDestinationSelected: (int index) {
                   state.updateSelectedIndex(index);
@@ -126,45 +134,26 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
           EmbeddedNativeControlArea(
             child: Visibility(
               visible: !state.isHide,
-              child: NavigationRail(
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-                groupAlignment: 1.0,
-                leading: FloatingActionButton(
-                  elevation: 0,
-                  heroTag: null,
-                  onPressed: () {
-                    Modular.to.pushNamed('/search/');
+              child: DragToMoveArea(
+                child: NavigationRail(
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                  groupAlignment: 1.0,
+                  leading: FloatingActionButton(
+                    elevation: 0,
+                    heroTag: null,
+                    onPressed: () {
+                      Modular.to.pushNamed('/search/');
+                    },
+                    child: const Icon(Icons.search),
+                  ),
+                  labelType: NavigationRailLabelType.selected,
+                  destinations: _sideDestinations,
+                  selectedIndex: state.selectedIndex,
+                  onDestinationSelected: (int index) {
+                    state.updateSelectedIndex(index);
+                    Modular.to.navigate("/tab${menu.getPath(index)}/");
                   },
-                  child: const Icon(Icons.search),
                 ),
-                labelType: NavigationRailLabelType.selected,
-                destinations: const <NavigationRailDestination>[
-                  NavigationRailDestination(
-                    selectedIcon: Icon(Icons.home),
-                    icon: Icon(Icons.home_outlined),
-                    label: Text('推荐'),
-                  ),
-                  NavigationRailDestination(
-                    selectedIcon: Icon(Icons.timeline),
-                    icon: Icon(Icons.timeline_outlined),
-                    label: Text('时间表'),
-                  ),
-                  NavigationRailDestination(
-                    selectedIcon: Icon(Icons.favorite),
-                    icon: Icon(Icons.favorite_border),
-                    label: Text('追番'),
-                  ),
-                  NavigationRailDestination(
-                    selectedIcon: Icon(Icons.settings),
-                    icon: Icon(Icons.settings_outlined),
-                    label: Text('我的'),
-                  ),
-                ],
-                selectedIndex: state.selectedIndex,
-                onDestinationSelected: (int index) {
-                  state.updateSelectedIndex(index);
-                  Modular.to.navigate("/tab${menu.getPath(index)}/");
-                },
               ),
             ),
           ),
@@ -182,11 +171,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                   topLeft: Radius.circular(16.0),
                   bottomLeft: Radius.circular(16.0),
                 ),
-                child: PageView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: menu.size,
-                  itemBuilder: (_, __) => const RouterOutlet(),
-                ),
+                child: _buildPageView(),
               ),
             ),
           ),

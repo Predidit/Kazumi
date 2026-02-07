@@ -109,7 +109,7 @@ class _InitPageState extends State<InitPage> {
   void _startDefaultPage() {
     final defaultStartupPage = setting.get(
       SettingBoxKey.defaultStartupPage,
-      defaultValue: '/tab/popular',
+      defaultValue: '/tab/popular/',
     );
     // Workaround for dynamic_color. dynamic_color need PlatformChannel to get color, it takes time.
     // setDynamic here to avoid white screen flash when themeMode is dark.

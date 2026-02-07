@@ -26,15 +26,15 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
       child: Text('推荐'),
     ),
     DropdownMenuItem(
-      value: "/tab/timeline",
+      value: "/tab/timeline/",
       child: Text('时间表'),
     ),
     DropdownMenuItem(
-      value: "/tab/collect",
+      value: "/tab/collect/",
       child: Text('追番'),
     ),
     DropdownMenuItem(
-      value: "/tab/my",
+      value: "/tab/my/",
       child: Text('我的'),
     ),
   ];

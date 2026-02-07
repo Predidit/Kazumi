@@ -28,9 +28,6 @@ class _AppWidgetState extends State<AppWidget>
 
   final TrayManager trayManager = TrayManager.instance;
   bool showingExitDialog = false;
-  late final String defaultStartupPage;
-
-  late final ThemeProvider themeProvider;
 
   @override
   void initState() {
@@ -39,10 +36,6 @@ class _AppWidgetState extends State<AppWidget>
     setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
-
-    defaultStartupPage = setting.get(SettingBoxKey.defaultStartupPage,
-        defaultValue: '/tab/popular/');
-    themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
   void setPreventClose() async {
@@ -312,17 +305,7 @@ class _AppWidgetState extends State<AppWidget>
         KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
       }
     }
-    // 设置默认启动页
-    // 这种方法只适配于 /tab 路由下的页面（即首页的四个选项）
-    _startDefaultPage(defaultStartupPage);
 
     return app;
-  }
-
-  void _startDefaultPage(String defaultStartupPage) {
-    if (!defaultStartupPage.contains('/tab')) {
-      return;
-    }
-    Modular.to.navigate(defaultStartupPage);
   }
 }

@@ -121,14 +121,10 @@ abstract class _VideoPageController with Store {
     title = bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
     isOfflineMode = true;
     _offlineVideoPath = videoPath;
-    // 离线模式不需要解析视频源，直接设置 loading 为 false
     loading = false;
 
-    // 构建仅包含已下载集数的 roadList
     _buildOfflineRoadList(downloadedEpisodes);
 
-    // currentEpisode 是列表中的 1-based 位置，而非实际集数编号
-    // 在 roadList.data 中查找 episodeNumber 对应的位置
     final index = roadList[currentRoad].data.indexOf(episodeNumber.toString());
     currentEpisode = index >= 0 ? index + 1 : 1;
     KazumiLogger().i('VideoPageController: initialized for offline playback, episode $episodeNumber (position: $currentEpisode)');
@@ -138,10 +134,8 @@ abstract class _VideoPageController with Store {
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     roadList.clear();
     episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-    // 使用 '播放列表1' 作为名称，与 UI 代码兼容
     roadList.add(Road(
       name: '播放列表1',
-      // data 存储实际的 episodeNumber（字符串形式），用于离线播放时查找本地文件
       data: episodes.map((e) => e.episodeNumber.toString()).toList(),
       identifier: episodes.map((e) =>
         e.episodeName.isNotEmpty ? e.episodeName : '第${e.episodeNumber}集'
@@ -188,8 +182,6 @@ abstract class _VideoPageController with Store {
     KazumiLogger().i('VideoPageController: changed to $chapterName');
     String urlItem = roadList[currentRoad].data[episode - 1];
 
-    // Cache-first: 检查该集是否已下载到本地
-    // urlItem 正规化前即为 episodePageUrl，与下载时存储的值一致
     final cachedEpisode = downloadRepository.getEpisodeByUrl(
       bangumiItem.id,
       currentPlugin.name,
@@ -213,10 +205,7 @@ abstract class _VideoPageController with Store {
     await _resolveWithProvider(urlItem, offset);
   }
 
-  /// 离线模式下切换集数
-  /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
   Future<void> _changeOfflineEpisode(int episode, int offset) async {
-    // 从 roadList.data 中获取实际的 episodeNumber
     final actualEpisodeNumber = int.tryParse(roadList[currentRoad].data[episode - 1]);
     if (actualEpisodeNumber == null) {
       KazumiLogger().e('VideoPageController: failed to parse episode number from roadList data: ${roadList[currentRoad].data[episode - 1]}');
@@ -268,22 +257,32 @@ abstract class _VideoPageController with Store {
     KazumiLogger().i('VideoPageController: cache hit, playing from local: $localPath');
     KazumiDialog.showToast(message: '已使用本地缓存播放');
 
-    final params = PlaybackInitParams(
-      videoUrl: localPath,
-      offset: offset,
-      isLocalPlayback: false,
-      bangumiId: bangumiItem.id,
-      pluginName: currentPlugin.name,
-      episode: currentEpisode,
-      httpHeaders: {},
-      adBlockerEnabled: false,
-      episodeTitle: roadList[currentRoad].identifier[episode - 1],
-      referer: '',
-      currentRoad: currentRoad,
-    );
+    try {
+      final params = PlaybackInitParams(
+        videoUrl: localPath,
+        offset: offset,
+        isLocalPlayback: false,
+        bangumiId: bangumiItem.id,
+        pluginName: currentPlugin.name,
+        episode: currentEpisode,
+        httpHeaders: {},
+        adBlockerEnabled: false,
+        episodeTitle: roadList[currentRoad].identifier[episode - 1],
+        referer: '',
+        currentRoad: currentRoad,
+      );
 
-    final playerController = Modular.get<PlayerController>();
-    await playerController.init(params);
+      final playerController = Modular.get<PlayerController>();
+      await playerController.init(params);
+    } catch (e) {
+      KazumiLogger().e('VideoPageController: cache playback failed, falling back to online', error: e);
+      String urlItem = roadList[currentRoad].data[episode - 1];
+      if (!urlItem.contains(currentPlugin.baseUrl) &&
+          !urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
+        urlItem = currentPlugin.baseUrl + urlItem;
+      }
+      await _resolveWithProvider(urlItem, offset);
+    }
   }
 
   /// 使用 VideoSourceProvider 解析视频源

@@ -66,7 +66,8 @@ class _MyPageState extends State<MyPage> {
                   },
                   leading: const Icon(Icons.download_rounded),
                   title: Text('下载管理', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看和管理离线下载', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看和管理离线下载',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -74,7 +75,8 @@ class _MyPageState extends State<MyPage> {
                   },
                   leading: const Icon(Icons.settings_rounded),
                   title: Text('下载设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('配置下载并发数等参数', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('配置下载并发数等参数',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -97,15 +99,6 @@ class _MyPageState extends State<MyPage> {
                   leading: const Icon(Icons.display_settings_rounded),
                   title: Text('播放设置', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('设置播放器相关参数',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    Modular.to.pushNamed('/settings/interface');
-                  },
-                  leading: const Icon(Icons.pages_rounded),
-                  title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置应用界面样式',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -147,6 +140,15 @@ class _MyPageState extends State<MyPage> {
                   leading: const Icon(Icons.palette_rounded),
                   title: Text('外观设置', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('设置应用主题和刷新率',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/interface');
+                  },
+                  leading: const Icon(Icons.pages_rounded),
+                  title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('设置应用界面样式',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(

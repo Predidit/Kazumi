@@ -17,25 +17,14 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   Box setting = GStorage.setting;
   late bool showRating;
   late String defaultPage;
+  final MenuController defaultPageMenuController = MenuController();
 
-  static const List<DropdownMenuItem> defaultPageSettingList = [
-    DropdownMenuItem(
-      value: "/tab/popular/",
-      child: Text('推荐'),
-    ),
-    DropdownMenuItem(
-      value: "/tab/timeline/",
-      child: Text('时间表'),
-    ),
-    DropdownMenuItem(
-      value: "/tab/collect/",
-      child: Text('追番'),
-    ),
-    DropdownMenuItem(
-      value: "/tab/my/",
-      child: Text('我的'),
-    ),
-  ];
+  static const Map<String, String> defaultPageMap = {
+    '/tab/popular/': '推荐',
+    '/tab/timeline/': '时间表',
+    '/tab/collect/': '追番',
+    '/tab/my/': '我的',
+  };
 
   @override
   void initState() {
@@ -43,6 +32,13 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
     showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
     defaultPage = setting.get(SettingBoxKey.defaultStartupPage,
         defaultValue: '/tab/popular/');
+  }
+
+  void updateDefaultPage(String page) {
+    setting.put(SettingBoxKey.defaultStartupPage, page);
+    setState(() {
+      defaultPage = page;
+    });
   }
 
   @override
@@ -57,18 +53,48 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
         sections: [
           SettingsSection(tiles: [
             SettingsTile.navigation(
+              onPressed: (_) async {
+                if (defaultPageMenuController.isOpen) {
+                  defaultPageMenuController.close();
+                } else {
+                  defaultPageMenuController.open();
+                }
+              },
               title: Text('启动界面设置', style: TextStyle(fontFamily: fontFamily)),
               description: Text('设置应用开启时的默认页面',
                   style: TextStyle(fontFamily: fontFamily)),
-              trailing: DropdownButton(
-                value: defaultPage,
-                items: defaultPageSettingList,
-                onChanged: (value) async {
-                  await setting.put(SettingBoxKey.defaultStartupPage, value);
-                  setState(() {
-                    defaultPage = value;
-                  });
+              value: MenuAnchor(
+                consumeOutsideTap: true,
+                controller: defaultPageMenuController,
+                builder: (_, __, ___) {
+                  return Text(
+                    defaultPageMap[defaultPage] ?? '推荐',
+                    style: TextStyle(fontFamily: fontFamily),
+                  );
                 },
+                menuChildren: [
+                  for (final entry in defaultPageMap.entries)
+                    MenuItemButton(
+                      requestFocusOnHover: false,
+                      onPressed: () => updateDefaultPage(entry.key),
+                      child: Container(
+                        height: 48,
+                        constraints: BoxConstraints(minWidth: 112),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            entry.value,
+                            style: TextStyle(
+                              color: entry.key == defaultPage
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              fontFamily: fontFamily,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ]),

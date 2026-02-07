@@ -738,8 +738,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -747,8 +747,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/android/media_kit_libs_android_video"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -756,8 +756,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -765,8 +765,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -774,8 +774,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/macos/media_kit_libs_macos_video"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -783,8 +783,8 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/universal/media_kit_libs_video"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -792,8 +792,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/windows/media_kit_libs_windows_video"
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -801,8 +801,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: b08e0744185fffb3009b33d5a456169a61844952
-      resolved-ref: b08e0744185fffb3009b33d5a456169a61844952
+      ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
+      resolved-ref: "8871975314378b52734863f16dd1dbfd3c4095ea"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"

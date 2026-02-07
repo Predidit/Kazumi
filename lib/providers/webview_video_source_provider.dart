@@ -32,6 +32,9 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
   }) async {
     resolveId++;
     final currentResolveId = resolveId;
+    if (_completer != null && !_completer!.isCompleted) {
+      _completer!.completeError(const VideoSourceCancelledException());
+    }
     await _subscription?.cancel();
     _subscription = null;
 
@@ -77,6 +80,11 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       );
 
       return result;
+    } catch (e) {
+      if (currentResolveId != resolveId) {
+        throw const VideoSourceCancelledException();
+      }
+      rethrow;
     } finally {
       if (currentResolveId == resolveId) {
         await _subscription?.cancel();
@@ -89,6 +97,9 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
 
   @override
   void cancel() {
+    if (_completer != null && !_completer!.isCompleted) {
+      _completer!.completeError(const VideoSourceCancelledException());
+    }
     _subscription?.cancel();
     _subscription = null;
   }

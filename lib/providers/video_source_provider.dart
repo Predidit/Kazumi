@@ -47,6 +47,14 @@ class VideoSourceTimeoutException implements Exception {
   String toString() => 'VideoSourceTimeoutException: Timed out after ${timeout.inSeconds}s';
 }
 
+/// 视频源解析取消异常
+class VideoSourceCancelledException implements Exception {
+  const VideoSourceCancelledException();
+
+  @override
+  String toString() => 'VideoSourceCancelledException: Resolution was cancelled';
+}
+
 /// 视频源提供者接口
 ///
 /// 抽象视频源的获取方式，支持多种实现：
@@ -66,6 +74,7 @@ abstract class IVideoSourceProvider {
   /// 可能抛出：
   /// - [VideoSourceNotFoundException] 未找到视频源
   /// - [VideoSourceTimeoutException] 解析超时
+  /// - [VideoSourceCancelledException] 解析被取消
   Future<VideoSource> resolve(
     String episodeUrl, {
     required bool useLegacyParser,
@@ -74,6 +83,8 @@ abstract class IVideoSourceProvider {
   });
 
   /// 取消当前正在进行的解析
+  ///
+  /// 调用后，正在进行的 [resolve] 会抛出 [VideoSourceCancelledException]
   void cancel();
 
   /// 释放资源

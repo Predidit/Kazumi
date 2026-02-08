@@ -12,7 +12,8 @@ class DanmakuRequest {
     var path = Api.formatUrl(Api.dandanAPIInfoByBgmBangumiId, [bgmBangumiID]);
     var endPoint = Api.dandanAPIDomain + path;
     final res = await Request().get(endPoint,
-        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'},
+        shouldRethrow: true);
     Map<String, dynamic> jsonData = res.data;
     DanmakuEpisodeResponse danmakuEpisodeResponse =
         DanmakuEpisodeResponse.fromJson(jsonData);
@@ -56,7 +57,8 @@ class DanmakuRequest {
     var path = Api.formatUrl(Api.dandanAPIInfoByBgmBangumiId, [bangumiID]);
     var endPoint = Api.dandanAPIDomain + path;
     final res = await Request().get(endPoint,
-        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'},
+        shouldRethrow: true);
     Map<String, dynamic> jsonData = res.data;
     DanmakuEpisodeResponse danmakuEpisodeResponse =
         DanmakuEpisodeResponse.fromJson(jsonData);
@@ -69,7 +71,8 @@ class DanmakuRequest {
     var path = Api.dandanAPIInfo + bangumiID.toString();
     var endPoint = Api.dandanAPIDomain + path;
     final res = await Request().get(endPoint,
-        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕分集ID失败'},
+        shouldRethrow: true);
     Map<String, dynamic> jsonData = res.data;
     DanmakuEpisodeResponse danmakuEpisodeResponse =
         DanmakuEpisodeResponse.fromJson(jsonData);
@@ -87,7 +90,8 @@ class DanmakuRequest {
 
     final res = await Request().get(endPoint,
         data: keywordMap,
-        extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕番剧ID失败'},
+        shouldRethrow: true);
     Map<String, dynamic> jsonData = res.data;
     DanmakuSearchResponse danmakuSearchResponse =
         DanmakuSearchResponse.fromJson(jsonData);
@@ -110,7 +114,8 @@ class DanmakuRequest {
     KazumiLogger().i("Danmaku: final request URL $endPoint");
     final res = await Request().get(endPoint,
         data: withRelated,
-        extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕失败'},
+        shouldRethrow: true);
 
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];
@@ -131,7 +136,8 @@ class DanmakuRequest {
     };
     final res = await Request().get(endPoint,
         data: withRelated,
-        extra: {'customError': '弹幕检索错误: 获取弹幕失败'});
+        extra: {'customError': '弹幕检索错误: 获取弹幕失败'},
+        shouldRethrow: true);
     Map<String, dynamic> jsonData = res.data;
     List<dynamic> comments = jsonData['comments'];
 

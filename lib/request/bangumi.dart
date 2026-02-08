@@ -16,6 +16,7 @@ class BangumiHTTP {
     try {
       var res = await Request().get(
         Api.bangumiAPINextDomain + Api.bangumiCalendar,
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       for (int i = 1; i <= 7; i++) {
@@ -60,6 +61,7 @@ class BangumiHTTP {
       final res = await Request().post(
         url,
         data: params,
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -119,6 +121,7 @@ class BangumiHTTP {
       final res = await Request().post(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch, [100, 0]),
         data: params,
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -146,6 +149,7 @@ class BangumiHTTP {
       final res = await Request().get(
         Api.bangumiAPINextDomain + Api.bangumiTrendsNext,
         data: params,
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -182,6 +186,7 @@ class BangumiHTTP {
         Api.formatUrl(
             Api.bangumiAPIDomain + Api.bangumiRankSearch, [20, offset]),
         data: params,
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       final jsonList = jsonData['data'];
@@ -207,6 +212,7 @@ class BangumiHTTP {
     try {
       final res = await Request().get(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiInfoByID, [id]),
+        shouldRethrow: true,
       );
       return BangumiItem.fromJson(res.data);
     } catch (e) {
@@ -226,6 +232,7 @@ class BangumiHTTP {
       final res = await Request().get(
         Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
         data: params,
+        shouldRethrow: true,
       );
       final jsonData = res.data['data'][0];
       episodeInfo = EpisodeInfo.fromJson(jsonData);
@@ -242,6 +249,7 @@ class BangumiHTTP {
       final res = await Request().get(
         Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
             [id, 20, offset]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       commentResponse = CommentResponse.fromJson(jsonData);
@@ -260,6 +268,7 @@ class BangumiHTTP {
         Api.formatUrl(
             Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
             [id]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       commentResponse = EpisodeCommentResponse.fromJson(jsonData);
@@ -278,6 +287,7 @@ class BangumiHTTP {
         Api.formatUrl(
             Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
             [id]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       commentResponse = CharacterCommentResponse.fromJson(jsonData);
@@ -293,6 +303,7 @@ class BangumiHTTP {
       final res = await Request().get(
         Api.formatUrl(
             Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       staffResponse = StaffResponse.fromJson(jsonData);
@@ -307,6 +318,7 @@ class BangumiHTTP {
     try {
       final res = await Request().get(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       charactersResponse = CharactersResponse.fromJson(jsonData);
@@ -324,6 +336,7 @@ class BangumiHTTP {
             Api.bangumiAPINextDomain +
                 Api.bangumiCharacterInfoByCharacterIDNext,
             [id]),
+        shouldRethrow: true,
       );
       final jsonData = res.data;
       characterFullItem = CharacterFullItem.fromJson(jsonData);

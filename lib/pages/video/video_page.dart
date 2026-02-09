@@ -1028,10 +1028,15 @@ class _VideoPageState extends State<VideoPage>
         .roadList[videoPageController.currentRoad]
         .identifier[videoPageController.currentEpisode - 1]);
     if (episodeNum == 0 ||
-        episodeNum >
-            videoPageController
-                .roadList[videoPageController.currentRoad].identifier.length) {
-      episodeNum = videoPageController.currentEpisode;
+        (!videoPageController.isOfflineMode &&
+            episodeNum >
+                videoPageController
+                    .roadList[videoPageController.currentRoad]
+                    .identifier
+                    .length)) {
+      episodeNum = videoPageController.isOfflineMode
+          ? videoPageController.actualEpisodeNumber
+          : videoPageController.currentEpisode;
     }
 
     return Container(

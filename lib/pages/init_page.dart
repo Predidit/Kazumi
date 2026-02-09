@@ -57,6 +57,8 @@ class _InitPageState extends State<InitPage> {
     await _pluginInit();
 
     _startDefaultPage();
+    // delay to ensure that the default page is fully loaded
+    await Future.delayed(const Duration(milliseconds: 500));
     _update();
   }
 
@@ -302,14 +304,9 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _update() async {
-    // Don't check update when there is no plugin.
-    // We will progress init workflow instead.
-    if (pluginsController.pluginList.isNotEmpty) {
-      bool autoUpdate =
-          setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
-      if (autoUpdate) {
-        Modular.get<MyController>().checkUpdate(type: 'auto');
-      }
+    bool autoUpdate = await setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    if (autoUpdate) {
+      Modular.get<MyController>().checkUpdate(type: 'auto');
     }
   }
 

@@ -738,8 +738,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.11"
@@ -747,8 +747,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/android/media_kit_libs_android_video"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.3.6"
@@ -756,8 +756,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/ios/media_kit_libs_ios_video"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
@@ -765,8 +765,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.3"
@@ -774,17 +774,26 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/macos/media_kit_libs_macos_video"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.1.4"
+  media_kit_libs_ohos:
+    dependency: transitive
+    description:
+      path: "libs/ohos/media_kit_libs_ohos"
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      url: "https://github.com/Predidit/media-kit.git"
+    source: git
+    version: "1.0.0"
   media_kit_libs_video:
     dependency: "direct main"
     description:
       path: "libs/universal/media_kit_libs_video"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.5"
@@ -792,8 +801,8 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/windows/media_kit_libs_windows_video"
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.0.10"
@@ -801,8 +810,8 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit_video
-      ref: d1ac737bf6386e1e6af774785e86ded1126affd2
-      resolved-ref: d1ac737bf6386e1e6af774785e86ded1126affd2
+      ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
+      resolved-ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
       url: "https://github.com/Predidit/media-kit.git"
     source: git
     version: "1.2.5"
@@ -1563,6 +1572,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.3"
+  wakelock_plus_ohos:
+    dependency: transitive
+    description:
+      name: wakelock_plus_ohos
+      sha256: b22af297411555b5ec0fe43ec2960cd5f019dd23b83853214ebe6dcc97b337bd
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3"
   wakelock_plus_platform_interface:
     dependency: transitive
     description:

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
@@ -20,17 +21,12 @@ class WebviewItemControllerImpel
     await _setupProxy();
     headlessWebView ??= PlatformHeadlessInAppWebView(
       PlatformHeadlessInAppWebViewCreationParams(
+        initialSize: const Size(360, 640),
         initialSettings: InAppWebViewSettings(
           userAgent: Utils.getRandomUA(),
           mediaPlaybackRequiresUserGesture: true,
-          cacheEnabled: false,
-          blockNetworkImage: true,
-          loadsImagesAutomatically: false,
           upgradeKnownHostsToHTTPS: false,
-          safeBrowsingEnabled: false,
           mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
-          geolocationEnabled: false,
-          useShouldInterceptRequest: true,
         ),
         onWebViewCreated: (controller) {
           print('[WebView] Created (legacy fallback)');
@@ -62,6 +58,14 @@ class WebviewItemControllerImpel
           if (url.toString() != 'about:blank') {
             await _onLoadStop();
           }
+        },
+        onConsoleMessage: (controller, consoleMessage) {
+          logEventController.add(
+              'Console [${consoleMessage.messageLevel}]: ${consoleMessage.message}');
+        },
+        onReceivedError: (controller, request, error) {
+          logEventController.add(
+              'Error: ${error.description} - ${request.url}');
         },
       ),
     );

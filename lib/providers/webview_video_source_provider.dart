@@ -21,16 +21,10 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
       StreamController<String>.broadcast();
   Stream<String> get onLog => _logController.stream;
 
-  @override
-  Future<VideoSource> resolve(
-    String episodeUrl, {
-    required bool useLegacyParser,
-    int offset = 0,
-    Duration timeout = const Duration(seconds: 15),
-  }) async {
-    _resolveId++;
-    final currentResolveId = _resolveId;
-
+  /// 预初始化 WebView 实例
+  /// 用于在开始解析前确保 WebView 已创建，避免在 Windows 上
+  /// 因实例数降为 0 而触发全局环境重置
+  Future<void> ensureInitialized() async {
     if (_webview == null) {
       _webview = WebviewItemControllerFactory.getController();
       await _webview!.init();
@@ -41,6 +35,19 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
         }
       });
     }
+  }
+
+  @override
+  Future<VideoSource> resolve(
+    String episodeUrl, {
+    required bool useLegacyParser,
+    int offset = 0,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    _resolveId++;
+    final currentResolveId = _resolveId;
+
+    await ensureInitialized();
 
     try {
       await _webview!.loadUrl(

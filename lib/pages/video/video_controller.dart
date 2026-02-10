@@ -94,7 +94,7 @@ abstract class _VideoPageController with Store {
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
   final Box setting = GStorage.setting;
 
-  /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
+  /// 当前视频源提供者（每次解析创建新实例）
   WebViewVideoSourceProvider? _videoSourceProvider;
 
   /// 视频提供者日志流控制器
@@ -102,8 +102,6 @@ abstract class _VideoPageController with Store {
       StreamController<String>.broadcast();
   
   Stream<String> get logStream => _logStreamController.stream;
-
-  StreamSubscription<String>? _logSubscription;
 
   /// 初始化离线播放模式
   void initForOfflinePlayback({
@@ -248,20 +246,26 @@ abstract class _VideoPageController with Store {
 
   /// 使用 VideoSourceProvider 解析视频源
   Future<void> _resolveWithProvider(String url, int offset) async {
-    _videoSourceProvider?.cancel();
-
+    final oldProvider = _videoSourceProvider;
     loading = true;
-    _videoSourceProvider ??= WebViewVideoSourceProvider();
+    
+    // 先创建新的 provider 并预初始化 WebView
+    // 确保新 WebView 实例存在后再销毁旧的，避免在 Windows 上
+    // 因实例数降为 0 而触发全局环境重置导致崩溃
+    final provider = WebViewVideoSourceProvider();
+    _videoSourceProvider = provider;
+    await provider.ensureInitialized();
+    oldProvider?.dispose();
 
-    await _logSubscription?.cancel();
-    _logSubscription = _videoSourceProvider!.onLog.listen((log) {
+    StreamSubscription<String>? logSubscription;
+    logSubscription = provider.onLog.listen((log) {
       if (!_logStreamController.isClosed) {
         _logStreamController.add(log);
       }
     });
 
     try {
-      final source = await _videoSourceProvider!.resolve(
+      final source = await provider.resolve(
         url,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: offset,
@@ -302,13 +306,17 @@ abstract class _VideoPageController with Store {
     } catch (e) {
       loading = false;
       errorMessage = '视频解析失败：${e.toString()}';
+    } finally {
+      logSubscription.cancel();
+      if (_videoSourceProvider == provider) {
+        provider.dispose();
+        _videoSourceProvider = null;
+      }
     }
   }
 
   /// 取消当前视频源解析并销毁 Provider（页面退出时调用）
   void cancelVideoSourceResolution() {
-    _logSubscription?.cancel();
-    _logSubscription = null;
     if (!_logStreamController.isClosed) {
       _logStreamController.close();
     }

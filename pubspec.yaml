@@ -73,6 +73,7 @@ dependencies:
   saver_gallery: ^4.1.0
   screen_brightness_android: ^2.1.3
   screen_brightness_ios: ^2.1.2
+  screen_brightness_ohos: ^2.1.2
   screen_brightness_platform_interface: ^2.1.0
   synchronized: any
   flutter_svg: ^2.2.3
@@ -139,6 +140,11 @@ dependency_overrides:
       url: https://github.com/Predidit/media-kit.git
       ref: 7d1e3f8116abce740bdf83dc5e85f37e89436db5
       path: ./libs/macos/media_kit_libs_macos_video
+  media_kit_libs_ohos:
+    git:
+      url: https://github.com/Predidit/media-kit.git
+      ref: 7d1e3f8116abce740bdf83dc5e85f37e89436db5
+      path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:
   flutter_test:

@@ -780,7 +780,7 @@ packages:
     source: git
     version: "1.1.4"
   media_kit_libs_ohos:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       path: "libs/ohos/media_kit_libs_ohos"
       ref: "7d1e3f8116abce740bdf83dc5e85f37e89436db5"
@@ -1116,6 +1116,14 @@ packages:
     description:
       name: screen_brightness_ios
       sha256: "2493953340ecfe8f4f13f61db50ce72533a55b0bbd58ba1402893feecf3727f5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.2"
+  screen_brightness_ohos:
+    dependency: "direct main"
+    description:
+      name: screen_brightness_ohos
+      sha256: a93a263dcd39b5c56e589eb495bcd001ce65cdd96ff12ab1350683559d5c5bb7
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"

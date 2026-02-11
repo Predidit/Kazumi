@@ -429,6 +429,7 @@ abstract class _PlayerController with Store {
     }
 
     if (videoRenderer == 'mediacodec_embed') {
+      hAenable = true;
       hardwareDecoder = 'mediacodec';
       superResolutionType = 1;
     }

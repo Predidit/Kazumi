@@ -1,0 +1,18 @@
+{
+    "api": "5",
+    "type": "anime",
+    "name": "DM84",
+    "version": "1.4",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "adBlocker": true,
+    "baseURL": "https://dmbus.cc/",
+    "searchURL":"https://dmbus.cc/s----------.html?wd=@keyword",
+    "searchList": "//div/div[3]/ul/li",
+    "searchName": "//div/a[2]",
+    "searchResult": "//div/a[2]",
+    "chapterRoads": "//div/div[4]/div/ul",
+    "chapterResult": "//li/a"
+}

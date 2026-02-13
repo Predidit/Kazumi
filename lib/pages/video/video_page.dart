@@ -371,6 +371,15 @@ class _VideoPageState extends State<VideoPage>
     final destination = playerController.danmakuDestination;
 
     if (destination == DanmakuDestination.chatRoom) {
+      final bool chatRoomEnabled = setting.get(
+        SettingBoxKey.enableSyncPlayChatRoom,
+        defaultValue: true,
+      );
+      if (!chatRoomEnabled) {
+        KazumiDialog.showToast(message: '无法在关闭聊天室功能时发送弹幕到聊天室');
+        return;
+      }
+
       if (playerController.syncplayRoom.isEmpty) {
         KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
         return;

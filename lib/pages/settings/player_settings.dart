@@ -29,6 +29,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDebugMode;
   late bool playerDisableAnimations;
   late bool forceAdBlocker;
+  late bool enableSyncPlayChatRoom;
   late bool autoPlayNext;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
@@ -59,6 +60,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     forceAdBlocker =
         setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    enableSyncPlayChatRoom =
+        setting.get(SettingBoxKey.enableSyncPlayChatRoom, defaultValue: true);
     playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
 
     playerButtonSkipTime =
@@ -265,6 +268,16 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   title: Text('广告过滤', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('强制启用HLS广告过滤，忽略规则设置', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: forceAdBlocker,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    enableSyncPlayChatRoom = value ?? !enableSyncPlayChatRoom;
+                    await setting.put(SettingBoxKey.enableSyncPlayChatRoom, enableSyncPlayChatRoom);
+                    setState(() {});
+                  },
+                  title: Text('一起看聊天室', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('启用一起看聊天室功能，关闭此功能可缓解部分地区一起看无法建立TLS加密连接的问题', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: enableSyncPlayChatRoom,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {

@@ -858,7 +858,7 @@ abstract class _PlayerController with Store {
               showActionButton: true,
               actionLabel: '重新连接',
               onActionPressed: () =>
-                  createSyncPlayRoom(room, username, changeEpisode),
+                  createSyncPlayRoom(room, username, changeEpisode, enableTLS: setting.get(SettingBoxKey.enableSyncPlayChatRoom, defaultValue: true)),
             );
           }
         },

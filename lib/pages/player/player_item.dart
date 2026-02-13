@@ -1246,7 +1246,7 @@ class _PlayerItemState extends State<PlayerItem>
               if (formKey.currentState!.validate()) {
                 KazumiDialog.dismiss();
                 playerController.createSyncPlayRoom(roomController.text,
-                    usernameController.text, widget.changeEpisode);
+                    usernameController.text, widget.changeEpisode, enableTLS: setting.get(SettingBoxKey.enableSyncPlayChatRoom, defaultValue: true));
               }
             },
             child: const Text('确定'),

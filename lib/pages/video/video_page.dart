@@ -376,7 +376,7 @@ class _VideoPageState extends State<VideoPage>
         defaultValue: true,
       );
       if (!chatRoomEnabled) {
-        KazumiDialog.showToast(message: '无法在关闭聊天室功能时发送弹幕到聊天室');
+        KazumiDialog.showToast(message: '无法在聊天室功能关闭时发送弹幕到聊天室');
         return;
       }
 

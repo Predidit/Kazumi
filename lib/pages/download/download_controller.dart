@@ -63,19 +63,7 @@ abstract class _DownloadController with Store {
 
     await _backgroundService.init();
     _backgroundService.onPauseAll = pauseAllDownloads;
-    _backgroundService.addTaskDataCallback(_onTaskData);
     _isBackgroundServiceInitialized = true;
-  }
-
-  void _onTaskData(Object data) {
-    if (data is Map) {
-      final action = data['action'];
-      if (action == 'button_pressed') {
-        _backgroundService.handleNotificationAction(data['id'] as String);
-      } else if (action == 'navigate_to_download') {
-        _backgroundService.handleNavigateToDownload();
-      }
-    }
   }
 
   final Map<String, double> _speeds = {};

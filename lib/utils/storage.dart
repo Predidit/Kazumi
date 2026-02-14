@@ -270,6 +270,7 @@ class SettingBoxKey {
       autoUpdate = 'autoUpdate',
       alwaysOntop = 'alwaysOntop',
       defaultPlaySpeed = 'defaultPlaySpeed',
+      defaultShortcutForwardPlaySpeed = 'defaultShortcutForwardPlaySpeed',
       defaultAspectRatioType = 'defaultAspectRatioType',
       buttonSkipTime = 'buttonSkipTime',
       arrowKeySkipTime = 'arrowKeySkipTime',

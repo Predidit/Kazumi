@@ -19,6 +19,7 @@ class PlayerSettingsPage extends StatefulWidget {
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   Box setting = GStorage.setting;
   late double defaultPlaySpeed;
+  late double defaultShortcutForwardPlaySpeed;
   late int defaultAspectRatioType;
   late bool hAenable;
   late bool androidEnableOpenSLES;
@@ -41,6 +42,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     super.initState();
     defaultPlaySpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    defaultShortcutForwardPlaySpeed = 
+        setting.get(SettingBoxKey.defaultShortcutForwardPlaySpeed, defaultValue: 2.0);
     defaultAspectRatioType =
         setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
@@ -78,6 +81,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     setting.put(SettingBoxKey.defaultPlaySpeed, speed);
     setState(() {
       defaultPlaySpeed = speed;
+    });
+  }
+
+  void updateDefaultShortcutForwardPlaySpeed(double speed) {
+    setting.put(SettingBoxKey.defaultShortcutForwardPlaySpeed, speed);
+    setState(() {
+      defaultShortcutForwardPlaySpeed = speed;
     });
   }
 
@@ -369,6 +379,20 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     label: '${defaultPlaySpeed}x',
                     onChanged: (value) {
                       updateDefaultPlaySpeed(
+                          double.parse(value.toStringAsFixed(2)));
+                    },
+                  ),
+                ),
+                SettingsTile(
+                  title: Text('默认方向键倍速', style: TextStyle(fontFamily: fontFamily)),
+                  description: Slider(
+                    value: defaultShortcutForwardPlaySpeed,
+                    min: 1.25,
+                    max: 3,
+                    divisions: 7,
+                    label: '${defaultShortcutForwardPlaySpeed}x',
+                    onChanged: (value) {
+                      updateDefaultShortcutForwardPlaySpeed(
                           double.parse(value.toStringAsFixed(2)));
                     },
                   ),

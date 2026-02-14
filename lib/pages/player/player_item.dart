@@ -268,7 +268,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   Future<void> handleShortcutForwardRepeat() async {
     final double defaultShortcutForwardPlaySpeed = setting.get(SettingBoxKey.defaultShortcutForwardPlaySpeed, defaultValue: 2.0);
-    if (playerController.playerSpeed < 2.0) {
+    if (playerController.playerSpeed < defaultShortcutForwardPlaySpeed) {
       playerController.showPlaySpeed = true;
       setPlaybackSpeed(defaultShortcutForwardPlaySpeed);
     }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
@@ -212,20 +213,110 @@ abstract class _DownloadController with Store {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
+  /// 弹幕文件路径
+  String _danmakuFilePath(String downloadDirectory) {
+    return '$downloadDirectory/danmaku.json';
+  }
+
+  /// 从文件读取弹幕数据
+  /// 支持新格式 (带 danDanBangumiID 的 wrapper) 和旧格式 (纯数组)
+  ({List<Danmaku> danmakus, int danDanBangumiID})? _readDanmakuFromFile(
+      String downloadDirectory) {
+    if (downloadDirectory.isEmpty) return null;
+    final file = File(_danmakuFilePath(downloadDirectory));
+    if (!file.existsSync()) return null;
+    try {
+      final content = file.readAsStringSync();
+      final decoded = jsonDecode(content);
+      if (decoded is List) {
+        // 旧格式：纯弹幕数组
+        final danmakus =
+            decoded.map((json) => Danmaku.fromJson(json)).toList();
+        return (danmakus: danmakus, danDanBangumiID: 0);
+      } else if (decoded is Map<String, dynamic>) {
+        // 新格式：带 danDanBangumiID 的 wrapper
+        final danDanBangumiID = decoded['danDanBangumiID'] as int? ?? 0;
+        final List<dynamic> jsonList = decoded['danmakus'] as List? ?? [];
+        final danmakus =
+            jsonList.map((json) => Danmaku.fromJson(json)).toList();
+        return (danmakus: danmakus, danDanBangumiID: danDanBangumiID);
+      }
+      return null;
+    } catch (e) {
+      KazumiLogger()
+          .w('DownloadController: failed to read danmaku file', error: e);
+      return null;
+    }
+  }
+
+  /// 写入弹幕数据到文件 (新格式，包含 danDanBangumiID)
+  Future<void> _writeDanmakuToFile(
+      String downloadDirectory, List<Danmaku> danmakus, int danDanBangumiID) async {
+    if (downloadDirectory.isEmpty) return;
+    final file = File(_danmakuFilePath(downloadDirectory));
+    final wrapper = {
+      'danDanBangumiID': danDanBangumiID,
+      'danmakus': danmakus.map((d) => d.toJson()).toList(),
+    };
+    await file.writeAsString(jsonEncode(wrapper));
+  }
+
   List<Danmaku>? getCachedDanmakus(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode =
         _repository.getEpisode(bangumiId, pluginName, episodeNumber);
-    if (episode == null || episode.danmakuData.isEmpty) {
-      return null;
+    if (episode == null) return null;
+
+    // 优先从文件读取
+    final fromFile = _readDanmakuFromFile(episode.downloadDirectory);
+    if (fromFile != null && fromFile.danmakus.isNotEmpty) {
+      return fromFile.danmakus;
+    }
+
+    // 向后兼容：从旧 Hive 字段迁移
+    if (episode.danmakuData.isNotEmpty) {
+      try {
+        final List<dynamic> jsonList = jsonDecode(episode.danmakuData);
+        final danmakus =
+            jsonList.map((json) => Danmaku.fromJson(json)).toList();
+        // 异步迁移到文件并清空旧字段
+        _migrateDanmakuToFile(bangumiId, pluginName, episodeNumber, episode);
+        return danmakus;
+      } catch (e) {
+        KazumiLogger().w(
+            'DownloadController: failed to parse cached danmaku', error: e);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /// 将旧 Hive danmakuData 迁移到独立文件并清空 Hive 字段
+  Future<void> _migrateDanmakuToFile(
+    int bangumiId,
+    String pluginName,
+    int episodeNumber,
+    DownloadEpisode episode,
+  ) async {
+    if (episode.downloadDirectory.isEmpty || episode.danmakuData.isEmpty) {
+      return;
     }
     try {
+      // 解析旧数据写入新格式文件
       final List<dynamic> jsonList = jsonDecode(episode.danmakuData);
-      return jsonList.map((json) => Danmaku.fromJson(json)).toList();
+      final danmakus =
+          jsonList.map((json) => Danmaku.fromJson(json)).toList();
+      await _writeDanmakuToFile(
+          episode.downloadDirectory, danmakus, episode.danDanBangumiID);
+      // 清空 Hive 中的旧数据
+      final recordKey = '${pluginName}_$bangumiId';
+      episode.danmakuData = '';
+      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      KazumiLogger().i(
+          'DownloadController: migrated danmaku to file for episode $episodeNumber');
     } catch (e) {
       KazumiLogger()
-          .w('DownloadController: failed to parse cached danmaku', error: e);
-      return null;
+          .w('DownloadController: danmaku migration failed', error: e);
     }
   }
 
@@ -243,10 +334,14 @@ abstract class _DownloadController with Store {
     if (episode == null) return;
 
     try {
-      final danmakuJson = jsonEncode(danmakus.map((d) => d.toJson()).toList());
-      episode.danmakuData = danmakuJson;
-      episode.danDanBangumiID = danDanBangumiID;
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      // 写入独立文件而非 Hive
+      await _writeDanmakuToFile(
+          episode.downloadDirectory, danmakus, danDanBangumiID);
+      // 确保 Hive 中不存储弹幕大数据
+      if (episode.danmakuData.isNotEmpty) {
+        episode.danmakuData = '';
+        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      }
       KazumiLogger().i(
           'DownloadController: updated cached danmakus for episode $episodeNumber');
     } catch (e) {
@@ -445,19 +540,15 @@ abstract class _DownloadController with Store {
           return;
         }
 
-        // 序列化弹幕数据
-        final danmakuJson =
-            jsonEncode(danmakus.map((d) => d.toJson()).toList());
-
-        // 更新存储（重新获取最新的 episode 数据）
+        // 获取最新的 episode 数据以读取 downloadDirectory
         final record = _repository.getRecord(recordKey);
         if (record == null) return;
         final episode = record.episodes[episodeNumber];
         if (episode == null) return;
 
-        episode.danmakuData = danmakuJson;
-        episode.danDanBangumiID = danDanBangumiID;
-        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+        // 写入独立文件而非 Hive
+        await _writeDanmakuToFile(
+            episode.downloadDirectory, danmakus, danDanBangumiID);
 
         KazumiLogger().i(
             'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');

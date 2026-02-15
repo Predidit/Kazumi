@@ -8,6 +8,7 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:hive_ce/hive.dart';
@@ -63,16 +64,41 @@ class _CollectPageState extends State<CollectPage>
       }
     }
 
-    String buildTitle(String title, int count) {
-      return count > 0 ? '$title（$count）' : title;
+    final bool isMobileCompact = Utils.isCompact();
+
+    Tab _buildTab(String title, int count) {
+      if (isMobileCompact) {
+        return Tab(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 15),
+              ),
+              if (count > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Text(
+                    '（$count）',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
+        );
+      } else {
+        final String text = count > 0 ? '$title（$count）' : title;
+        return Tab(text: text);
+      }
     }
 
     return <Tab>[
-      Tab(text: buildTitle('在看', counts[0])),
-      Tab(text: buildTitle('想看', counts[1])),
-      Tab(text: buildTitle('搁置', counts[2])),
-      Tab(text: buildTitle('看过', counts[3])),
-      Tab(text: buildTitle('抛弃', counts[4])),
+      _buildTab('在看', counts[0]),
+      _buildTab('想看', counts[1]),
+      _buildTab('搁置', counts[2]),
+      _buildTab('看过', counts[3]),
+      _buildTab('抛弃', counts[4]),
     ];
   }
 

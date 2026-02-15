@@ -58,7 +58,7 @@ abstract class _DownloadController with Store {
     await _migrateDanmakuDataToFiles();
 
     _downloadManager.onProgress = _onDownloadProgress;
-    _initBackgroundService();
+    await _initBackgroundService();
   }
 
   /// 启动时将所有旧 Hive danmakuData 迁移到独立文件并清空 Hive 字段

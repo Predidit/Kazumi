@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -300,6 +301,119 @@ class Utils {
     // 创建Color对象
     Color color = Color.fromARGB(255, red, green, blue);
     return color;
+  }
+
+  static List<Danmaku> mergeDuplicateDanmakus(
+    List<Danmaku> danmakus, {
+      double timeWindowSeconds = 0,
+    }) {
+    final Map<String, List<Danmaku>> grouped = {};
+
+    // 弹幕规范化处理
+    // 去首尾空格并小写，全角转半角，去掉所有空白、标点符号，连续重复内容压缩，保留日语字符
+    for (var d in danmakus) {
+      String text = d.message;
+
+      text = text.trim().toLowerCase();
+
+      final buffer = StringBuffer();
+      for (int i = 0; i < text.length; i++) {
+        int code = text.codeUnitAt(i);
+        if (code == 0x3000) {
+          buffer.writeCharCode(0x20);
+        } else if (code >= 0xFF01 && code <= 0xFF5E) {
+          buffer.writeCharCode(code - 0xFEE0);
+        } else {
+          buffer.writeCharCode(code);
+        }
+      }
+      text = buffer.toString();
+
+      text = text.replaceAll(RegExp(r'\s+'), '');
+
+      text = text.replaceAll(RegExp(
+        r'[^\w\u4e00-\u9fff\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]',
+        unicode: true,
+      ),'');
+
+      text = text.replaceAllMapped(RegExp(r'(.)\1{2,}'), (match) {
+        final char = match.group(1)!;
+        return char * 3;
+      });
+
+      grouped.putIfAbsent(text, () => []);
+      grouped[text]!.add(d);
+    }
+
+    final List<Danmaku> result = [];
+
+    grouped.forEach((normalized, list) {
+      if (list.isEmpty) return;
+
+      if (timeWindowSeconds <= 0) {
+        if (list.length == 1) {
+          result.add(list.first);
+        } else {
+          result.add(
+            Danmaku(
+              message: '${list.first.message} x${list.length}',
+              time: list.first.time, // 默认取第一条
+              type: 5,
+              color: Utils.generateDanmakuColor(0xFFFFFF), // 白色弹幕
+              source: list.first.source,
+            ),
+          );
+        }
+        return;
+      }
+
+      list.sort((a, b) => a.time.compareTo(b.time));
+
+      List<Danmaku> currentGroup = [];
+      for (var item in list) {
+        if (currentGroup.isEmpty) {
+          currentGroup.add(item);
+          continue;
+        }
+        final last = currentGroup.last;
+        if ((item.time - last.time) <= timeWindowSeconds) {
+          currentGroup.add(item);
+        } else {
+          if (currentGroup.length == 1) {
+            result.add(currentGroup.first);
+          } else {
+            result.add(
+              Danmaku(
+                message: '${currentGroup.first.message} x${currentGroup.length}',
+                time: currentGroup.first.time,
+                type: 5,
+                color: Utils.generateDanmakuColor(0xFFFFFF),
+                source: currentGroup.first.source,
+              ),
+            );
+          }
+          currentGroup = [item];
+        }
+      }
+
+      if (currentGroup.isNotEmpty) {
+        if (currentGroup.length == 1) {
+          result.add(currentGroup.first);
+        } else {
+          result.add(
+            Danmaku(
+              message: '${currentGroup.first.message} x${currentGroup.length}',
+              time: currentGroup.first.time,
+              type: 5,
+              color: Utils.generateDanmakuColor(0xFFFFFF),
+              source: currentGroup.first.source,
+            ),
+          );
+        }
+      }
+    });
+
+    return result;
   }
 
   static int extractEpisodeNumber(String input) {

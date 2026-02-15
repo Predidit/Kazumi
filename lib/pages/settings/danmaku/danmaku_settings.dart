@@ -30,6 +30,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   late bool danmakuScroll;
   late bool danmakuColor;
   late bool danmakuMassive;
+  late bool danmakuDeduplication;
   late bool danmakuBiliBiliSource;
   late bool danmakuGamerSource;
   late bool danmakuDanDanSource;
@@ -60,6 +61,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
     danmakuMassive =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
+    danmakuDeduplication = 
+        setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
     danmakuBiliBiliSource =
         setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
     danmakuGamerSource =
@@ -270,6 +273,17 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title: Text('海量弹幕', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('弹幕过多时进行叠加绘制', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuMassive,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    danmakuDeduplication = value ?? !danmakuDeduplication;
+                    await setting.put(
+                        SettingBoxKey.danmakuDeduplication, danmakuDeduplication);
+                    setState(() {});
+                  },
+                  title: Text('弹幕去重', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('相同内容弹幕过多时合并为一条弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: danmakuDeduplication,
                 ),
               ],
             ),

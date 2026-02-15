@@ -282,6 +282,7 @@ class SettingBoxKey {
       danmakuScroll = 'danmakuScroll',
       danmakuBottom = 'danmakuBottom',
       danmakuMassive = 'danmakuMassive',
+      danmakuDeduplication = 'danmakuDeduplication',
       danmakuArea = 'danmakuArea',
       danmakuColor = 'danmakuColor',
       danmakuDuration = 'danmakuDuration',

@@ -53,13 +53,28 @@ class _CollectPageState extends State<CollectPage>
     super.dispose();
   }
 
-  final List<Tab> tabs = const <Tab>[
-    Tab(text: '在看'),
-    Tab(text: '想看'),
-    Tab(text: '搁置'),
-    Tab(text: '看过'),
-    Tab(text: '抛弃'),
-  ];
+  List<Tab> get tabs {
+    final counts = List<int>.filled(5, 0);
+
+    for (final element in collectController.collectibles) {
+      final t = element.type;
+      if (t >= 1 && t <= 5) {
+        counts[t - 1] += 1;
+      }
+    }
+
+    String buildTitle(String title, int count) {
+      return count > 0 ? '$title（$count）' : title;
+    }
+
+    return <Tab>[
+      Tab(text: buildTitle('在看', counts[0])),
+      Tab(text: buildTitle('想看', counts[1])),
+      Tab(text: buildTitle('搁置', counts[2])),
+      Tab(text: buildTitle('看过', counts[3])),
+      Tab(text: buildTitle('抛弃', counts[4])),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {

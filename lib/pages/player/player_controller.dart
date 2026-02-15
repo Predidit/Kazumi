@@ -756,7 +756,12 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
-    for (var element in danmakus) {
+    final bool danmakuDeduplicationEnable = setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
+
+    // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
+    final List<Danmaku> listToAdd  = danmakuDeduplicationEnable ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5) : danmakus;
+
+    for (var element in listToAdd) {
       var danmakuList =
           danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
       danmakuList.add(element);

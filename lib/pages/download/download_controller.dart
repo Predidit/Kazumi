@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
@@ -31,7 +32,7 @@ abstract class _DownloadController with Store {
   bool _isResolving = false;
   bool _isBackgroundServiceInitialized = false;
 
-  void init() {
+  Future<void> init() async {
     final temp = _repository.getAllRecords();
     records.clear();
     records.addAll(temp);
@@ -53,8 +54,47 @@ abstract class _DownloadController with Store {
       }
     }
 
+    // 将旧 Hive danmakuData 迁移到独立文件，防止 Hive compact 时 OOM
+    await _migrateDanmakuDataToFiles();
+
     _downloadManager.onProgress = _onDownloadProgress;
-    _initBackgroundService();
+    await _initBackgroundService();
+  }
+
+  /// 启动时将所有旧 Hive danmakuData 迁移到独立文件并清空 Hive 字段
+  Future<void> _migrateDanmakuDataToFiles() async {
+    int migratedCount = 0;
+    for (final record in records) {
+      bool recordChanged = false;
+      for (final entry in record.episodes.entries) {
+        final episode = entry.value;
+        if (episode.danmakuData.isEmpty ||
+            episode.downloadDirectory.isEmpty) {
+          continue;
+        }
+        try {
+          // danmakuData 已经是弹幕数组的 JSON 字符串，直接拼接成新格式写入
+          // 避免 jsonDecode → Danmaku.fromJson × N → toJson × N → jsonEncode 的开销
+          final file = File(_danmakuFilePath(episode.downloadDirectory));
+          await file.writeAsString(
+              '{"danDanBangumiID":${episode.danDanBangumiID},"danmakus":${episode.danmakuData}}');
+          episode.danmakuData = '';
+          recordChanged = true;
+          migratedCount++;
+        } catch (e) {
+          KazumiLogger().w(
+              'DownloadController: danmaku migration failed for episode ${entry.key}',
+              error: e);
+        }
+      }
+      if (recordChanged) {
+        await _repository.putRecord(record);
+      }
+    }
+    if (migratedCount > 0) {
+      KazumiLogger().i(
+          'DownloadController: migrated danmaku data for $migratedCount episodes');
+    }
   }
 
   Future<void> _initBackgroundService() async {
@@ -212,21 +252,67 @@ abstract class _DownloadController with Store {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
   }
 
-  List<Danmaku>? getCachedDanmakus(
-      int bangumiId, String pluginName, int episodeNumber) {
-    final episode =
-        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
-    if (episode == null || episode.danmakuData.isEmpty) {
-      return null;
-    }
+  /// 弹幕文件路径
+  String _danmakuFilePath(String downloadDirectory) {
+    return '$downloadDirectory/danmaku.json';
+  }
+
+  /// 从文件读取弹幕数据
+  /// 支持新格式 (带 danDanBangumiID 的 wrapper) 和旧格式 (纯数组)
+  Future<({List<Danmaku> danmakus, int danDanBangumiID})?> _readDanmakuFromFile(
+      String downloadDirectory) async {
+    if (downloadDirectory.isEmpty) return null;
+    final file = File(_danmakuFilePath(downloadDirectory));
+    if (!await file.exists()) return null;
     try {
-      final List<dynamic> jsonList = jsonDecode(episode.danmakuData);
-      return jsonList.map((json) => Danmaku.fromJson(json)).toList();
+      final content = await file.readAsString();
+      final decoded = jsonDecode(content);
+      if (decoded is List) {
+        // 旧格式：纯弹幕数组
+        final danmakus =
+            decoded.map((json) => Danmaku.fromJson(json)).toList();
+        return (danmakus: danmakus, danDanBangumiID: 0);
+      } else if (decoded is Map<String, dynamic>) {
+        // 新格式：带 danDanBangumiID 的 wrapper
+        final danDanBangumiID = decoded['danDanBangumiID'] as int? ?? 0;
+        final List<dynamic> jsonList = decoded['danmakus'] as List? ?? [];
+        final danmakus =
+            jsonList.map((json) => Danmaku.fromJson(json)).toList();
+        return (danmakus: danmakus, danDanBangumiID: danDanBangumiID);
+      }
+      return null;
     } catch (e) {
       KazumiLogger()
-          .w('DownloadController: failed to parse cached danmaku', error: e);
+          .w('DownloadController: failed to read danmaku file', error: e);
       return null;
     }
+  }
+
+  /// 写入弹幕数据到文件 (新格式，包含 danDanBangumiID)
+  Future<void> _writeDanmakuToFile(
+      String downloadDirectory, List<Danmaku> danmakus, int danDanBangumiID) async {
+    if (downloadDirectory.isEmpty) return;
+    final file = File(_danmakuFilePath(downloadDirectory));
+    final wrapper = {
+      'danDanBangumiID': danDanBangumiID,
+      'danmakus': danmakus.map((d) => d.toJson()).toList(),
+    };
+    await file.writeAsString(jsonEncode(wrapper));
+  }
+
+  Future<List<Danmaku>?> getCachedDanmakus(
+      int bangumiId, String pluginName, int episodeNumber) async {
+    final episode =
+        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+    if (episode == null) return null;
+
+    // 从文件读取
+    final fromFile = await _readDanmakuFromFile(episode.downloadDirectory);
+    if (fromFile != null && fromFile.danmakus.isNotEmpty) {
+      return fromFile.danmakus;
+    }
+
+    return null;
   }
 
   Future<void> updateCachedDanmakus(
@@ -243,10 +329,14 @@ abstract class _DownloadController with Store {
     if (episode == null) return;
 
     try {
-      final danmakuJson = jsonEncode(danmakus.map((d) => d.toJson()).toList());
-      episode.danmakuData = danmakuJson;
-      episode.danDanBangumiID = danDanBangumiID;
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      // 写入独立文件而非 Hive
+      await _writeDanmakuToFile(
+          episode.downloadDirectory, danmakus, danDanBangumiID);
+      // 确保 Hive 中不存储弹幕大数据
+      if (episode.danmakuData.isNotEmpty) {
+        episode.danmakuData = '';
+        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      }
       KazumiLogger().i(
           'DownloadController: updated cached danmakus for episode $episodeNumber');
     } catch (e) {
@@ -445,19 +535,31 @@ abstract class _DownloadController with Store {
           return;
         }
 
-        // 序列化弹幕数据
-        final danmakuJson =
-            jsonEncode(danmakus.map((d) => d.toJson()).toList());
+        // 等待 downloadDirectory 就绪（下载管理器处理任务后才设置）
+        String downloadDirectory = '';
+        for (int i = 0; i < 10; i++) {
+          final record = _repository.getRecord(recordKey);
+          final episode = record?.episodes[episodeNumber];
+          if (episode == null) return;
+          if (episode.status == DownloadStatus.failed ||
+              episode.status == DownloadStatus.paused) {
+            return;
+          }
+          if (episode.downloadDirectory.isNotEmpty) {
+            downloadDirectory = episode.downloadDirectory;
+            break;
+          }
+          await Future.delayed(const Duration(seconds: 3));
+        }
+        if (downloadDirectory.isEmpty) {
+          KazumiLogger().w(
+              'DownloadController: downloadDirectory not ready for episode $episodeNumber, skipping danmaku cache');
+          return;
+        }
 
-        // 更新存储（重新获取最新的 episode 数据）
-        final record = _repository.getRecord(recordKey);
-        if (record == null) return;
-        final episode = record.episodes[episodeNumber];
-        if (episode == null) return;
-
-        episode.danmakuData = danmakuJson;
-        episode.danDanBangumiID = danDanBangumiID;
-        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+        // 写入独立文件
+        await _writeDanmakuToFile(
+            downloadDirectory, danmakus, danDanBangumiID);
 
         KazumiLogger().i(
             'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');

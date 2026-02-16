@@ -651,7 +651,7 @@ abstract class _PlayerController with Store {
     try {
       danDanmakus.clear();
       final downloadController = Modular.get<DownloadController>();
-      final cachedDanmakus = downloadController.getCachedDanmakus(
+      final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
         pluginName,
         episode,

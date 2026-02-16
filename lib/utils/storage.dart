@@ -276,6 +276,7 @@ class SettingBoxKey {
       arrowKeySkipTime = 'arrowKeySkipTime',
       danmakuEnhance = 'danmakuEnhance',
       danmakuBorder = 'danmakuBorder',
+      danmakuBorderSize = 'danmakuBorderSize',
       danmakuOpacity = 'danmakuOpacity',
       danmakuFontSize = 'danmakuFontSize',
       danmakuTop = 'danmakuTop',

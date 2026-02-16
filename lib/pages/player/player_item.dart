@@ -103,6 +103,7 @@ class _PlayerItemState extends State<PlayerItem>
   late double _danmakuLineHeight;
   late int _danmakuFontWeight;
   late bool _danmakuUseSystemFont;
+  late double _danmakuBorderSize;
 
   // 硬件解码
   late bool haEnable;
@@ -1346,6 +1347,8 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
     _danmakuUseSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
+    _danmakuBorderSize = 
+        setting.get(SettingBoxKey.danmakuBorderSize, defaultValue: 1.5);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
     playerTimer = getPlayerTimer();
@@ -1521,7 +1524,7 @@ class _PlayerItemState extends State<PlayerItem>
                           duration:
                               _danmakuDuration / playerController.playerSpeed,
                           lineHeight: _danmakuLineHeight,
-                          strokeWidth: _border ? 1.5 : 0.0,
+                          strokeWidth: _border ? _danmakuBorderSize : 0.0,
                           fontWeight: _danmakuFontWeight,
                           massiveMode: _massiveMode,
                           fontFamily: _danmakuUseSystemFont

@@ -314,9 +314,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   title: Text('弹幕描边粗细', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultdanmakuBorderSize,
-                    min: 0,
+                    min: 0.1,
                     max: 3,
-                    divisions: 30,
+                    divisions: 29,
                     label: defaultdanmakuBorderSize.toStringAsFixed(1),
                     onChanged: (value) {
                       updateDanmakuBorderSize(double.parse(value.toStringAsFixed(1)));

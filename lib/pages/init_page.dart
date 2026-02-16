@@ -47,7 +47,7 @@ class _InitPageState extends State<InitPage> {
     _loadDanmakuShield();
     _webDavInit();
     try {
-      downloadController.init();
+      await downloadController.init();
       _setupBackgroundDownloadNavigation();
     } catch (e) {
       KazumiLogger().e('InitPage: downloadController.init() failed', error: e);

@@ -7,7 +7,6 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/providers/providers.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -85,13 +84,15 @@ abstract class _VideoPageController with Store {
   /// 离线模式下的虚拟插件名
   String _offlinePluginName = '';
 
+  /// 离线模式下每个集数对应的 DownloadEpisode 对象（key=列表索引(0-based)）
+  /// 用于直接获取本地路径，绕过 composite key 查找
+  Map<int, DownloadEpisode> _offlineEpisodeMap = {};
+
   /// 用于取消正在进行的 queryRoads 操作
   CancelToken? _queryRoadsCancelToken;
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
-  final IDownloadRepository downloadRepository =
-      Modular.get<IDownloadRepository>();
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
   final Box setting = GStorage.setting;
 
@@ -145,7 +146,15 @@ abstract class _VideoPageController with Store {
   /// 构建离线模式的 roadList
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     roadList.clear();
-    episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    _offlineEpisodeMap = {};
+    episodes.sort((a, b) {
+      final cmp = a.road.compareTo(b.road);
+      return cmp != 0 ? cmp : a.episodeNumber.compareTo(b.episodeNumber);
+    });
+    // 存储每个集数的完整 DownloadEpisode 对象，以列表索引为 key
+    for (int i = 0; i < episodes.length; i++) {
+      _offlineEpisodeMap[i] = episodes[i];
+    }
     // 使用 '播放列表1' 作为名称，与 UI 代码兼容
     roadList.add(Road(
       name: '播放列表1',
@@ -162,11 +171,17 @@ abstract class _VideoPageController with Store {
     isOfflineMode = false;
     _offlineVideoPath = null;
     _offlinePluginName = '';
+    _offlineEpisodeMap = {};
   }
 
   String? get offlineVideoPath => _offlineVideoPath;
 
   String get offlinePluginName => _offlinePluginName;
+
+  /// 获取离线模式下当前集数的原始 road 值
+  int get currentOfflineOriginalRoad {
+    return _offlineEpisodeMap[currentEpisode - 1]?.road ?? 0;
+  }
 
   /// 获取当前实际的集数编号
   /// 在线模式下直接返回 currentEpisode
@@ -219,11 +234,13 @@ abstract class _VideoPageController with Store {
       return;
     }
 
-    final localPath = _getLocalVideoPath(
-      bangumiItem.id,
-      _offlinePluginName,
-      actualEpisodeNumber,
-    );
+    // 直接从存储的 episode 对象获取本地路径，绕过 composite key 查找
+    final downloadedEpisode = _offlineEpisodeMap[episode - 1];
+    if (downloadedEpisode == null) {
+      KazumiDialog.showToast(message: '该集数未下载');
+      return;
+    }
+    final localPath = downloadManager.getLocalVideoPath(downloadedEpisode);
     if (localPath == null) {
       KazumiDialog.showToast(message: '该集数未下载');
       return;
@@ -231,6 +248,7 @@ abstract class _VideoPageController with Store {
     _offlineVideoPath = localPath;
     loading = false;
 
+    final originalRoad = downloadedEpisode.road;
     KazumiLogger().i(
         'VideoPageController: offline episode changed to $actualEpisodeNumber (index: $episode), path: $localPath');
 
@@ -245,19 +263,11 @@ abstract class _VideoPageController with Store {
       adBlockerEnabled: false,
       episodeTitle: roadList[currentRoad].identifier[episode - 1],
       referer: '',
-      currentRoad: currentRoad,
+      currentRoad: originalRoad,
     );
 
     final playerController = Modular.get<PlayerController>();
     await playerController.init(params);
-  }
-
-  /// 获取本地视频路径
-  String? _getLocalVideoPath(
-      int bangumiId, String pluginName, int episodeNumber) {
-    final episode =
-        downloadRepository.getEpisode(bangumiId, pluginName, episodeNumber);
-    return downloadManager.getLocalVideoPath(episode);
   }
 
   /// 使用 VideoSourceProvider 解析视频源

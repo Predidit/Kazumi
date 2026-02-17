@@ -240,7 +240,7 @@ abstract class _PlayerController with Store {
     // 无论怎么拖动进度条，这个逻辑都能算出正确的锚点，Discord 时间就不会跳了
     if (isPlaying && mediaPlayer != null) {
       final currentPositionMs = mediaPlayer!.state.position.inMilliseconds;
-      if (currentPositionMs > 0) {
+      if (currentPositionMs >= 0) {
         startTimestamp = DateTime.now().millisecondsSinceEpoch - currentPositionMs;
       }
     }
@@ -319,6 +319,19 @@ abstract class _PlayerController with Store {
       });
     }
     setPlaybackSpeed(playerSpeed);
+    if (mediaPlayer != null) {
+      // 1. 监听播放状态：只要自动播放了，就立马通知 Discord
+      mediaPlayer!.stream.playing.listen((bool isPlaying) {
+        _updateDiscordRpc(isPlaying);
+      });
+
+      // 2. 监听缓冲结束：缓冲完后，重新校准时间，防止时间显示错误
+      mediaPlayer!.stream.buffering.listen((bool isBuffering) {
+        if (!isBuffering && mediaPlayer!.state.playing) {
+          _updateDiscordRpc(true);
+        }
+      });
+    }
     KazumiLogger().i('PlayerController: video initialized');
     loading = false;
     if (syncplayController?.isConnected ?? false) {

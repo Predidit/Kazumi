@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_webview_window
+  discord_rpc
   dynamic_color
   flutter_volume_controller
   media_kit_libs_linux

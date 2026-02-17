@@ -1,74 +1,83 @@
 import 'package:discord_rpc/discord_rpc.dart';
-import 'package:kazumi/utils/storage.dart';
 
 class DiscordRpcManager {
   static DiscordRPC? _rpc;
-  static String? _currentAppId;
+  static bool _isNativeInitialized = false; // 🔥 新增：防止重复初始化导致崩溃
 
-  // 初始化
+  // 🔴🔴🔴 致命关键点 🔴🔴🔴
+  // 请立刻删除下面这串数字，填入你 Discord Developer Portal 里的真实 Application ID
+  // 如果这里是 "123456789012345678"，你永远看不见状态！
+  static const String _appId = "1473047818498216028"; 
+
   static void init() {
     try {
-      final setting = GStorage.setting;
-      // 默認關閉，你需要去設置裡開啟或者在這裡改成 true 進行測試
-      final bool enable = setting.get(SettingBoxKey.discordRpcEnable, defaultValue: false);
-      final String? clientId = setting.get(SettingBoxKey.discordClientId);
+      if (_rpc != null) return;
 
-      if (!enable || clientId == null || clientId.isEmpty) {
-        clear();
-        return;
+      // 🔥 修复崩溃的核心逻辑：检查是否已经加载过原生库
+      if (!_isNativeInitialized) {
+        try {
+          DiscordRPC.initialize();
+          _isNativeInitialized = true; // 标记为已加载
+        } catch (e) {
+          // 如果它抱怨"Already initialized"，说明已经是 true 了，忽略这个错误
+          _isNativeInitialized = true;
+        }
       }
 
-      // 如果 Client ID 變更，重啟服務
-      if (_rpc != null && _currentAppId != clientId) {
-        _rpc!.shutDown();
-        _rpc = null;
-      }
-
-      if (_rpc == null) {
-        _rpc = DiscordRPC(applicationId: clientId);
-        _rpc!.start(autoRegister: true);
-        _currentAppId = clientId;
-      }
-    } catch (_) {}
+      // 创建实例
+      _rpc = DiscordRPC(applicationId: _appId);
+      
+      // 启动服务
+      _rpc?.start(autoRegister: true);
+      
+      print('🔥🔥🔥 [RPC] 服务已启动，ID: $_appId');
+    } catch (e) {
+      print('🔥🔥🔥 [RPC] 初始化失败: $e');
+      _rpc = null; 
+    }
   }
 
-  // 更新狀態 (支持 int 類型的集數)
   static void updatePresence({
     required String animeTitle,
     required int episode,
     required bool isPlaying,
     int? remainingSeconds,
   }) {
-    // 二次檢查開關
-    if (!GStorage.setting.get(SettingBoxKey.discordRpcEnable, defaultValue: false)) return;
-    
     if (_rpc == null) init();
 
-    if (_rpc != null) {
+    if (_rpc == null) {
+      // 如果 init 还是失败，不再打印骚扰日志，静默返回
+      return;
+    }
+
+    try {
+      String safeTitle = animeTitle.length < 2 ? "$animeTitle  " : animeTitle;
+
       _rpc!.updatePresence(
         DiscordPresence(
-          details: animeTitle,
-          state: "第 $episode 集", // 自動將 int 轉為 String
-          // 如果正在播放，顯示剩餘時間倒計時
+          details: safeTitle,
+          state: "第 $episode 集",
           endTimeStamp: isPlaying && remainingSeconds != null
               ? DateTime.now().millisecondsSinceEpoch + (remainingSeconds * 1000)
               : null,
-          largeImageKey: 'logo', // 需在 Discord 開發者後台配置
+          largeImageKey: 'logo',
           largeImageText: "Kazumi Player",
           smallImageKey: isPlaying ? 'play' : 'pause',
           smallImageText: isPlaying ? 'Playing' : 'Paused',
         ),
       );
+      print('✅ [RPC] 状态包发送成功');
+    } catch (e) {
+      print('❌ [RPC] 发送异常: $e');
     }
   }
 
-  // 清理
   static void clear() {
     try {
       _rpc?.clearPresence();
       _rpc?.shutDown();
     } catch (_) {}
     _rpc = null;
-    _currentAppId = null;
+    // 注意：不要把 _isNativeInitialized 设为 false，原生库加载一次就够了
   }
 }

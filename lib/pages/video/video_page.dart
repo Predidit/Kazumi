@@ -152,6 +152,7 @@ class _VideoPageState extends State<VideoPage>
               .identifier[videoPageController.currentEpisode - 1],
           referer: '',
           currentRoad: videoPageController.currentRoad,
+          videoName: Modular.get<VideoPageController>().title,
         );
         await playerController.init(params);
       }

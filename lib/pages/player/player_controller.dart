@@ -39,6 +39,8 @@ class PlaybackInitParams {
   final String referer;
   final int currentRoad;
 
+  final String videoName;
+
   const PlaybackInitParams({
     required this.videoUrl,
     required this.offset,
@@ -51,6 +53,7 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    required this.videoName,
   });
 }
 
@@ -83,7 +86,7 @@ abstract class _PlayerController with Store {
   late int currentRoad;
   late String referer;
 
-  String _rpcAnimeTitle = "";
+  String _rpcVideoName = "";
   int _rpcEpisode = 0;
 
   // 弹幕控制
@@ -229,20 +232,24 @@ abstract class _PlayerController with Store {
   bool isLocalPlayback = false;
 
   void _updateDiscordRpc(bool isPlaying) {
-    int? remaining;
-    // 計算剩餘時間 (總時長 - 當前位置)
+    int? startTimestamp;
+    
+    // 🔥 核心算法：反向计算“虚拟开始时间”
+    // 公式：当前系统时间 - 视频当前进度 = 开始时间
+    // 比如：现在是 12:00:00，视频播到了 00:05:00，那么开始时间就是 11:55:00
+    // 无论怎么拖动进度条，这个逻辑都能算出正确的锚点，Discord 时间就不会跳了
     if (isPlaying && mediaPlayer != null) {
-      final total = mediaPlayer!.state.duration.inSeconds;
-      final current = mediaPlayer!.state.position.inSeconds;
-      if (total > current) {
-        remaining = total - current;
+      final currentPositionMs = mediaPlayer!.state.position.inMilliseconds;
+      if (currentPositionMs > 0) {
+        startTimestamp = DateTime.now().millisecondsSinceEpoch - currentPositionMs;
       }
     }
+
     DiscordRpcManager.updatePresence(
-      animeTitle: _rpcAnimeTitle,
-      episode: _rpcEpisode,
+      title: _rpcVideoName,      // 传入视频源名字
+      subTitle: "第 $_rpcEpisode 集", 
       isPlaying: isPlaying,
-      remainingSeconds: remaining,
+      startTimeEpoch: startTimestamp, // 传入修正后的时间戳
     );
   }
 
@@ -254,10 +261,10 @@ abstract class _PlayerController with Store {
     currentRoad = params.currentRoad;
     referer = params.referer;
 
-    _rpcAnimeTitle = params.episodeTitle;
+    _rpcVideoName = params.videoName; 
     _rpcEpisode = params.episode;
+    
     DiscordRpcManager.init();
-    // 默認開始播放狀態
     _updateDiscordRpc(true);
 
     KazumiLogger().i(

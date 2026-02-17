@@ -1,88 +1,117 @@
 import 'package:discord_rpc/discord_rpc.dart';
+import 'package:kazumi/utils/storage.dart'; // 引入存储库
 
 class DiscordRpcManager {
   static DiscordRPC? _rpc;
-  static bool _isNativeInitialized = false; // 防止重複加載原生庫導致崩潰
+  static bool _isNativeInitialized = false;
+  static String? _currentAppId; // 用于记录当前正在使用的 ID
 
-  // 🔴🔴🔴【重要】請在此填入你的 Application ID (純數字字符串) 🔴🔴🔴
-  static const String _appId = "1473047818498216028"; 
+  // 缓存最后一次发送的 Presence，用于重连后补发
+  static DiscordPresence? _pendingPresence;
 
-  /// 初始化 RPC 服務
+  /// 初始化 RPC 服务
   static void init() {
     try {
-      if (_rpc != null) return;
+      // 1. 从设置中读取 Application ID
+      final String? userAppId = GStorage.setting.get(SettingBoxKey.discordClientId);
+      // 也可以顺便读取一下开关，如果用户关了 RPC，直接退出
+      final bool enable = GStorage.setting.get(SettingBoxKey.discordRpcEnable, defaultValue: false);
 
-      // 1. 安全加載原生庫 (整個 App 生命周期只能執行一次)
+      // 如果未开启，或者 ID 为空，直接清理并退出
+      if (!enable || userAppId == null || userAppId.trim().isEmpty) {
+        if (_rpc != null) clear(); // 如果之前连着，现在关了，要断开
+        return;
+      }
+
+      final String targetId = userAppId.trim();
+
+      // 2. 智能判断：如果 RPC 已经启动，且 ID 没变，就不用重启了
+      if (_rpc != null && _currentAppId == targetId) {
+        return;
+      }
+
+      // 3. 如果 ID 变了（或者第一次启动），先清理旧的
+      if (_rpc != null) {
+        print('🔥🔥🔥 [RPC] 检测到 ID 变更，正在重启服务...');
+        clear();
+      }
+
+      // 4. 初始化原生库 (只做一次)
       if (!_isNativeInitialized) {
         try {
           DiscordRPC.initialize();
           _isNativeInitialized = true;
         } catch (_) {
-          // 如果報錯"Already initialized"，說明已經加載過了，忽略即可
           _isNativeInitialized = true;
         }
       }
 
-      // 2. 創建實例並啟動
-      _rpc = DiscordRPC(applicationId: _appId);
+      // 5. 启动新连接
+      _rpc = DiscordRPC(applicationId: targetId);
       _rpc?.start(autoRegister: true);
+      _currentAppId = targetId; // 记录当前 ID
       
-      print('🔥🔥🔥 [RPC] 服務已啟動');
+      print('🔥🔥🔥 [RPC] 服务已启动，ID: $targetId');
     } catch (e) {
-      print('🔥🔥🔥 [RPC] 初始化失敗: $e');
-      _rpc = null; 
+      print('🔥🔥🔥 [RPC] 初始化失败: $e');
+      _rpc = null;
+      _currentAppId = null;
     }
   }
 
-  /// 更新狀態核心方法
+  /// 更新状态
   static void updatePresence({
-    required String title,      // 第一行：視頻源標題
-    required String subTitle,   // 第二行：集數
-    required bool isPlaying,    // 播放狀態
-    int? startTimeEpoch,        // 開始播放的時間戳 (用於顯示 "已播放 xx:xx")
+    required String title,
+    required String subTitle,
+    required bool isPlaying,
+    int? startTimeEpoch,
   }) {
-    // 如果服務未啟動，嘗試啟動
-    if (_rpc == null) init();
-    
-    // 如果還是空，說明初始化徹底失敗，直接返回防止報錯
+    // 每次更新前都尝试 init，确保能响应设置的变化
+    init(); 
+
     if (_rpc == null) return;
 
     try {
-      // Discord 規則保護：字段長度必須 >= 2 字符
+      // 字段长度保护
       String safeTitle = title.length < 2 ? "$title  " : title;
       String safeSub = subTitle.length < 2 ? "$subTitle " : subTitle;
 
-      _rpc!.updatePresence(
-        DiscordPresence(
-          details: safeTitle,
-          state: safeSub,
-          
-          // 🔥 核心時間邏輯：
-          // 傳入 "開始播放的時間點"，Discord 會自動計算 "CurrentTime - StartTime"
-          // 這樣無論怎麼拖動進度條，顯示的 "已播放時長" 都是平滑準確的
-          startTimeStamp: isPlaying && startTimeEpoch != null
-              ? startTimeEpoch
-              : null,
-          
-          // 圖片資源 (必須與 Developer Portal 上傳的一致)
-          largeImageKey: 'logo',
-          largeImageText: "Kazumi Player",
-          smallImageKey: isPlaying ? 'play' : 'pause',
-          smallImageText: isPlaying ? 'Playing' : 'Paused',
-        ),
+      final presence = DiscordPresence(
+        details: safeTitle,
+        state: safeSub,
+        startTimeStamp: isPlaying && startTimeEpoch != null ? startTimeEpoch : null,
+        largeImageKey: 'logo',
+        largeImageText: "Kazumi Player",
+        smallImageKey: isPlaying ? 'play' : 'pause',
+        smallImageText: isPlaying ? 'Playing' : 'Paused',
       );
+
+      _pendingPresence = presence; // 缓存
+
+      _rpc!.updatePresence(presence);
+
+      // 暴力补刀机制 (应对刚启动时的连接延迟)
+      if (isPlaying) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (_rpc != null && _pendingPresence != null) {
+            try { _rpc!.updatePresence(_pendingPresence!); } catch (_) {}
+          }
+        });
+      }
+
     } catch (e) {
-      print('❌ [RPC] 發送異常: $e');
+      print('❌ [RPC] 发送异常: $e');
     }
   }
 
-  /// 清理資源
+  /// 清理资源
   static void clear() {
     try {
       _rpc?.clearPresence();
       _rpc?.shutDown();
     } catch (_) {}
     _rpc = null;
-    // 注意：不要把 _isNativeInitialized 設為 false，原生庫加載一次就夠了
+    _currentAppId = null; // 清空当前 ID 记录
+    _pendingPresence = null;
   }
 }

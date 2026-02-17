@@ -233,24 +233,49 @@ abstract class _PlayerController with Store {
 
   void _updateDiscordRpc(bool isPlaying) {
     int? startTimestamp;
-    
-    // 🔥 核心算法：反向计算“虚拟开始时间”
-    // 公式：当前系统时间 - 视频当前进度 = 开始时间
-    // 比如：现在是 12:00:00，视频播到了 00:05:00，那么开始时间就是 11:55:00
-    // 无论怎么拖动进度条，这个逻辑都能算出正确的锚点，Discord 时间就不会跳了
-    if (isPlaying && mediaPlayer != null) {
-      final currentPositionMs = mediaPlayer!.state.position.inMilliseconds;
-      if (currentPositionMs >= 0) {
-        startTimestamp = DateTime.now().millisecondsSinceEpoch - currentPositionMs;
+    String stateText = "第 $_rpcEpisode 集"; // 默认显示的文字
+
+    if (mediaPlayer != null) {
+      final currentPosition = mediaPlayer!.state.position;
+      final currentPositionMs = currentPosition.inMilliseconds;
+
+      if (isPlaying) {
+        // 🔥 情况A：正在播放
+        // 计算“开始时间”，让 Discord 显示 "05:23 elapsed" 并自动走秒
+        if (currentPositionMs >= 0) {
+          startTimestamp = DateTime.now().millisecondsSinceEpoch - currentPositionMs;
+        }
+      } else {
+        // 🔥 情况B：暂停
+        // 不传 startTimestamp (让计时器消失)
+        // 改为在文字后面加上 "(暂停于 05:23)"
+        if (currentPositionMs > 0) {
+          stateText += " (暂停于 ${_formatDuration(currentPosition)})";
+        } else {
+           stateText += " (已暂停)";
+        }
       }
     }
 
     DiscordRpcManager.updatePresence(
-      title: _rpcVideoName,      // 传入视频源名字
-      subTitle: "第 $_rpcEpisode 集", 
+      title: _rpcVideoName,
+      subTitle: stateText, // 这里传入带暂停时间的文字
       isPlaying: isPlaying,
-      startTimeEpoch: startTimestamp, // 传入修正后的时间戳
+      startTimeEpoch: startTimestamp, // 暂停时这里是 null，计时器会自动隐藏
     );
+  }
+  
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    
+    // 如果超过1小时，显示 HH:MM:SS，否则显示 MM:SS
+    if (duration.inHours > 0) {
+      return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+    } else {
+      return "$twoDigitMinutes:$twoDigitSeconds";
+    }
   }
 
   Future<void> init(PlaybackInitParams params) async {

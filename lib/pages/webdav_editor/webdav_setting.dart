@@ -19,6 +19,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool webDavEnable;
   late bool webDavEnableHistory;
   late bool enableGitProxy;
+  late bool discordRpcEnable;
 
   @override
   void initState() {
@@ -28,6 +29,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
     enableGitProxy =
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    discordRpcEnable =
+        setting.get(SettingBoxKey.discordRpcEnable, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -35,6 +38,41 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
       KazumiDialog.dismiss();
       return;
     }
+  }
+
+  void showClientIdDialog(BuildContext context) {
+    final TextEditingController controller = TextEditingController(
+      text: setting.get(SettingBoxKey.discordClientId, defaultValue: ''),
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('设置 Discord Client ID'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: '请输入 Application ID',
+              helperText: '请在 Discord Developer Portal 获取',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                setting.put(SettingBoxKey.discordClientId, controller.text.trim());
+                setState(() {});
+                Navigator.pop(context);
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> checkWebDav() async {
@@ -203,6 +241,34 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     downloadWebdav();
                   },
                   title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('Discord RPC', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    discordRpcEnable = value ?? !discordRpcEnable;
+                    await setting.put(SettingBoxKey.discordRpcEnable, discordRpcEnable);
+                    setState(() {});
+                  },
+                  title: Text('状态同步', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('在 Discord 个人资料中显示正在观看的动画', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: discordRpcEnable,
+                ),
+                SettingsTile(
+                  title: Text('Client ID', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(
+                    // 修复逻辑：
+                    // 1. 统一取值，如果没有就取空字符串
+                    // 2. 检查是否为空，如果为空显示"点击设置"，否则显示ID
+                    (setting.get(SettingBoxKey.discordClientId, defaultValue: '') as String).isEmpty
+                        ? '点击设置'
+                        : setting.get(SettingBoxKey.discordClientId, defaultValue: ''),
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
+                  onPressed: (_) => showClientIdDialog(context),
                 ),
               ],
             ),

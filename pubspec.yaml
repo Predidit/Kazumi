@@ -113,6 +113,7 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: 190b4ce29d7edbec4243cba54119f047056ddb4f
       path: ./libs/universal/media_kit_libs_video
+  discord_rpc:
 
 dependency_overrides:
   media_kit_libs_linux:

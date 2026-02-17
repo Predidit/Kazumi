@@ -22,6 +22,7 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/utils/discord_rpc_manager.dart';
 
 part 'player_controller.g.dart';
 
@@ -81,6 +82,9 @@ abstract class _PlayerController with Store {
   late int currentEpisode;
   late int currentRoad;
   late String referer;
+
+  String _rpcAnimeTitle = "";
+  int _rpcEpisode = 0;
 
   // 弹幕控制
   late DanmakuController danmakuController;
@@ -224,6 +228,24 @@ abstract class _PlayerController with Store {
 
   bool isLocalPlayback = false;
 
+  void _updateDiscordRpc(bool isPlaying) {
+    int? remaining;
+    // 計算剩餘時間 (總時長 - 當前位置)
+    if (isPlaying && mediaPlayer != null) {
+      final total = mediaPlayer!.state.duration.inSeconds;
+      final current = mediaPlayer!.state.position.inSeconds;
+      if (total > current) {
+        remaining = total - current;
+      }
+    }
+    DiscordRpcManager.updatePresence(
+      animeTitle: _rpcAnimeTitle,
+      episode: _rpcEpisode,
+      isPlaying: isPlaying,
+      remainingSeconds: remaining,
+    );
+  }
+
   Future<void> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
@@ -231,6 +253,12 @@ abstract class _PlayerController with Store {
     currentEpisode = params.episode;
     currentRoad = params.currentRoad;
     referer = params.referer;
+
+    _rpcAnimeTitle = params.episodeTitle;
+    _rpcEpisode = params.episode;
+    DiscordRpcManager.init();
+    // 默認開始播放狀態
+    _updateDiscordRpc(true);
 
     KazumiLogger().i(
         'PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
@@ -557,6 +585,9 @@ abstract class _PlayerController with Store {
     currentPosition = duration;
     danmakuController.clear();
     await mediaPlayer!.seek(duration);
+    if (playing) {
+      _updateDiscordRpc(true);
+    }
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -569,6 +600,7 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer!.pause();
     playing = false;
+    _updateDiscordRpc(false);
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -581,6 +613,7 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer!.play();
     playing = true;
+    _updateDiscordRpc(true);
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -590,6 +623,7 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> dispose({bool disposeSyncPlayController = true}) async {
+    DiscordRpcManager.clear();
     if (disposeSyncPlayController) {
       try {
         syncplayRoom = '';

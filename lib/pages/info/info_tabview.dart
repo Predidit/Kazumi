@@ -5,12 +5,14 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
+import 'package:kazumi/bean/card/bangumi_history_card.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -27,6 +29,7 @@ class InfoTabView extends StatefulWidget {
     required this.characterList,
     required this.staffList,
     required this.isLoading,
+    required this.historyList,
   });
 
   final bool commentsQueryTimeout;
@@ -41,6 +44,7 @@ class InfoTabView extends StatefulWidget {
   final List<CharacterItem> characterList;
   final List<StaffFullItem> staffList;
   final bool isLoading;
+  final List<History> historyList;
 
   @override
   State<InfoTabView> createState() => _InfoTabViewState();
@@ -458,6 +462,74 @@ class _InfoTabViewState extends State<InfoTabView>
     );
   }
 
+  Widget get historyListBody {
+    return Builder(
+      builder: (BuildContext context) {
+        return CustomScrollView(
+          scrollBehavior: const ScrollBehavior().copyWith(
+            scrollbars: false,
+          ),
+          key: const PageStorageKey<String>('历史'),
+          slivers: <Widget>[
+            SliverOverlapInjector(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            ),
+            SliverLayoutBuilder(builder: (context, _) {
+              if (widget.historyList.isEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(child: Text('暂无历史记录 (´;ω;`)')),
+                );
+              }
+
+              double cardHeight = 120;
+
+              return SliverList.separated(
+                itemCount: widget.historyList.length,
+                itemBuilder: (context, index) {
+                  return SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: SizedBox(
+                          width: MediaQuery.sizeOf(context).width > maxWidth
+                              ? maxWidth
+                              : MediaQuery.sizeOf(context).width - 32,
+                          child: BangumiHistoryCardV(
+                            showDelete: false,
+                            cardHeight: cardHeight,
+                            historyItem: widget.historyList[index],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder: (BuildContext context, int index) {
+                  return Center(
+                    child: SizedBox(
+                      width: MediaQuery.sizeOf(context).width > maxWidth
+                          ? maxWidth
+                          : MediaQuery.sizeOf(context).width - 32,
+                      child: const Divider(
+                        thickness: 0.5, 
+                        indent: 10, 
+                        endIndent: 10,
+                        height: 1,
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+            // const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return TabBarView(
@@ -516,6 +588,7 @@ class _InfoTabViewState extends State<InfoTabView>
           },
         ),
         staffListBody,
+        historyListBody,
       ],
     );
   }

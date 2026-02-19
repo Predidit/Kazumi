@@ -1,6 +1,7 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/request/bangumi.dart';
@@ -9,6 +10,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 
 part 'info_controller.g.dart';
 
@@ -16,6 +18,7 @@ class InfoController = _InfoController with _$InfoController;
 
 abstract class _InfoController with Store {
   final CollectController collectController = Modular.get<CollectController>();
+  final HistoryController historyController = Modular.get<HistoryController>();
   late BangumiItem bangumiItem;
 
   @observable
@@ -35,6 +38,11 @@ abstract class _InfoController with Store {
 
   @observable
   var staffList = ObservableList<StaffFullItem>();
+
+  @computed
+  List<History> get currentHistory => historyController.histories
+      .where((h) => h.bangumiItem.id == bangumiItem.id)
+      .toList();
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;

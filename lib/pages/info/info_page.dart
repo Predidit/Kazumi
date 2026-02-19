@@ -8,6 +8,7 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -32,6 +33,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   /// Don't use modular singleton here. We may have multiple info pages.
   /// Use a new instance of InfoController for each info page.
   final InfoController infoController = InfoController();
+  final HistoryController historyController = Modular.get<HistoryController>();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -135,8 +137,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
-    infoTabController = TabController(length: 5, vsync: this);
+    infoTabController = TabController(length: 6, vsync: this);
     showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    historyController.init();
     infoTabController.addListener(() {
       int index = infoTabController.index;
       if (index == 1 &&
@@ -178,7 +181,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> tabs = <String>['概览', '吐槽', '角色', '评论', '制作人员'];
+    final List<String> tabs = <String>['概览', '吐槽', '角色', '评论', '制作人员', '历史记录'];
     final bool showWindowButton = GStorage.setting
         .get(SettingBoxKey.showWindowButton, defaultValue: false);
     return PopScope(
@@ -352,6 +355,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
                 isLoading: infoController.isLoading,
+                historyList: infoController.currentHistory,
               );
             }),
           ),

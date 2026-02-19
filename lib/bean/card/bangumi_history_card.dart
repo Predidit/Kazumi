@@ -17,12 +17,14 @@ class BangumiHistoryCardV extends StatefulWidget {
     super.key,
     required this.historyItem,
     this.showDelete = true,
+    this.canPlay = false, // 在showDelete时默认不可点击
     this.cardHeight = 120,
     this.cardWidth,
   });
 
   final History historyItem;
   final bool showDelete;
+  final bool canPlay;
   final double cardHeight;
   final double? cardWidth;
 
@@ -88,7 +90,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       color: theme.colorScheme.surface,
       child: InkWell(
         onTap: () async {
-          if (widget.showDelete) {
+          if (widget.showDelete && !widget.canPlay) {
             KazumiDialog.showToast(
               message: '编辑模式',
             );

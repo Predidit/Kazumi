@@ -497,7 +497,8 @@ class _InfoTabViewState extends State<InfoTabView>
                               ? maxWidth
                               : MediaQuery.sizeOf(context).width - 32,
                           child: BangumiHistoryCardV(
-                            showDelete: false,
+                            showDelete: true,
+                            canPlay: true,
                             cardHeight: cardHeight,
                             historyItem: widget.historyList[index],
                           ),
@@ -523,7 +524,6 @@ class _InfoTabViewState extends State<InfoTabView>
                 },
               );
             }),
-            // const SliverToBoxAdapter(child: SizedBox(height: 80)),
           ],
         );
       },

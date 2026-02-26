@@ -54,11 +54,49 @@ abstract class _DownloadController with Store {
       }
     }
 
+    // 将旧 episode key 迁移到 composite key (road * 100000 + episodeNumber)
+    await _migrateEpisodeKeysToComposite();
+
     // 将旧 Hive danmakuData 迁移到独立文件，防止 Hive compact 时 OOM
     await _migrateDanmakuDataToFiles();
 
     _downloadManager.onProgress = _onDownloadProgress;
     await _initBackgroundService();
+  }
+
+  /// 将旧 episode key (裸 episodeNumber) 迁移到 composite key (road * 100000 + episodeNumber)
+  /// Road 0 的 key 不变 (0 * 100000 + n == n)，只有 road > 0 的需要迁移
+  /// 同时处理 alternative key (>= 10000000) 不被误迁移
+  Future<void> _migrateEpisodeKeysToComposite() async {
+    for (final record in records) {
+      final newEpisodes = <int, DownloadEpisode>{};
+      bool needsMigration = false;
+      for (final entry in record.episodes.entries) {
+        final ep = entry.value;
+        final expectedKey = DownloadRecord.episodeKey(ep.road, ep.episodeNumber);
+        if (entry.key == expectedKey || entry.key >= 10000000) {
+          // 已是正确的 composite key 或 alternative key，保持不变
+          newEpisodes[entry.key] = ep;
+        } else if (!newEpisodes.containsKey(expectedKey)) {
+          // 旧格式 key，迁移到 composite key
+          needsMigration = true;
+          newEpisodes[expectedKey] = ep;
+        } else {
+          // composite key 已被占用（不同系列同号集数），分配 alternative key
+          needsMigration = true;
+          var altKey = 10000000;
+          while (newEpisodes.containsKey(altKey)) altKey++;
+          newEpisodes[altKey] = ep;
+        }
+      }
+      if (needsMigration) {
+        record.episodes.clear();
+        record.episodes.addAll(newEpisodes);
+        await _repository.putRecord(record);
+        KazumiLogger().i(
+            'DownloadController: migrated episode keys for ${record.key}');
+      }
+    }
   }
 
   /// 启动时将所有旧 Hive danmakuData 迁移到独立文件并清空 Hive 字段
@@ -122,6 +160,8 @@ abstract class _DownloadController with Store {
   DateTime _lastUiUpdateTime = DateTime.now();
   static const _uiUpdateInterval = Duration(milliseconds: 500);
 
+  /// [episodeNumber] 此处实际为 composite key (road * 100000 + episodeNumber)，
+  /// 由 download_manager 透传回来，与 record.episodes 的 map key 一致。
   void _onDownloadProgress(String recordKey, int episodeNumber,
       DownloadEpisode episode, double speed) {
     final record = _repository.getRecord(recordKey);
@@ -205,8 +245,8 @@ abstract class _DownloadController with Store {
     );
   }
 
-  double getSpeed(int bangumiId, String pluginName, int episodeNumber) {
-    final key = '${pluginName}_${bangumiId}_$episodeNumber';
+  double getSpeed(int bangumiId, String pluginName, int episodeKey) {
+    final key = '${pluginName}_${bangumiId}_$episodeKey';
     return _speeds[key] ?? 0.0;
   }
 
@@ -232,8 +272,8 @@ abstract class _DownloadController with Store {
   }
 
   DownloadEpisode? getEpisode(
-      int bangumiId, String pluginName, int episodeNumber) {
-    return _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+      int bangumiId, String pluginName, int road, int episodeNumber) {
+    return _repository.getEpisode(bangumiId, pluginName, road, episodeNumber);
   }
 
   DownloadEpisode? getEpisodeByUrl(
@@ -242,9 +282,9 @@ abstract class _DownloadController with Store {
   }
 
   String? getLocalVideoPath(
-      int bangumiId, String pluginName, int episodeNumber) {
+      int bangumiId, String pluginName, int road, int episodeNumber) {
     final episode =
-        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+        _repository.getEpisode(bangumiId, pluginName, road, episodeNumber);
     return _downloadManager.getLocalVideoPath(episode);
   }
 
@@ -301,9 +341,9 @@ abstract class _DownloadController with Store {
   }
 
   Future<List<Danmaku>?> getCachedDanmakus(
-      int bangumiId, String pluginName, int episodeNumber) async {
+      int bangumiId, String pluginName, int road, int episodeNumber) async {
     final episode =
-        _repository.getEpisode(bangumiId, pluginName, episodeNumber);
+        _repository.getEpisode(bangumiId, pluginName, road, episodeNumber);
     if (episode == null) return null;
 
     // 从文件读取
@@ -318,14 +358,16 @@ abstract class _DownloadController with Store {
   Future<void> updateCachedDanmakus(
     int bangumiId,
     String pluginName,
+    int road,
     int episodeNumber,
     List<Danmaku> danmakus,
     int danDanBangumiID,
   ) async {
     final recordKey = '${pluginName}_$bangumiId';
+    final compositeKey = DownloadRecord.episodeKey(road, episodeNumber);
     final record = _repository.getRecord(recordKey);
     if (record == null) return;
-    final episode = record.episodes[episodeNumber];
+    final episode = record.episodes[compositeKey];
     if (episode == null) return;
 
     try {
@@ -335,10 +377,10 @@ abstract class _DownloadController with Store {
       // 确保 Hive 中不存储弹幕大数据
       if (episode.danmakuData.isNotEmpty) {
         episode.danmakuData = '';
-        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+        await _repository.updateEpisode(recordKey, compositeKey, episode);
       }
       KazumiLogger().i(
-          'DownloadController: updated cached danmakus for episode $episodeNumber');
+          'DownloadController: updated cached danmakus for episode $episodeNumber (road $road)');
     } catch (e) {
       KazumiLogger()
           .w('DownloadController: failed to update cached danmaku', error: e);
@@ -354,6 +396,8 @@ abstract class _DownloadController with Store {
     required String episodeName,
     required int road,
     required String episodePageUrl,
+    String sourceDetailUrl = '',
+    String sourceTitle = '',
   }) async {
     final recordKey = '${pluginName}_$bangumiId';
 
@@ -369,9 +413,10 @@ abstract class _DownloadController with Store {
 
     if (episodePageUrl.isNotEmpty) {
       for (final entry in record.episodes.entries) {
-        if (entry.value.episodePageUrl == episodePageUrl) {
+        if (entry.value.episodePageUrl == episodePageUrl &&
+            entry.value.road == road) {
           KazumiLogger().i(
-              'DownloadController: episode URL already exists at position ${entry.key}, skipping');
+              'DownloadController: episode URL already exists at position ${entry.key} (road $road), skipping');
           return;
         }
       }
@@ -392,9 +437,19 @@ abstract class _DownloadController with Store {
       '',
       0,
       episodePageUrl,
+      sourceDetailUrl: sourceDetailUrl,
+      sourceTitle: sourceTitle,
     );
 
-    record.episodes[episodeNumber] = episode;
+    // 检测 key 冲突：不同系列（如石之海 vs 不灭钻石）可能共享 bangumiId + road + episodeNumber
+    var key = DownloadRecord.episodeKey(road, episodeNumber);
+    final existing = record.episodes[key];
+    if (existing != null && existing.episodePageUrl != episodePageUrl) {
+      key = _findFreeKey(record);
+      KazumiLogger().i(
+          'DownloadController: composite key conflict (road=$road, ep=$episodeNumber), using alternative key $key');
+    }
+    record.episodes[key] = episode;
     await _repository.putRecord(record);
     refreshRecords();
 
@@ -402,7 +457,8 @@ abstract class _DownloadController with Store {
       recordKey: recordKey,
       bangumiId: bangumiId,
       pluginName: pluginName,
-      episodeNumber: episodeNumber,
+      episodeNumber: key,
+      actualEpisodeNumber: episodeNumber,
       episodePageUrl: episodePageUrl,
     ));
     _processResolveQueue();
@@ -506,16 +562,19 @@ abstract class _DownloadController with Store {
         request.recordKey,
         request.bangumiId,
         request.episodeNumber,
+        request.actualEpisodeNumber,
       );
     }
   }
 
+  /// [episodeNumber] 是 composite key（用于 map lookup）
+  /// [actualEpisodeNumber] 是实际集数编号（用于 DanDanPlay API 查询）
   void _fetchAndCacheDanmakuAsync(
-      String recordKey, int bangumiId, int episodeNumber) {
+      String recordKey, int bangumiId, int episodeNumber, int actualEpisodeNumber) {
     Future(() async {
       try {
         KazumiLogger().i(
-            'DownloadController: fetching danmaku for episode $episodeNumber (async)');
+            'DownloadController: fetching danmaku for episode $actualEpisodeNumber (async)');
 
         // 获取 DanDan 番剧 ID
         final danDanBangumiID =
@@ -526,16 +585,17 @@ abstract class _DownloadController with Store {
           return;
         }
 
-        // 获取弹幕列表
+        // 获取弹幕列表（使用实际集数编号）
         final danmakus =
-            await DanmakuRequest.getDanDanmaku(danDanBangumiID, episodeNumber);
+            await DanmakuRequest.getDanDanmaku(danDanBangumiID, actualEpisodeNumber);
         if (danmakus.isEmpty) {
           KazumiLogger().i(
-              'DownloadController: no danmaku found for episode $episodeNumber');
+              'DownloadController: no danmaku found for episode $actualEpisodeNumber');
           return;
         }
 
         // 等待 downloadDirectory 就绪（下载管理器处理任务后才设置）
+        // episodeNumber 此处是 composite key
         String downloadDirectory = '';
         for (int i = 0; i < 10; i++) {
           final record = _repository.getRecord(recordKey);
@@ -553,7 +613,7 @@ abstract class _DownloadController with Store {
         }
         if (downloadDirectory.isEmpty) {
           KazumiLogger().w(
-              'DownloadController: downloadDirectory not ready for episode $episodeNumber, skipping danmaku cache');
+              'DownloadController: downloadDirectory not ready for episode $actualEpisodeNumber, skipping danmaku cache');
           return;
         }
 
@@ -562,7 +622,7 @@ abstract class _DownloadController with Store {
             downloadDirectory, danmakus, danDanBangumiID);
 
         KazumiLogger().i(
-            'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
+            'DownloadController: cached ${danmakus.length} danmakus for episode $actualEpisodeNumber');
       } catch (e) {
         // 弹幕获取失败不影响下载
         KazumiLogger()
@@ -585,19 +645,19 @@ abstract class _DownloadController with Store {
   }
 
   Future<void> pauseDownload(
-      int bangumiId, String pluginName, int episodeNumber) async {
+      int bangumiId, String pluginName, int episodeKey) async {
     final recordKey = '${pluginName}_$bangumiId';
-    _downloadManager.pause(recordKey, episodeNumber);
+    _downloadManager.pause(recordKey, episodeKey);
 
     _resolveQueue.removeWhere(
-        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeKey);
 
     final record = _repository.getRecord(recordKey);
     if (record != null) {
-      final episode = record.episodes[episodeNumber];
+      final episode = record.episodes[episodeKey];
       if (episode != null) {
         episode.status = DownloadStatus.paused;
-        await _repository.updateEpisode(recordKey, episodeNumber, episode);
+        await _repository.updateEpisode(recordKey, episodeKey, episode);
         refreshRecords();
         _updateBackgroundNotification();
       }
@@ -616,6 +676,7 @@ abstract class _DownloadController with Store {
             episode.status == DownloadStatus.resolving ||
             episode.status == DownloadStatus.pending) {
           final recordKey = '${record.pluginName}_${record.bangumiId}';
+          // entry.key 已经是 composite key
           _downloadManager.pause(recordKey, entry.key);
           episode.status = DownloadStatus.paused;
           await _repository.updateEpisode(recordKey, entry.key, episode);
@@ -631,17 +692,17 @@ abstract class _DownloadController with Store {
   Future<void> retryDownload({
     required int bangumiId,
     required String pluginName,
-    required int episodeNumber,
+    required int episodeKey,
   }) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
     if (record == null) return;
-    final episode = record.episodes[episodeNumber];
+    final episode = record.episodes[episodeKey];
     if (episode == null) return;
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
-      _failEpisode(recordKey, episodeNumber, '找不到插件 $pluginName');
+      _failEpisode(recordKey, episodeKey, '找不到插件 $pluginName');
       return;
     }
 
@@ -651,7 +712,7 @@ abstract class _DownloadController with Store {
       episode.errorMessage = '';
       episode.progressPercent = 0.0;
       episode.downloadedSegments = 0;
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      await _repository.updateEpisode(recordKey, episodeKey, episode);
       refreshRecords();
 
       await _startBackgroundServiceIfNeeded();
@@ -664,7 +725,7 @@ abstract class _DownloadController with Store {
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
-        episodeNumber: episodeNumber,
+        episodeNumber: episodeKey,
         m3u8Url: episode.networkM3u8Url,
         httpHeaders: httpHeaders,
         adBlockerEnabled: adBlockerEnabled,
@@ -675,14 +736,15 @@ abstract class _DownloadController with Store {
       episode.errorMessage = '';
       episode.progressPercent = 0.0;
       episode.downloadedSegments = 0;
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      await _repository.updateEpisode(recordKey, episodeKey, episode);
       refreshRecords();
 
       _resolveQueue.add(_ResolveRequest(
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
-        episodeNumber: episodeNumber,
+        episodeNumber: episodeKey,
+        actualEpisodeNumber: episode.episodeNumber,
         episodePageUrl: episode.episodePageUrl,
       ));
       _processResolveQueue();
@@ -690,14 +752,14 @@ abstract class _DownloadController with Store {
   }
 
   Future<void> cancelDownload(
-      int bangumiId, String pluginName, int episodeNumber) async {
+      int bangumiId, String pluginName, int episodeKey) async {
     final recordKey = '${pluginName}_$bangumiId';
-    _downloadManager.cancel(recordKey, episodeNumber);
+    _downloadManager.cancel(recordKey, episodeKey);
     _resolveQueue.removeWhere(
-        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeKey);
     await _downloadManager.deleteEpisodeFiles(
-        bangumiId, pluginName, episodeNumber);
-    await _repository.deleteEpisode(recordKey, episodeNumber);
+        bangumiId, pluginName, episodeKey);
+    await _repository.deleteEpisode(recordKey, episodeKey);
     refreshRecords();
     _updateBackgroundNotification();
   }
@@ -719,15 +781,15 @@ abstract class _DownloadController with Store {
   }
 
   Future<void> deleteEpisode(
-      int bangumiId, String pluginName, int episodeNumber) async {
+      int bangumiId, String pluginName, int episodeKey) async {
     final recordKey = '${pluginName}_$bangumiId';
-    _downloadManager.cancel(recordKey, episodeNumber);
-    _speeds.remove('${recordKey}_$episodeNumber');
+    _downloadManager.cancel(recordKey, episodeKey);
+    _speeds.remove('${recordKey}_$episodeKey');
     _resolveQueue.removeWhere(
-        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeKey);
     await _downloadManager.deleteEpisodeFiles(
-        bangumiId, pluginName, episodeNumber);
-    await _repository.deleteEpisode(recordKey, episodeNumber);
+        bangumiId, pluginName, episodeKey);
+    await _repository.deleteEpisode(recordKey, episodeKey);
     refreshRecords();
     _updateBackgroundNotification();
   }
@@ -735,27 +797,27 @@ abstract class _DownloadController with Store {
   Future<void> priorityDownload({
     required int bangumiId,
     required String pluginName,
-    required int episodeNumber,
+    required int episodeKey,
   }) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
     if (record == null) return;
-    final episode = record.episodes[episodeNumber];
+    final episode = record.episodes[episodeKey];
     if (episode == null) return;
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
-      _failEpisode(recordKey, episodeNumber, '找不到插件 $pluginName');
+      _failEpisode(recordKey, episodeKey, '找不到插件 $pluginName');
       return;
     }
 
     _resolveQueue.removeWhere(
-        (r) => r.recordKey == recordKey && r.episodeNumber == episodeNumber);
+        (r) => r.recordKey == recordKey && r.episodeNumber == episodeKey);
 
     if (episode.networkM3u8Url.isNotEmpty) {
       episode.status = DownloadStatus.downloading;
       episode.errorMessage = '';
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      await _repository.updateEpisode(recordKey, episodeKey, episode);
       refreshRecords();
 
       await _startBackgroundServiceIfNeeded();
@@ -768,7 +830,7 @@ abstract class _DownloadController with Store {
         recordKey: recordKey,
         bangumiId: bangumiId,
         pluginName: pluginName,
-        episodeNumber: episodeNumber,
+        episodeNumber: episodeKey,
         m3u8Url: episode.networkM3u8Url,
         httpHeaders: httpHeaders,
         adBlockerEnabled: adBlockerEnabled,
@@ -777,7 +839,7 @@ abstract class _DownloadController with Store {
     } else {
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
-      await _repository.updateEpisode(recordKey, episodeNumber, episode);
+      await _repository.updateEpisode(recordKey, episodeKey, episode);
       refreshRecords();
 
       _resolveQueue.insert(
@@ -786,7 +848,8 @@ abstract class _DownloadController with Store {
             recordKey: recordKey,
             bangumiId: bangumiId,
             pluginName: pluginName,
-            episodeNumber: episodeNumber,
+            episodeNumber: episodeKey,
+            actualEpisodeNumber: episode.episodeNumber,
             episodePageUrl: episode.episodePageUrl,
           ));
       _processResolveQueue();
@@ -810,7 +873,7 @@ abstract class _DownloadController with Store {
       await retryDownload(
         bangumiId: bangumiId,
         pluginName: pluginName,
-        episodeNumber: entry.key,
+        episodeKey: entry.key,
       );
     }
 
@@ -819,6 +882,21 @@ abstract class _DownloadController with Store {
         'DownloadController: resumed ${incompleteEpisodes.length} downloads for $recordKey',
       );
     }
+  }
+
+  /// 当 composite key 冲突时（不同系列的同号集数），分配一个不冲突的 alternative key
+  /// alternative key 范围 >= 10000000，与 composite key (road * 100000 + ep) 不重叠
+  int _findFreeKey(DownloadRecord record) {
+    var key = 10000000;
+    while (record.episodes.containsKey(key)) {
+      key++;
+    }
+    return key;
+  }
+
+  /// 直接从 episode 对象获取本地视频路径（不依赖 composite key 查找）
+  String? getLocalVideoPathForEpisode(DownloadEpisode episode) {
+    return _downloadManager.getLocalVideoPath(episode);
   }
 
   int completedCount(DownloadRecord record) {
@@ -833,7 +911,10 @@ class _ResolveRequest {
   final String recordKey;
   final int bangumiId;
   final String pluginName;
+  /// composite key (road * 100000 + episodeNumber)
   final int episodeNumber;
+  /// 实际集数编号（用于弹幕 API 查询）
+  final int actualEpisodeNumber;
   final String episodePageUrl;
 
   _ResolveRequest({
@@ -841,6 +922,7 @@ class _ResolveRequest {
     required this.bangumiId,
     required this.pluginName,
     required this.episodeNumber,
+    required this.actualEpisodeNumber,
     required this.episodePageUrl,
   });
 }

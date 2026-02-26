@@ -24,6 +24,11 @@ class DownloadRecord {
 
   String get key => '${pluginName}_$bangumiId';
 
+  /// 生成复合 key: road * 100000 + episodeNumber
+  /// 用于在 episodes map 中区分不同 road 的同号集数
+  static int episodeKey(int road, int episodeNumber) =>
+      road * 100000 + episodeNumber;
+
   DownloadRecord(
     this.bangumiId,
     this.bangumiName,
@@ -87,6 +92,14 @@ class DownloadEpisode {
   @HiveField(15, defaultValue: 0)
   int danDanBangumiID;
 
+  /// 视频源详情页 URL (如 /voddetail/25443.html)，用于下载管理页分组显示
+  @HiveField(16, defaultValue: '')
+  String sourceDetailUrl;
+
+  /// 视频源详情页标题 (如 "JOJO的奇妙冒险 石之海")，用于下载管理页分组标题
+  @HiveField(17, defaultValue: '')
+  String sourceTitle;
+
   DownloadEpisode(
     this.episodeNumber,
     this.episodeName,
@@ -104,6 +117,8 @@ class DownloadEpisode {
     this.episodePageUrl, {
     this.danmakuData = '',
     this.danDanBangumiID = 0,
+    this.sourceDetailUrl = '',
+    this.sourceTitle = '',
   });
 }
 

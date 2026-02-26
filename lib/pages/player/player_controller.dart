@@ -266,7 +266,7 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = params.episode;
     }
-    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    _loadDanmaku(params.bangumiId, params.pluginName, params.currentRoad, episodeFromTitle);
     mediaPlayer ??= await createVideoController(
       params.httpHeaders,
       params.adBlockerEnabled,
@@ -629,16 +629,16 @@ abstract class _PlayerController with Store {
 
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
   Future<void> _loadDanmaku(
-      int bangumiId, String pluginName, int episode) async {
+      int bangumiId, String pluginName, int road, int episode) async {
     if (isLocalPlayback) {
-      await _loadCachedDanmaku(bangumiId, pluginName, episode);
+      await _loadCachedDanmaku(bangumiId, pluginName, road, episode);
     } else {
       getDanDanmakuByBgmBangumiID(bangumiId, episode);
     }
   }
 
   Future<void> _loadCachedDanmaku(
-      int bangumiId, String pluginName, int episode) async {
+      int bangumiId, String pluginName, int road, int episode) async {
     if (danmakuLoading) {
       KazumiLogger()
           .i('PlayerController: danmaku is loading, ignore duplicate request');
@@ -654,6 +654,7 @@ abstract class _PlayerController with Store {
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
         pluginName,
+        road,
         episode,
       );
 
@@ -674,7 +675,7 @@ abstract class _PlayerController with Store {
               KazumiLogger()
                   .i('PlayerController: fetched ${res.length} danmakus online');
               _saveDanmakuToCache(
-                  downloadController, bangumiId, pluginName, episode, res);
+                  downloadController, bangumiId, pluginName, road, episode, res);
             }
           }
         } catch (e) {
@@ -692,11 +693,12 @@ abstract class _PlayerController with Store {
   }
 
   void _saveDanmakuToCache(DownloadController downloadController, int bangumiId,
-      String pluginName, int episode, List<Danmaku> danmakus) {
+      String pluginName, int road, int episode, List<Danmaku> danmakus) {
     try {
       downloadController.updateCachedDanmakus(
         bangumiId,
         pluginName,
+        road,
         episode,
         danmakus,
         bangumiID,

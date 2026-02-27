@@ -1,0 +1,40 @@
+# ============================================
+# Docker Compose 配置
+# 用于本地测试和开发
+# ============================================
+
+version: '3.8'
+
+services:
+  anime-player:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anime-player
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    # Chromium 需要的安全设置
+    security_opt:
+      - seccomp:unconfined
+    # 共享内存大小 (Chromium 需要)
+    shm_size: '2gb'
+    restart: unless-stopped
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/bangumi/calendar', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

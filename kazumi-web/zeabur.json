@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "name": "Anime Player",
+  "description": "番剧播放器 - iOS 26 液态玻璃风格 PWA",
+  "tags": ["anime", "video", "pwa", "nextjs"],
+  "build": {
+    "type": "dockerfile",
+    "dockerfile": "Dockerfile"
+  },
+  "ports": [
+    {
+      "port": 3000,
+      "type": "HTTP"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "default": "production",
+      "description": "Node.js 环境"
+    },
+    "PUPPETEER_EXECUTABLE_PATH": {
+      "default": "/usr/bin/chromium",
+      "description": "Chromium 浏览器路径"
+    }
+  },
+  "resources": {
+    "memory": "2Gi",
+    "cpu": "1"
+  },
+  "healthCheck": {
+    "path": "/api/bangumi/calendar",
+    "interval": 30,
+    "timeout": 10
+  }
+}

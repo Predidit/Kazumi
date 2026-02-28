@@ -49,10 +49,10 @@
               sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
               sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build Flutter for Android
-            run: flutter build apk --split-per-abi
+            run: flutter build apk --target-platform android-arm,android-arm64
             shell: bash
           - name: Package android build output
-            run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
+            run: cp build/app/outputs/flutter-apk/app-release.apk Kazumi_android_${env:tag}.apk
             shell: bash
 
           - name: Upload android outputs

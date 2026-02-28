@@ -426,18 +426,32 @@ class _PlayerItemState extends State<PlayerItem>
       }
 
       if (Utils.isDesktop()) {
-        KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
-        return;
-      }
-      final result = await SaverGallery.saveImage(
-        screenshot,
-        fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
-        skipIfExists: false,
-      );
-      if (result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存到相簿成功');
+        final String user = Platform.environment['USER'] ?? Platform.environment['USERNAME'] ?? 'User';
+        final String dir = Platform.isWindows
+            ? 'C:\\Users\\$user\\Downloads\\Kazumi'
+            : Platform.isMacOS
+                ? '/Users/$user/Downloads/Kazumi'
+                : '/home/$user/Downloads/Kazumi';
+        final Directory d = Directory(dir);
+        if (!d.existsSync()) {
+          d.createSync(recursive: true);
+        }
+        final String path =
+            '$dir/${DateTime.timestamp().millisecondsSinceEpoch}.png';
+        final file = File(path);
+        await file.writeAsBytes(screenshot);
+        KazumiDialog.showToast(message: '截图已保存到：$path');
       } else {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
+        final result = await SaverGallery.saveImage(
+          screenshot,
+          fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),
+          skipIfExists: false,
+        );
+        if (result.isSuccess) {
+          KazumiDialog.showToast(message: '截图保存到相簿成功');
+        } else {
+          KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
+        }
       }
     } catch (e) {
       KazumiDialog.showToast(message: '截图失败：$e');

@@ -189,6 +189,12 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive。
 
+## Star History
 
-
-
+<a href="https://www.star-history.com/#Predidit/Kazumi&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Predidit/Kazumi&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Predidit/Kazumi&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Predidit/Kazumi&type=date&legend=top-left" />
+ </picture>
+</a>

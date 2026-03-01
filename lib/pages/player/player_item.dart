@@ -723,7 +723,7 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
-      if (playerController.playerPlaying && !videoPageController.loading) {
+      if (playerController.playerPlaying && !videoPageController.loading && !videoPageController.isOfflineMode) {
         if (!WebDav().isHistorySyncing) {
           final pluginName = videoPageController.isOfflineMode
               ? videoPageController.offlinePluginName

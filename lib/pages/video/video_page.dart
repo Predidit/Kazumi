@@ -127,15 +127,6 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     currentRoad = videoPageController.currentRoad;
 
-    // 检查历史记录（使用离线插件名）
-    var progress = historyController.lastWatching(
-        videoPageController.bangumiItem, videoPageController.offlinePluginName);
-    if (progress != null && playResume) {
-      // 在离线模式下，只恢复播放进度，不改变集数
-      videoPageController.historyOffset = progress.progress.inSeconds;
-    }
-
-    // 初始化播放器
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (videoPageController.offlineVideoPath != null) {
         final params = PlaybackInitParams(

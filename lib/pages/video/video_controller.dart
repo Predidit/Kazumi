@@ -189,7 +189,7 @@ abstract class _VideoPageController with Store {
     errorMessage = null;
 
     if (isOfflineMode) {
-      await _changeOfflineEpisode(episode, offset);
+      await _changeOfflineEpisode(episode, 0);
       return;
     }
 

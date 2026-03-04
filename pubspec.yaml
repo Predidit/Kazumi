@@ -41,6 +41,7 @@ dependencies:
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
   dio: ^5.0.0
+  cookie_jar: ^4.0.9
   connectivity_plus: ^6.0.5
 
   path_provider: ^2.1.5
@@ -113,6 +114,7 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: 4cd7c29566da395229c398d2ec4d0ef96b5e8970
       path: ./libs/universal/media_kit_libs_video
+  dio_cookie_manager: ^3.4.0
 
 dependency_overrides:
   media_kit_libs_linux:

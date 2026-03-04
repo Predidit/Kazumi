@@ -6,11 +6,14 @@ import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'dart:convert';
+import 'package:kazumi/providers/captcha_provider.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -37,6 +40,9 @@ class _SourceSheetState extends State<SourceSheet>
   /// Concurrent query manager
   QueryManager? queryManager;
 
+  /// Captcha solving provider (created on demand)
+  CaptchaProvider? _captchaProvider;
+
   @override
   void initState() {
     keyword = widget.infoController.bangumiItem.nameCn == ''
@@ -51,7 +57,145 @@ class _SourceSheetState extends State<SourceSheet>
   void dispose() {
     queryManager?.cancel();
     queryManager = null;
+    _captchaProvider?.dispose();
+    _captchaProvider = null;
     super.dispose();
+  }
+
+  void showCaptchaDialog(Plugin plugin) {
+    final captchaImageNotifier = ValueNotifier<String?>(null);
+    final TextEditingController codeController = TextEditingController();
+
+    _captchaProvider?.dispose();
+    _captchaProvider = CaptchaProvider();
+
+    final searchUrl =
+        plugin.searchURL.replaceAll('@keyword', keyword);
+
+    _captchaProvider!.loadForCaptcha(
+      searchUrl,
+      plugin.antiCrawlerConfig.captchaImage,
+    );
+
+    _captchaProvider!.onCaptchaImageUrl.listen((url) {
+      if (url != null) captchaImageNotifier.value = url;
+    });
+
+    KazumiDialog.show(builder: (context) {
+      return Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '验证码验证',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${plugin.name} 需要验证码验证',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 20),
+                ValueListenableBuilder<String?>(
+                  valueListenable: captchaImageNotifier,
+                  builder: (context, imageUrl, _) {
+                    if (imageUrl == null) {
+                      return const Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 12),
+                          Text('正在加载验证码图片...'),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            base64Decode(imageUrl.split(',').last),
+                            height: 80,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, _) =>
+                                const Text('图片解码失败'),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: codeController,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            labelText: '请输入验证码',
+                            border: OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => _doSubmitCaptcha(
+                            plugin: plugin,
+                            codeController: codeController,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        KazumiDialog.dismiss();
+                        _captchaProvider?.dispose();
+                        _captchaProvider = null;
+                      },
+                      child: Text(
+                        '取消',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () => _doSubmitCaptcha(
+                        plugin: plugin,
+                        codeController: codeController,
+                      ),
+                      child: const Text('提交'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _doSubmitCaptcha({
+    required Plugin plugin,
+    required TextEditingController codeController,
+  }) {
+    if (codeController.text.trim().isEmpty) {
+      KazumiDialog.showToast(message: '请输入验证码');
+      return;
+    }
+    _captchaProvider?.submitCaptcha(
+      captchaCode: codeController.text.trim(),
+      inputXpath: plugin.antiCrawlerConfig.captchaInput,
+      buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+      pluginName: plugin.name,
+      onVerified: () {
+        KazumiDialog.dismiss();
+        KazumiDialog.showToast(message: '验证成功，正在重新检索…');
+        queryManager?.querySource(keyword, plugin.name);
+      },
+    );
   }
 
   void showAliasSearchDialog(String pluginName) {
@@ -336,23 +480,44 @@ class _SourceSheetState extends State<SourceSheet>
                         : (widget.infoController
                                     .pluginSearchStatus[plugin.name] ==
                                 'error'
-                            ? GeneralErrorWidget(
-                                errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                                actions: [
-                                  GeneralErrorButton(
-                                    onPressed: () {
-                                      queryManager?.querySource(
-                                          keyword, plugin.name);
-                                    },
-                                    text: '重试',
-                                  ),
-                                ],
-                              )
+                            ? (plugin.antiCrawlerConfig.enabled
+                                ? GeneralErrorWidget(
+                                    errMsg:
+                                        '${plugin.name} 检索失败，可能遭遇反爬虫，请完成验证后重试',
+                                    actions: [
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          showCaptchaDialog(plugin);
+                                        },
+                                        text: '进行验证',
+                                      ),
+                                    ],
+                                  )
+                                : GeneralErrorWidget(
+                                    errMsg:
+                                        '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                    actions: [
+                                      GeneralErrorButton(
+                                        onPressed: () {
+                                          queryManager?.querySource(
+                                              keyword, plugin.name);
+                                        },
+                                        text: '重试',
+                                      ),
+                                    ],
+                                  ))
                             : cardList.isEmpty
                                 ? GeneralErrorWidget(
                                     errMsg:
                                         '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
                                     actions: [
+                                      if (plugin.antiCrawlerConfig.enabled)
+                                        GeneralErrorButton(
+                                          onPressed: () {
+                                            showCaptchaDialog(plugin);
+                                          },
+                                          text: '进行验证',
+                                        ),
                                       GeneralErrorButton(
                                         onPressed: () {
                                           showAliasSearchDialog(

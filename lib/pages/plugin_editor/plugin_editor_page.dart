@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -35,6 +36,12 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useLegacyParser = false;
   bool adBlocker = false;
 
+  // AntiCrawler fields
+  final TextEditingController captchaImageController = TextEditingController();
+  final TextEditingController captchaInputController = TextEditingController();
+  final TextEditingController captchaButtonController = TextEditingController();
+  bool antiCrawlerEnabled = false;
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +65,10 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     usePost = plugin.usePost;
     useLegacyParser = plugin.useLegacyParser;
     adBlocker = plugin.adBlocker;
+    antiCrawlerEnabled = plugin.antiCrawlerConfig.enabled;
+    captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
+    captchaInputController.text = plugin.antiCrawlerConfig.captchaInput;
+    captchaButtonController.text = plugin.antiCrawlerConfig.captchaButton;
   }
 
   @override
@@ -185,6 +196,53 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                       decoration: const InputDecoration(
                           labelText: 'Referer', border: OutlineInputBorder()),
                     ),
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text('反反爬虫配置',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    SwitchListTile(
+                      title: const Text('启用反反爬虫'),
+                      subtitle: const Text('检索失败时显示验证码验证按钮而非重试'),
+                      value: antiCrawlerEnabled,
+                      onChanged: (bool value) {
+                        setState(() {
+                          antiCrawlerEnabled = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: captchaImageController,
+                      enabled: antiCrawlerEnabled,
+                      decoration: const InputDecoration(
+                          labelText: 'CaptchaImage (XPath)',
+                          hintText: '//img[@class="captcha"]',
+                          helperText: '验证码图片元素的 XPath，用于 Canvas 抓取图像',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: captchaInputController,
+                      enabled: antiCrawlerEnabled,
+                      decoration: const InputDecoration(
+                          labelText: 'CaptchaInput (XPath)',
+                          hintText: '//input[@name="captcha"]',
+                          helperText: '验证码输入框元素的 XPath',
+                          border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: captchaButtonController,
+                      enabled: antiCrawlerEnabled,
+                      decoration: const InputDecoration(
+                          labelText: 'CaptchaButton (XPath)',
+                          hintText: '//button[@type="submit"]',
+                          helperText: '验证提交按钮元素的 XPath',
+                          border: OutlineInputBorder()),
+                    ),
                   ],
                 ),
               ],
@@ -218,7 +276,13 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   searchResult: searchResultController.text,
                   chapterRoads: chapterRoadsController.text,
                   chapterResult: chapterResultController.text,
-                  referer: refererController.text);
+                  referer: refererController.text,
+                  antiCrawlerConfig: AntiCrawlerConfig(
+                    enabled: antiCrawlerEnabled,
+                    captchaImage: captchaImageController.text,
+                    captchaInput: captchaInputController.text,
+                    captchaButton: captchaButtonController.text,
+                  ));
               Modular.to.pushNamed('/settings/plugin/test', arguments: pluginText);
             },
           ),
@@ -246,6 +310,12 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               plugin.useLegacyParser = useLegacyParser;
               plugin.adBlocker = adBlocker;
               plugin.referer = refererController.text;
+              plugin.antiCrawlerConfig = AntiCrawlerConfig(
+                enabled: antiCrawlerEnabled,
+                captchaImage: captchaImageController.text,
+                captchaInput: captchaInputController.text,
+                captchaButton: captchaButtonController.text,
+              );
               pluginsController.updatePlugin(plugin);
               Navigator.of(context).pop();
             },

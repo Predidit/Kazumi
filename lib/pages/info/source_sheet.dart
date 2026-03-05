@@ -205,8 +205,7 @@ class _SourceSheetState extends State<SourceSheet>
                             child: Text(
                               '取消',
                               style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.outline),
+                                  color: Theme.of(context).colorScheme.outline),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -495,8 +494,8 @@ class _SourceSheetState extends State<SourceSheet>
                                     KazumiDialog.dismiss();
                                     Modular.to.pushNamed('/video/');
                                   } catch (_) {
-                                    KazumiLogger()
-                                        .w("QueryManager: failed to query video playlist");
+                                    KazumiLogger().w(
+                                        "QueryManager: failed to query video playlist");
                                     KazumiDialog.dismiss();
                                   }
                                 },
@@ -517,32 +516,18 @@ class _SourceSheetState extends State<SourceSheet>
                         : (widget.infoController
                                     .pluginSearchStatus[plugin.name] ==
                                 'error'
-                            ? (plugin.antiCrawlerConfig.enabled
-                                ? GeneralErrorWidget(
-                                    errMsg:
-                                        '${plugin.name} 检索失败，可能遭遇反爬虫，请完成验证后重试',
-                                    actions: [
-                                      GeneralErrorButton(
-                                        onPressed: () {
-                                          showCaptchaDialog(plugin);
-                                        },
-                                        text: '进行验证',
-                                      ),
-                                    ],
-                                  )
-                                : GeneralErrorWidget(
-                                    errMsg:
-                                        '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                                    actions: [
-                                      GeneralErrorButton(
-                                        onPressed: () {
-                                          queryManager?.querySource(
-                                              keyword, plugin.name);
-                                        },
-                                        text: '重试',
-                                      ),
-                                    ],
-                                  ))
+                            ? (GeneralErrorWidget(
+                                errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                actions: [
+                                  GeneralErrorButton(
+                                    onPressed: () {
+                                      queryManager?.querySource(
+                                          keyword, plugin.name);
+                                    },
+                                    text: '重试',
+                                  ),
+                                ],
+                              ))
                             : cardList.isEmpty
                                 ? GeneralErrorWidget(
                                     errMsg:

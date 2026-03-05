@@ -33,6 +33,13 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
         onLoadStart: (controller, url) {
           logEventController.add('[Captcha WebView] Load start: $url');
         },
+        onPageCommitVisible: (controller, url) async {
+          logEventController
+              .add('[Captcha WebView] PageCommitVisible: $url');
+          if (url != null && url.toString() != 'about:blank') {
+            await _injectCaptchaScript();
+          }
+        },
         onLoadStop: (controller, url) async {
           logEventController.add('[Captcha WebView] Load stop: $url');
           if (url != null && url.toString() != 'about:blank') {
@@ -95,6 +102,15 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
 
     final script = '''
 (function() {
+  if (window._kazumiCaptchaInjected) {
+    try {
+      window.flutter_inappwebview.callHandler('CaptchaLogBridge',
+        'CaptchaScript already injected, skipping');
+    } catch(e) {}
+    return;
+  }
+  window._kazumiCaptchaInjected = true;
+
   try {
     window.flutter_inappwebview.callHandler('CaptchaLogBridge',
       'CaptchaScript injected on: ' + window.location.href);

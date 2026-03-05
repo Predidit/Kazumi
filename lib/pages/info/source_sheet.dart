@@ -107,10 +107,67 @@ class _SourceSheetState extends State<SourceSheet>
           _captchaVerifyTimer = null;
           verified = true;
           KazumiDialog.dismiss();
-          KazumiDialog.showToast(message: '验证成功，正在重新检索…');
-          Future.delayed(const Duration(seconds: 1), () {
-            queryManager?.querySource(keyword, plugin.name);
+          // show a 3s countdown progress dialog before re-querying,
+          // to avoid triggering rate limits immediately after verification.
+          final progressNotifier = ValueNotifier<double>(0.0);
+          Timer? countdownTimer;
+          const totalMs = 3000;
+          final stopwatch = Stopwatch()..start();
+          countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+            final elapsed = stopwatch.elapsedMilliseconds;
+            progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
+            if (elapsed >= totalMs) {
+              t.cancel();
+              KazumiDialog.dismiss();
+            }
           });
+          KazumiDialog.show(
+            clickMaskDismiss: false,
+            onDismiss: () {
+              countdownTimer?.cancel();
+              progressNotifier.dispose();
+              queryManager?.querySource(keyword, plugin.name);
+            },
+            builder: (context) => Dialog(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 28),
+                child: SizedBox(
+                  width: 320,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 52,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '验证成功',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '正在重新检索，请稍候…',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 24),
+                      ValueListenableBuilder<double>(
+                        valueListenable: progressNotifier,
+                        builder: (context, value, _) =>
+                            LinearProgressIndicator(
+                          value: value,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
         },
       );
       // submitCaptcha completes after the JS button click is fired.

@@ -26,16 +26,19 @@ class CaptchaProvider {
   StreamSubscription? _disappearedSub;
 
   bool _isInitialized = false;
+  bool _disposed = false;
   String _pageUrl = '';
 
   Future<void> _ensureInitialized() async {
-    if (_isInitialized) return;
+    if (_isInitialized || _disposed) return;
     _controller = CaptchaWebviewControllerFactory.getController();
     final initializedFuture = _controller!.onInitialized.first
         .timeout(const Duration(seconds: 10), onTimeout: () => false);
 
     await _controller!.init();
+    if (_disposed) return;
     await initializedFuture;
+    if (_disposed) return;
 
     _isInitialized = true;
     KazumiLogger().i('[CaptchaProvider] WebView initialized');
@@ -46,8 +49,10 @@ class CaptchaProvider {
   /// [url] 要加载的页面地址（通常为搜索 URL）
   /// [captchaXpath] 验证码图片元素的 XPath
   Future<void> loadForCaptcha(String url, String captchaXpath) async {
-    await _ensureInitialized();
+    // Set _pageUrl eagerly so saveAndUnload works even if dismiss happens mid-init
     _pageUrl = url;
+    await _ensureInitialized();
+    if (_disposed || _controller == null) return;
 
     _imageFoundSub?.cancel();
     _imageFoundSub = _controller!.onCaptchaImageFound.listen((src) {
@@ -108,9 +113,30 @@ class CaptchaProvider {
     await _controller!.submitCaptchaInteract(captchaCode, inputXpath, buttonXpath);
   }
 
+  Future<void> saveAndUnload(String pluginName) async {
+    _disappearedSub?.cancel();
+    _disappearedSub = null;
+    // Capture locally before any await so dispose() nulling _controller
+    // between two awaits cannot cause a force-unwrap crash.
+    final controller = _controller;
+    if (controller == null || _pageUrl.isEmpty) return;
+    final cookieString = await controller.getCookieString(_pageUrl);
+    KazumiLogger()
+        .i('[CaptchaProvider] Captured cookies on cancel: $cookieString');
+    if (cookieString.isNotEmpty) {
+      await PluginCookieManager.instance
+          .saveFromWebView(pluginName, _pageUrl, cookieString);
+      KazumiLogger()
+          .i('[CaptchaProvider] Cookies saved on cancel for plugin: $pluginName');
+    }
+    await controller.unloadPage();
+  }
+
   Stream<String>? get onLog => _controller?.onLog;
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     _imageFoundSub?.cancel();
     _disappearedSub?.cancel();
     if (!_captchaImageStreamController.isClosed) {

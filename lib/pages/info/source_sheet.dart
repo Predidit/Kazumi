@@ -64,136 +64,173 @@ class _SourceSheetState extends State<SourceSheet>
 
   void showCaptchaDialog(Plugin plugin) {
     final captchaImageNotifier = ValueNotifier<String?>(null);
+    final submittingNotifier = ValueNotifier<bool>(false);
     final TextEditingController codeController = TextEditingController();
+
+    // 标记验证是否已通过，用于在 onDismiss 中区分正常关闭与取消关闭
+    bool verified = false;
 
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
-    final searchUrl =
-        plugin.searchURL.replaceAll('@keyword', keyword);
+    final searchUrl = plugin.searchURL.replaceAll('@keyword', keyword);
 
     _captchaProvider!.loadForCaptcha(
       searchUrl,
       plugin.antiCrawlerConfig.captchaImage,
     );
 
-    _captchaProvider!.onCaptchaImageUrl.listen((url) {
+    final imageSub = _captchaProvider!.onCaptchaImageUrl.listen((url) {
       if (url != null) captchaImageNotifier.value = url;
     });
 
-    KazumiDialog.show(builder: (context) {
-      return Dialog(
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  '验证码验证',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${plugin.name} 需要验证码验证',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 20),
-                ValueListenableBuilder<String?>(
-                  valueListenable: captchaImageNotifier,
-                  builder: (context, imageUrl, _) {
-                    if (imageUrl == null) {
-                      return const Column(
+    void doSubmit() {
+      if (submittingNotifier.value) return;
+      if (codeController.text.trim().isEmpty) {
+        KazumiDialog.showToast(message: '请输入验证码');
+        return;
+      }
+      submittingNotifier.value = true;
+      _captchaProvider?.submitCaptcha(
+        captchaCode: codeController.text.trim(),
+        inputXpath: plugin.antiCrawlerConfig.captchaInput,
+        buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+        pluginName: plugin.name,
+        onVerified: () {
+          verified = true;
+          KazumiDialog.dismiss();
+          KazumiDialog.showToast(message: '验证成功，正在重新检索…');
+          queryManager?.querySource(keyword, plugin.name);
+        },
+      );
+    }
+
+    KazumiDialog.show(
+      onDismiss: () async {
+        // Cancel the image subscription before disposing the notifier to
+        // prevent late stream events writing to an already-disposed notifier.
+        imageSub.cancel();
+        codeController.dispose();
+        captchaImageNotifier.dispose();
+        submittingNotifier.dispose();
+        // Capture the current provider instance locally NOW, before any await.
+        // Without this, an async gap could allow _captchaProvider to be
+        // replaced (or nulled by _SourceSheetState.dispose()), causing the
+        // closure to dispose the wrong/already-disposed instance.
+        final provider = _captchaProvider;
+        _captchaProvider = null;
+        if (!verified) {
+          await provider?.saveAndUnload(plugin.name);
+          provider?.dispose();
+          queryManager?.querySource(keyword, plugin.name);
+        } else {
+          provider?.dispose();
+        }
+      },
+      builder: (context) {
+        return Dialog(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '验证码验证',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${plugin.name} 需要验证码验证',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 20),
+                  ValueListenableBuilder<String?>(
+                    valueListenable: captchaImageNotifier,
+                    builder: (context, imageUrl, _) {
+                      if (imageUrl == null) {
+                        return const Column(
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 12),
+                            Text('正在加载验证码图片...'),
+                          ],
+                        );
+                      }
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: submittingNotifier,
+                        builder: (context, isSubmitting, _) {
+                          return Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(
+                                  base64Decode(imageUrl.split(',').last),
+                                  height: 80,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, _) =>
+                                      const Text('图片解码失败'),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: codeController,
+                                autofocus: true,
+                                enabled: !isSubmitting,
+                                decoration: const InputDecoration(
+                                  labelText: '请输入验证码',
+                                  border: OutlineInputBorder(),
+                                ),
+                                onSubmitted:
+                                    isSubmitting ? null : (_) => doSubmit(),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: submittingNotifier,
+                    builder: (context, isSubmitting, _) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 12),
-                          Text('正在加载验证码图片...'),
+                          TextButton(
+                            onPressed: () => KazumiDialog.dismiss(),
+                            child: Text(
+                              '取消',
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.outline),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: isSubmitting ? null : doSubmit,
+                            child: isSubmitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('提交'),
+                          ),
                         ],
                       );
-                    }
-                    return Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.memory(
-                            base64Decode(imageUrl.split(',').last),
-                            height: 80,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, _) =>
-                                const Text('图片解码失败'),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: codeController,
-                          autofocus: true,
-                          decoration: const InputDecoration(
-                            labelText: '请输入验证码',
-                            border: OutlineInputBorder(),
-                          ),
-                          onSubmitted: (_) => _doSubmitCaptcha(
-                            plugin: plugin,
-                            codeController: codeController,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        KazumiDialog.dismiss();
-                        _captchaProvider?.dispose();
-                        _captchaProvider = null;
-                      },
-                      child: Text(
-                        '取消',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => _doSubmitCaptcha(
-                        plugin: plugin,
-                        codeController: codeController,
-                      ),
-                      child: const Text('提交'),
-                    ),
-                  ],
-                ),
-              ],
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
-  }
-
-  void _doSubmitCaptcha({
-    required Plugin plugin,
-    required TextEditingController codeController,
-  }) {
-    if (codeController.text.trim().isEmpty) {
-      KazumiDialog.showToast(message: '请输入验证码');
-      return;
-    }
-    _captchaProvider?.submitCaptcha(
-      captchaCode: codeController.text.trim(),
-      inputXpath: plugin.antiCrawlerConfig.captchaInput,
-      buttonXpath: plugin.antiCrawlerConfig.captchaButton,
-      pluginName: plugin.name,
-      onVerified: () {
-        KazumiDialog.dismiss();
-        KazumiDialog.showToast(message: '验证成功，正在重新检索…');
-        queryManager?.querySource(keyword, plugin.name);
+        );
       },
     );
   }

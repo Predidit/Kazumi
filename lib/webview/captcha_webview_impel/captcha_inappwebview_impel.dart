@@ -5,7 +5,6 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/webview/captcha_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
-/// 基于 flutter_inappwebview 的验证码 WebView 实现（Android / iOS / macOS）
 class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
   PlatformHeadlessInAppWebView? _headlessWebView;
   PlatformInAppWebViewController? _webviewController;

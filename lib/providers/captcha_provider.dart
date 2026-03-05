@@ -31,11 +31,11 @@ class CaptchaProvider {
   Future<void> _ensureInitialized() async {
     if (_isInitialized) return;
     _controller = CaptchaWebviewControllerFactory.getController();
-    await _controller!.init();
-
-    // Wait for WebView to be ready
-    await _controller!.onInitialized.first
+    final initializedFuture = _controller!.onInitialized.first
         .timeout(const Duration(seconds: 10), onTimeout: () => false);
+
+    await _controller!.init();
+    await initializedFuture;
 
     _isInitialized = true;
     KazumiLogger().i('[CaptchaProvider] WebView initialized');

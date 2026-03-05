@@ -1,3 +1,5 @@
+import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:card_settings_ui/tile/settings_tile_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -74,6 +76,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   @override
   Widget build(BuildContext context) {
     final Plugin plugin = Modular.args.data as Plugin;
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
 
     return Scaffold(
       appBar: const SysAppBar(
@@ -144,104 +147,93 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   title: const Text('高级选项'),
                   shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                   children: [
-                    SwitchListTile(
-                      title: const Text('简易解析'),
-                      subtitle: const Text('使用简易解析器而不是现代解析器'),
-                      value: useLegacyParser,
-                      onChanged: (bool value) {
-                        setState(() {
-                          useLegacyParser = value;
-                        });
-                      },
+                    SettingsSection(
+                      title: Text('行为设置', style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        SettingsTile.switchTile(
+                          title: Text('简易解析', style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用简易解析器而不是现代解析器', style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: useLegacyParser,
+                          onToggle: (v) => setState(() => useLegacyParser = v ?? !useLegacyParser),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('POST', style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用 POST 而不是 GET 进行检索', style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: usePost,
+                          onToggle: (v) => setState(() => usePost = v ?? !usePost),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('内置播放器', style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用内置播放器播放视频', style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: useNativePlayer,
+                          onToggle: (v) => setState(() => useNativePlayer = v ?? !useNativePlayer),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('广告过滤', style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('启用 HLS 广告过滤', style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: adBlocker,
+                          onToggle: (v) => setState(() => adBlocker = v ?? !adBlocker),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      title: const Text('POST'),
-                      subtitle: const Text('使用POST而不是GET进行检索'),
-                      value: usePost,
-                      onChanged: (bool value) {
-                        setState(() {
-                          usePost = value;
-                        });
-                      },
+                    SettingsSection(
+                      title: Text('网络设置', style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        CustomSettingsTile(
+                          child: (info) => _buildTextFieldTile(
+                            context, info,
+                            controller: userAgentController,
+                            label: 'UserAgent',
+                          ),
+                        ),
+                        CustomSettingsTile(
+                          child: (info) => _buildTextFieldTile(
+                            context, info,
+                            controller: refererController,
+                            label: 'Referer',
+                          ),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      title: const Text('内置播放器'),
-                      subtitle: const Text('使用内置播放器播放视频'),
-                      value: useNativePlayer,
-                      onChanged: (bool value) {
-                        setState(() {
-                          useNativePlayer = value;
-                        });
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('广告过滤'),
-                      subtitle: const Text('启用HLS广告过滤'),
-                      value: adBlocker,
-                      onChanged: (bool value) {
-                        setState(() {
-                          adBlocker = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: userAgentController,
-                      decoration: const InputDecoration(
-                          labelText: 'UserAgent', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: refererController,
-                      decoration: const InputDecoration(
-                          labelText: 'Referer', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 20),
-                    const Divider(),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text('反反爬虫配置',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    SwitchListTile(
-                      title: const Text('启用反反爬虫'),
-                      subtitle: const Text('检索失败时显示验证码验证按钮而非重试'),
-                      value: antiCrawlerEnabled,
-                      onChanged: (bool value) {
-                        setState(() {
-                          antiCrawlerEnabled = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: captchaImageController,
-                      enabled: antiCrawlerEnabled,
-                      decoration: const InputDecoration(
-                          labelText: 'CaptchaImage (XPath)',
-                          hintText: '//img[@class="captcha"]',
-                          helperText: '验证码图片元素的 XPath，用于 Canvas 抓取图像',
-                          border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: captchaInputController,
-                      enabled: antiCrawlerEnabled,
-                      decoration: const InputDecoration(
-                          labelText: 'CaptchaInput (XPath)',
-                          hintText: '//input[@name="captcha"]',
-                          helperText: '验证码输入框元素的 XPath',
-                          border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: captchaButtonController,
-                      enabled: antiCrawlerEnabled,
-                      decoration: const InputDecoration(
-                          labelText: 'CaptchaButton (XPath)',
-                          hintText: '//button[@type="submit"]',
-                          helperText: '验证提交按钮元素的 XPath',
-                          border: OutlineInputBorder()),
+                    SettingsSection(
+                      title: Text('反反爬虫配置', style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        SettingsTile.switchTile(
+                          title: Text('启用反反爬虫', style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('检索失败时显示验证码验证按钮而非重试', style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: antiCrawlerEnabled,
+                          onToggle: (v) => setState(() => antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
+                        ),
+                        if (antiCrawlerEnabled) ...[
+                          CustomSettingsTile(
+                            child: (info) => _buildTextFieldTile(
+                              context, info,
+                              controller: captchaImageController,
+                              label: 'CaptchaImage (XPath)',
+                              hint: '//img[@class="captcha"]',
+                              helper: '验证码图片元素的 XPath',
+                            ),
+                          ),
+                          CustomSettingsTile(
+                            child: (info) => _buildTextFieldTile(
+                              context, info,
+                              controller: captchaInputController,
+                              label: 'CaptchaInput (XPath)',
+                              hint: '//input[@name="captcha"]',
+                              helper: '验证码输入框元素的 XPath',
+                            ),
+                          ),
+                          CustomSettingsTile(
+                            child: (info) => _buildTextFieldTile(
+                              context, info,
+                              controller: captchaButtonController,
+                              label: 'CaptchaButton (XPath)',
+                              hint: '//button[@type="submit"]',
+                              helper: '验证提交按钮元素的 XPath',
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -322,6 +314,45 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextFieldTile(
+    BuildContext context,
+    SettingsTileInfo info, {
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    String? helper,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(info.isTopTile ? 20 : 3),
+            bottom: Radius.circular(info.isBottomTile ? 20 : 3),
+          ),
+          child: Material(
+            color: Theme.of(context).brightness == Brightness.light
+                ? Theme.of(context).colorScheme.surfaceContainerLowest
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: TextField(
+                controller: controller,
+                decoration: InputDecoration(
+                  labelText: label,
+                  hintText: hint,
+                  helperText: helper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (info.needDivider) const SizedBox(height: 2),
+      ],
     );
   }
 }

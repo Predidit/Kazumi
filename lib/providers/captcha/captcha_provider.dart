@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:kazumi/webview/captcha_webview_controller.dart';
+import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 import 'package:kazumi/plugins/plugin_cookie_manager.dart';
 import 'package:kazumi/utils/logger.dart';
 

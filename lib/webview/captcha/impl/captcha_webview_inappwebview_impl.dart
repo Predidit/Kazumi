@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/webview/captcha_webview_controller.dart';
+import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
-class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
+class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   PlatformHeadlessInAppWebView? _headlessWebView;
   PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;

@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:kazumi/webview/captcha_webview_impel/captcha_inappwebview_impel.dart';
-import 'package:kazumi/webview/captcha_webview_impel/captcha_windows_impel.dart';
-import 'package:kazumi/webview/captcha_webview_impel/captcha_linux_impel.dart';
+import 'package:kazumi/webview/captcha/impl/captcha_webview_inappwebview_impl.dart';
+import 'package:kazumi/webview/captcha/impl/captcha_webview_windows_impl.dart';
+import 'package:kazumi/webview/captcha/impl/captcha_webview_linux_impl.dart';
 
 abstract class CaptchaWebviewController {
   final StreamController<String> captchaImageFoundController =
@@ -59,12 +59,12 @@ abstract class CaptchaWebviewController {
 class CaptchaWebviewControllerFactory {
   static CaptchaWebviewController getController() {
     if (Platform.isWindows) {
-      return CaptchaWindowsImpel();
+      return CaptchaWebviewWindowsImpl();
     }
     if (Platform.isLinux) {
-      return CaptchaLinuxImpel();
+      return CaptchaWebviewLinuxImpl();
     }
     // Android, iOS, macOS
-    return CaptchaInAppWebviewImpel();
+    return CaptchaWebviewInAppWebviewImpl();
   }
 }

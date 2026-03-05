@@ -14,7 +14,7 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:kazumi/providers/captcha_provider.dart';
+import 'package:kazumi/providers/captcha/captcha_provider.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({

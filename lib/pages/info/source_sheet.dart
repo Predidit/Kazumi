@@ -217,9 +217,13 @@ class _SourceSheetState extends State<SourceSheet>
                     },
                   ),
                   const SizedBox(height: 20),
-                  ValueListenableBuilder<bool>(
-                    valueListenable: submittingNotifier,
-                    builder: (context, isSubmitting, _) {
+                  ListenableBuilder(
+                    listenable: Listenable.merge(
+                        [captchaImageNotifier, submittingNotifier]),
+                    builder: (context, _) {
+                      final isImageLoading = captchaImageNotifier.value == null;
+                      final isSubmitting = submittingNotifier.value;
+                      final isDisabled = isImageLoading || isSubmitting;
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -233,7 +237,7 @@ class _SourceSheetState extends State<SourceSheet>
                           ),
                           const SizedBox(width: 8),
                           FilledButton(
-                            onPressed: isSubmitting ? null : doSubmit,
+                            onPressed: isDisabled ? null : doSubmit,
                             child: isSubmitting
                                 ? const SizedBox(
                                     width: 18,

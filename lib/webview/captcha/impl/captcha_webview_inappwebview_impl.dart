@@ -267,12 +267,11 @@ if (!_checkForCaptcha()) {
   @override
   Future<String> getCookieString(String pageUrl) async {
     try {
-      // Use JS to read document.cookie (non-HttpOnly cookies).
-      // HttpOnly cookies are not accessible via JS by design, but session
-      // cookies set by anti-crawler checks are typically not HttpOnly.
-      final jsResult = await _webviewController
-          ?.evaluateJavascript(source: 'document.cookie');
-      return jsResult?.toString().replaceAll('"', '') ?? '';
+      final PlatformCookieManager cookieManager = PlatformCookieManager(
+        PlatformCookieManagerCreationParams(),
+      );
+      final cookies = await cookieManager.getCookies(url: WebUri(pageUrl));
+      return cookies.map((c) => '${c.name}=${c.value}').join('; ');
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] getCookieString error: $e');
       return '';

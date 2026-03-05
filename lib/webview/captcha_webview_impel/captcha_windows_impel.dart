@@ -249,9 +249,8 @@ class CaptchaWindowsImpel extends CaptchaWebviewController {
   @override
   Future<String> getCookieString(String pageUrl) async {
     try {
-      // webview_windows only exposes document.cookie (non-HttpOnly cookies)
-      final result = await _headlessWebview?.executeScript('document.cookie');
-      return result?.toString().replaceAll('"', '') ?? '';
+      final result = await _headlessWebview?.getCookies(pageUrl);
+      return result ?? '';
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] getCookieString error: $e');
       return '';

@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/request/query_manager.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/providers/captcha_provider.dart';
 
@@ -43,6 +44,9 @@ class _SourceSheetState extends State<SourceSheet>
   /// Captcha solving provider (created on demand)
   CaptchaProvider? _captchaProvider;
 
+  /// Timeout timer waiting for captcha verification result
+  Timer? _captchaVerifyTimer;
+
   @override
   void initState() {
     keyword = widget.infoController.bangumiItem.nameCn == ''
@@ -59,6 +63,8 @@ class _SourceSheetState extends State<SourceSheet>
     queryManager = null;
     _captchaProvider?.dispose();
     _captchaProvider = null;
+    _captchaVerifyTimer?.cancel();
+    _captchaVerifyTimer = null;
     super.dispose();
   }
 
@@ -67,7 +73,7 @@ class _SourceSheetState extends State<SourceSheet>
     final submittingNotifier = ValueNotifier<bool>(false);
     final TextEditingController codeController = TextEditingController();
 
-    // 标记验证是否已通过，用于在 onDismiss 中区分正常关闭与取消关闭
+    /// flag whether verification has passed, used to distinguish normal dismissal from cancellation in onDismiss
     bool verified = false;
 
     _captchaProvider?.dispose();
@@ -84,29 +90,44 @@ class _SourceSheetState extends State<SourceSheet>
       if (url != null) captchaImageNotifier.value = url;
     });
 
-    void doSubmit() {
+    Future<void> doSubmit() async {
       if (submittingNotifier.value) return;
       if (codeController.text.trim().isEmpty) {
         KazumiDialog.showToast(message: '请输入验证码');
         return;
       }
       submittingNotifier.value = true;
-      _captchaProvider?.submitCaptcha(
+      await _captchaProvider?.submitCaptcha(
         captchaCode: codeController.text.trim(),
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
         pluginName: plugin.name,
         onVerified: () {
+          _captchaVerifyTimer?.cancel();
+          _captchaVerifyTimer = null;
           verified = true;
           KazumiDialog.dismiss();
           KazumiDialog.showToast(message: '验证成功，正在重新检索…');
           queryManager?.querySource(keyword, plugin.name);
         },
       );
+      // submitCaptcha completes after the JS button click is fired.
+      // Start the 8-second timeout only NOW, waiting for the webview to
+      // detect the captcha disappearing and call onVerified.
+      if (!verified) {
+        _captchaVerifyTimer?.cancel();
+        _captchaVerifyTimer = Timer(const Duration(seconds: 8), () {
+          if (!verified) {
+            KazumiDialog.dismiss();
+          }
+        });
+      }
     }
 
     KazumiDialog.show(
       onDismiss: () async {
+        _captchaVerifyTimer?.cancel();
+        _captchaVerifyTimer = null;
         // Cancel the image subscription before disposing the notifier to
         // prevent late stream events writing to an already-disposed notifier.
         imageSub.cancel();

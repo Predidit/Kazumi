@@ -46,10 +46,9 @@ class CaptchaProvider {
 
   /// 加载指定页面并开始监听验证码图片
   ///
-  /// [url] 要加载的页面地址（通常为搜索 URL）
+  /// [url] 要加载的页面地址
   /// [captchaXpath] 验证码图片元素的 XPath
   Future<void> loadForCaptcha(String url, String captchaXpath) async {
-    // Set _pageUrl eagerly so saveAndUnload works even if dismiss happens mid-init
     _pageUrl = url;
     await _ensureInitialized();
     if (_disposed || _controller == null) return;

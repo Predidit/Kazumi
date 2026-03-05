@@ -202,6 +202,11 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
   @override
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
+    try {
+      await PlatformCookieManager(const PlatformCookieManagerCreationParams())
+          .deleteAllCookies();
+      logEventController.add('[Captcha WebView] Cookies cleared before load');
+    } catch (_) {}
     await _webviewController
         ?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
   }
@@ -277,6 +282,10 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
   void dispose() {
     _currentXpath = '';
     _handlersRegistered = false;
+    try {
+      PlatformCookieManager(const PlatformCookieManagerCreationParams())
+          .deleteAllCookies();
+    } catch (_) {}
     try {
       captchaImageFoundController.close();
       captchaDisappearedController.close();

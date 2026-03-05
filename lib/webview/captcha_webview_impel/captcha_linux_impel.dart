@@ -56,13 +56,9 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
       } else if (msg.startsWith('captchaLog:')) {
         logEventController.add(
             '[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
-      } else if (msg.startsWith('captchaCookie:')) {
-        _lastCookieValue = msg.replaceFirst('captchaCookie:', '');
       }
     });
   }
-
-  String _lastCookieValue = '';
 
   Future<void> _injectCaptchaScript() async {
     if (_currentXpath.isEmpty) return;
@@ -215,17 +211,17 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
 
   @override
   Future<String> getCookieString(String pageUrl) async {
-    // Inject script to report document.cookie via message
-    _lastCookieValue = '';
     try {
-      await _webviewController?.evaluateJavaScript(
-          'window.webkit.messageHandlers.msgToNative.postMessage("captchaCookie:" + document.cookie);');
-      // Wait briefly for the callback to fire
-      await Future.delayed(const Duration(milliseconds: 300));
+      final cookies = await _webviewController?.getAllCookies() ?? [];
+      final cookieString =
+          cookies.map((c) => '${c.name}=${c.value}').join('; ');
+      logEventController
+          .add('[Captcha WebView] Cookies: $cookieString');
+      return cookieString;
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] getCookieString error: $e');
+      return '';
     }
-    return _lastCookieValue;
   }
 
   @override

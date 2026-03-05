@@ -92,8 +92,6 @@ class CaptchaProvider {
       if (_handled) return;
       _handled = true;
       _disappearedSub?.cancel();
-      KazumiLogger().i('[CaptchaProvider] Captcha disappeared, waiting 1s...');
-      await Future.delayed(const Duration(seconds: 1));
       final cookieString = await _controller!.getCookieString(_pageUrl);
       KazumiLogger().i('[CaptchaProvider] Captured cookies: $cookieString');
       if (cookieString.isNotEmpty) {

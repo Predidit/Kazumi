@@ -108,7 +108,9 @@ class _SourceSheetState extends State<SourceSheet>
           verified = true;
           KazumiDialog.dismiss();
           KazumiDialog.showToast(message: '验证成功，正在重新检索…');
-          queryManager?.querySource(keyword, plugin.name);
+          Future.delayed(const Duration(seconds: 1), () {
+            queryManager?.querySource(keyword, plugin.name);
+          });
         },
       );
       // submitCaptcha completes after the JS button click is fired.

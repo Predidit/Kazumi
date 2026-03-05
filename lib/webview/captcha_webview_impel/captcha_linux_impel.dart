@@ -1,15 +1,18 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/webview/captcha_webview_controller.dart';
 
-/// 基于 desktop_webview_window 的验证码 WebView 实现（Linux）
 class CaptchaLinuxImpel extends CaptchaWebviewController {
   Webview? _webviewController;
+  VoidCallback? _navigationListener;
   String _currentXpath = '';
+  /// whether a captcha image has been detected, used to determine if verification is successful after page navigation
+  bool _captchaWasFound = false;
 
   @override
   Future<void> init() async {
@@ -21,6 +24,7 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
       ),
     );
     _initMessageBridge();
+    _initNavigationListener();
     initEventController.add(true);
   }
 
@@ -47,6 +51,7 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
       if (msg.startsWith('captchaImage:')) {
         final src = msg.replaceFirst('captchaImage:', '');
         if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
+          _captchaWasFound = true;
           captchaImageFoundController.add(src);
         }
       } else if (msg.startsWith('captchaGone:')) {
@@ -58,6 +63,51 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
             '[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
       }
     });
+  }
+
+  void _initNavigationListener() {
+    _navigationListener = () async {
+      if (_webviewController?.isNavigating.value == false) {
+        logEventController
+            .add('[Captcha WebView] Navigation completed');
+        if (_currentXpath.isNotEmpty) {
+          await _injectCaptchaScript();
+        }
+        // After a navigation, if captcha was found before but is now absent,
+        // consider the verification successful.
+        if (_captchaWasFound) {
+          final present = await _isCaptchaPresent();
+          if (!present && !captchaDisappearedController.isClosed) {
+            logEventController
+                .add('[Captcha WebView] Captcha gone after navigation');
+            _captchaWasFound = false;
+            captchaDisappearedController.add(null);
+          }
+        }
+      }
+    };
+    _webviewController?.isNavigating.addListener(_navigationListener!);
+  }
+
+  Future<bool> _isCaptchaPresent() async {
+    if (_currentXpath.isEmpty || _webviewController == null) return false;
+    final escaped =
+        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    try {
+      final result = await _webviewController!.evaluateJavaScript('''
+(function() {
+  try {
+    var r = document.evaluate('$escaped', document, null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return r.singleNodeValue ? 'present' : 'absent';
+  } catch(e) { return 'absent'; }
+})();
+''');
+      return result?.contains('present') ?? false;
+    } catch (e) {
+      KazumiLogger().d('[Captcha WebView] _isCaptchaPresent error: $e');
+      return false;
+    }
   }
 
   Future<void> _injectCaptchaScript() async {
@@ -155,10 +205,8 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
   @override
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
+    _captchaWasFound = false;
     _webviewController?.launch(url);
-    // Allow page to settle before injecting script
-    await Future.delayed(const Duration(seconds: 2));
-    await _injectCaptchaScript();
   }
 
   @override
@@ -232,6 +280,13 @@ class CaptchaLinuxImpel extends CaptchaWebviewController {
   @override
   void dispose() {
     _currentXpath = '';
+    _captchaWasFound = false;
+    if (_navigationListener != null) {
+      try {
+        _webviewController?.isNavigating.removeListener(_navigationListener!);
+      } catch (_) {}
+      _navigationListener = null;
+    }
     try {
       captchaImageFoundController.close();
       captchaDisappearedController.close();

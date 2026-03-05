@@ -11,6 +11,8 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
   PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;
   String _currentXpath = '';
+  /// whether a captcha image has been detected, used to determine if verification is successful after page navigation
+  bool _captchaWasFound = false;
 
   @override
   Future<void> init() async {
@@ -33,18 +35,8 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
         onLoadStart: (controller, url) {
           logEventController.add('[Captcha WebView] Load start: $url');
         },
-        onPageCommitVisible: (controller, url) async {
-          logEventController
-              .add('[Captcha WebView] PageCommitVisible: $url');
-          if (url != null && url.toString() != 'about:blank') {
-            await _injectCaptchaScript();
-          }
-        },
-        onLoadStop: (controller, url) async {
+        onLoadStop: (controller, url) {
           logEventController.add('[Captcha WebView] Load stop: $url');
-          if (url != null && url.toString() != 'about:blank') {
-            await _injectCaptchaScript();
-          }
         },
         onReceivedError: (controller, request, error) {
           logEventController
@@ -64,7 +56,22 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
         final src = args.isNotEmpty ? args[0].toString() : '';
         logEventController.add('[Captcha WebView] Captcha image found: $src');
         if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
+          _captchaWasFound = true;
           captchaImageFoundController.add(src);
+        }
+      },
+    );
+
+    _webviewController?.addJavaScriptHandler(
+      handlerName: 'CaptchaStatusBridge',
+      callback: (args) {
+        final status = args.isNotEmpty ? args[0].toString() : '';
+        logEventController.add('[Captcha WebView JS] Page captcha status: $status');
+        if (status == 'absent' && _captchaWasFound &&
+            !captchaDisappearedController.isClosed) {
+          KazumiLogger().i('[Captcha WebView] Captcha gone after navigation (StatusBridge)');
+          _captchaWasFound = false;
+          captchaDisappearedController.add(null);
         }
       },
     );
@@ -92,116 +99,119 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
     logEventController.add('[Captcha WebView] JS handlers registered');
   }
 
-  Future<void> _injectCaptchaScript() async {
+  Future<void> _addCaptchaUserScript() async {
     if (_currentXpath.isEmpty) return;
-    _registerHandlers();
 
-    // Escape the xpath for safe JS embedding
     final escapedXpath =
         _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
-    final script = '''
-(function() {
-  if (window._kazumiCaptchaInjected) {
-    try {
-      window.flutter_inappwebview.callHandler('CaptchaLogBridge',
-        'CaptchaScript already injected, skipping');
-    } catch(e) {}
-    return;
-  }
-  window._kazumiCaptchaInjected = true;
+    // Remove any previously injected captcha script before adding a fresh one.
+    await _webviewController?.removeAllUserScripts();
 
+    const String scriptTemplate = """
+window.flutter_inappwebview.callHandler('CaptchaLogBridge',
+  'CaptchaScript loaded on: ' + window.location.href);
+
+var _captchaXpath = '{XPATH}';
+var _captchaPoller = null;
+var _disappearObserver = null;
+
+function _evalXpath() {
   try {
-    window.flutter_inappwebview.callHandler('CaptchaLogBridge',
-      'CaptchaScript injected on: ' + window.location.href);
-  } catch(e) {}
+    var result = document.evaluate(
+      _captchaXpath, document, null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return result.singleNodeValue;
+  } catch(e) { return null; }
+}
 
-  var _captchaXpath = '$escapedXpath';
-  var _captchaPoller = null;
-  var _disappearObserver = null;
+function _startDisappearMonitor() {
+  if (_disappearObserver) return;
+  _disappearObserver = new MutationObserver(function() {
+    var node = _evalXpath();
+    if (!node) {
+      _disappearObserver.disconnect();
+      _disappearObserver = null;
+      try {
+        window.flutter_inappwebview.callHandler('CaptchaGoneBridge', '');
+      } catch(e) {}
+    }
+  });
+  _disappearObserver.observe(document.documentElement,
+    { childList: true, subtree: true, attributes: true });
+}
 
-  function _resolveSrc(node) {
-    return node.getAttribute('src') || node.getAttribute('data-src') ||
-           node.src || '';
-  }
-
-  function _evalXpath() {
+function _captureAsBase64(imgNode, callback) {
+  function doCapture() {
     try {
-      var result = document.evaluate(
-        _captchaXpath, document, null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-      return result.singleNodeValue;
-    } catch(e) { return null; }
+      var canvas = document.createElement('canvas');
+      canvas.width = imgNode.naturalWidth || imgNode.width || 100;
+      canvas.height = imgNode.naturalHeight || imgNode.height || 40;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(imgNode, 0, 0);
+      callback(canvas.toDataURL('image/png'));
+    } catch(e) { callback(null); }
   }
+  if (imgNode.complete && imgNode.naturalWidth > 0) {
+    doCapture();
+  } else {
+    imgNode.addEventListener('load', doCapture);
+    imgNode.addEventListener('error', function() { callback(null); });
+  }
+}
 
-  function _startDisappearMonitor() {
-    if (_disappearObserver) return;
-    _disappearObserver = new MutationObserver(function() {
-      var node = _evalXpath();
-      if (!node) {
-        _disappearObserver.disconnect();
-        _disappearObserver = null;
+function _checkForCaptcha() {
+  var node = _evalXpath();
+  if (node) {
+    _captureAsBase64(node, function(dataUrl) {
+      if (dataUrl) {
         try {
-          window.flutter_inappwebview.callHandler('CaptchaGoneBridge', '');
+          window.flutter_inappwebview.callHandler('CaptchaImageBridge', dataUrl);
         } catch(e) {}
       }
     });
-    _disappearObserver.observe(document.documentElement,
-      { childList: true, subtree: true, attributes: true });
+    _startDisappearMonitor();
+    return true;
   }
+  return false;
+}
 
-  function _captureAsBase64(imgNode, callback) {
-    function doCapture() {
-      try {
-        var canvas = document.createElement('canvas');
-        canvas.width = imgNode.naturalWidth || imgNode.width || 100;
-        canvas.height = imgNode.naturalHeight || imgNode.height || 40;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(imgNode, 0, 0);
-        callback(canvas.toDataURL('image/png'));
-      } catch(e) { callback(null); }
+// Report captcha status to Dart at DOMContentLoaded so that after a full-page
+// navigation Dart can detect that verification succeeded (captcha is gone).
+window.addEventListener('DOMContentLoaded', function() {
+  var node = _evalXpath();
+  try {
+    window.flutter_inappwebview.callHandler('CaptchaStatusBridge', node ? 'present' : 'absent');
+  } catch(e) {}
+});
+
+if (!_checkForCaptcha()) {
+  _captchaPoller = setInterval(function() {
+    if (_checkForCaptcha()) {
+      clearInterval(_captchaPoller);
+      _captchaPoller = null;
     }
-    if (imgNode.complete && imgNode.naturalWidth > 0) {
-      doCapture();
-    } else {
-      imgNode.addEventListener('load', doCapture);
-      imgNode.addEventListener('error', function() { callback(null); });
-    }
-  }
+  }, 500);
+}
+""";
 
-  function _checkForCaptcha() {
-    var node = _evalXpath();
-    if (node) {
-      _captureAsBase64(node, function(dataUrl) {
-        if (dataUrl) {
-          try {
-            window.flutter_inappwebview.callHandler('CaptchaImageBridge', dataUrl);
-          } catch(e) {}
-        }
-      });
-      _startDisappearMonitor();
-      return true;
-    }
-    return false;
-  }
-
-  if (!_checkForCaptcha()) {
-    _captchaPoller = setInterval(function() {
-      if (_checkForCaptcha()) {
-        clearInterval(_captchaPoller);
-        _captchaPoller = null;
-      }
-    }, 500);
-  }
-})();
-''';
-
-    await _webviewController?.evaluateJavascript(source: script);
+    final script = scriptTemplate.replaceAll('{XPATH}', escapedXpath);
+    await _webviewController?.addUserScripts(
+      userScripts: [
+        UserScript(
+          source: script,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+        ),
+      ],
+    );
   }
 
   @override
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
+    _captchaWasFound = false;
+    _registerHandlers();
+    await _addCaptchaUserScript();
     try {
       await PlatformCookieManager(const PlatformCookieManagerCreationParams())
           .deleteAllCookies();
@@ -281,6 +291,7 @@ class CaptchaInAppWebviewImpel extends CaptchaWebviewController {
   @override
   void dispose() {
     _currentXpath = '';
+    _captchaWasFound = false;
     _handlersRegistered = false;
     try {
       PlatformCookieManager(const PlatformCookieManagerCreationParams())

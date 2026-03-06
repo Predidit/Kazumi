@@ -331,8 +331,6 @@ class _SourceSheetState extends State<SourceSheet>
   }
 
   void showButtonClickDialog(Plugin plugin) {
-    /// flag whether verification has passed, used to distinguish normal dismissal from cancellation in onDismiss
-    bool verified = false;
     /// flag whether onVerified was fired by the auto-click flow (cookies already saved + page unloaded)
     bool autoVerified = false;
 
@@ -342,8 +340,7 @@ class _SourceSheetState extends State<SourceSheet>
     final searchUrl = plugin.searchURL.replaceAll('@keyword', keyword);
 
     void onVerified() {
-      if (verified) return;
-      verified = true;
+      if (autoVerified) return;
       autoVerified = true;
       KazumiDialog.dismiss();
       // show a 3s countdown progress dialog before re-querying
@@ -422,7 +419,7 @@ class _SourceSheetState extends State<SourceSheet>
           // auto-verify already saved cookies and unloaded the page
           provider?.dispose();
         } else {
-          // cancelled or manually confirmed — save whatever cookies are present
+          // save whatever cookies are present and unload the page
           await provider?.saveAndUnload(plugin.name);
           provider?.dispose();
           queryManager?.querySource(keyword, plugin.name);
@@ -456,26 +453,16 @@ class _SourceSheetState extends State<SourceSheet>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => KazumiDialog.dismiss(),
-                      child: Text(
-                        '取消',
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline),
-                      ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => KazumiDialog.dismiss(),
+                    child: Text(
+                      '取消',
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.outline),
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () {
-                        verified = true;
-                        KazumiDialog.dismiss();
-                      },
-                      child: const Text('完成验证'),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),

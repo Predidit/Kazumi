@@ -14,6 +14,8 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   String _currentPageUrl = '';
   /// 是否已检测到验证码图片，用于在页面跳转后判断验证是否通过
   bool _captchaWasFound = false;
+  /// 待注入的验证按钮 XPath
+  String _buttonXpath = '';
 
   @override
   Future<void> init() async {
@@ -27,7 +29,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
       _headlessWebview!.webMessage.listen(_onWebMessage),
     );
 
-    // Inject captcha script when navigation completes
+    // Inject captcha or button-click script when navigation completes
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
         if (state == LoadingState.navigationCompleted) {
@@ -35,6 +37,8 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
               .add('[Captcha WebView] Navigation completed: $_currentPageUrl');
           if (_currentXpath.isNotEmpty) {
             await _injectCaptchaScript();
+          } else if (_buttonXpath.isNotEmpty) {
+            await _injectButtonClickScript(_buttonXpath);
           }
         }
       }),
@@ -193,9 +197,78 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   @override
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
+    _buttonXpath = '';
     _currentPageUrl = url;
     _captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
+  }
+
+  @override
+  Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
+    _currentXpath = '';
+    _buttonXpath = buttonXpath;
+    _currentPageUrl = url;
+    _captchaWasFound = false;
+    await _headlessWebview?.loadUrl(url);
+  }
+
+  Future<void> _injectButtonClickScript(String buttonXpath) async {
+    final escaped =
+        buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final script = '''
+(function() {
+  window.chrome.webview.postMessage('captchaLog:ButtonClickScript injected on ' + window.location.href);
+
+  var _xpath = '$escaped';
+  var _clicked = false;
+  var _poller = null;
+  var _disappearObserver = null;
+
+  function evalXpath() {
+    try {
+      var r = document.evaluate(_xpath, document, null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      return r.singleNodeValue;
+    } catch(e) { return null; }
+  }
+
+  function startDisappearMonitor() {
+    if (_disappearObserver) return;
+    _disappearObserver = new MutationObserver(function() {
+      if (!evalXpath()) {
+        _disappearObserver.disconnect();
+        _disappearObserver = null;
+        window.chrome.webview.postMessage('captchaGone:');
+      }
+    });
+    _disappearObserver.observe(document.documentElement,
+      { childList: true, subtree: true, attributes: true });
+  }
+
+  function checkAndClick() {
+    var btn = evalXpath();
+    if (btn && !_clicked) {
+      _clicked = true;
+      btn.click();
+      window.chrome.webview.postMessage('captchaLog:Button found and clicked');
+      startDisappearMonitor();
+      return true;
+    }
+    return false;
+  }
+
+  if (!checkAndClick()) {
+    _poller = setInterval(function() {
+      if (checkAndClick()) { clearInterval(_poller); _poller = null; }
+    }, 500);
+  }
+})();
+''';
+    try {
+      await _headlessWebview?.executeScript(script);
+    } catch (e) {
+      KazumiLogger().e('[Captcha WebView] injectButtonClickScript error: $e');
+    }
   }
 
   @override
@@ -270,6 +343,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   @override
   void dispose() {
     _currentXpath = '';
+    _buttonXpath = '';
     _currentPageUrl = '';
     for (final s in _subscriptions) {
       try {

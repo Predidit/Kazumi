@@ -221,6 +221,87 @@ if (!_checkForCaptcha()) {
   }
 
   @override
+  Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
+    _currentXpath = ''; // disable captcha-image script on navigation
+    _captchaWasFound = false;
+    _registerHandlers();
+    await _addButtonClickUserScript(buttonXpath);
+    try {
+      await PlatformCookieManager(const PlatformCookieManagerCreationParams())
+          .deleteAllCookies();
+      logEventController.add('[Captcha WebView] Cookies cleared before load');
+    } catch (_) {}
+    await _webviewController
+        ?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+  }
+
+  Future<void> _addButtonClickUserScript(String buttonXpath) async {
+    final escapedXpath =
+        buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    await _webviewController?.removeAllUserScripts();
+
+    const String scriptTemplate = """
+try { window.flutter_inappwebview.callHandler('CaptchaLogBridge',
+  'ButtonClickScript loaded on: ' + window.location.href); } catch(e) {}
+
+var _btnXpath = '{XPATH}';
+var _clicked = false;
+var _poller = null;
+var _disappearObserver = null;
+
+function _evalBtnXpath() {
+  try {
+    var result = document.evaluate(
+      _btnXpath, document, null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    return result.singleNodeValue;
+  } catch(e) { return null; }
+}
+
+function _startDisappearMonitor() {
+  if (_disappearObserver) return;
+  _disappearObserver = new MutationObserver(function() {
+    if (!_evalBtnXpath()) {
+      _disappearObserver.disconnect();
+      _disappearObserver = null;
+      try { window.flutter_inappwebview.callHandler('CaptchaGoneBridge', ''); } catch(e) {}
+    }
+  });
+  _disappearObserver.observe(document.documentElement,
+    { childList: true, subtree: true, attributes: true });
+}
+
+function _checkAndClick() {
+  var btn = _evalBtnXpath();
+  if (btn && !_clicked) {
+    _clicked = true;
+    btn.click();
+    try { window.flutter_inappwebview.callHandler('CaptchaLogBridge', 'Button found and clicked'); } catch(e) {}
+    _startDisappearMonitor();
+    return true;
+  }
+  return false;
+}
+
+if (!_checkAndClick()) {
+  _poller = setInterval(function() {
+    if (_checkAndClick()) { clearInterval(_poller); _poller = null; }
+  }, 500);
+}
+""";
+
+    final script = scriptTemplate.replaceAll('{XPATH}', escapedXpath);
+    await _webviewController?.addUserScripts(
+      userScripts: [
+        UserScript(
+          source: script,
+          injectionTime: UserScriptInjectionTime.AT_DOCUMENT_END,
+        ),
+      ],
+    );
+  }
+
+  @override
   Future<void> submitCaptchaInteract(
       String captchaCode, String inputXpath, String buttonXpath) async {
     logEventController

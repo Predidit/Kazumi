@@ -15,6 +15,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/providers/captcha/captcha_provider.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -66,6 +67,17 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaVerifyTimer?.cancel();
     _captchaVerifyTimer = null;
     super.dispose();
+  }
+
+  /// 根据插件的验证类型分发到对应的验证对话框
+  void showAntiCrawlerDialog(Plugin plugin) {
+    switch (plugin.antiCrawlerConfig.captchaType) {
+      case CaptchaType.autoClickButton:
+        showButtonClickDialog(plugin);
+        break;
+      default:
+        showCaptchaDialog(plugin);
+    }
   }
 
   void showCaptchaDialog(Plugin plugin) {
@@ -315,6 +327,161 @@ class _SourceSheetState extends State<SourceSheet>
           ),
         );
       },
+    );
+  }
+
+  void showButtonClickDialog(Plugin plugin) {
+    /// flag whether verification has passed, used to distinguish normal dismissal from cancellation in onDismiss
+    bool verified = false;
+    /// flag whether onVerified was fired by the auto-click flow (cookies already saved + page unloaded)
+    bool autoVerified = false;
+
+    _captchaProvider?.dispose();
+    _captchaProvider = CaptchaProvider();
+
+    final searchUrl = plugin.searchURL.replaceAll('@keyword', keyword);
+
+    void onVerified() {
+      if (verified) return;
+      verified = true;
+      autoVerified = true;
+      KazumiDialog.dismiss();
+      // show a 3s countdown progress dialog before re-querying
+      final progressNotifier = ValueNotifier<double>(0.0);
+      Timer? countdownTimer;
+      const totalMs = 3000;
+      final stopwatch = Stopwatch()..start();
+      countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+        final elapsed = stopwatch.elapsedMilliseconds;
+        progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
+        if (elapsed >= totalMs) {
+          t.cancel();
+          KazumiDialog.dismiss();
+        }
+      });
+      KazumiDialog.show(
+        clickMaskDismiss: false,
+        onDismiss: () {
+          countdownTimer?.cancel();
+          progressNotifier.dispose();
+          queryManager?.querySource(keyword, plugin.name);
+        },
+        builder: (context) => Dialog(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            child: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    size: 52,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '验证成功',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '正在重新检索，请稍候…',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 24),
+                  ValueListenableBuilder<double>(
+                    valueListenable: progressNotifier,
+                    builder: (context, value, _) => LinearProgressIndicator(
+                      value: value,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    _captchaProvider!.loadForButtonClick(
+      url: searchUrl,
+      buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+      pluginName: plugin.name,
+      onVerified: onVerified,
+    );
+
+    KazumiDialog.show(
+      onDismiss: () async {
+        // Capture the current provider instance locally before any await.
+        final provider = _captchaProvider;
+        _captchaProvider = null;
+        if (autoVerified) {
+          // auto-verify already saved cookies and unloaded the page
+          provider?.dispose();
+        } else {
+          // cancelled or manually confirmed — save whatever cookies are present
+          await provider?.saveAndUnload(plugin.name);
+          provider?.dispose();
+          queryManager?.querySource(keyword, plugin.name);
+        }
+      },
+      builder: (context) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '自动验证中',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${plugin.name} 正在自动完成验证，请稍候',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 24),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 12),
+                Text(
+                  '已检测到验证按钮并模拟点击，等待验证通过…',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => KazumiDialog.dismiss(),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: () {
+                        verified = true;
+                        KazumiDialog.dismiss();
+                      },
+                      child: const Text('完成验证'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -583,7 +750,7 @@ class _SourceSheetState extends State<SourceSheet>
                                 actions: [
                                   GeneralErrorButton(
                                     onPressed: () {
-                                      showCaptchaDialog(plugin);
+                                      showAntiCrawlerDialog(plugin);
                                     },
                                     text: '进行验证',
                                   ),

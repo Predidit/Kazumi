@@ -43,6 +43,13 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController captchaInputController = TextEditingController();
   final TextEditingController captchaButtonController = TextEditingController();
   bool antiCrawlerEnabled = false;
+  int captchaType = CaptchaType.imageCaptcha;
+  final MenuController captchaTypeMenuController = MenuController();
+
+  static const Map<int, String> _captchaTypeMap = {
+    CaptchaType.imageCaptcha: '图片验证码',
+    CaptchaType.autoClickButton: '自动点击按钮',
+  };
 
   @override
   void initState() {
@@ -68,6 +75,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     useLegacyParser = plugin.useLegacyParser;
     adBlocker = plugin.adBlocker;
     antiCrawlerEnabled = plugin.antiCrawlerConfig.enabled;
+    captchaType = plugin.antiCrawlerConfig.captchaType;
     captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
     captchaInputController.text = plugin.antiCrawlerConfig.captchaInput;
     captchaButtonController.text = plugin.antiCrawlerConfig.captchaButton;
@@ -205,31 +213,84 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                           onToggle: (v) => setState(() => antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
                         ),
                         if (antiCrawlerEnabled) ...[
-                          CustomSettingsTile(
-                            child: (info) => _buildTextFieldTile(
-                              context, info,
-                              controller: captchaImageController,
-                              label: 'CaptchaImage (XPath)',
-                              hint: '//img[@class="captcha"]',
-                              helper: '验证码图片元素的 XPath',
+                          SettingsTile.navigation(
+                            onPressed: (_) {
+                              if (captchaTypeMenuController.isOpen) {
+                                captchaTypeMenuController.close();
+                              } else {
+                                captchaTypeMenuController.open();
+                              }
+                            },
+                            title: Text('验证类型', style: TextStyle(fontFamily: fontFamily)),
+                            description: Text(
+                              captchaType == CaptchaType.imageCaptcha
+                                  ? '图片验证码（展示验证码图片，用户手动输入）'
+                                  : '自动点击验证按钮（检测到按钮后自动模拟点击）',
+                              style: TextStyle(fontFamily: fontFamily),
+                            ),
+                            value: MenuAnchor(
+                              consumeOutsideTap: true,
+                              controller: captchaTypeMenuController,
+                              builder: (_, __, ___) => Text(
+                                _captchaTypeMap[captchaType] ?? '未知',
+                                style: TextStyle(fontFamily: fontFamily),
+                              ),
+                              menuChildren: [
+                                for (final entry in _captchaTypeMap.entries)
+                                  MenuItemButton(
+                                    requestFocusOnHover: false,
+                                    onPressed: () => setState(() => captchaType = entry.key),
+                                    child: Container(
+                                      height: 48,
+                                      constraints: const BoxConstraints(minWidth: 160),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          entry.value,
+                                          style: TextStyle(
+                                            color: entry.key == captchaType
+                                                ? Theme.of(context).colorScheme.primary
+                                                : null,
+                                            fontFamily: fontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          CustomSettingsTile(
-                            child: (info) => _buildTextFieldTile(
-                              context, info,
-                              controller: captchaInputController,
-                              label: 'CaptchaInput (XPath)',
-                              hint: '//input[@name="captcha"]',
-                              helper: '验证码输入框元素的 XPath',
+                          if (captchaType == CaptchaType.imageCaptcha) ...[
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context, info,
+                                controller: captchaImageController,
+                                label: 'CaptchaImage (XPath)',
+                                hint: '//img[@class="captcha"]',
+                                helper: '验证码图片元素的 XPath',
+                              ),
                             ),
-                          ),
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context, info,
+                                controller: captchaInputController,
+                                label: 'CaptchaInput (XPath)',
+                                hint: '//input[@name="captcha"]',
+                                helper: '验证码输入框元素的 XPath',
+                              ),
+                            ),
+                          ],
                           CustomSettingsTile(
                             child: (info) => _buildTextFieldTile(
                               context, info,
                               controller: captchaButtonController,
-                              label: 'CaptchaButton (XPath)',
+                              label: captchaType == CaptchaType.imageCaptcha
+                                  ? 'CaptchaButton (XPath)'
+                                  : 'VerifyButton (XPath)',
                               hint: '//button[@type="submit"]',
-                              helper: '验证提交按钮元素的 XPath',
+                              helper: captchaType == CaptchaType.imageCaptcha
+                                  ? '验证提交按钮元素的 XPath'
+                                  : '验证按钮元素的 XPath，检测到后自动点击',
                             ),
                           ),
                         ],
@@ -271,6 +332,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   referer: refererController.text,
                   antiCrawlerConfig: AntiCrawlerConfig(
                     enabled: antiCrawlerEnabled,
+                    captchaType: captchaType,
                     captchaImage: captchaImageController.text,
                     captchaInput: captchaInputController.text,
                     captchaButton: captchaButtonController.text,
@@ -304,6 +366,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               plugin.referer = refererController.text;
               plugin.antiCrawlerConfig = AntiCrawlerConfig(
                 enabled: antiCrawlerEnabled,
+                captchaType: captchaType,
                 captchaImage: captchaImageController.text,
                 captchaInput: captchaInputController.text,
                 captchaButton: captchaButtonController.text,

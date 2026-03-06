@@ -6,14 +6,23 @@ import 'package:kazumi/utils/logger.dart';
 
 /// 验证码解决 Provider
 ///
-/// 独立的验证码解决流程：
+/// 支持两种独立的验证流程：
+///
+/// **类型1：图片验证码**（[loadForCaptcha] + [submitCaptcha]）
 ///   1. 初始化 WebView
 ///   2. 加载搜索页面，注入 JS 脚本监听验证码图片
 ///   3. 通过 [onCaptchaImageUrl] 流将验证码图片 URL 暴露给 UI
 ///   4. UI 将用户输入的验证码传给 [submitCaptcha]
 ///   5. 页面通过 AJAX 提交验证码
-///   6. 验证码图片消失 + 1 秒后，获取页面 Cookie 并保存到 [PluginCookieManager]
+///   6. 验证码图片消失后，获取页面 Cookie 并保存到 [PluginCookieManager]
 ///   7. UI 发起重新检索
+///
+/// **类型2：自动点击验证按钮**（[loadForButtonClick]）
+///   1. 初始化 WebView
+///   2. 加载搜索页面，注入 JS 脚本轮询验证按钮
+///   3. 检测到按钮后自动模拟点击
+///   4. 按钮消失时，获取页面 Cookie 并保存到 [PluginCookieManager]
+///   5. 通过 [onVerified] 回调通知 UI 发起重新检索
 class CaptchaProvider {
   CaptchaWebviewController? _controller;
 
@@ -108,6 +117,49 @@ class CaptchaProvider {
       onDisappeared();
     });
     await _controller!.submitCaptchaInteract(captchaCode, inputXpath, buttonXpath);
+  }
+
+  /// 加载页面并自动点击验证按钮
+  ///
+  /// [url] 要加载的页面地址
+  /// [buttonXpath] 验证按钮元素的 XPath，检测到后自动点击
+  /// [pluginName] 规则名（用于保存 Cookie）
+  /// [onVerified] 按钮消失（验证通过）后的回调
+  Future<void> loadForButtonClick({
+    required String url,
+    required String buttonXpath,
+    required String pluginName,
+    required void Function() onVerified,
+  }) async {
+    _pageUrl = url;
+    await _ensureInitialized();
+    if (_disposed || _controller == null) return;
+
+    bool _handled = false;
+
+    Future<void> onDisappeared() async {
+      if (_handled) return;
+      _handled = true;
+      _disappearedSub?.cancel();
+      final cookieString = await _controller!.getCookieString(_pageUrl);
+      KazumiLogger().i('[CaptchaProvider] (type2) Captured cookies: $cookieString');
+      if (cookieString.isNotEmpty) {
+        await PluginCookieManager.instance
+            .saveFromWebView(pluginName, _pageUrl, cookieString);
+        KazumiLogger()
+            .i('[CaptchaProvider] (type2) Cookies saved for plugin: $pluginName');
+      }
+      await _controller!.unloadPage();
+      onVerified();
+    }
+
+    _disappearedSub?.cancel();
+    _disappearedSub = _controller!.onCaptchaDisappeared.listen((_) {
+      onDisappeared();
+    });
+
+    await _controller!.loadPageForButtonClick(url, buttonXpath);
+    KazumiLogger().i('[CaptchaProvider] (type2) Page loading for button click: $url');
   }
 
   Future<void> saveAndUnload(String pluginName) async {

@@ -13,6 +13,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   String _currentXpath = '';
   /// whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
+  String _buttonXpath = '';
 
   @override
   Future<void> init() async {
@@ -72,6 +73,8 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
             .add('[Captcha WebView] Navigation completed');
         if (_currentXpath.isNotEmpty) {
           await _injectCaptchaScript();
+        } else if (_buttonXpath.isNotEmpty) {
+          await _injectButtonClickScript(_buttonXpath);
         }
         // After a navigation, if captcha was found before but is now absent,
         // consider the verification successful.
@@ -205,8 +208,77 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   @override
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
+    _buttonXpath = '';
     _captchaWasFound = false;
     _webviewController?.launch(url);
+  }
+
+  @override
+  Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
+    _currentXpath = '';
+    _buttonXpath = buttonXpath; // injected on navigationCompleted
+    _captchaWasFound = false;
+    _webviewController?.launch(url);
+  }
+
+  Future<void> _injectButtonClickScript(String buttonXpath) async {
+    final escaped =
+        buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final script = '''
+(function() {
+  window.webkit.messageHandlers.msgToNative.postMessage(
+    'captchaLog:ButtonClickScript injected on ' + window.location.href);
+
+  var _xpath = '$escaped';
+  var _clicked = false;
+  var _poller = null;
+  var _disappearObserver = null;
+
+  function evalXpath() {
+    try {
+      var r = document.evaluate(_xpath, document, null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      return r.singleNodeValue;
+    } catch(e) { return null; }
+  }
+
+  function startDisappearMonitor() {
+    if (_disappearObserver) return;
+    _disappearObserver = new MutationObserver(function() {
+      if (!evalXpath()) {
+        _disappearObserver.disconnect();
+        _disappearObserver = null;
+        window.webkit.messageHandlers.msgToNative.postMessage('captchaGone:');
+      }
+    });
+    _disappearObserver.observe(document.documentElement,
+      { childList: true, subtree: true, attributes: true });
+  }
+
+  function checkAndClick() {
+    var btn = evalXpath();
+    if (btn && !_clicked) {
+      _clicked = true;
+      btn.click();
+      window.webkit.messageHandlers.msgToNative.postMessage('captchaLog:Button found and clicked');
+      startDisappearMonitor();
+      return true;
+    }
+    return false;
+  }
+
+  if (!checkAndClick()) {
+    _poller = setInterval(function() {
+      if (checkAndClick()) { clearInterval(_poller); _poller = null; }
+    }, 500);
+  }
+})();
+''';
+    try {
+      await _webviewController?.evaluateJavaScript(script);
+    } catch (e) {
+      KazumiLogger().e('[Captcha WebView] injectButtonClickScript error: $e');
+    }
   }
 
   @override
@@ -280,6 +352,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   @override
   void dispose() {
     _currentXpath = '';
+    _buttonXpath = '';
     _captchaWasFound = false;
     if (_navigationListener != null) {
       try {

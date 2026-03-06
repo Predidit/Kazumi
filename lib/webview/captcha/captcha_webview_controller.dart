@@ -30,11 +30,18 @@ abstract class CaptchaWebviewController {
   /// 初始化 WebView
   Future<void> init();
 
-  /// 加载指定 URL，并注入监听验证码图片的 JS 脚本
+  /// 加载指定 URL，并注入监听验证码图片的 JS 脚本（类型1：图片验证码）
   ///
   /// [url] 要加载的页面地址（一般为搜索 URL）
   /// [captchaXpath] 验证码图片元素的 XPath 选择器
   Future<void> loadPage(String url, String captchaXpath);
+
+  /// 加载指定 URL，并注入监听验证按钮的 JS 脚本（类型2：自动点击验证按钮）
+  ///
+  /// 检测到 [buttonXpath] 元素后立即模拟点击；按钮消失时触发 [onCaptchaDisappeared]。
+  /// [url] 要加载的页面地址
+  /// [buttonXpath] 验证按钮元素的 XPath 选择器
+  Future<void> loadPageForButtonClick(String url, String buttonXpath);
 
   /// 在 WebView 内通过 JS 模拟输入验证码并模拟点击提交按钮
   ///

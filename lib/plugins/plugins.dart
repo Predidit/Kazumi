@@ -204,16 +204,17 @@ class Plugin {
     var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
 
-    // Detect captcha challenge: if antiCrawlerConfig is enabled, check the
-    // appropriate XPath based on captchaType and throw so callers can show
-    // the dedicated captcha UI instead of a generic error.
+    // Detect captcha challenge: if antiCrawlerConfig is enabled, check both
+    // captchaImage and captchaButton XPaths — if either matches, throw so
+    // callers can show the dedicated captcha UI instead of a generic error.
     if (antiCrawlerConfig.enabled) {
-      final String detectionXpath =
-          antiCrawlerConfig.captchaType == CaptchaType.autoClickButton
-              ? antiCrawlerConfig.captchaButton
-              : antiCrawlerConfig.captchaImage;
-      if (detectionXpath.isNotEmpty &&
-          htmlElement.queryXPath(detectionXpath).node != null) {
+      final List<String> detectionXpaths = [
+        antiCrawlerConfig.captchaImage,
+        antiCrawlerConfig.captchaButton,
+      ].where((x) => x.isNotEmpty).toList();
+      final bool captchaDetected = detectionXpaths.any(
+          (xpath) => htmlElement.queryXPath(xpath).node != null);
+      if (captchaDetected) {
         KazumiLogger().w('Plugin: $name detected captcha challenge in search response');
         throw CaptchaRequiredException(name);
       }

@@ -131,6 +131,24 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                 color: Theme.of(context).colorScheme.surface),
                           ),
                         ),
+                        if (sortedList[index].antiCrawlerEnabled) ...[  
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 1.0),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.tertiary,
+                              borderRadius: BorderRadius.circular(16.0),
+                            ),
+                            child: Text(
+                              'captcha',
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onTertiary),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     if (sortedList[index].lastUpdate > 0) ...[

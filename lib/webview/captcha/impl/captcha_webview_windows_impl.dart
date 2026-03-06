@@ -6,16 +6,16 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 
-/// 基于 webview_windows 的验证码 WebView 实现（Windows）
 class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   HeadlessWebview? _headlessWebview;
   final List<StreamSubscription> _subscriptions = [];
   String _currentXpath = '';
   String _currentPageUrl = '';
-  /// 是否已检测到验证码图片，用于在页面跳转后判断验证是否通过
+  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
-  /// 待注入的验证按钮 XPath
   String _buttonXpath = '';
+  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
+  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
@@ -44,16 +44,24 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
       }),
     );
 
-    // After a navigation, if we already found a captcha once and it is now
-    // absent from DOM, consider the verification successful.
+    // After a navigation, detect verification completion for both type-1
+    // (captcha image gone) and type-2 (button was clicked, page navigated).
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
-        if (state == LoadingState.navigationCompleted && _captchaWasFound) {
-          final present = await _isCaptchaPresent();
-          if (!present && !captchaDisappearedController.isClosed) {
+        if (state == LoadingState.navigationCompleted) {
+          if (_captchaWasFound) {
+            final present = await _isCaptchaPresent();
+            if (!present && !captchaDisappearedController.isClosed) {
+              logEventController
+                  .add('[Captcha WebView] Captcha gone after navigation');
+              _captchaWasFound = false;
+              captchaDisappearedController.add(null);
+            }
+          }
+          if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
             logEventController
-                .add('[Captcha WebView] Captcha gone after navigation');
-            _captchaWasFound = false;
+                .add('[Captcha WebView] Button click → page navigated, verification done');
+            _buttonWasClicked = false;
             captchaDisappearedController.add(null);
           }
         }
@@ -72,7 +80,11 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
         _captchaWasFound = true;
         captchaImageFoundController.add(src);
       }
+    } else if (msg.startsWith('buttonClicked:')) {
+      _buttonWasClicked = true;
+      logEventController.add('[Captcha WebView] Button clicked flag set');
     } else if (msg.startsWith('captchaGone:')) {
+      _buttonWasClicked = false;
       if (!captchaDisappearedController.isClosed) {
         captchaDisappearedController.add(null);
       }
@@ -198,6 +210,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
     _buttonXpath = '';
+    _buttonWasClicked = false;
     _currentPageUrl = url;
     _captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
@@ -207,6 +220,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentXpath = '';
     _buttonXpath = buttonXpath;
+    _buttonWasClicked = false;
     _currentPageUrl = url;
     _captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
@@ -250,7 +264,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     if (btn && !_clicked) {
       _clicked = true;
       btn.click();
-      window.chrome.webview.postMessage('captchaLog:Button found and clicked');
+      window.chrome.webview.postMessage('buttonClicked:');
       startDisappearMonitor();
       return true;
     }
@@ -344,6 +358,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   void dispose() {
     _currentXpath = '';
     _buttonXpath = '';
+    _buttonWasClicked = false;
     _currentPageUrl = '';
     for (final s in _subscriptions) {
       try {

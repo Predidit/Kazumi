@@ -11,9 +11,11 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   Webview? _webviewController;
   VoidCallback? _navigationListener;
   String _currentXpath = '';
-  /// whether a captcha image has been detected, used to determine if verification is successful after page navigation
+  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
   String _buttonXpath = '';
+  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
+  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
@@ -55,7 +57,11 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
           _captchaWasFound = true;
           captchaImageFoundController.add(src);
         }
+      } else if (msg.startsWith('buttonClicked:')) {
+        _buttonWasClicked = true;
+        logEventController.add('[Captcha WebView] Button clicked flag set');
       } else if (msg.startsWith('captchaGone:')) {
+        _buttonWasClicked = false;
         if (!captchaDisappearedController.isClosed) {
           captchaDisappearedController.add(null);
         }
@@ -76,8 +82,8 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
         } else if (_buttonXpath.isNotEmpty) {
           await _injectButtonClickScript(_buttonXpath);
         }
-        // After a navigation, if captcha was found before but is now absent,
-        // consider the verification successful.
+        // After a navigation, detect verification completion for both type-1
+        // (captcha image gone) and type-2 (button was clicked, page navigated).
         if (_captchaWasFound) {
           final present = await _isCaptchaPresent();
           if (!present && !captchaDisappearedController.isClosed) {
@@ -86,6 +92,12 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
             _captchaWasFound = false;
             captchaDisappearedController.add(null);
           }
+        }
+        if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+          logEventController
+              .add('[Captcha WebView] Button click → page navigated, verification done');
+          _buttonWasClicked = false;
+          captchaDisappearedController.add(null);
         }
       }
     };
@@ -209,6 +221,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
     _buttonXpath = '';
+    _buttonWasClicked = false;
     _captchaWasFound = false;
     _webviewController?.launch(url);
   }
@@ -216,7 +229,8 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentXpath = '';
-    _buttonXpath = buttonXpath; // injected on navigationCompleted
+    _buttonXpath = buttonXpath;
+    _buttonWasClicked = false;
     _captchaWasFound = false;
     _webviewController?.launch(url);
   }
@@ -260,7 +274,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
     if (btn && !_clicked) {
       _clicked = true;
       btn.click();
-      window.webkit.messageHandlers.msgToNative.postMessage('captchaLog:Button found and clicked');
+      window.webkit.messageHandlers.msgToNative.postMessage('buttonClicked:');
       startDisappearMonitor();
       return true;
     }
@@ -353,6 +367,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   void dispose() {
     _currentXpath = '';
     _buttonXpath = '';
+    _buttonWasClicked = false;
     _captchaWasFound = false;
     if (_navigationListener != null) {
       try {

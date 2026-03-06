@@ -10,8 +10,10 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;
   String _currentXpath = '';
-  /// whether a captcha image has been detected, used to determine if verification is successful after page navigation
+  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
+  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
+  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
@@ -36,6 +38,11 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
         },
         onLoadStop: (controller, url) {
           logEventController.add('[Captcha WebView] Load stop: $url');
+          if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+            KazumiLogger().i('[Captcha WebView] Button click → page navigated, verification done');
+            _buttonWasClicked = false;
+            captchaDisappearedController.add(null);
+          }
         },
         onReceivedError: (controller, request, error) {
           logEventController
@@ -79,9 +86,18 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
       handlerName: 'CaptchaGoneBridge',
       callback: (args) {
         logEventController.add('[Captcha WebView] Captcha image disappeared');
+        _buttonWasClicked = false;
         if (!captchaDisappearedController.isClosed) {
           captchaDisappearedController.add(null);
         }
+      },
+    );
+
+    _webviewController?.addJavaScriptHandler(
+      handlerName: 'ButtonClickedBridge',
+      callback: (args) {
+        logEventController.add('[Captcha WebView] Button clicked flag set');
+        _buttonWasClicked = true;
       },
     );
 
@@ -209,6 +225,7 @@ if (!_checkForCaptcha()) {
   Future<void> loadPage(String url, String captchaXpath) async {
     _currentXpath = captchaXpath;
     _captchaWasFound = false;
+    _buttonWasClicked = false;
     _registerHandlers();
     await _addCaptchaUserScript();
     try {
@@ -224,6 +241,7 @@ if (!_checkForCaptcha()) {
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentXpath = ''; // disable captcha-image script on navigation
     _captchaWasFound = false;
+    _buttonWasClicked = false;
     _registerHandlers();
     await _addButtonClickUserScript(buttonXpath);
     try {
@@ -276,7 +294,7 @@ function _checkAndClick() {
   if (btn && !_clicked) {
     _clicked = true;
     btn.click();
-    try { window.flutter_inappwebview.callHandler('CaptchaLogBridge', 'Button found and clicked'); } catch(e) {}
+    try { window.flutter_inappwebview.callHandler('ButtonClickedBridge', ''); } catch(e) {}
     _startDisappearMonitor();
     return true;
   }
@@ -371,6 +389,7 @@ if (!_checkAndClick()) {
   void dispose() {
     _currentXpath = '';
     _captchaWasFound = false;
+    _buttonWasClicked = false;
     _handlersRegistered = false;
     try {
       PlatformCookieManager(const PlatformCookieManagerCreationParams())

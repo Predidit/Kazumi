@@ -10,6 +10,35 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugin_cookie_manager.dart';
 
+/// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
+/// (i.e. the [AntiCrawlerConfig.captchaImage] XPath selector matches something
+/// in the returned HTML).
+class CaptchaRequiredException implements Exception {
+  final String pluginName;
+  const CaptchaRequiredException(this.pluginName);
+  @override
+  String toString() => 'CaptchaRequiredException: $pluginName requires captcha verification';
+}
+
+/// Thrown by [Plugin.queryBangumi] when the search request succeeds but the
+/// XPath selectors return no results.
+class NoResultException implements Exception {
+  final String pluginName;
+  const NoResultException(this.pluginName);
+  @override
+  String toString() => 'NoResultException: $pluginName returned no search results';
+}
+
+/// Thrown by [Plugin.queryBangumi] when the HTTP request or HTML parsing
+/// fails for reasons other than a captcha challenge.
+class SearchErrorException implements Exception {
+  final String pluginName;
+  final Object? cause;
+  const SearchErrorException(this.pluginName, {this.cause});
+  @override
+  String toString() => 'SearchErrorException: $pluginName search failed${cause != null ? ' ($cause)' : ''}';
+}
+
 class Plugin {
   String api;
   String type;
@@ -134,6 +163,7 @@ class Plugin {
 
   Future<PluginSearchResponse> queryBangumi(String keyword,
       {bool shouldRethrow = false}) async {
+    try {
     String queryURL = searchURL.replaceAll('@keyword', keyword);
     dynamic resp;
     List<SearchItem> searchItems = [];
@@ -174,6 +204,16 @@ class Plugin {
     var htmlString = resp.data.toString();
     var htmlElement = parse(htmlString).documentElement!;
 
+    // Detect captcha challenge: if antiCrawlerConfig is enabled and the captcha
+    // image XPath selector matches an element in the response, throw so callers
+    // can show the dedicated captcha UI instead of a generic error.
+    if (antiCrawlerConfig.enabled &&
+        antiCrawlerConfig.captchaImage.isNotEmpty &&
+        htmlElement.queryXPath(antiCrawlerConfig.captchaImage).node != null) {
+      KazumiLogger().w('Plugin: $name detected captcha challenge in search response');
+      throw CaptchaRequiredException(name);
+    }
+
     htmlElement.queryXPath(searchList).nodes.forEach((element) {
       try {
         SearchItem searchItem = SearchItem(
@@ -185,14 +225,21 @@ class Plugin {
             'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
       } catch (_) {}
     });
-    PluginSearchResponse pluginSearchResponse =
-    PluginSearchResponse(pluginName: name, data: searchItems);
-    return pluginSearchResponse;
+    if (searchItems.isEmpty) throw NoResultException(name);
+    return PluginSearchResponse(pluginName: name, data: searchItems);
+    } on CaptchaRequiredException {
+      rethrow;
+    } on NoResultException {
+      rethrow;
+    } catch (e, st) {
+      KazumiLogger().w('Plugin: $name search failed', error: e, stackTrace: st);
+      if (shouldRethrow) throw SearchErrorException(name, cause: e);
+      return PluginSearchResponse(pluginName: name, data: []);
+    }
   }
 
   Future<List<Road>> querychapterRoads(String url, {CancelToken? cancelToken}) async {
     List<Road> roadList = [];
-    // 预处理
     if (!url.contains('https')) {
       url = url.replaceAll('http', 'https');
     }

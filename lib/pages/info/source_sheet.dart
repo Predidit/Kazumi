@@ -113,7 +113,8 @@ class _SourceSheetState extends State<SourceSheet>
           Timer? countdownTimer;
           const totalMs = 3000;
           final stopwatch = Stopwatch()..start();
-          countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+          countdownTimer =
+              Timer.periodic(const Duration(milliseconds: 16), (t) {
             final elapsed = stopwatch.elapsedMilliseconds;
             progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
             if (elapsed >= totalMs) {
@@ -131,8 +132,8 @@ class _SourceSheetState extends State<SourceSheet>
             builder: (context) => Dialog(
               clipBehavior: Clip.antiAlias,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 32, vertical: 28),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
                 child: SizedBox(
                   width: 320,
                   child: Column(
@@ -156,8 +157,7 @@ class _SourceSheetState extends State<SourceSheet>
                       const SizedBox(height: 24),
                       ValueListenableBuilder<double>(
                         valueListenable: progressNotifier,
-                        builder: (context, value, _) =>
-                            LinearProgressIndicator(
+                        builder: (context, value, _) => LinearProgressIndicator(
                           value: value,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -462,23 +462,6 @@ class _SourceSheetState extends State<SourceSheet>
                         .map(
                           (plugin) => Observer(
                             builder: (context) {
-                              bool isSuccessButEmpty = false;
-                              if (widget.infoController
-                                      .pluginSearchStatus[plugin.name] ==
-                                  'success') {
-                                bool hasContent = false;
-                                for (var searchResponse in widget
-                                    .infoController.pluginSearchResponseList) {
-                                  if (searchResponse.pluginName ==
-                                          plugin.name &&
-                                      searchResponse.data.isNotEmpty) {
-                                    hasContent = true;
-                                    break;
-                                  }
-                                }
-                                isSuccessButEmpty = !hasContent;
-                              }
-
                               return Tab(
                                 child: Row(
                                   children: [
@@ -499,19 +482,14 @@ class _SourceSheetState extends State<SourceSheet>
                                       width: 8.0,
                                       height: 8.0,
                                       decoration: BoxDecoration(
-                                        color: isSuccessButEmpty
-                                            ? Colors.orange
-                                            : (widget.infoController
-                                                            .pluginSearchStatus[
-                                                        plugin.name] ==
-                                                    'success'
-                                                ? Colors.green
-                                                : (widget.infoController
-                                                                .pluginSearchStatus[
-                                                            plugin.name] ==
-                                                        'pending')
-                                                    ? Colors.grey
-                                                    : Colors.red),
+                                        color: switch (widget.infoController
+                                            .pluginSearchStatus[plugin.name]) {
+                                          'success' => Colors.green,
+                                          'noResult' => Colors.orange,
+                                          'captcha' => Colors.blue,
+                                          'error' => Colors.red,
+                                          _ => Colors.grey,
+                                        },
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -599,10 +577,16 @@ class _SourceSheetState extends State<SourceSheet>
                         ? const Center(child: CircularProgressIndicator())
                         : (widget.infoController
                                     .pluginSearchStatus[plugin.name] ==
-                                'error'
-                            ? (GeneralErrorWidget(
-                                errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                'captcha'
+                            ? GeneralErrorWidget(
+                                errMsg: '${plugin.name} 需要验证码验证 完成验证后重新检索',
                                 actions: [
+                                  GeneralErrorButton(
+                                    onPressed: () {
+                                      showCaptchaDialog(plugin);
+                                    },
+                                    text: '进行验证',
+                                  ),
                                   GeneralErrorButton(
                                     onPressed: () {
                                       queryManager?.querySource(
@@ -611,19 +595,14 @@ class _SourceSheetState extends State<SourceSheet>
                                     text: '重试',
                                   ),
                                 ],
-                              ))
-                            : cardList.isEmpty
+                              )
+                            : (widget.infoController
+                                        .pluginSearchStatus[plugin.name] ==
+                                    'noResult'
                                 ? GeneralErrorWidget(
                                     errMsg:
                                         '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
                                     actions: [
-                                      if (plugin.antiCrawlerConfig.enabled)
-                                        GeneralErrorButton(
-                                          onPressed: () {
-                                            showCaptchaDialog(plugin);
-                                          },
-                                          text: '进行验证',
-                                        ),
                                       GeneralErrorButton(
                                         onPressed: () {
                                           showAliasSearchDialog(
@@ -642,7 +621,23 @@ class _SourceSheetState extends State<SourceSheet>
                                       ),
                                     ],
                                   )
-                                : ListView(children: cardList));
+                                : (widget.infoController
+                                            .pluginSearchStatus[plugin.name] ==
+                                        'error'
+                                    ? GeneralErrorWidget(
+                                        errMsg:
+                                            '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+                                        actions: [
+                                          GeneralErrorButton(
+                                            onPressed: () {
+                                              queryManager?.querySource(
+                                                  keyword, plugin.name);
+                                            },
+                                            text: '重试',
+                                          ),
+                                        ],
+                                      )
+                                    : ListView(children: cardList))));
                   }),
                 ),
               ),

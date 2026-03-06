@@ -73,35 +73,44 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   void _initNavigationListener() {
-    _navigationListener = () async {
-      if (_webviewController?.isNavigating.value == false) {
-        logEventController
-            .add('[Captcha WebView] Navigation completed');
-        if (_currentXpath.isNotEmpty) {
-          await _injectCaptchaScript();
-        } else if (_buttonXpath.isNotEmpty) {
-          await _injectButtonClickScript(_buttonXpath);
-        }
-        // After a navigation, detect verification completion for both type-1
-        // (captcha image gone) and type-2 (button was clicked, page navigated).
-        if (_captchaWasFound) {
-          final present = await _isCaptchaPresent();
-          if (!present && !captchaDisappearedController.isClosed) {
-            logEventController
-                .add('[Captcha WebView] Captcha gone after navigation');
-            _captchaWasFound = false;
-            captchaDisappearedController.add(null);
-          }
-        }
-        if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+    _navigationListener = () {
+      _onNavigationInject();
+      _onNavigationCompletion();
+    };
+    _webviewController?.isNavigating.addListener(_navigationListener!);
+  }
+
+  Future<void> _onNavigationInject() async {
+    if (_webviewController?.isNavigating.value == false) {
+      logEventController.add('[Captcha WebView] Navigation completed');
+      if (_currentXpath.isNotEmpty) {
+        await _injectCaptchaScript();
+      } else if (_buttonXpath.isNotEmpty) {
+        await _injectButtonClickScript(_buttonXpath);
+      }
+    }
+  }
+
+  Future<void> _onNavigationCompletion() async {
+    if (_webviewController?.isNavigating.value == false) {
+      // Type-1: captcha image was seen; check if it has disappeared.
+      if (_captchaWasFound) {
+        final present = await _isCaptchaPresent();
+        if (!present && !captchaDisappearedController.isClosed) {
           logEventController
-              .add('[Captcha WebView] Button click → page navigated, verification done');
-          _buttonWasClicked = false;
+              .add('[Captcha WebView] Captcha gone after navigation');
+          _captchaWasFound = false;
           captchaDisappearedController.add(null);
         }
       }
-    };
-    _webviewController?.isNavigating.addListener(_navigationListener!);
+      // Type-2: button was clicked; page navigation confirms verification.
+      if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+        logEventController.add(
+            '[Captcha WebView] Button click and page navigated, verification done');
+        _buttonWasClicked = false;
+        captchaDisappearedController.add(null);
+      }
+    }
   }
 
   Future<bool> _isCaptchaPresent() async {

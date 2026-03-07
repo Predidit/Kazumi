@@ -10,6 +10,7 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;
   String _currentCaptchaImageXpath = '';
+  String _currentInputXpath = '';
   /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
   /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
@@ -119,6 +120,8 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
 
     final escapedXpath =
         _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final escapedInputXpath =
+        _currentInputXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
     // Remove any previously injected captcha script before adding a fresh one.
     await _webviewController?.removeAllUserScripts();
@@ -128,6 +131,7 @@ window.flutter_inappwebview.callHandler('CaptchaLogBridge',
   'CaptchaScript loaded on: ' + window.location.href);
 
 var _captchaXpath = '{XPATH}';
+var _inputXpath = '{INPUT_XPATH}';
 var _captchaPoller = null;
 var _disappearObserver = null;
 
@@ -191,9 +195,36 @@ function _checkForCaptcha() {
   return false;
 }
 
+function _triggerInputFocus() {
+  if (!_inputXpath) return false;
+  try {
+    var inputResult = document.evaluate(_inputXpath, document, null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    var inputEl = inputResult.singleNodeValue;
+    if (inputEl) {
+      if (typeof \$ !== 'undefined' && \$) {
+        \$(inputEl).trigger('focus');
+        return true;
+      } else if (typeof jQuery !== 'undefined' && jQuery) {
+        jQuery(inputEl).trigger('focus');
+        return true;
+      } else {
+        inputEl.focus();
+        return true;
+      }
+    }
+  } catch(e) {
+    try { window.flutter_inappwebview.callHandler('CaptchaLogBridge',
+      'Failed to trigger input focus - ' + e.message); } catch(e2) {}
+  }
+  return false;
+}
+
 // Report captcha status to Dart at DOMContentLoaded so that after a full-page
 // navigation Dart can detect that verification succeeded (captcha is gone).
+// Also trigger input focus here since DOM is ready at this point.
 window.addEventListener('DOMContentLoaded', function() {
+  _triggerInputFocus();
   var node = _evalXpath();
   try {
     window.flutter_inappwebview.callHandler('CaptchaStatusBridge', node ? 'present' : 'absent');
@@ -210,7 +241,9 @@ if (!_checkForCaptcha()) {
 }
 """;
 
-    final script = scriptTemplate.replaceAll('{XPATH}', escapedXpath);
+    final script = scriptTemplate
+        .replaceAll('{XPATH}', escapedXpath)
+        .replaceAll('{INPUT_XPATH}', escapedInputXpath);
     await _webviewController?.addUserScripts(
       userScripts: [
         UserScript(
@@ -224,6 +257,7 @@ if (!_checkForCaptcha()) {
   @override
   Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
     _currentCaptchaImageXpath = captchaXpath;
+    _currentInputXpath = inputXpath ?? '';
     _captchaWasFound = false;
     _buttonWasClicked = false;
     _registerHandlers();
@@ -388,6 +422,7 @@ if (!_checkAndClick()) {
   @override
   void dispose() {
     _currentCaptchaImageXpath = '';
+    _currentInputXpath = '';
     _captchaWasFound = false;
     _buttonWasClicked = false;
     _handlersRegistered = false;

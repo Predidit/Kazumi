@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:kazumi/webview/webview_controller.dart';
-import 'package:kazumi/providers/video_source_provider.dart';
+import 'package:kazumi/webview/video/video_webview_controller.dart';
+import 'package:kazumi/providers/video/video_source_provider.dart';
 
 /// WebView 视频源提供者
 ///
@@ -9,7 +9,7 @@ import 'package:kazumi/providers/video_source_provider.dart';
 /// WebView 实例在 Provider 生命周期内复用，切换集数时调用 unloadPage 释放页面资源，
 /// 仅在 [dispose] 时才真正销毁 WebView。
 class WebViewVideoSourceProvider implements IVideoSourceProvider {
-  WebviewItemController? _webview;
+  VideoWebviewController? _webview;
   StreamSubscription? _logSubscription;
 
   /// 单个 Provider 实例不能实现并发解析，单个 Provider 实例只能持有一个 Webview
@@ -32,7 +32,7 @@ class WebViewVideoSourceProvider implements IVideoSourceProvider {
     final currentResolveId = _resolveId;
 
     if (_webview == null) {
-      _webview = WebviewItemControllerFactory.getController();
+      _webview = VideoWebviewControllerFactory.getController();
       await _webview!.init();
 
       _logSubscription = _webview!.onLog.listen((log) {

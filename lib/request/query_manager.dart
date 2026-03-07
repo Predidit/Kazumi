@@ -4,6 +4,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/utils/logger.dart';
 
 class QueryManager {
   QueryManager({
@@ -43,7 +44,17 @@ class QueryManager {
             return;
           }
 
-          infoController.pluginSearchStatus[plugin.name] = 'error';
+          if (error is CaptchaRequiredException) {
+            KazumiLogger().w('QueryManager: captcha required for ${error.pluginName}');
+            infoController.pluginSearchStatus[error.pluginName] = 'captcha';
+          } else if (error is NoResultException) {
+            KazumiLogger().i('QueryManager: no results for ${error.pluginName}');
+            infoController.pluginSearchStatus[error.pluginName] = 'noResult';
+          } else {
+            final name = error is SearchErrorException ? error.pluginName : plugin.name;
+            KazumiLogger().w('QueryManager: search error for $name');
+            infoController.pluginSearchStatus[name] = 'error';
+          }
         });
       }
     }
@@ -75,7 +86,17 @@ class QueryManager {
           return;
         }
 
-        infoController.pluginSearchStatus[plugin.name] = 'error';
+        if (error is CaptchaRequiredException) {
+          KazumiLogger().w('QueryManager: captcha required for ${error.pluginName}');
+          infoController.pluginSearchStatus[error.pluginName] = 'captcha';
+        } else if (error is NoResultException) {
+          KazumiLogger().i('QueryManager: no results for ${error.pluginName}');
+          infoController.pluginSearchStatus[error.pluginName] = 'noResult';
+        } else {
+          final name = error is SearchErrorException ? error.pluginName : plugin.name;
+          KazumiLogger().w('QueryManager: search error for $name');
+          infoController.pluginSearchStatus[name] = 'error';
+        }
       });
     }
 

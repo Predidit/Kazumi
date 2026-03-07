@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'package:kazumi/webview/webview_controller.dart';
+import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 
-class WebviewLinuxItemControllerImpel extends WebviewItemController<Webview> {
+class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
   bool bridgeInited = false;
 
   @override

@@ -3,13 +3,13 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/webview/webview_controller.dart';
+import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
     as android_webview;
 
-class WebviewAndroidItemControllerImpel
-    extends WebviewItemController<PlatformInAppWebViewController> {
+class VideoWebviewAndroidImpl
+    extends VideoWebviewController<PlatformInAppWebViewController> {
   PlatformHeadlessInAppWebView? headlessWebView;
   bool hasInjectedScripts = false;
   bool shouldInjectIframeRedirect = false;

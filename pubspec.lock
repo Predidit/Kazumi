@@ -249,6 +249,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  cookie_jar:
+    dependency: "direct main"
+    description:
+      name: cookie_jar
+      sha256: "963da02c1ef64cb5ac20de948c9e5940aa351f1e34a12b1d327c83d85b7e8fff"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.9"
   crypto:
     dependency: transitive
     description:
@@ -1640,8 +1648,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "9b9aabb2452e53d8d32bf59d571520fdfbaa7c21"
-      resolved-ref: "9b9aabb2452e53d8d32bf59d571520fdfbaa7c21"
+      ref: "1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764"
+      resolved-ref: "1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764"
       url: "https://github.com/Predidit/flutter-webview-windows.git"
     source: git
     version: "0.4.0"

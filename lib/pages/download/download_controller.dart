@@ -12,7 +12,7 @@ import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/utils/format_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/providers/providers.dart';
+import 'package:kazumi/providers/video/providers.dart';
 import 'package:kazumi/request/damaku.dart';
 import 'package:mobx/mobx.dart';
 

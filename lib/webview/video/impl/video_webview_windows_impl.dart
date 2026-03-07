@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:webview_windows/webview_windows.dart';
-import 'package:kazumi/webview/webview_controller.dart';
+import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 
-class WebviewWindowsItemControllerImpel
-    extends WebviewItemController<WebviewController> {
+class VideoWebviewWindowsImpl
+    extends VideoWebviewController<WebviewController> {
   final List<StreamSubscription> subscriptions = [];
 
   HeadlessWebview? headlessWebview;

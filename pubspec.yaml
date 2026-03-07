@@ -41,6 +41,7 @@ dependencies:
   mobx: ^2.6.0
   flutter_mobx: ^2.3.0
   dio: ^5.0.0
+  cookie_jar: ^4.0.9
   connectivity_plus: ^6.0.5
 
   path_provider: ^2.1.5
@@ -93,7 +94,7 @@ dependencies:
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: 9b9aabb2452e53d8d32bf59d571520fdfbaa7c21
+      ref: 1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git

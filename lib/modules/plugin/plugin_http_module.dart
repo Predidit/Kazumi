@@ -19,7 +19,7 @@ class PluginHTTPItem {
     final dynamic rawConfig = json['antiCrawlerConfig'];
     final bool antiCrawlerEnabled = rawConfig is Map<String, dynamic>
         ? (rawConfig['enabled'] as bool? ?? false)
-        : false;
+        : (json['antiCrawlerEnabled'] as bool? ?? false);
     return PluginHTTPItem(
       name: json['name'],
       version: json['version'],

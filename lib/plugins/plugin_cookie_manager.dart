@@ -32,7 +32,7 @@ class PluginCookieManager {
         '[PluginCookieManager] Saved ${cookies.length} cookies for $pluginName');
   }
 
-  /// 解析 document.cookie 字符串为 [Cookie] 列表
+  /// 解析字符串为 [Cookie] 列表
   List<Cookie> _parseCookieString(String raw, Uri uri) {
     final cookies = <Cookie>[];
     for (final part in raw.split(';')) {
@@ -45,8 +45,7 @@ class PluginCookieManager {
       try {
         final cookie = Cookie(name, value)
           ..domain = uri.host
-          ..path = '/'
-          ..httpOnly = false;
+          ..path = '/';
         cookies.add(cookie);
       } catch (_) {}
     }

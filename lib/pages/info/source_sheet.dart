@@ -375,7 +375,7 @@ class _SourceSheetState extends State<SourceSheet>
     }
     if (status == 'captcha') {
       return GeneralErrorWidget(
-        errMsg: '${plugin.name} 需要验证码验证 完成验证后重新检索',
+        errMsg: '${plugin.name} 需要验证码验证',
         actions: [
           GeneralErrorButton(
             onPressed: () => showAntiCrawlerDialog(plugin),

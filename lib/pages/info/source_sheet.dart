@@ -96,6 +96,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaProvider!.loadForCaptcha(
       searchUrl,
       plugin.antiCrawlerConfig.captchaImage,
+      inputXpath: plugin.antiCrawlerConfig.captchaInput,
     );
 
     final imageSub = _captchaProvider!.onCaptchaImageUrl.listen((url) {

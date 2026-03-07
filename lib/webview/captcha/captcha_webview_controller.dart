@@ -34,7 +34,8 @@ abstract class CaptchaWebviewController {
   ///
   /// [url] 要加载的页面地址（一般为搜索 URL）
   /// [captchaXpath] 验证码图片元素的 XPath 选择器
-  Future<void> loadPage(String url, String captchaXpath);
+  /// [inputXpath] 可选，验证码输入框的 XPath。如果提供，会在检测验证码前先触发输入框的 focus 事件（某些站点需要）
+  Future<void> loadPage(String url, String captchaXpath, {String? inputXpath});
 
   /// 加载指定 URL，并注入监听验证按钮的 JS 脚本（类型2：自动点击验证按钮）
   ///

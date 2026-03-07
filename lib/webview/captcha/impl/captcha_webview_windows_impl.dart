@@ -9,7 +9,8 @@ import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   HeadlessWebview? _headlessWebview;
   final List<StreamSubscription> _subscriptions = [];
-  String _currentXpath = '';
+  String _currentCaptchaImageXpath = '';
+  String _currentInputXpath = '';
   String _currentPageUrl = '';
   /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
@@ -35,7 +36,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
         if (state == LoadingState.navigationCompleted) {
           logEventController
               .add('[Captcha WebView] Navigation completed: $_currentPageUrl');
-          if (_currentXpath.isNotEmpty) {
+          if (_currentCaptchaImageXpath.isNotEmpty) {
             await _injectCaptchaScript();
           } else if (_buttonXpath.isNotEmpty) {
             await _injectButtonClickScript(_buttonXpath);
@@ -89,15 +90,14 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
         captchaDisappearedController.add(null);
       }
     } else if (msg.startsWith('captchaLog:')) {
-      logEventController
-          .add('[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
+      logEventController.add('[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
     }
   }
 
   Future<bool> _isCaptchaPresent() async {
-    if (_currentXpath.isEmpty || _headlessWebview == null) return false;
+    if (_currentCaptchaImageXpath.isEmpty || _headlessWebview == null) return false;
     final escaped =
-        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
     try {
       final result = await _headlessWebview!.executeScript('''
 (function() {
@@ -116,15 +116,18 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   }
 
   Future<void> _injectCaptchaScript() async {
-    if (_currentXpath.isEmpty) return;
+    if (_currentCaptchaImageXpath.isEmpty) return;
     final escapedXpath =
-        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final escapedInputXpath =
+        _currentInputXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
     final script = '''
 (function() {
   window.chrome.webview.postMessage('captchaLog:CaptchaScript injected on ' + window.location.href);
 
   var _captchaXpath = '$escapedXpath';
+  var _inputXpath = '$escapedInputXpath';
   var _captchaPoller = null;
   var _disappearObserver = null;
 
@@ -188,6 +191,37 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     return false;
   }
 
+  function _triggerInputFocus() {
+    if (!_inputXpath) {
+      return false;
+    }
+    
+    try {
+      var inputResult = document.evaluate(_inputXpath, document, null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+      var inputEl = inputResult.singleNodeValue;
+      
+      if (inputEl) {
+        if (typeof \$ !== 'undefined' && \$) {
+          \$(inputEl).trigger('focus');
+          return true;
+        } else if (typeof jQuery !== 'undefined' && jQuery) {
+          jQuery(inputEl).trigger('focus');
+          return true;
+        } else {
+          inputEl.focus();
+          return true;
+        }
+      }
+    } catch(e) {
+      window.chrome.webview.postMessage('captchaLog:Failed to trigger input focus - ' + e.message);
+    }
+    return false;
+  }
+
+  // If inputXpath is provided, trigger focus to load captcha (some sites require this)
+  _triggerInputFocus();
+  
   if (!_checkForCaptcha()) {
     _captchaPoller = setInterval(function() {
       if (_checkForCaptcha()) {
@@ -207,8 +241,9 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   }
 
   @override
-  Future<void> loadPage(String url, String captchaXpath) async {
-    _currentXpath = captchaXpath;
+  Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
+    _currentCaptchaImageXpath = captchaXpath;
+    _currentInputXpath = inputXpath ?? '';
     _buttonXpath = '';
     _buttonWasClicked = false;
     _currentPageUrl = url;
@@ -218,7 +253,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
 
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
-    _currentXpath = '';
+    _currentCaptchaImageXpath = '';
     _buttonXpath = buttonXpath;
     _buttonWasClicked = false;
     _currentPageUrl = url;
@@ -356,7 +391,8 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
 
   @override
   void dispose() {
-    _currentXpath = '';
+    _currentCaptchaImageXpath = '';
+    _currentInputXpath = '';
     _buttonXpath = '';
     _buttonWasClicked = false;
     _currentPageUrl = '';

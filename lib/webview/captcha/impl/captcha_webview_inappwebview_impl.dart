@@ -9,7 +9,7 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   PlatformHeadlessInAppWebView? _headlessWebView;
   PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;
-  String _currentXpath = '';
+  String _currentCaptchaImageXpath = '';
   /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
   /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
@@ -115,10 +115,10 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   }
 
   Future<void> _addCaptchaUserScript() async {
-    if (_currentXpath.isEmpty) return;
+    if (_currentCaptchaImageXpath.isEmpty) return;
 
     final escapedXpath =
-        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
     // Remove any previously injected captcha script before adding a fresh one.
     await _webviewController?.removeAllUserScripts();
@@ -222,8 +222,8 @@ if (!_checkForCaptcha()) {
   }
 
   @override
-  Future<void> loadPage(String url, String captchaXpath) async {
-    _currentXpath = captchaXpath;
+  Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
+    _currentCaptchaImageXpath = captchaXpath;
     _captchaWasFound = false;
     _buttonWasClicked = false;
     _registerHandlers();
@@ -239,7 +239,7 @@ if (!_checkForCaptcha()) {
 
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
-    _currentXpath = ''; // disable captcha-image script on navigation
+    _currentCaptchaImageXpath = ''; // disable captcha-image script on navigation
     _captchaWasFound = false;
     _buttonWasClicked = false;
     _registerHandlers();
@@ -387,7 +387,7 @@ if (!_checkAndClick()) {
 
   @override
   void dispose() {
-    _currentXpath = '';
+    _currentCaptchaImageXpath = '';
     _captchaWasFound = false;
     _buttonWasClicked = false;
     _handlersRegistered = false;

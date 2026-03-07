@@ -57,7 +57,8 @@ class CaptchaProvider {
   ///
   /// [url] 要加载的页面地址
   /// [captchaXpath] 验证码图片元素的 XPath
-  Future<void> loadForCaptcha(String url, String captchaXpath) async {
+  /// [inputXpath] 可选，验证码输入框的 XPath。如果提供，会在检测验证码前先触发输入框的 focus 事件
+  Future<void> loadForCaptcha(String url, String captchaXpath, {String? inputXpath}) async {
     _pageUrl = url;
     await _ensureInitialized();
     if (_disposed || _controller == null) return;
@@ -70,7 +71,7 @@ class CaptchaProvider {
       }
     });
 
-    await _controller!.loadPage(url, captchaXpath);
+    await _controller!.loadPage(url, captchaXpath, inputXpath: inputXpath);
     KazumiLogger().i('[CaptchaProvider] Page loading: $url');
   }
 

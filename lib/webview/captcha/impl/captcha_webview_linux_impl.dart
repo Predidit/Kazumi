@@ -10,7 +10,7 @@ import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   Webview? _webviewController;
   VoidCallback? _navigationListener;
-  String _currentXpath = '';
+  String _currentCaptchaImageXpath = '';
   /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
   bool _captchaWasFound = false;
   String _buttonXpath = '';
@@ -83,7 +83,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   Future<void> _onNavigationInject() async {
     if (_webviewController?.isNavigating.value == false) {
       logEventController.add('[Captcha WebView] Navigation completed');
-      if (_currentXpath.isNotEmpty) {
+      if (_currentCaptchaImageXpath.isNotEmpty) {
         await _injectCaptchaScript();
       } else if (_buttonXpath.isNotEmpty) {
         await _injectButtonClickScript(_buttonXpath);
@@ -114,9 +114,9 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   Future<bool> _isCaptchaPresent() async {
-    if (_currentXpath.isEmpty || _webviewController == null) return false;
+    if (_currentCaptchaImageXpath.isEmpty || _webviewController == null) return false;
     final escaped =
-        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
     try {
       final result = await _webviewController!.evaluateJavaScript('''
 (function() {
@@ -135,9 +135,9 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   Future<void> _injectCaptchaScript() async {
-    if (_currentXpath.isEmpty) return;
+    if (_currentCaptchaImageXpath.isEmpty) return;
     final escapedXpath =
-        _currentXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
     final script = '''
 (function() {
@@ -227,8 +227,8 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   @override
-  Future<void> loadPage(String url, String captchaXpath) async {
-    _currentXpath = captchaXpath;
+  Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
+    _currentCaptchaImageXpath = captchaXpath;
     _buttonXpath = '';
     _buttonWasClicked = false;
     _captchaWasFound = false;
@@ -237,7 +237,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
-    _currentXpath = '';
+    _currentCaptchaImageXpath = '';
     _buttonXpath = buttonXpath;
     _buttonWasClicked = false;
     _captchaWasFound = false;
@@ -374,7 +374,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 
   @override
   void dispose() {
-    _currentXpath = '';
+    _currentCaptchaImageXpath = '';
     _buttonXpath = '';
     _buttonWasClicked = false;
     _captchaWasFound = false;

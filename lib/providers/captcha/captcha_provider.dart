@@ -33,6 +33,7 @@ class CaptchaProvider {
 
   StreamSubscription? _imageFoundSub;
   StreamSubscription? _disappearedSub;
+  StreamSubscription? _logSub;
 
   bool _isInitialized = false;
   bool _disposed = false;
@@ -48,6 +49,9 @@ class CaptchaProvider {
     if (_disposed) return;
     await initializedFuture;
     if (_disposed) return;
+
+    _logSub?.cancel();
+    _logSub = _controller!.onLog.listen((msg) => KazumiLogger().d(msg));
 
     _isInitialized = true;
     KazumiLogger().i('[CaptchaProvider] WebView initialized');
@@ -189,6 +193,7 @@ class CaptchaProvider {
     _disposed = true;
     _imageFoundSub?.cancel();
     _disappearedSub?.cancel();
+    _logSub?.cancel();
     if (!_captchaImageStreamController.isClosed) {
       _captchaImageStreamController.close();
     }

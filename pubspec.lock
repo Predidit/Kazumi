@@ -314,14 +314,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.8.0+1"
-  dio_cookie_manager:
-    dependency: "direct main"
-    description:
-      name: dio_cookie_manager
-      sha256: "0db1a7b997a0455e488ac35744c68eed3f2a4280d3ab531835a65641b0a08744"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.4.0"
   dio_web_adapter:
     dependency: transitive
     description:

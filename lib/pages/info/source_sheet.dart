@@ -122,64 +122,10 @@ class _SourceSheetState extends State<SourceSheet>
           KazumiDialog.dismiss();
           // show a 3s countdown progress dialog before re-querying,
           // to avoid triggering rate limits immediately after verification.
-          final progressNotifier = ValueNotifier<double>(0.0);
-          Timer? countdownTimer;
-          const totalMs = 3000;
-          final stopwatch = Stopwatch()..start();
-          countdownTimer =
-              Timer.periodic(const Duration(milliseconds: 16), (t) {
-            final elapsed = stopwatch.elapsedMilliseconds;
-            progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
-            if (elapsed >= totalMs) {
-              t.cancel();
-              KazumiDialog.dismiss();
-            }
-          });
-          KazumiDialog.show(
-            clickMaskDismiss: false,
-            onDismiss: () {
-              countdownTimer?.cancel();
-              progressNotifier.dispose();
-              queryManager?.querySource(keyword, plugin.name);
-            },
-            builder: (context) => Dialog(
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-                child: SizedBox(
-                  width: 320,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 52,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '验证成功',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '正在重新检索，请稍候…',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 24),
-                      ValueListenableBuilder<double>(
-                        valueListenable: progressNotifier,
-                        builder: (context, value, _) => LinearProgressIndicator(
-                          value: value,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          KazumiDialog.showTimedSuccessDialog(
+            title: '验证成功',
+            message: '正在重新检索，请稍候…',
+            onComplete: () => queryManager?.querySource(keyword, plugin.name),
           );
         },
       );
@@ -345,62 +291,10 @@ class _SourceSheetState extends State<SourceSheet>
       autoVerified = true;
       KazumiDialog.dismiss();
       // show a 3s countdown progress dialog before re-querying
-      final progressNotifier = ValueNotifier<double>(0.0);
-      Timer? countdownTimer;
-      const totalMs = 3000;
-      final stopwatch = Stopwatch()..start();
-      countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
-        final elapsed = stopwatch.elapsedMilliseconds;
-        progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
-        if (elapsed >= totalMs) {
-          t.cancel();
-          KazumiDialog.dismiss();
-        }
-      });
-      KazumiDialog.show(
-        clickMaskDismiss: false,
-        onDismiss: () {
-          countdownTimer?.cancel();
-          progressNotifier.dispose();
-          queryManager?.querySource(keyword, plugin.name);
-        },
-        builder: (context) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
-            child: SizedBox(
-              width: 320,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    size: 52,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '验证成功',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '正在重新检索，请稍候…',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 24),
-                  ValueListenableBuilder<double>(
-                    valueListenable: progressNotifier,
-                    builder: (context, value, _) => LinearProgressIndicator(
-                      value: value,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      KazumiDialog.showTimedSuccessDialog(
+        title: '验证成功',
+        message: '正在重新检索，请稍候…',
+        onComplete: () => queryManager?.querySource(keyword, plugin.name),
       );
     }
 
@@ -471,6 +365,56 @@ class _SourceSheetState extends State<SourceSheet>
         ),
       ),
     );
+  }
+
+  Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
+    final status =
+        widget.infoController.pluginSearchStatus[plugin.name];
+    if (status == 'pending') {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (status == 'captcha') {
+      return GeneralErrorWidget(
+        errMsg: '${plugin.name} 需要验证码验证 完成验证后重新检索',
+        actions: [
+          GeneralErrorButton(
+            onPressed: () => showAntiCrawlerDialog(plugin),
+            text: '进行验证',
+          ),
+          GeneralErrorButton(
+            onPressed: () => queryManager?.querySource(keyword, plugin.name),
+            text: '重试',
+          ),
+        ],
+      );
+    }
+    if (status == 'noResult') {
+      return GeneralErrorWidget(
+        errMsg: '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+        actions: [
+          GeneralErrorButton(
+            onPressed: () => showAliasSearchDialog(plugin.name),
+            text: '别名检索',
+          ),
+          GeneralErrorButton(
+            onPressed: () => showCustomSearchDialog(plugin.name),
+            text: '手动检索',
+          ),
+        ],
+      );
+    }
+    if (status == 'error') {
+      return GeneralErrorWidget(
+        errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+        actions: [
+          GeneralErrorButton(
+            onPressed: () => queryManager?.querySource(keyword, plugin.name),
+            text: '重试',
+          ),
+        ],
+      );
+    }
+    return ListView(children: cardList);
   }
 
   void showAliasSearchDialog(String pluginName) {
@@ -726,73 +670,7 @@ class _SourceSheetState extends State<SourceSheet>
                         }
                       }
                     }
-                    return widget.infoController
-                                .pluginSearchStatus[plugin.name] ==
-                            'pending'
-                        ? const Center(child: CircularProgressIndicator())
-                        : (widget.infoController
-                                    .pluginSearchStatus[plugin.name] ==
-                                'captcha'
-                            ? GeneralErrorWidget(
-                                errMsg: '${plugin.name} 需要验证码验证 完成验证后重新检索',
-                                actions: [
-                                  GeneralErrorButton(
-                                    onPressed: () {
-                                      showAntiCrawlerDialog(plugin);
-                                    },
-                                    text: '进行验证',
-                                  ),
-                                  GeneralErrorButton(
-                                    onPressed: () {
-                                      queryManager?.querySource(
-                                          keyword, plugin.name);
-                                    },
-                                    text: '重试',
-                                  ),
-                                ],
-                              )
-                            : (widget.infoController
-                                        .pluginSearchStatus[plugin.name] ==
-                                    'noResult'
-                                ? GeneralErrorWidget(
-                                    errMsg:
-                                        '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
-                                    actions: [
-                                      GeneralErrorButton(
-                                        onPressed: () {
-                                          showAliasSearchDialog(
-                                            plugin.name,
-                                          );
-                                        },
-                                        text: '别名检索',
-                                      ),
-                                      GeneralErrorButton(
-                                        onPressed: () {
-                                          showCustomSearchDialog(
-                                            plugin.name,
-                                          );
-                                        },
-                                        text: '手动检索',
-                                      ),
-                                    ],
-                                  )
-                                : (widget.infoController
-                                            .pluginSearchStatus[plugin.name] ==
-                                        'error'
-                                    ? GeneralErrorWidget(
-                                        errMsg:
-                                            '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
-                                        actions: [
-                                          GeneralErrorButton(
-                                            onPressed: () {
-                                              queryManager?.querySource(
-                                                  keyword, plugin.name);
-                                            },
-                                            text: '重试',
-                                          ),
-                                        ],
-                                      )
-                                    : ListView(children: cardList))));
+                    return buildPluginView(plugin, cardList);
                   }),
                 ),
               ),

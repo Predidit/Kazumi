@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -193,6 +194,80 @@ class KazumiDialog {
     } else {
       debugPrint('Kazumi Dialog Debug: No active KazumiDialog to dismiss');
     }
+  }
+
+  /// Shows a non-dismissible timed success dialog with a linear progress
+  /// countdown, then auto-dismisses when the countdown completes.
+  ///
+  /// The caller is responsible for dismissing any currently-open dialog
+  /// BEFORE calling this method.
+  ///
+  /// [onComplete] is invoked inside [onDismiss] after the countdown finishes
+  /// (or if the dialog is dismissed for any other reason), ensuring it runs
+  /// exactly once and resources are always cleaned up.
+  static void showTimedSuccessDialog({
+    required String title,
+    required String message,
+    required VoidCallback onComplete,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    final progressNotifier = ValueNotifier<double>(0.0);
+    Timer? countdownTimer;
+    final totalMs = duration.inMilliseconds;
+    final stopwatch = Stopwatch()..start();
+    countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (t) {
+      final elapsed = stopwatch.elapsedMilliseconds;
+      progressNotifier.value = (elapsed / totalMs).clamp(0.0, 1.0);
+      if (elapsed >= totalMs) {
+        t.cancel();
+        KazumiDialog.dismiss();
+      }
+    });
+    KazumiDialog.show(
+      clickMaskDismiss: false,
+      onDismiss: () {
+        countdownTimer?.cancel();
+        progressNotifier.dispose();
+        onComplete();
+      },
+      builder: (context) => Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+          child: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 52,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                ValueListenableBuilder<double>(
+                  valueListenable: progressNotifier,
+                  builder: (context, value, _) => LinearProgressIndicator(
+                    value: value,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

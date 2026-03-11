@@ -1,88 +1,101 @@
-import 'dart:io';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 
 void main() {
-  print('=== M3U8 Parser 验证测试 ===\n');
+  group('M3U8 Parser', () {
+    // ── Master playlist ──────────────────────────────────────────────────────
+    test('Test 1: Mux master playlist', () {
+      const content = r'''
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-STREAM-INF:BANDWIDTH=246440,CODECS="avc1.42001e,mp4a.40.2",RESOLUTION=320x184
+url_2/193039199_mp4_h264_aac_ld_2.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=460560,CODECS="avc1.42001e,mp4a.40.2",RESOLUTION=512x288
+url_4/193039199_mp4_h264_aac_sd_4.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=836280,CODECS="avc1.42001f,mp4a.40.2",RESOLUTION=848x480
+url_6/193039199_mp4_h264_aac_480p_6.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2149280,CODECS="avc1.64001f,mp4a.40.2",RESOLUTION=1280x720
+url_0/193039199_mp4_h264_aac_hd_7.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=6221600,CODECS="avc1.640028,mp4a.40.2",RESOLUTION=1920x1080
+url_8/193039199_mp4_h264_aac_fhd_8.m3u8
+''';
+      const baseUrl = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
 
-  // Test 1: Mux master playlist
-  testMasterPlaylist();
+      expect(M3u8Parser.detectType(content), M3u8Type.master);
 
-  // Test 2: Mux media playlist (有 PLAYLIST-TYPE:VOD + ENDLIST)
-  testMuxMediaPlaylist();
+      final master = M3u8Parser.parseMasterPlaylist(content, baseUrl);
+      expect(master.variants.length, 5);
 
-  // Test 3: Apple media playlist (有 PLAYLIST-TYPE:VOD, 无 ENDLIST)
-  testAppleMediaPlaylist();
+      final best = master.bestVariant;
+      expect(best.bandwidth, 6221600);
+      expect(best.resolution, '1920x1080');
+      expect(best.uri,
+          'https://test-streams.mux.dev/x36xhzz/url_8/193039199_mp4_h264_aac_fhd_8.m3u8');
+    });
 
-  // Test 4: 模拟无 PLAYLIST-TYPE:VOD 也无 ENDLIST 的 playlist
-  testNoVodNoEndlist();
+    // ── Media playlist with VOD + ENDLIST ────────────────────────────────────
+    test('Test 2: Mux media playlist (PLAYLIST-TYPE:VOD + ENDLIST) -> isVod=true', () {
+      const content = '''
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+seg_00000.ts
+#EXTINF:10.0,
+seg_00001.ts
+#EXTINF:10.0,
+seg_00002.ts
+#EXTINF:9.6,
+seg_00003.ts
+#EXT-X-ENDLIST
+''';
+      const baseUrl =
+          'https://test-streams.mux.dev/x36xhzz/url_0/193039199_mp4_h264_aac_hd_7.m3u8';
 
-  // Test 5: EVENT 类型的 playlist
-  testEventPlaylist();
+      expect(M3u8Parser.detectType(content), M3u8Type.media);
 
-  // Test 6: 显式 PLAYLIST-TYPE:VOD（无 ENDLIST）
-  testExplicitVodTag();
+      final playlist = M3u8Parser.parseMediaPlaylist(content, baseUrl);
+      expect(playlist.isVod, isTrue);
+      expect(playlist.targetDuration, 10.0);
+      expect(playlist.segments.length, 4);
+      expect(playlist.segments.first.uri,
+          'https://test-streams.mux.dev/x36xhzz/url_0/seg_00000.ts');
 
-  // Test 7: 嵌套 M3U8 展开
-  testNestedM3u8();
+      expect(content.contains('#EXT-X-PLAYLIST-TYPE:VOD'), isTrue);
+      expect(content.contains('#EXT-X-ENDLIST'), isTrue);
+    });
 
-  print('\n=== 所有测试完成 ===');
-}
+    // ── Apple-style: VOD tag present, no ENDLIST ─────────────────────────────
+    test('Test 3: Apple media playlist (PLAYLIST-TYPE:VOD, no ENDLIST) -> isVod=true', () {
+      const content = '''
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:8
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:7.975,
+fileSequence0.mp4
+#EXTINF:7.941,
+fileSequence1.mp4
+#EXTINF:7.975,
+fileSequence2.mp4
+''';
+      const baseUrl =
+          'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/v5/prog_index.m3u8';
 
-void testMasterPlaylist() {
-  print('--- Test 1: Mux Master Playlist ---');
-  final content = File('/tmp/mux_master.m3u8').readAsStringSync();
-  final type = M3u8Parser.detectType(content);
-  print('类型检测: ${type == M3u8Type.master ? "✓ master" : "✗ 预期 master, 实际 $type"}');
+      final playlist = M3u8Parser.parseMediaPlaylist(content, baseUrl);
 
-  final master = M3u8Parser.parseMasterPlaylist(content, 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8');
-  print('变体数量: ${master.variants.length}');
-  final best = master.bestVariant;
-  print('最佳变体: ${best.resolution ?? "unknown"} @ ${best.bandwidth} bps');
-  print('最佳变体 URI: ${best.uri}');
-  print('');
-}
+      expect(content.contains('#EXT-X-PLAYLIST-TYPE:VOD'), isTrue);
+      expect(content.contains('#EXT-X-ENDLIST'), isFalse);
+      expect(playlist.isVod, isTrue);
+      expect(playlist.segments.length, 3);
+    });
 
-void testMuxMediaPlaylist() {
-  print('--- Test 2: Mux Media Playlist (VOD + ENDLIST) ---');
-  final content = File('/tmp/mux_media.m3u8').readAsStringSync();
-  final type = M3u8Parser.detectType(content);
-  print('类型检测: ${type == M3u8Type.media ? "✓ media" : "✗ 预期 media, 实际 $type"}');
-
-  final playlist = M3u8Parser.parseMediaPlaylist(
-    content, 'https://test-streams.mux.dev/x36xhzz/url_0/193039199_mp4_h264_aac_hd_7.m3u8',
-  );
-  print('isVod: ${playlist.isVod ? "✓ true" : "✗ false (应为 true)"}');
-  print('targetDuration: ${playlist.targetDuration}');
-  print('分片数量: ${playlist.segments.length}');
-  print('首个分片 URI: ${playlist.segments.first.uri}');
-
-  // 检查是否有 PLAYLIST-TYPE:VOD 标签
-  final hasVodTag = content.contains('#EXT-X-PLAYLIST-TYPE:VOD');
-  final hasEndList = content.contains('#EXT-X-ENDLIST');
-  print('原始内容包含 PLAYLIST-TYPE:VOD: $hasVodTag');
-  print('原始内容包含 ENDLIST: $hasEndList');
-  print('');
-}
-
-void testAppleMediaPlaylist() {
-  print('--- Test 3: Apple Media Playlist (VOD, 检查 ENDLIST) ---');
-  final content = File('/tmp/apple_media.m3u8').readAsStringSync();
-  final playlist = M3u8Parser.parseMediaPlaylist(
-    content, 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/v5/prog_index.m3u8',
-  );
-
-  final hasVodTag = content.contains('#EXT-X-PLAYLIST-TYPE:VOD');
-  final hasEndList = content.contains('#EXT-X-ENDLIST');
-  print('原始内容包含 PLAYLIST-TYPE:VOD: $hasVodTag');
-  print('原始内容包含 ENDLIST: $hasEndList');
-  print('isVod: ${playlist.isVod ? "✓ true" : "✗ false (应为 true)"}');
-  print('分片数量: ${playlist.segments.length}');
-  print('');
-}
-
-void testNoVodNoEndlist() {
-  print('--- Test 4: 无 VOD 标签、无 ENDLIST（模拟野生源） ---');
-  const content = '''
+    // ── No VOD tag, no ENDLIST ───────────────────────────────────────────────
+    test('Test 4: no VOD tag no ENDLIST -> fallback isVod=true', () {
+      const content = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:10
@@ -94,17 +107,16 @@ https://example.com/seg_00001.ts
 #EXTINF:8.5,
 https://example.com/seg_00002.ts
 ''';
+      final playlist =
+          M3u8Parser.parseMediaPlaylist(content, 'https://example.com/playlist.m3u8');
 
-  final playlist = M3u8Parser.parseMediaPlaylist(content, 'https://example.com/playlist.m3u8');
-  // 当前逻辑: !isLiveEvent && segments.isNotEmpty → true
-  print('isVod: ${playlist.isVod} (当前逻辑: 兜底判定为 VOD)');
-  print('分片数量: ${playlist.segments.length}');
-  print('');
-}
+      expect(playlist.isVod, isTrue);
+      expect(playlist.segments.length, 3);
+    });
 
-void testEventPlaylist() {
-  print('--- Test 5: EVENT 类型 Playlist ---');
-  const content = '''
+    // ── EVENT playlist without ENDLIST → not VOD ────────────────────────────
+    test('Test 5: PLAYLIST-TYPE:EVENT no ENDLIST -> isVod=false', () {
+      const content = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-PLAYLIST-TYPE:EVENT
@@ -115,16 +127,15 @@ https://example.com/seg_00000.ts
 #EXTINF:10.0,
 https://example.com/seg_00001.ts
 ''';
+      final playlist =
+          M3u8Parser.parseMediaPlaylist(content, 'https://example.com/event.m3u8');
 
-  final playlist = M3u8Parser.parseMediaPlaylist(content, 'https://example.com/event.m3u8');
-  // EVENT 且无 ENDLIST → 应该判定为非 VOD（直播追赶流）
-  print('isVod: ${!playlist.isVod ? "✓ false (正确拒绝 EVENT 流)" : "✗ true (不应判定为 VOD)"}');
-  print('');
-}
+      expect(playlist.isVod, isFalse);
+    });
 
-void testExplicitVodTag() {
-  print('--- Test 6: 显式 PLAYLIST-TYPE:VOD（无 ENDLIST） ---');
-  const content = '''
+    // ── Explicit VOD tag, no ENDLIST ─────────────────────────────────────────
+    test('Test 6: explicit PLAYLIST-TYPE:VOD no ENDLIST -> isVod=true', () {
+      const content = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-PLAYLIST-TYPE:VOD
@@ -135,27 +146,25 @@ https://example.com/seg_00000.ts
 #EXTINF:10.0,
 https://example.com/seg_00001.ts
 ''';
+      final playlist =
+          M3u8Parser.parseMediaPlaylist(content, 'https://example.com/vod.m3u8');
+      expect(playlist.isVod, isTrue);
 
-  final playlist = M3u8Parser.parseMediaPlaylist(content, 'https://example.com/vod.m3u8');
-  print('isVod: ${playlist.isVod ? "✓ true (显式 VOD 标签生效)" : "✗ false (未识别 VOD 标签)"}');
-
-  // 边界情况: 有 VOD 标签但无分片（不应崩溃）
-  const emptyVod = '''
+      const emptyVod = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-PLAYLIST-TYPE:VOD
 #EXT-X-TARGETDURATION:10
 ''';
-  final emptyPlaylist = M3u8Parser.parseMediaPlaylist(emptyVod, 'https://example.com/empty.m3u8');
-  print('空分片 VOD: isVod=${emptyPlaylist.isVod ? "✓ true (仅靠 VOD 标签判定)" : "✗ false"}, segments=${emptyPlaylist.segments.length}');
-  print('');
-}
+      final emptyPlaylist =
+          M3u8Parser.parseMediaPlaylist(emptyVod, 'https://example.com/empty.m3u8');
+      expect(emptyPlaylist.isVod, isTrue);
+      expect(emptyPlaylist.segments.length, 0);
+    });
 
-void testNestedM3u8() async {
-  print('--- Test 7: 嵌套 M3U8 展开 ---');
-
-  // 模拟: 外层 playlist 中有一个 segment 指向另一个 m3u8
-  const outerContent = '''
+    // ── Nested M3U8 expansion ────────────────────────────────────────────────
+    test('Test 7: nested M3U8 segments are fully resolved', () async {
+      const outerContent = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:30
@@ -168,7 +177,7 @@ https://example.com/seg_00002.ts
 #EXT-X-ENDLIST
 ''';
 
-  const nestedContent = '''
+      const nestedContent = '''
 #EXTM3U
 #EXT-X-VERSION:3
 #EXT-X-TARGETDURATION:10
@@ -181,24 +190,26 @@ seg_c.ts
 #EXT-X-ENDLIST
 ''';
 
-  final outer = M3u8Parser.parseMediaPlaylist(outerContent, 'https://example.com/main.m3u8');
-  print('展开前分片数: ${outer.segments.length}');
-  print('其中 m3u8 引用: ${outer.segments.where((s) => s.uri.endsWith(".m3u8")).length}');
+      final outer =
+          M3u8Parser.parseMediaPlaylist(outerContent, 'https://example.com/main.m3u8');
+      expect(outer.segments.length, 3);
+      expect(outer.segments.where((s) => s.uri.endsWith('.m3u8')).length, 1);
 
-  final resolved = await M3u8Parser.resolveNestedSegments(
-    outer.segments,
-    (url) async {
-      if (url.contains('nested.m3u8')) return nestedContent;
-      throw Exception('Unknown URL: $url');
-    },
-  );
+      final resolved = await M3u8Parser.resolveNestedSegments(
+        outer.segments,
+        (url) async {
+          if (url.contains('nested.m3u8')) return nestedContent;
+          throw Exception('Unknown URL: $url');
+        },
+      );
 
-  print('展开后分片数: ${resolved.length}');
-  print('展开后 URI 列表:');
-  for (final seg in resolved) {
-    print('  [group=${seg.discontinuityGroup}] ${seg.uri}');
-  }
-  final hasM3u8Ref = resolved.any((s) => s.uri.endsWith('.m3u8'));
-  print('展开后仍有 m3u8 引用: ${!hasM3u8Ref ? "✓ 无 (全部展开)" : "✗ 有 (未完全展开)"}');
-  print('');
+      expect(resolved.length, 5);
+      expect(resolved.any((s) => s.uri.endsWith('.m3u8')), isFalse);
+      expect(resolved[0].uri, 'https://example.com/seg_00000.ts');
+      expect(resolved[1].uri, 'https://example.com/seg_a.ts');
+      expect(resolved[2].uri, 'https://example.com/seg_b.ts');
+      expect(resolved[3].uri, 'https://example.com/seg_c.ts');
+      expect(resolved[4].uri, 'https://example.com/seg_00002.ts');
+    });
+  });
 }

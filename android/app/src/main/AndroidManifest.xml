@@ -7,7 +7,7 @@
         android:extractNativeLibs="true">
         <meta-data
              android:name="io.flutter.embedding.android.EnableImpeller"
-             android:value="false" 
+             android:value="false"
         />
         <activity
             android:name=".MainActivity"
@@ -35,11 +35,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- flutter_foreground_task service -->
         <service
-            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+                android:name=".DownloadForegroundService"
+                android:foregroundServiceType="dataSync"
+                android:exported="false" />
+        <receiver
+                android:name=".DownloadNotificationActionReceiver"
+                android:exported="false" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

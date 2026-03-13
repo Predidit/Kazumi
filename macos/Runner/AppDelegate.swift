@@ -151,7 +151,7 @@ class AppDelegate: FlutterAppDelegate {
     }
     
     @objc func openWithAVPlayer () {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
                               styleMask: [.titled, .closable, .resizable],
                               backing: .buffered, defer: false)
         window.center()

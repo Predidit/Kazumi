@@ -7,20 +7,16 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 
-class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
-  Webview? _webviewController;
+class CaptchaWebviewLinuxImpl
+    extends CaptchaWebviewController<Webview> {
   VoidCallback? _navigationListener;
   String _currentCaptchaImageXpath = '';
-  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
-  bool _captchaWasFound = false;
   String _buttonXpath = '';
-  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
-  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
     final proxyConfig = _getProxyConfiguration();
-    _webviewController ??= await WebviewWindow.create(
+    webviewController ??= await WebviewWindow.create(
       configuration: CreateConfiguration(
         headless: true,
         proxy: proxyConfig,
@@ -48,20 +44,20 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   void _initMessageBridge() {
-    _webviewController?.addOnWebMessageReceivedCallback((message) async {
+    webviewController?.addOnWebMessageReceivedCallback((message) async {
       final msg = message.toString();
       logEventController.add('[Captcha WebView] WM: $msg');
       if (msg.startsWith('captchaImage:')) {
         final src = msg.replaceFirst('captchaImage:', '');
         if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
-          _captchaWasFound = true;
+          captchaWasFound = true;
           captchaImageFoundController.add(src);
         }
       } else if (msg.startsWith('buttonClicked:')) {
-        _buttonWasClicked = true;
+        buttonWasClicked = true;
         logEventController.add('[Captcha WebView] Button clicked flag set');
       } else if (msg.startsWith('captchaGone:')) {
-        _buttonWasClicked = false;
+        buttonWasClicked = false;
         if (!captchaDisappearedController.isClosed) {
           captchaDisappearedController.add(null);
         }
@@ -77,11 +73,11 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
       _onNavigationInject();
       _onNavigationCompletion();
     };
-    _webviewController?.isNavigating.addListener(_navigationListener!);
+    webviewController?.isNavigating.addListener(_navigationListener!);
   }
 
   Future<void> _onNavigationInject() async {
-    if (_webviewController?.isNavigating.value == false) {
+    if (webviewController?.isNavigating.value == false) {
       logEventController.add('[Captcha WebView] Navigation completed');
       if (_currentCaptchaImageXpath.isNotEmpty) {
         await _injectCaptchaScript();
@@ -92,33 +88,33 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   }
 
   Future<void> _onNavigationCompletion() async {
-    if (_webviewController?.isNavigating.value == false) {
+    if (webviewController?.isNavigating.value == false) {
       // Type-1: captcha image was seen; check if it has disappeared.
-      if (_captchaWasFound) {
+      if (captchaWasFound) {
         final present = await _isCaptchaPresent();
         if (!present && !captchaDisappearedController.isClosed) {
           logEventController
               .add('[Captcha WebView] Captcha gone after navigation');
-          _captchaWasFound = false;
+          captchaWasFound = false;
           captchaDisappearedController.add(null);
         }
       }
       // Type-2: button was clicked; page navigation confirms verification.
-      if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+      if (buttonWasClicked && !captchaDisappearedController.isClosed) {
         logEventController.add(
             '[Captcha WebView] Button click and page navigated, verification done');
-        _buttonWasClicked = false;
+        buttonWasClicked = false;
         captchaDisappearedController.add(null);
       }
     }
   }
 
   Future<bool> _isCaptchaPresent() async {
-    if (_currentCaptchaImageXpath.isEmpty || _webviewController == null) return false;
+    if (_currentCaptchaImageXpath.isEmpty || webviewController == null) return false;
     final escaped =
         _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
     try {
-      final result = await _webviewController!.evaluateJavaScript('''
+      final result = await webviewController!.evaluateJavaScript('''
 (function() {
   try {
     var r = document.evaluate('$escaped', document, null,
@@ -220,7 +216,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 ''';
 
     try {
-      await _webviewController?.evaluateJavaScript(script);
+      await webviewController?.evaluateJavaScript(script);
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] inject script error: $e');
     }
@@ -230,18 +226,18 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
     _currentCaptchaImageXpath = captchaXpath;
     _buttonXpath = '';
-    _buttonWasClicked = false;
-    _captchaWasFound = false;
-    _webviewController?.launch(url);
+    buttonWasClicked = false;
+    captchaWasFound = false;
+    webviewController?.launch(url);
   }
 
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentCaptchaImageXpath = '';
     _buttonXpath = buttonXpath;
-    _buttonWasClicked = false;
-    _captchaWasFound = false;
-    _webviewController?.launch(url);
+    buttonWasClicked = false;
+    captchaWasFound = false;
+    webviewController?.launch(url);
   }
 
   Future<void> _injectButtonClickScript(String buttonXpath) async {
@@ -298,7 +294,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 })();
 ''';
     try {
-      await _webviewController?.evaluateJavaScript(script);
+      await webviewController?.evaluateJavaScript(script);
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] injectButtonClickScript error: $e');
     }
@@ -346,7 +342,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 })();
 ''';
     try {
-      await _webviewController?.evaluateJavaScript(script);
+      await webviewController?.evaluateJavaScript(script);
     } catch (e) {
       KazumiLogger().e('[Captcha WebView] submitCaptchaInteract error: $e');
     }
@@ -355,7 +351,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
   @override
   Future<String> getCookieString(String pageUrl) async {
     try {
-      final cookies = await _webviewController?.getAllCookies() ?? [];
+      final cookies = await webviewController?.getAllCookies() ?? [];
       final cookieString =
           cookies.map((c) => '${c.name}=${c.value}').join('; ');
       logEventController
@@ -369,18 +365,18 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
 
   @override
   Future<void> unloadPage() async {
-    _webviewController?.launch('about:blank');
+    webviewController?.launch('about:blank');
   }
 
   @override
   void dispose() {
     _currentCaptchaImageXpath = '';
     _buttonXpath = '';
-    _buttonWasClicked = false;
-    _captchaWasFound = false;
+    buttonWasClicked = false;
+    captchaWasFound = false;
     if (_navigationListener != null) {
       try {
-        _webviewController?.isNavigating.removeListener(_navigationListener!);
+        webviewController?.isNavigating.removeListener(_navigationListener!);
       } catch (_) {}
       _navigationListener = null;
     }
@@ -390,7 +386,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController {
       initEventController.close();
       logEventController.close();
     } catch (_) {}
-    _webviewController?.close();
-    _webviewController = null;
+    webviewController?.close();
+    webviewController = null;
   }
 }

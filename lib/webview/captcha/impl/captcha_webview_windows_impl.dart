@@ -6,17 +6,14 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 
-class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
+class CaptchaWebviewWindowsImpl
+    extends CaptchaWebviewController<WebviewController> {
   HeadlessWebview? _headlessWebview;
   final List<StreamSubscription> _subscriptions = [];
   String _currentCaptchaImageXpath = '';
   String _currentInputXpath = '';
   String _currentPageUrl = '';
-  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
-  bool _captchaWasFound = false;
   String _buttonXpath = '';
-  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
-  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
@@ -50,19 +47,19 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
         if (state == LoadingState.navigationCompleted) {
-          if (_captchaWasFound) {
+          if (captchaWasFound) {
             final present = await _isCaptchaPresent();
             if (!present && !captchaDisappearedController.isClosed) {
               logEventController
                   .add('[Captcha WebView] Captcha gone after navigation');
-              _captchaWasFound = false;
+              captchaWasFound = false;
               captchaDisappearedController.add(null);
             }
           }
-          if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+          if (buttonWasClicked && !captchaDisappearedController.isClosed) {
             logEventController
                 .add('[Captcha WebView] Button click → page navigated, verification done');
-            _buttonWasClicked = false;
+            buttonWasClicked = false;
             captchaDisappearedController.add(null);
           }
         }
@@ -78,14 +75,14 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     if (msg.startsWith('captchaImage:')) {
       final src = msg.replaceFirst('captchaImage:', '');
       if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
-        _captchaWasFound = true;
+        captchaWasFound = true;
         captchaImageFoundController.add(src);
       }
     } else if (msg.startsWith('buttonClicked:')) {
-      _buttonWasClicked = true;
+      buttonWasClicked = true;
       logEventController.add('[Captcha WebView] Button clicked flag set');
     } else if (msg.startsWith('captchaGone:')) {
-      _buttonWasClicked = false;
+      buttonWasClicked = false;
       if (!captchaDisappearedController.isClosed) {
         captchaDisappearedController.add(null);
       }
@@ -245,9 +242,9 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     _currentCaptchaImageXpath = captchaXpath;
     _currentInputXpath = inputXpath ?? '';
     _buttonXpath = '';
-    _buttonWasClicked = false;
+    buttonWasClicked = false;
     _currentPageUrl = url;
-    _captchaWasFound = false;
+    captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
   }
 
@@ -255,9 +252,9 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentCaptchaImageXpath = '';
     _buttonXpath = buttonXpath;
-    _buttonWasClicked = false;
+    buttonWasClicked = false;
     _currentPageUrl = url;
-    _captchaWasFound = false;
+    captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
   }
 
@@ -394,7 +391,7 @@ class CaptchaWebviewWindowsImpl extends CaptchaWebviewController {
     _currentCaptchaImageXpath = '';
     _currentInputXpath = '';
     _buttonXpath = '';
-    _buttonWasClicked = false;
+    buttonWasClicked = false;
     _currentPageUrl = '';
     for (final s in _subscriptions) {
       try {

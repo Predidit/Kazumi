@@ -5,16 +5,12 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
-class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
+class CaptchaWebviewInAppWebviewImpl
+    extends CaptchaWebviewController<PlatformInAppWebViewController> {
   PlatformHeadlessInAppWebView? _headlessWebView;
-  PlatformInAppWebViewController? _webviewController;
   bool _handlersRegistered = false;
   String _currentCaptchaImageXpath = '';
   String _currentInputXpath = '';
-  /// For type-1 (captcha image), whether a captcha image has been detected, used to determine if verification is successful after page navigation
-  bool _captchaWasFound = false;
-  /// For type-2 (auto-click button), we set this flag when the button click is triggered. Then on page navigation or DOM change, if this flag is set, we can confirm verification success without relying solely on captcha disappearance.
-  bool _buttonWasClicked = false;
 
   @override
   Future<void> init() async {
@@ -31,7 +27,7 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
         ),
         onWebViewCreated: (controller) {
           logEventController.add('[Captcha WebView] Created');
-          _webviewController = controller;
+          webviewController = controller;
           initEventController.add(true);
         },
         onLoadStart: (controller, url) {
@@ -39,9 +35,9 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
         },
         onLoadStop: (controller, url) {
           logEventController.add('[Captcha WebView] Load stop: $url');
-          if (_buttonWasClicked && !captchaDisappearedController.isClosed) {
+          if (buttonWasClicked && !captchaDisappearedController.isClosed) {
             KazumiLogger().i('[Captcha WebView] Button click → page navigated, verification done');
-            _buttonWasClicked = false;
+            buttonWasClicked = false;
             captchaDisappearedController.add(null);
           }
         },
@@ -57,52 +53,52 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
   void _registerHandlers() {
     if (_handlersRegistered) return;
 
-    _webviewController?.addJavaScriptHandler(
+    webviewController?.addJavaScriptHandler(
       handlerName: 'CaptchaImageBridge',
       callback: (args) {
         final src = args.isNotEmpty ? args[0].toString() : '';
         logEventController.add('[Captcha WebView] Captcha image found: $src');
         if (src.isNotEmpty && !captchaImageFoundController.isClosed) {
-          _captchaWasFound = true;
+          captchaWasFound = true;
           captchaImageFoundController.add(src);
         }
       },
     );
 
-    _webviewController?.addJavaScriptHandler(
+    webviewController?.addJavaScriptHandler(
       handlerName: 'CaptchaStatusBridge',
       callback: (args) {
         final status = args.isNotEmpty ? args[0].toString() : '';
         logEventController.add('[Captcha WebView JS] Page captcha status: $status');
-        if (status == 'absent' && _captchaWasFound &&
+        if (status == 'absent' && captchaWasFound &&
             !captchaDisappearedController.isClosed) {
           KazumiLogger().i('[Captcha WebView] Captcha gone after navigation (StatusBridge)');
-          _captchaWasFound = false;
+          captchaWasFound = false;
           captchaDisappearedController.add(null);
         }
       },
     );
 
-    _webviewController?.addJavaScriptHandler(
+    webviewController?.addJavaScriptHandler(
       handlerName: 'CaptchaGoneBridge',
       callback: (args) {
         logEventController.add('[Captcha WebView] Captcha image disappeared');
-        _buttonWasClicked = false;
+        buttonWasClicked = false;
         if (!captchaDisappearedController.isClosed) {
           captchaDisappearedController.add(null);
         }
       },
     );
 
-    _webviewController?.addJavaScriptHandler(
+    webviewController?.addJavaScriptHandler(
       handlerName: 'ButtonClickedBridge',
       callback: (args) {
         logEventController.add('[Captcha WebView] Button clicked flag set');
-        _buttonWasClicked = true;
+        buttonWasClicked = true;
       },
     );
 
-    _webviewController?.addJavaScriptHandler(
+    webviewController?.addJavaScriptHandler(
       handlerName: 'CaptchaLogBridge',
       callback: (args) {
         if (args.isNotEmpty) {
@@ -124,7 +120,7 @@ class CaptchaWebviewInAppWebviewImpl extends CaptchaWebviewController {
         _currentInputXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
     // Remove any previously injected captcha script before adding a fresh one.
-    await _webviewController?.removeAllUserScripts();
+    await webviewController?.removeAllUserScripts();
 
     const String scriptTemplate = """
 window.flutter_inappwebview.callHandler('CaptchaLogBridge',
@@ -244,7 +240,7 @@ if (!_checkForCaptcha()) {
     final script = scriptTemplate
         .replaceAll('{XPATH}', escapedXpath)
         .replaceAll('{INPUT_XPATH}', escapedInputXpath);
-    await _webviewController?.addUserScripts(
+    await webviewController?.addUserScripts(
       userScripts: [
         UserScript(
           source: script,
@@ -258,8 +254,8 @@ if (!_checkForCaptcha()) {
   Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
     _currentCaptchaImageXpath = captchaXpath;
     _currentInputXpath = inputXpath ?? '';
-    _captchaWasFound = false;
-    _buttonWasClicked = false;
+    captchaWasFound = false;
+    buttonWasClicked = false;
     _registerHandlers();
     await _addCaptchaUserScript();
     try {
@@ -267,15 +263,15 @@ if (!_checkForCaptcha()) {
           .deleteAllCookies();
       logEventController.add('[Captcha WebView] Cookies cleared before load');
     } catch (_) {}
-    await _webviewController
+    await webviewController
         ?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
   }
 
   @override
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentCaptchaImageXpath = ''; // disable captcha-image script on navigation
-    _captchaWasFound = false;
-    _buttonWasClicked = false;
+    captchaWasFound = false;
+    buttonWasClicked = false;
     _registerHandlers();
     await _addButtonClickUserScript(buttonXpath);
     try {
@@ -283,14 +279,14 @@ if (!_checkForCaptcha()) {
           .deleteAllCookies();
       logEventController.add('[Captcha WebView] Cookies cleared before load');
     } catch (_) {}
-    await _webviewController
+    await webviewController
         ?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
   }
 
   Future<void> _addButtonClickUserScript(String buttonXpath) async {
     final escapedXpath =
         buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
-    await _webviewController?.removeAllUserScripts();
+    await webviewController?.removeAllUserScripts();
 
     const String scriptTemplate = """
 try { window.flutter_inappwebview.callHandler('CaptchaLogBridge',
@@ -343,7 +339,7 @@ if (!_checkAndClick()) {
 """;
 
     final script = scriptTemplate.replaceAll('{XPATH}', escapedXpath);
-    await _webviewController?.addUserScripts(
+    await webviewController?.addUserScripts(
       userScripts: [
         UserScript(
           source: script,
@@ -394,7 +390,7 @@ if (!_checkAndClick()) {
   }
 })();
 ''';
-    await _webviewController?.evaluateJavascript(source: script);
+    await webviewController?.evaluateJavascript(source: script);
   }
 
   @override
@@ -414,7 +410,7 @@ if (!_checkAndClick()) {
   @override
   Future<void> unloadPage() async {
     try {
-      await _webviewController
+      await webviewController
           ?.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
     } catch (_) {}
   }
@@ -423,8 +419,8 @@ if (!_checkAndClick()) {
   void dispose() {
     _currentCaptchaImageXpath = '';
     _currentInputXpath = '';
-    _captchaWasFound = false;
-    _buttonWasClicked = false;
+    captchaWasFound = false;
+    buttonWasClicked = false;
     _handlersRegistered = false;
     try {
       PlatformCookieManager(const PlatformCookieManagerCreationParams())
@@ -438,6 +434,6 @@ if (!_checkAndClick()) {
     } catch (_) {}
     _headlessWebView?.dispose();
     _headlessWebView = null;
-    _webviewController = null;
+    webviewController = null;
   }
 }

@@ -5,7 +5,19 @@ import 'package:kazumi/webview/captcha/impl/captcha_webview_inappwebview_impl.da
 import 'package:kazumi/webview/captcha/impl/captcha_webview_windows_impl.dart';
 import 'package:kazumi/webview/captcha/impl/captcha_webview_linux_impl.dart';
 
-abstract class CaptchaWebviewController {
+abstract class CaptchaWebviewController<T> {
+  /// Webview controller
+  T? webviewController;
+
+  /// For type-1 (captcha image), whether a captcha image has been detected,
+  /// used to determine if verification is successful after page navigation
+  bool captchaWasFound = false;
+
+  /// For type-2 (auto-click button), we set this flag when the button click is triggered.
+  /// Then on page navigation or DOM change, if this flag is set,
+  /// we can confirm verification success without relying solely on captcha disappearance.
+  bool buttonWasClicked = false;
+
   final StreamController<String> captchaImageFoundController =
       StreamController<String>.broadcast();
   final StreamController<void> captchaDisappearedController =

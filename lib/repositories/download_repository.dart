@@ -21,8 +21,9 @@ abstract class IDownloadRepository {
   ///
   /// [bangumiId] 番剧 ID
   /// [pluginName] 插件名称
+  /// [road] 播放列表索引
   /// [episodeNumber] 集数编号
-  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber);
+  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int road, int episodeNumber);
 
   /// 获取已完成下载的集数列表
   ///
@@ -209,9 +210,10 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber) {
+  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int road, int episodeNumber) {
     final record = getRecordByBangumiId(bangumiId, pluginName);
-    return record?.episodes[episodeNumber];
+    final compositeKey = DownloadRecord.episodeKey(road, episodeNumber);
+    return record?.episodes[compositeKey];
   }
 
   @override

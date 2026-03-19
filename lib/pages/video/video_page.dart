@@ -142,7 +142,7 @@ class _VideoPageState extends State<VideoPage>
               .roadList[videoPageController.currentRoad]
               .identifier[videoPageController.currentEpisode - 1],
           referer: '',
-          currentRoad: videoPageController.currentRoad,
+          currentRoad: videoPageController.currentOfflineOriginalRoad,
         );
         await playerController.init(params);
       }
@@ -819,7 +819,7 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   child: Text(
-                    '播放列表${currentRoad + 1} ',
+                    '${videoPageController.roadList[currentRoad].name} ',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -839,7 +839,7 @@ class _VideoPageState extends State<VideoPage>
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '播放列表${i + 1}',
+                      videoPageController.roadList[i].name,
                       style: TextStyle(
                         color: i == currentRoad
                             ? Theme.of(context).colorScheme.primary
@@ -857,29 +857,35 @@ class _VideoPageState extends State<VideoPage>
   }
 
   DownloadEpisode? _getEpisodeFromRecords(
-      int episodeNumber, String episodePageUrl) {
+      int road, int episodeNumber, String episodePageUrl) {
     final bangumiId = videoPageController.bangumiItem.id;
     final pluginName = videoPageController.currentPlugin.name;
 
     for (final record in downloadController.records) {
       if (record.bangumiId == bangumiId && record.pluginName == pluginName) {
+        // 优先使用 URL 匹配（与 download_episode_sheet 逻辑一致）
         if (episodePageUrl.isNotEmpty) {
           for (final episode in record.episodes.values) {
-            if (episode.episodePageUrl == episodePageUrl) {
+            if (episode.episodePageUrl == episodePageUrl &&
+                episode.road == road) {
               return episode;
             }
           }
+          // URL 可用但未匹配到，说明该集数未下载，直接返回 null
+          // 不再回退到 composite key，避免不同系列在同一 road+episodeNumber 下的误匹配
+          return null;
         }
-        return record.episodes[episodeNumber];
+        // 仅当 URL 不可用时（老版本数据），使用 composite key 回退
+        return record.episodes[DownloadRecord.episodeKey(road, episodeNumber)];
       }
     }
     return null;
   }
 
-  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
+  Widget _buildDownloadStatusIcon(int road, int episodeNumber, String episodePageUrl) {
     // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
-    final episode = _getEpisodeFromRecords(episodeNumber, episodePageUrl);
+    final episode = _getEpisodeFromRecords(road, episodeNumber, episodePageUrl);
     if (episode == null) return const SizedBox.shrink();
     switch (episode.status) {
       case DownloadStatus.completed:
@@ -916,11 +922,11 @@ class _VideoPageState extends State<VideoPage>
     return Observer(
       builder: (context) {
         var cardList = <Widget>[];
-        for (var road in videoPageController.roadList) {
-          if (road.name == '播放列表${currentRoad + 1}') {
-            int count = 1;
-            for (var urlItem in road.data) {
-              int count0 = count;
+        if (currentRoad < videoPageController.roadList.length) {
+          final road = videoPageController.roadList[currentRoad];
+          int count = 1;
+          for (var urlItem in road.data) {
+            int count0 = count;
               cardList.add(Container(
                 margin: const EdgeInsets.only(bottom: 4),
                 child: Material(
@@ -975,7 +981,7 @@ class _VideoPageState extends State<VideoPage>
                                             .colorScheme
                                             .onSurface),
                               )),
-                              _buildDownloadStatusIcon(count0, urlItem),
+                              _buildDownloadStatusIcon(currentRoad, count0, urlItem),
                               const SizedBox(width: 2),
                             ],
                           ),
@@ -988,7 +994,6 @@ class _VideoPageState extends State<VideoPage>
               ));
               count++;
             }
-          }
         }
         return Expanded(
           child: Padding(

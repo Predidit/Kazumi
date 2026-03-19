@@ -49,9 +49,23 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   Widget _buildRecordCard(DownloadRecord record) {
-    final episodes = record.episodes.values.toList()
-      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    final episodes = record.episodes.entries.toList()
+      ..sort((a, b) {
+        final cmp = a.value.road.compareTo(b.value.road);
+        return cmp != 0
+            ? cmp
+            : a.value.episodeNumber.compareTo(b.value.episodeNumber);
+      });
     final completedCount = downloadController.completedCount(record);
+
+    // 第一层：按 sourceDetailUrl 分组
+    final sourceGroups = <String, List<MapEntry<int, DownloadEpisode>>>{};
+    for (final entry in episodes) {
+      final groupKey = entry.value.sourceDetailUrl;
+      sourceGroups.putIfAbsent(groupKey, () => []).add(entry);
+    }
+    final hasMultipleSources = sourceGroups.length > 1 ||
+        (sourceGroups.length == 1 && sourceGroups.keys.first.isNotEmpty);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -112,16 +126,77 @@ class _DownloadPageState extends State<DownloadPage> {
               ],
             ),
           ),
-          // Episode list
-          ...episodes.map((ep) => _buildEpisodeTile(record, ep)),
+          // Episode list: 按 source → road 两层分组
+          if (hasMultipleSources)
+            ...sourceGroups.entries.expand((sourceGroup) => [
+                  _buildSourceHeader(sourceGroup.key, sourceGroup.value),
+                  ..._buildRoadGroupedEpisodes(record, sourceGroup.value),
+                ])
+          else
+            ..._buildRoadGroupedEpisodes(record, episodes),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 
-  Widget _buildEpisodeTile(DownloadRecord record, DownloadEpisode episode) {
+  /// 在一组集数内按 road 分组，多 road 时显示 road 小标题
+  List<Widget> _buildRoadGroupedEpisodes(
+      DownloadRecord record, List<MapEntry<int, DownloadEpisode>> episodes) {
+    final roadGroups = <int, List<MapEntry<int, DownloadEpisode>>>{};
+    for (final entry in episodes) {
+      roadGroups.putIfAbsent(entry.value.road, () => []).add(entry);
+    }
+    if (roadGroups.length > 1) {
+      return roadGroups.entries.expand((roadGroup) => [
+            _buildRoadHeader(roadGroup.key),
+            ...roadGroup.value.map(
+                (entry) => _buildEpisodeTile(record, entry.key, entry.value)),
+          ]).toList();
+    }
+    return episodes
+        .map((entry) => _buildEpisodeTile(record, entry.key, entry.value))
+        .toList();
+  }
+
+  Widget _buildSourceHeader(String sourceDetailUrl,
+      List<MapEntry<int, DownloadEpisode>> groupEpisodes) {
+    final firstTitle = groupEpisodes
+        .map((e) => e.value.sourceTitle)
+        .firstWhere((t) => t.isNotEmpty, orElse: () => '');
+    final displayName = firstTitle.isNotEmpty
+        ? firstTitle
+        : (sourceDetailUrl.isNotEmpty ? sourceDetailUrl : '未分类');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Text(
+        displayName,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoadHeader(int road) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 4, 16, 2),
+      child: Text(
+        '播放列表${road + 1}',
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.outline,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEpisodeTile(
+      DownloadRecord record, int episodeKey, DownloadEpisode episode) {
     final statusIcon = _getStatusIcon(episode);
-    final statusText = _getStatusText(record, episode);
+    final statusText = _getStatusText(record, episodeKey, episode);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -164,7 +239,7 @@ class _DownloadPageState extends State<DownloadPage> {
             ),
             const SizedBox(width: 8),
           ],
-          ..._getActionButtons(record, episode),
+          ..._getActionButtons(record, episodeKey, episode),
         ],
       ),
     );
@@ -204,7 +279,8 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  String _getStatusText(DownloadRecord record, DownloadEpisode episode) {
+  String _getStatusText(
+      DownloadRecord record, int episodeKey, DownloadEpisode episode) {
     switch (episode.status) {
       case DownloadStatus.completed:
         return '已完成  ${formatBytes(episode.totalBytes)}';
@@ -212,7 +288,7 @@ class _DownloadPageState extends State<DownloadPage> {
         final speed = downloadController.getSpeed(
           record.bangumiId,
           record.pluginName,
-          episode.episodeNumber,
+          episodeKey,
         );
         final speedText = speed > 0 ? ' · ${formatSpeed(speed)}' : '';
         return '${(episode.progressPercent * 100).toStringAsFixed(0)}%  '
@@ -231,7 +307,7 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   List<Widget> _getActionButtons(
-      DownloadRecord record, DownloadEpisode episode) {
+      DownloadRecord record, int episodeKey, DownloadEpisode episode) {
     final buttons = <Widget>[];
 
     switch (episode.status) {
@@ -250,7 +326,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.pauseDownload(
             record.bangumiId,
             record.pluginName,
-            episode.episodeNumber,
+            episodeKey,
           ),
           tooltip: '暂停',
           visualDensity: VisualDensity.compact,
@@ -262,7 +338,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.retryDownload(
             bangumiId: record.bangumiId,
             pluginName: record.pluginName,
-            episodeNumber: episode.episodeNumber,
+            episodeKey: episodeKey,
           ),
           tooltip: '继续',
           visualDensity: VisualDensity.compact,
@@ -274,7 +350,7 @@ class _DownloadPageState extends State<DownloadPage> {
           onPressed: () => downloadController.retryDownload(
             bangumiId: record.bangumiId,
             pluginName: record.pluginName,
-            episodeNumber: episode.episodeNumber,
+            episodeKey: episodeKey,
           ),
           tooltip: '重试',
           visualDensity: VisualDensity.compact,
@@ -288,7 +364,7 @@ class _DownloadPageState extends State<DownloadPage> {
             downloadController.priorityDownload(
               bangumiId: record.bangumiId,
               pluginName: record.pluginName,
-              episodeNumber: episode.episodeNumber,
+              episodeKey: episodeKey,
             );
             KazumiDialog.showToast(message: '已插队优先下载');
           },
@@ -302,7 +378,7 @@ class _DownloadPageState extends State<DownloadPage> {
 
     buttons.add(IconButton(
       icon: const Icon(Icons.delete_outline, size: 20),
-      onPressed: () => _confirmDeleteEpisode(record, episode),
+      onPressed: () => _confirmDeleteEpisode(record, episodeKey, episode),
       tooltip: '删除',
       visualDensity: VisualDensity.compact,
     ));
@@ -311,11 +387,7 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   void _playEpisode(DownloadRecord record, DownloadEpisode episode) {
-    final localPath = downloadController.getLocalVideoPath(
-      record.bangumiId,
-      record.pluginName,
-      episode.episodeNumber,
-    );
+    final localPath = downloadController.getLocalVideoPathForEpisode(episode);
     if (localPath == null) {
       KazumiDialog.showToast(message: '本地文件不存在');
       return;
@@ -362,11 +434,13 @@ class _DownloadPageState extends State<DownloadPage> {
     Modular.to.pushNamed('/video/');
   }
 
-  void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {
+  void _confirmDeleteEpisode(
+      DownloadRecord record, int episodeKey, DownloadEpisode episode) {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
         title: const Text('删除下载'),
-        content: Text('确定要删除「${episode.episodeName.isNotEmpty ? episode.episodeName : '第${episode.episodeNumber}集'}」的下载文件吗？'),
+        content: Text(
+            '确定要删除「${episode.episodeName.isNotEmpty ? episode.episodeName : '第${episode.episodeNumber}集'}」的下载文件吗？'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(),
@@ -380,7 +454,7 @@ class _DownloadPageState extends State<DownloadPage> {
               downloadController.deleteEpisode(
                 record.bangumiId,
                 record.pluginName,
-                episode.episodeNumber,
+                episodeKey,
               );
               KazumiDialog.dismiss();
             },

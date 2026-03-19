@@ -35,9 +35,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
     final downloadedUrls = <String>{};
     if (record != null) {
       for (final entry in record.episodes.entries) {
-        if (entry.value.status == DownloadStatus.completed ||
-            entry.value.status == DownloadStatus.downloading ||
-            entry.value.status == DownloadStatus.pending) {
+        if (entry.value.road == widget.road &&
+            entry.value.status != DownloadStatus.failed) {
           if (entry.value.episodePageUrl.isNotEmpty) {
             downloadedUrls.add(entry.value.episodePageUrl);
           }
@@ -247,6 +246,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
         episodeName: identifier,
         road: widget.road,
         episodePageUrl: episodePageUrl,
+        sourceDetailUrl: videoPageController.src,
+        sourceTitle: videoPageController.title,
       );
     }
 

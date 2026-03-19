@@ -30,7 +30,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool useDynamicColor;
   late bool showWindowButton;
   late bool useSystemFont;
-  late bool showRating;
   final PopularController popularController = Modular.get<PopularController>();
   late final ThemeProvider themeProvider;
   final MenuController menuController = MenuController();
@@ -49,7 +48,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
     useSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
-    showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
@@ -225,11 +223,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 Text(
                                   '浅色',
                                   style: TextStyle(
-                                    color: defaultThemeMode == 'light'
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                    fontFamily: fontFamily
-                                  ),
+                                      color: defaultThemeMode == 'light'
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : null,
+                                      fontFamily: fontFamily),
                                 ),
                               ],
                             ),
@@ -275,7 +274,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
                       return AlertDialog(
-                        title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
+                        title: Text('配色方案',
+                            style: TextStyle(fontFamily: fontFamily)),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
                           final List<Map<String, dynamic>> colorThemes =
@@ -335,7 +335,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     useSystemFont = value ?? !useSystemFont;
-                    await setting.put(SettingBoxKey.useSystemFont, useSystemFont);
+                    await setting.put(
+                        SettingBoxKey.useSystemFont, useSystemFont);
                     themeProvider.setFontFamily(useSystemFont);
                     dynamic color;
                     if (defaultThemeColor == 'default') {
@@ -346,22 +347,15 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setTheme(color);
                     setState(() {});
                   },
-                  title: Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('关闭后使用 MI Sans 字体', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('关闭后使用 MI Sans 字体',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useSystemFont,
                 ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    showRating = value ?? !showRating;
-                    await setting.put(SettingBoxKey.showRating, showRating);
-                    setState(() {});
-                  },
-                  title: Text('显示评分', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('关闭后将在概览中隐藏评分信息', style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: showRating,
-                ),
               ],
-              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台', style: TextStyle(fontFamily: fontFamily)),
+              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台',
+                  style: TextStyle(fontFamily: fontFamily)),
             ),
             SettingsSection(
               tiles: [
@@ -372,8 +366,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     updateOledEnhance();
                     setState(() {});
                   },
-                  title: Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('深色模式下使用纯黑背景', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('深色模式下使用纯黑背景',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: oledEnhance,
                 ),
               ],
@@ -388,8 +384,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           SettingBoxKey.showWindowButton, showWindowButton);
                       setState(() {});
                     },
-                    title: Text('使用系统标题栏', style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('重启应用生效', style: TextStyle(fontFamily: fontFamily)),
+                    title: Text('使用系统标题栏',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('重启应用生效',
+                        style: TextStyle(fontFamily: fontFamily)),
                     initialValue: showWindowButton,
                   ),
                 ],
@@ -401,7 +399,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     onPressed: (_) async {
                       Modular.to.pushNamed('/settings/theme/display');
                     },
-                    title: Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
+                    title:
+                        Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],
               ),

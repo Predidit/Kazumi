@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FF6B6B">
+  <title>离线 - 番剧播放器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f1e8 0%, #e8d5d5 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 400px;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 48px 32px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+    }
+    
+    .icon {
+      font-size: 64px;
+      color: #FF6B6B;
+      margin-bottom: 24px;
+    }
+    
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+    }
+    
+    p {
+      font-size: 16px;
+      color: #4a4a4a;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #FF6B6B;
+      color: white;
+      border: none;
+      border-radius: 9999px;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 44px;
+    }
+    
+    .retry-btn:hover {
+      background: #e53935;
+      transform: scale(1.02);
+    }
+    
+    .retry-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .material-symbols-rounded {
+      font-family: 'Material Symbols Rounded';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <span class="material-symbols-rounded" style="font-size: 64px;">cloud_off</span>
+    </div>
+    <h1>您当前处于离线状态</h1>
+    <p>请检查您的网络连接后重试。已缓存的内容仍可访问。</p>
+    <button class="retry-btn" onclick="window.location.reload()">
+      <span class="material-symbols-rounded">refresh</span>
+      重试
+    </button>
+  </div>
+</body>
+</html>

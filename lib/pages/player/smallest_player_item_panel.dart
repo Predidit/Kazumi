@@ -219,7 +219,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
 
   Widget forwardIcon() {
     return Tooltip(
-      message: '长按修改时间',
+      message: '快进${playerController.buttonSkipTime}秒，长按修改时间',
       child: GestureDetector(
         onLongPress: () => showForwardChange(),
         child: IconButton(
@@ -487,6 +487,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             icon: Icon(playerController.playing
                 ? Icons.pause_rounded
                 : Icons.play_arrow_rounded),
+            tooltip: playerController.playing ? '暂停' : '播放',
             onPressed: () {
               playerController.playOrPause();
             },
@@ -528,6 +529,9 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: Icon(videoPageController.isFullscreen
                       ? Icons.fullscreen_exit_rounded
                       : Icons.fullscreen_rounded),
+                  tooltip: videoPageController.isFullscreen
+                      ? '退出全屏'
+                      : '全屏',
                   onPressed: () {
                     widget.handleFullscreen();
                   },
@@ -546,6 +550,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             IconButton(
               color: Colors.white,
               icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: '返回',
               onPressed: () {
                 widget.onBackPressed(context);
               },
@@ -566,6 +571,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     }
                     videoPageController.isPip = !videoPageController.isPip;
                   },
+                  tooltip: '画中画',
                   icon: const Icon(Icons.picture_in_picture,
                       color: Colors.white)),
             // 弹幕开关
@@ -604,6 +610,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       controller.open();
                     }
                   },
+                  tooltip: '更多选项',
                   icon: const Icon(
                     Icons.more_vert,
                     color: Colors.white,

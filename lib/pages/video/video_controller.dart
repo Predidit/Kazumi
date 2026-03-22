@@ -246,6 +246,8 @@ abstract class _VideoPageController with Store {
       episodeTitle: roadList[currentRoad].identifier[episode - 1],
       referer: '',
       currentRoad: currentRoad,
+      coverUrl: bangumiItem.images['large'],
+      bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
     final playerController = Modular.get<PlayerController>();
@@ -306,6 +308,8 @@ abstract class _VideoPageController with Store {
         episodeTitle: roadList[currentRoad].identifier[currentEpisode - 1],
         referer: currentPlugin.referer,
         currentRoad: currentRoad,
+        coverUrl: bangumiItem.images['large'],
+        bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
       );
 
       final playerController = Modular.get<PlayerController>();

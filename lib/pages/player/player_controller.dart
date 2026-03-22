@@ -22,6 +22,7 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/pages/player/player_service.dart';
 
 part 'player_controller.g.dart';
 
@@ -37,6 +38,8 @@ class PlaybackInitParams {
   final String episodeTitle;
   final String referer;
   final int currentRoad;
+  final String? coverUrl;
+  final String? bangumiName;
 
   const PlaybackInitParams({
     required this.videoUrl,
@@ -50,6 +53,8 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.coverUrl,
+    this.bangumiName,
   });
 }
 
@@ -76,11 +81,13 @@ class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
   final ShadersController shadersController = Modular.get<ShadersController>();
+  final PlayerService playerService = Modular.get<PlayerService>();
 
   late int bangumiId;
   late int currentEpisode;
   late int currentRoad;
   late String referer;
+  String? coverUrl;
 
   // 弹幕控制
   late DanmakuController danmakuController;
@@ -286,6 +293,21 @@ abstract class _PlayerController with Store {
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().i('PlayerController: video initialized');
     loading = false;
+
+    // 注册到 player service 并更新媒体信息
+    playerService.playerController = this as PlayerController;
+    coverUrl = params.coverUrl;
+    Uri? artUri;
+    if (coverUrl != null && coverUrl!.isNotEmpty) {
+      artUri = Uri.tryParse(coverUrl!);
+    }
+    playerService.videoPlayerServiceHandler?.onVideoDetailChange(
+      mediaId: '$bangumiId[$currentEpisode]::$videoUrl',
+      title: params.bangumiName ?? params.episodeTitle,
+      artist: params.episodeTitle,
+      artUri: artUri,
+    );
+
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
           "$bangumiId[$currentEpisode]") {
@@ -569,6 +591,12 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer!.pause();
     playing = false;
+    playerService.audioSessionHandler?.setActive(false);
+    playerService.videoPlayerServiceHandler?.onStatusChange(
+      isPlaying: false,
+      isBuffering: isBuffering,
+      isCompleted: completed,
+    );
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -581,6 +609,12 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer!.play();
     playing = true;
+    playerService.audioSessionHandler?.setActive(true);
+    playerService.videoPlayerServiceHandler?.onStatusChange(
+      isPlaying: true,
+      isBuffering: isBuffering,
+      isCompleted: completed,
+    );
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -601,9 +635,12 @@ abstract class _PlayerController with Store {
     try {
       await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
+    playerService.videoPlayerServiceHandler?.clear();
+    playerService.audioSessionHandler?.setActive(false);
     await mediaPlayer?.dispose();
     mediaPlayer = null;
     videoController = null;
+    playerService.playerController = null;
   }
 
   Future<void> stop() async {

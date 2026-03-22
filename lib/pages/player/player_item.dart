@@ -30,6 +30,7 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
+import 'package:kazumi/pages/player/player_service.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -72,6 +73,7 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
+  final PlayerService playerService = Modular.get<PlayerService>();
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
@@ -113,6 +115,20 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
+
+  bool? _lastReportedIsPlaying;
+  bool? _lastReportedIsBuffering;
+  bool? _lastReportedIsCompleted;
+  Duration? _lastReportedPosition;
+  Duration? _lastReportedDuration;
+
+  void _resetMediaServiceReportCache() {
+    _lastReportedIsPlaying = null;
+    _lastReportedIsBuffering = null;
+    _lastReportedIsCompleted = null;
+    _lastReportedPosition = null;
+    _lastReportedDuration = null;
+  }
 
   double lastVolume = 0;
 
@@ -650,6 +666,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   Timer getPlayerTimer() {
+    _resetMediaServiceReportCache();
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.playing = playerController.playerPlaying;
       playerController.isBuffering = playerController.playerBuffering;
@@ -657,6 +674,42 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.buffer = playerController.playerBuffer;
       playerController.duration = playerController.playerDuration;
       playerController.completed = playerController.playerCompleted;
+      final currentIsPlaying = playerController.playerPlaying;
+      final currentIsBuffering = playerController.playerBuffering;
+      final currentIsCompleted = playerController.playerCompleted;
+      final currentPosition = playerController.playerPosition;
+      final currentDuration = playerController.playerDuration;
+
+      final statusChanged =
+          _lastReportedIsPlaying != currentIsPlaying ||
+          _lastReportedIsBuffering != currentIsBuffering ||
+          _lastReportedIsCompleted != currentIsCompleted;
+      if (statusChanged) {
+        playerService.videoPlayerServiceHandler?.onStatusChange(
+          isPlaying: currentIsPlaying,
+          isBuffering: currentIsBuffering,
+          isCompleted: currentIsCompleted,
+        );
+        _lastReportedIsPlaying = currentIsPlaying;
+        _lastReportedIsBuffering = currentIsBuffering;
+        _lastReportedIsCompleted = currentIsCompleted;
+      }
+
+      if (_lastReportedPosition != currentPosition) {
+        playerService.videoPlayerServiceHandler?.onPositionChange(
+          currentPosition,
+        );
+        _lastReportedPosition = currentPosition;
+      }
+
+      // 更新媒体控件时长（播放器获取到实际时长后）
+      if (currentDuration.inSeconds > 0 &&
+          _lastReportedDuration != currentDuration) {
+        playerService.videoPlayerServiceHandler?.updateDuration(
+          currentDuration,
+        );
+        _lastReportedDuration = currentDuration;
+      }
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
@@ -1307,10 +1360,7 @@ class _PlayerItemState extends State<PlayerItem>
       },
     );
     // workaround for #214
-    if (Platform.isIOS) {
-      FlutterVolumeController.setIOSAudioSessionCategory(
-          category: AudioSessionCategory.playback);
-    }
+    // Now handled by AudioSessionHandler
     WidgetsBinding.instance.addObserver(this);
     animationController ??= AnimationController(
       duration: const Duration(milliseconds: 300),

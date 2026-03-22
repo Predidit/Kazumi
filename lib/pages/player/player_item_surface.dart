@@ -30,6 +30,7 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
       return Video(
         controller: playerController.videoController!,
         controls: NoVideoControls,
+        pauseUponEnteringBackgroundMode: false,
         fit: playerController.aspectRatioType == 1
             ? BoxFit.contain
             : playerController.aspectRatioType == 2

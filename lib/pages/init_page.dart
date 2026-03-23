@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/player/player_service.dart';
+import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 import 'package:kazumi/utils/background_download_service.dart';
 
 class InitPage extends StatefulWidget {
@@ -32,7 +32,8 @@ class _InitPageState extends State<InitPage> {
   final MyController myController = Modular.get<MyController>();
   final DownloadController downloadController =
       Modular.get<DownloadController>();
-  final PlayerService playerService = Modular.get<PlayerService>();
+  final PlayerAudioSessionController playerAudioSessionController =
+      Modular.get<PlayerAudioSessionController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
 
@@ -46,10 +47,11 @@ class _InitPageState extends State<InitPage> {
   Future<void> _initializeApp() async {
     if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
       try {
-        await playerService.initialize();
+        await playerAudioSessionController.initialize();
       } catch (e) {
-        KazumiLogger()
-            .e('InitPage: PlayerService.initialize() failed', error: e);
+        KazumiLogger().e(
+            'InitPage: PlayerAudioSessionController.initialize() failed',
+            error: e);
       }
     }
 

@@ -31,6 +31,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool playerDisableAnimations;
   late bool forceAdBlocker;
   late bool autoPlayNext;
+  late bool backgroundPlayback;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
@@ -58,6 +59,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
+    backgroundPlayback =
+        setting.get(SettingBoxKey.backgroundPlayback, defaultValue: false);
     playerDisableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
     forceAdBlocker =
@@ -246,6 +249,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
             ),
             SettingsSection(
               tiles: [
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    backgroundPlayback = value ?? !backgroundPlayback;
+                    await setting.put(
+                        SettingBoxKey.backgroundPlayback, backgroundPlayback);
+                    setState(() {});
+                  },
+                  title: Text('后台播放', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('应用退到后台或熄屏时继续播放音频', style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: backgroundPlayback,
+                ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     playResume = value ?? !playResume;

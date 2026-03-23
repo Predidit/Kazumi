@@ -22,7 +22,7 @@ import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/player/player_service.dart';
+import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 
 class IndexModule extends Module {
   @override
@@ -48,9 +48,7 @@ class IndexModule extends Module {
     i.addSingleton(MyController.new);
     i.addSingleton(ShadersController.new);
     i.addSingleton(DownloadController.new);
-
-    // Service层
-    i.addSingleton(PlayerService.new);
+    i.addSingleton(PlayerAudioSessionController.new);
   }
 
   @override

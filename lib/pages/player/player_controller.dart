@@ -22,7 +22,7 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/player/player_service.dart';
+import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 
 part 'player_controller.g.dart';
 
@@ -81,7 +81,8 @@ class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
   final ShadersController shadersController = Modular.get<ShadersController>();
-  final PlayerService playerService = Modular.get<PlayerService>();
+  final PlayerAudioSessionController playerAudioSessionController =
+      Modular.get<PlayerAudioSessionController>();
 
   late int bangumiId;
   late int currentEpisode;
@@ -295,13 +296,13 @@ abstract class _PlayerController with Store {
     loading = false;
 
     // 注册到 player service 并更新媒体信息
-    playerService.playerController = this as PlayerController;
+    playerAudioSessionController.playerController = this as PlayerController;
     coverUrl = params.coverUrl;
     Uri? artUri;
     if (coverUrl != null && coverUrl!.isNotEmpty) {
       artUri = Uri.tryParse(coverUrl!);
     }
-    playerService.videoPlayerServiceHandler?.onVideoDetailChange(
+    playerAudioSessionController.videoPlayerServiceHandler?.onVideoDetailChange(
       mediaId: '$bangumiId[$currentEpisode]::$videoUrl',
       title: params.bangumiName ?? params.episodeTitle,
       artist: params.episodeTitle,
@@ -474,7 +475,7 @@ abstract class _PlayerController with Store {
       if (showPlayerError) {
         if (event.toString().contains('Failed to open') && playerBuffering) {
           KazumiDialog.showToast(
-              message: '加载失败, 请尝试更换其他视频来源',
+              message: '加载失败, 请尝试更换其他视频来源', 
               showActionButton: true);
         } else {
           KazumiDialog.showToast(
@@ -591,8 +592,8 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer!.pause();
     playing = false;
-    playerService.audioSessionHandler?.setActive(false);
-    playerService.videoPlayerServiceHandler?.onStatusChange(
+    playerAudioSessionController.audioSessionHandler?.setActive(false);
+    playerAudioSessionController.videoPlayerServiceHandler?.onStatusChange(
       isPlaying: false,
       isBuffering: isBuffering,
       isCompleted: completed,
@@ -609,8 +610,8 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer!.play();
     playing = true;
-    playerService.audioSessionHandler?.setActive(true);
-    playerService.videoPlayerServiceHandler?.onStatusChange(
+    playerAudioSessionController.audioSessionHandler?.setActive(true);
+    playerAudioSessionController.videoPlayerServiceHandler?.onStatusChange(
       isPlaying: true,
       isBuffering: isBuffering,
       isCompleted: completed,
@@ -635,12 +636,12 @@ abstract class _PlayerController with Store {
     try {
       await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
-    playerService.videoPlayerServiceHandler?.clear();
-    playerService.audioSessionHandler?.setActive(false);
+    playerAudioSessionController.videoPlayerServiceHandler?.clear();
+    playerAudioSessionController.audioSessionHandler?.setActive(false);
     await mediaPlayer?.dispose();
     mediaPlayer = null;
     videoController = null;
-    playerService.playerController = null;
+    playerAudioSessionController.playerController = null;
   }
 
   Future<void> stop() async {

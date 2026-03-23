@@ -37,6 +37,10 @@
 	</dict>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string></string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.pravera.flutter_foreground_task.refresh</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

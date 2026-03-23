@@ -30,7 +30,7 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:kazumi/pages/player/player_service.dart';
+import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -73,7 +73,8 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
-  final PlayerService playerService = Modular.get<PlayerService>();
+  final PlayerAudioSessionController playerAudioSessionController =
+      Modular.get<PlayerAudioSessionController>();
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
@@ -110,6 +111,7 @@ class _PlayerItemState extends State<PlayerItem>
   // 硬件解码
   late bool haEnable;
   late bool autoPlayNext;
+  late bool backgroundPlayback;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -142,8 +144,17 @@ class _PlayerItemState extends State<PlayerItem>
 
   /// 处理 Android/iOS 应用后台或熄屏
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused &&
+        !backgroundPlayback &&
+        playerController.mediaPlayer != null &&
+        playerController.playerPlaying) {
+      try {
+        await playerController.pause(enableSync: false);
+      } catch (_) {}
+      return;
+    }
     try {
       if (playerController.playerPlaying) {
         playerController.danmakuController.resume();
@@ -680,12 +691,12 @@ class _PlayerItemState extends State<PlayerItem>
       final currentPosition = playerController.playerPosition;
       final currentDuration = playerController.playerDuration;
 
-      final statusChanged =
+      final statusChanged = 
           _lastReportedIsPlaying != currentIsPlaying ||
           _lastReportedIsBuffering != currentIsBuffering ||
           _lastReportedIsCompleted != currentIsCompleted;
       if (statusChanged) {
-        playerService.videoPlayerServiceHandler?.onStatusChange(
+        playerAudioSessionController.videoPlayerServiceHandler?.onStatusChange(
           isPlaying: currentIsPlaying,
           isBuffering: currentIsBuffering,
           isCompleted: currentIsCompleted,
@@ -696,7 +707,7 @@ class _PlayerItemState extends State<PlayerItem>
       }
 
       if (_lastReportedPosition != currentPosition) {
-        playerService.videoPlayerServiceHandler?.onPositionChange(
+        playerAudioSessionController.videoPlayerServiceHandler?.onPositionChange(
           currentPosition,
         );
         _lastReportedPosition = currentPosition;
@@ -705,7 +716,7 @@ class _PlayerItemState extends State<PlayerItem>
       // 更新媒体控件时长（播放器获取到实际时长后）
       if (currentDuration.inSeconds > 0 &&
           _lastReportedDuration != currentDuration) {
-        playerService.videoPlayerServiceHandler?.updateDuration(
+        playerAudioSessionController.videoPlayerServiceHandler?.updateDuration(
           currentDuration,
         );
         _lastReportedDuration = currentDuration;
@@ -1401,6 +1412,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuBorderSize, defaultValue: 1.5);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
+    backgroundPlayback = setting.get(SettingBoxKey.backgroundPlayback, defaultValue: false);
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();

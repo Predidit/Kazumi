@@ -1,7 +1,7 @@
-import 'package:kazumi/pages/player/audio_handler.dart';
-import 'package:kazumi/pages/player/audio_session_handler.dart';
+import 'package:kazumi/utils/audio_handler.dart';
+import 'package:kazumi/utils/audio_session_handler.dart';
 
-class PlayerService {
+class PlayerAudioSessionController {
   VideoPlayerServiceHandler? videoPlayerServiceHandler;
   AudioSessionHandler? audioSessionHandler;
   dynamic playerController;

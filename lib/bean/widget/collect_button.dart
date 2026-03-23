@@ -112,6 +112,7 @@ class _CollectButtonState extends State<CollectButton> {
                 controller.open();
               }
             },
+            tooltip: getTypeStringByInt(collectType),
             icon: Icon(
               getIconByInt(collectType),
               color: widget.color,

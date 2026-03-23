@@ -371,7 +371,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   Widget forwardIcon() {
     return Tooltip(
-      message: '长按修改时间',
+      message: '快进${playerController.buttonSkipTime}秒，长按修改时间',
       child: GestureDetector(
         onLongPress: () => showForwardChange(),
         child: IconButton(
@@ -725,6 +725,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         icon: Icon(playerController.playing
                             ? Icons.pause_rounded
                             : Icons.play_arrow_rounded),
+                        tooltip: playerController.playing ? '暂停' : '播放',
                         onPressed: () {
                           playerController.playOrPause();
                         },
@@ -736,6 +737,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         IconButton(
                           color: Colors.white,
                           icon: const Icon(Icons.skip_next_rounded),
+                          tooltip: '下一集',
                           onPressed: () => widget.handlePreNextEpisode('next'),
                         ),
                       if (Utils.isDesktop())
@@ -797,6 +799,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                       },
                                       color: Colors.white,
                                       icon: cachedDanmakuSettingIcon!,
+                                      tooltip: '弹幕设置',
                                     ),
                                     if (isSpaceEnough) danmakuTextField,
                                   ],
@@ -846,6 +849,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             },
                             color: Colors.white,
                             icon: cachedDanmakuSettingIcon!,
+                            tooltip: '弹幕设置',
                           ),
                           Expanded(child: danmakuTextField),
                         ],
@@ -1022,6 +1026,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                           : IconButton(
                               color: Colors.white,
                               icon: const Icon(Icons.menu_open_rounded),
+                              tooltip: '选集面板',
                               onPressed: () {
                                 videoPageController.showTabBody =
                                     !videoPageController.showTabBody;
@@ -1038,6 +1043,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                               icon: Icon(videoPageController.isFullscreen
                                   ? Icons.fullscreen_exit_rounded
                                   : Icons.fullscreen_rounded),
+                              tooltip: videoPageController.isFullscreen
+                                  ? '退出全屏'
+                                  : '全屏',
                               onPressed: () {
                                 widget.handleFullscreen();
                               },
@@ -1082,6 +1090,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   IconButton(
                     color: Colors.white,
                     icon: const Icon(Icons.arrow_back_rounded),
+                    tooltip: '返回',
                     onPressed: () {
                       widget.onBackPressed(context);
                     },
@@ -1112,6 +1121,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         }
                         videoPageController.isPip = !videoPageController.isPip;
                       },
+                      tooltip: '画中画',
                       icon: const Icon(
                         Icons.picture_in_picture,
                         color: Colors.white,
@@ -1151,6 +1161,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             controller.open();
                           }
                         },
+                        tooltip: '更多选项',
                         icon: const Icon(
                           Icons.more_vert,
                           color: Colors.white,
@@ -1401,6 +1412,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         Icons.photo_camera_outlined,
                         color: Colors.white,
                       ),
+                      tooltip: '截图',
                       onPressed: () {
                         widget.handleScreenShot();
                       },
@@ -1410,6 +1422,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   playerController.lockPanel ? Icons.lock_outline : Icons.lock_open,
                   color: Colors.white,
                 ),
+                tooltip: playerController.lockPanel ? '解锁面板' : '锁定面板',
                 onPressed: () {
                   playerController.lockPanel = !playerController.lockPanel;
                 },

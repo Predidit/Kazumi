@@ -1,11 +1,20 @@
 package com.example.kazumi
 
+import android.app.PendingIntent
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
+import android.content.pm.PackageManager
+import android.app.RemoteAction
 import android.os.Build
+import android.os.Bundle
 import android.os.StatFs
 import android.net.Uri
-import android.os.Bundle
+import android.app.PictureInPictureParams
+import android.graphics.drawable.Icon
+import android.util.Rational
 import androidx.annotation.NonNull
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioServiceActivity
@@ -13,10 +22,42 @@ import com.ryanheise.audioservice.AudioServiceActivity
 class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
+    private var intentChannel: MethodChannel? = null
+
+    private var pipIsPlaying = false
+    private var pipCanSkipToNext = false
+    private var pipDanmakuEnabled = false
+    private var pipActionReceiverRegistered = false
+
+    private val actionPipPlayPause = "com.predidit.kazumi.pip.PLAY_PAUSE"
+    private val actionPipNext = "com.predidit.kazumi.pip.NEXT"
+    private val actionPipToggleDanmaku = "com.predidit.kazumi.pip.TOGGLE_DANMAKU"
+
+    private val pipActionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            val action = intent?.action ?: return
+            when (action) {
+                actionPipPlayPause -> notifyFlutterPipAction("play_pause")
+                actionPipNext -> notifyFlutterPipAction("next")
+                actionPipToggleDanmaku -> notifyFlutterPipAction("toggle_danmaku")
+            }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        registerPipActionReceiverIfNeeded()
+    }
+
+    override fun onDestroy() {
+        unregisterPipActionReceiverIfNeeded()
+        super.onDestroy()
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        intentChannel?.setMethodCallHandler { call, result ->
             if (call.method == "openWithMime") {
                 val url = call.argument<String>("url")
                 val mimeType = call.argument<String>("mimeType")
@@ -32,6 +73,19 @@ class MainActivity: AudioServiceActivity() {
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)
+            } else if (call.method == "isPictureInPictureSupported") {
+                result.success(isPictureInPictureSupported())
+            } else if (call.method == "enterPictureInPictureMode") {
+                val width = call.argument<Int>("width") ?: 16
+                val height = call.argument<Int>("height") ?: 9
+                val entered = enterPictureInPicture(width, height)
+                result.success(entered)
+            } else if (call.method == "updatePictureInPictureActions") {
+                val playing = call.argument<Boolean>("playing") ?: false
+                val canSkipToNext = call.argument<Boolean>("canSkipToNext") ?: false
+                val danmakuEnabled = call.argument<Boolean>("danmakuEnabled") ?: false
+                updatePictureInPictureActions(playing, canSkipToNext, danmakuEnabled)
+                result.success(true)
             } else {
                 result.notImplemented()
             }
@@ -65,6 +119,145 @@ class MainActivity: AudioServiceActivity() {
 
     private fun getAndroidSdkVersion(): Int {
         return Build.VERSION.SDK_INT
+    }
+
+    private fun isPictureInPictureSupported(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return false
+        }
+        return packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+    }
+
+    private fun enterPictureInPicture(width: Int, height: Int): Boolean {
+        if (!isPictureInPictureSupported()) {
+            return false
+        }
+        if (isInPictureInPictureMode) {
+            return true
+        }
+        return enterPictureInPictureMode(buildPictureInPictureParams(width, height))
+    }
+
+    private fun updatePictureInPictureActions(
+        playing: Boolean,
+        canSkipToNext: Boolean,
+        danmakuEnabled: Boolean
+    ) {
+        if (!isPictureInPictureSupported()) {
+            return
+        }
+        pipIsPlaying = playing
+        pipCanSkipToNext = canSkipToNext
+        pipDanmakuEnabled = danmakuEnabled
+        if (isInPictureInPictureMode) {
+            setPictureInPictureParams(buildPictureInPictureParams())
+        }
+    }
+
+    private fun buildPictureInPictureParams(width: Int = 16, height: Int = 9): PictureInPictureParams {
+        val safeWidth = if (width > 0) width else 16
+        val safeHeight = if (height > 0) height else 9
+        val actions = buildPipActions()
+        val builder = PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(safeWidth, safeHeight))
+        if (actions.isNotEmpty()) {
+            builder.setActions(actions)
+        }
+        return builder.build()
+    }
+
+    private fun buildPipActions(): List<RemoteAction> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return emptyList()
+        }
+
+        val allActions = mutableListOf<RemoteAction>(
+            createPipAction(
+                action = actionPipPlayPause,
+                requestCode = 1001,
+                iconRes = if (pipIsPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                title = if (pipIsPlaying) "Pause" else "Play",
+                description = if (pipIsPlaying) "Pause playback" else "Play playback",
+                enabled = true
+            ),
+            createPipAction(
+                action = actionPipNext,
+                requestCode = 1002,
+                iconRes = android.R.drawable.ic_media_next,
+                title = "Next",
+                description = "Next episode",
+                enabled = pipCanSkipToNext
+            ),
+            createPipAction(
+                action = actionPipToggleDanmaku,
+                requestCode = 1003,
+                iconRes = if (pipDanmakuEnabled) R.drawable.ic_pip_danmaku_on else R.drawable.ic_pip_danmaku_off,
+                title = if (pipDanmakuEnabled) "Danmaku On" else "Danmaku Off",
+                description = if (pipDanmakuEnabled) "Turn off danmaku" else "Turn on danmaku",
+                enabled = true
+            )
+        )
+
+        val maxActions = maxNumPictureInPictureActions
+        if (allActions.size > maxActions) {
+            allActions.subList(maxActions, allActions.size).clear()
+        }
+        return allActions
+    }
+
+    private fun createPipAction(
+        action: String,
+        requestCode: Int,
+        iconRes: Int,
+        title: String,
+        description: String,
+        enabled: Boolean
+    ): RemoteAction {
+        val intent = Intent(action).setPackage(packageName)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        return RemoteAction(
+            Icon.createWithResource(this, iconRes),
+            title,
+            description,
+            pendingIntent
+        ).apply {
+            setEnabled(enabled)
+        }
+    }
+
+    private fun notifyFlutterPipAction(action: String) {
+        intentChannel?.invokeMethod("onPipAction", mapOf("action" to action))
+    }
+
+    private fun registerPipActionReceiverIfNeeded() {
+        if (pipActionReceiverRegistered || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
+        val filter = IntentFilter().apply {
+            addAction(actionPipPlayPause)
+            addAction(actionPipNext)
+            addAction(actionPipToggleDanmaku)
+        }
+        ContextCompat.registerReceiver(
+            this,
+            pipActionReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        pipActionReceiverRegistered = true
+    }
+
+    private fun unregisterPipActionReceiverIfNeeded() {
+        if (!pipActionReceiverRegistered) {
+            return
+        }
+        unregisterReceiver(pipActionReceiver)
+        pipActionReceiverRegistered = false
     }
 
     private fun getAvailableStorage(path: String): Long {

@@ -322,6 +322,7 @@ class SettingBoxKey {
       syncPlayEndPoint = 'syncPlayEndPoint',
       androidEnableOpenSLES = 'androidEnableOpenSLES',
       androidVideoRenderer = 'androidVideoRenderer',
+      androidAutoEnterPIP = 'androidAutoEnterPIP',
       defaultSuperResolutionType = 'defaultSuperResolutionType',
       superResolutionWarn = 'superResolutionWarn',
       playerDisableAnimations = 'playerDisableAnimations',

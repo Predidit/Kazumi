@@ -432,6 +432,10 @@ class Utils {
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
+  static bool isAndroid() {
+    return Platform.isAndroid;
+  }
+
   /// 判断设备是否为宽屏
   static bool isWideScreen() {
     final MediaQueryData mediaQuery = MediaQueryData.fromView(
@@ -544,6 +548,62 @@ class Utils {
       }
     }
     return 0;
+  }
+
+  static Future<bool> isAndroidPIPSupported() async {
+    if (!Platform.isAndroid) {
+      return false;
+    }
+    const platform = MethodChannel('com.predidit.kazumi/intent');
+    try {
+      final bool? supported =
+          await platform.invokeMethod('isPictureInPictureSupported');
+      return supported ?? false;
+    } on PlatformException catch (e) {
+      KazumiLogger().e("Failed to check Android PIP support: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<bool> enterAndroidPIPWindow(
+      {int width = 16, int height = 9}) async {
+    if (!Platform.isAndroid) {
+      return false;
+    }
+    const platform = MethodChannel('com.predidit.kazumi/intent');
+    try {
+      final bool? entered =
+          await platform.invokeMethod('enterPictureInPictureMode', {
+        'width': width,
+        'height': height,
+      });
+      return entered ?? false;
+    } on PlatformException catch (e) {
+      KazumiLogger().e("Failed to enter Android PIP mode: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<void> updateAndroidPIPActions({
+    required bool playing,
+    required bool canSkipToNext,
+    required bool canSkipToPrevious,
+    required bool danmakuEnabled,
+  }) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    const platform = MethodChannel('com.predidit.kazumi/intent');
+    try {
+      await platform.invokeMethod('updatePictureInPictureActions', {
+        'playing': playing,
+        'canSkipToNext': canSkipToNext,
+        'canSkipToPrevious': canSkipToPrevious,
+        'danmakuEnabled': danmakuEnabled,
+      });
+    } on PlatformException catch (e) {
+      KazumiLogger().e("Failed to update Android PIP actions: '${e.message}'.");
+    }
   }
 
   //退出全屏显示

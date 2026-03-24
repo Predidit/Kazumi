@@ -1111,15 +1111,48 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                   // 跳过
                   forwardIcon(),
-                  if (Utils.isDesktop() && !videoPageController.isFullscreen)
+                  if ((Utils.isDesktop() && !videoPageController.isFullscreen) || Utils.isAndroid())
                     IconButton(
-                      onPressed: () {
-                        if (videoPageController.isPip) {
-                          Utils.exitDesktopPIPWindow();
-                        } else {
-                          Utils.enterDesktopPIPWindow();
+                      onPressed: () async {
+                        if (Utils.isDesktop()) {
+                          if (videoPageController.isPip) {
+                            await Utils.exitDesktopPIPWindow();
+                          } else {
+                            await Utils.enterDesktopPIPWindow();
+                          }
+                          videoPageController.isPip = !videoPageController.isPip;
+                          return;
                         }
-                        videoPageController.isPip = !videoPageController.isPip;
+                        final bool supported =
+                            await Utils.isAndroidPIPSupported();
+                        if (!supported) {
+                          KazumiDialog.showToast(message: '当前设备不支持画中画');
+                          return;
+                        }
+                        final bool canSkipToPrevious =
+                            videoPageController.currentEpisode > 1;
+                        bool canSkipToNext = false;
+                        if (videoPageController.roadList.isNotEmpty &&
+                            videoPageController.currentRoad >= 0 &&
+                            videoPageController.currentRoad <
+                                videoPageController.roadList.length) {
+                          final int totalEpisodes = videoPageController
+                              .roadList[videoPageController.currentRoad]
+                              .data
+                              .length;
+                          canSkipToNext =
+                              videoPageController.currentEpisode < totalEpisodes;
+                        }
+                        await Utils.updateAndroidPIPActions(
+                          playing: playerController.playing,
+                          canSkipToNext: canSkipToNext,
+                          canSkipToPrevious: canSkipToPrevious,
+                          danmakuEnabled: playerController.danmakuOn,
+                        );
+                        final bool entered = await Utils.enterAndroidPIPWindow();
+                        if (!entered) {
+                          KazumiDialog.showToast(message: '进入画中画失败');
+                        }
                       },
                       tooltip: '画中画',
                       icon: const Icon(

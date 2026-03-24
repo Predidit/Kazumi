@@ -5,6 +5,7 @@ import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/player_audio_service.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:flutter/services.dart';
@@ -72,6 +73,7 @@ class _PlayerItemState extends State<PlayerItem>
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
   final MyController myController = Modular.get<MyController>();
+  final PlayerAudioService _playerAudioService = PlayerAudioService();
   late Map<String, List<String>> keyboardShortcuts;
   late List<String> keyboardActionsNeedLongPress;
   late Map<String, void Function()> keyboardActions;
@@ -392,6 +394,79 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
+  Future<void> _bindAudioService() async {
+    try {
+      await _playerAudioService.bindCallbacks(
+        onPlay: () => playerController.play(),
+        onPause: () => playerController.pause(),
+        onSkipToNext: () => handlePreNextEpisode('next'),
+        onSkipToPrevious: () => handlePreNextEpisode('prev'),
+        onSeek: (position) => playerController.seek(position),
+      );
+      _syncAudioServiceState();
+    } catch (e) {
+      KazumiLogger()
+          .w('PlayerAudioService: failed to bind callbacks', error: e);
+    }
+  }
+
+  void _syncAudioServiceState() {
+    try {
+      final currentRoad = videoPageController.currentRoad;
+      final currentEpisode = videoPageController.currentEpisode;
+      if (videoPageController.roadList.isEmpty ||
+          currentRoad < 0 ||
+          currentRoad >= videoPageController.roadList.length) {
+        return;
+      }
+      final currentRoadData = videoPageController.roadList[currentRoad];
+      if (currentEpisode <= 0 || currentRoadData.identifier.isEmpty) return;
+      final safeEpisodeIndex = currentEpisode - 1;
+      if (safeEpisodeIndex >= currentRoadData.identifier.length) return;
+
+      final canSkipToPrevious = currentEpisode > 1;
+      final canSkipToNext = currentEpisode < currentRoadData.data.length;
+      final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
+          ? videoPageController.bangumiItem.nameCn
+          : videoPageController.bangumiItem.name;
+      final episodeTitle = currentRoadData.identifier[safeEpisodeIndex];
+      final mediaTitle = '$bangumiTitle[$episodeTitle]';
+      final artworkUrl = videoPageController.bangumiItem.images['large'];
+      final artworkUri = (artworkUrl == null || artworkUrl.isEmpty)
+          ? null
+          : Uri.tryParse(artworkUrl);
+
+      unawaited(
+        _playerAudioService.updateSession(
+          mediaId:
+              '${videoPageController.bangumiItem.id}_${currentRoad}_$currentEpisode',
+          title: mediaTitle,
+          album: bangumiTitle,
+          artist: videoPageController.isOfflineMode
+              ? videoPageController.offlinePluginName
+              : videoPageController.currentPlugin.name,
+          artUri: artworkUri,
+          duration: playerController.duration > Duration.zero
+              ? playerController.duration
+              : null,
+          playing: playerController.playing,
+          loading: playerController.loading,
+          buffering: playerController.isBuffering,
+          completed: playerController.completed,
+          updatePosition: playerController.currentPosition,
+          bufferedPosition: playerController.buffer,
+          speed: playerController.playerSpeed,
+          queueIndex: safeEpisodeIndex,
+          canSkipToNext: canSkipToNext,
+          canSkipToPrevious: canSkipToPrevious,
+        ),
+      );
+    } catch (e) {
+      KazumiLogger()
+          .w('PlayerAudioService: failed to sync playback state', error: e);
+    }
+  }
+
   void _handleFullscreenChange(BuildContext context) async {
     playerController.lockPanel = false;
     playerController.danmakuController.clear();
@@ -402,12 +477,14 @@ class _PlayerItemState extends State<PlayerItem>
   void handleProgressBarDragStart(ThumbDragDetails details) {
     playerTimer?.cancel();
     playerController.pause(enableSync: false);
+    _syncAudioServiceState();
     hideTimer?.cancel();
     playerController.showVideoController = true;
   }
 
   void handleProgressBarDragEnd() {
     playerController.play(enableSync: false);
+    _syncAudioServiceState();
     startHideTimer();
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
@@ -657,6 +734,7 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.buffer = playerController.playerBuffer;
       playerController.duration = playerController.playerDuration;
       playerController.completed = playerController.playerCompleted;
+      _syncAudioServiceState();
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
@@ -1351,6 +1429,7 @@ class _PlayerItemState extends State<PlayerItem>
         setting.get(SettingBoxKey.danmakuBorderSize, defaultValue: 1.5);
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
+    unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);
     displayVideoController();
@@ -1381,6 +1460,8 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.brightnessSeeking = false;
     playerController.volumeSeeking = false;
     playerController.canHidePlayerPanel = true;
+    _playerAudioService.clearCallbacks();
+    unawaited(_playerAudioService.deactivate());
     super.dispose();
   }
 

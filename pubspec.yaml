@@ -114,6 +114,9 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: 4cd7c29566da395229c398d2ec4d0ef96b5e8970
       path: ./libs/universal/media_kit_libs_video
+  audio_service: ^0.18.18
+  audio_service_win: ^0.0.2
+  audio_service_mpris: ^0.2.1
 
 dependency_overrides:
   media_kit_libs_linux:

@@ -73,6 +73,7 @@ class IndexModule extends Module {
       duration: Duration(milliseconds: 70),
     );
     r.module("/video", module: VideoModule());
+
     /// The route need [ BangumiItem ] as argument.
     r.module("/info", module: InfoModule());
     r.module("/settings", module: SettingsModule());

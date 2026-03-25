@@ -332,6 +332,7 @@ class SettingBoxKey {
       timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
       useSystemFont = 'useSystemFont',
       forceAdBlocker = 'forceAdBlocker',
+      backgroundPlayback = 'backgroundPlayback',
       proxyEnable = 'proxyEnable',
       proxyConfigured = 'proxyConfigured',
       proxyUrl = 'proxyUrl',

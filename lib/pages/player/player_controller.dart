@@ -37,6 +37,8 @@ class PlaybackInitParams {
   final String episodeTitle;
   final String referer;
   final int currentRoad;
+  final String? coverUrl;
+  final String? bangumiName;
 
   const PlaybackInitParams({
     required this.videoUrl,
@@ -50,6 +52,8 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.coverUrl,
+    this.bangumiName,
   });
 }
 
@@ -81,6 +85,7 @@ abstract class _PlayerController with Store {
   late int currentEpisode;
   late int currentRoad;
   late String referer;
+  String? coverUrl;
 
   // 弹幕控制
   late DanmakuController danmakuController;
@@ -286,6 +291,9 @@ abstract class _PlayerController with Store {
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().i('PlayerController: video initialized');
     loading = false;
+
+    coverUrl = params.coverUrl;
+
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
           "$bangumiId[$currentEpisode]") {
@@ -452,8 +460,7 @@ abstract class _PlayerController with Store {
       if (showPlayerError) {
         if (event.toString().contains('Failed to open') && playerBuffering) {
           KazumiDialog.showToast(
-              message: '加载失败, 请尝试更换其他视频来源',
-              showActionButton: true);
+              message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
         } else {
           KazumiDialog.showToast(
               message: '播放器内部错误 ${event.toString()} $videoUrl',
@@ -756,10 +763,13 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
-    final bool danmakuDeduplicationEnable = setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
+    final bool danmakuDeduplicationEnable =
+        setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
     // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
-    final List<Danmaku> listToAdd  = danmakuDeduplicationEnable ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5) : danmakus;
+    final List<Danmaku> listToAdd = danmakuDeduplicationEnable
+        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
+        : danmakus;
 
     for (var element in listToAdd) {
       var danmakuList =

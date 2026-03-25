@@ -143,6 +143,10 @@ class _VideoPageState extends State<VideoPage>
               .identifier[videoPageController.currentEpisode - 1],
           referer: '',
           currentRoad: videoPageController.currentRoad,
+          coverUrl: videoPageController.bangumiItem.images['large'],
+          bangumiName: videoPageController.bangumiItem.nameCn.isNotEmpty
+              ? videoPageController.bangumiItem.nameCn
+              : videoPageController.bangumiItem.name,
         );
         await playerController.init(params);
       }

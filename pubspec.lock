@@ -927,6 +927,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.6"
+  mocktail:
+    dependency: "direct dev"
+    description:
+      name: mocktail
+      sha256: "890df3f9688106f25755f26b1c60589a92b3ab91a22b8b224947ad041bf172d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   modular_core:
     dependency: transitive
     description:

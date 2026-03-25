@@ -15,7 +15,6 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 import 'package:kazumi/utils/background_download_service.dart';
 
 class InitPage extends StatefulWidget {
@@ -32,8 +31,6 @@ class _InitPageState extends State<InitPage> {
   final MyController myController = Modular.get<MyController>();
   final DownloadController downloadController =
       Modular.get<DownloadController>();
-  final PlayerAudioSessionController playerAudioSessionController =
-      Modular.get<PlayerAudioSessionController>();
   Box setting = GStorage.setting;
   late final ThemeProvider themeProvider;
 
@@ -45,16 +42,6 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _initializeApp() async {
-    if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
-      try {
-        await playerAudioSessionController.initialize();
-      } catch (e) {
-        KazumiLogger().e(
-            'InitPage: PlayerAudioSessionController.initialize() failed',
-            error: e);
-      }
-    }
-
     _migrateStorage();
     _loadShaders();
     _loadDanmakuShield();
@@ -317,7 +304,8 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _update() async {
-    bool autoUpdate = await setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    bool autoUpdate =
+        await setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
     if (autoUpdate) {
       Modular.get<MyController>().checkUpdate(type: 'auto');
     }

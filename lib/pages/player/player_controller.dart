@@ -22,7 +22,6 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/pages/player/player_audio_session_controller.dart';
 
 part 'player_controller.g.dart';
 
@@ -81,8 +80,6 @@ class PlayerController = _PlayerController with _$PlayerController;
 
 abstract class _PlayerController with Store {
   final ShadersController shadersController = Modular.get<ShadersController>();
-  final PlayerAudioSessionController playerAudioSessionController =
-      Modular.get<PlayerAudioSessionController>();
 
   late int bangumiId;
   late int currentEpisode;
@@ -295,19 +292,7 @@ abstract class _PlayerController with Store {
     KazumiLogger().i('PlayerController: video initialized');
     loading = false;
 
-    // 注册到 player service 并更新媒体信息
-    playerAudioSessionController.playerController = this as PlayerController;
     coverUrl = params.coverUrl;
-    Uri? artUri;
-    if (coverUrl != null && coverUrl!.isNotEmpty) {
-      artUri = Uri.tryParse(coverUrl!);
-    }
-    playerAudioSessionController.videoPlayerServiceHandler?.onVideoDetailChange(
-      mediaId: '$bangumiId[$currentEpisode]::$videoUrl',
-      title: params.bangumiName ?? params.episodeTitle,
-      artist: params.episodeTitle,
-      artUri: artUri,
-    );
 
     if (syncplayController?.isConnected ?? false) {
       if (syncplayController!.currentFileName !=
@@ -475,8 +460,7 @@ abstract class _PlayerController with Store {
       if (showPlayerError) {
         if (event.toString().contains('Failed to open') && playerBuffering) {
           KazumiDialog.showToast(
-              message: '加载失败, 请尝试更换其他视频来源', 
-              showActionButton: true);
+              message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
         } else {
           KazumiDialog.showToast(
               message: '播放器内部错误 ${event.toString()} $videoUrl',
@@ -592,12 +576,6 @@ abstract class _PlayerController with Store {
     danmakuController.pause();
     await mediaPlayer!.pause();
     playing = false;
-    playerAudioSessionController.audioSessionHandler?.setActive(false);
-    playerAudioSessionController.videoPlayerServiceHandler?.onStatusChange(
-      isPlaying: false,
-      isBuffering: isBuffering,
-      isCompleted: completed,
-    );
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -610,12 +588,6 @@ abstract class _PlayerController with Store {
     danmakuController.resume();
     await mediaPlayer!.play();
     playing = true;
-    playerAudioSessionController.audioSessionHandler?.setActive(true);
-    playerAudioSessionController.videoPlayerServiceHandler?.onStatusChange(
-      isPlaying: true,
-      isBuffering: isBuffering,
-      isCompleted: completed,
-    );
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -636,12 +608,9 @@ abstract class _PlayerController with Store {
     try {
       await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
-    playerAudioSessionController.videoPlayerServiceHandler?.clear();
-    playerAudioSessionController.audioSessionHandler?.setActive(false);
     await mediaPlayer?.dispose();
     mediaPlayer = null;
     videoController = null;
-    playerAudioSessionController.playerController = null;
   }
 
   Future<void> stop() async {
@@ -794,10 +763,13 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
-    final bool danmakuDeduplicationEnable = setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
+    final bool danmakuDeduplicationEnable =
+        setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
     // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
-    final List<Danmaku> listToAdd  = danmakuDeduplicationEnable ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5) : danmakus;
+    final List<Danmaku> listToAdd = danmakuDeduplicationEnable
+        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
+        : danmakus;
 
     for (var element in listToAdd) {
       var danmakuList =

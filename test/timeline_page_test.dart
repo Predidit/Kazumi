@@ -6,7 +6,6 @@ import 'package:kazumi/pages/timeline/timeline_page.dart';
 import 'package:kazumi/pages/timeline/timeline_page_weekly.dart';
 import 'package:kazumi/pages/timeline/timeline_page_list.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
-import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:provider/provider.dart';

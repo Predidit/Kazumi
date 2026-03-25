@@ -24,6 +24,7 @@ class AudioController {
   AudioCallback? _onPause;
   bool _playInterrupted = false;
   bool? _lastAudioSessionActive;
+  int _generation = 0;
 
   Future<void> ensureInitialized() {
     _initFuture ??= _initialize();
@@ -137,6 +138,7 @@ class AudioController {
     required AudioSeekCallback onSeek,
   }) async {
     await ensureInitialized();
+    _generation++;
     _onPlay = onPlay;
     _onPause = onPause;
     _handler?.bindCallbacks(
@@ -172,10 +174,12 @@ class AudioController {
     required bool canSkipToNext,
     required bool canSkipToPrevious,
   }) async {
+    final gen = _generation;
     await ensureInitialized();
+    if (gen != _generation) return;
     await _setAudioSessionActive(playing);
     final handler = _handler;
-    if (handler == null) return;
+    if (handler == null || gen != _generation) return;
 
     final mediaItemCacheKey = [
       mediaId,
@@ -252,7 +256,9 @@ class AudioController {
   }
 
   Future<void> deactivate() async {
+    _generation++;
     await ensureInitialized();
+    _lastMediaItemCacheKey = null;
     await _setAudioSessionActive(false);
     _handler?.updatePlaybackState(
       PlaybackState(

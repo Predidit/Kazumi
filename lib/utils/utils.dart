@@ -586,8 +586,6 @@ class Utils {
 
   static Future<void> updateAndroidPIPActions({
     required bool playing,
-    required bool canSkipToNext,
-    required bool canSkipToPrevious,
     required bool danmakuEnabled,
   }) async {
     if (!Platform.isAndroid) {
@@ -597,12 +595,39 @@ class Utils {
     try {
       await platform.invokeMethod('updatePictureInPictureActions', {
         'playing': playing,
-        'canSkipToNext': canSkipToNext,
-        'canSkipToPrevious': canSkipToPrevious,
         'danmakuEnabled': danmakuEnabled,
       });
     } on PlatformException catch (e) {
       KazumiLogger().e("Failed to update Android PIP actions: '${e.message}'.");
+    }
+  }
+
+  static Future<void> setAndroidAutoEnterPIPEnabled(bool enabled) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    const platform = MethodChannel('com.predidit.kazumi/intent');
+    try {
+      await platform.invokeMethod('setAndroidAutoEnterPIPEnabled', {
+        'enabled': enabled,
+      });
+    } on PlatformException catch (e) {
+      KazumiLogger().e(
+          "Failed to set Android auto-enter PIP enabled state: '${e.message}'.");
+    }
+  }
+
+  static Future<void> setAndroidPIPInPlayerPage(bool inPlayerPage) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    const platform = MethodChannel('com.predidit.kazumi/intent');
+    try {
+      await platform.invokeMethod('setAndroidPIPInPlayerPage', {
+        'inPlayerPage': inPlayerPage,
+      });
+    } on PlatformException catch (e) {
+      KazumiLogger().e("Failed to set Android PIP page state: '${e.message}'.");
     }
   }
 

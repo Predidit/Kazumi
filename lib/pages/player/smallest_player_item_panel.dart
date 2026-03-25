@@ -578,24 +578,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       KazumiDialog.showToast(message: '当前设备不支持画中画');
                       return;
                     }
-                    final bool canSkipToPrevious =
-                        videoPageController.currentEpisode > 1;
-                    bool canSkipToNext = false;
-                    if (videoPageController.roadList.isNotEmpty &&
-                        videoPageController.currentRoad >= 0 &&
-                        videoPageController.currentRoad <
-                            videoPageController.roadList.length) {
-                      final int totalEpisodes = videoPageController
-                          .roadList[videoPageController.currentRoad]
-                          .data
-                          .length;
-                      canSkipToNext =
-                          videoPageController.currentEpisode < totalEpisodes;
-                    }
                     await Utils.updateAndroidPIPActions(
                       playing: playerController.playing,
-                      canSkipToNext: canSkipToNext,
-                      canSkipToPrevious: canSkipToPrevious,
                       danmakuEnabled: playerController.danmakuOn,
                     );
                     final bool entered = await Utils.enterAndroidPIPWindow();

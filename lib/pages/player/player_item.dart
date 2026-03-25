@@ -124,10 +124,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   int episodeNum = 0;
-  bool _isEnteringAndroidPIPFromLifecycle = false;
   bool? _lastPipPlaying;
-  bool? _lastPipCanSkipToNext;
-  bool? _lastPipCanSkipToPrevious;
   bool? _lastPipDanmakuEnabled;
   static const MethodChannel _intentChannel =
       MethodChannel('com.predidit.kazumi/intent');
@@ -138,9 +135,6 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
-    if (Platform.isAndroid && state == AppLifecycleState.inactive) {
-      unawaited(_tryAutoEnterAndroidPIP());
-    }
     if (state == AppLifecycleState.paused &&
         !backgroundPlayback &&
         playerController.mediaPlayer != null &&
@@ -157,35 +151,35 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  Future<void> _tryAutoEnterAndroidPIP() async {
-    if (!mounted || _isEnteringAndroidPIPFromLifecycle) {
+  Future<void> _syncAndroidAutoEnterPIPSetting() async {
+    if (!Platform.isAndroid) {
       return;
     }
-    final bool autoEnterPIP = setting.get(
+    final bool autoEnterPIPEnabled = setting.get(
       SettingBoxKey.androidAutoEnterPIP,
       defaultValue: false,
     );
-    if (!autoEnterPIP ||
-        !playerController.playing ||
-        playerController.loading) {
-      return;
-    }
-
-    _isEnteringAndroidPIPFromLifecycle = true;
     try {
-      final bool supported = await Utils.isAndroidPIPSupported();
-      if (!supported) {
-        return;
-      }
-      await _updateAndroidPIPActions(force: true);
-      await Utils.enterAndroidPIPWindow();
+      await Utils.setAndroidAutoEnterPIPEnabled(autoEnterPIPEnabled);
     } catch (e) {
       KazumiLogger().w(
-        'PlayerItem: failed to auto enter android pip',
+        'PlayerItem: failed to sync android auto enter pip setting',
         error: e,
       );
-    } finally {
-      _isEnteringAndroidPIPFromLifecycle = false;
+    }
+  }
+
+  Future<void> _syncAndroidPIPPlayerPageState(bool inPlayerPage) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    try {
+      await Utils.setAndroidPIPInPlayerPage(inPlayerPage);
+    } catch (e) {
+      KazumiLogger().w(
+        'PlayerItem: failed to sync android pip player page state',
+        error: e,
+      );
     }
   }
 
@@ -206,11 +200,8 @@ class _PlayerItemState extends State<PlayerItem>
       case 'toggle_danmaku':
         handleDanmaku();
         break;
-      case 'next':
-        await handlePreNextEpisode('next');
-        break;
-      case 'previous':
-        await handlePreNextEpisode('prev');
+      case 'forward':
+        await skipOP();
         break;
       default:
         return;
@@ -222,39 +213,18 @@ class _PlayerItemState extends State<PlayerItem>
     if (!Platform.isAndroid) {
       return;
     }
-    bool canSkipToPrevious = false;
-    bool canSkipToNext = false;
-
-    final int currentEpisode = videoPageController.currentEpisode;
-    final int currentRoad = videoPageController.currentRoad;
-    if (videoPageController.roadList.isNotEmpty &&
-        currentRoad >= 0 &&
-        currentRoad < videoPageController.roadList.length &&
-        currentEpisode > 0) {
-      final int totalEpisodes =
-          videoPageController.roadList[currentRoad].data.length;
-      canSkipToPrevious = currentEpisode > 1;
-      canSkipToNext = currentEpisode < totalEpisodes;
-    }
-
     final bool playing = playerController.playing;
     final bool danmakuEnabled = playerController.danmakuOn;
     if (!force &&
         _lastPipPlaying == playing &&
-        _lastPipCanSkipToNext == canSkipToNext &&
-        _lastPipCanSkipToPrevious == canSkipToPrevious &&
         _lastPipDanmakuEnabled == danmakuEnabled) {
       return;
     }
 
     _lastPipPlaying = playing;
-    _lastPipCanSkipToNext = canSkipToNext;
-    _lastPipCanSkipToPrevious = canSkipToPrevious;
     _lastPipDanmakuEnabled = danmakuEnabled;
     await Utils.updateAndroidPIPActions(
       playing: playing,
-      canSkipToNext: canSkipToNext,
-      canSkipToPrevious: canSkipToPrevious,
       danmakuEnabled: danmakuEnabled,
     );
   }
@@ -1515,6 +1485,8 @@ class _PlayerItemState extends State<PlayerItem>
     // workaround for #214
     if (Platform.isAndroid) {
       _intentChannel.setMethodCallHandler(_handleIntentChannelCall);
+      unawaited(_syncAndroidAutoEnterPIPSetting());
+      unawaited(_syncAndroidPIPPlayerPageState(true));
       unawaited(_updateAndroidPIPActions(force: true));
     }
     WidgetsBinding.instance.addObserver(this);
@@ -1581,6 +1553,7 @@ class _PlayerItemState extends State<PlayerItem>
     animationController = null;
     _disposePlayerMenu();
     if (Platform.isAndroid) {
+      unawaited(_syncAndroidPIPPlayerPageState(false));
       _intentChannel.setMethodCallHandler(null);
     }
     // Reset player panel state

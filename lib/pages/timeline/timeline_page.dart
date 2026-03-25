@@ -9,7 +9,7 @@ class TimelinePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timelineShowList = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    final timelineShowList = GStorage.setting.get(SettingBoxKey.timelineShowList, defaultValue: false);
 
     return Observer(
       builder: (_) {

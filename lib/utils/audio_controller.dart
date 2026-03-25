@@ -257,8 +257,10 @@ class AudioController {
 
   Future<void> deactivate() async {
     _generation++;
+    _playInterrupted = false;
     await ensureInitialized();
     _lastMediaItemCacheKey = null;
+    _lastAudioSessionActive = null;
     await _setAudioSessionActive(false);
     _handler?.updatePlaybackState(
       PlaybackState(

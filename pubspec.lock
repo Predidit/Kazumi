@@ -68,10 +68,11 @@ packages:
   audio_service_mpris:
     dependency: "direct main"
     description:
-      name: audio_service_mpris
-      sha256: "10409c808625e512d9c5a763b70819005b4dd85b91df293d4cc76cdcccde5417"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+      resolved-ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
+      url: "https://github.com/Predidit/audio-service-mpris.git"
+    source: git
     version: "1.0.0-beta.1"
   audio_service_platform_interface:
     dependency: transitive

@@ -201,6 +201,12 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
     }
     switch (event.type) {
       case WindowsTitleButtonEventType.hover:
+        if (_nativeDownButton != CustomTitleBarHoveredButton.none &&
+            event.button != _nativeDownButton) {
+          setState(() {
+            _nativeDownButton = CustomTitleBarHoveredButton.none;
+          });
+        }
         break;
       case WindowsTitleButtonEventType.down:
         setState(() {
@@ -215,6 +221,11 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
         }
         break;
       case WindowsTitleButtonEventType.click:
+        if (_nativeDownButton != CustomTitleBarHoveredButton.none) {
+          setState(() {
+            _nativeDownButton = CustomTitleBarHoveredButton.none;
+          });
+        }
         unawaited(_handleWindowsButtonClick(event.button));
         break;
     }

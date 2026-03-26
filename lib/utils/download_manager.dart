@@ -393,7 +393,6 @@ class DownloadManager implements IDownloadManager {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = '不支持下载直播流 (无有效分片)';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
-        _onTaskComplete(key);
         return;
       }
 
@@ -401,7 +400,6 @@ class DownloadManager implements IDownloadManager {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = 'M3U8 中未找到可下载的分片';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
-        _onTaskComplete(key);
         return;
       }
 
@@ -516,7 +514,6 @@ class DownloadManager implements IDownloadManager {
           episode.status = DownloadStatus.paused;
         }
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
-        _onTaskComplete(key);
         return;
       }
 
@@ -524,7 +521,6 @@ class DownloadManager implements IDownloadManager {
         episode.status = DownloadStatus.failed;
         episode.errorMessage = '$failedCount 个分片下载失败';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
-        _onTaskComplete(key);
         return;
       }
 
@@ -684,7 +680,6 @@ class DownloadManager implements IDownloadManager {
           episode.status = DownloadStatus.paused;
         }
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
-        _onTaskComplete(key);
         return;
       }
 
@@ -727,8 +722,6 @@ class DownloadManager implements IDownloadManager {
       episode.errorMessage = e.toString();
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().e('DownloadManager: direct file download failed', error: e);
-    } finally {
-      _onTaskComplete(key);
     }
   }
 

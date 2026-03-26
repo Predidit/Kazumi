@@ -18,6 +18,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -97,6 +98,36 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
+  bool? _lastWindowOverlayVisibility;
+
+  bool get _useCustomWindowControlOverlay {
+    return Utils.isDesktop() &&
+        !setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
+  }
+
+  bool get _shouldShowWindowControlOverlay {
+    return _useCustomWindowControlOverlay &&
+        !playerController.lockPanel &&
+        playerController.showVideoController;
+  }
+
+  void _syncWindowControlOverlayVisibility() {
+    final bool? targetVisibility =
+        _useCustomWindowControlOverlay ? _shouldShowWindowControlOverlay : null;
+    if (_lastWindowOverlayVisibility == targetVisibility) {
+      return;
+    }
+    _lastWindowOverlayVisibility = targetVisibility;
+    if (targetVisibility == null) {
+      WindowControlOverlayVisibilityController.clear();
+      WindowControlOverlayVisibilityController.clearTopShift();
+      WindowControlOverlayVisibilityController.clearLightAppearance();
+    } else {
+      WindowControlOverlayVisibilityController.setVisible(targetVisibility);
+      WindowControlOverlayVisibilityController.setTopShift(-8);
+      WindowControlOverlayVisibilityController.setLightAppearance(true);
+    }
+  }
 
   Widget get danmakuTextField {
     return Container(
@@ -303,7 +334,17 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     cacheSvgIcons();
   }
-  
+
+  @override
+  void dispose() {
+    WindowControlOverlayVisibilityController.clear();
+    WindowControlOverlayVisibilityController.clearTopShift();
+    WindowControlOverlayVisibilityController.clearLightAppearance();
+    textController.dispose();
+    textFieldFocus.dispose();
+    super.dispose();
+  }
+
   void cacheSvgIcons() {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
@@ -391,6 +432,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
+      _syncWindowControlOverlayVisibility();
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -1385,6 +1427,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ],
                   ),
+                  if (_useCustomWindowControlOverlay)
+                    const SizedBox(width: windowControlOverlayReservedWidth),
                 ],
               ),
             ),

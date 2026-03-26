@@ -9,7 +9,7 @@ import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter/services.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/menu/menu.dart';
@@ -163,7 +163,7 @@ class _PopularPageState extends State<PopularPage>
     );
   }
 
-  Widget contentGrid(bangumiList) {
+  Widget contentGrid(List bangumiList) {
     int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
@@ -187,11 +187,11 @@ class _PopularPageState extends State<PopularPage>
         ),
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
-            return bangumiList!.isNotEmpty
+            return bangumiList.isNotEmpty
                 ? BangumiCardV(bangumiItem: bangumiList[index])
                 : null;
           },
-          childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+          childCount: bangumiList.isNotEmpty ? bangumiList.length : 10,
         ),
       ),
     );
@@ -279,16 +279,8 @@ class _PopularPageState extends State<PopularPage>
         icon: const Icon(Icons.history),
       ),
     );
-    if (Utils.isDesktop()) {
-      if (!showWindowButton()) {
-        actions.add(
-          IconButton(
-            tooltip: '退出',
-            onPressed: () => windowManager.close(),
-            icon: const Icon(Icons.close),
-          ),
-        );
-      }
+    if (Utils.isDesktop() && !showWindowButton()) {
+      actions.add(const SizedBox(width: windowControlOverlayReservedWidth));
     }
     return actions;
   }

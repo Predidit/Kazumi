@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -52,11 +53,11 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       acs.addAll(actions!);
     }
     if (Utils.isDesktop()) {
-      // acs.add(IconButton(onPressed: () => windowManager.minimize(), icon: const Icon(Icons.minimize)));
-      if (!showWindowButton()) {
-        acs.add(CloseButton(onPressed: () => windowManager.close()));
-      }
-      acs.add(const SizedBox(width: 8));
+      acs.add(
+        SizedBox(
+          width: showWindowButton() ? 8 : windowControlOverlayReservedWidth,
+        ),
+      );
     }
     return GestureDetector(
       onPanStart: (_) =>

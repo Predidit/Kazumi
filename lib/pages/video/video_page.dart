@@ -22,6 +22,7 @@ import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -57,6 +58,34 @@ class _VideoPageState extends State<VideoPage>
 
   // disable animation.
   late final bool disableAnimations;
+
+  bool get _useCustomWindowControlOverlay {
+    return Utils.isDesktop() &&
+        !setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
+  }
+
+  bool get _isPreloadOverlayVisible {
+    return videoPageController.loading ||
+        playerController.loading ||
+        videoPageController.errorMessage != null;
+  }
+
+  void _syncWindowControlOverlayStyle() {
+    if (!_useCustomWindowControlOverlay) {
+      WindowControlOverlayVisibilityController.clear();
+      WindowControlOverlayVisibilityController.clearTopShift();
+      WindowControlOverlayVisibilityController.clearLightAppearance();
+      return;
+    }
+    if (_isPreloadOverlayVisible) {
+      WindowControlOverlayVisibilityController.setVisible(true);
+      WindowControlOverlayVisibilityController.setTopShift(-8);
+      WindowControlOverlayVisibilityController.setLightAppearance(true);
+      return;
+    }
+    WindowControlOverlayVisibilityController.clearTopShift();
+    WindowControlOverlayVisibilityController.clearLightAppearance();
+  }
 
   // SyncPlayChatMessage
   late final StreamSubscription<SyncPlayChatMessage> _syncChatSubscription;
@@ -197,6 +226,9 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void dispose() {
+    WindowControlOverlayVisibilityController.clear();
+    WindowControlOverlayVisibilityController.clearTopShift();
+    WindowControlOverlayVisibilityController.clearLightAppearance();
     try {
       windowManager.removeListener(this);
     } catch (_) {}
@@ -531,6 +563,7 @@ class _VideoPageState extends State<VideoPage>
           }
         }
         return Observer(builder: (context) {
+          _syncWindowControlOverlayStyle();
           return Scaffold(
             appBar: null,
             body: SafeArea(
@@ -759,6 +792,10 @@ class _VideoPageState extends State<VideoPage>
                               switchDebugConsole();
                             },
                           ),
+                          if (_useCustomWindowControlOverlay)
+                            const SizedBox(
+                              width: windowControlOverlayReservedWidth,
+                            ),
                         ],
                       ),
                     ),

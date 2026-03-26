@@ -12,6 +12,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -278,6 +279,12 @@ class _AppWidgetState extends State<AppWidget>
           ],
           locale: const Locale.fromSubtags(
               languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          builder: (context, child) {
+            if (child == null) {
+              return const SizedBox.shrink();
+            }
+            return WindowControlOverlay(child: child);
+          },
           theme: themeProvider.light,
           darkTheme: themeProvider.dark,
           themeMode: themeProvider.themeMode,

@@ -4,6 +4,7 @@ import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -16,7 +17,6 @@ import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
@@ -239,7 +239,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         ),
                       ),
                       if (!showWindowButton && Utils.isDesktop())
-                        CloseButton(onPressed: () => windowManager.close()),
+                        const SizedBox(
+                          width: windowControlOverlayReservedWidth,
+                        ),
                       SizedBox(width: 8),
                     ],
                     toolbarHeight: (Platform.isMacOS && showWindowButton)
@@ -376,7 +378,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 showDragHandle: true,
                 context: context,
                 builder: (context) {
-                  return SourceSheet(tabController: sourceTabController, infoController: infoController);
+                  return SourceSheet(
+                      tabController: sourceTabController,
+                      infoController: infoController);
                 },
               );
             },

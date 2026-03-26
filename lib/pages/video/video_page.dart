@@ -77,14 +77,12 @@ class _VideoPageState extends State<VideoPage>
       WindowControlOverlayVisibilityController.clearLightAppearance();
       return;
     }
+    WindowControlOverlayVisibilityController.setTopShift(-8);
+    WindowControlOverlayVisibilityController.setLightAppearance(true);
     if (_isPreloadOverlayVisible) {
       WindowControlOverlayVisibilityController.setVisible(true);
-      WindowControlOverlayVisibilityController.setTopShift(-8);
-      WindowControlOverlayVisibilityController.setLightAppearance(true);
       return;
     }
-    WindowControlOverlayVisibilityController.clearTopShift();
-    WindowControlOverlayVisibilityController.clearLightAppearance();
   }
 
   // SyncPlayChatMessage

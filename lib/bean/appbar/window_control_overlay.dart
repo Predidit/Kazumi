@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:kazumi/bean/appbar/windows_interface.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
@@ -123,8 +125,21 @@ class WindowControlOverlay extends StatefulWidget {
 
 class _WindowControlOverlayState extends State<WindowControlOverlay>
     with WindowListener {
+  static const double _titleButtonWidth = 44;
+  static const double _titleButtonHeight = 32;
+  static const double _titleButtonTopPadding = 3;
+
   bool _isMaximized = false;
   StreamSubscription<dynamic>? _exitBehaviorSubscription;
+  StreamSubscription<WindowsTitleButtonEvent>? _windowsEventSubscription;
+  bool _windowsInterfaceReady = false;
+  bool? _lastWindowsTitleBarEnabled;
+  int? _lastWindowsTitleTopInset;
+  int? _lastWindowsTitleButtonHeight;
+  int? _lastWindowsTitleButtonWidth;
+  CustomTitleBarHoveredButton _nativeDownButton =
+      CustomTitleBarHoveredButton.none;
+
   bool get _showOverlay {
     if (!Utils.isDesktop()) {
       return false;
@@ -152,15 +167,107 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
       windowManager.addListener(this);
       _syncWindowState();
     }
+    if (Platform.isWindows) {
+      unawaited(_initializeWindowsInterface());
+    }
   }
 
   @override
   void dispose() {
+    _windowsEventSubscription?.cancel();
+    if (Platform.isWindows && _windowsInterfaceReady) {
+      unawaited(WindowsInterface.instance.setWindowsTitleBarEnabled(false));
+    }
     _exitBehaviorSubscription?.cancel();
     if (Utils.isDesktop()) {
       windowManager.removeListener(this);
     }
     super.dispose();
+  }
+
+  Future<void> _initializeWindowsInterface() async {
+    await WindowsInterface.instance.ensureInitialized();
+    if (!mounted) {
+      return;
+    }
+    _windowsInterfaceReady = true;
+    _windowsEventSubscription =
+        WindowsInterface.instance.events.listen(_handleWindowsButtonEvent);
+  }
+
+  void _handleWindowsButtonEvent(WindowsTitleButtonEvent event) {
+    if (!mounted) {
+      return;
+    }
+    switch (event.type) {
+      case WindowsTitleButtonEventType.hover:
+        break;
+      case WindowsTitleButtonEventType.down:
+        setState(() {
+          _nativeDownButton = event.button;
+        });
+        break;
+      case WindowsTitleButtonEventType.up:
+        if (_nativeDownButton != CustomTitleBarHoveredButton.none) {
+          setState(() {
+            _nativeDownButton = CustomTitleBarHoveredButton.none;
+          });
+        }
+        break;
+      case WindowsTitleButtonEventType.click:
+        unawaited(_handleWindowsButtonClick(event.button));
+        break;
+    }
+  }
+
+  Future<void> _handleWindowsButtonClick(
+      CustomTitleBarHoveredButton button) async {
+    switch (button) {
+      case CustomTitleBarHoveredButton.minimize:
+        await windowManager.minimize();
+        return;
+      case CustomTitleBarHoveredButton.maximize:
+        await _toggleMaximize();
+        return;
+      case CustomTitleBarHoveredButton.close:
+        await windowManager.close();
+        return;
+      case CustomTitleBarHoveredButton.none:
+        return;
+    }
+  }
+
+  Future<void> _syncWindowsTitleBarState({
+    required bool enabled,
+    required int topInsetPhysical,
+    required int titleButtonHeightPhysical,
+    required int titleButtonWidthPhysical,
+  }) async {
+    if (!Platform.isWindows || !_windowsInterfaceReady) {
+      return;
+    }
+    if (_lastWindowsTitleButtonHeight != titleButtonHeightPhysical) {
+      _lastWindowsTitleButtonHeight = titleButtonHeightPhysical;
+      await WindowsInterface.instance
+          .setWindowsTitleHeight(titleButtonHeightPhysical);
+    }
+    if (_lastWindowsTitleButtonWidth != titleButtonWidthPhysical) {
+      _lastWindowsTitleButtonWidth = titleButtonWidthPhysical;
+      await WindowsInterface.instance
+          .setWindowsTitleButtonWidth(titleButtonWidthPhysical);
+    }
+
+    if (_lastWindowsTitleBarEnabled == enabled &&
+        (!enabled || _lastWindowsTitleTopInset == topInsetPhysical)) {
+      return;
+    }
+    _lastWindowsTitleBarEnabled = enabled;
+    _lastWindowsTitleTopInset = topInsetPhysical;
+
+    await WindowsInterface.instance.setWindowsTitleBarEnabled(enabled);
+    if (enabled) {
+      await WindowsInterface.instance.setWindowsTitleTopInset(topInsetPhysical);
+    }
   }
 
   @override
@@ -204,7 +311,21 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final double pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final int titleButtonHeightPhysical =
+        (_titleButtonHeight * pixelRatio).round();
+    final int titleButtonWidthPhysical =
+        (_titleButtonWidth * pixelRatio).round();
+
     if (!_showOverlay) {
+      if (Platform.isWindows) {
+        unawaited(_syncWindowsTitleBarState(
+          enabled: false,
+          topInsetPhysical: 0,
+          titleButtonHeightPhysical: titleButtonHeightPhysical,
+          titleButtonWidthPhysical: titleButtonWidthPhysical,
+        ));
+      }
       return widget.child;
     }
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
@@ -224,6 +345,20 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
         final bool lightAppearance = WindowControlOverlayVisibilityController
                 .lightAppearanceOverride.value ??
             false;
+        final bool useNativeWindowsEvents = Platform.isWindows;
+        final double overlayTopPadding =
+            8 + MediaQuery.paddingOf(context).top + topShift;
+        if (useNativeWindowsEvents) {
+          final int topInsetPhysical =
+              ((overlayTopPadding + _titleButtonTopPadding) * pixelRatio)
+                  .round();
+          unawaited(_syncWindowsTitleBarState(
+            enabled: visible,
+            topInsetPhysical: topInsetPhysical,
+            titleButtonHeightPhysical: titleButtonHeightPhysical,
+            titleButtonWidthPhysical: titleButtonWidthPhysical,
+          ));
+        }
         final Color iconColor = lightAppearance
             ? Colors.white.withValues(alpha: 0.92)
             : colorScheme.onSurface;
@@ -235,14 +370,14 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
               top: 0,
               right: -3,
               child: IgnorePointer(
-                ignoring: !visible,
+                ignoring: !visible || useNativeWindowsEvents,
                 child: AnimatedSlide(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   offset: visible ? Offset.zero : const Offset(0, -1),
                   child: Padding(
                     padding: EdgeInsets.only(
-                      top: 8 + MediaQuery.paddingOf(context).top + topShift,
+                      top: overlayTopPadding,
                     ),
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
@@ -255,7 +390,13 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
                           children: [
                             _WindowControlButton(
                               lightAppearance: lightAppearance,
-                              onPressed: () => windowManager.minimize(),
+                              pressed: useNativeWindowsEvents
+                                  ? _nativeDownButton ==
+                                      CustomTitleBarHoveredButton.minimize
+                                  : false,
+                              onPressed: useNativeWindowsEvents
+                                  ? null
+                                  : () => windowManager.minimize(),
                               icon: _GlyphIcon(
                                 painter: _MinimizeGlyphPainter(
                                   color: iconColor,
@@ -264,7 +405,13 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
                             ),
                             _WindowControlButton(
                               lightAppearance: lightAppearance,
-                              onPressed: _toggleMaximize,
+                              pressed: useNativeWindowsEvents
+                                  ? _nativeDownButton ==
+                                      CustomTitleBarHoveredButton.maximize
+                                  : false,
+                              onPressed: useNativeWindowsEvents
+                                  ? null
+                                  : _toggleMaximize,
                               icon: _GlyphIcon(
                                 painter: _MaximizeGlyphPainter(
                                   color: iconColor,
@@ -274,8 +421,14 @@ class _WindowControlOverlayState extends State<WindowControlOverlay>
                             ),
                             _WindowControlButton(
                               lightAppearance: lightAppearance,
+                              pressed: useNativeWindowsEvents
+                                  ? _nativeDownButton ==
+                                      CustomTitleBarHoveredButton.close
+                                  : false,
                               danger: !closeMeansMinimizeToTray,
-                              onPressed: () => windowManager.close(),
+                              onPressed: useNativeWindowsEvents
+                                  ? null
+                                  : () => windowManager.close(),
                               icon: _GlyphIcon(
                                 painter: closeMeansMinimizeToTray
                                     ? _TrayMinimizeGlyphPainter(
@@ -306,27 +459,50 @@ class _WindowControlButton extends StatelessWidget {
     required this.icon,
     this.danger = false,
     this.lightAppearance = false,
+    this.pressed = false,
   });
 
-  final Future<void> Function() onPressed;
+  final Future<void> Function()? onPressed;
   final Widget icon;
   final bool danger;
   final bool lightAppearance;
+  final bool pressed;
+
+  Color _pressedColor(ColorScheme colorScheme) {
+    return danger
+        ? (lightAppearance
+            ? const Color(0xFFC42B1C)
+            : colorScheme.errorContainer.withValues(alpha: 0.72))
+        : (lightAppearance
+            ? Colors.white.withValues(alpha: 0.24)
+            : colorScheme.primaryContainer.withValues(alpha: 0.72));
+  }
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color nativeStateColor =
+        pressed ? _pressedColor(colorScheme) : Colors.transparent;
+
+    if (onPressed == null) {
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        curve: Curves.easeOut,
+        width: 44,
+        height: 32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: nativeStateColor,
+        ),
+        child: Center(child: icon),
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        hoverColor: danger
-            ? (lightAppearance
-                ? const Color(0xFFC42B1C).withValues(alpha: 0.85)
-                : colorScheme.errorContainer.withValues(alpha: 0.5))
-            : (lightAppearance
-                ? Colors.white.withValues(alpha: 0.15)
-                : colorScheme.primaryContainer.withValues(alpha: 0.5)),
+        hoverColor: Colors.transparent,
         onTap: onPressed,
         child: SizedBox(
           width: 44,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:audio_service/audio_service.dart';
+import 'package:audio_service_mpris/audio_service_mpris.dart';
 import 'package:kazumi/utils/logger.dart';
 
 typedef AudioCallback = Future<void> Function();
@@ -33,6 +34,17 @@ class AudioController {
 
   Future<void> _initialize() async {
     late _KazumiAudioHandler rawHandler;
+    if (Platform.isLinux) {
+      AudioServiceMpris.init(
+        dBusName: 'io.github.predidit.kazumi.channel.audio',
+        identity: 'Kazumi Playback',
+        canControl: true,
+        canPlay: true,
+        canPause: true,
+        canGoNext: true,
+        canGoPrevious: true,
+      );
+    }
     await AudioService.init(
       builder: () {
         rawHandler = _KazumiAudioHandler();

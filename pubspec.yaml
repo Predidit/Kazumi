@@ -56,7 +56,7 @@ dependencies:
   flutter_volume_controller: ^1.3.2
   audio_video_progress_bar: ^2.0.2
   audio_service: ^0.18.15
-  audio_service_mpris: ^0.2.1
+  audio_service_mpris: ^1.0.0-beta.1
   audio_service_win: ^0.0.2
   audio_session: ^0.2.2
   dynamic_color: ^1.8.1

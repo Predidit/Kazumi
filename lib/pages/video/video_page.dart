@@ -77,6 +77,10 @@ class _VideoPageState extends State<VideoPage>
       WindowControlOverlayVisibilityController.clearLightAppearance();
       return;
     }
+    if (videoPageController.isFullscreen) {
+      WindowControlOverlayVisibilityController.setVisible(false);
+      return;
+    }
     WindowControlOverlayVisibilityController.setTopShift(-8);
     WindowControlOverlayVisibilityController.setLightAppearance(true);
     if (_isPreloadOverlayVisible) {
@@ -790,7 +794,8 @@ class _VideoPageState extends State<VideoPage>
                               switchDebugConsole();
                             },
                           ),
-                          if (_useCustomWindowControlOverlay)
+                          if (_useCustomWindowControlOverlay &&
+                              !videoPageController.isFullscreen)
                             const SizedBox(
                               width: windowControlOverlayReservedWidth,
                             ),

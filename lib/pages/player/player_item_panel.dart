@@ -107,6 +107,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   bool get _shouldShowWindowControlOverlay {
     return _useCustomWindowControlOverlay &&
+        !videoPageController.isFullscreen &&
         !playerController.lockPanel &&
         playerController.showVideoController;
   }
@@ -1427,7 +1428,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ],
                   ),
-                  if (_useCustomWindowControlOverlay)
+                  if (_shouldShowWindowControlOverlay)
                     const SizedBox(width: windowControlOverlayReservedWidth),
                 ],
               ),

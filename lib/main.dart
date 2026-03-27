@@ -72,10 +72,8 @@ void main() async {
   if (Platform.isWindows) {
     final shortcutCreated = GStorage.setting
         .get(SettingBoxKey.desktopShortcutCreated, defaultValue: false);
-    debugPrint('Windows shortcut check: shortcutCreated=$shortcutCreated');
     if (!shortcutCreated) {
-      final success = await WindowsShortcut.createDesktopShortcut();
-      debugPrint('Windows shortcut created: $success');
+      await WindowsShortcut.createDesktopShortcut();
       await GStorage.setting.put(SettingBoxKey.desktopShortcutCreated, true);
     }
   }

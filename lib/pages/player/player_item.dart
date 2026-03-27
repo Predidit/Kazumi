@@ -126,8 +126,6 @@ class _PlayerItemState extends State<PlayerItem>
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
-  static const MethodChannel _intentChannel =
-      MethodChannel('com.predidit.kazumi/intent');
 
   late mobx.ReactionDisposer _fullscreenListener;
 
@@ -181,32 +179,6 @@ class _PlayerItemState extends State<PlayerItem>
         error: e,
       );
     }
-  }
-
-  Future<dynamic> _handleIntentChannelCall(MethodCall call) async {
-    if (!Platform.isAndroid || call.method != 'onPipAction') {
-      return;
-    }
-    final dynamic args = call.arguments;
-    final String? action = (args is Map) ? args['action'] as String? : null;
-    if (action == null || !mounted) {
-      return;
-    }
-
-    switch (action) {
-      case 'play_pause':
-        playerController.playOrPause();
-        break;
-      case 'toggle_danmaku':
-        handleDanmaku();
-        break;
-      case 'forward':
-        await skipOP();
-        break;
-      default:
-        return;
-    }
-    await _updateAndroidPIPActions(force: true);
   }
 
   Future<void> _updateAndroidPIPActions({bool force = false}) async {
@@ -1484,7 +1456,27 @@ class _PlayerItemState extends State<PlayerItem>
     );
     // workaround for #214
     if (Platform.isAndroid) {
-      _intentChannel.setMethodCallHandler(_handleIntentChannelCall);
+      Utils.initPipHandler(
+        onAction: (action) async {
+          if (!mounted) return;
+
+          switch (action) {
+            case 'play_pause':
+              playerController.playOrPause();
+              break;
+
+            case 'toggle_danmaku':
+              handleDanmaku();
+              break;
+
+            case 'forward':
+              await skipOP();
+              break;
+          }
+
+          await _updateAndroidPIPActions(force: true);
+        },
+      );
       unawaited(_syncAndroidAutoEnterPIPSetting());
       unawaited(_syncAndroidPIPPlayerPageState(true));
       unawaited(_updateAndroidPIPActions(force: true));
@@ -1554,7 +1546,7 @@ class _PlayerItemState extends State<PlayerItem>
     _disposePlayerMenu();
     if (Platform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
-      _intentChannel.setMethodCallHandler(null);
+      Utils.disposePipHandler();
     }
     // Reset player panel state
     playerController.lockPanel = false;

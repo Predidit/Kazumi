@@ -800,4 +800,33 @@ class Utils {
       action?.call();
     });
   }
+  static bool androidPIPInited = false;
+
+  static void initPipHandler({
+    required Future<void> Function(String action) onAction,
+  }) {
+    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/intent');
+    if (androidPIPInited) return;
+    androidPIPInited = true;
+
+    intentChannel.setMethodCallHandler((call) async {
+      if (!Platform.isAndroid || call.method != 'onPipAction') {
+        return;
+      }
+
+      final args = call.arguments;
+      final String? action =
+          (args is Map) ? args['action'] as String? : null;
+
+      if (action != null) {
+        await onAction(action);
+      }
+    });
+  }
+
+  static void disposePipHandler() {
+    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/intent');
+    intentChannel.setMethodCallHandler(null);
+    androidPIPInited = false;
+  }
 }

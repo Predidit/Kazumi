@@ -435,6 +435,8 @@ class _PlayerItemState extends State<PlayerItem>
       final safeEpisodeIndex = currentEpisode - 1;
       if (safeEpisodeIndex >= currentRoadData.identifier.length) return;
 
+      if (playerController.duration <= Duration.zero) return;
+
       final canSkipToPrevious = currentEpisode > 1;
       final canSkipToNext = currentEpisode < currentRoadData.data.length;
       final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
@@ -456,9 +458,7 @@ class _PlayerItemState extends State<PlayerItem>
               : videoPageController.currentPlugin.name,
           artist: episodeTitle,
           artUri: artworkUri,
-          duration: playerController.duration > Duration.zero
-              ? playerController.duration
-              : null,
+          duration: playerController.duration,
           playing: playerController.playing,
           loading: playerController.loading,
           buffering: playerController.isBuffering,

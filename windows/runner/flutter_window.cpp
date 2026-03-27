@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 #include "fullscreen_utils.h"
 #include "external_player_utils.h"
+#include "windows_interface.h"
 
 #include <optional>
 #include <flutter/method_channel.h>
@@ -32,6 +33,9 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  WindowsInterface::RegisterPlugin(
+      flutter_controller_->engine(),
+      flutter_controller_->view()->GetNativeWindow());
 
   // Removed automatic window show to let window_manager plugin control visibility
   // This prevents window flashing during startup

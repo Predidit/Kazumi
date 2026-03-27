@@ -16,6 +16,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/bean/appbar/window_control_overlay.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
@@ -85,6 +86,36 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
+  bool? _lastWindowOverlayVisibility;
+
+  bool get _useCustomWindowControlOverlay {
+    return Utils.isDesktop() &&
+        !setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
+  }
+
+  bool get _shouldShowWindowControlOverlay {
+    return _useCustomWindowControlOverlay &&
+        !playerController.lockPanel &&
+        playerController.showVideoController;
+  }
+
+  void _syncWindowControlOverlayVisibility() {
+    final bool? targetVisibility =
+        _useCustomWindowControlOverlay ? _shouldShowWindowControlOverlay : null;
+    if (_lastWindowOverlayVisibility == targetVisibility) {
+      return;
+    }
+    _lastWindowOverlayVisibility = targetVisibility;
+    if (targetVisibility == null) {
+      WindowControlOverlayVisibilityController.clear();
+      WindowControlOverlayVisibilityController.clearTopShift();
+      WindowControlOverlayVisibilityController.clearLightAppearance();
+    } else {
+      WindowControlOverlayVisibilityController.setVisible(targetVisibility);
+      WindowControlOverlayVisibilityController.setTopShift(-8);
+      WindowControlOverlayVisibilityController.setLightAppearance(true);
+    }
+  }
 
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
@@ -158,7 +189,16 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     cacheSvgIcons();
   }
-  
+
+  @override
+  void dispose() {
+    WindowControlOverlayVisibilityController.clear();
+    WindowControlOverlayVisibilityController.clearTopShift();
+    WindowControlOverlayVisibilityController.clearLightAppearance();
+    textController.dispose();
+    super.dispose();
+  }
+
   void cacheSvgIcons() {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
@@ -239,6 +279,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
+      _syncWindowControlOverlayVisibility();
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -970,6 +1011,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 ),
               ],
             ),
+            if (_useCustomWindowControlOverlay)
+              const SizedBox(width: windowControlOverlayReservedWidth),
           ],
         ),
       );

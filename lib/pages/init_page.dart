@@ -16,6 +16,7 @@ import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/utils/background_download_service.dart';
+import 'package:kazumi/utils/windows_shortcut.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -55,6 +56,7 @@ class _InitPageState extends State<InitPage> {
 
     await _checkRunningOnX11();
     await _pluginInit();
+    await _showShortcutDialog();
 
     _startDefaultPage();
     // delay to ensure that the default page is fully loaded
@@ -191,6 +193,54 @@ class _InitPageState extends State<InitPage> {
         },
       );
     }
+  }
+
+  Future<void> _showShortcutDialog() async {
+    if (!Platform.isWindows) return;
+
+    final dialogShown = setting.get(
+      SettingBoxKey.shortcutDialogShown,
+      defaultValue: false,
+    );
+    if (dialogShown) return;
+
+    await KazumiDialog.show(
+      clickMaskDismiss: false,
+      builder: (context) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text('创建桌面快捷方式'),
+            content: const Text('是否在桌面创建 Kazumi 的快捷方式？'),
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await setting.put(SettingBoxKey.shortcutDialogShown, true);
+                  KazumiDialog.dismiss();
+                },
+                child: Text(
+                  '暂不创建',
+                  style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final success = await WindowsShortcut.createDesktopShortcut();
+                  await setting.put(SettingBoxKey.shortcutDialogShown, true);
+                  KazumiDialog.dismiss();
+                  if (success) {
+                    KazumiDialog.showToast(message: '桌面快捷方式已创建');
+                  } else {
+                    KazumiDialog.showToast(message: '桌面快捷方式创建失败');
+                  }
+                },
+                child: const Text('创建'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _pluginInit() async {

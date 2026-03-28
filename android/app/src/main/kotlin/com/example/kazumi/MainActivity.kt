@@ -76,7 +76,24 @@ class MainActivity: AudioServiceActivity() {
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)
-            } else if (call.method == "isPictureInPictureSupported") {
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "getAvailableStorage") {
+                val path = call.argument<String>("path") ?: filesDir.absolutePath
+                val availableBytes = getAvailableStorage(path)
+                result.success(availableBytes)
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL)
+        pipChannel?.setMethodCallHandler { call, result ->
+            if (call.method == "isPictureInPictureSupported") {
                 result.success(isPictureInPictureSupported())
             } else if (call.method == "enterPictureInPictureMode") {
                 val width = call.argument<Int>("width") ?: 16
@@ -98,52 +115,6 @@ class MainActivity: AudioServiceActivity() {
                 result.success(true)
             } else {
                 result.notImplemented()
-            }
-        }
-
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, STORAGE_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "getAvailableStorage") {
-                val path = call.argument<String>("path") ?: filesDir.absolutePath
-                val availableBytes = getAvailableStorage(path)
-                result.success(availableBytes)
-            } else {
-                result.notImplemented()
-            }
-        }
-
-        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL)
-        pipChannel?.setMethodCallHandler { call, result ->
-            when (call.method) {
-                "enterPictureInPicture" -> {
-                    val width = call.argument<Int>("width") ?: 16
-                    val height = call.argument<Int>("height") ?: 9
-                    result.success(enterPictureInPicture(width, height))
-                }
-
-                "updateActions" -> {
-                    val playing = call.argument<Boolean>("playing") ?: false
-                    val danmakuEnabled = call.argument<Boolean>("danmakuEnabled") ?: false
-                    updatePictureInPictureActions(playing, danmakuEnabled)
-                    result.success(true)
-                }
-
-                "setAutoEnter" -> {
-                    autoEnterPipOnHomeGesture = call.argument<Boolean>("enabled") ?: false
-                    refreshPictureInPictureParamsIfNeeded()
-                    result.success(true)
-                }
-
-                "setInPlayerPage" -> {
-                    pipInPlayerPage = call.argument<Boolean>("inPlayerPage") ?: false
-                    refreshPictureInPictureParamsIfNeeded()
-                    result.success(true)
-                }
-
-                "isSupported" -> {
-                    result.success(isPictureInPictureSupported())
-                }
-
-                else -> result.notImplemented()
             }
         }
     }

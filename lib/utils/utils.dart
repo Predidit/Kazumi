@@ -805,12 +805,12 @@ class Utils {
   static void initPipHandler({
     required Future<void> Function(String action) onAction,
   }) {
-    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/intent');
+    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/pip');
     if (androidPIPInited) return;
     androidPIPInited = true;
 
     intentChannel.setMethodCallHandler((call) async {
-      if (!Platform.isAndroid || call.method != 'onPipAction') {
+      if (!Platform.isAndroid || call.method != 'onAction') {
         return;
       }
 
@@ -825,7 +825,7 @@ class Utils {
   }
 
   static void disposePipHandler() {
-    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/intent');
+    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/pip');
     intentChannel.setMethodCallHandler(null);
     androidPIPInited = false;
   }

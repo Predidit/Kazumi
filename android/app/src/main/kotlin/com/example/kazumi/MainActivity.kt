@@ -22,7 +22,9 @@ import com.ryanheise.audioservice.AudioServiceActivity
 class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
+    private val PIP_CHANNEL = "com.predidit.kazumi/pip"
     private var intentChannel: MethodChannel? = null
+    private var pipChannel: MethodChannel? = null
 
     private var pipIsPlaying = false
     private var pipDanmakuEnabled = false
@@ -106,6 +108,42 @@ class MainActivity: AudioServiceActivity() {
                 result.success(availableBytes)
             } else {
                 result.notImplemented()
+            }
+        }
+
+        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL)
+        pipChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "enterPictureInPicture" -> {
+                    val width = call.argument<Int>("width") ?: 16
+                    val height = call.argument<Int>("height") ?: 9
+                    result.success(enterPictureInPicture(width, height))
+                }
+
+                "updateActions" -> {
+                    val playing = call.argument<Boolean>("playing") ?: false
+                    val danmakuEnabled = call.argument<Boolean>("danmakuEnabled") ?: false
+                    updatePictureInPictureActions(playing, danmakuEnabled)
+                    result.success(true)
+                }
+
+                "setAutoEnter" -> {
+                    autoEnterPipOnHomeGesture = call.argument<Boolean>("enabled") ?: false
+                    refreshPictureInPictureParamsIfNeeded()
+                    result.success(true)
+                }
+
+                "setInPlayerPage" -> {
+                    pipInPlayerPage = call.argument<Boolean>("inPlayerPage") ?: false
+                    refreshPictureInPictureParamsIfNeeded()
+                    result.success(true)
+                }
+
+                "isSupported" -> {
+                    result.success(isPictureInPictureSupported())
+                }
+
+                else -> result.notImplemented()
             }
         }
     }
@@ -248,7 +286,7 @@ class MainActivity: AudioServiceActivity() {
     }
 
     private fun notifyFlutterPipAction(action: String) {
-        intentChannel?.invokeMethod("onPipAction", mapOf("action" to action))
+        pipChannel?.invokeMethod("onAction", mapOf("action" to action))
     }
 
     private fun registerPipActionReceiverIfNeeded() {

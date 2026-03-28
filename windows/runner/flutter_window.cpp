@@ -158,38 +158,21 @@ void FlutterWindow::RegisterStorageChannel() {
 
 // Shortcut MethodChannel setup
 void FlutterWindow::RegisterShortcutChannel() {
-  auto shortcut_channel =
-      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          flutter_controller_->engine()->messenger(), "com.predidit.kazumi/shortcut",
-          &flutter::StandardMethodCodec::GetInstance());
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "com.predidit.kazumi/shortcut",
+      &flutter::StandardMethodCodec::GetInstance());
 
-  shortcut_channel->SetMethodCallHandler([](const auto& call, auto result) {
-    if (call.method_name().compare("createDesktopShortcut") == 0) {
-      std::wstring shortcut_name = L"Kazumi";
-      std::wstring description = L"Kazumi - Anime Player";
-
-      const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
-      if (arguments) {
-        auto name_it = arguments->find(flutter::EncodableValue("shortcutName"));
-        if (name_it != arguments->end()) {
-          const std::string& name_str = std::get<std::string>(name_it->second);
-          shortcut_name = std::wstring(name_str.begin(), name_str.end());
-        }
-        auto desc_it = arguments->find(flutter::EncodableValue("description"));
-        if (desc_it != arguments->end()) {
-          const std::string& desc_str = std::get<std::string>(desc_it->second);
-          description = std::wstring(desc_str.begin(), desc_str.end());
-        }
-      }
-
-      bool success = ShortcutUtils::CreateDesktopShortcut(shortcut_name, description);
-      if (success) {
-        result->Success(flutter::EncodableValue(true));
-      } else {
-        result->Error("Failed", "Failed to create desktop shortcut");
-      }
-    } else {
+  channel->SetMethodCallHandler([](const auto& call, auto result) {
+    if (call.method_name() != "createDesktopShortcut") {
       result->NotImplemented();
+      return;
+    }
+
+    bool success = ShortcutUtils::CreateDesktopShortcut(L"Kazumi", L"Kazumi - Anime Player");
+    if (success) {
+      result->Success(flutter::EncodableValue(true));
+    } else {
+      result->Error("Failed", "Failed to create desktop shortcut");
     }
   });
 }

@@ -7,14 +7,12 @@ class PlayerControlPanel extends StatelessWidget {
     required this.panelWidth,
     required this.child,
     this.onClose,
-    this.duration = const Duration(milliseconds: 120),
   });
 
   final bool visible;
   final double panelWidth;
   final Widget child;
   final VoidCallback? onClose;
-  final Duration duration;
   static const double _innerEdgeFadeWidth = 40.0;
   static const Color _panelBackgroundColor = Color(0xB3000000);
   static const LinearGradient _leftEdgeFadeGradient = LinearGradient(
@@ -40,7 +38,7 @@ class PlayerControlPanel extends StatelessWidget {
         ignoring: !visible,
         child: AnimatedOpacity(
           opacity: visible ? 1 : 0,
-          duration: duration,
+          duration: const Duration(milliseconds: 360),
           curve: Curves.easeIn,
           child: Row(
             children: [
@@ -85,7 +83,7 @@ class PlayerControlPanel extends StatelessWidget {
       width: totalPanelWidth,
       child: AnimatedSlide(
         offset: visible ? Offset.zero : hiddenOffset,
-        duration: duration,
+        duration: const Duration(milliseconds: 360),
         curve: Curves.easeOut,
         child: Stack(
           fit: StackFit.expand,
@@ -116,14 +114,9 @@ class PlayerControlPanel extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: SizedBox(
                 width: panelWidth,
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeLeft: true,
-                  removeRight: true,
-                  child: Theme(
-                    data: panelTheme,
-                    child: child,
-                  ),
+                child: Theme(
+                  data: panelTheme,
+                  child: child,
                 ),
               ),
             ),

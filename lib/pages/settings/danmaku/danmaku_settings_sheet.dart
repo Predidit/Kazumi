@@ -2,11 +2,9 @@ import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
-import 'package:card_settings_ui/card_settings_ui.dart';
 
 enum _DanmakuLaneType { top, bottom, scroll }
 
@@ -106,6 +104,8 @@ class DanmakuSettingsSheet extends StatefulWidget {
     required this.danmakuController,
     this.onUpdateDanmakuSpeed,
     this.onRebuildDanmakuList,
+    this.onShowDanmakuSearchPanel,
+    this.onShowDanmakuShieldPanel,
     this.onShowDanmakuSwitch,
     this.isSidebar = false,
   });
@@ -113,6 +113,8 @@ class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
   final VoidCallback? onUpdateDanmakuSpeed;
   final VoidCallback? onRebuildDanmakuList;
+  final VoidCallback? onShowDanmakuSearchPanel;
+  final VoidCallback? onShowDanmakuShieldPanel;
   final VoidCallback? onShowDanmakuSwitch;
   final bool isSidebar;
 
@@ -166,6 +168,11 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
   }
 
   void showDanmakuShieldSheet() {
+    if (widget.isSidebar && widget.onShowDanmakuShieldPanel != null) {
+      widget.onShowDanmakuShieldPanel!.call();
+      return;
+    }
+
     showModalBottomSheet(
       isScrollControlled: true,
       constraints: BoxConstraints(
@@ -198,14 +205,14 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: widget.isSidebar ? Colors.white : null),
+            Icon(icon, size: 22, color: Theme.of(context).colorScheme.onSurface),
             const SizedBox(height: 6),
             Text(
               label,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: widget.isSidebar ? Colors.white : null),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
           ],
         ),
@@ -261,8 +268,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8);
     const Color unselectedBg = Colors.transparent;
     final Color selectedFg = theme.colorScheme.primary;
-    final Color unselectedFg =
-        widget.isSidebar ? Colors.white70 : theme.colorScheme.onSurfaceVariant;
+    final Color unselectedFg = theme.colorScheme.onSurfaceVariant;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -333,8 +339,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         : theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8);
     const Color unselectedBg = Colors.transparent;
     final Color selectedFg = theme.colorScheme.primary;
-    final Color unselectedFg =
-        widget.isSidebar ? Colors.white70 : theme.colorScheme.onSurfaceVariant;
+    final Color unselectedFg = theme.colorScheme.onSurfaceVariant;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -392,7 +397,9 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         : theme;
 
     return SafeArea(
+      top: false,
       bottom: false,
+      left: false,
       child: Theme(
         data: panelTheme,
         child: SettingsList(
@@ -492,6 +499,13 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                                           icon: Icons.search_rounded,
                                           label: '弹幕检索',
                                           onPressed: () {
+                                            if (widget.isSidebar &&
+                                                widget.onShowDanmakuSearchPanel !=
+                                                    null) {
+                                              widget.onShowDanmakuSearchPanel!
+                                                  .call();
+                                              return;
+                                            }
                                             widget.onShowDanmakuSwitch?.call();
                                           },
                                         ),
@@ -743,7 +757,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                     '弹幕速度随视频倍速变化',
                     style: TextStyle(
                       fontFamily: fontFamily,
-                      color: widget.isSidebar ? Colors.white70 : null,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed,

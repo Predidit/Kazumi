@@ -2,9 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_control_panel.dart';
+import 'package:kazumi/pages/player/player_danmaku_search_panel.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
-import 'package:kazumi/pages/player/player_settings_tabbed_sheet.dart';
+import 'package:kazumi/pages/player/player_more_settings_sheet.dart';
+import 'package:kazumi/pages/player/player_timed_shutdown_custom_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/remote.dart';
@@ -130,8 +134,6 @@ class _PlayerItemState extends State<PlayerItem>
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
-  static const Duration _playerControlPanelAnimationDuration =
-      Duration(milliseconds: 120);
 
   late mobx.ReactionDisposer _fullscreenListener;
 
@@ -821,7 +823,7 @@ class _PlayerItemState extends State<PlayerItem>
         _showPlayerControlPanel = false;
       });
       _playerControlPanelCloseTimer =
-          Timer(_playerControlPanelAnimationDuration, () {
+          Timer(Duration(milliseconds: 360), () {
         if (!mounted || _showPlayerControlPanel) {
           return;
         }
@@ -840,7 +842,16 @@ class _PlayerItemState extends State<PlayerItem>
   }) {
     hideVideoController();
     _playerControlPanelCloseTimer?.cancel();
+    final bool isSwitchingSidebarPanel =
+        _showPlayerControlPanel && _playerControlPanelBody != null;
     if (widget.disableAnimations) {
+      setState(() {
+        _showPlayerControlPanel = true;
+        _playerControlPanelBody = child;
+      });
+    } else if (isSwitchingSidebarPanel) {
+      // Keep panel visible and replace body directly to avoid close/open animation
+      // when switching between sidebar panels.
       setState(() {
         _showPlayerControlPanel = true;
         _playerControlPanelBody = child;
@@ -869,23 +880,10 @@ class _PlayerItemState extends State<PlayerItem>
         MediaQuery.orientationOf(context) == Orientation.landscape;
     if (isLandscape) {
       showPlayerControlPanel(
-        child: PlayerSettingsTabbedSheet(
-          playerController: playerController,
+        child: _buildPlayerSettingsTabbedSheet(
           isSidebar: true,
           initialTabIndex: initialTabIndex,
-          showPictureInPictureAction:
-              Utils.isDesktop() && !videoPageController.isFullscreen,
-          onSuperResolutionChange: handleSuperResolutionChange,
-          onTimedShutdownExpired: widget.pauseForTimedShutdown,
-          onShowDanmakuSwitch: showDanmakuSwitch,
-          onTogglePictureInPicture: togglePictureInPicture,
-          onShowVideoInfo: showVideoInfo,
-          onRemoteCast: castToRemoteScreen,
-          onExternalPlay: openExternalPlayer,
-          onShowSyncPlayRoomCreateDialog: showSyncPlayRoomCreateDialog,
-          onShowSyncPlayEndPointSwitchDialog: showSyncPlayEndPointSwitchDialog,
-          onPlaybackSpeedChange: setPlaybackSpeed,
-          onRequestCloseSidebar: closePlayerControlPanel,
+          onShowVideoInfo: showVideoInfoInSidebar,
         ),
       );
       return;
@@ -900,30 +898,123 @@ class _PlayerItemState extends State<PlayerItem>
       clipBehavior: Clip.antiAlias,
       context: context,
       builder: (context) {
-        return PlayerSettingsTabbedSheet(
-          playerController: playerController,
+        return _buildPlayerSettingsTabbedSheet(
           isSidebar: false,
           initialTabIndex: initialTabIndex,
-          showPictureInPictureAction:
-              Utils.isDesktop() && !videoPageController.isFullscreen,
-          onSuperResolutionChange: handleSuperResolutionChange,
-          onTimedShutdownExpired: widget.pauseForTimedShutdown,
-          onShowDanmakuSwitch: showDanmakuSwitch,
-          onTogglePictureInPicture: togglePictureInPicture,
           onShowVideoInfo: showVideoInfo,
-          onRemoteCast: castToRemoteScreen,
-          onExternalPlay: openExternalPlayer,
-          onShowSyncPlayRoomCreateDialog: showSyncPlayRoomCreateDialog,
-          onShowSyncPlayEndPointSwitchDialog: showSyncPlayEndPointSwitchDialog,
-          onPlaybackSpeedChange: setPlaybackSpeed,
-          onRequestCloseSidebar: closePlayerControlPanel,
         );
       },
     );
   }
 
+  Widget _buildPlayerSettingsTabbedSheet({
+    required bool isSidebar,
+    required int initialTabIndex,
+    required VoidCallback onShowVideoInfo,
+  }) {
+    final theme = Theme.of(context);
+    final int safeInitialTabIndex = initialTabIndex.clamp(0, 1);
+
+    final tabBar = Material(
+      color: isSidebar
+          ? Colors.transparent
+          : theme.colorScheme.surfaceContainerLowest,
+      child: TabBar(
+        dividerColor: Colors.transparent,
+        tabs: [
+          Tab(text: '弹幕设置', height: isSidebar ? 24 : null),
+          Tab(text: '播放器设置', height: isSidebar ? 24 : null),
+        ],
+      ),
+    );
+
+    final divider = Divider(
+      height: 1,
+      thickness: 1,
+      color: theme.dividerColor.withValues(alpha: 0.35),
+    );
+
+    final tabView = Expanded(
+      child: TabBarView(
+        children: [
+          DanmakuSettingsSheet(
+            danmakuController: playerController.danmakuController,
+            onUpdateDanmakuSpeed: playerController.updateDanmakuSpeed,
+            onRebuildDanmakuList:
+                playerController.rebuildDanmakuMapFromSettings,
+            onShowDanmakuSearchPanel: showDanmakuSearchPanel,
+            onShowDanmakuShieldPanel: showDanmakuShieldPanel,
+            onShowDanmakuSwitch: showDanmakuSwitch,
+            isSidebar: isSidebar,
+          ),
+          PlayerMoreSettingsSheet(
+            playerController: playerController,
+            isSidebar: isSidebar,
+            showPictureInPictureAction:
+                (Utils.isDesktop() && !videoPageController.isFullscreen) ||
+                Platform.isAndroid,
+            onSuperResolutionChange: handleSuperResolutionChange,
+            onTimedShutdownExpired: widget.pauseForTimedShutdown,
+            onShowDanmakuSwitch: showDanmakuSwitch,
+            onShowVideoInfo: onShowVideoInfo,
+            onRemoteCast: castToRemoteScreen,
+            onExternalPlay: openExternalPlayer,
+            onShowSyncPlayRoomCreateDialog: showSyncPlayRoomCreateDialog,
+            onShowSyncPlayEndPointSwitchDialog:
+                showSyncPlayEndPointSwitchDialog,
+            onCreateSyncPlayRoom: (room, username) {
+              return playerController.createSyncPlayRoom(
+                room,
+                username,
+                widget.changeEpisode,
+              );
+            },
+            onShowTimedShutdownCustomPanel: showTimedShutdownCustomPanel,
+            onPlaybackSpeedChange: setPlaybackSpeed,
+            onRequestCloseSidebar: closePlayerControlPanel,
+          ),
+        ],
+      ),
+    );
+
+    return DefaultTabController(
+      length: 2,
+      initialIndex: safeInitialTabIndex,
+      child: Column(
+        children: isSidebar
+            ? [tabView, divider, tabBar]
+            : [tabBar, divider, tabView],
+      ),
+    );
+  }
+
   void showDanmakuSettingsPanel() {
     _showPlayerSettingsPanel(initialTabIndex: 0);
+  }
+
+  void showDanmakuShieldPanel() {
+    showPlayerControlPanel(
+      child: const DanmakuShieldSettings(isSidebar: true),
+    );
+  }
+
+  void showDanmakuSearchPanel() {
+    showPlayerControlPanel(
+      child: PlayerDanmakuSearchPanel(
+        playerController: playerController,
+        initialKeyword: videoPageController.title,
+        onClosePanel: closePlayerControlPanel,
+      ),
+    );
+  }
+
+  void showTimedShutdownCustomPanel() {
+    showPlayerControlPanel(
+      child: PlayerTimedShutdownCustomPanel(
+        onTimedShutdownExpired: widget.pauseForTimedShutdown,
+        onClosePanel: closePlayerControlPanel,
+      ),
+    );
   }
 
   void castToRemoteScreen() {
@@ -943,15 +1034,6 @@ class _PlayerItemState extends State<PlayerItem>
 
   void openExternalPlayer() {
     playerController.lanunchExternalPlayer();
-  }
-
-  void togglePictureInPicture() {
-    if (videoPageController.isPip) {
-      Utils.exitDesktopPIPWindow();
-    } else {
-      Utils.enterDesktopPIPWindow();
-    }
-    videoPageController.isPip = !videoPageController.isPip;
   }
 
   void showMorePanel() {
@@ -1335,7 +1417,7 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  Widget get videoDebugLogBody {
+  Widget videoDebugLogBody({bool isSidebar = false}) {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 0),
@@ -1343,7 +1425,10 @@ class _PlayerItemState extends State<PlayerItem>
           return ListView.builder(
             itemCount: playerController.playerLog.length,
             itemBuilder: (context, index) {
-              return Text(playerController.playerLog[index]);
+              return Text(
+                playerController.playerLog[index],
+                style: isSidebar ? const TextStyle(color: Colors.white) : null,
+              );
             },
           );
         }),
@@ -1358,46 +1443,54 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
-  void showVideoInfo() async {
-    showModalBottomSheet(
-        isScrollControlled: true,
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-            maxWidth: (Utils.isDesktop() || Utils.isTablet())
-                ? MediaQuery.of(context).size.width * 9 / 16
-                : MediaQuery.of(context).size.width),
-        clipBehavior: Clip.antiAlias,
-        context: context,
-        builder: (context) {
-          return DefaultTabController(
-            length: 2,
-            child: Scaffold(
-              body: Column(
+  Widget _buildVideoInfoPanel({bool isSidebar = false}) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: Column(
+          children: [
+            const PreferredSize(
+              preferredSize: Size.fromHeight(kToolbarHeight),
+              child: Material(
+                child: TabBar(
+                  tabs: [
+                    Tab(text: 'Info'),
+                    Tab(text: 'Log'),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
                 children: [
-                  const PreferredSize(
-                    preferredSize: Size.fromHeight(kToolbarHeight),
-                    child: Material(
-                      child: TabBar(
-                        tabs: [
-                          Tab(text: '状态'),
-                          Tab(text: '日志'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        videoInfoBody,
-                        videoDebugLogBody,
-                      ],
-                    ),
-                  ),
+                  videoInfoBody,
+                  videoDebugLogBody(isSidebar: isSidebar),
                 ],
               ),
             ),
-          );
-        });
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showVideoInfo() {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+        maxWidth: (Utils.isDesktop() || Utils.isTablet())
+            ? MediaQuery.of(context).size.width * 9 / 16
+            : MediaQuery.of(context).size.width,
+      ),
+      clipBehavior: Clip.antiAlias,
+      context: context,
+      builder: (context) => _buildVideoInfoPanel(),
+    );
+  }
+
+  void showVideoInfoInSidebar() {
+    showPlayerControlPanel(child: _buildVideoInfoPanel(isSidebar: true));
   }
 
   void showSyncPlayEndPointSwitchDialog() {
@@ -2085,7 +2178,7 @@ class _PlayerItemState extends State<PlayerItem>
                     if (_playerControlPanelBody != null)
                       PlayerControlPanel(
                         visible: _showPlayerControlPanel,
-                        panelWidth: 360.0,
+                        panelWidth: 360.0 + MediaQuery.paddingOf(context).right,
                         onClose: closePlayerControlPanel,
                         child: _playerControlPanelBody!,
                       ),

@@ -6,7 +6,6 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/windows_shortcut.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/utils/proxy_manager.dart';
@@ -67,16 +66,6 @@ void main() async {
   }
   bool showWindowButton = await GStorage.setting
       .get(SettingBoxKey.showWindowButton, defaultValue: false);
-
-  // Create desktop shortcut on Windows (only once)
-  if (Platform.isWindows) {
-    final shortcutCreated = GStorage.setting
-        .get(SettingBoxKey.desktopShortcutCreated, defaultValue: false);
-    if (!shortcutCreated) {
-      await WindowsShortcut.createDesktopShortcut();
-      await GStorage.setting.put(SettingBoxKey.desktopShortcutCreated, true);
-    }
-  }
 
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();

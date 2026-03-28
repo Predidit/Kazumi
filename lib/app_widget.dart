@@ -14,7 +14,6 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/windows_shortcut.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -287,14 +286,6 @@ class _AppWidgetState extends State<AppWidget>
       },
     );
     Modular.setObservers([KazumiDialog.observer]);
-
-    // Show toast if desktop shortcut was just created
-    if (Platform.isWindows && WindowsShortcut.justCreated) {
-      WindowsShortcut.justCreated = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        KazumiDialog.showToast(message: '桌面快捷方式已创建');
-      });
-    }
 
     // 强制设置高帧率
     if (Platform.isAndroid) {

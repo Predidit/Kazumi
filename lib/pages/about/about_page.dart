@@ -11,6 +11,7 @@ import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/windows_shortcut.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -245,6 +246,22 @@ class _AboutPageState extends State<AboutPage> {
                       ],
                     ),
                   ),
+                  if (Platform.isWindows)
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        final success =
+                            await WindowsShortcut.createDesktopShortcut();
+                        if (success) {
+                          KazumiDialog.showToast(message: '桌面快捷方式已创建');
+                        } else {
+                          KazumiDialog.showToast(message: '桌面快捷方式创建失败');
+                        }
+                      },
+                      title: Text('创建桌面快捷方式',
+                          style: TextStyle(fontFamily: fontFamily)),
+                      description: Text('在桌面创建 Kazumi 快捷方式',
+                          style: TextStyle(fontFamily: fontFamily)),
+                    ),
                 ],
               ),
             SettingsSection(

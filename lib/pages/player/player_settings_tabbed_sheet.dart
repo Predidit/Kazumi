@@ -96,6 +96,8 @@ class _PlayerSettingsTabbedSheetState extends State<PlayerSettingsTabbedSheet>
             child: DanmakuSettingsSheet(
               danmakuController: widget.playerController.danmakuController,
               onUpdateDanmakuSpeed: widget.playerController.updateDanmakuSpeed,
+              onRebuildDanmakuList:
+                  widget.playerController.rebuildDanmakuMapFromSettings,
               onShowDanmakuSwitch: widget.onShowDanmakuSwitch,
               isSidebar: widget.isSidebar,
             ),

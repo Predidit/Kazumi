@@ -7,7 +7,7 @@ class PlayerControlPanel extends StatelessWidget {
     required this.panelWidth,
     required this.child,
     this.onClose,
-    this.duration = const Duration(milliseconds: 200),
+    this.duration = const Duration(milliseconds: 120),
   });
 
   final bool visible;
@@ -15,7 +15,21 @@ class PlayerControlPanel extends StatelessWidget {
   final Widget child;
   final VoidCallback? onClose;
   final Duration duration;
-  static const Color _panelBackgroundColor = Color(0xCC000000);
+  static const double _innerEdgeFadeWidth = 40.0;
+  static const Color _panelBackgroundColor = Color(0xB3000000);
+  static const LinearGradient _leftEdgeFadeGradient = LinearGradient(
+    begin: Alignment.centerRight,
+    end: Alignment.centerLeft,
+    colors: [
+      Color(0xB3000000),
+      Color(0x5B000000),
+      Color(0x27000000),
+      Color(0x0B000000),
+      Color(0x02000000),
+      Color(0x00000000),
+    ],
+    stops: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +41,7 @@ class PlayerControlPanel extends StatelessWidget {
         child: AnimatedOpacity(
           opacity: visible ? 1 : 0,
           duration: duration,
+          curve: Curves.easeIn,
           child: Row(
             children: [
               _buildDismissArea(),
@@ -43,6 +58,7 @@ class PlayerControlPanel extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onClose,
+        onSecondaryTap: onClose,
         child: const SizedBox.expand(),
       ),
     );
@@ -63,24 +79,52 @@ class PlayerControlPanel extends StatelessWidget {
       canvasColor: Colors.transparent,
     );
 
+    final double totalPanelWidth = panelWidth + _innerEdgeFadeWidth;
+
     return SizedBox(
-      width: panelWidth,
+      width: totalPanelWidth,
       child: AnimatedSlide(
         offset: visible ? Offset.zero : hiddenOffset,
         duration: duration,
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeOut,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Container(color: _panelBackgroundColor),
-
-            MediaQuery.removePadding(
-              context: context,
-              removeLeft: true,
-              removeRight: true,
-              child: Theme(
-                data: panelTheme,
-                child: child,
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: panelWidth,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: _panelBackgroundColor,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: _innerEdgeFadeWidth,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: _leftEdgeFadeGradient,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: panelWidth,
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeLeft: true,
+                  removeRight: true,
+                  child: Theme(
+                    data: panelTheme,
+                    child: child,
+                  ),
+                ),
               ),
             ),
           ],

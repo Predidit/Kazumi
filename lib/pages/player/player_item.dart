@@ -101,10 +101,6 @@ class _PlayerItemState extends State<PlayerItem>
   late bool _hideBottom;
   late bool _hideScroll;
   late bool _massiveMode;
-  late bool _danmakuColor;
-  late bool _danmakuBiliBiliSource;
-  late bool _danmakuGamerSource;
-  late bool _danmakuDanDanSource;
   late double _danmakuDuration;
   late double _danmakuLineHeight;
   late int _danmakuFontWeight;
@@ -120,6 +116,7 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
+  Timer? _playerControlPanelCloseTimer;
 
   double lastVolume = 0;
 
@@ -133,6 +130,8 @@ class _PlayerItemState extends State<PlayerItem>
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
+  static const Duration _playerControlPanelAnimationDuration =
+      Duration(milliseconds: 120);
 
   late mobx.ReactionDisposer _fullscreenListener;
 
@@ -486,8 +485,7 @@ class _PlayerItemState extends State<PlayerItem>
       );
       _syncAudioServiceState();
     } catch (e) {
-      KazumiLogger()
-          .w('AudioController: failed to bind callbacks', error: e);
+      KazumiLogger().w('AudioController: failed to bind callbacks', error: e);
     }
   }
 
@@ -809,13 +807,29 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void closePlayerControlPanel() {
-    if (!_showPlayerControlPanel) {
+    if (!_showPlayerControlPanel && _playerControlPanelBody == null) {
       return;
     }
-    setState(() {
-      _showPlayerControlPanel = false;
-      _playerControlPanelBody = null;
-    });
+    _playerControlPanelCloseTimer?.cancel();
+    if (widget.disableAnimations) {
+      setState(() {
+        _showPlayerControlPanel = false;
+        _playerControlPanelBody = null;
+      });
+    } else {
+      setState(() {
+        _showPlayerControlPanel = false;
+      });
+      _playerControlPanelCloseTimer =
+          Timer(_playerControlPanelAnimationDuration, () {
+        if (!mounted || _showPlayerControlPanel) {
+          return;
+        }
+        setState(() {
+          _playerControlPanelBody = null;
+        });
+      });
+    }
     playerController.canHidePlayerPanel = true;
     startHideTimer();
     widget.keyboardFocus.requestFocus();
@@ -825,10 +839,26 @@ class _PlayerItemState extends State<PlayerItem>
     required Widget child,
   }) {
     hideVideoController();
-    setState(() {
-      _showPlayerControlPanel = true;
-      _playerControlPanelBody = child;
-    });
+    _playerControlPanelCloseTimer?.cancel();
+    if (widget.disableAnimations) {
+      setState(() {
+        _showPlayerControlPanel = true;
+        _playerControlPanelBody = child;
+      });
+    } else {
+      setState(() {
+        _showPlayerControlPanel = false;
+        _playerControlPanelBody = child;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _playerControlPanelBody == null) {
+          return;
+        }
+        setState(() {
+          _showPlayerControlPanel = true;
+        });
+      });
+    }
     playerController.canHidePlayerPanel = false;
   }
 
@@ -963,23 +993,31 @@ class _PlayerItemState extends State<PlayerItem>
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
           playerController.danmakuOn == true) {
+        final bool danmakuColor =
+            setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
+        final bool danmakuBiliBiliSource = setting
+            .get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
+        final bool danmakuGamerSource =
+            setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
+        final bool danmakuDanDanSource =
+            setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
+
         playerController.danDanmakus[playerController.currentPosition.inSeconds]
             ?.asMap()
             .forEach((idx, danmaku) async {
-          if (!_danmakuColor) {
-            danmaku.color = Colors.white;
-          }
-          if (!_danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
+          if (!danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
             return;
           }
-          if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
+          if (!danmakuGamerSource && danmaku.source.contains('Gamer')) {
             return;
           }
-          if (!_danmakuDanDanSource &&
+          if (!danmakuDanDanSource &&
               !(danmaku.source.contains('BiliBili') ||
                   danmaku.source.contains('Gamer'))) {
             return;
           }
+          final Color currentDanmakuColor =
+              danmakuColor ? danmaku.color : Colors.white;
           await Future.delayed(
               Duration(
                   milliseconds: idx *
@@ -995,7 +1033,7 @@ class _PlayerItemState extends State<PlayerItem>
                       !myController.isDanmakuBlocked(danmaku.message)
                   ? playerController.danmakuController.addDanmaku(
                       DanmakuContentItem(danmaku.message,
-                          color: danmaku.color,
+                          color: currentDanmakuColor,
                           type: danmaku.type == 4
                               ? DanmakuItemType.bottom
                               : (danmaku.type == 5
@@ -1657,19 +1695,15 @@ class _PlayerItemState extends State<PlayerItem>
     _hideScroll = !setting.get(SettingBoxKey.danmakuScroll, defaultValue: true);
     _massiveMode =
         setting.get(SettingBoxKey.danmakuMassive, defaultValue: false);
-    _danmakuColor = setting.get(SettingBoxKey.danmakuColor, defaultValue: true);
     _danmakuDuration =
         setting.get(SettingBoxKey.danmakuDuration, defaultValue: 8.0);
     _danmakuLineHeight =
         setting.get(SettingBoxKey.danmakuLineHeight, defaultValue: 1.6);
-    _danmakuBiliBiliSource =
-        setting.get(SettingBoxKey.danmakuBiliBiliSource, defaultValue: true);
-    _danmakuGamerSource =
-        setting.get(SettingBoxKey.danmakuGamerSource, defaultValue: true);
-    _danmakuDanDanSource =
-        setting.get(SettingBoxKey.danmakuDanDanSource, defaultValue: true);
-    _danmakuFontWeight =
+    final dynamic rawDanmakuFontWeight =
         setting.get(SettingBoxKey.danmakuFontWeight, defaultValue: 4);
+    final int parsedDanmakuFontWeight =
+        (rawDanmakuFontWeight is num) ? rawDanmakuFontWeight.toInt() : 4;
+    _danmakuFontWeight = parsedDanmakuFontWeight.clamp(0, 8);
     _danmakuUseSystemFont =
         setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
     _danmakuBorderSize =
@@ -1696,6 +1730,7 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer?.cancel();
     mouseScrollerTimer?.cancel();
     hideVolumeUITimer?.cancel();
+    _playerControlPanelCloseTimer?.cancel();
     animationController?.dispose();
     animationController = null;
     _disposePlayerMenu();
@@ -1814,6 +1849,10 @@ class _PlayerItemState extends State<PlayerItem>
                       },
                       onSecondaryTapDown: (_) {
                         if (playerController.lockPanel) {
+                          return;
+                        }
+                        if (_showPlayerControlPanel) {
+                          closePlayerControlPanel();
                           return;
                         }
                         showMorePanel();

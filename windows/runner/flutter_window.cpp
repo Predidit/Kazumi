@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 #include "fullscreen_utils.h"
 #include "external_player_utils.h"
+#include "shortcut_utils.h"
 
 #include <optional>
 #include <flutter/method_channel.h>
@@ -49,6 +50,9 @@ bool FlutterWindow::OnCreate() {
 
   // Register Storage MethodChannel
   RegisterStorageChannel();
+
+  // Register Shortcut MethodChannel
+  RegisterShortcutChannel();
 
   return true;
 }
@@ -148,6 +152,27 @@ void FlutterWindow::RegisterStorageChannel() {
       }
     } else {
       result->NotImplemented();
+    }
+  });
+}
+
+// Shortcut MethodChannel setup
+void FlutterWindow::RegisterShortcutChannel() {
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "com.predidit.kazumi/shortcut",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  channel->SetMethodCallHandler([](const auto& call, auto result) {
+    if (call.method_name() != "createDesktopShortcut") {
+      result->NotImplemented();
+      return;
+    }
+
+    bool success = ShortcutUtils::CreateDesktopShortcut(L"Kazumi", L"Kazumi - Anime Player");
+    if (success) {
+      result->Success(flutter::EncodableValue(true));
+    } else {
+      result->Error("Failed", "Failed to create desktop shortcut");
     }
   });
 }

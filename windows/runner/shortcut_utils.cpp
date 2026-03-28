@@ -8,15 +8,8 @@
 #include <propvarutil.h>
 #include <appmodel.h>
 
-static bool IsMsixPackage() {
-  UINT32 length = 0;
-  LONG result = GetCurrentPackageFamilyName(&length, nullptr);
-  return result == ERROR_INSUFFICIENT_BUFFER || result == ERROR_SUCCESS;
-}
-
+// Get AppUserModelId for MSIX package, returns empty string for portable
 static std::wstring GetAppUserModelId() {
-  if (!IsMsixPackage()) return L"";
-
   UINT32 length = 0;
   LONG result = GetCurrentPackageFamilyName(&length, nullptr);
   if (result != ERROR_INSUFFICIENT_BUFFER) return L"";
@@ -26,7 +19,6 @@ static std::wstring GetAppUserModelId() {
   result = GetCurrentPackageFamilyName(&length, &familyName[0]);
   if (result != ERROR_SUCCESS) return L"";
 
-  // Remove trailing null if present
   if (!familyName.empty() && familyName.back() == L'\0') {
     familyName.pop_back();
   }
@@ -75,7 +67,7 @@ bool ShortcutUtils::CreateDesktopShortcut(const std::wstring& shortcutName, cons
     std::wstring shellPath = L"shell:AppsFolder\\" + aumid;
     pShellLink->SetPath(shellPath.c_str());
 
-    // Set AppUserModelID property
+    // Set AppUserModelID property for proper taskbar grouping
     IPropertyStore* pPropertyStore = nullptr;
     hr = pShellLink->QueryInterface(IID_IPropertyStore, (void**)&pPropertyStore);
     if (SUCCEEDED(hr)) {

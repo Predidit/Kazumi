@@ -216,6 +216,15 @@ class BBCodeBaseListener implements BBCodeListener {
   void exitBgm(BgmContext ctx) {}
 
   @override
+  void enterMusume(MusumeContext ctx) {
+    /// 处理 (musume_07) 类型的表情
+    bbcode.add(BBCodeMusume(id: int.tryParse(ctx.id!.text!) ?? 0));
+  }
+
+  @override
+  void exitMusume(MusumeContext ctx) {}
+
+  @override
   void enterSticker(StickerContext ctx) {
     /// 处理 (=A=) 类型的表情
     /// ctx.start!.type 为 BBCode.tokens 内的 token 值

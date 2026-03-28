@@ -1,14 +1,13 @@
 #include "flutter_window.h"
 #include "fullscreen_utils.h"
 #include "external_player_utils.h"
+#include "shortcut_utils.h"
 
 #include <optional>
 #include <flutter/method_channel.h>
 #include <flutter/standard_method_codec.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <windows.h>
-#include <shobjidl.h>
-#include <shlobj.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -166,7 +165,6 @@ void FlutterWindow::RegisterShortcutChannel() {
 
   shortcut_channel->SetMethodCallHandler([](const auto& call, auto result) {
     if (call.method_name().compare("createDesktopShortcut") == 0) {
-      // Get arguments
       std::wstring shortcut_name = L"Kazumi";
       std::wstring description = L"Kazumi - Anime Player";
 
@@ -184,69 +182,11 @@ void FlutterWindow::RegisterShortcutChannel() {
         }
       }
 
-      // Get desktop path
-      wchar_t desktop_path[MAX_PATH];
-      if (SHGetFolderPathW(NULL, CSIDL_DESKTOP, NULL, 0, desktop_path) != S_OK) {
-        result->Error("Failed", "Failed to get desktop path");
-        return;
-      }
-
-      // Build shortcut full path
-      std::wstring shortcut_path = std::wstring(desktop_path) + L"\\";
-      shortcut_path += shortcut_name;
-      shortcut_path += L".lnk";
-
-      // Check if shortcut already exists
-      if (GetFileAttributesW(shortcut_path.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        result->Success(flutter::EncodableValue(true));
-        return;
-      }
-
-      // Get current executable path
-      wchar_t exe_path[MAX_PATH];
-      GetModuleFileNameW(NULL, exe_path, MAX_PATH);
-
-      // Initialize COM
-      HRESULT hr = CoInitialize(NULL);
-      if (FAILED(hr)) {
-        result->Error("Failed", "Failed to initialize COM");
-        return;
-      }
-
-      // Create IShellLink object
-      IShellLinkW* pShellLink = NULL;
-      hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
-                           IID_IShellLinkW, (void**)&pShellLink);
-      if (FAILED(hr)) {
-        CoUninitialize();
-        result->Error("Failed", "Failed to create IShellLink object");
-        return;
-      }
-
-      // Set shortcut properties
-      pShellLink->SetPath(exe_path);
-      pShellLink->SetDescription(description.c_str());
-
-      // Get IPersistFile interface to save the shortcut
-      IPersistFile* pPersistFile = NULL;
-      hr = pShellLink->QueryInterface(IID_IPersistFile, (void**)&pPersistFile);
-      if (FAILED(hr)) {
-        pShellLink->Release();
-        CoUninitialize();
-        result->Error("Failed", "Failed to get IPersistFile interface");
-        return;
-      }
-
-      // Save the shortcut
-      hr = pPersistFile->Save(shortcut_path.c_str(), TRUE);
-      pPersistFile->Release();
-      pShellLink->Release();
-      CoUninitialize();
-
-      if (SUCCEEDED(hr)) {
+      bool success = ShortcutUtils::CreateDesktopShortcut(shortcut_name, description);
+      if (success) {
         result->Success(flutter::EncodableValue(true));
       } else {
-        result->Error("Failed", "Failed to save shortcut");
+        result->Error("Failed", "Failed to create desktop shortcut");
       }
     } else {
       result->NotImplemented();

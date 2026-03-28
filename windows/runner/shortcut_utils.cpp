@@ -15,12 +15,10 @@ bool ShortcutUtils::CreateDesktopShortcut(const std::wstring& shortcutName, cons
   std::wstring shortcutPath = std::wstring(desktopPath) + L"\\" + shortcutName + L".lnk";
   if (GetFileAttributesW(shortcutPath.c_str()) != INVALID_FILE_ATTRIBUTES) return true;
 
-  HRESULT hr = CoInitialize(nullptr);
-  if (FAILED(hr)) return false;
-
+  // COM is already initialized in main.cpp, do not re-initialize
   IShellLinkW* pShellLink = nullptr;
-  hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (void**)&pShellLink);
-  if (FAILED(hr)) { CoUninitialize(); return false; }
+  HRESULT hr = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (void**)&pShellLink);
+  if (FAILED(hr)) return false;
 
   pShellLink->SetDescription(description.c_str());
 
@@ -65,6 +63,5 @@ bool ShortcutUtils::CreateDesktopShortcut(const std::wstring& shortcutName, cons
   }
 
   pShellLink->Release();
-  CoUninitialize();
   return success;
 }

@@ -554,10 +554,10 @@ class Utils {
     if (!Platform.isAndroid) {
       return false;
     }
-    const platform = MethodChannel('com.predidit.kazumi/intent');
+    const pipChannel = MethodChannel('com.predidit.kazumi/pip');
     try {
       final bool? supported =
-          await platform.invokeMethod('isPictureInPictureSupported');
+          await pipChannel.invokeMethod('isPictureInPictureSupported');
       return supported ?? false;
     } on PlatformException catch (e) {
       KazumiLogger().e("Failed to check Android PIP support: '${e.message}'.");
@@ -570,10 +570,10 @@ class Utils {
     if (!Platform.isAndroid) {
       return false;
     }
-    const platform = MethodChannel('com.predidit.kazumi/intent');
+    const pipChannel = MethodChannel('com.predidit.kazumi/pip');
     try {
       final bool? entered =
-          await platform.invokeMethod('enterPictureInPictureMode', {
+          await pipChannel.invokeMethod('enterPictureInPictureMode', {
         'width': width,
         'height': height,
       });
@@ -591,9 +591,9 @@ class Utils {
     if (!Platform.isAndroid) {
       return;
     }
-    const platform = MethodChannel('com.predidit.kazumi/intent');
+    const pipChannel = MethodChannel('com.predidit.kazumi/pip');
     try {
-      await platform.invokeMethod('updatePictureInPictureActions', {
+      await pipChannel.invokeMethod('updatePictureInPictureActions', {
         'playing': playing,
         'danmakuEnabled': danmakuEnabled,
       });
@@ -606,9 +606,9 @@ class Utils {
     if (!Platform.isAndroid) {
       return;
     }
-    const platform = MethodChannel('com.predidit.kazumi/intent');
+    const pipChannel = MethodChannel('com.predidit.kazumi/pip');
     try {
-      await platform.invokeMethod('setAndroidAutoEnterPIPEnabled', {
+      await pipChannel.invokeMethod('setAndroidAutoEnterPIPEnabled', {
         'enabled': enabled,
       });
     } on PlatformException catch (e) {
@@ -621,9 +621,9 @@ class Utils {
     if (!Platform.isAndroid) {
       return;
     }
-    const platform = MethodChannel('com.predidit.kazumi/intent');
+    const pipChannel = MethodChannel('com.predidit.kazumi/pip');
     try {
-      await platform.invokeMethod('setAndroidPIPInPlayerPage', {
+      await pipChannel.invokeMethod('setAndroidPIPInPlayerPage', {
         'inPlayerPage': inPlayerPage,
       });
     } on PlatformException catch (e) {
@@ -805,11 +805,11 @@ class Utils {
   static void initPipHandler({
     required Future<void> Function(String action) onAction,
   }) {
-    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/pip');
+    const MethodChannel pipChannel = MethodChannel('com.predidit.kazumi/pip');
     if (androidPIPInited) return;
     androidPIPInited = true;
 
-    intentChannel.setMethodCallHandler((call) async {
+    pipChannel.setMethodCallHandler((call) async {
       if (!Platform.isAndroid || call.method != 'onAction') {
         return;
       }
@@ -825,8 +825,8 @@ class Utils {
   }
 
   static void disposePipHandler() {
-    const MethodChannel intentChannel = MethodChannel('com.predidit.kazumi/pip');
-    intentChannel.setMethodCallHandler(null);
+    const MethodChannel pipChannel = MethodChannel('com.predidit.kazumi/pip');
+    pipChannel.setMethodCallHandler(null);
     androidPIPInited = false;
   }
 }

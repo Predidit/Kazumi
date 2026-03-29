@@ -8,15 +8,12 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
-import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:kazumi/utils/timed_shutdown_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 
 class PlayerItemPanel extends StatefulWidget {
@@ -44,6 +41,8 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
     required this.showDanmakuDestinationPickerAndSend,
+    required this.showDanmakuSettingsPanel,
+    required this.showMorePanel,
     required this.pauseForTimedShutdown,
     this.disableAnimations = false,
   });
@@ -70,6 +69,8 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
   final void Function(String) showDanmakuDestinationPickerAndSend;
+  final VoidCallback showDanmakuSettingsPanel;
+  final VoidCallback showMorePanel;
   final VoidCallback pauseForTimedShutdown;
   final bool disableAnimations;
 
@@ -767,35 +768,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     IconButton(
                                       onPressed: () {
                                         widget.keyboardFocus.requestFocus();
-                                        showModalBottomSheet(
-                                            isScrollControlled: true,
-                                            constraints: BoxConstraints(
-                                                maxHeight: MediaQuery.of(context)
-                                                        .size
-                                                        .height *
-                                                    3 /
-                                                    4,
-                                                maxWidth: (Utils.isDesktop() ||
-                                                        Utils.isTablet())
-                                                    ? MediaQuery.of(context)
-                                                            .size
-                                                            .width *
-                                                        9 /
-                                                        16
-                                                    : MediaQuery.of(context)
-                                                        .size
-                                                        .width),
-                                            clipBehavior: Clip.antiAlias,
-                                            context: context,
-                                            builder: (context) {
-                                              return DanmakuSettingsSheet(
-                                                danmakuController:
-                                                    playerController
-                                                        .danmakuController,
-                                                onUpdateDanmakuSpeed:
-                                                    playerController.updateDanmakuSpeed,
-                                              );
-                                            });
+                                        widget.showDanmakuSettingsPanel();
                                       },
                                       color: Colors.white,
                                       icon: cachedDanmakuSettingIcon!,
@@ -823,29 +796,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         if (playerController.danmakuOn) ...[
                           IconButton(
                             onPressed: () {
-                              showModalBottomSheet(
-                                  isScrollControlled: true,
-                                  constraints: BoxConstraints(
-                                      maxHeight:
-                                          MediaQuery.of(context).size.height *
-                                              3 /
-                                              4,
-                                      maxWidth:
-                                          (Utils.isDesktop() || Utils.isTablet())
-                                              ? MediaQuery.of(context).size.width *
-                                                  9 /
-                                                  16
-                                              : MediaQuery.of(context).size.width),
-                                  clipBehavior: Clip.antiAlias,
-                                  context: context,
-                                  builder: (context) {
-                                    return DanmakuSettingsSheet(
-                                      danmakuController:
-                                          playerController.danmakuController,
-                                      onUpdateDanmakuSpeed:
-                                          playerController.updateDanmakuSpeed,
-                                    );
-                                  });
+                              widget.showDanmakuSettingsPanel();
                             },
                             color: Colors.white,
                             icon: cachedDanmakuSettingIcon!,
@@ -1140,250 +1091,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       playerController.canHidePlayerPanel = true;
                     },
                   ),
-                  MenuAnchor(
-                    consumeOutsideTap: true,
-                    onOpen: () {
-                      widget.cancelHideTimer();
-                      playerController.canHidePlayerPanel = false;
-                    },
-                    onClose: () {
-                      widget.cancelHideTimer();
-                      widget.startHideTimer();
-                      playerController.canHidePlayerPanel = true;
-                    },
-                    builder: (BuildContext context, MenuController controller,
-                        Widget? child) {
-                      return IconButton(
-                        onPressed: () {
-                          if (controller.isOpen) {
-                            controller.close();
-                          } else {
-                            controller.open();
-                          }
-                        },
-                        tooltip: '更多选项',
-                        icon: const Icon(
-                          Icons.more_vert,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
-                    menuChildren: [
-                      MenuItemButton(
-                        onPressed: () {
-                          widget.showDanmakuSwitch();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("弹幕切换"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          widget.showVideoInfo();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("视频详情"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          bool needRestart = playerController.playing;
-                          playerController.pause();
-                          RemotePlay()
-                              .castVideo(playerController.videoUrl,
-                                  videoPageController.currentPlugin.referer)
-                              .whenComplete(() {
-                            if (needRestart) {
-                              playerController.play();
-                            }
-                          });
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("远程投屏"),
-                          ),
-                        ),
-                      ),
-                      MenuItemButton(
-                        onPressed: () {
-                          playerController.lanunchExternalPlayer();
-                        },
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("外部播放"),
-                          ),
-                        ),
-                      ),
-                      // 定时关闭
-                      SubmenuButton(
-                        menuChildren: [
-                          MenuItemButton(
-                            onPressed: () {
-                              TimedShutdownService().cancel();
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "不开启",
-                                  style: TextStyle(
-                                    color: !TimedShutdownService().isActive
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          for (final int minutes in [15, 30, 60])
-                            MenuItemButton(
-                              onPressed: () {
-                                TimedShutdownService().start(minutes, onExpired: widget.pauseForTimedShutdown);
-                                KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
-                              },
-                              child: Container(
-                                height: 48,
-                                constraints: BoxConstraints(minWidth: 112),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "$minutes 分钟",
-                                    style: TextStyle(
-                                      color: TimedShutdownService().setMinutes == minutes
-                                          ? Theme.of(context).colorScheme.primary
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          MenuItemButton(
-                            onPressed: () {
-                              TimedShutdownService.showCustomTimerDialog(
-                                onExpired: widget.pauseForTimedShutdown,
-                              );
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("自定义"),
-                              ),
-                            ),
-                          ),
-                        ],
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ValueListenableBuilder<int>(
-                              valueListenable: TimedShutdownService().remainingSecondsNotifier,
-                              builder: (context, remainingSeconds, child) {
-                                return Text(
-                                  remainingSeconds > 0
-                                      ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
-                                      : "定时关闭",
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                      SubmenuButton(
-                        menuChildren: [
-                          MenuItemButton(
-                            child: Container(
-
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                    "当前房间: ${playerController.syncplayRoom == '' ? '未加入' : playerController.syncplayRoom}"),
-                              ),
-                            ),
-                          ),
-                          MenuItemButton(
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                    "网络延时: ${playerController.syncplayClientRtt}ms"),
-                              ),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showSyncPlayRoomCreateDialog();
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("加入房间"),
-                              ),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () {
-                              widget.showSyncPlayEndPointSwitchDialog();
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("切换服务器"),
-                              ),
-                            ),
-                          ),
-                          MenuItemButton(
-                            onPressed: () async {
-                              await playerController.exitSyncPlayRoom();
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("断开连接"),
-                              ),
-                            ),
-                          ),
-                        ],
-                        child: Container(
-                          height: 48,
-                          constraints: BoxConstraints(minWidth: 112),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text("一起看"),
-                          ),
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: widget.showMorePanel,
+                    tooltip: '更多选项',
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: Colors.white,
+                    ),
                   ),
                 ],
               ),

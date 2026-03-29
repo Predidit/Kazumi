@@ -561,15 +561,31 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             ),
             // 跳过
             forwardIcon(),
-            if (Utils.isDesktop())
+            if (Utils.isDesktop() || Utils.isAndroid())
               IconButton(
-                  onPressed: () {
-                    if (videoPageController.isPip) {
-                      Utils.exitDesktopPIPWindow();
-                    } else {
-                      Utils.enterDesktopPIPWindow();
+                  onPressed: () async {
+                    if (Utils.isDesktop()) {
+                      if (videoPageController.isPip) {
+                        await Utils.exitDesktopPIPWindow();
+                      } else {
+                        await Utils.enterDesktopPIPWindow();
+                      }
+                      videoPageController.isPip = !videoPageController.isPip;
+                      return;
                     }
-                    videoPageController.isPip = !videoPageController.isPip;
+                    final bool supported = await Utils.isAndroidPIPSupported();
+                    if (!supported) {
+                      KazumiDialog.showToast(message: '当前设备不支持画中画');
+                      return;
+                    }
+                    await Utils.updateAndroidPIPActions(
+                      playing: playerController.playing,
+                      danmakuEnabled: playerController.danmakuOn,
+                    );
+                    final bool entered = await Utils.enterAndroidPIPWindow();
+                    if (!entered) {
+                      KazumiDialog.showToast(message: '进入画中画失败');
+                    }
                   },
                   tooltip: '画中画',
                   icon: const Icon(Icons.picture_in_picture,

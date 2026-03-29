@@ -320,7 +320,7 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.dismiss();
       return;
     }
-    if (videoPageController.isPip) {
+    if (videoPageController.isPip && Utils.isDesktop()) {
       Utils.exitDesktopPIPWindow();
       videoPageController.isPip = false;
       return;

@@ -18,7 +18,7 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(
+      appBar: AppBar(
         title: const Text("弹幕屏蔽"),
       ),
       body: ListView(

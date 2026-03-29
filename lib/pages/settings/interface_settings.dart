@@ -16,6 +16,7 @@ class InterfaceSettingsPage extends StatefulWidget {
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   Box setting = GStorage.setting;
   late bool showRating;
+  late bool timelineShowList;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -30,6 +31,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   void initState() {
     super.initState();
     showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
+    timelineShowList =
+        setting.get(SettingBoxKey.timelineShowList, defaultValue: false);
     defaultPage = setting.get(SettingBoxKey.defaultStartupPage,
         defaultValue: '/tab/popular/');
   }
@@ -109,6 +112,21 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               description: Text('关闭后将在概览中隐藏评分信息',
                   style: TextStyle(fontFamily: fontFamily)),
               initialValue: showRating,
+            ),
+          ]),
+          SettingsSection(tiles: [
+            SettingsTile.switchTile(
+              onToggle: (value) async {
+                timelineShowList = value ?? !timelineShowList;
+                await setting.put(
+                    SettingBoxKey.timelineShowList, timelineShowList);
+                setState(() {});
+              },
+              title:
+                  Text('时间线展示列表', style: TextStyle(fontFamily: fontFamily)),
+              description: Text('开启后，时间线页面将以列表形式展示，而非周历形式',
+                  style: TextStyle(fontFamily: fontFamily)),
+              initialValue: timelineShowList,
             ),
           ]),
         ],

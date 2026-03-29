@@ -338,6 +338,7 @@ class SettingBoxKey {
       proxyUrl = 'proxyUrl',
       proxyTestUrl = 'proxyTestUrl',
       showRating = 'showRating',
+      timelineShowList = 'timelineShowList',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -77,7 +78,7 @@ class PlayerItemPanel extends StatefulWidget {
   State<PlayerItemPanel> createState() => _PlayerItemPanelState();
 }
 
-class _PlayerItemPanelState extends State<PlayerItemPanel> {
+class _PlayerItemPanelState extends State<PlayerItemPanel> with TickerProviderStateMixin {
   Box setting = GStorage.setting;
   late bool haEnable;
   late Animation<Offset> topOffsetAnimation;
@@ -274,7 +275,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     });
   }
 
-
+  late AnimationController _speedIconController;
 
   @override
   void initState() {
@@ -302,8 +303,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     cacheSvgIcons();
+    _speedIconController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
   }
-  
+
+  @override
+  void dispose() {
+    _speedIconController.dispose();
+    super.dispose();
+  }
+
   void cacheSvgIcons() {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
@@ -340,6 +351,30 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     }
 
     return cachedDanmakuOnIcon!;
+  }
+
+  Widget _buildFlowingArrows() {
+    return AnimatedBuilder(
+      animation: _speedIconController,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Opacity(
+              opacity: (math.sin(_speedIconController.value * 2 * math.pi) + 1) / 2 * 0.7 + 0.3,
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+            ),
+            Transform.translate(
+              offset: const Offset(-10, 0),
+              child: Opacity(
+                opacity: (math.sin((_speedIconController.value - 0.4) * 2 * math.pi) + 1) / 2 * 0.7 + 0.3,
+                child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildDanmakuToggleButton(BuildContext context) {
@@ -512,30 +547,40 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           Positioned(
               top: 25,
               child: playerController.showPlaySpeed
-                  ? Wrap(
-                      alignment: WrapAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8.0), // 圆角
+                  ? Observer(builder: (context) {
+                if (!_speedIconController.isAnimating) {
+                  _speedIconController.repeat();
+                }
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          _buildFlowingArrows(),
+                          Text(
+                            ' ${playerController.playerSpeed}x 倍速',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          child: const Row(
-                            children: <Widget>[
-                              Icon(Icons.fast_forward, color: Colors.white),
-                              Text(
-                                ' 倍速播放',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container()),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              })
+                  : (() {
+                _speedIconController.stop();
+                return Container();
+              })()),
           // 亮度条
           Positioned(
               top: 25,
@@ -551,8 +596,11 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ),
                             child: Row(
                               children: <Widget>[
-                                const Icon(Icons.brightness_7,
-                                    color: Colors.white),
+                                Transform.rotate(
+                                  angle: playerController.brightness * 2 * math.pi,
+                                  child: const Icon(Icons.brightness_7, color: Colors.white),
+                                ),
+                                const SizedBox(width: 4),
                                 Text(
                                   ' ${(playerController.brightness * 100).toInt()} %',
                                   style: const TextStyle(
@@ -579,8 +627,18 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             ),
                             child: Row(
                               children: <Widget>[
-                                const Icon(Icons.volume_down,
-                                    color: Colors.white),
+                                Icon(
+                                  playerController.volume <= 0
+                                      ? Icons.volume_off
+                                      : playerController.volume <= 33
+                                      ? Icons.volume_mute
+                                      : playerController.volume <= 66
+                                      ? Icons.volume_down
+                                      : Icons.volume_up,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
                                 Text(
                                   ' ${playerController.volume.toInt()}%',
                                   style: const TextStyle(

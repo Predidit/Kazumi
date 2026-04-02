@@ -1455,7 +1455,6 @@ class _PlayerItemState extends State<PlayerItem>
         _handleFullscreenChange(context);
       },
     );
-    // workaround for #214
     if (Platform.isAndroid) {
       PipUtils.initPipHandler(
         onAction: (action) async {

@@ -432,10 +432,6 @@ class Utils {
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
-  static bool isAndroid() {
-    return Platform.isAndroid;
-  }
-
   /// 判断设备是否为宽屏
   static bool isWideScreen() {
     final MediaQueryData mediaQuery = MediaQueryData.fromView(

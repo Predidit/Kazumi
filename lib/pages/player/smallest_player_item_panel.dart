@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -561,7 +562,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             ),
             // 跳过
             forwardIcon(),
-            if (Utils.isDesktop() || Utils.isAndroid())
+            if (Utils.isDesktop() || Platform.isAndroid)
               IconButton(
                   onPressed: () async {
                     if (Utils.isDesktop()) {

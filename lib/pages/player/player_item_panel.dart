@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -1111,7 +1112,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                   ),
                   // 跳过
                   forwardIcon(),
-                  if ((Utils.isDesktop() && !videoPageController.isFullscreen) || Utils.isAndroid())
+                  if ((Utils.isDesktop() && !videoPageController.isFullscreen) || Platform.isAndroid)
                     IconButton(
                       onPressed: () async {
                         if (Utils.isDesktop()) {

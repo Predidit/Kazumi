@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:window_manager/window_manager.dart';
 
 class PipUtils {
+  static bool androidPIPInited = false;
+
   static Future<bool> isAndroidPIPSupported() async {
     if (!Platform.isAndroid) {
       return false;
@@ -102,8 +103,6 @@ class PipUtils {
         isLowResolution ? const Size(800, 600) : const Size(1280, 860));
     await windowManager.center();
   }
-
-  static bool androidPIPInited = false;
 
   static void initPipHandler({
     required Future<void> Function(String action) onAction,

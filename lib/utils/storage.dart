@@ -341,5 +341,6 @@ class SettingBoxKey {
       showRating = 'showRating',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
-      downloadDanmaku = 'downloadDanmaku';
+      downloadDanmaku = 'downloadDanmaku',
+      shortcutDialogShown = 'shortcutDialogShown';
 }

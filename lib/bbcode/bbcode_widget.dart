@@ -151,6 +151,19 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                     },
                   ),
                 );
+              } else if (e is BBCodeMusume) {
+                return WidgetSpan(
+                  child: CachedNetworkImage(
+                    imageUrl: 'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
+                    placeholder: (context, url) =>
+                        const SizedBox(width: 1, height: 1),
+                    errorWidget: (context, error, stackTrace) {
+                      return const Text('.');
+                    },
+                    width: 50,
+                    height: 50,
+                  ),
+                );
               } else if (e is BBCodeSticker) {
                 return WidgetSpan(
                   child: CachedNetworkImage(

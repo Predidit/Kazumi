@@ -6,6 +6,7 @@ import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -158,7 +159,7 @@ class _PlayerItemState extends State<PlayerItem>
       defaultValue: false,
     );
     try {
-      await Utils.setAndroidAutoEnterPIPEnabled(autoEnterPIPEnabled);
+      await PipUtils.setAndroidAutoEnterPIPEnabled(autoEnterPIPEnabled);
     } catch (e) {
       KazumiLogger().w(
         'PlayerItem: failed to sync android auto enter pip setting',
@@ -172,7 +173,7 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
     try {
-      await Utils.setAndroidPIPInPlayerPage(inPlayerPage);
+      await PipUtils.setAndroidPIPInPlayerPage(inPlayerPage);
     } catch (e) {
       KazumiLogger().w(
         'PlayerItem: failed to sync android pip player page state',
@@ -195,7 +196,7 @@ class _PlayerItemState extends State<PlayerItem>
 
     _lastPipPlaying = playing;
     _lastPipDanmakuEnabled = danmakuEnabled;
-    await Utils.updateAndroidPIPActions(
+    await PipUtils.updateAndroidPIPActions(
       playing: playing,
       danmakuEnabled: danmakuEnabled,
     );
@@ -1456,7 +1457,7 @@ class _PlayerItemState extends State<PlayerItem>
     );
     // workaround for #214
     if (Platform.isAndroid) {
-      Utils.initPipHandler(
+      PipUtils.initPipHandler(
         onAction: (action) async {
           if (!mounted) return;
 
@@ -1546,7 +1547,7 @@ class _PlayerItemState extends State<PlayerItem>
     _disposePlayerMenu();
     if (Platform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
-      Utils.disposePipHandler();
+      PipUtils.disposePipHandler();
     }
     // Reset player panel state
     playerController.lockPanel = false;

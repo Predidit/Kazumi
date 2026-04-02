@@ -5,6 +5,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -1117,24 +1118,24 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       onPressed: () async {
                         if (Utils.isDesktop()) {
                           if (videoPageController.isPip) {
-                            await Utils.exitDesktopPIPWindow();
+                            await PipUtils.exitDesktopPIPWindow();
                           } else {
-                            await Utils.enterDesktopPIPWindow();
+                            await PipUtils.enterDesktopPIPWindow();
                           }
                           videoPageController.isPip = !videoPageController.isPip;
                           return;
                         }
                         final bool supported =
-                            await Utils.isAndroidPIPSupported();
+                            await PipUtils.isAndroidPIPSupported();
                         if (!supported) {
                           KazumiDialog.showToast(message: '当前设备不支持画中画');
                           return;
                         }
-                        await Utils.updateAndroidPIPActions(
+                        await PipUtils.updateAndroidPIPActions(
                           playing: playerController.playing,
                           danmakuEnabled: playerController.danmakuOn,
                         );
-                        final bool entered = await Utils.enterAndroidPIPWindow();
+                        final bool entered = await PipUtils.enterAndroidPIPWindow();
                         if (!entered) {
                           KazumiDialog.showToast(message: '进入画中画失败');
                         }

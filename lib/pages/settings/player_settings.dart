@@ -8,6 +8,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -290,7 +291,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
                       await setting.put(SettingBoxKey.androidAutoEnterPIP,
                           androidAutoEnterPIP);
-                      await Utils.setAndroidAutoEnterPIPEnabled(
+                      await PipUtils.setAndroidAutoEnterPIPEnabled(
                           androidAutoEnterPIP);
                       setState(() {});
                     },

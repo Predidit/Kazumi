@@ -53,7 +53,7 @@ abstract class _VideoPageController with Store {
   @observable
   bool isCommentsAscending = false;
 
-  /// 画中画状态
+  /// 桌面画中画状态，Android 画中画状态不需要单独维护，进入画中画后会直接切换到系统的全局播放器界面
   @observable
   bool isPip = false;
 

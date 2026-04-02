@@ -6,6 +6,7 @@ import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
@@ -124,6 +125,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   double lastPlayerSpeed = 1.0;
   int episodeNum = 0;
+  bool? _lastPipPlaying;
+  bool? _lastPipDanmakuEnabled;
 
   late mobx.ReactionDisposer _fullscreenListener;
 
@@ -145,6 +148,58 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmakuController.resume();
       }
     } catch (_) {}
+  }
+
+  Future<void> _syncAndroidAutoEnterPIPSetting() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    final bool autoEnterPIPEnabled = setting.get(
+      SettingBoxKey.androidAutoEnterPIP,
+      defaultValue: false,
+    );
+    try {
+      await PipUtils.setAndroidAutoEnterPIPEnabled(autoEnterPIPEnabled);
+    } catch (e) {
+      KazumiLogger().w(
+        'PlayerItem: failed to sync android auto enter pip setting',
+        error: e,
+      );
+    }
+  }
+
+  Future<void> _syncAndroidPIPPlayerPageState(bool inPlayerPage) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    try {
+      await PipUtils.setAndroidPIPInPlayerPage(inPlayerPage);
+    } catch (e) {
+      KazumiLogger().w(
+        'PlayerItem: failed to sync android pip player page state',
+        error: e,
+      );
+    }
+  }
+
+  Future<void> _updateAndroidPIPActions({bool force = false}) async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+    final bool playing = playerController.playing;
+    final bool danmakuEnabled = playerController.danmakuOn;
+    if (!force &&
+        _lastPipPlaying == playing &&
+        _lastPipDanmakuEnabled == danmakuEnabled) {
+      return;
+    }
+
+    _lastPipPlaying = playing;
+    _lastPipDanmakuEnabled = danmakuEnabled;
+    await PipUtils.updateAndroidPIPActions(
+      playing: playing,
+      danmakuEnabled: danmakuEnabled,
+    );
   }
 
   void _loadShortcuts() {
@@ -382,11 +437,13 @@ class _PlayerItemState extends State<PlayerItem>
         playerController.danmakuOn = false;
       });
       setting.put(SettingBoxKey.danmakuEnabledByDefault, false);
+      unawaited(_updateAndroidPIPActions(force: true));
       return;
     }
     // if false and empty, show dialog.
     if (playerController.danDanmakus.isEmpty) {
       showDanmakuSwitch();
+      unawaited(_updateAndroidPIPActions(force: true));
       return;
     }
     // turn on danmaku.
@@ -394,6 +451,7 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.danmakuOn = true;
     });
     setting.put(SettingBoxKey.danmakuEnabledByDefault, true);
+    unawaited(_updateAndroidPIPActions(force: true));
   }
 
   Future<void> _uploadHistoryToWebDav() async {
@@ -744,6 +802,7 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.buffer = playerController.playerBuffer;
       playerController.duration = playerController.playerDuration;
       playerController.completed = playerController.playerCompleted;
+      unawaited(_updateAndroidPIPActions());
       _syncAudioServiceState();
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
@@ -1396,7 +1455,32 @@ class _PlayerItemState extends State<PlayerItem>
         _handleFullscreenChange(context);
       },
     );
-    // workaround for #214
+    if (Platform.isAndroid) {
+      PipUtils.initPipHandler(
+        onAction: (action) async {
+          if (!mounted) return;
+
+          switch (action) {
+            case 'play_pause':
+              playerController.playOrPause();
+              break;
+
+            case 'toggle_danmaku':
+              handleDanmaku();
+              break;
+
+            case 'forward':
+              await skipOP();
+              break;
+          }
+
+          await _updateAndroidPIPActions(force: true);
+        },
+      );
+      unawaited(_syncAndroidAutoEnterPIPSetting());
+      unawaited(_syncAndroidPIPPlayerPageState(true));
+      unawaited(_updateAndroidPIPActions(force: true));
+    }
     WidgetsBinding.instance.addObserver(this);
     animationController ??= AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -1460,6 +1544,10 @@ class _PlayerItemState extends State<PlayerItem>
     animationController?.dispose();
     animationController = null;
     _disposePlayerMenu();
+    if (Platform.isAndroid) {
+      unawaited(_syncAndroidPIPPlayerPageState(false));
+      PipUtils.disposePipHandler();
+    }
     // Reset player panel state
     playerController.lockPanel = false;
     playerController.showVideoController = true;

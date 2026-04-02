@@ -7,6 +7,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
@@ -23,6 +25,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int defaultAspectRatioType;
   late bool hAenable;
   late bool androidEnableOpenSLES;
+  late bool androidAutoEnterPIP;
   late bool lowMemoryMode;
   late bool playResume;
   late bool showPlayerError;
@@ -50,6 +53,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     androidEnableOpenSLES =
         setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
+    androidAutoEnterPIP =
+        setting.get(SettingBoxKey.androidAutoEnterPIP, defaultValue: false);
     lowMemoryMode =
         setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
     playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
@@ -280,6 +285,22 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('当前视频播放完毕后自动播放下一集', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoPlayNext,
                 ),
+                if (Platform.isAndroid)
+                  SettingsTile.switchTile(
+                    onToggle: (value) async {
+                      androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
+                      await setting.put(SettingBoxKey.androidAutoEnterPIP,
+                          androidAutoEnterPIP);
+                      await PipUtils.setAndroidAutoEnterPIPEnabled(
+                          androidAutoEnterPIP);
+                      setState(() {});
+                    },
+                    title: Text('自动进入画中画',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('切到后台时，自动进入画中画',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    initialValue: androidAutoEnterPIP,
+                  ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     forceAdBlocker = value ?? !forceAdBlocker;

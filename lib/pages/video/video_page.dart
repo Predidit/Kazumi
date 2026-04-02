@@ -11,6 +11,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
@@ -320,8 +321,8 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.dismiss();
       return;
     }
-    if (videoPageController.isPip) {
-      Utils.exitDesktopPIPWindow();
+    if (videoPageController.isPip && Utils.isDesktop()) {
+      PipUtils.exitDesktopPIPWindow();
       videoPageController.isPip = false;
       return;
     }

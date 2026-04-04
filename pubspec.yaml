@@ -45,6 +45,7 @@ dependencies:
   connectivity_plus: ^6.0.5
 
   path_provider: ^2.1.5
+  flutter_secure_storage: ^10.0.0
   hive_ce: ^2.16.0
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1

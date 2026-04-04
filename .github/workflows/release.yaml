@@ -48,11 +48,19 @@
             run: |
               sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
               sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+              sed -i "s/bangumi_app_id_placeholder/${{ secrets.BANGUMI_APP_ID }}/g" lib/utils/bangumi_oauth.dart
+              sed -i "s/bangumi_app_secret_placeholder/${{ secrets.BANGUMI_APP_SECRET }}/g" lib/utils/bangumi_oauth.dart
           - name: Build Flutter for Android
-            run: flutter build apk --split-per-abi
+            run: |
+              flutter build apk --split-per-abi --target-platform android-arm,android-arm64,android-x64
+              flutter build apk --release
             shell: bash
           - name: Package android build output
-            run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
+            run: |
+              cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Kazumi_android_${env:tag}_armeabi-v7a.apk
+              cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}_arm64-v8a.apk
+              cp build/app/outputs/flutter-apk/app-x86_64-release.apk Kazumi_android_${env:tag}_x86_64.apk
+              cp build/app/outputs/flutter-apk/app-release.apk Kazumi_android_${env:tag}_universal.apk
             shell: bash
 
           - name: Upload android outputs
@@ -92,9 +100,13 @@
             env:
               DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
               DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+              BANGUMI_APP_ID: ${{ secrets.BANGUMI_APP_ID }}
+              BANGUMI_APP_SECRET: ${{ secrets.BANGUMI_APP_SECRET }}
             run: |
               (Get-Content -Path 'lib/utils/mortis.dart') -replace "kvpx7qkqjh", "$env:DANDANAPI_APPID" | Set-Content -Path 'lib/utils/mortis.dart'
               (Get-Content -Path 'lib/utils/mortis.dart') -replace "rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax", "$env:DANDANAPI_KEY" | Set-Content -Path 'lib/utils/mortis.dart'
+              (Get-Content -Path 'lib/utils/bangumi_oauth.dart') -replace "bangumi_app_id_placeholder", "$env:BANGUMI_APP_ID" | Set-Content -Path 'lib/utils/bangumi_oauth.dart'
+              (Get-Content -Path 'lib/utils/bangumi_oauth.dart') -replace "bangumi_app_secret_placeholder", "$env:BANGUMI_APP_SECRET" | Set-Content -Path 'lib/utils/bangumi_oauth.dart'
           - run: flutter build windows   
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
           - name: Upload windows outputs
@@ -205,6 +217,8 @@
             run: |
               sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
               sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+              sed -i "s/bangumi_app_id_placeholder/${{ secrets.BANGUMI_APP_ID }}/g" lib/utils/bangumi_oauth.dart
+              sed -i "s/bangumi_app_secret_placeholder/${{ secrets.BANGUMI_APP_SECRET }}/g" lib/utils/bangumi_oauth.dart
           - name: Build Flutter for Linux
             run: flutter build linux
             shell: bash
@@ -286,6 +300,8 @@
             run: |
               sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
               sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+              sed -i '' "s/bangumi_app_id_placeholder/${{ secrets.BANGUMI_APP_ID }}/g" lib/utils/bangumi_oauth.dart
+              sed -i '' "s/bangumi_app_secret_placeholder/${{ secrets.BANGUMI_APP_SECRET }}/g" lib/utils/bangumi_oauth.dart
           - name: Build IPA
             run: |
               flutter build ios --release --no-codesign
@@ -323,6 +339,8 @@
             run: |
               sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
               sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+              sed -i '' "s/bangumi_app_id_placeholder/${{ secrets.BANGUMI_APP_ID }}/g" lib/utils/bangumi_oauth.dart
+              sed -i '' "s/bangumi_app_secret_placeholder/${{ secrets.BANGUMI_APP_SECRET }}/g" lib/utils/bangumi_oauth.dart
           - run: flutter build macos --release
           - name: Create DMG
             run: |
@@ -340,7 +358,7 @@
       release:
         name: "Release"
         runs-on: "ubuntu-latest"
-        needs: [flutter-build-windows] 
+        needs: [flutter-build-android, flutter-build-windows, flutter-build-linux, flutter-build-ios, flutter-build-macos]
         permissions: write-all
         steps:
           - name: Clone repository
@@ -390,7 +408,7 @@
               mkdir build
               mkdir build/unsigned
               mkdir build/signed
-              cp android_outputs/* build/unsigned/Kazumi_android_${{ env.tag }}.apk
+              cp android_outputs/*.apk build/unsigned/
 
           - name: Download iOS build file
             uses: actions/download-artifact@v4
@@ -434,7 +452,7 @@
               BUILD_TOOLS_VERSION: "34.0.0"
 
           - name: Copy Signed android build file
-            run: cp ${{steps.sign_app.outputs.signedReleaseFile}} build/signed/Kazumi_android_${{ env.tag }}.apk
+            run: cp build/unsigned/*-signed.apk build/signed/
 
           - name: Create release
             uses: softprops/action-gh-release@v2

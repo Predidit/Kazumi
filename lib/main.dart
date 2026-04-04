@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kazumi/request/request.dart';
+import 'package:kazumi/utils/bangumi_auth.dart';
 import 'package:kazumi/utils/proxy_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -89,6 +90,7 @@ void main() async {
   }
   Request();
   await Request.setCookie();
+  await BangumiAuth.tryAutoLogin();
   ProxyManager.applyProxy();
   runApp(
     ChangeNotifierProvider(

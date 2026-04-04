@@ -1,10 +1,13 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.14)
-project(kazumi LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.10)
+if(POLICY CMP0175)
+  cmake_policy(SET CMP0175 OLD)
+endif()
+project(kazumas LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "kazumi")
+set(BINARY_NAME "kazumas")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

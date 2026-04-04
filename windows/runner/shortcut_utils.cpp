@@ -29,7 +29,7 @@ bool ShortcutUtils::CreateDesktopShortcut(const std::wstring& shortcutName, cons
     aumid.resize(length);
     if (GetCurrentPackageFamilyName(&length, &aumid[0]) == ERROR_SUCCESS) {
       if (!aumid.empty() && aumid.back() == L'\0') aumid.pop_back();
-      aumid += L"!kazumi";
+      aumid += L"!kazumas";
     }
   }
 

@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/bangumi_auth.dart';
 
 class CollectPage extends StatefulWidget {
   const CollectPage({super.key});
@@ -27,6 +28,7 @@ class _CollectPageState extends State<CollectPage>
   TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
+  bool syncBangumiCollectiblesing = false;
   Box setting = GStorage.setting;
 
   void onBackPressed(BuildContext context) {
@@ -83,6 +85,41 @@ class _CollectPageState extends State<CollectPage>
           title: const Text('追番'),
           actions: [
             IconButton(
+                onPressed: () async {
+                  if (showDelete) {
+                    KazumiDialog.showToast(message: '编辑模式无法执行 Bangumi 同步');
+                    return;
+                  }
+                  if (syncBangumiCollectiblesing) {
+                    return;
+                  }
+                  if (!BangumiAuth.isLoggedIn) {
+                    KazumiDialog.showToast(message: '请先登录 Bangumi');
+                    return;
+                  }
+                  setState(() {
+                    syncBangumiCollectiblesing = true;
+                  });
+                  try {
+                    await collectController.syncBangumiCollections();
+                  } catch (e) {
+                    KazumiDialog.showToast(message: 'Bangumi 同步失败 $e');
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        syncBangumiCollectiblesing = false;
+                      });
+                    }
+                  }
+                },
+                icon: syncBangumiCollectiblesing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync_rounded)),
+            IconButton(
                 onPressed: () {
                   setState(() {
                     showDelete = !showDelete;
@@ -129,6 +166,51 @@ class _CollectPageState extends State<CollectPage>
   }
 
   Widget get renderBody {
+    if (collectController.bangumiSyncing) {
+      final progress = collectController.bangumiSyncTotal > 0
+          ? collectController.bangumiSyncProgress.clamp(0.0, 1.0)
+          : null;
+      final progressText = collectController.bangumiSyncTotal > 0
+          ? '${collectController.bangumiSyncProcessed}/${collectController.bangumiSyncTotal}'
+          : '准备中';
+      return Column(
+        children: [
+          Material(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    collectController.bangumiSyncStage.isNotEmpty
+                        ? collectController.bangumiSyncStage
+                        : '正在同步 Bangumi 收藏',
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(value: progress),
+                  const SizedBox(height: 8),
+                  Text(
+                    collectController.bangumiSyncCurrentName.isNotEmpty
+                        ? '当前：${collectController.bangumiSyncCurrentName}（$progressText）'
+                        : '进度：$progressText',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: collectController.collectibles.isNotEmpty
+                ? TabBarView(
+                    controller: tabController,
+                    children: contentGrid(collectController.collectibles),
+                  )
+                : const Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      );
+    }
     if (collectController.collectibles.isNotEmpty) {
       return TabBarView(
         controller: tabController,

@@ -133,6 +133,11 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         infoController.bangumiItem.votesCount.isEmpty) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
+    infoController.syncBangumiCollection().then((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: 5, vsync: this);
@@ -222,6 +227,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         EmbeddedNativeControlArea(
                           child: CollectButton(
                             bangumiItem: infoController.bangumiItem,
+                            onCollectChanged: infoController.updateCollectionType,
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -313,11 +319,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                   child: Padding(
                                     padding: const EdgeInsets.fromLTRB(
                                         16, kToolbarHeight, 16, 0),
-                                    child: BangumiInfoCardV(
-                                      bangumiItem: infoController.bangumiItem,
-                                      isLoading: infoController.isLoading,
-                                      showRating: showRating,
-                                    ),
+                                     child: BangumiInfoCardV(
+                                       bangumiItem: infoController.bangumiItem,
+                                       isLoading: infoController.isLoading,
+                                       showRating: showRating,
+                                       onCollectChanged:
+                                           infoController.updateCollectionType,
+                                     ),
                                   ),
                                 ),
                               ),

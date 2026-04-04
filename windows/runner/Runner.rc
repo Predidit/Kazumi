@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "kazumi" "\0"
+            VALUE "FileDescription", "Kazumas" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "kazumi" "\0"
+            VALUE "InternalName", "kazumas" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "kazumi.exe" "\0"
-            VALUE "ProductName", "kazumi" "\0"
+            VALUE "OriginalFilename", "kazumas.exe" "\0"
+            VALUE "ProductName", "Kazumas" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -265,6 +265,10 @@ class GStorage {
 
 class SettingBoxKey {
   static const String hAenable = 'hAenable',
+      bangumiAccessToken = 'bangumiAccessToken',
+      bangumiUsername = 'bangumiUsername',
+      bangumiNickname = 'bangumiNickname',
+      bangumiAvatar = 'bangumiAvatar',
       hardwareDecoder = 'hardwareDecoder',
       searchEnhanceEnable = 'searchEnhanceEnable',
       autoUpdate = 'autoUpdate',

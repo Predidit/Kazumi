@@ -7,6 +7,7 @@ class CollectButton extends StatefulWidget {
   CollectButton({
     super.key,
     required this.bangumiItem,
+    this.onCollectChanged,
     this.color = Colors.white,
     this.onOpen,
     this.onClose,
@@ -17,6 +18,7 @@ class CollectButton extends StatefulWidget {
   CollectButton.extend({
     super.key,
     required this.bangumiItem,
+    this.onCollectChanged,
     this.color = Colors.white,
     this.onOpen,
     this.onClose,
@@ -27,6 +29,7 @@ class CollectButton extends StatefulWidget {
   final BangumiItem bangumiItem;
   final Color color;
   late final bool isExtended;
+  final Future<void> Function(int type)? onCollectChanged;
   final void Function()? onOpen;
   final void Function()? onClose;
 
@@ -123,10 +126,16 @@ class _CollectButtonState extends State<CollectButton> {
       menuChildren: List<MenuItemButton>.generate(
         6,
         (int index) => MenuItemButton(
-          onPressed: () {
+          onPressed: () async {
             if (index != collectType && mounted) {
-              collectController.addCollect(widget.bangumiItem, type: index);
-              setState(() {});
+              if (widget.onCollectChanged != null) {
+                await widget.onCollectChanged!(index);
+              } else {
+                await collectController.addCollect(widget.bangumiItem, type: index);
+              }
+              if (mounted) {
+                setState(() {});
+              }
             }
           },
           child: Container(

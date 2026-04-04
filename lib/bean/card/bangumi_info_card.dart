@@ -14,11 +14,13 @@ class BangumiInfoCardV extends StatefulWidget {
     required this.bangumiItem,
     required this.isLoading,
     required this.showRating,
+    this.onCollectChanged,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
   final bool showRating;
+  final Future<void> Function(int type)? onCollectChanged;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -247,9 +249,10 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                         SizedBox(
                           width: 120,
                           height: 40,
-                          child: CollectButton.extend(
-                            bangumiItem: widget.bangumiItem,
-                          ),
+                           child: CollectButton.extend(
+                             bangumiItem: widget.bangumiItem,
+                             onCollectChanged: widget.onCollectChanged,
+                           ),
                         ),
                       ],
                     ),

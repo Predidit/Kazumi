@@ -31,6 +31,8 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:kazumi/utils/audio_controller.dart';
+import 'package:kazumi/utils/bangumi_auth.dart';
+import 'package:kazumi/request/bangumi.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -111,6 +113,8 @@ class _PlayerItemState extends State<PlayerItem>
   late bool haEnable;
   late bool autoPlayNext;
   late bool backgroundPlayback;
+  bool _episodeWatchedReported = false;
+  bool _episodeStateSyncing = false;
 
   Timer? hideTimer;
   Timer? playerTimer;
@@ -194,6 +198,35 @@ class _PlayerItemState extends State<PlayerItem>
   //销毁播放器菜单
   void _disposePlayerMenu() {
     Utils.disposePlayerMenu();
+  }
+
+  Future<void> _syncBangumiProgressStateForCurrentEpisode() async {
+    if (_episodeStateSyncing ||
+        !BangumiAuth.isLoggedIn ||
+        videoPageController.isOfflineMode) {
+      return;
+    }
+    _episodeStateSyncing = true;
+    try {
+      await collectController
+          .syncBangumiCollectionType(videoPageController.bangumiItem);
+      final episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(
+        videoPageController.bangumiItem.id,
+        videoPageController.actualEpisodeNumber,
+      );
+      if (episodeInfo.id == 0) {
+        return;
+      }
+      final remoteEpisodeType =
+          await BangumiHTTP.getEpisodeCollectionType(episodeInfo.id);
+      if (remoteEpisodeType == 2) {
+        _episodeWatchedReported = true;
+      }
+    } catch (e) {
+      KazumiLogger().w('Bangumi: failed to sync episode progress state', error: e);
+    } finally {
+      _episodeStateSyncing = false;
+    }
   }
 
   //快捷键按下
@@ -738,6 +771,11 @@ class _PlayerItemState extends State<PlayerItem>
 
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (episodeNum != videoPageController.actualEpisodeNumber) {
+        episodeNum = videoPageController.actualEpisodeNumber;
+        _episodeWatchedReported = false;
+        unawaited(_syncBangumiProgressStateForCurrentEpisode());
+      }
       playerController.playing = playerController.playerPlaying;
       playerController.isBuffering = playerController.playerBuffering;
       playerController.currentPosition = playerController.playerPosition;
@@ -828,6 +866,37 @@ class _PlayerItemState extends State<PlayerItem>
               videoPageController.roadList[videoPageController.currentRoad]
                   .identifier[videoPageController.currentEpisode - 1]);
         }
+      }
+      final totalSeconds = playerController.duration.inSeconds;
+      final watchedSeconds = playerController.currentPosition.inSeconds;
+      final currentCollectType =
+          collectController.getCollectType(videoPageController.bangumiItem);
+      if (!_episodeWatchedReported &&
+          BangumiAuth.isLoggedIn &&
+          !videoPageController.isOfflineMode &&
+          currentCollectType == 1 &&
+          totalSeconds > 0 &&
+          watchedSeconds / totalSeconds >= 0.9) {
+        _episodeWatchedReported = true;
+        unawaited(() async {
+          try {
+            final episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(
+              videoPageController.bangumiItem.id,
+              videoPageController.actualEpisodeNumber,
+            );
+            if (episodeInfo.id == 0) {
+              return;
+            }
+            await collectController.markEpisodeWatchedIfNeeded(
+              bangumiItem: videoPageController.bangumiItem,
+              subjectId: videoPageController.bangumiItem.id,
+              episodeId: episodeInfo.id,
+            );
+          } catch (e) {
+            _episodeWatchedReported = false;
+            KazumiLogger().w('Bangumi: failed to sync watched episode', error: e);
+          }
+        }());
       }
       // 自动播放下一集
       if (playerController.completed &&
@@ -1439,6 +1508,9 @@ class _PlayerItemState extends State<PlayerItem>
     autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
     backgroundPlayback =
         setting.get(SettingBoxKey.backgroundPlayback, defaultValue: false);
+    episodeNum = videoPageController.actualEpisodeNumber;
+    _episodeWatchedReported = false;
+    unawaited(_syncBangumiProgressStateForCurrentEpisode());
     unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);

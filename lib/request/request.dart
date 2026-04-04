@@ -158,6 +158,10 @@ class Request {
   Future<Response> post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
     // print('post-data: $data');
     Response response;
+    options ??= Options();
+    if (extra != null && extra['customError'] != null) {
+      options.extra = {'customError': extra['customError']};
+    }
     try {
       response = await dio.post(
         url,
@@ -176,6 +180,62 @@ class Request {
         data: {
           'message': await ApiInterceptor.dioError(e)
         }, // 将自定义 Map 数据赋值给 Response 的 data 属性
+        statusCode: 200,
+        requestOptions: RequestOptions(),
+      );
+      return errResponse;
+    }
+  }
+
+  Future<Response> patch(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
+    Response response;
+    options ??= Options();
+    if (extra != null && extra['customError'] != null) {
+      options.extra = {'customError': extra['customError']};
+    }
+    try {
+      response = await dio.patch(
+        url,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+      return response;
+    } on DioException catch (e) {
+      if (shouldRethrow) {
+        rethrow;
+      }
+      Response errResponse = Response(
+        data: {'message': await ApiInterceptor.dioError(e)},
+        statusCode: 200,
+        requestOptions: RequestOptions(),
+      );
+      return errResponse;
+    }
+  }
+
+  Future<Response> put(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
+    Response response;
+    options ??= Options();
+    if (extra != null && extra['customError'] != null) {
+      options.extra = {'customError': extra['customError']};
+    }
+    try {
+      response = await dio.put(
+        url,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+      );
+      return response;
+    } on DioException catch (e) {
+      if (shouldRethrow) {
+        rethrow;
+      }
+      Response errResponse = Response(
+        data: {'message': await ApiInterceptor.dioError(e)},
         statusCode: 200,
         requestOptions: RequestOptions(),
       );

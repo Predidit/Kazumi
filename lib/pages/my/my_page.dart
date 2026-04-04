@@ -153,6 +153,15 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
+                    Modular.to.pushNamed('/settings/bangumi');
+                  },
+                  leading: const Icon(Icons.sync_rounded),
+                  title: Text('Bangumi 同步', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('登录 Bangumi 并同步在看和已看状态',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
                     Modular.to.pushNamed('/settings/webdav/');
                   },
                   leading: const Icon(Icons.cloud),

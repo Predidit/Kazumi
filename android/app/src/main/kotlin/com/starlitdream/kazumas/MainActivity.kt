@@ -1,4 +1,4 @@
-package com.example.kazumi
+package com.starlitdream.kazumas
 
 import android.content.Intent
 import android.os.Build
@@ -11,8 +11,8 @@ import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioServiceActivity
 
 class MainActivity: AudioServiceActivity() {
-    private val CHANNEL = "com.predidit.kazumi/intent"
-    private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
+    private val CHANNEL = "com.starlitdream.kazumas/intent"
+    private val STORAGE_CHANNEL = "com.starlitdream.kazumas/storage"
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class WindowsShortcut {
-  static const _channel = MethodChannel('com.predidit.kazumi/shortcut');
+  static const _channel = MethodChannel('com.starlitdream.kazumas/shortcut');
 
   static Future<bool> createDesktopShortcut() async {
     if (!Platform.isWindows) return false;

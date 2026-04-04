@@ -123,7 +123,7 @@ class DownloadManager implements IDownloadManager {
   ProgressCallback? onProgress;
 
   static const _minRequiredSpace = 100 * 1024 * 1024; // 100MB minimum
-  static const _storageChannel = MethodChannel('com.predidit.kazumi/storage');
+  static const _storageChannel = MethodChannel('com.starlitdream.kazumas/storage');
 
   void _loadSettings() {
     final setting = GStorage.setting;

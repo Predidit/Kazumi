@@ -203,7 +203,7 @@ class _InitPageState extends State<InitPage> {
       clickMaskDismiss: false,
       builder: (context) => AlertDialog(
         title: const Text('创建桌面快捷方式'),
-        content: const Text('是否在桌面创建 Kazumi 的快捷方式？'),
+            content: const Text('是否在桌面创建 Kazumas 的快捷方式？'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: false),

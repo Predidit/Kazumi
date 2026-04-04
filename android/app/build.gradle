@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.kazumi"
+    namespace "com.starlitdream.kazumas"
     compileSdk flutter.compileSdkVersion
     // Pin ndk version to 21.3.6528147 to fix android build warning
     // The build warning throws by gradle plugin, when the ndk is older than gradle plugin required version
@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.predidit.kazumi"
+        applicationId "com.starlitdream.kazumas"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion

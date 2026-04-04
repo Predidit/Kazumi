@@ -34,7 +34,10 @@ class ApiInterceptor extends Interceptor {
     }
     if (options.path.contains(Api.bangumiAPIDomain) ||
         options.path.contains(Api.bangumiAPINextDomain)) {
-      options.headers = bangumiHTTPHeader;
+      options.headers = {
+        ...bangumiHTTPHeader,
+        ...options.headers,
+      };
     }
     handler.next(options);
   }

@@ -22,7 +22,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
+  final exitBehaviorTitles = <String>['退出 Kazumas', '最小化至托盘', '每次都询问'];
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;

@@ -36,6 +36,9 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
+  @observable
+  int syncedCollectType = 0;
+
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
     await BangumiHTTP.getBangumiInfoByID(id).then((value) {
@@ -57,6 +60,20 @@ abstract class _InfoController with Store {
         isLoading = false;
       }
     });
+  }
+
+  Future<void> syncBangumiCollection() async {
+    syncedCollectType =
+        await collectController.syncBangumiCollectionType(bangumiItem) ?? 0;
+  }
+
+  Future<void> updateCollectionType(int type) async {
+    try {
+      await collectController.addCollectAndSync(bangumiItem, type: type);
+      syncedCollectType = collectController.getCollectType(bangumiItem);
+    } catch (e) {
+      KazumiDialog.showToast(message: 'Bangumi 收藏同步失败 ${e.toString()}');
+    }
   }
 
   Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {

@@ -23,6 +23,13 @@ class Api {
 
   /// bangumi API Domain
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
+  static const String bangumiMyself = '/v0/me';
+  static const String bangumiMyCollection = '/v0/users/-/collections/{0}';
+  static const String bangumiMyCollectionEpisodes =
+      '/v0/users/-/collections/{0}/episodes';
+  static const String bangumiMyEpisodeCollection =
+      '/v0/users/-/collections/-/episodes/{0}';
+  static const String bangumiUserCollections = '/v0/users/{0}/collections';
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
   /// 条目搜索

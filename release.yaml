@@ -1,0 +1,28 @@
+# Updated release.yaml workflow file
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up environment variables
+        run: |
+          export TAG=${tag}
+          echo "TAG set to $TAG"
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Package
+        run: |
+          echo "Packaging version ${tag}..."
+
+  windows:
+    runs-on: windows-latest
+    needs: release
+    steps:
+      - name: Build
+        run: |
+          echo "Building for Windows..."
+
+release:
+  runs-on: ubuntu-latest

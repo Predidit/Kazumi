@@ -36,6 +36,17 @@ class BangumiAuth {
 
   static String get _appSecret => bangumiOAuth['appSecret']?.trim() ?? '';
 
+  static bool get hasOauthConfig =>
+      _appId.isNotEmpty &&
+      _appSecret.isNotEmpty &&
+      _appId != 'bangumi_app_id_placeholder' &&
+      _appSecret != 'bangumi_app_secret_placeholder';
+
+  static String get authorizeUrl {
+    _ensureOauthConfig();
+    return '${Api.bangumiIndex}oauth/authorize?client_id=$_appId&response_type=code&redirect_uri=${Uri.encodeComponent(_redirectUri)}';
+  }
+
   static String get accessToken =>
       _setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
 
@@ -86,6 +97,18 @@ class BangumiAuth {
     );
   }
 
+  static Future<void> clearSavedCredentials() async {
+    await _secureStorage.delete(key: _secureUsernameKey);
+    await _secureStorage.delete(key: _securePasswordKey);
+  }
+
+  static Future<void> clearRefreshTokenBundle() async {
+    await _secureStorage.delete(key: _secureRefreshTokenKey);
+    await _secureStorage.delete(key: _secureTokenTypeKey);
+    await _secureStorage.delete(key: _secureScopeKey);
+    await _secureStorage.delete(key: _secureExpiresAtKey);
+  }
+
   static Future<void> clear() async {
     await _setting.put(SettingBoxKey.bangumiAccessToken, '');
     await _setting.put(SettingBoxKey.bangumiUsername, '');
@@ -105,6 +128,8 @@ class BangumiAuth {
   }
 
   static Future<BangumiAuthUser> verifyAndSaveToken(String token) async {
+    await clearSavedCredentials();
+    await clearRefreshTokenBundle();
     await saveToken(token);
     try {
       final user = await BangumiHTTP.getCurrentUser();
@@ -114,6 +139,21 @@ class BangumiAuth {
       await clear();
       rethrow;
     }
+  }
+
+  static Future<BangumiAuthUser> loginWithAuthorizationCode(
+      String input) async {
+    _ensureOauthConfig();
+    final code = _normalizeAuthorizationCodeInput(input);
+    if (code.isEmpty) {
+      throw Exception('请输入 Bangumi 授权码或包含 code 的回调链接');
+    }
+    final token = await _exchangeAuthorizationCode(code);
+    await clearSavedCredentials();
+    await _saveTokenBundle(token);
+    final user = await BangumiHTTP.getCurrentUser();
+    await saveUser(user);
+    return user;
   }
 
   static Future<BangumiAuthUser> loginWithPassword({
@@ -262,7 +302,8 @@ class BangumiAuth {
         },
       ),
     );
-    session.cookie = _mergeCookie(session.cookie, loginResponse.headers['set-cookie']);
+    session.cookie =
+        _mergeCookie(session.cookie, loginResponse.headers['set-cookie']);
 
     final loginResultHtml = (loginResponse.data ?? '').toString();
     if (loginResultHtml.contains('验证码') ||
@@ -276,13 +317,13 @@ class BangumiAuth {
       throw Exception('Bangumi 账号或密码错误');
     }
 
-    final authorizeUrl =
-        '${Api.bangumiIndex}oauth/authorize?client_id=$_appId&response_type=code&redirect_uri=${Uri.encodeComponent(_redirectUri)}';
+    final oauthAuthorizeUrl = authorizeUrl;
     final authorizePage = await session.dio.get(
-      authorizeUrl,
+      oauthAuthorizeUrl,
       options: Options(headers: {'cookie': session.cookie}),
     );
-    session.cookie = _mergeCookie(session.cookie, authorizePage.headers['set-cookie']);
+    session.cookie =
+        _mergeCookie(session.cookie, authorizePage.headers['set-cookie']);
     final authorizeHtml = (authorizePage.data ?? '').toString();
     final authorizeFormhash = _extractInputValue(authorizeHtml, 'formhash');
     if (authorizeFormhash.isEmpty) {
@@ -290,7 +331,7 @@ class BangumiAuth {
     }
 
     final authorizeResult = await session.dio.post(
-      authorizeUrl,
+      oauthAuthorizeUrl,
       data: {
         'formhash': authorizeFormhash,
         'redirect_uri': '',
@@ -302,13 +343,32 @@ class BangumiAuth {
         headers: {'cookie': session.cookie},
       ),
     );
-    final location =
-        authorizeResult.headers.value('location') ?? _responseUrl(authorizeResult);
+    final location = authorizeResult.headers.value('location') ??
+        _responseUrl(authorizeResult);
     final code = _extractCodeFromUrl(location);
     if (code.isEmpty) {
       throw Exception('Bangumi OAuth 授权码获取失败');
     }
 
+    final token = await _exchangeAuthorizationCode(code);
+    final user = await _getCurrentUserWithToken(token.accessToken);
+    return _BangumiLoginResult(token: token, user: user);
+  }
+
+  static Future<BangumiAuthUser> _getCurrentUserWithToken(
+      String accessToken) async {
+    final res = await Request().get(
+      Api.bangumiAPIDomain + Api.bangumiMyself,
+      options:
+          Options(headers: {'Authorization': 'Bearer ${accessToken.trim()}'}),
+      extra: {'customError': 'Bangumi 登录校验失败'},
+      shouldRethrow: true,
+    );
+    return BangumiAuthUser.fromJson(Map<String, dynamic>.from(res.data));
+  }
+
+  static Future<BangumiOauthToken> _exchangeAuthorizationCode(
+      String code) async {
     final tokenResponse = await Request().post(
       '${Api.bangumiIndex}oauth/access_token',
       data: {
@@ -327,12 +387,9 @@ class BangumiAuth {
       ),
       shouldRethrow: true,
     );
-
-    final token = BangumiOauthToken.fromJson(
+    return BangumiOauthToken.fromJson(
       Map<String, dynamic>.from(tokenResponse.data),
     );
-    final user = await BangumiHTTP.getCurrentUser();
-    return _BangumiLoginResult(token: token, user: user);
   }
 
   static bool _hasAuthCookie(String cookie) {
@@ -345,6 +402,20 @@ class BangumiAuth {
     }
     final uri = Uri.tryParse(url);
     return uri?.queryParameters['code']?.trim() ?? '';
+  }
+
+  static String _normalizeAuthorizationCodeInput(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final inlineCodeMatch =
+        RegExp(r'(?:^|[?&\s])code=([^&\s]+)').firstMatch(trimmed);
+    if (inlineCodeMatch != null) {
+      return Uri.decodeComponent(inlineCodeMatch.group(1) ?? '').trim();
+    }
+    final extractedCode = _extractCodeFromUrl(trimmed);
+    return extractedCode.isNotEmpty ? extractedCode : trimmed;
   }
 
   static String _extractInputValue(String html, String name) {
@@ -392,10 +463,7 @@ class BangumiAuth {
   }
 
   static void _ensureOauthConfig() {
-    if (_appId.isEmpty ||
-        _appSecret.isEmpty ||
-        _appId == 'bangumi_app_id_placeholder' ||
-        _appSecret == 'bangumi_app_secret_placeholder') {
+    if (!hasOauthConfig) {
       throw Exception('Bangumi OAuth 配置缺失，请在构建时注入 App ID 和 App Secret');
     }
   }
@@ -441,7 +509,8 @@ class BangumiAuth {
         headers: {'cookie': session.cookie},
       ),
     );
-    session.cookie = _mergeCookie(session.cookie, response.headers['set-cookie']);
+    session.cookie =
+        _mergeCookie(session.cookie, response.headers['set-cookie']);
     final bytes = Uint8List.fromList(response.data ?? const <int>[]);
     if (bytes.isEmpty) {
       throw Exception('Bangumi 验证码加载失败');

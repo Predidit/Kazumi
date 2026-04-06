@@ -58,3 +58,4 @@ android/build/reports/problems/
 *AGENT.md
 *AGENTS.md
 .sisyphus
+*.env

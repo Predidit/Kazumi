@@ -182,8 +182,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev
-          sudo apt-get install -y gcc g++ autoconf automake debhelper glslang-dev ladspa-sdk xutils-dev libasound2-dev \
+          # 添加了 libsecret-1-dev 和 libjson-cpp-dev
+          sudo apt-get install -y clang cmake libgtk-3-dev ninja-build libayatana-appindicator3-dev unzip webkit2gtk-4.1 libasound2-dev libsecret-1-dev libjson-cpp-dev
+          sudo apt-get install -y gcc g++ autoconf automake debhelper glslang-dev ladspa-sdk xutils-dev \
               libarchive-dev libbluray-dev libbs2b-dev libcaca-dev libcdio-paranoia-dev libdrm-dev \
               libdav1d-dev libdvdnav-dev libegl1-mesa-dev libepoxy-dev libfontconfig-dev libfreetype6-dev \
               libfribidi-dev libgl1-mesa-dev libgbm-dev libgme-dev libgsm1-dev libharfbuzz-dev libjpeg-dev \
@@ -243,7 +244,8 @@ jobs:
           Homepage: https://github.com/Predidit/Kazumi
           Depends: libayatana-appindicator3-1,
                    gir1.2-ayatanaappindicator3-0.1,
-                   libwebkit2gtk-4.1-0
+                   libwebkit2gtk-4.1-0,
+                   libsecret-1-0
           EOF
 
           cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications

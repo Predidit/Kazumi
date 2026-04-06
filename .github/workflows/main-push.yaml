@@ -248,8 +248,8 @@ jobs:
                    libsecret-1-0
           EOF
 
-          cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications
-          cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.Predidit.Kazumi.png
+          cp ../assets/linux/io.github.starlitdream.Kazumas.desktop usr/share/applications
+          cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.starlitdream.Kazumas.png
 
           cd ..
           dpkg-deb --build --root-owner-group Kazumi_linux_canary_amd64

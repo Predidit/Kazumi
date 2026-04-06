@@ -1,0 +1,14 @@
+Maintainer: madoka773 <valigarmanda55@gmail.com>
+Package: Kazumi
+Version: 0.0.0-canary
+Section: x11
+Priority: optional
+Architecture: amd64
+Essential: no
+Installed-Size: 34648
+Description: Watch Animes online with danmaku support.
+Homepage: https://github.com/Predidit/Kazumi
+Depends: libayatana-appindicator3-1,
+ gir1.2-ayatanaappindicator3-0.1,
+ libwebkit2gtk-4.1-0,
+ libsecret-1-0

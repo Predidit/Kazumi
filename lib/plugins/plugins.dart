@@ -164,7 +164,7 @@ class Plugin {
   Future<PluginSearchResponse> queryBangumi(String keyword,
       {bool shouldRethrow = false}) async {
     try {
-    String queryURL = searchURL.replaceAll('@keyword', keyword);
+    String queryURL = searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
     dynamic resp;
     List<SearchItem> searchItems = [];
     final String cookieHeader = await _cookieHeaderFor(queryURL);
@@ -292,7 +292,7 @@ class Plugin {
 
   Future<String> testSearchRequest(String keyword,
       {bool shouldRethrow = false, CancelToken? cancelToken}) async {
-    String queryURL = searchURL.replaceAll('@keyword', keyword);
+    String queryURL = searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
     dynamic resp;
     if (usePost) {
       Uri uri = Uri.parse(queryURL);

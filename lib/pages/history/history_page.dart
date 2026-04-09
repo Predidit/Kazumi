@@ -14,11 +14,9 @@ class HistoryPage extends StatefulWidget {
   State<HistoryPage> createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends State<HistoryPage>
-    with SingleTickerProviderStateMixin {
+class _HistoryPageState extends State<HistoryPage> {
   final HistoryController historyController = Modular.get<HistoryController>();
 
-  /// show delete button
   bool showDelete = false;
 
   @override
@@ -67,7 +65,6 @@ class _HistoryPageState extends State<HistoryPage>
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {});
     return Observer(builder: (context) {
       return PopScope(
         canPop: true,
@@ -78,24 +75,29 @@ class _HistoryPageState extends State<HistoryPage>
           appBar: SysAppBar(
             title: const Text('历史记录'),
             actions: [
-              IconButton(
+              if (historyController.histories.isNotEmpty) ...[
+                IconButton(
                   onPressed: () {
                     setState(() {
                       showDelete = !showDelete;
                     });
                   },
                   icon: showDelete
-                      ? const Icon(Icons.edit_outlined)
-                      : const Icon(Icons.edit))
+                      ? const Icon(Icons.edit_off_outlined)
+                      : const Icon(Icons.edit_outlined),
+                  tooltip: showDelete ? '退出编辑' : '编辑',
+                ),
+                IconButton(
+                  onPressed: () {
+                    showHistoryClearDialog();
+                  },
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  tooltip: '清除全部',
+                ),
+              ],
             ],
           ),
           body: SafeArea(bottom: false, child: renderBody),
-          floatingActionButton: FloatingActionButton(
-            child: const Icon(Icons.clear_all),
-            onPressed: () {
-              showHistoryClearDialog();
-            },
-          ),
         ),
       );
     });
@@ -105,8 +107,24 @@ class _HistoryPageState extends State<HistoryPage>
     if (historyController.histories.isNotEmpty) {
       return contentGrid;
     } else {
-      return const Center(
-        child: Text('没有找到历史记录 (´;ω;`)'),
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.history_rounded,
+              size: 72,
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '没有找到历史记录',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+            ),
+          ],
+        ),
       );
     }
   }
@@ -119,31 +137,41 @@ class _HistoryPageState extends State<HistoryPage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 3;
     }
-    double cardHeight = 120;
+
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final double maxContentWidth = 1000;
+    final double horizontalPadding = screenWidth > maxContentWidth
+        ? (screenWidth - maxContentWidth) / 2
+        : 0;
 
     return CustomScrollView(
       slivers: [
-        SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            mainAxisSpacing: StyleString.cardSpace - 2,
-            crossAxisSpacing: StyleString.cardSpace,
-            crossAxisCount: crossCount,
-            mainAxisExtent: cardHeight + 12,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return historyController.histories.isNotEmpty
-                  ? BangumiHistoryCardV(
-                      showDelete: showDelete,
-                      cardHeight: cardHeight,
-                      historyItem: historyController.histories[index])
-                  : null;
-            },
-            childCount: historyController.histories.isNotEmpty
-                ? historyController.histories.length
-                : 10,
+        const SliverPadding(padding: EdgeInsets.only(top: 4)),
+        SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              mainAxisSpacing: 2,
+              crossAxisSpacing: StyleString.cardSpace,
+              crossAxisCount: crossCount,
+              mainAxisExtent: 136,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return BangumiHistoryCardV(
+                  historyItem: historyController.histories[index],
+                  showDelete: showDelete,
+                  onDeleted: () {
+                    historyController
+                        .deleteHistory(historyController.histories[index]);
+                  },
+                );
+              },
+              childCount: historyController.histories.length,
+            ),
           ),
         ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
       ],
     );
   }

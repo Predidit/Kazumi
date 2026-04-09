@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -33,6 +35,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
+  final CollectController collectController = Modular.get<CollectController>();
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
@@ -216,12 +219,17 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (!widget.showDelete) ...[
-                      CollectButton(
-                        onClose: () {
-                          FocusScope.of(context).unfocus();
+                      Observer(
+                        builder: (context) {
+                          collectController.collectibles.length;
+                          return CollectButton(
+                            onClose: () {
+                              FocusScope.of(context).unfocus();
+                            },
+                            bangumiItem: widget.historyItem.bangumiItem,
+                            color: colorScheme.onSurfaceVariant,
+                          );
                         },
-                        bangumiItem: widget.historyItem.bangumiItem,
-                        color: colorScheme.onSurfaceVariant,
                       ),
                       IconButton(
                         icon: Icon(

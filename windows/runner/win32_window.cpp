@@ -221,6 +221,10 @@ Win32Window::MessageHandler(HWND hwnd,
       }
       return 0;
 
+    case WM_SETTINGCHANGE:
+      UpdateTheme(hwnd);
+      return 0;
+
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
@@ -280,20 +284,23 @@ void Win32Window::OnDestroy() {
   // No-op; provided for subclasses.
 }
 
-void Win32Window::UpdateTheme(HWND const window, std::optional<bool> dark_mode) {
-  BOOL enable_dark_mode;
-  if (dark_mode.has_value()) {
-    enable_dark_mode = dark_mode.value() ? TRUE : FALSE;
-  } else {
-    // Follow system theme
-    DWORD light_mode;
-    DWORD light_mode_size = sizeof(light_mode);
-    LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
-                                 kGetPreferredBrightnessRegValue,
-                                 RRF_RT_REG_DWORD, nullptr, &light_mode,
-                                 &light_mode_size);
-    enable_dark_mode = (result == ERROR_SUCCESS && light_mode == 0) ? TRUE : FALSE;
+void Win32Window::UpdateTheme(HWND const window) {
+  DWORD light_mode;
+  DWORD light_mode_size = sizeof(light_mode);
+  LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
+                               kGetPreferredBrightnessRegValue,
+                               RRF_RT_REG_DWORD, nullptr, &light_mode,
+                               &light_mode_size);
+
+  if (result == ERROR_SUCCESS) {
+    BOOL enable_dark_mode = light_mode == 0;
+    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                          &enable_dark_mode, sizeof(enable_dark_mode));
   }
+}
+
+void Win32Window::SetTitleBarDarkMode(HWND const window, bool dark_mode) {
+  BOOL enable = dark_mode ? TRUE : FALSE;
   DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                        &enable_dark_mode, sizeof(enable_dark_mode));
+                        &enable, sizeof(enable));
 }

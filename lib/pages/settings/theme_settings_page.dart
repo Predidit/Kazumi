@@ -123,7 +123,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       defaultThemeMode = theme;
     });
 
-    // Update Windows title bar theme (only when using system title bar)
+    // Update Windows title bar theme
     if (Platform.isWindows && showWindowButton) {
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       final isDark = theme == 'dark' || (theme == 'system' && brightness == Brightness.dark);

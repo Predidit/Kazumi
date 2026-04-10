@@ -216,7 +216,7 @@ class _AppWidgetState extends State<AppWidget>
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
 
-    // Set Windows title bar theme based on app theme (only when using system title bar)
+    // Set Windows title bar theme based on app theme
     if (Platform.isWindows) {
       bool showWindowButton = setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
       if (showWindowButton) {

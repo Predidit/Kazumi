@@ -218,8 +218,7 @@ class _AppWidgetState extends State<AppWidget>
 
     // Set Windows title bar theme based on app theme
     if (Platform.isWindows) {
-      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      windowManager.setBrightness(themeProvider.isEffectiveDark(brightness) ? Brightness.dark : Brightness.light);
+      windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
     }
 
     themeProvider.setFontFamily(useSystemFont, notify: false);

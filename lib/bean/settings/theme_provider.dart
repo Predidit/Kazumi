@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:kazumi/utils/constants.dart';
 
 class ThemeProvider extends ChangeNotifier {
@@ -9,10 +10,11 @@ class ThemeProvider extends ChangeNotifier {
   String? currentFontFamily = customAppFontFamily;
 
   /// Returns true if the effective theme is dark mode.
-  /// When themeMode is ThemeMode.system, uses the provided platform brightness.
-  bool isEffectiveDark(Brightness platformBrightness) {
+  /// Automatically gets platform brightness when themeMode is ThemeMode.system.
+  bool isEffectiveDark() {
     if (themeMode == ThemeMode.dark) return true;
     if (themeMode == ThemeMode.light) return false;
+    final platformBrightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
     return platformBrightness == Brightness.dark;
   }
 

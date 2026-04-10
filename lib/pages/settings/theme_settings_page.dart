@@ -126,8 +126,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
 
     // Update Windows title bar theme
     if (Platform.isWindows) {
-      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      await windowManager.setBrightness(themeProvider.isEffectiveDark(brightness) ? Brightness.dark : Brightness.light);
+      await windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
     }
   }
 

@@ -124,10 +124,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     });
 
     // Update Windows title bar theme
-    if (Platform.isWindows && showWindowButton) {
+    if (Platform.isWindows) {
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      final isDark = theme == 'dark' || (theme == 'system' && brightness == Brightness.dark);
-      Utils.setWindowTitleBarDarkMode(isDark);
+      Utils.setWindowTitleBarDarkMode(themeProvider.isEffectiveDark(brightness));
     }
   }
 

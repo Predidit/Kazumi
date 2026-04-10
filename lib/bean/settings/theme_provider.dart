@@ -8,6 +8,14 @@ class ThemeProvider extends ChangeNotifier {
   late ThemeData dark;
   String? currentFontFamily = customAppFontFamily;
 
+  /// Returns true if the effective theme is dark mode.
+  /// When themeMode is ThemeMode.system, uses the provided platform brightness.
+  bool isEffectiveDark(Brightness platformBrightness) {
+    if (themeMode == ThemeMode.dark) return true;
+    if (themeMode == ThemeMode.light) return false;
+    return platformBrightness == Brightness.dark;
+  }
+
   void setTheme(ThemeData light, ThemeData dark, {bool notify = true}) {
     this.light = light;
     this.dark = dark;

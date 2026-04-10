@@ -222,7 +222,8 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     case WM_SETTINGCHANGE:
-      UpdateTheme(hwnd);
+      // WM_SETTINGCHANGE is handled by Flutter layer rebuild,
+      // no need to update title bar theme here.
       return 0;
   }
 

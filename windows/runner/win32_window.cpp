@@ -55,6 +55,9 @@ void EnableFullDpiSupportIfAvailable(HWND hwnd) {
 
 }  // namespace
 
+// Static member definition - must be outside anonymous namespace
+BOOL Win32Window::manual_dark_mode_ = -1;
+
 // Manages the Win32Window's window class registration.
 class WindowClassRegistrar {
  public:
@@ -280,17 +283,36 @@ void Win32Window::OnDestroy() {
   // No-op; provided for subclasses.
 }
 
-void Win32Window::UpdateTheme(HWND const window) {
-  DWORD light_mode;
-  DWORD light_mode_size = sizeof(light_mode);
-  LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
-                               kGetPreferredBrightnessRegValue,
-                               RRF_RT_REG_DWORD, nullptr, &light_mode,
-                               &light_mode_size);
+void Win32Window::UpdateTheme(HWND const window, BOOL dark_mode) {
+  BOOL enable_dark_mode;
 
-  if (result == ERROR_SUCCESS) {
-    BOOL enable_dark_mode = light_mode == 0;
-    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                          &enable_dark_mode, sizeof(enable_dark_mode));
+  // Use provided dark_mode if specified (not -1), otherwise follow system
+  if (dark_mode != -1) {
+    enable_dark_mode = dark_mode;
+  } else {
+    // Check manual preference first
+    if (manual_dark_mode_ != -1) {
+      enable_dark_mode = manual_dark_mode_;
+    } else {
+      // Fall back to system theme
+      DWORD light_mode;
+      DWORD light_mode_size = sizeof(light_mode);
+      LSTATUS result = RegGetValue(HKEY_CURRENT_USER, kGetPreferredBrightnessRegKey,
+                                   kGetPreferredBrightnessRegValue,
+                                   RRF_RT_REG_DWORD, nullptr, &light_mode,
+                                   &light_mode_size);
+      if (result == ERROR_SUCCESS) {
+        enable_dark_mode = light_mode == 0;
+      } else {
+        enable_dark_mode = FALSE;
+      }
+    }
   }
+
+  DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                        &enable_dark_mode, sizeof(enable_dark_mode));
+}
+
+void Win32Window::SetDarkMode(BOOL dark_mode) {
+  manual_dark_mode_ = dark_mode;
 }

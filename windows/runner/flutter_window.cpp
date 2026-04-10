@@ -54,6 +54,9 @@ bool FlutterWindow::OnCreate() {
   // Register Shortcut MethodChannel
   RegisterShortcutChannel();
 
+  // Register Theme MethodChannel
+  RegisterThemeChannel();
+
   return true;
 }
 
@@ -173,6 +176,39 @@ void FlutterWindow::RegisterShortcutChannel() {
       result->Success(flutter::EncodableValue(true));
     } else {
       result->Error("Failed", "Failed to create desktop shortcut");
+    }
+  });
+}
+
+// Theme MethodChannel setup for immersive title bar
+void FlutterWindow::RegisterThemeChannel() {
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "com.predidit.kazumi/theme",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  channel->SetMethodCallHandler([this](const auto& call, auto result) {
+    if (call.method_name() == "setTitleBarDarkMode") {
+      const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
+      if (arguments) {
+        auto is_dark_it = arguments->find(flutter::EncodableValue("isDark"));
+        if (is_dark_it != arguments->end()) {
+          bool is_dark = std::get<bool>(is_dark_it->second);
+          Win32Window::SetDarkMode(is_dark ? TRUE : FALSE);
+          Win32Window::UpdateTheme(GetHandle());
+          result->Success();
+        } else {
+          result->Error("InvalidArguments", "Missing 'isDark' argument");
+        }
+      } else {
+        result->Error("InvalidArguments", "Arguments are not a map");
+      }
+    } else if (call.method_name() == "resetTitleBarTheme") {
+      // Reset to follow system theme
+      Win32Window::SetDarkMode(-1);
+      Win32Window::UpdateTheme(GetHandle());
+      result->Success();
+    } else {
+      result->NotImplemented();
     }
   });
 }

@@ -215,6 +215,15 @@ class _AppWidgetState extends State<AppWidget>
     if (defaultThemeMode == 'system') {
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
+
+    // Set Windows title bar theme based on app theme
+    if (Platform.isWindows) {
+      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      final isDark = themeProvider.themeMode == ThemeMode.dark ||
+          (themeProvider.themeMode == ThemeMode.system && brightness == Brightness.dark);
+      Utils.setWindowTitleBarDarkMode(isDark);
+    }
+
     themeProvider.setFontFamily(useSystemFont, notify: false);
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,

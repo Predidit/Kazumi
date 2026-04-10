@@ -700,5 +700,4 @@ class Utils {
       action?.call();
     });
   }
-
-  }
+}

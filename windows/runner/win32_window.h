@@ -55,9 +55,6 @@ class Win32Window {
   // Return a RECT representing the bounds of the current client area.
   RECT GetClientArea();
 
-  // Set title bar dark mode directly (for app theme sync)
-  static void SetTitleBarDarkMode(HWND const window, bool dark_mode);
-
  protected:
   // Processes and route salient window messages for mouse handling,
   // size change and DPI. Delegates handling of these to member overloads that

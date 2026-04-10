@@ -13,6 +13,7 @@ import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -126,7 +127,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     // Update Windows title bar theme
     if (Platform.isWindows) {
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      Utils.setWindowTitleBarDarkMode(themeProvider.isEffectiveDark(brightness));
+      await windowManager.setBrightness(themeProvider.isEffectiveDark(brightness) ? Brightness.dark : Brightness.light);
     }
   }
 

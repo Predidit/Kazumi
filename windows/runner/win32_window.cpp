@@ -222,8 +222,7 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     case WM_SETTINGCHANGE:
-      // WM_SETTINGCHANGE is handled by Flutter layer rebuild,
-      // no need to update title bar theme here.
+      UpdateTheme(window_handle_);
       return 0;
   }
 
@@ -290,12 +289,8 @@ void Win32Window::UpdateTheme(HWND const window) {
                                &light_mode_size);
 
   if (result == ERROR_SUCCESS) {
-    SetTitleBarDarkMode(window, light_mode == 0);
+    BOOL enable = light_mode == 0 ? TRUE : FALSE;
+    DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                          &enable, sizeof(enable));
   }
-}
-
-void Win32Window::SetTitleBarDarkMode(HWND const window, bool dark_mode) {
-  BOOL enable = dark_mode ? TRUE : FALSE;
-  DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE,
-                        &enable, sizeof(enable));
 }

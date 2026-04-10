@@ -54,9 +54,6 @@ bool FlutterWindow::OnCreate() {
   // Register Shortcut MethodChannel
   RegisterShortcutChannel();
 
-  // Register Theme MethodChannel
-  RegisterThemeChannel();
-
   return true;
 }
 
@@ -180,31 +177,3 @@ void FlutterWindow::RegisterShortcutChannel() {
   });
 }
 
-// Theme MethodChannel setup
-void FlutterWindow::RegisterThemeChannel() {
-  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-      flutter_controller_->engine()->messenger(), "com.predidit.kazumi/theme",
-      &flutter::StandardMethodCodec::GetInstance());
-
-  channel->SetMethodCallHandler(
-      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
-             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-        if (call.method_name() == "setTitleBarDarkMode") {
-          const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
-          if (arguments) {
-            auto is_dark_it = arguments->find(flutter::EncodableValue("isDark"));
-            if (is_dark_it != arguments->end()) {
-              bool is_dark = std::get<bool>(is_dark_it->second);
-              Win32Window::SetTitleBarDarkMode(GetHandle(), is_dark);
-              result->Success();
-            } else {
-              result->Error("InvalidArguments", "Missing 'isDark' argument");
-            }
-          } else {
-            result->Error("InvalidArguments", "Arguments are not a map");
-          }
-        } else {
-          result->NotImplemented();
-        }
-      });
-}

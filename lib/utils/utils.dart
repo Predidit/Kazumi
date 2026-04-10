@@ -711,15 +711,4 @@ class Utils {
       KazumiLogger().e("Failed to set title bar dark mode: '${e.message}'.");
     }
   }
-
-  /// 重置 Windows 标题栏跟随系统主题
-  static Future<void> resetWindowTitleBarTheme() async {
-    if (!Platform.isWindows) return;
-    const MethodChannel themeChannel = MethodChannel("com.predidit.kazumi/theme");
-    try {
-      await themeChannel.invokeMethod("resetTitleBarTheme");
-    } on PlatformException catch (e) {
-      KazumiLogger().e("Failed to reset title bar theme: '${e.message}'.");
-    }
-  }
 }

@@ -123,8 +123,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
       defaultThemeMode = theme;
     });
 
-    // Update Windows title bar theme
-    if (Utils.isDesktop() && Platform.isWindows) {
+    // Update Windows title bar theme (only when using system title bar)
+    if (Platform.isWindows && showWindowButton) {
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       final isDark = theme == 'dark' || (theme == 'system' && brightness == Brightness.dark);
       Utils.setWindowTitleBarDarkMode(isDark);
@@ -389,16 +389,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       showWindowButton = value ?? !showWindowButton;
                       await setting.put(
                           SettingBoxKey.showWindowButton, showWindowButton);
-                      // Reset title bar theme to follow system when hiding system title bar
-                      if (!showWindowButton && Platform.isWindows) {
-                        Utils.resetWindowTitleBarTheme();
-                      } else if (showWindowButton && Platform.isWindows) {
-                        // Update title bar theme based on current app theme when showing system title bar
-                        final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-                        final isDark = defaultThemeMode == 'dark' ||
-                            (defaultThemeMode == 'system' && brightness == Brightness.dark);
-                        Utils.setWindowTitleBarDarkMode(isDark);
-                      }
                       setState(() {});
                     },
                     title: Text('使用系统标题栏',

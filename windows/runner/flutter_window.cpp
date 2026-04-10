@@ -193,8 +193,7 @@ void FlutterWindow::RegisterThemeChannel() {
         auto is_dark_it = arguments->find(flutter::EncodableValue("isDark"));
         if (is_dark_it != arguments->end()) {
           bool is_dark = std::get<bool>(is_dark_it->second);
-          Win32Window::SetDarkMode(is_dark ? TRUE : FALSE);
-          Win32Window::UpdateTheme(GetHandle());
+          Win32Window::UpdateTheme(GetHandle(), is_dark);
           result->Success();
         } else {
           result->Error("InvalidArguments", "Missing 'isDark' argument");
@@ -202,11 +201,6 @@ void FlutterWindow::RegisterThemeChannel() {
       } else {
         result->Error("InvalidArguments", "Arguments are not a map");
       }
-    } else if (call.method_name() == "resetTitleBarTheme") {
-      // Reset to follow system theme
-      Win32Window::SetDarkMode(-1);
-      Win32Window::UpdateTheme(GetHandle());
-      result->Success();
     } else {
       result->NotImplemented();
     }

@@ -165,7 +165,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   @override
-  void didChangePlatformBrightness() async {
+  Future<void> didChangePlatformBrightness() async {
     super.didChangePlatformBrightness();
     final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     KazumiLogger().i("Platform brightness changed, themeMode: ${themeProvider.themeMode}");

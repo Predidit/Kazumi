@@ -222,9 +222,6 @@ Win32Window::MessageHandler(HWND hwnd,
       return 0;
 
     // Theme state is now maintained by Flutter side (app_widget.dart).
-    // WM_DWMCOLORIZATIONCOLORCHANGED is no longer needed because:
-    // - Title bar theme is controlled via windowManager.setBrightness() from Flutter
-    // - didChangePlatformBrightness() handles system theme changes with themeMode awareness
     // case WM_DWMCOLORIZATIONCOLORCHANGED:
     //   UpdateTheme(hwnd);
     //   return 0;

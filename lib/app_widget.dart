@@ -164,6 +164,21 @@ class _AppWidgetState extends State<AppWidget>
     }
   }
 
+  @override
+  void didChangePlatformBrightness() async {
+    super.didChangePlatformBrightness();
+    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    KazumiLogger().i("Platform brightness changed, themeMode: ${themeProvider.themeMode}");
+
+    // Only update title bar theme when following system
+    // If user has forced a specific theme, keep title bar consistent with app content
+    if (themeProvider.themeMode == ThemeMode.system && Platform.isWindows) {
+      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      KazumiLogger().i("Updating title bar brightness: $brightness");
+      await windowManager.setBrightness(brightness);
+    }
+  }
+
   Future<void> _handleTray() async {
     if (Platform.isWindows) {
       await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');

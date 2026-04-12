@@ -92,36 +92,35 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
         Expanded(
           child: Observer(
             builder: (context) {
-              final loading = playerController.danmakuLoading;
-
-              if (loading) {
+              if (playerController.danmakuLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              final displayedDanmakus = playerController.allDanmakus;
-
-              if (displayedDanmakus.isEmpty) {
-                return Center(
-                  child: Text(
-                    '暂无弹幕',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.outline),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                prototypeItem: _buildDanmakuItem(Danmaku(
-                  message: '测',
-                  time: 0,
-                  type: 1,
-                  color: Colors.transparent,
-                  source: 'dandanplay',
-                )), // 依靠原型项让 Flutter 知道高度，避免大幅度滑动时海量测算造成的卡顿
-                itemCount: displayedDanmakus.length,
-                itemBuilder: (context, index) {
-                  return _buildDanmakuItem(displayedDanmakus[index]);
+              return Observer(
+                builder: (context) {
+                  final displayedDanmakus = playerController.allDanmakus;
+                  if (displayedDanmakus.isEmpty) {
+                    return Center(
+                      child: Text(
+                        '暂无弹幕',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    prototypeItem: _buildDanmakuItem(Danmaku(
+                      message: '测',
+                      time: 0,
+                      type: 1,
+                      color: Colors.transparent,
+                      source: 'dandanplay',
+                    )),
+                    itemCount: displayedDanmakus.length,
+                    itemBuilder: (context, index) {
+                      return _buildDanmakuItem(displayedDanmakus[index]);
+                    },
+                  );
                 },
               );
             },

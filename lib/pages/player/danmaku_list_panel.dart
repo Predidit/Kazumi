@@ -50,7 +50,10 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          playerController.seek(Duration(seconds: timeSeconds));
+          playerController.seek(
+            Duration(seconds: timeSeconds),
+            clearDanmakuLayer: false,
+          );
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

@@ -604,9 +604,12 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future<void> seek(Duration duration, {bool enableSync = true}) async {
+  Future<void> seek(Duration duration,
+      {bool enableSync = true, bool clearDanmakuLayer = true}) async {
     currentPosition = duration;
-    danmakuController.clear();
+    if (clearDanmakuLayer) {
+      danmakuController.clear();
+    }
     await mediaPlayer!.seek(duration);
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();

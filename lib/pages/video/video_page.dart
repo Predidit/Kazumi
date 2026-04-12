@@ -1038,7 +1038,7 @@ class _VideoPageState extends State<VideoPage>
       color: Theme.of(context).canvasColor,
       child: DefaultTabController(
         key: ValueKey(isPortrait),
-        length: isPortrait ? 2 : 3,
+        length: 3,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

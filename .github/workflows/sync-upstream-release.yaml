@@ -40,7 +40,7 @@ jobs:
           SYNC_BRANCH="sync-upstream-$LATEST_TAG"
           git checkout -b "$SYNC_BRANCH"
           
-          if git merge "upstream/$LATEST_TAG" --allow-unrelated-histories -m "Sync upstream release $LATEST_TAG"; then
+          if git merge "$LATEST_TAG" --allow-unrelated-histories -m "Sync upstream release $LATEST_TAG"; then
             echo "Merge complete."
           else
             echo "Merge failed,waiting for check."

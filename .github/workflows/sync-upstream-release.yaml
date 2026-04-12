@@ -2,17 +2,54 @@ name: Sync Upstream Release
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 每天凌晨检查一次
-  workflow_dispatch:   # 允许手动点击按钮触发
+    - cron: '0 0 * * *'
+  workflow_dispatch: 
 
 jobs:
-  upstream-release-syncer:
+  sync_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
-      - name: Sync Upstream Release
-        uses: dfm/action-upstream-release-syncer@v1
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          upstream_repo: Predidit/Kazumi 
-          target_repo: ${{ github.repository }}
-          upstream_token: ${{ secrets.GITHUB_TOKEN }}
-          target_branch: main
+          fetch-depth: 0
+
+      - name: Sync via GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM_REPO: "Predidit/Kazumi" 
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          LATEST_TAG=$(gh api repos/$UPSTREAM_REPO/releases/latest --jq '.tag_name')
+          echo "Upstream Release: $LATEST_TAG"
+
+          if git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+            echo "Already up to date."
+            exit 0
+          fi
+
+          git remote add upstream "https://github.com/$UPSTREAM_REPO.git"
+          git fetch upstream --tags
+
+          SYNC_BRANCH="sync-upstream-$LATEST_TAG"
+          git checkout -b "$SYNC_BRANCH"
+          
+          if git merge "upstream/$LATEST_TAG" --allow-unrelated-histories -m "Sync upstream release $LATEST_TAG"; then
+            echo "Merge complete."
+          else
+            echo "Merge failed,waiting for check."
+            git add .
+            git commit -m "chore: sync $LATEST_TAG with conflicts"
+          fi
+
+          git push origin "$SYNC_BRANCH"
+          gh pr create --title "Sync upstream ver $LATEST_TAG" \
+                       --body "zsbd" \
+                       --base main \
+                       --head "$SYNC_BRANCH"

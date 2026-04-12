@@ -1,0 +1,18 @@
+name: Sync Upstream Release
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天凌晨检查一次
+  workflow_dispatch:   # 允许手动点击按钮触发
+
+jobs:
+  upstream-release-syncer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Upstream Release
+        uses: dfm/action-upstream-release-syncer@v1
+        with:
+          upstream_repo: Predidit/Kazumi 
+          target_repo: ${{ github.repository }}
+          upstream_token: ${{ secrets.GITHUB_TOKEN }}
+          target_branch: main

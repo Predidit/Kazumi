@@ -32,12 +32,13 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
   }
 
   void _onScroll() {
-    if (!mounted) return;
-    
+    if (!mounted || !_scrollController.hasClients) return;
+    if (playerController.isDanmakuPanelLoadingMore) return;
+
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     final threshold = maxScroll * 0.8;
-    
+
     if (currentScroll >= threshold) {
       playerController.loadMoreDanmakuPanelList();
     }
@@ -96,7 +97,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
               ),
               Observer(builder: (context) {
                 return Text(
-                  '共 ${playerController.danmakuTotalCount} 条',
+                  '共 ${playerController.allDanmakus.length} 条',
                   style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline),
@@ -110,11 +111,12 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
           child: Observer(
             builder: (context) {
               final loading = playerController.danmakuLoading;
-              final displayedDanmakus = playerController.danmakuPanelDanmakuList;
 
               if (loading) {
                 return const Center(child: CircularProgressIndicator());
               }
+
+              final displayedDanmakus = playerController.danmakuPanelDanmakuList;
 
               if (displayedDanmakus.isEmpty) {
                 return Center(

@@ -107,19 +107,24 @@ abstract class _PlayerController with Store {
   @observable
   ObservableList<Danmaku> danmakuPanelDanmakuList = ObservableList<Danmaku>();
 
-  int get danmakuTotalCount =>
-      danDanmakus.values.fold(0, (count, list) => count + list.length);
-  
   int _danmakuPanelDisplayedCount = 0;
+  bool _isDanmakuPanelLoadingMore = false;
+  DateTime? _lastDanmakuPanelLoadAt;
   static const int _danmakuPanelInitialLoadCount = 100;
   static const int _danmakuPanelLoadMoreCount = 200;
+  static const Duration _danmakuPanelLoadDebounce =
+      Duration(milliseconds: 120);
+
+  bool get isDanmakuPanelLoadingMore => _isDanmakuPanelLoadingMore;
 
   @action
   void initDanmakuPanelList() {
     final all = allDanmakus;
-    _danmakuPanelDisplayedCount = all.length < _danmakuPanelInitialLoadCount 
-        ? all.length 
+    _danmakuPanelDisplayedCount = all.length < _danmakuPanelInitialLoadCount
+        ? all.length
         : _danmakuPanelInitialLoadCount;
+    _isDanmakuPanelLoadingMore = false;
+    _lastDanmakuPanelLoadAt = null;
     danmakuPanelDanmakuList
       ..clear()
       ..addAll(all.take(_danmakuPanelDisplayedCount));
@@ -127,16 +132,32 @@ abstract class _PlayerController with Store {
 
   @action
   void loadMoreDanmakuPanelList() {
-    final all = allDanmakus;
-    if (_danmakuPanelDisplayedCount >= all.length) return;
-    
-    final remainingLines = all.length - _danmakuPanelDisplayedCount;
-    final linesToLoad = remainingLines < _danmakuPanelLoadMoreCount 
-        ? remainingLines 
-        : _danmakuPanelLoadMoreCount;
-    
-    danmakuPanelDanmakuList.addAll(all.skip(_danmakuPanelDisplayedCount).take(linesToLoad));
-    _danmakuPanelDisplayedCount += linesToLoad;
+    if (_isDanmakuPanelLoadingMore) return;
+
+    final now = DateTime.now();
+    final lastLoadAt = _lastDanmakuPanelLoadAt;
+    if (lastLoadAt != null &&
+        now.difference(lastLoadAt) < _danmakuPanelLoadDebounce) {
+      return;
+    }
+
+    _isDanmakuPanelLoadingMore = true;
+    try {
+      final all = allDanmakus;
+      if (_danmakuPanelDisplayedCount >= all.length) return;
+
+      final remainingLines = all.length - _danmakuPanelDisplayedCount;
+      final linesToLoad = remainingLines < _danmakuPanelLoadMoreCount
+          ? remainingLines
+          : _danmakuPanelLoadMoreCount;
+
+      danmakuPanelDanmakuList
+          .addAll(all.skip(_danmakuPanelDisplayedCount).take(linesToLoad));
+      _danmakuPanelDisplayedCount += linesToLoad;
+      _lastDanmakuPanelLoadAt = now;
+    } finally {
+      _isDanmakuPanelLoadingMore = false;
+    }
   }
 
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
@@ -818,6 +839,8 @@ abstract class _PlayerController with Store {
   void clearDanmakus() {
     danDanmakus = {};
     _danmakuPanelDisplayedCount = 0;
+    _isDanmakuPanelLoadingMore = false;
+    _lastDanmakuPanelLoadAt = null;
     danmakuPanelDanmakuList.clear();
   }
 

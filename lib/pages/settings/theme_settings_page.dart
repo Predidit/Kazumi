@@ -13,6 +13,7 @@ import 'package:kazumi/bean/settings/color_type.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -122,6 +123,11 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     setState(() {
       defaultThemeMode = theme;
     });
+
+    // Update Windows title bar theme
+    if (Platform.isWindows) {
+      await windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
+    }
   }
 
   void updateOledEnhance() {

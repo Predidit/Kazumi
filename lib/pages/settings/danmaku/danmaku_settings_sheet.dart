@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings.dart';
+import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
@@ -36,7 +36,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         builder: (context) {
           return SafeArea(
             bottom: false,
-            child: DanmakuShieldSettings(),
+            child:  DanmakuShieldSettingsSheet(),
           );
         });
   }

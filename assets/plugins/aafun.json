@@ -1,0 +1,17 @@
+{
+    "api": "4",
+    "type": "anime",
+    "name": "aafun",
+    "version": "1.0",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "userAgent": "",
+    "baseURL": "https://www.aafun.cc/",
+    "searchURL": "https://www.aafun.cc/feng-s.html?wd=@keyword&submit=",
+    "searchList": "//div/div[2]/div/div[2]/div/div/div[1]/div/div[2]/div/ul/li",
+    "searchName": "//div/div/div[2]/div[1]/div/a",
+    "searchResult": "//div/div/div[2]/div[1]/div/a",
+    "chapterRoads": "//div[2]/div[2]/div/div/div[2]/div/div[1]/div[2]/div/div/div/ul",
+    "chapterResult": "//li/a"
+}

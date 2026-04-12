@@ -106,6 +106,9 @@ abstract class _PlayerController with Store {
 
   @observable
   ObservableList<Danmaku> danmakuPanelDanmakuList = ObservableList<Danmaku>();
+
+  int get danmakuTotalCount =>
+      danDanmakus.values.fold(0, (count, list) => count + list.length);
   
   int _danmakuPanelDisplayedCount = 0;
   static const int _danmakuPanelInitialLoadCount = 100;
@@ -811,6 +814,8 @@ abstract class _PlayerController with Store {
   @action
   void clearDanmakus() {
     danDanmakus = {};
+    _danmakuPanelDisplayedCount = 0;
+    danmakuPanelDanmakuList.clear();
   }
 
   @action
@@ -829,6 +834,7 @@ abstract class _PlayerController with Store {
     }
     
     danDanmakus = newMap;
+    initDanmakuPanelList();
   }
 
   void lanunchExternalPlayer() async {

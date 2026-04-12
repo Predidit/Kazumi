@@ -12,8 +12,10 @@ class Danmaku {
   Color color;
   // 弹幕来源 ([BiliBili], [Gamer])
   String source;
+  // 是否高亮显示 (用于弹幕列表点击跳转后的上屏效果)
+  bool isHighlight;
 
-  Danmaku({required this.message, required this.time, required this.type, required this.color, required this.source});
+  Danmaku({required this.message, required this.time, required this.type, required this.color, required this.source, this.isHighlight = false});
 
   factory Danmaku.fromJson(Map<String, dynamic> json) {
     String messageValue = json['m'];

@@ -90,11 +90,20 @@ abstract class _PlayerController with Store {
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
-  Map<int, List<Danmaku>> danDanmakus = {};
+  ObservableMap<int, List<Danmaku>> danDanmakus = ObservableMap<int, List<Danmaku>>();
   @observable
   bool danmakuOn = false;
   @observable
   bool danmakuLoading = false;
+
+  @computed
+  List<Danmaku> get allDanmakus {
+    return danDanmakus.values
+        .expand((element) => element)
+        .toList(growable: false)
+      ..sort((a, b) => a.time.compareTo(b.time));
+  }
+
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
   final StreamController<SyncPlayChatMessage> syncPlayChatStreamController =
       StreamController<SyncPlayChatMessage>.broadcast();
@@ -644,6 +653,11 @@ abstract class _PlayerController with Store {
     }
   }
 
+  @action
+  void setDanmakuLoading(bool loading) {
+    danmakuLoading = loading;
+  }
+
   Future<void> _loadCachedDanmaku(
       int bangumiId, String pluginName, int episode) async {
     if (danmakuLoading) {
@@ -654,9 +668,9 @@ abstract class _PlayerController with Store {
 
     KazumiLogger().i(
         'PlayerController: attempting to load cached danmaku for episode $episode');
-    danmakuLoading = true;
+    setDanmakuLoading(true);
     try {
-      danDanmakus.clear();
+      clearDanmakus();
       final downloadController = Modular.get<DownloadController>();
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
@@ -726,9 +740,9 @@ abstract class _PlayerController with Store {
 
     KazumiLogger().i(
         'PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
-    danmakuLoading = true;
+    setDanmakuLoading(true);
     try {
-      danDanmakus.clear();
+      clearDanmakus();
       bangumiID =
           await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
@@ -738,7 +752,7 @@ abstract class _PlayerController with Store {
           'PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID',
           error: e);
     } finally {
-      danmakuLoading = false;
+      setDanmakuLoading(false);
     }
   }
 
@@ -750,18 +764,24 @@ abstract class _PlayerController with Store {
     }
 
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
-    danmakuLoading = true;
+    setDanmakuLoading(true);
     try {
-      danDanmakus.clear();
+      clearDanmakus();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
     } finally {
-      danmakuLoading = false;
+      setDanmakuLoading(false);
     }
   }
 
+  @action
+  void clearDanmakus() {
+    danDanmakus.clear();
+  }
+
+  @action
   void addDanmakus(List<Danmaku> danmakus) {
     final bool danmakuDeduplicationEnable =
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
@@ -771,11 +791,19 @@ abstract class _PlayerController with Store {
         ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;
 
+    // 先按秒数将弹幕分组，避免在同一秒内有海量弹幕时频繁刷新 ObservableMap 和重复复制数组
+    final groupedList = <int, List<Danmaku>>{};
     for (var element in listToAdd) {
-      var danmakuList =
-          danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
-      danmakuList.add(element);
-      danDanmakus[element.time.toInt()] = danmakuList;
+      groupedList.putIfAbsent(element.time.toInt(), () => []).add(element);
+    }
+
+    for (var entry in groupedList.entries) {
+      final timeKey = entry.key;
+      // 这里必须建一个新数组复制旧弹幕并追加，以确保每次赋进 ObservableMap 的引用都发生变化
+      // 如果沿用旧的 List 引用并在原地修改它，ObservableMap 将察觉不到内部变化而跳过更新
+      final updatedList = List<Danmaku>.from(danDanmakus[timeKey] ?? []);
+      updatedList.addAll(entry.value);
+      danDanmakus[timeKey] = updatedList;
     }
   }
 

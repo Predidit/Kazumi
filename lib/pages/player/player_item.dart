@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
@@ -842,7 +841,6 @@ class _PlayerItemState extends State<PlayerItem>
                   ? playerController.danmakuController.addDanmaku(
                       DanmakuContentItem(danmaku.message,
                           color: danmaku.color,
-                          selfSend: danmaku.isHighlight,
                           type: danmaku.type == 4
                               ? DanmakuItemType.bottom
                               : (danmaku.type == 5

@@ -90,7 +90,7 @@ abstract class _PlayerController with Store {
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
-  ObservableMap<int, List<Danmaku>> danDanmakus = ObservableMap<int, List<Danmaku>>();
+  Map<int, List<Danmaku>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
   @observable
@@ -102,6 +102,38 @@ abstract class _PlayerController with Store {
         .expand((element) => element)
         .toList(growable: false)
       ..sort((a, b) => a.time.compareTo(b.time));
+  }
+
+  @observable
+  ObservableList<Danmaku> danmakuPanelDanmakuList = ObservableList<Danmaku>();
+  
+  int _danmakuPanelDisplayedCount = 0;
+  static const int _danmakuPanelInitialLoadCount = 100;
+  static const int _danmakuPanelLoadMoreCount = 200;
+
+  @action
+  void initDanmakuPanelList() {
+    final all = allDanmakus;
+    _danmakuPanelDisplayedCount = all.length < _danmakuPanelInitialLoadCount 
+        ? all.length 
+        : _danmakuPanelInitialLoadCount;
+    danmakuPanelDanmakuList
+      ..clear()
+      ..addAll(all.take(_danmakuPanelDisplayedCount));
+  }
+
+  @action
+  void loadMoreDanmakuPanelList() {
+    final all = allDanmakus;
+    if (_danmakuPanelDisplayedCount >= all.length) return;
+    
+    final remainingLines = all.length - _danmakuPanelDisplayedCount;
+    final linesToLoad = remainingLines < _danmakuPanelLoadMoreCount 
+        ? remainingLines 
+        : _danmakuPanelLoadMoreCount;
+    
+    danmakuPanelDanmakuList.addAll(all.skip(_danmakuPanelDisplayedCount).take(linesToLoad));
+    _danmakuPanelDisplayedCount += linesToLoad;
   }
 
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
@@ -778,7 +810,7 @@ abstract class _PlayerController with Store {
 
   @action
   void clearDanmakus() {
-    danDanmakus.clear();
+    danDanmakus = {};
   }
 
   @action
@@ -791,20 +823,12 @@ abstract class _PlayerController with Store {
         ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;
 
-    // 先按秒数将弹幕分组，避免在同一秒内有海量弹幕时频繁刷新 ObservableMap 和重复复制数组
-    final groupedList = <int, List<Danmaku>>{};
+    final newMap = Map<int, List<Danmaku>>.from(danDanmakus);
     for (var element in listToAdd) {
-      groupedList.putIfAbsent(element.time.toInt(), () => []).add(element);
+      newMap.putIfAbsent(element.time.toInt(), () => []).add(element);
     }
-
-    for (var entry in groupedList.entries) {
-      final timeKey = entry.key;
-      // 这里必须建一个新数组复制旧弹幕并追加，以确保每次赋进 ObservableMap 的引用都发生变化
-      // 如果沿用旧的 List 引用并在原地修改它，ObservableMap 将察觉不到内部变化而跳过更新
-      final updatedList = List<Danmaku>.from(danDanmakus[timeKey] ?? []);
-      updatedList.addAll(entry.value);
-      danDanmakus[timeKey] = updatedList;
-    }
+    
+    danDanmakus = newMap;
   }
 
   void lanunchExternalPlayer() async {

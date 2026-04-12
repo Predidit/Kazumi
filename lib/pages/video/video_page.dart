@@ -1112,55 +1112,6 @@ class _VideoPageState extends State<VideoPage>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // 弹幕列表按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: playerController.danmakuOn
-                            ? Theme.of(context).hintColor
-                            : Theme.of(context).disabledColor,
-                        width: 0.5,
-                      ),
-                    ),
-                    width: 90,
-                    height: 31,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (playerController.danmakuOn &&
-                            !videoPageController.loading) {
-                          showDanmakuListPanel();
-                        } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
-                        } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
-                        }
-                      },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '弹幕列表',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: playerController.danmakuOn
-                                  ? Theme.of(context).hintColor
-                                  : Theme.of(context).disabledColor,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.list_rounded,
-                            size: 18,
-                            color: playerController.danmakuOn
-                                ? Theme.of(context).hintColor
-                                : Theme.of(context).disabledColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
                 const SizedBox(width: 8),
               ],
@@ -1209,22 +1160,6 @@ class _VideoPageState extends State<VideoPage>
           ],
         ),
       ),
-    );
-  }
-
-  void showDanmakuListPanel() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-      ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      builder: (context) {
-        return const DanmakuListPanel();
-      },
     );
   }
 }

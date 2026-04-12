@@ -90,7 +90,7 @@ abstract class _PlayerController with Store {
   // 弹幕控制
   late DanmakuController danmakuController;
   @observable
-  Map<int, List<Danmaku>> danDanmakus = {};
+  ObservableMap<int, List<Danmaku>> danDanmakus = ObservableMap<int, List<Danmaku>>();
   @observable
   bool danmakuOn = false;
   @observable
@@ -102,62 +102,6 @@ abstract class _PlayerController with Store {
         .expand((element) => element)
         .toList(growable: false)
       ..sort((a, b) => a.time.compareTo(b.time));
-  }
-
-  @observable
-  ObservableList<Danmaku> danmakuPanelDanmakuList = ObservableList<Danmaku>();
-
-  int _danmakuPanelDisplayedCount = 0;
-  bool _isDanmakuPanelLoadingMore = false;
-  DateTime? _lastDanmakuPanelLoadAt;
-  static const int _danmakuPanelInitialLoadCount = 100;
-  static const int _danmakuPanelLoadMoreCount = 200;
-  static const Duration _danmakuPanelLoadDebounce =
-      Duration(milliseconds: 120);
-
-  bool get isDanmakuPanelLoadingMore => _isDanmakuPanelLoadingMore;
-
-  @action
-  void initDanmakuPanelList() {
-    final all = allDanmakus;
-    _danmakuPanelDisplayedCount = all.length < _danmakuPanelInitialLoadCount
-        ? all.length
-        : _danmakuPanelInitialLoadCount;
-    _isDanmakuPanelLoadingMore = false;
-    _lastDanmakuPanelLoadAt = null;
-    danmakuPanelDanmakuList
-      ..clear()
-      ..addAll(all.take(_danmakuPanelDisplayedCount));
-  }
-
-  @action
-  void loadMoreDanmakuPanelList() {
-    if (_isDanmakuPanelLoadingMore) return;
-
-    final now = DateTime.now();
-    final lastLoadAt = _lastDanmakuPanelLoadAt;
-    if (lastLoadAt != null &&
-        now.difference(lastLoadAt) < _danmakuPanelLoadDebounce) {
-      return;
-    }
-
-    _isDanmakuPanelLoadingMore = true;
-    try {
-      final all = allDanmakus;
-      if (_danmakuPanelDisplayedCount >= all.length) return;
-
-      final remainingLines = all.length - _danmakuPanelDisplayedCount;
-      final linesToLoad = remainingLines < _danmakuPanelLoadMoreCount
-          ? remainingLines
-          : _danmakuPanelLoadMoreCount;
-
-      danmakuPanelDanmakuList
-          .addAll(all.skip(_danmakuPanelDisplayedCount).take(linesToLoad));
-      _danmakuPanelDisplayedCount += linesToLoad;
-      _lastDanmakuPanelLoadAt = now;
-    } finally {
-      _isDanmakuPanelLoadingMore = false;
-    }
   }
 
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
@@ -837,11 +781,7 @@ abstract class _PlayerController with Store {
 
   @action
   void clearDanmakus() {
-    danDanmakus = {};
-    _danmakuPanelDisplayedCount = 0;
-    _isDanmakuPanelLoadingMore = false;
-    _lastDanmakuPanelLoadAt = null;
-    danmakuPanelDanmakuList.clear();
+    danDanmakus.clear();
   }
 
   @action
@@ -858,9 +798,8 @@ abstract class _PlayerController with Store {
     for (var element in listToAdd) {
       newMap.putIfAbsent(element.time.toInt(), () => []).add(element);
     }
-    
-    danDanmakus = newMap;
-    initDanmakuPanelList();
+    danDanmakus.clear();
+    danDanmakus.addAll(newMap);
   }
 
   void lanunchExternalPlayer() async {

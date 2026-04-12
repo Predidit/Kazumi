@@ -21,13 +21,13 @@ mixin _$PlayerController on _PlayerController, Store {
       Atom(name: '_PlayerController.danDanmakus', context: context);
 
   @override
-  Map<int, List<Danmaku>> get danDanmakus {
+  ObservableMap<int, List<Danmaku>> get danDanmakus {
     _$danDanmakusAtom.reportRead();
     return super.danDanmakus;
   }
 
   @override
-  set danDanmakus(Map<int, List<Danmaku>> value) {
+  set danDanmakus(ObservableMap<int, List<Danmaku>> value) {
     _$danDanmakusAtom.reportWrite(value, super.danDanmakus, () {
       super.danDanmakus = value;
     });
@@ -62,23 +62,6 @@ mixin _$PlayerController on _PlayerController, Store {
   set danmakuLoading(bool value) {
     _$danmakuLoadingAtom.reportWrite(value, super.danmakuLoading, () {
       super.danmakuLoading = value;
-    });
-  }
-
-  late final _$danmakuPanelDanmakuListAtom =
-      Atom(name: '_PlayerController.danmakuPanelDanmakuList', context: context);
-
-  @override
-  ObservableList<Danmaku> get danmakuPanelDanmakuList {
-    _$danmakuPanelDanmakuListAtom.reportRead();
-    return super.danmakuPanelDanmakuList;
-  }
-
-  @override
-  set danmakuPanelDanmakuList(ObservableList<Danmaku> value) {
-    _$danmakuPanelDanmakuListAtom
-        .reportWrite(value, super.danmakuPanelDanmakuList, () {
-      super.danmakuPanelDanmakuList = value;
     });
   }
 
@@ -598,28 +581,6 @@ mixin _$PlayerController on _PlayerController, Store {
       ActionController(name: '_PlayerController', context: context);
 
   @override
-  void initDanmakuPanelList() {
-    final _$actionInfo = _$_PlayerControllerActionController.startAction(
-        name: '_PlayerController.initDanmakuPanelList');
-    try {
-      return super.initDanmakuPanelList();
-    } finally {
-      _$_PlayerControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  void loadMoreDanmakuPanelList() {
-    final _$actionInfo = _$_PlayerControllerActionController.startAction(
-        name: '_PlayerController.loadMoreDanmakuPanelList');
-    try {
-      return super.loadMoreDanmakuPanelList();
-    } finally {
-      _$_PlayerControllerActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
   void setDanmakuLoading(bool loading) {
     final _$actionInfo = _$_PlayerControllerActionController.startAction(
         name: '_PlayerController.setDanmakuLoading');
@@ -658,7 +619,6 @@ mixin _$PlayerController on _PlayerController, Store {
 danDanmakus: ${danDanmakus},
 danmakuOn: ${danmakuOn},
 danmakuLoading: ${danmakuLoading},
-danmakuPanelDanmakuList: ${danmakuPanelDanmakuList},
 syncplayRoom: ${syncplayRoom},
 syncplayClientRtt: ${syncplayClientRtt},
 aspectRatioType: ${aspectRatioType},

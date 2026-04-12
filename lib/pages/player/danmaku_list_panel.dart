@@ -15,33 +15,15 @@ class DanmakuListPanel extends StatefulWidget {
 
 class _DanmakuListPanelState extends State<DanmakuListPanel> {
   final PlayerController playerController = Modular.get<PlayerController>();
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    playerController.initDanmakuPanelList();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (!mounted || !_scrollController.hasClients) return;
-    if (playerController.isDanmakuPanelLoadingMore) return;
-
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    final threshold = maxScroll * 0.8;
-
-    if (currentScroll >= threshold) {
-      playerController.loadMoreDanmakuPanelList();
-    }
   }
 
   Widget _buildDanmakuItem(Danmaku item) {
@@ -116,28 +98,20 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final displayedDanmakus = playerController.danmakuPanelDanmakuList;
+              final displayedDanmakus = playerController.allDanmakus;
 
               if (displayedDanmakus.isEmpty) {
                 return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.subtitles_off_outlined,
-                          size: 40,
-                          color: Theme.of(context).colorScheme.outline),
-                      const SizedBox(height: 12),
-                      Text('暂无弹幕',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.outline)),
-                    ],
+                  child: Text(
+                    '暂无弹幕',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.outline),
                   ),
                 );
               }
 
               return ListView.builder(
-                controller: _scrollController,
                 prototypeItem: _buildDanmakuItem(Danmaku(
                   message: '测',
                   time: 0,

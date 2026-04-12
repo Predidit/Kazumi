@@ -743,7 +743,7 @@ abstract class _PlayerController with Store {
       KazumiLogger()
           .w('PlayerController: failed to load cached danmaku', error: e);
     } finally {
-      danmakuLoading = false;
+      setDanmakuLoading(false);
     }
   }
 

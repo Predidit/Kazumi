@@ -46,29 +46,32 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
   Widget _buildDanmakuItem(Danmaku item) {
     final timeSeconds = item.time.toInt();
 
-    return InkWell(
-      onTap: () {
-        playerController.seek(Duration(seconds: timeSeconds));
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.message,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          playerController.seek(Duration(seconds: timeSeconds));
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              Utils.durationToString(Duration(seconds: timeSeconds)),
-              style: TextStyle(
-                  fontSize: 11, color: Theme.of(context).colorScheme.outline),
-            ),
-          ],
+              const SizedBox(width: 6),
+              Text(
+                Utils.durationToString(Duration(seconds: timeSeconds)),
+                style: TextStyle(
+                    fontSize: 11, color: Theme.of(context).colorScheme.outline),
+              ),
+            ],
+          ),
         ),
       ),
     );

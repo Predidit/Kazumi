@@ -34,7 +34,10 @@ class ApiInterceptor extends Interceptor {
     }
     if (options.path.contains(Api.bangumiAPIDomain) ||
         options.path.contains(Api.bangumiAPINextDomain)) {
-      options.headers = bangumiHTTPHeader;
+      final tokenHeader = {...bangumiHTTPHeader};
+      final token = setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
+      tokenHeader['Authorization'] = 'Bearer $token';   // 附上用户token
+      options.headers = tokenHeader;
     }
     handler.next(options);
   }

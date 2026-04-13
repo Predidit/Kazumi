@@ -20,6 +20,7 @@ class GStorage {
   static late final Box<dynamic> setting;
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
+  static late Box<CollectedBangumiChange> collectChangesBgm;
 
   /// Hive directory path, initialized during init()
   static String? _hivePath;
@@ -46,6 +47,7 @@ class GStorage {
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
+    collectChangesBgm = await _openBoxSafe<CollectedBangumiChange>('localDeletedRecords');
   }
 
   /// Open a Hive box with automatic recovery on corruption.
@@ -183,6 +185,7 @@ class GStorage {
     List<CollectedBangumi> localCollectibles = collectibles.values.toList();
     List<CollectedBangumiChange> localChanges = collectChanges.values.toList();
 
+    // 1. 找出本地新增的、远程没有的变更日志
     final List<CollectedBangumiChange> newLocalChanges =
         localChanges.where((localChange) {
       return !remoteChanges
@@ -191,16 +194,17 @@ class GStorage {
 
     newLocalChanges.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // Process local changes
+    // 2. Process local changes 处理本地变更
     for (var change in newLocalChanges) {
-      // For delete action, we don't need to look up the local collectible.
-      // We can directly remove the item from the remote list.
+      // For delete action, we don't need to look up the local collectible. 对于删除操作，我们不需要查找本地可收集项。
+      // We can directly remove the item from the remote list. 我们可以直接从远程列表中移除该项。
       if (change.action == 3) {
         // Action 3: delete
         remoteCollectibles
             .removeWhere((b) => b.bangumiItem.id == change.bangumiID);
+        // TODO
       } else {
-        // For add/update, we still need to look up the local collectible.
+        // For add/update, we still need to look up the local collectible. 对于添加/更新操作，我们仍然需要查找本地可收集项。
         final changedBangumiID = change.bangumiID.toString();
         for (var localCollect in localCollectibles) {
           if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
@@ -235,7 +239,7 @@ class GStorage {
       }
     }
 
-    // merge local changes with remote changes
+    // 3. merge local changes with remote changes 将本地更改与远程更改合并
     final Map<int, CollectedBangumiChange> mergedMap = {};
     for (var change in remoteChanges) {
       mergedMap[change.id] = change;
@@ -248,7 +252,7 @@ class GStorage {
     final List<CollectedBangumiChange> mergedChanges =
         mergedMap.values.toList();
 
-    // Update local storage
+    // 4. Update local storage 更新本地存储
     await collectibles.clear();
     for (var collect in remoteCollectibles) {
       await collectibles.put(collect.bangumiItem.id, collect);
@@ -343,5 +347,9 @@ class SettingBoxKey {
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
-      shortcutDialogShown = 'shortcutDialogShown';
+      shortcutDialogShown = 'shortcutDialogShown',
+      bangumiEnableSync = 'bangumiEnableHistory',
+      bangumiAccessToken = 'bangumiAccessToken',
+      // bangumiUsername = 'bangumiUsername',
+      bangumiLastSyncTimestamp = 'bangumiLastSyncTimestamp';
 }

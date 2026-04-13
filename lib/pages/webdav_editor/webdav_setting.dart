@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:hive_ce/hive.dart';
@@ -19,6 +20,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool webDavEnable;
   late bool webDavEnableHistory;
   late bool enableGitProxy;
+  late bool bangumiEnableSync;
+  bool _syncLock = false;
 
   @override
   void initState() {
@@ -28,6 +31,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
     enableGitProxy =
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    bangumiEnableSync =
+        setting.get(SettingBoxKey.bangumiEnableSync, defaultValue: false);
   }
 
   void onBackPressed(BuildContext context) {
@@ -204,6 +209,65 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   },
                   title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
                 ),
+              ],
+            ),
+            SettingsSection(
+              title: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.switchTile(
+                    onToggle: (value) async {
+                      if (value == true) {
+                        final token = setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
+                        if (token.isEmpty) {
+                          KazumiDialog.showToast(message: '请先配置 Bangumi的Access Token');
+                          return;
+                        }
+                      }
+                      this.bangumiEnableSync = value ?? !this.bangumiEnableSync;
+                      await setting.put(
+                        SettingBoxKey.bangumiEnableSync, this.bangumiEnableSync);
+                      setState(() {});
+                    },
+                    title: Text('Bangumi 同步', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('允许与Bangumi自动同步观看记录', style: TextStyle(fontFamily: fontFamily)),
+                    initialValue: this.bangumiEnableSync,
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    Modular.to.pushNamed('/settings/bangumi/');
+                  },
+                  title: Text('Bangumi配置', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile(
+                  trailing: const Icon(Icons.sync_rounded),
+                  onPressed: (_) async {
+                    if (bangumiEnableSync == false) {
+                      KazumiDialog.showToast(message: '请先启用bangumi同步');
+                      return;
+                    }
+                    if (_syncLock) {
+                      return;
+                    }
+                    try {
+                      _syncLock = true;
+                      final CollectController collectController = Modular.get<CollectController>();
+                      await collectController.syncCollectiblesBangumi();
+                    } finally {
+                      _syncLock = false;
+                    }
+                  },
+                  title: Text('立即同步', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('手动同步当前观看记录到 Bangumi', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile(
+                  trailing: const Icon(Icons.delete),
+                  onPressed: (_) async {
+                    await setting.delete(SettingBoxKey.bangumiLastSyncTimestamp);
+                    await setting.flush();
+                    KazumiDialog.showToast(message: '同步历史已清空');
+                  },
+                  title: Text('清空同步历史', style: TextStyle(fontFamily: fontFamily)),
+                )
               ],
             ),
           ],

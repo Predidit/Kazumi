@@ -101,7 +101,7 @@ dependencies:
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: 1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764
+      ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git

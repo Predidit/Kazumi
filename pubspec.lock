@@ -1721,8 +1721,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764"
-      resolved-ref: "1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764"
+      ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
+      resolved-ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
       url: "https://github.com/Predidit/flutter-webview-windows.git"
     source: git
     version: "0.4.0"

@@ -364,6 +364,23 @@ class _TimelinePageState extends State<TimelinePage>
             ),
           ),
         ),
+        Observer(
+          builder: (context) => InkWell(
+            onTap: () {
+              timelineController.setOnlyShowWatchingBangumis(
+                  !timelineController.onlyShowWatchingBangumis);
+            },
+            child: ListTile(
+              title: const Text('只显示在看的番剧'),
+              trailing: Switch(
+                value: timelineController.onlyShowWatchingBangumis,
+                onChanged: (value) {
+                  timelineController.setOnlyShowWatchingBangumis(value);
+                },
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -463,7 +480,7 @@ class _TimelinePageState extends State<TimelinePage>
               constraints: BoxConstraints(
                 maxHeight: (MediaQuery.sizeOf(context).height >=
                         LayoutBreakpoint.compact['height']!)
-                    ? MediaQuery.of(context).size.height * 1 / 4
+                    ? MediaQuery.of(context).size.height * 1 / 3
                     : MediaQuery.of(context).size.height,
                 maxWidth: (MediaQuery.sizeOf(context).width >=
                         LayoutBreakpoint.medium['width']!)
@@ -538,6 +555,13 @@ class _TimelinePageState extends State<TimelinePage>
         final watchedBangumiIds = timelineController.loadWatchedBangumiIds();
         filteredList = filteredList
             .where((item) => !watchedBangumiIds.contains(item.id))
+            .toList();
+      }
+
+      if (timelineController.onlyShowWatchingBangumis) {
+        final watchingBangumiIds = timelineController.loadWatchingBangumiIds();
+        filteredList = filteredList
+            .where((item) => watchingBangumiIds.contains(item.id))
             .toList();
       }
 

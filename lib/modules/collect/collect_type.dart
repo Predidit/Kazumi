@@ -36,7 +36,9 @@ enum CollectType {
     );
   }
 
-  /// NOICE：与bgm对不上 1想看 2看过 3在看 4搁置 5抛弃; 本地 0未收藏 1在看 2想看 3搁置 4看过 5抛弃
+  /// bgm 1想看 2看过 3在看 4搁置 5抛弃; 
+  /// 
+  /// 本地 0未收藏 1在看 2想看 3搁置 4看过 5抛弃
   
   /// 将bangumi的收藏状态转为本地收藏状态
   static CollectType fromBangumi(int value) {

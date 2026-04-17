@@ -95,10 +95,13 @@ class _CollectPageState extends State<CollectPage>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
+            // 收藏页的同步按钮
             bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
-                defaultValue: false);
-            if (!webDavenable) {
-              KazumiDialog.showToast(message: 'webDav未启用, 同步功能不可用');
+              defaultValue: false);
+            bool bgmSyncEnable = await setting.get(SettingBoxKey.bangumiSyncEnable,
+              defaultValue: false);
+            if (!webDavenable && !bgmSyncEnable) {
+              KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
               return;
             }
             if (showDelete) {
@@ -111,7 +114,15 @@ class _CollectPageState extends State<CollectPage>
             setState(() {
               syncCollectiblesing = true;
             });
-            await collectController.syncCollectibles();
+            if (webDavenable) {
+              await collectController.syncCollectibles();
+            }
+            if (bgmSyncEnable) {
+              await collectController.syncCollectiblesBangumi();
+            }
+            if (webDavenable && bgmSyncEnable) {
+              await collectController.syncCollectibles();
+            }
             setState(() {
               syncCollectiblesing = false;
             });

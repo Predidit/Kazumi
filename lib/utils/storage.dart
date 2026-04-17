@@ -20,7 +20,8 @@ class GStorage {
   static late final Box<dynamic> setting;
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
-  static late Box<CollectedBangumiChange> collectChangesBgm;
+  // static late Box<CollectedBangumiChange> collectChangesBgm;
+  // static late Box<CollectedBangumi> collectiblesBgm;  // 上次同步时bgm上的收藏
 
   /// Hive directory path, initialized during init()
   static String? _hivePath;
@@ -47,7 +48,6 @@ class GStorage {
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
-    collectChangesBgm = await _openBoxSafe<CollectedBangumiChange>('localDeletedRecords');
   }
 
   /// Open a Hive box with automatic recovery on corruption.
@@ -94,6 +94,7 @@ class GStorage {
     }
   }
 
+  /// 将指定的 Hive Box 文件直接复制到备份路径
   static Future<void> backupBox(String boxName, String backupFilePath) async {
     final appDocumentDir = await getApplicationSupportDirectory();
     final hiveBoxFile = File('${appDocumentDir.path}/hive/$boxName.hive');
@@ -105,6 +106,7 @@ class GStorage {
     }
   }
 
+  /// 增量合并观看历史
   static Future<void> patchHistory(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
@@ -127,6 +129,7 @@ class GStorage {
     await tempBox.close();
   }
 
+  /// 全量覆盖还原收藏列表
   static Future<void> restoreCollectibles(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
@@ -179,9 +182,14 @@ class GStorage {
     return collectChanges;
   }
 
+  /// 增量合并本地收藏
+  /// 
+  /// [remoteCollectibles] 远程收藏
+  /// [remoteChanges] 未合并的远程收藏变更
   static Future<void> patchCollectibles(
       List<CollectedBangumi> remoteCollectibles,
-      List<CollectedBangumiChange> remoteChanges) async {
+      List<CollectedBangumiChange> remoteChanges
+      ) async {
     List<CollectedBangumi> localCollectibles = collectibles.values.toList();
     List<CollectedBangumiChange> localChanges = collectChanges.values.toList();
 
@@ -205,6 +213,7 @@ class GStorage {
         // TODO
       } else {
         // For add/update, we still need to look up the local collectible. 对于添加/更新操作，我们仍然需要查找本地可收集项。
+        /// 对远程收藏，action 1: 远程收藏不存在则添加，否则用action 2逻辑；action 2: 存在则更新
         final changedBangumiID = change.bangumiID.toString();
         for (var localCollect in localCollectibles) {
           if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
@@ -239,7 +248,7 @@ class GStorage {
       }
     }
 
-    // 3. merge local changes with remote changes 将本地更改与远程更改合并
+    // 3. merge local changes with remote changes 将本地更改与远程更改合并，最新优先
     final Map<int, CollectedBangumiChange> mergedMap = {};
     for (var change in remoteChanges) {
       mergedMap[change.id] = change;
@@ -348,8 +357,12 @@ class SettingBoxKey {
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
       shortcutDialogShown = 'shortcutDialogShown',
-      bangumiEnableSync = 'bangumiEnableHistory',
+      bangumiSyncEnable = 'bangumiEnableHistory',
       bangumiAccessToken = 'bangumiAccessToken',
-      // bangumiUsername = 'bangumiUsername',
-      bangumiLastSyncTimestamp = 'bangumiLastSyncTimestamp';
+      bangumiUpdateEnable = 'bangumiUpdateEnable',
+      bangumiDownloadEnable = 'bangumiDownloadEnable',
+      bangumiFirstSyncMode = 'bangumiFirstSyncMode',
+      bangumiSyncDebug = 'bangumiSyncDebug',
+      bangumiLastSyncUsername = 'bangumiLastSyncUsername',
+      bangumiDeleteEnable = 'bangumiDeleteEnable';
 }

@@ -4,7 +4,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
@@ -37,6 +37,7 @@ abstract class _CollectController with Store {
     return _collectCrudRepository.getCollectType(bangumiItem.id);
   }
 
+  /// 添加或更新收藏
   @action
   Future<void> addCollect(BangumiItem bangumiItem, {type = 1}) async {
     if (type == 0) {
@@ -52,7 +53,6 @@ abstract class _CollectController with Store {
         type,
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
-    await _collectCrudRepository.addCollectChangeBgm(collectChange);
     loadCollectibles();
   }
 
@@ -67,7 +67,6 @@ abstract class _CollectController with Store {
         5,
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
-    await _collectCrudRepository.addCollectChangeBgm(collectChange);
     loadCollectibles();
   }
 
@@ -76,27 +75,7 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
-  /// 从bangumi上添加收藏，将bangumi的type转换成本地的type
-  /// 
-  /// [bangumiItem] bangumi对象
-  /// [bangumiType] bangumi收藏类型
-  Future<void> addCollectBangumi(BangumiItem bangumiItem, {bangumiType = 1}) async {
-    final type = CollectType.fromBangumi(bangumiType).value;
-    await addCollect(bangumiItem, type: type);
-  }
-
-  Future<void> syncCollectiblesBangumi() async { 
-    final token = await setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
-    if (token.isEmpty) {
-      KazumiDialog.showToast(message: '请先配置 Bangumi Access Token');
-      return;
-    }
-    KazumiDialog.showToast(message: '开始同步');
-    await BangumiHTTP.syncCollectiblesBangumi();
-    KazumiDialog.showToast(message: '同步完成');
-    loadCollectibles();
-  }
-
+  /// webdav同步收藏
   Future<void> syncCollectibles() async {
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
@@ -153,5 +132,34 @@ abstract class _CollectController with Store {
     return bangumiList
         .where((item) => !excludeIds.contains(item.id))
         .toList();
+  }
+
+  /// 添加bangumi上的收藏到本地，将bangumi的type转换成本地的type
+  /// 
+  /// [bangumiItem] bangumi对象
+  /// [bangumiType] bangumi收藏类型
+  Future<void> addCollectBangumi(BangumiItem bangumiItem, {bangumiType = 1}) async {
+    final type = CollectType.fromBangumi(bangumiType).value;
+    await addCollect(bangumiItem, type: type);
+  }
+  
+  /// bgm同步收藏
+  Future<void> syncCollectiblesBangumi() async { 
+    if (!Bangumi().initialized) {
+      KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
+      return;
+    }
+    try {
+      await Bangumi().ping();
+      try {
+        await Bangumi().syncCollectibles();
+      } catch (e) {
+        KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
+      }
+    } catch (e) {
+      KazumiLogger().e('Bangumi: Bangumi connection failed', error: e);
+      KazumiDialog.showToast(message: 'Bangumi访问失败: $e');
+    }
+    loadCollectibles();
   }
 }

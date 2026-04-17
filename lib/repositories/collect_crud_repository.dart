@@ -44,9 +44,6 @@ abstract class ICollectCrudRepository {
   /// [change] 变更记录
   Future<void> addCollectChange(CollectedBangumiChange change);
 
-  /// 记录收藏变更（用于Bangumi同步）
-  Future<void> addCollectChangeBgm(CollectedBangumiChange change);
-
   /// 获取旧版收藏列表（用于迁移）
   List<BangumiItem> getFavorites();
 
@@ -60,7 +57,6 @@ abstract class ICollectCrudRepository {
 class CollectCrudRepository implements ICollectCrudRepository {
   final _collectiblesBox = GStorage.collectibles;
   final _collectChangesBox = GStorage.collectChanges;
-  final _collectChangesBoxBgm = GStorage.collectChangesBgm;
   final _favoritesBox = GStorage.favorites;
 
   @override
@@ -203,18 +199,4 @@ class CollectCrudRepository implements ICollectCrudRepository {
     }
   }
   
-  @override
-  Future<void> addCollectChangeBgm(CollectedBangumiChange change) async{
-    try {
-      await _collectChangesBoxBgm.put(change.id, change);
-      await _collectChangesBoxBgm.flush();
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: record collect change to bgm box failed. changeId=${change.id}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
 }

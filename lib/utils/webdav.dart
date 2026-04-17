@@ -62,6 +62,7 @@ class WebDav {
     }
   }
 
+  /// 将本地 Hive 数据库文件同步到 WebDAV 服务器
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
     final localFilePath = '${directory.path}/hive/$boxName.hive'; 
@@ -90,7 +91,7 @@ class WebDav {
       KazumiLogger().w('WebDav: former backup file not exist');
     }
 
-    // 5. 【关键】将 .cache 文件重命名为正式文件（原子操作）
+    // 5. 将 .cache 文件重命名为正式文件（原子操作）
     await client.rename(
         '$webDavPath.cache', webDavPath, true);
    
@@ -210,7 +211,7 @@ class WebDav {
       throw Exception('WebDav: get collectibles from file failed'); 
     }
 
-    // 3. 调用 GStorage 进行数据合并
+    // 3. 调用 GStorage.patchCollectibles 进行数据合并
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
     }

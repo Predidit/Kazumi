@@ -218,7 +218,7 @@ class Utils {
   static bool needUpdate(localVersion, remoteVersion) {
     List<String> localVersionList = localVersion.split('.');
     List<String> remoteVersionList = remoteVersion.split('.');
-    for (int i = 0; i < localVersionList.length; i++) {
+    for (int i = 0; i < remoteVersionList.length; i++) {
       int localVersion = int.parse(localVersionList[i]);
       int remoteVersion = int.parse(remoteVersionList[i]);
       if (remoteVersion > localVersion) {

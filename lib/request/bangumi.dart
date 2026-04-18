@@ -322,7 +322,7 @@ class BangumiHTTP {
       if (e.response?.statusCode == 401) {
         KazumiLogger().e('unauthorized 未经授权的');
       }
-      rethrow;
+      throw StateError('token未经授权，请更新token');
     } catch (e) {
       KazumiLogger().e('Network: get username failed', error: e);
     }

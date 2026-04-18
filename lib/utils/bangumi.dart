@@ -18,9 +18,9 @@ class Bangumi {
   late String username; // 当前token对应的用户名
   late String lastSyncUsername; // 上次同步的Bangumi用户名
   // late int firstSyncMode;
+  late bool initialized;
   Box setting = GStorage.setting;
 
-  bool initialized = false;
   bool isUsing = false; // 是否正在使用
 
   Bangumi._internal();
@@ -29,6 +29,7 @@ class Bangumi {
 
   /// 初始化
   Future<void> init() async {
+    initialized = false;
     var directory = await getApplicationDocumentsDirectory();
     bgmLocalTempDirectory = Directory(p.join(directory.path, 'Kazumi'));
     if (!await bgmLocalTempDirectory.exists()) {

@@ -324,7 +324,6 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
             } catch (e) {
               KazumiDialog.showToast(message: '验证失败：${e.toString()}');
               await setting.put(SettingBoxKey.bangumiSyncEnable, false);
-              return;
             }
             KazumiDialog.showToast(message: '配置成功, 开始测试');
             try {

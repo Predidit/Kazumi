@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+import 'package:kazumi/pages/player/player_control_panel.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/player_settings_tabbed_sheet.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -124,6 +127,9 @@ class _PlayerItemState extends State<PlayerItem>
   AnimationController? animationController;
 
   double lastPlayerSpeed = 1.0;
+  bool _showPlayerControlPanel = false;
+  bool _portraitPanelCloseScheduled = false;
+  Widget? _playerControlPanelBody;
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
@@ -385,6 +391,9 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
+    if (_showPlayerControlPanel) {
+      return;
+    }
     if (Utils.isDesktop()) {
       playerController.playOrPause();
     } else {
@@ -405,6 +414,9 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleHove() {
+    if (_showPlayerControlPanel) {
+      return;
+    }
     if (!playerController.showVideoController) {
       displayVideoController();
     }
@@ -781,7 +793,9 @@ class _PlayerItemState extends State<PlayerItem>
 
   void startHideTimer() {
     hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && playerController.canHidePlayerPanel) {
+      if (mounted &&
+          playerController.canHidePlayerPanel &&
+          !_showPlayerControlPanel) {
         playerController.showVideoController = false;
         animationController?.reverse();
       }
@@ -792,6 +806,147 @@ class _PlayerItemState extends State<PlayerItem>
   // Used to pass hideTimer operation to panel layer
   void cancelHideTimer() {
     hideTimer?.cancel();
+  }
+
+  void closePlayerControlPanel() {
+    if (!_showPlayerControlPanel) {
+      return;
+    }
+    setState(() {
+      _showPlayerControlPanel = false;
+      _playerControlPanelBody = null;
+    });
+    playerController.canHidePlayerPanel = true;
+    startHideTimer();
+    widget.keyboardFocus.requestFocus();
+  }
+
+  void showPlayerControlPanel({
+    required Widget child,
+  }) {
+    hideVideoController();
+    setState(() {
+      _showPlayerControlPanel = true;
+      _playerControlPanelBody = child;
+    });
+    playerController.canHidePlayerPanel = false;
+  }
+
+  void _showPlayerSettingsPanel({
+    required int initialTabIndex,
+  }) {
+    final bool isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    if (isLandscape) {
+      showPlayerControlPanel(
+        child: PlayerSettingsTabbedSheet(
+          playerController: playerController,
+          isSidebar: true,
+          initialTabIndex: initialTabIndex,
+          showPictureInPictureAction:
+              Utils.isDesktop() && !videoPageController.isFullscreen,
+          onSuperResolutionChange: handleSuperResolutionChange,
+          onTimedShutdownExpired: widget.pauseForTimedShutdown,
+          onShowDanmakuSwitch: showDanmakuSwitch,
+          onTogglePictureInPicture: togglePictureInPicture,
+          onShowVideoInfo: showVideoInfo,
+          onRemoteCast: castToRemoteScreen,
+          onExternalPlay: openExternalPlayer,
+          onShowSyncPlayRoomCreateDialog: showSyncPlayRoomCreateDialog,
+          onShowSyncPlayEndPointSwitchDialog: showSyncPlayEndPointSwitchDialog,
+          onPlaybackSpeedChange: setPlaybackSpeed,
+          onRequestCloseSidebar: closePlayerControlPanel,
+        ),
+      );
+      return;
+    }
+
+    closePlayerControlPanel();
+    showModalBottomSheet(
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+      ),
+      clipBehavior: Clip.antiAlias,
+      context: context,
+      builder: (context) {
+        return PlayerSettingsTabbedSheet(
+          playerController: playerController,
+          isSidebar: false,
+          initialTabIndex: initialTabIndex,
+          showPictureInPictureAction:
+              Utils.isDesktop() && !videoPageController.isFullscreen,
+          onSuperResolutionChange: handleSuperResolutionChange,
+          onTimedShutdownExpired: widget.pauseForTimedShutdown,
+          onShowDanmakuSwitch: showDanmakuSwitch,
+          onTogglePictureInPicture: togglePictureInPicture,
+          onShowVideoInfo: showVideoInfo,
+          onRemoteCast: castToRemoteScreen,
+          onExternalPlay: openExternalPlayer,
+          onShowSyncPlayRoomCreateDialog: showSyncPlayRoomCreateDialog,
+          onShowSyncPlayEndPointSwitchDialog: showSyncPlayEndPointSwitchDialog,
+          onPlaybackSpeedChange: setPlaybackSpeed,
+          onRequestCloseSidebar: closePlayerControlPanel,
+        );
+      },
+    );
+  }
+
+  void showDanmakuSettingsPanel() {
+    _showPlayerSettingsPanel(initialTabIndex: 0);
+  }
+
+  void castToRemoteScreen() {
+    final bool needRestart = playerController.playing;
+    playerController.pause();
+    RemotePlay()
+        .castVideo(
+      playerController.videoUrl,
+      videoPageController.currentPlugin.referer,
+    )
+        .whenComplete(() {
+      if (needRestart) {
+        playerController.play();
+      }
+    });
+  }
+
+  void openExternalPlayer() {
+    playerController.lanunchExternalPlayer();
+  }
+
+  void togglePictureInPicture() {
+    if (videoPageController.isPip) {
+      Utils.exitDesktopPIPWindow();
+    } else {
+      Utils.enterDesktopPIPWindow();
+    }
+    videoPageController.isPip = !videoPageController.isPip;
+  }
+
+  void showMorePanel() {
+    _showPlayerSettingsPanel(initialTabIndex: 1);
+  }
+
+  void _closeControlPanelWhenPortrait(BuildContext context) {
+    final bool isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    if (!isPortrait ||
+        !_showPlayerControlPanel ||
+        _portraitPanelCloseScheduled) {
+      return;
+    }
+    _portraitPanelCloseScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _portraitPanelCloseScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      if (_showPlayerControlPanel &&
+          MediaQuery.orientationOf(context) == Orientation.portrait) {
+        closePlayerControlPanel();
+      }
+    });
   }
 
   Timer getPlayerTimer() {
@@ -1569,6 +1724,7 @@ class _PlayerItemState extends State<PlayerItem>
         collectController.getCollectType(videoPageController.bangumiItem);
     return Observer(
       builder: (context) {
+        _closeControlPanelWhenPortrait(context);
         return ClipRect(
           child: Container(
             color: Colors.black,
@@ -1578,6 +1734,9 @@ class _PlayerItemState extends State<PlayerItem>
                   ? SystemMouseCursors.none
                   : SystemMouseCursors.basic,
               onHover: (PointerEvent pointerEvent) {
+                if (_showPlayerControlPanel) {
+                  return;
+                }
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
                 if (Utils.isDesktop()) {
@@ -1596,6 +1755,9 @@ class _PlayerItemState extends State<PlayerItem>
               child: Listener(
                 onPointerSignal: (pointerSignal) {
                   if (pointerSignal is PointerScrollEvent) {
+                    if (_showPlayerControlPanel) {
+                      return;
+                    }
                     _handleMouseScroller();
                     final scrollDelta = pointerSignal.scrollDelta;
                     final double volume =
@@ -1645,9 +1807,19 @@ class _PlayerItemState extends State<PlayerItem>
                         : Container(),
                     GestureDetector(
                       onTap: () {
+                        if (_showPlayerControlPanel) {
+                          return;
+                        }
                         _handleTap();
                       },
-                      onDoubleTap: (playerController.lockPanel)
+                      onSecondaryTapDown: (_) {
+                        if (playerController.lockPanel) {
+                          return;
+                        }
+                        showMorePanel();
+                      },
+                      onDoubleTap: (playerController.lockPanel ||
+                              _showPlayerControlPanel)
                           ? null
                           : () {
                               _handleDoubleTap();
@@ -1740,6 +1912,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayEndPointSwitchDialog,
                             showDanmakuDestinationPickerAndSend:
                                 widget.showDanmakuDestinationPickerAndSend,
+                            showDanmakuSettingsPanel: showDanmakuSettingsPanel,
+                            showMorePanel: showMorePanel,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             handleScreenShot: handleScreenshot,
@@ -1766,6 +1940,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 showSyncPlayRoomCreateDialog,
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
+                            showDanmakuSettingsPanel: showDanmakuSettingsPanel,
+                            showMorePanel: showMorePanel,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
                             skipOP: skipOP,
@@ -1867,6 +2043,13 @@ class _PlayerItemState extends State<PlayerItem>
                               },
                             ),
                     ),
+                    if (_playerControlPanelBody != null)
+                      PlayerControlPanel(
+                        visible: _showPlayerControlPanel,
+                        panelWidth: 360.0,
+                        onClose: closePlayerControlPanel,
+                        child: _playerControlPanelBody!,
+                      ),
                   ]),
                 ),
               ),

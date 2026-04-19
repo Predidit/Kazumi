@@ -46,6 +46,12 @@ abstract class ICollectRepository {
   /// 更新时间表页"不显示已看过番剧"设置
   Future<void> updateTimelineNotShowWatchedBangumis(bool value);
 
+  /// 获取时间表页"只显示在看的番剧"设置
+  bool getTimelineOnlyShowWatchingBangumis();
+
+  /// 更新时间表页"只显示在看的番剧"设置
+  Future<void> updateTimelineOnlyShowWatchingBangumis(bool value);
+
   // ========== 其他设置 ==========
 
   /// 获取隐私模式设置
@@ -213,6 +219,37 @@ class CollectRepository implements ICollectRepository {
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update timeline not show watched bangumis setting failed. value=$value',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  bool getTimelineOnlyShowWatchingBangumis() {
+    try {
+      final value = _settingBox.get(
+        SettingBoxKey.timelineOnlyShowWatchingBangumis,
+        defaultValue: false,
+      );
+      return value is bool ? value : false;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get timeline only show watching bangumis setting failed, using default false',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  @override
+  Future<void> updateTimelineOnlyShowWatchingBangumis(bool value) async {
+    try {
+      await _settingBox.put(SettingBoxKey.timelineOnlyShowWatchingBangumis, value);
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: update timeline only show watching bangumis setting failed. value=$value',
         error: e,
         stackTrace: stackTrace,
       );

@@ -119,6 +119,29 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$onlyShowWatchingBangumisAtom = Atom(
+      name: '_TimelineController.onlyShowWatchingBangumis', context: context);
+
+  @override
+  bool get onlyShowWatchingBangumis {
+    _$onlyShowWatchingBangumisAtom.reportRead();
+    return super.onlyShowWatchingBangumis;
+  }
+
+  bool _onlyShowWatchingBangumisIsInitialized = false;
+
+  @override
+  set onlyShowWatchingBangumis(bool value) {
+    _$onlyShowWatchingBangumisAtom.reportWrite(
+        value,
+        _onlyShowWatchingBangumisIsInitialized
+            ? super.onlyShowWatchingBangumis
+            : null, () {
+      super.onlyShowWatchingBangumis = value;
+      _onlyShowWatchingBangumisIsInitialized = true;
+    });
+  }
+
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
       '_TimelineController.setNotShowAbandonedBangumis',
       context: context);
@@ -139,6 +162,16 @@ mixin _$TimelineController on _TimelineController, Store {
         .run(() => super.setNotShowWatchedBangumis(value));
   }
 
+  late final _$setOnlyShowWatchingBangumisAsyncAction = AsyncAction(
+      '_TimelineController.setOnlyShowWatchingBangumis',
+      context: context);
+
+  @override
+  Future<void> setOnlyShowWatchingBangumis(bool value) {
+    return _$setOnlyShowWatchingBangumisAsyncAction
+        .run(() => super.setOnlyShowWatchingBangumis(value));
+  }
+
   @override
   String toString() {
     return '''
@@ -147,7 +180,8 @@ seasonString: ${seasonString},
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
-notShowWatchedBangumis: ${notShowWatchedBangumis}
+notShowWatchedBangumis: ${notShowWatchedBangumis},
+onlyShowWatchingBangumis: ${onlyShowWatchingBangumis}
     ''';
   }
 }

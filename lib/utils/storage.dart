@@ -331,6 +331,7 @@ class SettingBoxKey {
       searchNotShowAbandonedBangumis = 'searchNotShowAbandonedBangumis',
       timelineNotShowAbandonedBangumis = 'timelineNotShowAbandonedBangumis',
       timelineNotShowWatchedBangumis = 'timelineNotShowWatchedBangumis',
+      timelineOnlyShowWatchingBangumis = 'timelineOnlyShowWatchingBangumis',
       useSystemFont = 'useSystemFont',
       forceAdBlocker = 'forceAdBlocker',
       backgroundPlayback = 'backgroundPlayback',

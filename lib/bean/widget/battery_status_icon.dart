@@ -5,7 +5,7 @@ class BatteryStatusIcon extends StatefulWidget {
   const BatteryStatusIcon({
     super.key,
     this.color = Colors.white,
-    this.size = 18,
+    this.size = 20,
   });
 
   final Color color;

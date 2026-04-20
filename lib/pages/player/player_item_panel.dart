@@ -1103,7 +1103,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       top: false,
       bottom: false,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
           children: [
             Expanded(

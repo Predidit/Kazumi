@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -90,7 +91,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final PlayerController playerController = Modular.get<PlayerController>();
   final DownloadController downloadController = Modular.get<DownloadController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();  
+  final FocusNode textFieldFocus = FocusNode();
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -305,7 +306,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     cacheSvgIcons();
   }
-  
+
   void cacheSvgIcons() {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
@@ -321,7 +322,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       ),
     );
   }
-  
+
   Widget danmakuOnIcon(BuildContext context) {
     final colorHex = Theme.of(context)
         .colorScheme
@@ -623,9 +624,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ? playerController.showVideoController
                       : true),
               child: widget.disableAnimations
-                  ? topControlWidget
+                  ? Column(
+                      children: [
+                        if (videoPageController.isFullscreen) topStatusWidget,
+                        topControlWidget,
+                      ],
+                    )
                   : SlideTransition(
-                      position: topOffsetAnimation, child: topControlWidget),
+                      position: topOffsetAnimation,
+                      child: Column(
+                        children: [
+                          if (videoPageController.isFullscreen) topStatusWidget,
+                          topControlWidget,
+                        ],
+                      ),
+                    ),
             ),
           ),
           // 自定义播放器底部组件
@@ -1063,6 +1076,66 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         );
       }
     );
+  }
+
+  /// 播放器顶部状态栏
+  Widget get topStatusWidget {
+    return Observer(builder: (context) {
+      return SafeArea(
+        top: false,
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: StreamBuilder<DateTime>(
+                  stream: Stream<DateTime>.periodic(
+                    const Duration(seconds: 1),
+                        (_) => DateTime.now(),
+                  ),
+                  initialData: DateTime.now(),
+                  builder: (context, snapshot) {
+                    final now = snapshot.data ?? DateTime.now();
+                    final hour = now.hour.toString().padLeft(2, '0');
+                    final minute = now.minute.toString().padLeft(2, '0');
+                    return Text(
+                      '$hour:$minute',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              StreamBuilder<List<ConnectivityResult>>(
+                stream: Connectivity().onConnectivityChanged,
+                initialData: const [ConnectivityResult.none],
+                builder: (context, snapshot) {
+                  final results = snapshot.data ?? const [ConnectivityResult.none];
+                  IconData icon = Icons.signal_wifi_off_rounded;
+                  if (results.contains(ConnectivityResult.wifi)) {
+                    icon = Icons.wifi_rounded;
+                  } else if (results.contains(ConnectivityResult.ethernet)) {
+                    icon = Icons.cable;
+                  } else if (results.contains(ConnectivityResult.mobile)) {
+                    icon = Icons.signal_cellular_alt;
+                  }
+                  return Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 18,
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget get topControlWidget {

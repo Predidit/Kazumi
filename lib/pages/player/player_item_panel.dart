@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -21,6 +21,8 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/bean/widget/battery_status_icon.dart';
+import 'package:kazumi/bean/widget/network_status_icon.dart';
 
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
@@ -86,6 +88,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
   late Animation<Offset> leftOffsetAnimation;
+  late final StreamController<DateTime> _clockController;
+  Timer? _clockTimer;
+  Stream<DateTime> get _clockStream => _clockController.stream;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
@@ -304,7 +309,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    _clockController = StreamController<DateTime>.broadcast();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_clockController.isClosed) {
+        _clockController.add(DateTime.now());
+      }
+    });
     cacheSvgIcons();
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    _clockTimer = null;
+    _clockController.close();
+    super.dispose();
   }
 
   void cacheSvgIcons() {
@@ -1080,62 +1099,41 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   /// 播放器顶部状态栏
   Widget get topStatusWidget {
-    return Observer(builder: (context) {
-      return SafeArea(
-        top: false,
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: StreamBuilder<DateTime>(
-                  stream: Stream<DateTime>.periodic(
-                    const Duration(seconds: 1),
-                        (_) => DateTime.now(),
-                  ),
-                  initialData: DateTime.now(),
-                  builder: (context, snapshot) {
-                    final now = snapshot.data ?? DateTime.now();
-                    final hour = now.hour.toString().padLeft(2, '0');
-                    final minute = now.minute.toString().padLeft(2, '0');
-                    return Text(
-                      '$hour:$minute',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              StreamBuilder<List<ConnectivityResult>>(
-                stream: Connectivity().onConnectivityChanged,
-                initialData: const [ConnectivityResult.none],
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: StreamBuilder<DateTime>(
+                stream: _clockStream,
+                initialData: DateTime.now(),
                 builder: (context, snapshot) {
-                  final results = snapshot.data ?? const [ConnectivityResult.none];
-                  IconData icon = Icons.signal_wifi_off_rounded;
-                  if (results.contains(ConnectivityResult.wifi)) {
-                    icon = Icons.wifi_rounded;
-                  } else if (results.contains(ConnectivityResult.ethernet)) {
-                    icon = Icons.cable;
-                  } else if (results.contains(ConnectivityResult.mobile)) {
-                    icon = Icons.signal_cellular_alt;
-                  }
-                  return Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 18,
+                  final now = snapshot.data ?? DateTime.now();
+                  final hour = now.hour.toString().padLeft(2, '0');
+                  final minute = now.minute.toString().padLeft(2, '0');
+                  return Text(
+                    '$hour:$minute',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   );
                 },
               ),
-            ],
-          ),
+            ),
+            const NetworkStatusIcon(),
+            const SizedBox(width: 5),
+            if(Platform.isAndroid || Platform.isIOS)
+              RotatedBox(quarterTurns: 1, child: const BatteryStatusIcon()),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
   Widget get topControlWidget {

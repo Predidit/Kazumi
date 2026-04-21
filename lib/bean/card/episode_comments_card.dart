@@ -56,11 +56,20 @@ class EpisodeCommentsCard extends StatelessWidget {
                         shrinkWrap: true,
                         itemCount: commentItem.replies.length,
                         itemBuilder: (context, index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(left: 48),
+                          return Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(index == 0 ? 10 : 0),
+                                topRight: Radius.circular(index == 0 ? 10 : 0),
+                                bottomLeft: Radius.circular(index == commentItem.replies.length - 1 ? 10 : 0),
+                                bottomRight: Radius.circular(index == commentItem.replies.length - 1 ? 10 : 0),
+                              ),
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
+                              children: [
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -81,15 +90,19 @@ class EpisodeCommentsCard extends StatelessWidget {
                                             color: Theme.of(context).colorScheme.outline,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        BBCodeWidget(
-                                            bbcode: commentItem.replies[index].comment),
                                       ],
                                     ),
                                     ),
                                   ],
                                 ),
-
+                                BBCodeWidget(
+                                    bbcode: commentItem.replies[index].comment),
+                                if (index < commentItem.replies.length - 1)
+                                  Divider(
+                                    height: 16,
+                                    thickness: 1,
+                                    color: Theme.of(context).colorScheme.outlineVariant,
+                                  ),
                               ],
                             ),
                           );

@@ -31,10 +31,15 @@ class EpisodeCommentsSheet extends StatefulWidget {
 
 class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   final VideoPageController videoPageController =
-      Modular.get<VideoPageController>();
+  Modular.get<VideoPageController>();
   bool commentsQueryTimeout = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      GlobalKey<RefreshIndicatorState>();
+  GlobalKey<RefreshIndicatorState>();
+
+  /// 嵌套导航器，用于评论回复详情页的路由跳转；
+  /// 推入的路由仅覆盖评论面板区域，而不会遮挡整个视频页面。
+  final GlobalKey<NavigatorState> _nestedNavigatorKey =
+  GlobalKey<NavigatorState>();
 
   /// episode input by [showEpisodeSelection]
   int ep = 0;
@@ -48,7 +53,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     commentsQueryTimeout = false;
     await videoPageController
         .queryBangumiEpisodeCommentsByID(
-            videoPageController.bangumiItem.id, episode)
+        videoPageController.bangumiItem.id, episode)
         .then((_) {
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
         setState(() {
@@ -211,13 +216,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           title: const Text('输入集数'),
           content: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
-            return TextField(
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly
-              ],
-              controller: textController,
-            );
-          }),
+                return TextField(
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly
+                  ],
+                  controller: textController,
+                );
+              }),
           actions: [
             TextButton(
               onPressed: () => KazumiDialog.dismiss(),
@@ -250,6 +255,20 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   @override
   Widget build(BuildContext context) {
     final int episode = EpisodeInfo.of(context)!.episode;
+    return Navigator(
+        key: _nestedNavigatorKey,
+        onGenerateRoute: (settings) {
+          return PageRouteBuilder(
+            settings: settings,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            pageBuilder: (_, __, ___) => _buildCommentsView(episode),
+          );
+        },
+    );
+  }
+
+  Widget _buildCommentsView(int episode) {
     return Scaffold(
       body: RefreshIndicator(
         key: _refreshIndicatorKey,

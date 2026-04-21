@@ -104,18 +104,20 @@ class _CollectButtonState extends State<CollectButton> {
             label: Text(getTypeStringByInt(collectType)),
           );
         } else {
-          return IconButton(
-            onPressed: () {
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            tooltip: getTypeStringByInt(collectType),
-            icon: Icon(
-              getIconByInt(collectType),
-              color: widget.color,
+          return Tooltip(
+            message: getTypeStringByInt(collectType),
+            child: InkWell(
+              onTap: () {
+                if (controller.isOpen) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              child: Icon(
+                getIconByInt(collectType),
+                color: widget.color,
+              ),
             ),
           );
         }

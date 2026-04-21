@@ -10,15 +10,19 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
+import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 
 class InfoPage extends StatefulWidget {
@@ -35,6 +39,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
+  final IHistoryRepository historyRepository =
+      Modular.get<IHistoryRepository>();
   late TabController sourceTabController;
   late TabController infoTabController;
   late bool showRating;
@@ -172,7 +178,76 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
       setState(() {});
     } catch (e) {
-      KazumiLogger().e('InfoController: failed to query bangumi info by ID', error: e);
+      KazumiLogger()
+          .e('InfoController: failed to query bangumi info by ID', error: e);
+    }
+  }
+
+  void showSourceSheet() {
+    showModalBottomSheet(
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: (MediaQuery.sizeOf(context).height >=
+                LayoutBreakpoint.compact['height']!)
+            ? MediaQuery.of(context).size.height * 3 / 4
+            : MediaQuery.of(context).size.height,
+        maxWidth: (MediaQuery.sizeOf(context).width >=
+                LayoutBreakpoint.medium['width']!)
+            ? MediaQuery.of(context).size.width * 9 / 16
+            : MediaQuery.of(context).size.width,
+      ),
+      clipBehavior: Clip.antiAlias,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      showDragHandle: true,
+      context: context,
+      builder: (context) {
+        return SourceSheet(
+          tabController: sourceTabController,
+          infoController: infoController,
+        );
+      },
+    );
+  }
+
+  Future<void> continueWatching(History history) async {
+    KazumiDialog.showLoading(
+      msg: '获取中',
+      barrierDismissible: Utils.isDesktop(),
+      onDismiss: () {
+        videoPageController.cancelQueryRoads();
+      },
+    );
+
+    Plugin? plugin;
+    for (final item in pluginsController.pluginList) {
+      if (item.name == history.adapterName) {
+        plugin = item;
+        break;
+      }
+    }
+    if (plugin == null) {
+      KazumiDialog.dismiss();
+      KazumiDialog.showToast(message: '未找到关联番剧源');
+      return;
+    }
+
+    videoPageController.bangumiItem = history.bangumiItem;
+    videoPageController.currentPlugin = plugin;
+    videoPageController.title = history.bangumiItem.nameCn == ''
+        ? history.bangumiItem.name
+        : history.bangumiItem.nameCn;
+    videoPageController.src = history.lastSrc;
+
+    try {
+      await videoPageController.queryRoads(
+        history.lastSrc,
+        videoPageController.currentPlugin.name,
+      );
+      KazumiDialog.dismiss();
+      Modular.to.pushNamed('/video/');
+    } catch (_) {
+      KazumiLogger().w('QueryManager: failed to query video playlist');
+      KazumiDialog.dismiss();
     }
   }
 
@@ -181,6 +256,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final List<String> tabs = <String>['概览', '吐槽', '角色', '评论', '制作人员'];
     final bool showWindowButton = GStorage.setting
         .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    final History? continueHistory =
+        historyRepository.getContinueHistory(infoController.bangumiItem);
     return PopScope(
       canPop: true,
       child: DefaultTabController(
@@ -355,31 +432,26 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               );
             }),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text('开始观看'),
-            onPressed: () async {
-              showModalBottomSheet(
-                isScrollControlled: true,
-                constraints: BoxConstraints(
-                  maxHeight: (MediaQuery.sizeOf(context).height >=
-                          LayoutBreakpoint.compact['height']!)
-                      ? MediaQuery.of(context).size.height * 3 / 4
-                      : MediaQuery.of(context).size.height,
-                  maxWidth: (MediaQuery.sizeOf(context).width >=
-                          LayoutBreakpoint.medium['width']!)
-                      ? MediaQuery.of(context).size.width * 9 / 16
-                      : MediaQuery.of(context).size.width,
+          floatingActionButton: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              if (continueHistory != null)
+                FloatingActionButton.extended(
+                  heroTag: 'continue_watch_${infoController.bangumiItem.id}',
+                  icon: const Icon(Icons.history_rounded),
+                  label: Text(
+                    '继续观看 第${continueHistory.lastWatchEpisode}话',
+                  ),
+                  onPressed: () => continueWatching(continueHistory),
                 ),
-                clipBehavior: Clip.antiAlias,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                showDragHandle: true,
-                context: context,
-                builder: (context) {
-                  return SourceSheet(tabController: sourceTabController, infoController: infoController);
-                },
-              );
-            },
+              FloatingActionButton.extended(
+                heroTag: 'start_watch_${infoController.bangumiItem.id}',
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('开始观看'),
+                onPressed: showSourceSheet,
+              ),
+            ],
           ),
         ),
       ),

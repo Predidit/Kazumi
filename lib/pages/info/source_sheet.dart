@@ -22,10 +22,12 @@ class SourceSheet extends StatefulWidget {
     super.key,
     required this.tabController,
     required this.infoController,
+    this.onVideoPageClosed,
   });
 
   final TabController tabController;
   final InfoController infoController;
+  final VoidCallback? onVideoPageClosed;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
@@ -653,7 +655,8 @@ class _SourceSheetState extends State<SourceSheet>
                                     await videoPageController.queryRoads(
                                         searchItem.src, plugin.name);
                                     KazumiDialog.dismiss();
-                                    Modular.to.pushNamed('/video/');
+                                    await Modular.to.pushNamed('/video/');
+                                    widget.onVideoPageClosed?.call();
                                   } catch (_) {
                                     KazumiLogger().w(
                                         "QueryManager: failed to query video playlist");

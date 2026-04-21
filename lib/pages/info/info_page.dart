@@ -204,9 +204,17 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         return SourceSheet(
           tabController: sourceTabController,
           infoController: infoController,
+          onVideoPageClosed: refreshContinueState,
         );
       },
     );
+  }
+
+  void refreshContinueState() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   Future<void> continueWatching(History history) async {
@@ -244,7 +252,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         videoPageController.currentPlugin.name,
       );
       KazumiDialog.dismiss();
-      Modular.to.pushNamed('/video/');
+      await Modular.to.pushNamed('/video/');
+      refreshContinueState();
     } catch (_) {
       KazumiLogger().w('QueryManager: failed to query video playlist');
       KazumiDialog.dismiss();

@@ -42,7 +42,8 @@ class _TimelinePageState extends State<TimelinePage>
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    showRating =
+        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }
@@ -99,9 +100,9 @@ class _TimelinePageState extends State<TimelinePage>
     final years = List.generate(20, (index) => currDate.year - index);
 
     // 按年份分组生成可用季节
-    Map<int, List<DateTime>> yearSeasons = {};
+    final yearSeasons = <int, List<DateTime>>{};
     for (final year in years) {
-      List<DateTime> availableSeasons = [];
+      final availableSeasons = <DateTime>[];
       for (final season in seasons) {
         final date = generateDateTime(year, season);
         if (currDate.isAfter(date)) {
@@ -114,22 +115,31 @@ class _TimelinePageState extends State<TimelinePage>
     }
 
     KazumiDialog.showBottomSheet(
-      // context: context,
+      context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      clipBehavior: Clip.antiAlias,
+      useSafeArea: true,
+      constraints: BoxConstraints(
+        maxWidth: (MediaQuery.sizeOf(context).width >=
+                LayoutBreakpoint.medium['width']!)
+            ? MediaQuery.of(context).size.width * 9 / 16
+            : MediaQuery.of(context).size.width,
+      ),
       isScrollControlled: true,
-      builder: (BuildContext context) {
+      builder: (BuildContext sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
         return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.3,
-          maxChildSize: 0.9,
+          initialChildSize: 0.72,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
           expand: false,
           builder: (context, scrollController) {
             return Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: colorScheme.surface,
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(28)),
               ),
@@ -137,86 +147,24 @@ class _TimelinePageState extends State<TimelinePage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          '时间机器',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.5),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: buildSeasonSheetHeader(sheetContext),
                   ),
                   // 年份季节列表
                   Expanded(
-                    child: ListView.builder(
+                    child: ListView.separated(
                       controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                       itemCount: yearSeasons.keys.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final year = yearSeasons.keys.elementAt(index);
                         final availableSeasons = yearSeasons[year]!;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 年份标题
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 4,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      '$year年',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // 季节选择器
-                              buildSeasonSegmentedButton(
-                                  context, availableSeasons),
-                            ],
-                          ),
+                        return buildSeasonYearSection(
+                          context,
+                          year,
+                          availableSeasons,
                         );
                       },
                     ),
@@ -230,86 +178,173 @@ class _TimelinePageState extends State<TimelinePage>
     );
   }
 
-  Widget buildSeasonSegmentedButton(
-      BuildContext context, List<DateTime> availableSeasons) {
-    DateTime? selectedSeason;
-    for (final season in availableSeasons) {
-      if (Utils.isSameSeason(timelineController.selectedDate, season)) {
-        selectedSeason = season;
-        break;
-      }
-    }
+  Widget buildSeasonSheetHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    final segments = availableSeasons.map((date) {
-      final seasonName = Utils.getSeasonStringByMonth(date.month);
-      return ButtonSegment<DateTime>(
-        value: date,
-        label: Text(
-          seasonName,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '时间机器',
+                      style: textTheme.headlineSmall?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '按季度回到任意放送季，时间线会立即切换。',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton.filledTonal(
+                onPressed: KazumiDialog.dismiss,
+                tooltip: '关闭',
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              '当前查看 ${getStringByDateTime(timelineController.selectedDate)}',
+              style: textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSecondaryContainer,
                 fontWeight: FontWeight.w600,
               ),
-        ),
-        icon: getSeasonIcon(seasonName),
-      );
-    }).toList();
-
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<DateTime>(
-        segments: segments,
-        selected: selectedSeason != null ? {selectedSeason} : {},
-        onSelectionChanged: (Set<DateTime> newSelection) {
-          if (newSelection.isNotEmpty) {
-            Navigator.pop(context);
-            onSeasonSelected(newSelection.first);
-          }
-        },
-        multiSelectionEnabled: false,
-        showSelectedIcon: false,
-        emptySelectionAllowed: true,
-        style: SegmentedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          selectedForegroundColor:
-              Theme.of(context).colorScheme.onSecondaryContainer,
-          selectedBackgroundColor:
-              Theme.of(context).colorScheme.secondaryContainer,
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
-            width: 1,
+            ),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
+        ],
       ),
     );
   }
 
-  Widget getSeasonIcon(String seasonName) {
-    IconData iconData;
-    switch (seasonName) {
-      case '春':
-        iconData = Icons.eco;
-        break;
-      case '夏':
-        iconData = Icons.wb_sunny;
-        break;
-      case '秋':
-        iconData = Icons.park;
-        break;
-      case '冬':
-        iconData = Icons.ac_unit;
-        break;
-      default:
-        iconData = Icons.schedule;
+  DateTime? getSelectedSeason(List<DateTime> availableSeasons) {
+    for (final season in availableSeasons) {
+      if (Utils.isSameSeason(timelineController.selectedDate, season)) {
+        return season;
+      }
     }
 
-    return Icon(
-      iconData,
-      size: 18,
+    return null;
+  }
+
+  Widget buildSeasonYearSection(
+      BuildContext context, int year, List<DateTime> availableSeasons) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final hasSelectedSeason = getSelectedSeason(availableSeasons) != null;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      decoration: BoxDecoration(
+        color: hasSelectedSeason
+            ? colorScheme.secondaryContainer.withValues(alpha: 0.5)
+            : colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hasSelectedSeason
+              ? colorScheme.secondary.withValues(alpha: 0.24)
+              : colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$year年',
+            style: textTheme.titleMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (!hasSelectedSeason) ...[
+            const SizedBox(height: 4),
+            Text(
+              '共 ${availableSeasons.length} 个季度可选',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          buildSeasonChoiceChips(context, availableSeasons),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSeasonChoiceChips(
+      BuildContext context, List<DateTime> availableSeasons) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final selectedSeason = getSelectedSeason(availableSeasons);
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: availableSeasons.map((date) {
+        final seasonName = Utils.getSeasonStringByMonth(date.month);
+        final isSelected =
+            selectedSeason != null && Utils.isSameSeason(selectedSeason, date);
+
+        return ChoiceChip(
+          label: Text(seasonName),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (!selected) {
+              return;
+            }
+            KazumiDialog.dismiss();
+            onSeasonSelected(date);
+          },
+          showCheckmark: false,
+          labelStyle: textTheme.labelLarge?.copyWith(
+            color: isSelected
+                ? colorScheme.onSecondaryContainer
+                : colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+          backgroundColor: colorScheme.surfaceContainerHigh,
+          selectedColor: colorScheme.secondaryContainer,
+          side: BorderSide(
+            color: isSelected
+                ? Colors.transparent
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
+            width: 1,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+      }).toList(),
     );
   }
 

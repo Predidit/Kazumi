@@ -442,6 +442,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             }),
           ),
           floatingActionButton: Wrap(
+            alignment: WrapAlignment.end,
             spacing: 12,
             runSpacing: 12,
             children: [

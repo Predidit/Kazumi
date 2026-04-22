@@ -568,23 +568,27 @@ class _TimelinePageState extends State<TimelinePage>
       gridViewList.add(
         CustomScrollView(
           slivers: [
-            SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                mainAxisSpacing: StyleString.cardSpace - 2,
-                crossAxisSpacing: StyleString.cardSpace,
-                crossAxisCount: crossCount,
-                mainAxisExtent: cardHeight + 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  if (filteredList.isEmpty) return null;
-                  final item = filteredList[index];
-                  return BangumiTimelineCard(
-                      bangumiItem: item,
-                      cardHeight: cardHeight,
-                      showRating: showRating);
-                },
-                childCount: filteredList.isNotEmpty ? filteredList.length : 10,
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  mainAxisSpacing: StyleString.cardSpace - 2,
+                  crossAxisSpacing: StyleString.cardSpace,
+                  crossAxisCount: crossCount,
+                  mainAxisExtent: cardHeight + 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    if (filteredList.isEmpty) return null;
+                    final item = filteredList[index];
+                    return BangumiTimelineCard(
+                        bangumiItem: item,
+                        cardHeight: cardHeight,
+                        showRating: showRating);
+                  },
+                  childCount:
+                      filteredList.isNotEmpty ? filteredList.length : 10,
+                ),
               ),
             ),
           ],

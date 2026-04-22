@@ -9,6 +9,7 @@ import 'bbcode_base_listener.dart';
 import 'bbcode_elements.dart';
 import 'generated/BBCodeParser.dart';
 import 'generated/BBCodeLexer.dart';
+import 'image_preview.dart';
 
 class BBCodeWidget extends StatefulWidget {
   const BBCodeWidget({super.key, required this.bbcode});
@@ -120,14 +121,20 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                 );
               } else if (e is BBCodeImg) {
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: e.imageUrl,
-                    placeholder: (context, url) =>
+                  child: GestureDetector(
+                    onTap: () => ImageViewer.show(context, e.imageUrl),
+                    child: Hero(
+                      tag: e.imageUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: e.imageUrl,
+                        placeholder: (context, url) =>
                         const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
-                  ),
+                        errorWidget: (context, error, stackTrace) {
+                          return const Text('.');
+                        },
+                      ),
+                    ) ,
+                  ) ,
                 );
               } else if (e is BBCodeBgm) {
                 String url;

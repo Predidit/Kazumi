@@ -237,83 +237,56 @@ class BangumiHTTP {
 
   static Future<CommentResponse> getBangumiCommentsByID(int id,
       {int offset = 0}) async {
-    CommentResponse commentResponse = CommentResponse.fromTemplate();
-    try {
-      final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
-            [id, 20, offset]),
-      );
-      final jsonData = res.data;
-      commentResponse = CommentResponse.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger().e('Network: resolve bangumi comments failed', error: e);
-    }
-    return commentResponse;
+    final res = await Request().get(
+      Api.formatUrl(Api.bangumiAPINextDomain + Api.bangumiCommentsByIDNext,
+          [id, 20, offset]),
+      extra: {'customError': ''},
+      shouldRethrow: true,
+    );
+    return CommentResponse.fromJson(res.data);
   }
 
   static Future<EpisodeCommentResponse> getBangumiCommentsByEpisodeID(
       int id) async {
-    EpisodeCommentResponse commentResponse =
-        EpisodeCommentResponse.fromTemplate();
-    try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
-            [id]),
-      );
-      final jsonData = res.data;
-      commentResponse = EpisodeCommentResponse.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger().e('Network: resolve bangumi episode comments failed', error: e);
-    }
-    return commentResponse;
+    final res = await Request().get(
+      Api.formatUrl(
+          Api.bangumiAPINextDomain + Api.bangumiEpisodeCommentsByIDNext,
+          [id]),
+      extra: {'customError': ''},
+      shouldRethrow: true,
+    );
+    return EpisodeCommentResponse.fromJson(res.data);
   }
 
   static Future<CharacterCommentResponse> getCharacterCommentsByCharacterID(
       int id) async {
-    CharacterCommentResponse commentResponse =
-        CharacterCommentResponse.fromTemplate();
-    try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
-            [id]),
-      );
-      final jsonData = res.data;
-      commentResponse = CharacterCommentResponse.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger().e('Network: resolve bangumi character comments failed', error: e);
-    }
-    return commentResponse;
+    final res = await Request().get(
+      Api.formatUrl(
+          Api.bangumiAPINextDomain + Api.bangumiCharacterCommentsByIDNext,
+          [id]),
+      extra: {'customError': ''},
+      shouldRethrow: true,
+    );
+    return CharacterCommentResponse.fromJson(res.data);
   }
 
   static Future<StaffResponse> getBangumiStaffByID(int id) async {
-    StaffResponse staffResponse = StaffResponse.fromTemplate();
-    try {
-      final res = await Request().get(
-        Api.formatUrl(
-            Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
-      );
-      final jsonData = res.data;
-      staffResponse = StaffResponse.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger().e('Network: resolve bangumi staff failed', error: e);
-    }
-    return staffResponse;
+    final res = await Request().get(
+      Api.formatUrl(
+          Api.bangumiAPINextDomain + Api.bangumiStaffByIDNext, [id]),
+      extra: {'customError': ''},
+      shouldRethrow: true,
+    );
+    return StaffResponse.fromJson(res.data);
   }
 
   static Future<CharactersResponse> getCharatersByBangumiID(int id) async {
-    CharactersResponse charactersResponse = CharactersResponse.fromTemplate();
-    try {
-      final res = await Request().get(
-        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
-      );
-      final jsonData = res.data;
-      charactersResponse = CharactersResponse.fromJson(jsonData);
-    } catch (e) {
-      KazumiLogger().e('Network: resolve bangumi characters failed', error: e);
-    }
-    return charactersResponse;
+    final res = await Request().get(
+      Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiCharacterByID, [id]),
+      extra: {'customError': ''},
+      shouldRethrow: true,
+    );
+    return CharactersResponse.fromJson(res.data);
   }
 
   static Future<CharacterFullItem> getCharacterByCharacterID(int id) async {

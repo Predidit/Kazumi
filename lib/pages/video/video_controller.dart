@@ -340,10 +340,9 @@ abstract class _VideoPageController with Store {
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
     episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
-    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id)
-        .then((value) {
-      episodeCommentsList.addAll(value.commentList);
-    });
+    final value =
+        await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id);
+    episodeCommentsList.addAll(value.commentList);
     if (!isCommentsAscending) {
       episodeCommentsList
           .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));

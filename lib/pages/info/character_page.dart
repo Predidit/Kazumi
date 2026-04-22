@@ -21,6 +21,7 @@ class _CharacterPageState extends State<CharacterPage> {
   bool loadingCharacter = true;
   List<CharacterCommentItem> commentsList = [];
   bool loadingComments = true;
+  bool commentsError = false;
 
   Future<void> loadCharacter() async {
     setState(() {
@@ -40,11 +41,19 @@ class _CharacterPageState extends State<CharacterPage> {
   Future<void> loadComments() async {
     setState(() {
       loadingComments = true;
+      commentsError = false;
     });
-    await BangumiHTTP.getCharacterCommentsByCharacterID(widget.characterID)
-        .then((value) {
+    try {
+      final value =
+          await BangumiHTTP.getCharacterCommentsByCharacterID(widget.characterID);
       commentsList = value.commentList;
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          commentsError = true;
+        });
+      }
+    }
     if (mounted) {
       setState(() {
         loadingComments = false;
@@ -239,7 +248,7 @@ class _CharacterPageState extends State<CharacterPage> {
                 ),
               );
             }
-            if (commentsList.isEmpty) {
+            if (commentsError) {
               return SliverFillRemaining(
                 child: GeneralErrorWidget(
                   errMsg: '什么都没有找到 (´;ω;`)',
@@ -251,6 +260,13 @@ class _CharacterPageState extends State<CharacterPage> {
                       text: '点击重试',
                     ),
                   ],
+                ),
+              );
+            }
+            if (commentsList.isEmpty) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: Text('什么都没有找到 (´;ω;`)'),
                 ),
               );
             }

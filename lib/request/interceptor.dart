@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -36,10 +35,9 @@ class ApiInterceptor extends Interceptor {
     if (options.path.contains(Api.bangumiAPIDomain) ||
         options.path.contains(Api.bangumiAPINextDomain)) {
       final tokenHeader = {...bangumiHTTPHeader};
-      if (Bangumi().initialized ||
-          options.path.contains(Api.bangumiUsernameByToken)) {
-        final token =
-            setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
+      final token =
+          setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
+      if (token.toString().isNotEmpty) {
         tokenHeader['Authorization'] =
             'Bearer $token'; // 附上用户token 必须是授权的token 或者需要验证的token
       }

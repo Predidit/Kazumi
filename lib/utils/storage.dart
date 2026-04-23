@@ -361,6 +361,7 @@ class SettingBoxKey {
       bangumiAccessToken = 'bangumiAccessToken',
       bangumiUpdateEnable = 'bangumiUpdateEnable',
       bangumiDownloadEnable = 'bangumiDownloadEnable',
+      bangumiSyncPriority = 'bangumiSyncPriority',
       bangumiFirstSyncMode = 'bangumiFirstSyncMode',
       bangumiSyncDebug = 'bangumiSyncDebug',
       bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',

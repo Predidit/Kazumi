@@ -2,7 +2,7 @@ import 'package:card_settings_ui/tile/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/bangumi/initial_sync_mode.dart';
+import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:hive_ce/hive.dart';
@@ -20,22 +20,20 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   Box setting = GStorage.setting;
   bool passwordVisible = false;
   bool isVerifying = false;
-  final MenuController defaultPageMenuController = MenuController();
-  late bool updateEnanbe;
-  late bool downloadEnable;
-  late bool deleteEnable;
-  late bool debugEnable;
-  late int syncMode;
+  late bool bangumiImmediateSyncToastEnable;
+  late int syncPriority;
+  bool syncCollectiblesing = false;
+  final MenuController syncPriorityMenuController = MenuController();
 
   @override
   void initState() {
     super.initState();
     bangumiTokenController.text = setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
-    updateEnanbe = setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
-    downloadEnable = setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
-    deleteEnable = setting.get(SettingBoxKey.bangumiDeleteEnable, defaultValue: false);
-    debugEnable = setting.get(SettingBoxKey.bangumiSyncDebug, defaultValue: true);
-    syncMode = setting.get(SettingBoxKey.bangumiFirstSyncMode, defaultValue: 0);
+    bangumiImmediateSyncToastEnable = setting.get(
+      SettingBoxKey.bangumiImmediateSyncToastEnable,
+      defaultValue: true,
+    );
+    syncPriority = setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 1);
   }
 
   @override
@@ -44,81 +42,108 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
     super.dispose();
   }
 
-  void updateSyncMode(int mode) {
-    setting.put(SettingBoxKey.bangumiFirstSyncMode, mode);
+  void updateSyncPriority(int value) {
+    setting.put(SettingBoxKey.bangumiSyncPriority, value);
     setState(() {
-      syncMode = mode;
+      syncPriority = value;
     });
   }
 
-  Future<void> update() async {
-    final bangumi = Bangumi();
-    if (bangumi.initialized) {
-      try { 
-        await bangumi.ping();
-        try {
-          await bangumi.update();
-        } catch (e) {
-          KazumiDialog.showToast(message: "Bangumi上传失败");
-        }
-      } catch (e) {
-        KazumiDialog.showToast(message: "Bangumi连接失败");
-      }
-    } else {
-      KazumiDialog.showToast(message: "Bangumi 未启用同步或配置错误");
-    }
-  }
+  Future<void> syncWithProgress() async {
+    final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
+    final ValueNotifier<String> progressText =
+        ValueNotifier<String>('准备同步 Bangumi 状态...');
 
-  Future<void> download() async {
-    final bangumi = Bangumi();
-    if (bangumi.initialized) {
-      try {
-        await bangumi.ping();
-        try {
-          await bangumi.download();
-        } catch (e) {
-          KazumiDialog.showToast(message: "Bangumi下载失败 ${e.toString()}");
-        }
-      } catch (e) {
-        KazumiDialog.showToast(message: 'Bangumi连接失败');
+    try {
+      setState(() {
+        syncCollectiblesing = true;
+      });
+
+      KazumiDialog.show(
+        clickMaskDismiss: false,
+        builder: (context) {
+          return Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SizedBox(
+                width: 340,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Bangumi 同步进行中',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    ValueListenableBuilder<String>(
+                      valueListenable: progressText,
+                      builder: (_, value, __) => Text(value),
+                    ),
+                    const SizedBox(height: 12),
+                    ValueListenableBuilder<double?>(
+                      valueListenable: progressValue,
+                      builder: (_, value, __) => LinearProgressIndicator(value: value),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      final bangumi = Bangumi();
+      await bangumi.ping();
+      await bangumi.syncCollectibles(
+        force: true,
+        onProgress: (message, current, total) {
+          progressText.value = total > 0 ? '$message ($current/$total)' : message;
+          if (total > 0) {
+            progressValue.value = (current / total).clamp(0.0, 1.0);
+          } else {
+            progressValue.value = null;
+          }
+        },
+      );
+    } catch (e) {
+      KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
+    } finally {
+      progressValue.dispose();
+      progressText.dispose();
+      if (KazumiDialog.observer.hasKazumiDialog) {
+        KazumiDialog.dismiss();
       }
-    } else {
-      KazumiDialog.showToast(message: 'Bangumi 未启用同步或配置错误');
+      if (mounted) {
+        setState(() {
+          syncCollectiblesing = false;
+        });
+      }
     }
   }
 
   Future<void> backup() async {
     final bangumi = Bangumi();
-    if (debugEnable && bangumi.initialized) {
+    if (bangumi.initialized) {
       bangumi.backup();
     } else {
-      KazumiDialog.showToast(message: 'Bangumi 未启用或配置错误或未启用debug');
+      KazumiDialog.showToast(message: 'Bangumi 未启用或配置错误');
     }
   }
 
-  // ({bool updateEnable, bool downloadEnable}) getUpdateAndDownloadSet() {
-  //   final update = setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
-  //   final download = setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
-  //   return (updateEnable: update, downloadEnable: download);
-  // }
-
   /// 复原数据
   Future<void> openFileRestore() async {
-    if (debugEnable) {
-      var bangumi = Bangumi();
+    var bangumi = Bangumi();
+    try {
+      await bangumi.ping();
       try {
-        await bangumi.ping();
-        try {
-          await bangumi.openFolderRestore();
-          KazumiDialog.showToast(message: '文件夹已打开');
-        } catch (e) {
-          KazumiDialog.showToast(message: '文件夹打开失败 ${e.toString()}');
-        }
+        await bangumi.openFolderRestore();
+        KazumiDialog.showToast(message: '文件夹已打开');
       } catch (e) {
-        KazumiDialog.showToast(message: 'Bangumi访问失败 ${e.toString()}');
+        KazumiDialog.showToast(message: '文件夹打开失败 ${e.toString()}');
       }
-    } else {
-      KazumiDialog.showToast(message: '请先开启调试模式再尝试复原');
+    } catch (e) {
+      KazumiDialog.showToast(message: 'Bangumi访问失败 ${e.toString()}');
     }
   }
 
@@ -154,77 +179,41 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
-                    final syncEnable = setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-                    updateEnanbe = value ?? !updateEnanbe;
-                    if (syncEnable && !(updateEnanbe && downloadEnable)) {
-                      await setting.put(SettingBoxKey.bangumiSyncEnable, false);
-                    }
+                    bangumiImmediateSyncToastEnable =
+                        value ?? !bangumiImmediateSyncToastEnable;
                     await setting.put(
-                      SettingBoxKey.bangumiUpdateEnable, updateEnanbe);
-                    setState(() {});
-                  },
-                  title: Text('允许上传', style: TextStyle(fontFamily: fontFamily)), 
-                  initialValue: updateEnanbe,
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    final syncEnable = setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-                    downloadEnable = value ?? !downloadEnable;
-                    if (syncEnable && !(updateEnanbe && downloadEnable)) {
-                      await setting.put(SettingBoxKey.bangumiSyncEnable, false);
-                    }
-                    await setting.put(
-                        SettingBoxKey.bangumiDownloadEnable, downloadEnable);
-                    setState(() {});
-                  },
-                  title: Text('允许下载', style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: downloadEnable,
-                ),
-                SettingsTile.switchTile(
-                  enabled: false,
-                  onToggle: (value) async {
-                    // FUTURE
-                  },
-                  title: Text('允许同步时，删除本地收藏', style: TextStyle(fontFamily: fontFamily)),
-                  initialValue: deleteEnable,
-                ),
-                SettingsTile.switchTile(
-                  enabled: false,
-                  onToggle: (value) async {
-                    setState(() {
-                      debugEnable = value ?? !debugEnable;
-                    });
-                    await setting.put(
-                      SettingBoxKey.bangumiSyncDebug, debugEnable
+                      SettingBoxKey.bangumiImmediateSyncToastEnable,
+                      bangumiImmediateSyncToastEnable,
                     );
+                    if (mounted) {
+                      setState(() {});
+                    }
                   }, 
-                  title: Text('调试模式', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('开启后，进行第一次bgm同步前，会备份数据'),
-                  initialValue: debugEnable, 
+                  title: Text('即时同步提示', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('点击追番按钮触发即时同步时显示提示'),
+                  initialValue: bangumiImmediateSyncToastEnable,
                 ),
                 SettingsTile.navigation(
-                  description: Text('暂未生效'),
-                  enabled: false,
                   onPressed: (_) async {
-                    if (defaultPageMenuController.isOpen) {
-                      defaultPageMenuController.close();
+                    if (syncPriorityMenuController.isOpen) {
+                      syncPriorityMenuController.close();
                     } else {
-                      defaultPageMenuController.open();
+                      syncPriorityMenuController.open();
                     }
                   },
-                  title: Text('第一次同步收藏的 优先级', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('同步优先级', style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
-                    controller: defaultPageMenuController,
+                    controller: syncPriorityMenuController,
                     builder: (context, controller, child) => Text(
-                      InitialSyncMode.fromInt(syncMode).label,
+                      BangumiSyncPriority.fromValue(syncPriority).label,
                       style: TextStyle(fontFamily: fontFamily)
                     ),
                     menuChildren: [
-                      for (final entry in InitialSyncMode.values)
+                      for (final entry in BangumiSyncPriority.values)
                         MenuItemButton(
                           requestFocusOnHover: false,
-                          onPressed: () => updateSyncMode(entry.value),
+                          onPressed: () => updateSyncPriority(entry.value),
                           child: Container(
                             height: 48,
                             constraints: BoxConstraints(minWidth: 112),
@@ -233,7 +222,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                               child: Text(
                                 entry.label,
                                 style: TextStyle(
-                                  color: entry.value == syncMode
+                                  color: entry.value == syncPriority
                                       ? Theme.of(context).colorScheme.primary
                                       : null,
                                   fontFamily: fontFamily,
@@ -246,18 +235,18 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   ),
                 ),
                 SettingsTile(
-                  trailing: const Icon(Icons.cloud_upload_rounded),
+                  trailing: syncCollectiblesing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.sync_rounded),
                   onPressed: (_) async {
-                    await update();
+                    await syncWithProgress();
                   },
-                  title: Text("手动上传"),
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.cloud_download_rounded),
-                  onPressed: (_) async {
-                    await download();
-                  },
-                  title: Text("手动下载"),
+                  title: Text("立即同步状态"),
+                  description: Text('仅同步状态不一致条目'),
                 ),
                 SettingsTile(
                   onPressed: (_) async {

@@ -21,7 +21,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool webDavEnableHistory;
   late bool enableGitProxy;
   late bool bangumiSyncEnable;
-  late bool bangumiImmediateSyncToastEnable;
 
   @override
   void initState() {
@@ -33,10 +32,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
     bangumiSyncEnable =
       setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-    bangumiImmediateSyncToastEnable = setting.get(
-      SettingBoxKey.bangumiImmediateSyncToastEnable,
-      defaultValue: true,
-    );
   }
 
   void onBackPressed(BuildContext context) {
@@ -243,8 +238,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   onToggle: (value) async {
                     final tBangumiEnableSync = value ?? !bangumiSyncEnable;
                     final bangumi = Bangumi();
-                    final downloadEnable = setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
-                    final updateEnable = setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
                     if (tBangumiEnableSync == true) {
                       final token = setting.get(
                           SettingBoxKey.bangumiAccessToken,
@@ -252,10 +245,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       if (token.isEmpty) {
                         KazumiDialog.showToast(
                             message: '请先配置 Bangumi的Access Token');
-                        return;
-                      } 
-                      else if (!downloadEnable && !updateEnable) {
-                        KazumiDialog.showToast(message: '请先开启上传或下载功能');
                         return;
                       } else {
                         if (!bangumi.initialized) {
@@ -293,35 +282,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     setState(() {});
                   },
                   title: Text('Bangumi 高级配置', style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    bangumiImmediateSyncToastEnable =
-                        value ?? !bangumiImmediateSyncToastEnable;
-                    await setting.put(
-                      SettingBoxKey.bangumiImmediateSyncToastEnable,
-                      bangumiImmediateSyncToastEnable,
-                    );
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                  title: Text('即时同步提示', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text(
-                    '点击追番按钮触发即时同步时显示提示（默认开启）',
-                    style: TextStyle(fontFamily: fontFamily),
-                  ),
-                  initialValue: bangumiImmediateSyncToastEnable,
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.sync_rounded),
-                  onPressed: (_) async {
-                      // final CollectController collectController = Modular.get<CollectController>();
-                      // await collectController.syncCollectiblesBangumi();
-                      await syncBangumi();
-                  },
-                  title: Text('立即同步', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('手动同步当前观看记录到 Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

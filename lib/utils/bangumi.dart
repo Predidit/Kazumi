@@ -1,23 +1,18 @@
 import 'dart:io';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/modules/collect/collect_module_bangumi.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/request/bangumi.dart';
-import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:path/path.dart' as p;
 
 class Bangumi {
   late Directory bgmLocalTempDirectory; // 用的文档夹
   late String token;
-  late String username; // 当前token对应的用户名
-  late String lastSyncUsername; // 上次同步的Bangumi用户名
-  // late int firstSyncMode;
+  String username = ''; // 当前token对应的用户名，由 ping() 设置
+  String lastSyncUsername = ''; // 上次同步的Bangumi用户名，由 ping()/init() 从存储加载
   bool initialized = false;
   Box setting = GStorage.setting;
 
@@ -62,6 +57,11 @@ class Bangumi {
         throw Exception('Bangumi: 获取用户名失败');
       } else {
         username = name;
+        // 确保 lastSyncUsername 已从存储加载（未经 init() 直接调用 ping() 时同样有效）
+        if (lastSyncUsername.isEmpty) {
+          lastSyncUsername =
+              setting.get(SettingBoxKey.bangumiLastSyncUsername, defaultValue: '');
+        }
       }
     } catch (e) {
       KazumiLogger().e('Bangumi: Bangumi ping failed', error: e);
@@ -130,315 +130,21 @@ class Bangumi {
     }
   }
 
-  /// GET
-  /// 获取远程收藏列表
-  ///
-  /// [list] 收藏列表，传入以省去从网上get
-  Future<List<CollectedBangumi>> getCollectedBangumiList(
-      [List<BangumiRemoteCollection>? list]) async {
-    list ??= await BangumiHTTP.getBangumiCollectibles();
-    final collectCrudRepository = Modular.get<ICollectCrudRepository>();
-    final collectibles = <CollectedBangumi>[];
-    for (final item in list) {
-      // 遍历所有远程数据，如果有则用本地，否则尝试从远程获取
-      var collect = collectCrudRepository.getCollectible(item.bangumiId);
-      if (collect == null) {
-        collect = CollectedBangumi(
-          item.toBangumiItem(),
-          item.updatedAt,
-          item.type,
-        );
-      } else {
-        collect.type = item.type;
-        collect.time = item.updatedAt;
-      }
-      collectibles.add(collect);
-    }
-    return collectibles;
-  }
-
-  /// FUTURE: 重构
-  /// 获得与 bgm 的差异
-  ///
-  /// [remoteCollectibles] 获取的 bangumi 收藏
-  /// [localCollectibles] 本地收藏
-  /// [remoteChanges] 可合并的远程改变
-  /// [inorLocalChanges] 不可上传的本地改变，即删除
-  /// [inorBgmChanges] 不可下载的远程改变，可能是删除，也可能是首次上传
-  Future<
-      ({
-        List<BangumiRemoteCollection> remoteCollection,
-        List<CollectedBangumiChange> remoteChangesUnMer,
-        List<CollectedBangumiChange> localChangesUnMer,
-        List<CollectedBangumiChange> inorLocalChanges,
-        List<CollectedBangumiChange> inorBgmChanges
-      })> getCollectedChanges(
-          {void Function(String message, int current, int total)? onProgress}) async {
-    // 1. 对本地和远程的收藏进行预处理
-    final remoteCollectiblesRaw = await BangumiHTTP.getBangumiCollectibles(
-      onProgress: onProgress,
-    );
-    final localCollectibles = GStorage.collectibles.values.toList();
-    final remoteCollectiblesMap = {
-      for (var item in remoteCollectiblesRaw) item.bangumiId: item
-    };
-    final localCollectiblesMap = {
-      for (var item in localCollectibles) item.bangumiItem.id: item
-    };
-
-    // 2. change生成函数
-    int timestampCount = 0;
-    final timestampStart =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000; // 时间开始
-    int getTimeForId() {
-      timestampCount++;
-      return timestampStart + timestampCount;
-    }
-    CollectedBangumiChange func<T>(
-        Iterable<int> timesForId, T item, int action) {
-          int time;
-          int bangumiId;
-          int type;
-          int updateAt;
-          if (item is BangumiRemoteCollection) {
-            time = item.updatedAt.millisecondsSinceEpoch ~/ 1000;
-            bangumiId = item.bangumiId;
-            type = item.type;
-            updateAt = item.getUpdateAtToInt();
-          }  else if (item is CollectedBangumi) {
-            time = getTimeForId();
-            bangumiId = item.bangumiItem.id;
-            type = item.type;
-            updateAt = time;
-            }
-           else {
-            throw Exception('TODO: change 生成函数item类型错误');
-          }
-      while (true) {
-        if (!timesForId.contains(time)) {
-          return CollectedBangumiChange(
-              time, bangumiId, action, type, updateAt);
-        }
-        time = getTimeForId();
-      }
-    }
-
-    // 3. 对本地改变记录以时间从新到旧排序
-    final localChanges = GStorage.collectChanges;
-    final localChangesList = localChanges.values.toList();
-    localChangesList.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    // 4. 遍历生成远程 chanage
-    final remoteChangesUnMer = <int, CollectedBangumiChange>{}; // 未合并的远程 changes，change的id为key
-    final localChangesUnMer = <int, CollectedBangumiChange>{};
-    final inorLocalChanges = <CollectedBangumiChange>[]; // 因删除，被忽略的本地 changes
-    final inorBgmChanges = <CollectedBangumiChange>[]; // 可能因删除，被忽略的远程 changes
-    final bgmIds = {
-      ...remoteCollectiblesMap.keys,
-      ...localCollectiblesMap.keys
-    };
-    for (final id in bgmIds) {
-      if (remoteCollectiblesMap.containsKey(id) &&
-          localCollectiblesMap.containsKey(id)) {
-        // 远程有 本地有 若收藏type不同 比较最新
-        try {
-          final remote = remoteCollectiblesMap[id]!;
-          CollectedBangumiChange localChange;
-          try {
-            localChange = localChangesList
-                .firstWhere((element) => element.bangumiID == id);
-          } catch (e) {
-            // 本地changes可能损坏或人为删除 基于远程记录重新生成本地change
-            KazumiLogger().w(
-                'Bangumi.getCollectedChanges: unable to find the change record $id: ${remote.name}');
-            localChange = func(localChanges.keys.cast<int>(), remote, 1);
-            await localChanges.put(localChange.id, localChange);
-          }
-          if (localChange.type != remote.type) {
-            // 如果收藏类型不同 记录待合并的change
-            if (localChange.timestamp > remote.getUpdateAtToInt()) {
-              localChangesUnMer[localChange.id] = localChange;
-            } else {
-              final remoteChange = func(localChanges.keys.cast<int>(), remote, 2);
-              remoteChangesUnMer[remoteChange.id] = remoteChange;
-            }
-          }
-        } catch (e, stackTrace) {
-          KazumiLogger().e(
-            'Bangumi: 生成远程changes失败. Id=$id',
-            error: e,
-            stackTrace: stackTrace,
-          );
-          rethrow;
-        }
-      } else if (remoteCollectiblesMap.containsKey(id)) {
-        // 远程有 本地没有 尝试获得本地删除记录 有则记为删除 否则记为远程新增
-        CollectedBangumiChange? deletedChange;
-        try {
-          deletedChange = localChangesList.firstWhere(
-              (element) => element.bangumiID == id && element.action == 3);
-        } catch (_) {}
-        if (deletedChange != null) {
-          // 本地删除了
-          inorLocalChanges.add(deletedChange);
-        } else {
-          // 未获得本地删除记录 视为远程新增
-          final remoteChange = func(localChanges.keys.cast<int>(), remoteCollectiblesMap[id]!, 1);
-          remoteChangesUnMer[remoteChange.timestamp] = remoteChange;
-        }
-      } else {
-        // 远程没有 本地有
-        final local = localCollectiblesMap[id]!;
-        CollectedBangumiChange localChange;
-        try {
-          // 尝试获得本地记录
-          localChange = localChangesList.firstWhere((element) => element.bangumiID == local.bangumiItem.id);
-        } catch (e) {
-          // 本地changes可能损坏或人为删除 重新生成本地change
-          KazumiLogger().w(
-              'Bangumi.getCollectedChanges: unable to find the change record ${local.bangumiItem.id}: ${local.bangumiItem.name}');
-          localChange = func(localChanges.keys.cast<int>(), local, 1);
-          await localChanges.put(localChange.id, localChange);
-        }
-        // FUTURE: 可能是远程删除了 也可能是待同步 暂时都视为待同步
-        localChangesUnMer[localChange.id] = localChange;
-        // final item = localCollectiblesMap[id]!;
-        // final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        // inorBgmChanges.add(CollectedBangumiChange(
-        //     timestamp, item.bangumiItem.id, 3, item.type, timestamp));
-      }
-    }
-
-    // 5. 返回最终数据
-    return (
-      remoteCollection: remoteCollectiblesRaw,
-      remoteChangesUnMer: remoteChangesUnMer.values.toList(),
-      localChangesUnMer: localChangesUnMer.values.toList(),
-      inorLocalChanges: inorLocalChanges,
-      inorBgmChanges: inorBgmChanges
-    );
-  }
-
-  /// 更新
-  /// 将本地收藏数据同步到 Bangumi 服务器，基于 changes
-  Future<void> update(
-      [
-      List<CollectedBangumiChange>? localChangesUnMer,
-      bool skipLock = false,
-      void Function(String message, int current, int total)? onProgress,
-      ]) async {
-    final updateEnanbe =
-        setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
-    if (!updateEnanbe) {
-      KazumiDialog.showToast(message: '上传已禁用');
-      KazumiLogger().i('Bangumi: update is disabled');
-      return;
-    }
-    bool ownsLock = false;
-    if (!skipLock && isUsing) {
-      KazumiLogger().w('Bangumi: History is currently syncing');
-      throw Exception('History is currently syncing');
-    }
-    if (!skipLock) {
-      isUsing = true;
-      ownsLock = true;
-    }
-    try {
-      // 1. 获取本地可以上传的changes
-      final localChanges = localChangesUnMer ?? (await getCollectedChanges()).localChangesUnMer;
-      int uploadedCount = 0;
-      final int uploadTotal = localChanges.length;
-      onProgress?.call('准备上传本地收藏变更', 0, uploadTotal);
-
-      // 2. 上传
-      for (final change in localChanges) {
-        await BangumiHTTP.updateBangumiByType(change.bangumiID, change.type);
-        uploadedCount++;
-        onProgress?.call('正在上传本地收藏变更', uploadedCount, uploadTotal);
-      }
-
-      // 3. 检测用户名
-      checkUpdateUsername();
-
-      KazumiLogger()
-          .i('Bangumi: update collection success. updatedCount: ${localChanges.length}');
-    } catch (e) {
-      KazumiLogger().e('Bangumi: update collection failed', error: e);
-      rethrow;
-    } finally {
-      if (ownsLock) {
-        isUsing = false;
-      }
-    }
-  }
-
-  /// 将Bangumi收藏数据同步到本地
-  Future<void> download(
-      [List<BangumiRemoteCollection>? remoteCollection_,
-      List<CollectedBangumiChange>? remoteChangesUnMer_,
-      bool skipLock = false]) async {
-    final downloadEnable =
-        setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
-    if (!downloadEnable) {
-      KazumiDialog.showToast(message: '下载已被禁止');
-      KazumiLogger().w('Bangumi: download is disabled');
-      return;
-    }
-    bool ownsLock = false;
-    if (!skipLock && isUsing) {
-      KazumiLogger().w('Bangumi: History is currently syncing');
-      throw Exception('History is currently syncing');
-    }
-    if (!skipLock) {
-      isUsing = true;
-      ownsLock = true;
-    }
-    try {
-      if (username.isEmpty) {
-        throw Exception('username is empty');
-      }
-      // 1. 远程收藏初始化
-      List<BangumiRemoteCollection> remoteCollection;
-      List<CollectedBangumiChange> remoteChangesUnMer;
-      if (remoteCollection_ == null || remoteChangesUnMer_ == null) {
-        final record = await getCollectedChanges();
-        remoteCollection = record.remoteCollection;
-        remoteChangesUnMer = record.remoteChangesUnMer;
-      } else {
-        remoteCollection = remoteCollection_;
-        remoteChangesUnMer = remoteChangesUnMer_;
-      }
-
-        // 2. 合并收藏
-      await GStorage.patchCollectibles(
-          await getCollectedBangumiList(remoteCollection),
-          remoteChangesUnMer);
-      
-      // 4. 检测用户名
-      checkUpdateUsername();
-    } catch (e) {
-      KazumiLogger().e('Bangumi: download collection failed', error: e);
-      rethrow;
-    } finally {
-      if (ownsLock) {
-        isUsing = false;
-      }
-    }
-  }
-
   /// 同步收藏
-  Future<void> syncCollectibles(
-      {void Function(String message, int current, int total)? onProgress}) async {
-    final syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: true);
-    final updateEnanbe =
-        setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
-    final downloadEnable =
-      setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
-    if (!syncEnable || (!updateEnanbe && !downloadEnable)) {
-      KazumiDialog.showToast(message: '同步已关闭');
-      KazumiLogger().i('Bangumi: sync disabled');
-      return;
+  /// 全量拉取 Bangumi 远程收藏，与本地对比，按优先级处理差异。
+  /// [force] 为 true 时跳过 bangumiSyncEnable 检查（用于用户主动触发同步）
+  Future<void> syncCollectibles({
+    bool force = false,
+    void Function(String message, int current, int total)? onProgress,
+  }) async {
+    if (!force) {
+      final syncEnable =
+          setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+      if (!syncEnable) {
+        KazumiDialog.showToast(message: '同步已关闭');
+        KazumiLogger().i('Bangumi: sync disabled');
+        return;
+      }
     }
     if (isUsing) {
       KazumiLogger().w('Bangumi: History is currently syncing');
@@ -446,20 +152,81 @@ class Bangumi {
     }
     isUsing = true;
     try {
-      onProgress?.call('开始同步 Bangumi 收藏', 0, 0);
+      onProgress?.call('开始同步 Bangumi 状态', 0, 0);
+
+      // 确保备份目录已初始化（未经 init() 直接调用时同样安全）
+      if (!initialized) {
+        final dir = await getApplicationDocumentsDirectory();
+        bgmLocalTempDirectory = Directory(p.join(dir.path, 'Kazumi'));
+        if (!await bgmLocalTempDirectory.exists()) {
+          await bgmLocalTempDirectory.create(recursive: true);
+        }
+      }
+
       await checkAndBackup();
 
-      // 1. 获得更改
-      final record = await getCollectedChanges(onProgress: onProgress);
+      final priority = BangumiSyncPriority.fromValue(
+        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 1),
+      );
 
-      onProgress?.call('正在合并远程收藏到本地', 0, 0);
+      // 1. 全量拉取远程收藏（带分页进度）
+      final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
+        onProgress: onProgress,
+      );
 
-      // 2. 下载远程更改
-      await download(record.remoteCollection, record.remoteChangesUnMer, true);
+      // 2. 与本地数据对比，找出类型不一致的条目
+      final localCollectibles = GStorage.collectibles.values.toList();
+      final localMap = {
+        for (final item in localCollectibles) item.bangumiItem.id: item,
+      };
+      final remoteMap = {
+        for (final item in remoteCollection) item.bangumiId: item,
+      };
+      final sharedIds = localMap.keys.toSet().intersection(remoteMap.keys.toSet());
+      final mismatchIds = <int>[];
+      for (final id in sharedIds) {
+        if (localMap[id]!.type != remoteMap[id]!.type) {
+          mismatchIds.add(id);
+        }
+      }
 
-      // 3. 上传本地更改
-      await update(record.localChangesUnMer, true, onProgress);
-      onProgress?.call('Bangumi 收藏同步完成', 1, 1);
+      if (mismatchIds.isEmpty) {
+        onProgress?.call('未发现状态差异，无需同步', 1, 1);
+        KazumiDialog.showToast(message: '未发现状态差异，无需同步');
+        checkUpdateUsername();
+        return;
+      }
+
+      // 3. 按优先级处理差异
+      if (priority == BangumiSyncPriority.localFirst) {
+        // 本地优先：将本地类型上传到 Bangumi
+        int syncedCount = 0;
+        final total = mismatchIds.length;
+        onProgress?.call('本地 First：正在上传差异状态', 0, total);
+        for (final id in mismatchIds) {
+          await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+          syncedCount++;
+          onProgress?.call('本地 First：正在上传差异状态', syncedCount, total);
+        }
+      } else {
+        // Bangumi 优先：用远程类型覆盖本地
+        int syncedCount = 0;
+        final total = mismatchIds.length;
+        onProgress?.call('Bangumi First：正在更新本地状态', 0, total);
+        for (final id in mismatchIds) {
+          final local = localMap[id]!;
+          final remote = remoteMap[id]!;
+          local.type = remote.type;
+          local.time = remote.updatedAt;
+          await GStorage.collectibles.put(id, local);
+          syncedCount++;
+          onProgress?.call('Bangumi First：正在更新本地状态', syncedCount, total);
+        }
+      }
+
+      await GStorage.collectibles.flush();
+      checkUpdateUsername();
+      onProgress?.call('Bangumi 状态同步完成', 1, 1);
     } catch (e) {
       KazumiLogger().e('Bangumi: sync history failed', error: e);
       rethrow;

@@ -75,14 +75,12 @@ abstract class _CollectController with Store {
   Future<void> _syncBangumiCollectIfEnabled(int bangumiId, int localType) async {
     final bool syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-    final bool updateEnable =
-        setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
     final bool showImmediateSyncToast = setting.get(
       SettingBoxKey.bangumiImmediateSyncToastEnable,
       defaultValue: true,
     );
 
-    if (!syncEnable || !updateEnable) {
+    if (!syncEnable) {
       return;
     }
 

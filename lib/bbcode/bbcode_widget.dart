@@ -3,13 +3,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'bbcode_base_listener.dart';
 import 'bbcode_elements.dart';
 import 'generated/BBCodeParser.dart';
 import 'generated/BBCodeLexer.dart';
-import 'image_preview.dart';
 
 class BBCodeWidget extends StatefulWidget {
   const BBCodeWidget({super.key, required this.bbcode});
@@ -122,19 +122,20 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               } else if (e is BBCodeImg) {
                 return WidgetSpan(
                   child: GestureDetector(
-                    onTap: () => ImageViewer.show(context, e.imageUrl),
+                    onTap: () => ImageViewer.show(context,
+                        imageUrl: e.imageUrl, heroTag: e.imageUrl),
                     child: Hero(
                       tag: e.imageUrl,
                       child: CachedNetworkImage(
                         imageUrl: e.imageUrl,
                         placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
+                            const SizedBox(width: 1, height: 1),
                         errorWidget: (context, error, stackTrace) {
                           return const Text('.');
                         },
                       ),
-                    ) ,
-                  ) ,
+                    ),
+                  ),
                 );
               } else if (e is BBCodeBgm) {
                 String url;
@@ -161,7 +162,8 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               } else if (e is BBCodeMusume) {
                 return WidgetSpan(
                   child: CachedNetworkImage(
-                    imageUrl: 'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
+                    imageUrl:
+                        'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
                     placeholder: (context, url) =>
                         const SizedBox(width: 1, height: 1),
                     errorWidget: (context, error, stackTrace) {

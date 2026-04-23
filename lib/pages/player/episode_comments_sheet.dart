@@ -5,6 +5,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
+import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 
 class EpisodeInfo extends InheritedWidget {
@@ -33,6 +34,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   bool commentsQueryTimeout = false;
+  bool commentsIsEmpty = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
@@ -46,16 +48,22 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   Future<void> loadComments(int episode) async {
     commentsQueryTimeout = false;
-    await videoPageController
-        .queryBangumiEpisodeCommentsByID(
-            videoPageController.bangumiItem.id, episode)
-        .then((_) {
+    commentsIsEmpty = false;
+    try {
+      await videoPageController.queryBangumiEpisodeCommentsByID(
+          videoPageController.bangumiItem.id, episode);
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
+        setState(() {
+          commentsIsEmpty = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           commentsQueryTimeout = true;
         });
       }
-    });
+    }
     if (mounted) {
       setState(() {});
     }
@@ -100,9 +108,24 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
           sliver: Observer(builder: (context) {
             if (commentsQueryTimeout) {
+              return SliverFillRemaining(
+                child: GeneralErrorWidget(
+                  errMsg: '评论获取失败',
+                  actions: [
+                    GeneralErrorButton(
+                      onPressed: () {
+                        _refreshIndicatorKey.currentState?.show();
+                      },
+                      text: '重试',
+                    ),
+                  ],
+                ),
+              );
+            }
+            if (commentsIsEmpty) {
               return const SliverFillRemaining(
                 child: Center(
-                  child: Text('空空如也'),
+                  child: Text('什么都没有找到 (´;ω;`)'),
                 ),
               );
             }

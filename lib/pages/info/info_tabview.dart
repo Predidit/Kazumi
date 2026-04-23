@@ -16,8 +16,11 @@ class InfoTabView extends StatefulWidget {
   const InfoTabView({
     super.key,
     required this.commentsQueryTimeout,
+    required this.commentsIsEmpty,
     required this.charactersQueryTimeout,
+    required this.charactersIsEmpty,
     required this.staffQueryTimeout,
+    required this.staffIsEmpty,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
@@ -30,8 +33,11 @@ class InfoTabView extends StatefulWidget {
   });
 
   final bool commentsQueryTimeout;
+  final bool commentsIsEmpty;
   final bool charactersQueryTimeout;
+  final bool charactersIsEmpty;
   final bool staffQueryTimeout;
+  final bool staffIsEmpty;
   final TabController tabController;
   final Future<void> Function({int offset}) loadMoreComments;
   final Future<void> Function() loadCharacters;
@@ -280,6 +286,13 @@ class _InfoTabViewState extends State<InfoTabView>
                     ),
                   );
                 }
+                if (widget.commentsIsEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text('什么都没有找到 (´;ω;`)'),
+                    ),
+                  );
+                }
                 return SliverList.builder(
                   itemCount: 4,
                   itemBuilder: (context, _) {
@@ -356,6 +369,13 @@ class _InfoTabViewState extends State<InfoTabView>
                   ),
                 );
               }
+              if (widget.staffIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
+                  ),
+                );
+              }
               return SliverList.builder(
                 itemCount: 8,
                 itemBuilder: (context, _) {
@@ -428,6 +448,13 @@ class _InfoTabViewState extends State<InfoTabView>
                         text: '重试',
                       ),
                     ],
+                  ),
+                );
+              }
+              if (widget.charactersIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
                   ),
                 );
               }

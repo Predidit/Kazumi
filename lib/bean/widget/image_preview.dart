@@ -71,12 +71,10 @@ class _ImageViewerState extends State<ImageViewer> {
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
-    final currentScale =
-        _photoViewController.scale ?? _initialScale ?? 1.0;
+    final currentScale = _photoViewController.scale ?? _initialScale ?? 1.0;
     _initialScale ??= currentScale;
 
-    final factor =
-        event.scrollDelta.dy < 0 ? _wheelScaleStep : 1 / _wheelScaleStep;
+    final factor = event.scrollDelta.dy < 0 ? _wheelScaleStep : 1 / _wheelScaleStep;
     final minScale = _initialScale! * _minScaleFactor;
     final maxScale = _initialScale! * _maxScaleFactor;
     final newScale = (currentScale * factor).clamp(minScale, maxScale);

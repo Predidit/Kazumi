@@ -8,7 +8,6 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/collect/collect_module_bangumi.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:path/path.dart' as p;
@@ -172,9 +171,12 @@ class Bangumi {
         List<CollectedBangumiChange> localChangesUnMer,
         List<CollectedBangumiChange> inorLocalChanges,
         List<CollectedBangumiChange> inorBgmChanges
-      })> getCollectedChanges() async {
+      })> getCollectedChanges(
+          {void Function(String message, int current, int total)? onProgress}) async {
     // 1. 对本地和远程的收藏进行预处理
-    final remoteCollectiblesRaw = await BangumiHTTP.getBangumiCollectibles();
+    final remoteCollectiblesRaw = await BangumiHTTP.getBangumiCollectibles(
+      onProgress: onProgress,
+    );
     final localCollectibles = GStorage.collectibles.values.toList();
     final remoteCollectiblesMap = {
       for (var item in remoteCollectiblesRaw) item.bangumiId: item
@@ -319,7 +321,11 @@ class Bangumi {
   /// 更新
   /// 将本地收藏数据同步到 Bangumi 服务器，基于 changes
   Future<void> update(
-      [List<CollectedBangumiChange>? localChangesUnMer, bool skipLock = false]) async {
+      [
+      List<CollectedBangumiChange>? localChangesUnMer,
+      bool skipLock = false,
+      void Function(String message, int current, int total)? onProgress,
+      ]) async {
     final updateEnanbe =
         setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
     if (!updateEnanbe) {
@@ -339,10 +345,15 @@ class Bangumi {
     try {
       // 1. 获取本地可以上传的changes
       final localChanges = localChangesUnMer ?? (await getCollectedChanges()).localChangesUnMer;
+      int uploadedCount = 0;
+      final int uploadTotal = localChanges.length;
+      onProgress?.call('准备上传本地收藏变更', 0, uploadTotal);
 
       // 2. 上传
       for (final change in localChanges) {
         await BangumiHTTP.updateBangumiByType(change.bangumiID, change.type);
+        uploadedCount++;
+        onProgress?.call('正在上传本地收藏变更', uploadedCount, uploadTotal);
       }
 
       // 3. 检测用户名
@@ -415,7 +426,8 @@ class Bangumi {
   }
 
   /// 同步收藏
-  Future<void> syncCollectibles() async {
+  Future<void> syncCollectibles(
+      {void Function(String message, int current, int total)? onProgress}) async {
     final syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: true);
     final updateEnanbe =
@@ -433,16 +445,20 @@ class Bangumi {
     }
     isUsing = true;
     try {
+      onProgress?.call('开始同步 Bangumi 收藏', 0, 0);
       await checkAndBackup();
 
       // 1. 获得更改
-      final record = await getCollectedChanges();
+      final record = await getCollectedChanges(onProgress: onProgress);
+
+      onProgress?.call('正在合并远程收藏到本地', 0, 0);
 
       // 2. 下载远程更改
       await download(record.remoteCollection, record.remoteChangesUnMer, true);
 
       // 3. 上传本地更改
-      await update(record.localChangesUnMer, true);
+      await update(record.localChangesUnMer, true, onProgress);
+      onProgress?.call('Bangumi 收藏同步完成', 1, 1);
     } catch (e) {
       KazumiLogger().e('Bangumi: sync history failed', error: e);
       rethrow;

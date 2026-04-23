@@ -88,9 +88,7 @@ abstract class _CollectController with Store {
     }
 
     try {
-      await BangumiHTTP.updateBangumiByType(bangumiId, localType).then((_){
-        KazumiDialog.showToast(message: '同步收藏到Bangumi成功，bangumiId=$bangumiId, type=$localType');
-      });
+      await BangumiHTTP.updateBangumiByType(bangumiId, localType);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
@@ -174,7 +172,8 @@ abstract class _CollectController with Store {
   }
   
   /// bgm同步收藏
-  Future<void> syncCollectiblesBangumi() async { 
+  Future<void> syncCollectiblesBangumi(
+      {void Function(String message, int current, int total)? onProgress}) async { 
     if (!Bangumi().initialized) {
       KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
       return;
@@ -182,7 +181,7 @@ abstract class _CollectController with Store {
     try {
       await Bangumi().ping();
       try {
-        await Bangumi().syncCollectibles();
+        await Bangumi().syncCollectibles(onProgress: onProgress);
       } catch (e) {
         KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
       }

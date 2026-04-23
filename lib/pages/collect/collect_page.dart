@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -28,6 +30,69 @@ class _CollectPageState extends State<CollectPage>
   bool showDelete = false;
   bool syncCollectiblesing = false;
   Box setting = GStorage.setting;
+
+  Future<void> _syncBangumiWithProgress() async {
+    final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
+    final ValueNotifier<String> progressText =
+        ValueNotifier<String>('准备同步 Bangumi 收藏...');
+
+    unawaited(KazumiDialog.show(
+      clickMaskDismiss: false,
+      builder: (context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: SizedBox(
+              width: 340,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Bangumi 首次全量同步中',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<String>(
+                    valueListenable: progressText,
+                    builder: (_, value, __) => Text(value),
+                  ),
+                  const SizedBox(height: 12),
+                  ValueListenableBuilder<double?>(
+                    valueListenable: progressValue,
+                    builder: (_, value, __) => LinearProgressIndicator(value: value),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ));
+
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+
+    try {
+      await collectController.syncCollectiblesBangumi(
+        onProgress: (message, current, total) {
+          progressText.value = total > 0
+              ? '$message ($current/$total)'
+              : message;
+          if (total > 0) {
+            progressValue.value = (current / total).clamp(0.0, 1.0);
+          } else {
+            progressValue.value = null;
+          }
+        },
+      );
+    } finally {
+      progressValue.dispose();
+      progressText.dispose();
+      if (KazumiDialog.observer.hasKazumiDialog) {
+        KazumiDialog.dismiss();
+      }
+    }
+  }
 
   void onBackPressed(BuildContext context) {
     if (KazumiDialog.observer.hasKazumiDialog) {
@@ -114,18 +179,23 @@ class _CollectPageState extends State<CollectPage>
             setState(() {
               syncCollectiblesing = true;
             });
-            if (webDavenable) {
-              await collectController.syncCollectibles();
+            try {
+              if (webDavenable) {
+                await collectController.syncCollectibles();
+              }
+              if (bgmSyncEnable) {
+                await _syncBangumiWithProgress();
+              }
+              if (webDavenable && bgmSyncEnable) {
+                await collectController.syncCollectibles();
+              }
+            } finally {
+              if (mounted) {
+                setState(() {
+                  syncCollectiblesing = false;
+                });
+              }
             }
-            if (bgmSyncEnable) {
-              await collectController.syncCollectiblesBangumi();
-            }
-            if (webDavenable && bgmSyncEnable) {
-              await collectController.syncCollectibles();
-            }
-            setState(() {
-              syncCollectiblesing = false;
-            });
           },
           child: syncCollectiblesing
               ? const SizedBox(

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -13,6 +12,23 @@ import 'package:kazumi/modules/collect/collect_module_bangumi.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 
 class BangumiHTTP {
+  static String _collectionTypeLabel(int collectionType) {
+    switch (collectionType) {
+      case 1:
+        return '想看';
+      case 2:
+        return '看过';
+      case 3:
+        return '在看';
+      case 4:
+        return '搁置';
+      case 5:
+        return '抛弃';
+      default:
+        return '未知';
+    }
+  }
+
   // why the api havn't been replaced by getCalendarBySearch?
   // Because getCalendarBySearch is not stable, it will miss some bangumi items.
   static Future<List<List<BangumiItem>>> getCalendar() async {
@@ -338,10 +354,13 @@ class BangumiHTTP {
         4, // 搁置
         5 // 抛弃
   ],
+    void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiRemoteCollection> bangumiCollection = [];
     final username = await getUsername();
     int failedItemCount = 0;
+    int progressCurrent = 0;
+    int progressTotal = 0;
     if (username is !String) {
       KazumiLogger().w('get username failed');
       return [];
@@ -354,6 +373,7 @@ class BangumiHTTP {
       for (final collectionType in includeBangumiTypes) {
         int offset = 0;
         int? total;
+        bool totalInitialized = false;
         while (true) {
           Response<dynamic> res;
           try {
@@ -371,11 +391,21 @@ class BangumiHTTP {
           final Map jsonData = res.data;
           final List<dynamic> jsonList = jsonData['data'];
           total ??= jsonData['total'];
+          if (!totalInitialized && total != null) {
+            progressTotal += total;
+            totalInitialized = true;
+          }
 
           for (dynamic jsonItem in jsonList) {
             if (jsonItem is Map<String, dynamic>) {
               try {
                 bangumiCollection.add(BangumiRemoteCollection.fromJson(jsonItem));
+                progressCurrent++;
+                onProgress?.call(
+                  '正在拉取${_collectionTypeLabel(collectionType)}收藏',
+                  progressCurrent,
+                  progressTotal,
+                );
               } catch (e) {
                 KazumiLogger().e(
                   'BangumiHTTP: parse collection item failed: ${e.toString()}',

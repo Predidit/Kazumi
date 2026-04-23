@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -267,7 +266,7 @@ class Utils {
     }
   }
 
-  /// trace.moe 等：0~1 的相似度转为百分比文案。
+  /// 格式化相似度为百分比字符串，默认为1位小数，空值时返回 `--`
   static String formatTraceSimilarity(double? similarity,
       {int fractionDigits = 1, String empty = '--'}) {
     if (similarity == null) {
@@ -276,8 +275,6 @@ class Utils {
     return '${(similarity * 100).toStringAsFixed(fractionDigits)}%';
   }
 
-  /// trace.moe 等：秒数转为 `mm:ss` 或 `hh:mm:ss`（片段起止时间）。
-  ///
   /// 不足一小时时与 [durationToString] 的 `mm:ss` 形式一致；满小时及以上时使用完整
   /// `inHours`，避免 [durationToString] 对小时取 `% 24` 在长片段上的差异。
   static String formatTraceSeconds(double? seconds, {String empty = '--:--'}) {

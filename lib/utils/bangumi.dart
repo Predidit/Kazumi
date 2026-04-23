@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -174,7 +175,10 @@ class Bangumi {
         onProgress: onProgress,
       );
 
-      // 2. 与本地数据对比，找出类型不一致的条目
+      // 2. 与本地数据对比，分三类处理：
+      // - 仅本地有：直接上传到 Bangumi
+      // - 仅远程有：直接补到本地
+      // - 双方都有但类型不一致：按优先级处理
       final localCollectibles = GStorage.collectibles.values.toList();
       final localMap = {
         for (final item in localCollectibles) item.bangumiItem.id: item,
@@ -182,6 +186,9 @@ class Bangumi {
       final remoteMap = {
         for (final item in remoteCollection) item.bangumiId: item,
       };
+
+      final localOnlyIds = localMap.keys.toSet().difference(remoteMap.keys.toSet());
+      final remoteOnlyIds = remoteMap.keys.toSet().difference(localMap.keys.toSet());
       final sharedIds = localMap.keys.toSet().intersection(remoteMap.keys.toSet());
       final mismatchIds = <int>[];
       for (final id in sharedIds) {
@@ -190,29 +197,56 @@ class Bangumi {
         }
       }
 
-      if (mismatchIds.isEmpty) {
+      final totalOperations =
+          localOnlyIds.length + remoteOnlyIds.length + mismatchIds.length;
+
+      if (totalOperations == 0) {
         onProgress?.call('未发现状态差异，无需同步', 1, 1);
         KazumiDialog.showToast(message: '未发现状态差异，无需同步');
         checkUpdateUsername();
         return;
       }
 
-      // 3. 按优先级处理差异
+      int syncedCount = 0;
+      bool localModified = false;
+
+      // 3. 仅本地有：直接上传到 Bangumi
+      if (localOnlyIds.isNotEmpty) {
+        onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
+        for (final id in localOnlyIds) {
+          await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+          syncedCount++;
+          onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
+        }
+      }
+
+      // 4. 仅远程有：直接补到本地
+      if (remoteOnlyIds.isNotEmpty) {
+        onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
+        for (final id in remoteOnlyIds) {
+          final remote = remoteMap[id]!;
+          final collected = CollectedBangumi(
+            remote.toBangumiItem(),
+            remote.updatedAt,
+            remote.type,
+          );
+          await GStorage.collectibles.put(id, collected);
+          syncedCount++;
+          localModified = true;
+          onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
+        }
+      }
+
+      // 5. 双方都有但不一致：按优先级处理
       if (priority == BangumiSyncPriority.localFirst) {
-        // 本地优先：将本地类型上传到 Bangumi
-        int syncedCount = 0;
-        final total = mismatchIds.length;
-        onProgress?.call('本地 First：正在上传差异状态', 0, total);
+        onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
         for (final id in mismatchIds) {
           await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
           syncedCount++;
-          onProgress?.call('本地 First：正在上传差异状态', syncedCount, total);
+          onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
         }
       } else {
-        // Bangumi 优先：用远程类型覆盖本地
-        int syncedCount = 0;
-        final total = mismatchIds.length;
-        onProgress?.call('Bangumi First：正在更新本地状态', 0, total);
+        onProgress?.call('Bangumi First：正在处理冲突状态', syncedCount, totalOperations);
         for (final id in mismatchIds) {
           final local = localMap[id]!;
           final remote = remoteMap[id]!;
@@ -220,11 +254,14 @@ class Bangumi {
           local.time = remote.updatedAt;
           await GStorage.collectibles.put(id, local);
           syncedCount++;
-          onProgress?.call('Bangumi First：正在更新本地状态', syncedCount, total);
+          localModified = true;
+          onProgress?.call('Bangumi First：正在处理冲突状态', syncedCount, totalOperations);
         }
       }
 
-      await GStorage.collectibles.flush();
+      if (localModified) {
+        await GStorage.collectibles.flush();
+      }
       checkUpdateUsername();
       onProgress?.call('Bangumi 状态同步完成', 1, 1);
     } catch (e) {

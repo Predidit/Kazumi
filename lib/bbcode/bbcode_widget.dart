@@ -11,9 +11,13 @@ import 'generated/BBCodeParser.dart';
 import 'generated/BBCodeLexer.dart';
 
 class BBCodeWidget extends StatefulWidget {
-  const BBCodeWidget({super.key, required this.bbcode});
+  const BBCodeWidget({
+    super.key, required this.bbcode,
+    this.imageRadius = const BorderRadius.all(Radius.circular(8))
+  });
 
   final String bbcode;
+  final BorderRadiusGeometry imageRadius;
 
   @override
   State<StatefulWidget> createState() => _BBCodeWidgetState();
@@ -120,13 +124,16 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                 );
               } else if (e is BBCodeImg) {
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: e.imageUrl,
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
+                  child:ClipRRect(
+                    borderRadius: widget.imageRadius,
+                      child: CachedNetworkImage(
+                      imageUrl: e.imageUrl,
+                      placeholder: (context, url) =>
+                          const SizedBox(width: 1, height: 1),
+                      errorWidget: (context, error, stackTrace) {
+                        return const Text('.');
+                      },
+                    ),
                   ),
                 );
               } else if (e is BBCodeBgm) {
@@ -142,38 +149,47 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                 }
                 url = 'https://bangumi.tv/img/smiles/tv/${e.id - 23}.gif';
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: url,
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
+                  child: ClipRRect(
+                    borderRadius: widget.imageRadius,
+                    child: CachedNetworkImage(
+                      imageUrl: url,
+                      placeholder: (context, url) =>
+                      const SizedBox(width: 1, height: 1),
+                      errorWidget: (context, error, stackTrace) {
+                        return const Text('.');
+                      },
+                    ),
                   ),
                 );
               } else if (e is BBCodeMusume) {
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: 'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
-                    width: 50,
-                    height: 50,
-                  ),
+                  child: ClipRRect(
+                    borderRadius: widget.imageRadius,
+                    child: CachedNetworkImage(
+                      imageUrl: 'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
+                      placeholder: (context, url) =>
+                      const SizedBox(width: 1, height: 1),
+                      errorWidget: (context, error, stackTrace) {
+                        return const Text('.');
+                      },
+                      width: 50,
+                      height: 50,
+                    ),
+                  ) ,
                 );
               } else if (e is BBCodeSticker) {
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: 'https://bangumi.tv/img/smiles/${e.id}.gif',
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
-                  ),
+                  child: ClipRRect(
+                    borderRadius: widget.imageRadius,
+                    child: CachedNetworkImage(
+                      imageUrl: 'https://bangumi.tv/img/smiles/${e.id}.gif',
+                      placeholder: (context, url) =>
+                      const SizedBox(width: 1, height: 1),
+                      errorWidget: (context, error, stackTrace) {
+                        return const Text('.');
+                      },
+                    ),
+                  ) ,
                 );
               } else {
                 // e is Icon

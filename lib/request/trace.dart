@@ -10,7 +10,7 @@ class Trace {
   ///根据图片搜索番剧信息
   static Future<ImageSearchItem> searchAnimeByImageFile(File imageFile,
       {int anilistInfo = 2}) async {
-    final bytes = imageFile.readAsBytes();
+    final bytes = await imageFile.readAsBytes();
 
     return await Request()
         .post(Api.traceApi,

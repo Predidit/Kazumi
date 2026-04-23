@@ -1,12 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/request/bangumi.dart';
-import 'package:kazumi/utils/search_parser.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/trace.dart';
+import 'package:kazumi/utils/search_parser.dart';
 
 part 'search_controller.g.dart';
 
@@ -33,6 +37,15 @@ abstract class _SearchPageController with Store {
 
   @observable
   ObservableList<SearchHistory> searchHistories = ObservableList.of([]);
+
+  @observable
+  bool isImageSearching = false;
+
+  @observable
+  String imageSearchError = '';
+
+  @observable
+  ObservableList<ResultItem> imageSearchResults = ObservableList.of([]);
 
   @action
   void loadSearchHistories() {
@@ -106,6 +119,53 @@ abstract class _SearchPageController with Store {
   Future<void> clearSearchHistory() async {
     await _searchHistoryRepository.clearAllHistories();
     loadSearchHistories();
+  }
+
+  @action
+  void clearImageSearchState() {
+    isImageSearching = false;
+    imageSearchError = '';
+    imageSearchResults.clear();
+  }
+
+  @action
+  Future<void> searchImageByFile(File imageFile) async {
+    isImageSearching = true;
+    imageSearchError = '';
+    imageSearchResults.clear();
+    try {
+      final result = await Trace.searchAnimeByImageFile(imageFile);
+      imageSearchResults.addAll(result.result ?? []);
+      if (result.error != null && result.error!.isNotEmpty) {
+        imageSearchError = result.error!;
+      } else if (imageSearchResults.isEmpty) {
+        imageSearchError = '未找到匹配结果';
+      }
+    } catch (e) {
+      imageSearchError = '图片搜索失败，请稍后重试';
+    } finally {
+      isImageSearching = false;
+    }
+  }
+
+  @action
+  Future<void> searchImageByUrl(String imageUrl) async {
+    isImageSearching = true;
+    imageSearchError = '';
+    imageSearchResults.clear();
+    try {
+      final result = await Trace.searchAnimeByImageUrl(imageUrl);
+      imageSearchResults.addAll(result.result ?? []);
+      if (result.error != null && result.error!.isNotEmpty) {
+        imageSearchError = result.error!;
+      } else if (imageSearchResults.isEmpty) {
+        imageSearchError = '未找到匹配结果';
+      }
+    } catch (e) {
+      imageSearchError = '图片搜索失败，请检查图片地址或稍后重试';
+    } finally {
+      isImageSearching = false;
+    }
   }
 
   @action

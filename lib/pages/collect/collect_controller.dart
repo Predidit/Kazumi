@@ -4,6 +4,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -54,6 +55,7 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+    await _syncBangumiCollectIfEnabled(bangumiItem.id, type);
   }
 
   @action
@@ -68,6 +70,34 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+  }
+
+  Future<void> _syncBangumiCollectIfEnabled(int bangumiId, int localType) async {
+    final bool syncEnable =
+        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    final bool updateEnable =
+        setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
+
+    if (!syncEnable || !updateEnable) {
+      return;
+    }
+
+    final bangumi = Bangumi();
+    if (!bangumi.initialized) {
+      return;
+    }
+
+    try {
+      await BangumiHTTP.updateBangumiByType(bangumiId, localType).then((_){
+        KazumiDialog.showToast(message: '同步收藏到Bangumi成功，bangumiId=$bangumiId, type=$localType');
+      });
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {

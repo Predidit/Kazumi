@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -329,7 +330,15 @@ class BangumiHTTP {
     return null;
   }
 
-  static Future<List<BangumiRemoteCollection>> getBangumiCollectibles() async { 
+  static Future<List<BangumiRemoteCollection>> getBangumiCollectibles({
+    List<int> includeBangumiTypes = const [
+        1, // 想看
+        2, // 看过
+        3, // 在看
+        4, // 搁置
+        5 // 抛弃
+  ],
+  }) async {
     final List<BangumiRemoteCollection> bangumiCollection = [];
     final username = await getUsername();
     int failedItemCount = 0;
@@ -338,63 +347,57 @@ class BangumiHTTP {
       return [];
     }
 
-    // 获取所有收藏
-    int? total;
     try {
-      // 循环获取所有收藏
-      int offset=0;   // 偏移量
-      const int limit = 50;   // 最大50
+      const int limit = 50;
       const Duration requestInterval = Duration(milliseconds: 250);
 
-      while (true) {
-        failedItemCount++;
-        // dynamic res;
-        Response<dynamic> res;
-        /// 一次while获取limit个收藏
-        try {
-          res = await Request().get(
-            Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollenction, [username, limit, offset]),
-            shouldRethrow: true,
-          );
-        } catch (e) {
-          KazumiLogger().e('BangumiHTTP: from Bangumi get collected failed', error: e);
-          break;
-          // continue;
-        }
-        Map jsonData = res.data;
-        List<dynamic> jsonList = jsonData['data'];    // FUTURE: 改进类型注释
-        total ??= jsonData['total'];
+      for (final collectionType in includeBangumiTypes) {
+        int offset = 0;
+        int? total;
+        while (true) {
+          Response<dynamic> res;
+          try {
+            final url =
+                '${Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollenction, [username, limit, offset])}&type=$collectionType';
+            res = await Request().get(url, shouldRethrow: true);
+          } catch (e) {
+            KazumiLogger().e(
+              'BangumiHTTP: fetch collection failed. type=$collectionType, offset=$offset',
+              error: e,
+            );
+            break;
+          }
 
-        // 从获取的数据中解析出收藏的番剧
-        for (dynamic jsonItem in jsonList) {
-          if (jsonItem is Map<String, dynamic>) {
-            try {
-              bangumiCollection.add(
-                BangumiRemoteCollection.fromJson(jsonItem)
-              );
-            } catch (e) {
-              KazumiLogger().e('BangumiHTTP: analysis collectedBangumi failed: ${e.toString()}', error: e);
-              await Future.delayed(requestInterval);
-              continue;
+          final Map jsonData = res.data;
+          final List<dynamic> jsonList = jsonData['data'];
+          total ??= jsonData['total'];
+
+          for (dynamic jsonItem in jsonList) {
+            if (jsonItem is Map<String, dynamic>) {
+              try {
+                bangumiCollection.add(BangumiRemoteCollection.fromJson(jsonItem));
+              } catch (e) {
+                KazumiLogger().e(
+                  'BangumiHTTP: parse collection item failed: ${e.toString()}',
+                  error: e,
+                );
+                failedItemCount++;
+              }
             }
           }
-        }
 
-        /// 没有出错，最终处理
-        failedItemCount--;
-        if (total != null && (bangumiCollection.length + failedItemCount >= total || jsonList.isEmpty)) {
-          break;
-        }
-        final t = bangumiCollection.length;
-        KazumiLogger().d('$t ; $failedItemCount ; $total');
+          if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
+            break;
+          }
 
-        offset += limit;
-        await Future.delayed(requestInterval);
+          offset += limit;
+          await Future.delayed(requestInterval);
+        }
       }
     } catch (e) {
       KazumiLogger().e('Network: get bangumi collection failed', error: e);
     }
-    KazumiLogger().d('get Bangumi collection count: ${bangumiCollection.length}, total: $total');
+    KazumiLogger().d('get Bangumi collection count: ${bangumiCollection.length}');
     KazumiLogger().d('get item failed count: $failedItemCount');
     return bangumiCollection;
   }

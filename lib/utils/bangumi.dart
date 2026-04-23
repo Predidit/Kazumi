@@ -8,6 +8,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/collect/collect_module_bangumi.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:path/path.dart' as p;
@@ -18,7 +19,7 @@ class Bangumi {
   late String username; // 当前token对应的用户名
   late String lastSyncUsername; // 上次同步的Bangumi用户名
   // late int firstSyncMode;
-  late bool initialized;
+  bool initialized = false;
   Box setting = GStorage.setting;
 
   bool isUsing = false; // 是否正在使用
@@ -317,7 +318,8 @@ class Bangumi {
 
   /// 更新
   /// 将本地收藏数据同步到 Bangumi 服务器，基于 changes
-  Future<void> update([List<CollectedBangumiChange>? localChangesUnMer]) async {
+  Future<void> update(
+      [List<CollectedBangumiChange>? localChangesUnMer, bool skipLock = false]) async {
     final updateEnanbe =
         setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
     if (!updateEnanbe) {
@@ -325,24 +327,25 @@ class Bangumi {
       KazumiLogger().i('Bangumi: update is disabled');
       return;
     }
-    if (isUsing) {
+    bool ownsLock = false;
+    if (!skipLock && isUsing) {
       KazumiLogger().w('Bangumi: History is currently syncing');
       throw Exception('History is currently syncing');
     }
-    isUsing = true;
+    if (!skipLock) {
+      isUsing = true;
+      ownsLock = true;
+    }
     try {
-      // 1. 检查备份
-      await checkAndBackup();
-
-      // 2. 获取本地可以上传的changes
+      // 1. 获取本地可以上传的changes
       final localChanges = localChangesUnMer ?? (await getCollectedChanges()).localChangesUnMer;
 
-      // 3. 上传
+      // 2. 上传
       for (final change in localChanges) {
-        BangumiHTTP.updateBangumiByType(change.bangumiID, change.type);
+        await BangumiHTTP.updateBangumiByType(change.bangumiID, change.type);
       }
 
-      // 4. 检测用户名
+      // 3. 检测用户名
       checkUpdateUsername();
 
       KazumiLogger()
@@ -351,34 +354,38 @@ class Bangumi {
       KazumiLogger().e('Bangumi: update collection failed', error: e);
       rethrow;
     } finally {
-      isUsing = false;
+      if (ownsLock) {
+        isUsing = false;
+      }
     }
   }
 
   /// 将Bangumi收藏数据同步到本地
   Future<void> download(
       [List<BangumiRemoteCollection>? remoteCollection_,
-      List<CollectedBangumiChange>? remoteChangesUnMer_]) async {
+      List<CollectedBangumiChange>? remoteChangesUnMer_,
+      bool skipLock = false]) async {
     final downloadEnable =
-        setting.get(SettingBoxKey.bangumiDeleteEnable, defaultValue: true);
+        setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
     if (!downloadEnable) {
       KazumiDialog.showToast(message: '下载已被禁止');
       KazumiLogger().w('Bangumi: download is disabled');
       return;
     }
-    if (isUsing) {
-      KazumiLogger().w('WebDav: History is currently syncing');
+    bool ownsLock = false;
+    if (!skipLock && isUsing) {
+      KazumiLogger().w('Bangumi: History is currently syncing');
       throw Exception('History is currently syncing');
     }
-    isUsing = true;
+    if (!skipLock) {
+      isUsing = true;
+      ownsLock = true;
+    }
     try {
       if (username.isEmpty) {
         throw Exception('username is empty');
       }
-      // 1. 检测备份
-      await checkAndBackup();
-
-      // 2. 远程收藏初始化
+      // 1. 远程收藏初始化
       List<BangumiRemoteCollection> remoteCollection;
       List<CollectedBangumiChange> remoteChangesUnMer;
       if (remoteCollection_ == null || remoteChangesUnMer_ == null) {
@@ -390,7 +397,7 @@ class Bangumi {
         remoteChangesUnMer = remoteChangesUnMer_;
       }
 
-      // 3. 合并收藏
+        // 2. 合并收藏
       await GStorage.patchCollectibles(
           await getCollectedBangumiList(remoteCollection),
           remoteChangesUnMer);
@@ -398,10 +405,12 @@ class Bangumi {
       // 4. 检测用户名
       checkUpdateUsername();
     } catch (e) {
-      KazumiLogger().e('WebDav: download history failed', error: e);
+      KazumiLogger().e('Bangumi: download collection failed', error: e);
       rethrow;
     } finally {
-      isUsing = false;
+      if (ownsLock) {
+        isUsing = false;
+      }
     }
   }
 
@@ -412,16 +421,17 @@ class Bangumi {
     final updateEnanbe =
         setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
     final downloadEnable =
-        setting.get(SettingBoxKey.bangumiDeleteEnable, defaultValue: true);
+      setting.get(SettingBoxKey.bangumiDownloadEnable, defaultValue: true);
     if (!syncEnable || (!updateEnanbe && !downloadEnable)) {
       KazumiDialog.showToast(message: '同步已关闭');
       KazumiLogger().i('Bangumi: sync disabled');
       return;
     }
     if (isUsing) {
-      KazumiLogger().w('WebDav: History is currently syncing');
+      KazumiLogger().w('Bangumi: History is currently syncing');
       throw Exception('History is currently syncing');
     }
+    isUsing = true;
     try {
       await checkAndBackup();
 
@@ -429,10 +439,10 @@ class Bangumi {
       final record = await getCollectedChanges();
 
       // 2. 下载远程更改
-      await download(record.remoteCollection, record.remoteChangesUnMer);
+      await download(record.remoteCollection, record.remoteChangesUnMer, true);
 
-      // 2. 上传本地更改
-      await update(record.localChangesUnMer);
+      // 3. 上传本地更改
+      await update(record.localChangesUnMer, true);
     } catch (e) {
       KazumiLogger().e('Bangumi: sync history failed', error: e);
       rethrow;

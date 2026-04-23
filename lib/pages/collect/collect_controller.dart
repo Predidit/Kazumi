@@ -77,6 +77,10 @@ abstract class _CollectController with Store {
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
     final bool updateEnable =
         setting.get(SettingBoxKey.bangumiUpdateEnable, defaultValue: true);
+    final bool showImmediateSyncToast = setting.get(
+      SettingBoxKey.bangumiImmediateSyncToastEnable,
+      defaultValue: true,
+    );
 
     if (!syncEnable || !updateEnable) {
       return;
@@ -88,8 +92,15 @@ abstract class _CollectController with Store {
     }
 
     try {
+      if (showImmediateSyncToast) {
+        KazumiDialog.showToast(message: '正在同步到 Bangumi...');
+      }
       await BangumiHTTP.updateBangumiByType(bangumiId, localType);
+      if (showImmediateSyncToast) {
+        KazumiDialog.showToast(message: '已同步到 Bangumi');
+      }
     } catch (e, stackTrace) {
+      KazumiDialog.showToast(message: '同步到 Bangumi 失败: $e');
       KazumiLogger().e(
         'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
         error: e,

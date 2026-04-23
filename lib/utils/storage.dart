@@ -363,6 +363,7 @@ class SettingBoxKey {
       bangumiDownloadEnable = 'bangumiDownloadEnable',
       bangumiFirstSyncMode = 'bangumiFirstSyncMode',
       bangumiSyncDebug = 'bangumiSyncDebug',
+      bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',
       bangumiLastSyncUsername = 'bangumiLastSyncUsername',
       bangumiDeleteEnable = 'bangumiDeleteEnable';
 }

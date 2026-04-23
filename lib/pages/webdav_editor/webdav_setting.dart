@@ -21,6 +21,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   late bool webDavEnableHistory;
   late bool enableGitProxy;
   late bool bangumiSyncEnable;
+  late bool bangumiImmediateSyncToastEnable;
 
   @override
   void initState() {
@@ -32,6 +33,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
     bangumiSyncEnable =
       setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    bangumiImmediateSyncToastEnable = setting.get(
+      SettingBoxKey.bangumiImmediateSyncToastEnable,
+      defaultValue: true,
+    );
   }
 
   void onBackPressed(BuildContext context) {
@@ -288,6 +293,25 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     setState(() {});
                   },
                   title: Text('Bangumi 高级配置', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    bangumiImmediateSyncToastEnable =
+                        value ?? !bangumiImmediateSyncToastEnable;
+                    await setting.put(
+                      SettingBoxKey.bangumiImmediateSyncToastEnable,
+                      bangumiImmediateSyncToastEnable,
+                    );
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  },
+                  title: Text('即时同步提示', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(
+                    '点击追番按钮触发即时同步时显示提示（默认开启）',
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
+                  initialValue: bangumiImmediateSyncToastEnable,
                 ),
                 SettingsTile(
                   trailing: const Icon(Icons.sync_rounded),

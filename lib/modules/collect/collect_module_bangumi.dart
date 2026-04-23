@@ -1,5 +1,6 @@
 
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 /// Bangumi 远程收藏信息（包含最后更新时间）
 class BangumiRemoteCollection {
@@ -19,6 +20,8 @@ class BangumiRemoteCollection {
   double score;    // 平均评分
   int eps;    // 总集数
   int rank;   // 排名
+  Map<String, String> images;
+  List<Map<String, dynamic>> tags;
 
   BangumiRemoteCollection(
       this.bangumiId,
@@ -30,14 +33,50 @@ class BangumiRemoteCollection {
       this.shortSummary,
       this.score,
       this.eps,
-      this.rank);
+      this.rank,
+      this.images,
+      this.tags);
 
   int getUpdateAtToInt() {
     return updatedAt.millisecondsSinceEpoch ~/ 1000;
   }
 
+  BangumiItem toBangumiItem() {
+    return BangumiItem.fromJson({
+      'id': bangumiId,
+      'type': 2,
+      'name': name,
+      'name_cn': nameCn,
+      'summary': shortSummary,
+      'date': date ?? '',
+      'images': images,
+      'tags': tags,
+      'rating': {
+        'rank': rank,
+        'score': score,
+        'total': 0,
+        'count': List<int>.filled(10, 0),
+      },
+      'info': '',
+    });
+  }
+
   factory BangumiRemoteCollection.fromJson(Map json) {
     final subject = json['subject'];
+    final subjectImages = Map<String, String>.from(
+      subject['images'] ??
+          const <String, String>{
+            'large': '',
+            'common': '',
+            'medium': '',
+            'small': '',
+            'grid': '',
+          },
+    );
+    final subjectTags = ((subject['tags'] ?? const <dynamic>[]) as List)
+        .whereType<Map>()
+        .map((tag) => Map<String, dynamic>.from(tag))
+        .toList();
     return BangumiRemoteCollection(
       subject['id'],
       subject['date'],
@@ -48,7 +87,9 @@ class BangumiRemoteCollection {
       subject['short_summary'],
       (subject['score'] as num).toDouble(),
       subject['eps'],
-      subject['rank']
+      subject['rank'],
+      subjectImages,
+      subjectTags,
     );
   }
 }

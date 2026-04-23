@@ -143,13 +143,14 @@ class Bangumi {
       // 遍历所有远程数据，如果有则用本地，否则尝试从远程获取
       var collect = collectCrudRepository.getCollectible(item.bangumiId);
       if (collect == null) {
-        final remote = await BangumiHTTP.getBangumiInfoByID(item.bangumiId);
-        if (remote == null) {
-          KazumiLogger().w(
-              'get bangumi info failed. name: ${item.name}, id: ${item.bangumiId}}');
-          continue;
-        }
-        collect = CollectedBangumi(remote, DateTime.now(), item.type);
+        collect = CollectedBangumi(
+          item.toBangumiItem(),
+          item.updatedAt,
+          item.type,
+        );
+      } else {
+        collect.type = item.type;
+        collect.time = item.updatedAt;
       }
       collectibles.add(collect);
     }

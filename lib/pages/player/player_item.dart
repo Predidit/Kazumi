@@ -32,6 +32,7 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:kazumi/utils/audio_controller.dart';
+import 'package:kazumi/modules/skip/skip_segment.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -474,8 +475,7 @@ class _PlayerItemState extends State<PlayerItem>
       );
       _syncAudioServiceState();
     } catch (e) {
-      KazumiLogger()
-          .w('AudioController: failed to bind callbacks', error: e);
+      KazumiLogger().w('AudioController: failed to bind callbacks', error: e);
     }
   }
 
@@ -804,6 +804,10 @@ class _PlayerItemState extends State<PlayerItem>
       playerController.completed = playerController.playerCompleted;
       unawaited(_updateAndroidPIPActions());
       _syncAudioServiceState();
+      if (playerController.duration > Duration.zero) {
+        unawaited(videoPageController
+            .resolveCurrentSkipSegmentsIfNeeded(playerController.duration));
+      }
       // 弹幕相关
       if (playerController.currentPosition.inMicroseconds != 0 &&
           playerController.playerPlaying == true &&
@@ -1034,6 +1038,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   Widget get videoInfoBody {
     return Observer(builder: (context) {
+      final skipSegmentInfo = _buildSkipSegmentInfoText();
       return ListView(
         children: [
           ListTile(
@@ -1137,9 +1142,57 @@ class _PlayerItemState extends State<PlayerItem>
               );
             },
           ),
+          ListTile(
+            title: const Text("SkipSegment"),
+            subtitle: Text(skipSegmentInfo),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(text: "SkipSegment\n$skipSegmentInfo"),
+              );
+            },
+          ),
         ],
       );
     });
+  }
+
+  String _buildSkipSegmentInfoText() {
+    final openingTemplate =
+        playerController.getSkipSegmentTemplate(SkipSegmentType.opening);
+    final endingTemplate =
+        playerController.getSkipSegmentTemplate(SkipSegmentType.ending);
+
+    return [
+      'Resolving: ${playerController.skipSegmentResolving ? 'yes' : 'no'}',
+      _formatSkipSegmentLine(
+        label: 'Opening',
+        template: openingTemplate,
+        resolved: playerController.resolvedOpeningSegment,
+      ),
+      _formatSkipSegmentLine(
+        label: 'Ending',
+        template: endingTemplate,
+        resolved: playerController.resolvedEndingSegment,
+      ),
+    ].join('\n');
+  }
+
+  String _formatSkipSegmentLine({
+    required String label,
+    required SkipSegmentTemplate? template,
+    required ResolvedSkipSegment? resolved,
+  }) {
+    final templateText = template == null
+        ? 'template=none'
+        : 'template=${Utils.durationToString(template.start)}-${Utils.durationToString(template.end)} '
+            'sourceEpisode=${template.sourceEpisode} road=${template.road}';
+    final resolvedText = resolved == null
+        ? 'resolved=none'
+        : 'resolved=${Utils.durationToString(resolved.start)}-${Utils.durationToString(resolved.end)} '
+            'score=${resolved.score.toStringAsFixed(3)} '
+            'confidence=${resolved.confidence.toStringAsFixed(3)}';
+    return '$label: $templateText; $resolvedText';
   }
 
   Widget get videoDebugLogBody {

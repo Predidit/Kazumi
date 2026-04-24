@@ -21,6 +21,12 @@ import 'package:kazumi/request/bangumi.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/modules/skip/skip_segment.dart';
+import 'package:kazumi/repositories/skip_segment_repository.dart';
+import 'package:kazumi/utils/audio_extractor.dart';
+import 'package:kazumi/utils/skip_segment_audio_resolver.dart';
+import 'package:kazumi/utils/skip_segment_resolve_cache.dart';
+import 'package:path/path.dart' as path;
 
 part 'video_controller.g.dart';
 
@@ -94,6 +100,9 @@ abstract class _VideoPageController with Store {
       Modular.get<IDownloadRepository>();
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
   final Box setting = GStorage.setting;
+  final ISkipSegmentRepository skipSegmentRepository = SkipSegmentRepository();
+  final SkipSegmentResolveCache skipSegmentResolveCache =
+      SkipSegmentResolveCache();
 
   /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
   WebViewVideoSourceProvider? _videoSourceProvider;
@@ -105,6 +114,10 @@ abstract class _VideoPageController with Store {
   Stream<String> get logStream => _logStreamController.stream;
 
   StreamSubscription<String>? _logSubscription;
+  int _skipSegmentResolveGeneration = 0;
+  int? _currentSkipResolvedEpisode;
+  int? _nextSkipPreResolvedEpisode;
+  final Map<int, VideoSource> _skipEpisodeSourceCache = {};
 
   /// 初始化离线播放模式
   void initForOfflinePlayback({
@@ -184,6 +197,9 @@ abstract class _VideoPageController with Store {
 
   Future<void> changeEpisode(int episode,
       {int currentRoad = 0, int offset = 0}) async {
+    _skipSegmentResolveGeneration++;
+    _currentSkipResolvedEpisode = null;
+    _nextSkipPreResolvedEpisode = null;
     currentEpisode = episode;
     this.currentRoad = currentRoad;
     errorMessage = null;
@@ -229,6 +245,11 @@ abstract class _VideoPageController with Store {
       return;
     }
     _offlineVideoPath = localPath;
+    _skipEpisodeSourceCache[actualEpisodeNumber] = VideoSource(
+      url: localPath,
+      offset: 0,
+      type: VideoSourceType.cached,
+    );
     loading = false;
 
     KazumiLogger().i(
@@ -247,7 +268,8 @@ abstract class _VideoPageController with Store {
       referer: '',
       currentRoad: currentRoad,
       coverUrl: bangumiItem.images['large'],
-      bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
+      bangumiName:
+          bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
     final playerController = Modular.get<PlayerController>();
@@ -284,6 +306,7 @@ abstract class _VideoPageController with Store {
       );
 
       loading = false;
+      _skipEpisodeSourceCache[currentEpisode] = source;
       KazumiLogger()
           .i('VideoPageController: resolved video URL: ${source.url}');
 
@@ -309,11 +332,14 @@ abstract class _VideoPageController with Store {
         referer: currentPlugin.referer,
         currentRoad: currentRoad,
         coverUrl: bangumiItem.images['large'],
-        bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
+        bangumiName: bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name,
       );
 
       final playerController = Modular.get<PlayerController>();
       await playerController.init(params);
+      _preResolveNextSkipSegmentsWithHint(playerController, null);
     } on VideoSourceTimeoutException {
       loading = false;
       errorMessage = '视频解析超时，请重试';
@@ -324,6 +350,239 @@ abstract class _VideoPageController with Store {
       loading = false;
       errorMessage = '视频解析失败：${e.toString()}';
     }
+  }
+
+  Future<void> resolveCurrentSkipSegmentsIfNeeded(
+      Duration targetDuration) async {
+    if (targetDuration <= Duration.zero || loading) return;
+
+    final episode = actualEpisodeNumber;
+    if (_currentSkipResolvedEpisode == episode) return;
+    _currentSkipResolvedEpisode = episode;
+
+    final generation = _skipSegmentResolveGeneration;
+    final playerController = Modular.get<PlayerController>();
+    playerController.skipSegmentResolving = true;
+
+    try {
+      await _resolveSkipSegmentsForEpisode(
+        targetEpisode: episode,
+        targetSource: SkipSegmentAudioSource(
+          input: playerController.videoUrl,
+          httpHeaders: _currentHttpHeaders(),
+        ),
+        targetDuration: targetDuration,
+        applyToCurrentPlayer: true,
+        generation: generation,
+      );
+    } catch (e, stackTrace) {
+      KazumiLogger().w(
+        'SkipSegment: failed to resolve current episode',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      if (generation == _skipSegmentResolveGeneration) {
+        playerController.skipSegmentResolving = false;
+      }
+    }
+
+    _preResolveNextSkipSegmentsWithHint(playerController, targetDuration);
+  }
+
+  void _preResolveNextSkipSegmentsWithHint(
+    PlayerController playerController,
+    Duration? targetDurationHint,
+  ) {
+    if (targetDurationHint == null || targetDurationHint <= Duration.zero) {
+      return;
+    }
+    final nextEpisode = _nextEpisodeNumber();
+    if (nextEpisode == null || _nextSkipPreResolvedEpisode == nextEpisode) {
+      return;
+    }
+    _nextSkipPreResolvedEpisode = nextEpisode;
+    final generation = _skipSegmentResolveGeneration;
+
+    unawaited(() async {
+      try {
+        final source = await _resolveEpisodeSourceForSkip(nextEpisode);
+        if (source == null || generation != _skipSegmentResolveGeneration) {
+          return;
+        }
+        await _resolveSkipSegmentsForEpisode(
+          targetEpisode: nextEpisode,
+          targetSource: SkipSegmentAudioSource(
+            input: source.url,
+            httpHeaders: _httpHeadersForSkip(),
+          ),
+          targetDuration: targetDurationHint,
+          applyToCurrentPlayer: false,
+          generation: generation,
+          types: const [SkipSegmentType.opening],
+        );
+      } catch (e, stackTrace) {
+        KazumiLogger().w(
+          'SkipSegment: failed to pre-resolve next episode',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
+    }());
+  }
+
+  Future<void> _resolveSkipSegmentsForEpisode({
+    required int targetEpisode,
+    required SkipSegmentAudioSource targetSource,
+    required Duration targetDuration,
+    required bool applyToCurrentPlayer,
+    required int generation,
+    List<SkipSegmentType> types = SkipSegmentType.values,
+  }) async {
+    final pluginName = isOfflineMode ? _offlinePluginName : currentPlugin.name;
+    final resolver = SkipSegmentAudioResolver(
+      extractor: FfmpegAudioExtractor(),
+    );
+
+    for (final type in types) {
+      final cacheKey = SkipSegmentResolveCacheKey(
+        bangumiId: bangumiItem.id,
+        pluginName: pluginName,
+        episode: targetEpisode,
+        type: type,
+      );
+      final cached = skipSegmentResolveCache.get(cacheKey);
+      if (cached != null) {
+        if (applyToCurrentPlayer &&
+            generation == _skipSegmentResolveGeneration) {
+          Modular.get<PlayerController>().setResolvedSkipSegment(cached);
+        }
+        continue;
+      }
+
+      final template = skipSegmentRepository.getTemplate(
+        bangumiId: bangumiItem.id,
+        pluginName: pluginName,
+        type: type,
+      );
+      if (template == null) continue;
+
+      final templateSource = await _resolveTemplateSourceForSkip(
+        template,
+        targetEpisode,
+        targetSource,
+      );
+      if (templateSource == null ||
+          generation != _skipSegmentResolveGeneration) {
+        continue;
+      }
+
+      final resolved = await resolver.resolve(
+        SkipSegmentAudioResolveRequest(
+          template: template,
+          templateSource: templateSource,
+          targetSource: targetSource,
+          targetDuration:
+              type == SkipSegmentType.ending ? targetDuration : null,
+          workingDirectory: path.join(
+            await Utils.getPlayerTempPath(),
+            'skip_segment',
+          ),
+        ),
+      );
+      if (resolved == null) continue;
+
+      skipSegmentResolveCache.put(cacheKey, resolved);
+      if (applyToCurrentPlayer && generation == _skipSegmentResolveGeneration) {
+        Modular.get<PlayerController>().setResolvedSkipSegment(resolved);
+      }
+      KazumiLogger().i(
+        'SkipSegment: resolved ${type.name} for episode $targetEpisode '
+        '${Utils.durationToString(resolved.start)} - ${Utils.durationToString(resolved.end)} '
+        'score=${resolved.score.toStringAsFixed(3)}',
+      );
+    }
+  }
+
+  Future<SkipSegmentAudioSource?> _resolveTemplateSourceForSkip(
+    SkipSegmentTemplate template,
+    int targetEpisode,
+    SkipSegmentAudioSource targetSource,
+  ) async {
+    if (template.sourceEpisode == targetEpisode) {
+      return targetSource;
+    }
+    final source = await _resolveEpisodeSourceForSkip(template.sourceEpisode);
+    if (source == null) return null;
+    return SkipSegmentAudioSource(
+      input: source.url,
+      httpHeaders: _httpHeadersForSkip(),
+    );
+  }
+
+  Future<VideoSource?> _resolveEpisodeSourceForSkip(int episode) async {
+    final cached = _skipEpisodeSourceCache[episode];
+    if (cached != null) return cached;
+
+    if (isOfflineMode) {
+      final localPath = _getLocalVideoPath(
+        bangumiItem.id,
+        _offlinePluginName,
+        episode,
+      );
+      if (localPath == null) return null;
+      final source = VideoSource(
+        url: localPath,
+        offset: 0,
+        type: VideoSourceType.cached,
+      );
+      _skipEpisodeSourceCache[episode] = source;
+      return source;
+    }
+
+    if (episode <= 0 ||
+        currentRoad < 0 ||
+        currentRoad >= roadList.length ||
+        episode > roadList[currentRoad].data.length) {
+      return null;
+    }
+
+    final provider = WebViewVideoSourceProvider();
+    try {
+      final source = await provider.resolve(
+        _buildEpisodePageUrl(episode),
+        useLegacyParser: currentPlugin.useLegacyParser,
+        timeout: const Duration(seconds: 30),
+      );
+      _skipEpisodeSourceCache[episode] = source;
+      return source;
+    } finally {
+      provider.dispose();
+    }
+  }
+
+  String _buildEpisodePageUrl(int episode) {
+    return currentPlugin.buildFullUrl(roadList[currentRoad].data[episode - 1]);
+  }
+
+  int? _nextEpisodeNumber() {
+    if (currentRoad < 0 || currentRoad >= roadList.length) return null;
+    if (isOfflineMode) {
+      if (currentEpisode >= roadList[currentRoad].data.length) return null;
+      return int.tryParse(roadList[currentRoad].data[currentEpisode]);
+    }
+    if (currentEpisode >= roadList[currentRoad].data.length) return null;
+    return currentEpisode + 1;
+  }
+
+  Map<String, String> _currentHttpHeaders() {
+    if (isOfflineMode) return {};
+    return _httpHeadersForSkip();
+  }
+
+  Map<String, String> _httpHeadersForSkip() {
+    if (isOfflineMode) return {};
+    return currentPlugin.buildHttpHeaders();
   }
 
   /// 取消当前视频源解析并销毁 Provider（页面退出时调用）

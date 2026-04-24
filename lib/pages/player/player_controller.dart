@@ -22,6 +22,8 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/modules/skip/skip_segment.dart';
+import 'package:kazumi/repositories/skip_segment_repository.dart';
 
 part 'player_controller.g.dart';
 
@@ -84,8 +86,10 @@ abstract class _PlayerController with Store {
   late int bangumiId;
   late int currentEpisode;
   late int currentRoad;
+  late String pluginName;
   late String referer;
   String? coverUrl;
+  final ISkipSegmentRepository skipSegmentRepository = SkipSegmentRepository();
 
   // 弹幕控制
   late DanmakuController danmakuController;
@@ -185,6 +189,11 @@ abstract class _PlayerController with Store {
   bool playerDebugMode = false;
   int buttonSkipTime = 80;
   int arrowKeySkipTime = 10;
+  Duration? pendingOpeningStart;
+  Duration? pendingEndingStart;
+  ResolvedSkipSegment? resolvedOpeningSegment;
+  ResolvedSkipSegment? resolvedEndingSegment;
+  bool skipSegmentResolving = false;
 
   // 播放器实时状态
   bool get playerPlaying => mediaPlayer!.state.playing;
@@ -235,7 +244,13 @@ abstract class _PlayerController with Store {
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentRoad = params.currentRoad;
+    pluginName = params.pluginName;
     referer = params.referer;
+    pendingOpeningStart = null;
+    pendingEndingStart = null;
+    resolvedOpeningSegment = null;
+    resolvedEndingSegment = null;
+    skipSegmentResolving = false;
 
     KazumiLogger().i(
         'PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
@@ -570,6 +585,90 @@ abstract class _PlayerController with Store {
         await requestSyncPlaySync(doSeek: true);
       }
     }
+  }
+
+  Duration markSkipSegmentStart(SkipSegmentType type) {
+    final position = currentPosition;
+    switch (type) {
+      case SkipSegmentType.opening:
+        pendingOpeningStart = position;
+      case SkipSegmentType.ending:
+        pendingEndingStart = position;
+    }
+    return position;
+  }
+
+  Future<SkipSegmentTemplate> saveSkipSegmentEnd(SkipSegmentType type) async {
+    final start = switch (type) {
+      SkipSegmentType.opening => pendingOpeningStart,
+      SkipSegmentType.ending => pendingEndingStart,
+    };
+    if (start == null) {
+      throw StateError('请先标记${_skipSegmentTypeName(type)}开始');
+    }
+
+    final end = currentPosition;
+    if (end <= start) {
+      throw StateError('${_skipSegmentTypeName(type)}结束必须晚于开始');
+    }
+
+    final template = SkipSegmentTemplate(
+      bangumiId: bangumiId,
+      pluginName: pluginName,
+      road: currentRoad,
+      sourceEpisode: currentEpisode,
+      type: type,
+      start: start,
+      end: end,
+      createdAt: DateTime.now(),
+    );
+    await skipSegmentRepository.saveTemplate(template);
+
+    switch (type) {
+      case SkipSegmentType.opening:
+        pendingOpeningStart = null;
+      case SkipSegmentType.ending:
+        pendingEndingStart = null;
+    }
+    return template;
+  }
+
+  SkipSegmentTemplate? getSkipSegmentTemplate(SkipSegmentType type) {
+    return skipSegmentRepository.getTemplate(
+      bangumiId: bangumiId,
+      pluginName: pluginName,
+      type: type,
+    );
+  }
+
+  Future<void> deleteSkipSegmentTemplate(SkipSegmentType type) async {
+    await skipSegmentRepository.deleteTemplate(
+      bangumiId: bangumiId,
+      pluginName: pluginName,
+      type: type,
+    );
+    switch (type) {
+      case SkipSegmentType.opening:
+        pendingOpeningStart = null;
+      case SkipSegmentType.ending:
+        pendingEndingStart = null;
+    }
+  }
+
+  void setResolvedSkipSegment(ResolvedSkipSegment segment) {
+    switch (segment.type) {
+      case SkipSegmentType.opening:
+        resolvedOpeningSegment = segment;
+      case SkipSegmentType.ending:
+        resolvedEndingSegment = segment;
+    }
+  }
+
+  String _skipSegmentTypeName(SkipSegmentType type) {
+    return switch (type) {
+      SkipSegmentType.opening => '片头',
+      SkipSegmentType.ending => '片尾',
+    };
   }
 
   Future<void> pause({bool enableSync = true}) async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -19,6 +20,7 @@ import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/timed_shutdown_service.dart';
+import 'package:kazumi/modules/skip/skip_segment.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
@@ -79,7 +81,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       Modular.get<VideoPageController>();
   final PlayerController playerController = Modular.get<PlayerController>();
   final TextEditingController textController = TextEditingController();
-  
+
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -133,6 +135,126 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     });
   }
 
+  void showSkipSegmentMarkDialog() {
+    KazumiDialog.show(builder: (context) {
+      return AlertDialog(
+        title: const Text('片头片尾标记'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSkipSegmentStatus(SkipSegmentType.opening),
+            _buildSkipSegmentStatus(SkipSegmentType.ending),
+            const SizedBox(height: 8),
+            _buildSkipSegmentAction(
+              type: SkipSegmentType.opening,
+              start: true,
+            ),
+            _buildSkipSegmentAction(
+              type: SkipSegmentType.opening,
+              start: false,
+            ),
+            _buildSkipSegmentAction(
+              type: SkipSegmentType.ending,
+              start: true,
+            ),
+            _buildSkipSegmentAction(
+              type: SkipSegmentType.ending,
+              start: false,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => KazumiDialog.dismiss(),
+            child: Text(
+              '关闭',
+              style: TextStyle(color: Theme.of(context).colorScheme.outline),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _deleteSkipSegmentTemplate(SkipSegmentType.opening);
+            },
+            child: const Text('清除片头'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _deleteSkipSegmentTemplate(SkipSegmentType.ending);
+            },
+            child: const Text('清除片尾'),
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildSkipSegmentStatus(SkipSegmentType type) {
+    final template = playerController.getSkipSegmentTemplate(type);
+    final label = _skipSegmentTypeLabel(type);
+    final text = template == null
+        ? '$label：未标记'
+        : '$label：${Utils.durationToString(template.start)} - ${Utils.durationToString(template.end)}';
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Text(text),
+      ),
+    );
+  }
+
+  Widget _buildSkipSegmentAction({
+    required SkipSegmentType type,
+    required bool start,
+  }) {
+    final label = _skipSegmentTypeLabel(type);
+    return ListTile(
+      dense: true,
+      leading: Icon(start ? Icons.flag_outlined : Icons.outlined_flag),
+      title: Text('标记$label${start ? '开始' : '结束'}为当前位置'),
+      onTap: () async {
+        if (start) {
+          final position = playerController.markSkipSegmentStart(type);
+          KazumiDialog.dismiss();
+          KazumiDialog.showToast(
+            message: '已标记$label开始：${Utils.durationToString(position)}',
+          );
+          return;
+        }
+
+        try {
+          final template = await playerController.saveSkipSegmentEnd(type);
+          KazumiDialog.dismiss();
+          KazumiDialog.showToast(
+            message:
+                '已保存$label：${Utils.durationToString(template.start)} - ${Utils.durationToString(template.end)}',
+          );
+          unawaited(videoPageController.refreshSkipSegmentsAfterTemplateChanged(
+            playerController.duration,
+          ));
+        } catch (e) {
+          KazumiDialog.showToast(message: e.toString());
+        }
+      },
+    );
+  }
+
+  Future<void> _deleteSkipSegmentTemplate(SkipSegmentType type) async {
+    await playerController.deleteSkipSegmentTemplate(type);
+    KazumiDialog.dismiss();
+    KazumiDialog.showToast(message: '已清除${_skipSegmentTypeLabel(type)}模板');
+    unawaited(videoPageController.refreshSkipSegmentsAfterTemplateChanged(
+      playerController.duration,
+    ));
+  }
+
+  String _skipSegmentTypeLabel(SkipSegmentType type) {
+    return switch (type) {
+      SkipSegmentType.opening => '片头',
+      SkipSegmentType.ending => '片尾',
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -160,7 +282,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
     cacheSvgIcons();
   }
-  
+
   void cacheSvgIcons() {
     cachedDanmakuOffIcon = RepaintBoundary(
       child: SvgPicture.asset(
@@ -169,7 +291,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       ),
     );
   }
-  
+
   Widget danmakuOnIcon(BuildContext context) {
     final colorHex = Theme.of(context)
         .colorScheme
@@ -213,9 +335,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             },
       tooltip: playerController.danmakuLoading
           ? '弹幕加载中...'
-          : (playerController.danmakuOn
-              ? '关闭弹幕'
-              : '打开弹幕'),
+          : (playerController.danmakuOn ? '关闭弹幕' : '打开弹幕'),
     );
   }
 
@@ -531,9 +651,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: Icon(videoPageController.isFullscreen
                       ? Icons.fullscreen_exit_rounded
                       : Icons.fullscreen_rounded),
-                  tooltip: videoPageController.isFullscreen
-                      ? '退出全屏'
-                      : '全屏',
+                  tooltip: videoPageController.isFullscreen ? '退出全屏' : '全屏',
                   onPressed: () {
                     widget.handleFullscreen();
                   },
@@ -575,7 +693,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       videoPageController.isPip = !videoPageController.isPip;
                       return;
                     }
-                    final bool supported = await PipUtils.isAndroidPIPSupported();
+                    final bool supported =
+                        await PipUtils.isAndroidPIPSupported();
                     if (!supported) {
                       KazumiDialog.showToast(message: '当前设备不支持画中画');
                       return;
@@ -842,8 +961,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       context: context,
                       builder: (context) {
                         return DanmakuSettingsSheet(
-                          danmakuController:
-                              playerController.danmakuController,
+                          danmakuController: playerController.danmakuController,
                           onUpdateDanmakuSpeed:
                               playerController.updateDanmakuSpeed,
                         );
@@ -869,6 +987,19 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text("视频详情"),
+                    ),
+                  ),
+                ),
+                MenuItemButton(
+                  onPressed: () {
+                    showSkipSegmentMarkDialog();
+                  },
+                  child: Container(
+                    height: 48,
+                    constraints: BoxConstraints(minWidth: 112),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text("片头片尾标记"),
                     ),
                   ),
                 ),
@@ -933,8 +1064,11 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     for (final int minutes in [15, 30, 60])
                       MenuItemButton(
                         onPressed: () {
-                          TimedShutdownService().start(minutes, onExpired: widget.pauseForTimedShutdown);
-                          KazumiDialog.showToast(message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
+                          TimedShutdownService().start(minutes,
+                              onExpired: widget.pauseForTimedShutdown);
+                          KazumiDialog.showToast(
+                              message:
+                                  '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
                         },
                         child: Container(
                           height: 48,
@@ -944,9 +1078,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                             child: Text(
                               "$minutes 分钟",
                               style: TextStyle(
-                                color: TimedShutdownService().setMinutes == minutes
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
+                                color:
+                                    TimedShutdownService().setMinutes == minutes
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
                               ),
                             ),
                           ),
@@ -974,7 +1109,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: ValueListenableBuilder<int>(
-                        valueListenable: TimedShutdownService().remainingSecondsNotifier,
+                        valueListenable:
+                            TimedShutdownService().remainingSecondsNotifier,
                         builder: (context, remainingSeconds, child) {
                           return Text(
                             remainingSeconds > 0

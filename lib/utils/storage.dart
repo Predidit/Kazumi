@@ -42,7 +42,8 @@ class GStorage {
     collectibles = await _openBoxSafe<CollectedBangumi>('collectibles');
     histories = await _openBoxSafe<History>('histories');
     setting = await _openBoxSafe<dynamic>('setting');
-    collectChanges = await _openBoxSafe<CollectedBangumiChange>('collectchanges');
+    collectChanges =
+        await _openBoxSafe<CollectedBangumiChange>('collectchanges');
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
@@ -54,7 +55,9 @@ class GStorage {
     try {
       return await Hive.openBox<T>(boxName);
     } catch (e) {
-      KazumiLogger().e('GStorage: Box "$boxName" corrupted, attempting recovery', error: e);
+      KazumiLogger().e(
+          'GStorage: Box "$boxName" corrupted, attempting recovery',
+          error: e);
 
       // Delete the corrupted box files
       await _deleteBoxFiles(boxName);
@@ -62,10 +65,12 @@ class GStorage {
       // Try to open again (will create a new empty box)
       try {
         final box = await Hive.openBox<T>(boxName);
-        KazumiLogger().i('GStorage: Box "$boxName" recovered successfully (data lost)');
+        KazumiLogger()
+            .i('GStorage: Box "$boxName" recovered successfully (data lost)');
         return box;
       } catch (e2) {
-        KazumiLogger().e('GStorage: Failed to recover box "$boxName"', error: e2);
+        KazumiLogger()
+            .e('GStorage: Failed to recover box "$boxName"', error: e2);
         rethrow;
       }
     }
@@ -88,7 +93,8 @@ class GStorage {
         KazumiLogger().i('GStorage: Deleted lock file: $boxName.lock');
       }
     } catch (e) {
-      KazumiLogger().e('GStorage: Failed to delete box files for "$boxName"', error: e);
+      KazumiLogger()
+          .e('GStorage: Failed to delete box files for "$boxName"', error: e);
     }
   }
 
@@ -306,6 +312,7 @@ class SettingBoxKey {
       enableGitProxy = 'enableGitProxy',
       enableSystemProxy = 'enableSystemProxy',
       defaultStartupPage = 'defaultStartupPage',
+
       /// Deprecated
       isWideScreen = 'isWideScreen',
       webDavEnable = 'webDavEnable',
@@ -343,5 +350,6 @@ class SettingBoxKey {
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
-      shortcutDialogShown = 'shortcutDialogShown';
+      shortcutDialogShown = 'shortcutDialogShown',
+      skipSegmentTemplates = 'skipSegmentTemplates';
 }

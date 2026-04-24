@@ -275,23 +275,6 @@ class Utils {
     return '${(similarity * 100).toStringAsFixed(fractionDigits)}%';
   }
 
-  /// 不足一小时时与 [durationToString] 的 `mm:ss` 形式一致；满小时及以上时使用完整
-  /// `inHours`，避免 [durationToString] 对小时取 `% 24` 在长片段上的差异。
-  static String formatTraceSeconds(double? seconds, {String empty = '--:--'}) {
-    if (seconds == null) {
-      return empty;
-    }
-    final duration = Duration(seconds: seconds.floor());
-    if (duration.inHours == 0) {
-      return durationToString(duration);
-    }
-    final hours = duration.inHours.toString().padLeft(2, '0');
-    final minutes =
-        duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final secs =
-        duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$secs';
-  }
 
   static String formatTraceEpisode(dynamic episode) {
     if (episode is int) {

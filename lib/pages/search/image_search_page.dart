@@ -673,7 +673,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                       _buildInfoLine(
                         textTheme,
                         colorScheme,
-                        '时间: ${Utils.formatTraceSeconds(result.from)} - ${Utils.formatTraceSeconds(result.to)}',
+                        '时间: ${Utils.durationToString(Duration(seconds: (result.from ?? 0).floor()))} - ${Utils.durationToString(Duration(seconds: (result.to ?? 0).floor()))}',
                       ),
                     ],
                   ),

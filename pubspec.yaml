@@ -47,8 +47,8 @@ dependencies:
   path_provider: ^2.1.5
   hive_ce: ^2.16.0
   hive_ce_flutter: ^2.3.3
-  # cached_network_image: ^3.4.1
-  cached_network_image_ce: ^4.6.4
+  cached_network_image: ^3.4.1
+  # cached_network_image_ce: ^4.6.4
   card_settings_ui: ^2.0.1
 
   # fvp: ^0.28.0

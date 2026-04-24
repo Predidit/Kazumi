@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
-import 'package:cached_network_image_ce/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:url_launcher/url_launcher.dart';
 

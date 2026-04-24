@@ -37,6 +37,9 @@ class FlutterWindow : public Win32Window {
 
   // Register Shortcut MethodChannel
   void RegisterShortcutChannel();
+
+  // Register TitleBar Theme MethodChannel
+  void RegisterTitleBarThemeChannel();
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

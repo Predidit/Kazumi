@@ -14,6 +14,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:flutter/services.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -36,6 +37,15 @@ class _AppWidgetState extends State<AppWidget>
     setPreventClose();
     WidgetsBinding.instance.addObserver(this);
     super.initState();
+
+    // Sync Windows title bar theme on startup and when theme changes
+    if (Platform.isWindows) {
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+      _syncTitleBarTheme(themeProvider);
+      themeProvider.addListener(() {
+        if (mounted) _syncTitleBarTheme(themeProvider);
+      });
+    }
   }
 
   void setPreventClose() async {
@@ -167,15 +177,24 @@ class _AppWidgetState extends State<AppWidget>
   @override
   Future<void> didChangePlatformBrightness() async {
     super.didChangePlatformBrightness();
-    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    KazumiLogger().i("Platform brightness changed, themeMode: ${themeProvider.themeMode}");
+    if (Platform.isWindows) {
+      final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+      _syncTitleBarTheme(themeProvider);
+    }
+  }
 
-    // Only update title bar theme when following system
-    // If user has forced a specific theme, keep title bar consistent with app content
-    if (themeProvider.themeMode == ThemeMode.system && Platform.isWindows) {
-      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      KazumiLogger().i("Updating title bar brightness: $brightness");
-      await windowManager.setBrightness(brightness);
+  /// Sync Windows title bar theme with app theme using native DwmSetWindowAttribute.
+  /// This bypasses the window_manager plugin's registry check to force dark/light
+  /// title bar regardless of system-wide theme setting.
+  Future<void> _syncTitleBarTheme(ThemeProvider themeProvider) async {
+    final bool isDark = themeProvider.isEffectiveDark();
+    try {
+      await const MethodChannel('com.predidit.kazumi/titlebar')
+          .invokeMethod('setImmersiveDarkMode', {'enable': isDark});
+    } catch (_) {
+      // Fallback to window_manager plugin if native channel fails
+      await windowManager.setBrightness(
+          isDark ? Brightness.dark : Brightness.light);
     }
   }
 
@@ -231,9 +250,9 @@ class _AppWidgetState extends State<AppWidget>
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
 
-    // Set Windows title bar theme based on app theme
+    // Sync Windows title bar theme after theme mode is set
     if (Platform.isWindows) {
-      windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
+      _syncTitleBarTheme(themeProvider);
     }
 
     themeProvider.setFontFamily(useSystemFont, notify: false);

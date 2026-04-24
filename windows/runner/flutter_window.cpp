@@ -8,6 +8,11 @@
 #include <flutter/standard_method_codec.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <windows.h>
+#include <dwmapi.h>
+
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -53,6 +58,9 @@ bool FlutterWindow::OnCreate() {
 
   // Register Shortcut MethodChannel
   RegisterShortcutChannel();
+
+  // Register TitleBar Theme MethodChannel
+  RegisterTitleBarThemeChannel();
 
   return true;
 }
@@ -173,6 +181,32 @@ void FlutterWindow::RegisterShortcutChannel() {
       result->Success(flutter::EncodableValue(true));
     } else {
       result->Error("Failed", "Failed to create desktop shortcut");
+    }
+  });
+}
+
+// TitleBar Theme MethodChannel setup
+void FlutterWindow::RegisterTitleBarThemeChannel() {
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(), "com.predidit.kazumi/titlebar",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  channel->SetMethodCallHandler([this](const auto& call, auto result) {
+    if (call.method_name() == "setImmersiveDarkMode") {
+      const auto* arguments = std::get_if<flutter::EncodableMap>(call.arguments());
+      if (arguments) {
+        auto it = arguments->find(flutter::EncodableValue("enable"));
+        if (it != arguments->end()) {
+          BOOL dark_mode = std::get<bool>(it->second) ? TRUE : FALSE;
+          DwmSetWindowAttribute(GetHandle(), DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                &dark_mode, sizeof(dark_mode));
+          result->Success();
+          return;
+        }
+      }
+      result->Error("InvalidArguments", "Missing 'enable' argument");
+    } else {
+      result->NotImplemented();
     }
   });
 }

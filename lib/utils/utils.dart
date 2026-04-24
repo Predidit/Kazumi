@@ -276,18 +276,6 @@ class Utils {
   }
 
 
-  static String formatTraceEpisode(dynamic episode) {
-    if (episode is int) {
-      return '第 $episode 集';
-    }
-    if (episode is List && episode.isNotEmpty) {
-      return '剧集: ${episode.join(' / ')}';
-    }
-    return '剧集未知';
-  }
-
-
-
   static Future<String> latest() async {
     try {
       var resp = await Dio().get<Map<String, dynamic>>(Api.latestApp);

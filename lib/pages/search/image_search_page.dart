@@ -128,6 +128,17 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
         '未知番剧';
   }
 
+
+  static String _formatTraceEpisode(dynamic episode) {
+    if (episode is int) {
+      return '第 $episode 集';
+    }
+    if (episode is List && episode.isNotEmpty) {
+      return '剧集: ${episode.join(' / ')}';
+    }
+    return '剧集未知';
+  }
+
   int _resolveCrossAxisCount(double width) {
     if (width < LayoutBreakpoint.compact['width']!) {
       return 1;
@@ -663,7 +674,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                       _buildInfoLine(
                         textTheme,
                         colorScheme,
-                        Utils.formatTraceEpisode(result.episode),
+                       _formatTraceEpisode(result.episode),
                       ),
                       _buildInfoLine(
                         textTheme,

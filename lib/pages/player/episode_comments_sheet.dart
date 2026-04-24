@@ -138,11 +138,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                     keepAlive: true,
                     child: IndexedSemantics(
                       index: index,
-                      child: SelectionArea(
-                        child: EpisodeCommentsCard(
-                          commentItem:
-                              videoPageController.episodeCommentsList[index],
-                        ),
+                      child: EpisodeCommentsCard(
+                        commentItem:
+                            videoPageController.episodeCommentsList[index],
                       ),
                     ),
                   );

@@ -183,7 +183,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 
 特别感谢 [SyncPlay](https://github.com/Syncplay/syncplay) 本项目使用 SyncPlay 协议并通过 SyncPlay 公共服务器实现一起看功能。
 
-特别感谢 [trace.moe](https://trace.moe) 本项目使用了 trace 以提供图片识别番剧功能。
+特别感谢 [trace.moe](https://trace.moe) 本项目使用了 trace.moe 提供的图片识别番剧功能。
 
 感谢 [media-kit](https://github.com/media-kit/media-kit) 本项目跨平台媒体播放能力来自 media-kit。
 

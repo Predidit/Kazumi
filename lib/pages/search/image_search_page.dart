@@ -717,7 +717,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     final dotColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.6);
 
     final tips = <Widget>[
-      Text('使用原始宽高比的截图可获得更准确的结果', style: baseStyle),
+      Text('仅支持使用原始比例番剧截图搜索结果', style: baseStyle),
       Text('截图应清晰，避免过度压缩或添加水印', style: baseStyle),
       RichText(
         text: TextSpan(

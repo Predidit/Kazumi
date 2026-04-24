@@ -20,8 +20,6 @@ class GStorage {
   static late final Box<dynamic> setting;
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
-  // static late Box<CollectedBangumiChange> collectChangesBgm;
-  // static late Box<CollectedBangumi> collectiblesBgm;  // 上次同步时bgm上的收藏
 
   /// Hive directory path, initialized during init()
   static String? _hivePath;
@@ -94,7 +92,6 @@ class GStorage {
     }
   }
 
-  /// 将指定的 Hive Box 文件直接复制到备份路径
   static Future<void> backupBox(String boxName, String backupFilePath) async {
     final appDocumentDir = await getApplicationSupportDirectory();
     final hiveBoxFile = File('${appDocumentDir.path}/hive/$boxName.hive');
@@ -106,7 +103,6 @@ class GStorage {
     }
   }
 
-  /// 增量合并观看历史
   static Future<void> patchHistory(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
@@ -129,7 +125,6 @@ class GStorage {
     await tempBox.close();
   }
 
-  /// 全量覆盖还原收藏列表
   static Future<void> restoreCollectibles(String backupFilePath) async {
     final backupFile = File(backupFilePath);
     final backupContent = await backupFile.readAsBytes();
@@ -182,18 +177,12 @@ class GStorage {
     return collectChanges;
   }
 
-  /// 增量合并本地收藏
-  /// 
-  /// [remoteCollectibles] 远程收藏
-  /// [remoteChanges] 未合并的远程收藏变更
   static Future<void> patchCollectibles(
       List<CollectedBangumi> remoteCollectibles,
-      List<CollectedBangumiChange> remoteChanges
-      ) async {
+      List<CollectedBangumiChange> remoteChanges) async {
     List<CollectedBangumi> localCollectibles = collectibles.values.toList();
     List<CollectedBangumiChange> localChanges = collectChanges.values.toList();
 
-    // 1. 找出本地新增的、远程没有的变更日志
     final List<CollectedBangumiChange> newLocalChanges =
         localChanges.where((localChange) {
       return !remoteChanges
@@ -202,18 +191,16 @@ class GStorage {
 
     newLocalChanges.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // 2. Process local changes 处理本地变更
+    // Process local changes
     for (var change in newLocalChanges) {
-      // For delete action, we don't need to look up the local collectible. 对于删除操作，我们不需要查找本地可收集项。
-      // We can directly remove the item from the remote list. 我们可以直接从远程列表中移除该项。
+      // For delete action, we don't need to look up the local collectible.
+      // We can directly remove the item from the remote list.
       if (change.action == 3) {
         // Action 3: delete
         remoteCollectibles
             .removeWhere((b) => b.bangumiItem.id == change.bangumiID);
-        // TODO
       } else {
-        // For add/update, we still need to look up the local collectible. 对于添加/更新操作，我们仍然需要查找本地可收集项。
-        /// 对远程收藏，action 1: 远程收藏不存在则添加，否则用action 2逻辑；action 2: 存在则更新
+        // For add/update, we still need to look up the local collectible.
         final changedBangumiID = change.bangumiID.toString();
         for (var localCollect in localCollectibles) {
           if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
@@ -248,7 +235,7 @@ class GStorage {
       }
     }
 
-    // 3. merge local changes with remote changes 将本地更改与远程更改合并，最新优先
+    // merge local changes with remote changes
     final Map<int, CollectedBangumiChange> mergedMap = {};
     for (var change in remoteChanges) {
       mergedMap[change.id] = change;
@@ -261,7 +248,7 @@ class GStorage {
     final List<CollectedBangumiChange> mergedChanges =
         mergedMap.values.toList();
 
-    // 4. Update local storage 更新本地存储
+    // Update local storage
     await collectibles.clear();
     for (var collect in remoteCollectibles) {
       await collectibles.put(collect.bangumiItem.id, collect);

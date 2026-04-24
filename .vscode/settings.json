@@ -1,5 +1,4 @@
 {
-    "files.eol": "\n",
     "cmake.ignoreCMakeListsMissing": true,
     "search.exclude": {
         "**/fastlane": true

@@ -8,7 +8,6 @@ class CollectedBangumi {
   @HiveField(0)
   BangumiItem bangumiItem;
 
-  // 收藏时间
   @HiveField(1)
   DateTime time;
 

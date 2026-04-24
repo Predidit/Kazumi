@@ -62,41 +62,28 @@ class WebDav {
     }
   }
 
-  /// 将本地 Hive 数据库文件同步到 WebDAV 服务器
   Future<void> update(String boxName) async {
     var directory = await getApplicationSupportDirectory();
     final localFilePath = '${directory.path}/hive/$boxName.hive'; 
     final tempFilePath = '${webDavLocalTempDirectory.path}/$boxName.tmp';
     final webDavPath = '/kazumiSync/$boxName.tmp';
-
-    // 1. 复制本地 Hive 文件到临时目录
     await File(localFilePath)
           .copy(tempFilePath);
-    
-    // 2. 删除旧的缓存文件（如果存在）
     try {
       await client.remove('$webDavPath.cache');
     } catch (_) {}
-
-      // 3. 上传临时文件到 WebDAV（先上传为 .cache 文件）
     await client.writeFromFile(tempFilePath,
         '$webDavPath.cache', onProgress: (c, t) {
       // print(c / t);
     });
-
-    // 4. 删除旧的目标文件（如果存在）
     try {
       await client.remove(webDavPath);
     } catch (_) {
       KazumiLogger().w('WebDav: former backup file not exist');
     }
-
-    // 5. 将 .cache 文件重命名为正式文件（原子操作）
     await client.rename(
         '$webDavPath.cache', webDavPath, true);
-   
-    // 6. 清理本地临时文件
-   try {
+    try {
       await File(tempFilePath).delete();
     } catch (_) {}
   }
@@ -171,14 +158,11 @@ class WebDav {
     final files = await client.readDir('/kazumiSync');
     final collectiblesExists = files.any((file) => file.name == 'collectibles.tmp');
     final changesExists = files.any((file) => file.name == 'collectchanges.tmp');
-
-    // 如果云端啥都没有，直接上传本地的
     if (!collectiblesExists && !changesExists) {
       await updateCollectibles();
       return;
     }
     
-    // 1. 下载文件
     List<Future<void>> downloadFutures = [];
     if (collectiblesExists) {
       downloadFutures.add(download('collectibles').catchError((e) {
@@ -195,8 +179,6 @@ class WebDav {
     if (downloadFutures.isNotEmpty) {
       await Future.wait(downloadFutures);
     } 
-
-    // 2. 解析文件内容
     try {
       if (collectiblesExists) {
         remoteCollectibles = await GStorage.getCollectiblesFromFile(
@@ -210,13 +192,9 @@ class WebDav {
       KazumiLogger().e('WebDav: get collectibles failed', error: e);
       throw Exception('WebDav: get collectibles from file failed'); 
     }
-
-    // 3. 调用 GStorage.patchCollectibles 进行数据合并
     if (remoteChanges.isNotEmpty || remoteCollectibles.isNotEmpty) {
       await GStorage.patchCollectibles(remoteCollectibles, remoteChanges);
     }
-
-    // 4. 将合并后的最新状态上传回 WebDAV
     await updateCollectibles();
   }
 

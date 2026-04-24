@@ -198,5 +198,4 @@ class CollectCrudRepository implements ICollectCrudRepository {
       rethrow;
     }
   }
-  
 }

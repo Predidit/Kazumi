@@ -107,27 +107,6 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     }
   }
 
-  Future<void> syncBangumi() async {
-    var bangumiEnable = await setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-    if (bangumiEnable) { 
-      KazumiDialog.showToast(message: '尝试从Bangumi同步');
-      var bangumi = Bangumi();
-      try {
-        await bangumi.ping();
-        try {
-          await bangumi.syncCollectibles();
-          KazumiDialog.showToast(message: 'Bangumi同步成功');
-        } catch (e) {
-          KazumiDialog.showToast(message: 'Bangumi同步失败 ${e.toString()}');
-        }
-      } catch (e) {
-        KazumiDialog.showToast(message: 'Bangumi访问失败 ${e.toString()}');
-      }
-    } else {
-      KazumiDialog.showToast(message: 'Bangumi访问失败');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;

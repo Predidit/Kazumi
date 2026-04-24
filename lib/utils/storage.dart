@@ -357,7 +357,7 @@ class SettingBoxKey {
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',
       shortcutDialogShown = 'shortcutDialogShown',
-      bangumiSyncEnable = 'bangumiEnableHistory',
+      bangumiSyncEnable = 'bangumiSyncEnable',
       bangumiAccessToken = 'bangumiAccessToken',
       bangumiUpdateEnable = 'bangumiUpdateEnable',
       bangumiDownloadEnable = 'bangumiDownloadEnable',

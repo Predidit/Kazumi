@@ -361,7 +361,7 @@ class BangumiHTTP {
     int failedItemCount = 0;
     int progressCurrent = 0;
     int progressTotal = 0;
-    if (username is !String) {
+    if (username == null) {
       KazumiLogger().w('get username failed');
       return [];
     }
@@ -378,7 +378,7 @@ class BangumiHTTP {
           Response<dynamic> res;
           try {
             final url =
-                '${Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollenction, [username, limit, offset])}&type=$collectionType';
+                '${Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollection, [username, limit, offset])}&type=$collectionType';
             res = await Request().get(url, shouldRethrow: true);
           } catch (e) {
             KazumiLogger().e(

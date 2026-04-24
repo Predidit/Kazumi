@@ -137,6 +137,30 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
+  /// 仅上传当前本地收藏与变更日志到 WebDAV，不做下载合并
+  Future<void> uploadCollectiblesToWebDav() async {
+    if (!WebDav().initialized) {
+      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
+      return;
+    }
+    bool flag = true;
+    try {
+      await WebDav().ping();
+    } catch (e) {
+      KazumiLogger().e('WebDav: WebDav connection failed', error: e);
+      KazumiDialog.showToast(message: 'WebDav连接失败: $e');
+      flag = false;
+    }
+    if (!flag) {
+      return;
+    }
+    try {
+      await WebDav().updateCollectibles();
+    } catch (e) {
+      KazumiDialog.showToast(message: 'WebDav上传失败 $e');
+    }
+  }
+
   // migrate collect from old version (favorites)
   Future<void> migrateCollect() async {
     if (favorites.isNotEmpty) {

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -16,6 +17,7 @@ class Bangumi {
   String lastSyncUsername = ''; // 上次同步的Bangumi用户名，由 ping()/init() 从存储加载
   bool initialized = false;
   Box setting = GStorage.setting;
+  int _nextCollectChangeId = 0;
 
   bool isUsing = false; // 是否正在使用
 
@@ -81,7 +83,7 @@ class Bangumi {
     }
 
     await func('collectibles');
-    await func('collectChanges');
+    await func('collectchanges');
   }
 
   /// 打开文件夹以进行恢复数据
@@ -110,9 +112,9 @@ class Bangumi {
         setting.get(SettingBoxKey.bangumiSyncDebug, defaultValue: true);
     if (debugEnable && username != lastSyncUsername) {
       final collectibles =
-          Directory(p.join(bgmLocalTempDirectory.path, 'collectibles.hive'));
+        File(p.join(bgmLocalTempDirectory.path, 'collectibles.hive'));
       final collectChanges =
-          Directory(p.join(bgmLocalTempDirectory.path, 'collectChanges.hive'));
+        File(p.join(bgmLocalTempDirectory.path, 'collectchanges.hive'));
       if (await collectibles.exists() || await collectChanges.exists()) {
         await openFolderRestore();
         KazumiDialog.showToast(message: '检测到存在上次备份数据，请检查数据');
@@ -129,6 +131,34 @@ class Bangumi {
       lastSyncUsername = username;
       setting.put(SettingBoxKey.bangumiLastSyncUsername, lastSyncUsername);
     }
+  }
+
+  /// 生成一个新的收藏变更 ID（用于记录收藏更新变更）
+  int _generateCollectChangeId() {
+    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (_nextCollectChangeId < currentSeconds) {
+      _nextCollectChangeId = currentSeconds;
+    } else {
+      _nextCollectChangeId++;
+    }
+    return _nextCollectChangeId;
+  }
+
+  /// 记录一次收藏变更（用于 WebDAV 增量同步）
+  Future<void> _recordCollectibleChange(
+    int bangumiId,
+    int action,
+    int type,
+  ) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final change = CollectedBangumiChange(
+      _generateCollectChangeId(),
+      bangumiId,
+      action,
+      type,
+      timestamp,
+    );
+    await GStorage.collectChanges.put(change.id, change);
   }
 
   /// 同步收藏
@@ -231,6 +261,8 @@ class Bangumi {
             remote.type,
           );
           await GStorage.collectibles.put(id, collected);
+          // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
+          await _recordCollectibleChange(id, 1, remote.type);
           syncedCount++;
           localModified = true;
           onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
@@ -253,6 +285,8 @@ class Bangumi {
           local.type = remote.type;
           local.time = remote.updatedAt;
           await GStorage.collectibles.put(id, local);
+          // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
+          await _recordCollectibleChange(id, 2, remote.type);
           syncedCount++;
           localModified = true;
           onProgress?.call('Bangumi First：正在处理冲突状态', syncedCount, totalOperations);
@@ -261,6 +295,8 @@ class Bangumi {
 
       if (localModified) {
         await GStorage.collectibles.flush();
+        // 确保收藏变更记录也持久化，以便后续增量同步时能正确识别已处理的变更
+        await GStorage.collectChanges.flush();
       }
       checkUpdateUsername();
       onProgress?.call('Bangumi 状态同步完成', 1, 1);

@@ -1,36 +1,33 @@
 import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:photo_view/photo_view.dart';
 
+class ImageViewerRouteArgs {
+  const ImageViewerRouteArgs({required this.imageUrl, this.heroTag});
+
+  final String imageUrl;
+  final String? heroTag;
+}
+
 class ImageViewer extends StatefulWidget {
+  static const String routePath = '/image-preview';
+
   final String imageUrl;
   final String? heroTag;
 
   const ImageViewer({super.key, required this.imageUrl, this.heroTag});
 
   /// 显示图片预览
-  static void show(BuildContext context,
-      {required String imageUrl, String? heroTag}) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierColor: Colors.black.withValues(alpha: 0.8),
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return ImageViewer(imageUrl: imageUrl, heroTag: heroTag);
-        },
-        transitionDuration: const Duration(milliseconds: 300),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-              ),
-              child: child,
-            ),
-          );
-        },
+  static Future<void> show(BuildContext context,
+      {required String imageUrl, String? heroTag}) async {
+    final effectiveHeroTag = heroTag ?? imageUrl;
+    await Modular.to.pushNamed(
+      routePath,
+      arguments: ImageViewerRouteArgs(
+        imageUrl: imageUrl,
+        heroTag: effectiveHeroTag,
       ),
     );
   }
@@ -74,7 +71,8 @@ class _ImageViewerState extends State<ImageViewer> {
     final currentScale = _photoViewController.scale ?? _initialScale ?? 1.0;
     _initialScale ??= currentScale;
 
-    final factor = event.scrollDelta.dy < 0 ? _wheelScaleStep : 1 / _wheelScaleStep;
+    final factor =
+        event.scrollDelta.dy < 0 ? _wheelScaleStep : 1 / _wheelScaleStep;
     final minScale = _initialScale! * _minScaleFactor;
     final maxScale = _initialScale! * _maxScaleFactor;
     final newScale = (currentScale * factor).clamp(minScale, maxScale);
@@ -85,25 +83,27 @@ class _ImageViewerState extends State<ImageViewer> {
     _scaleStateController.scaleState = PhotoViewScaleState.zoomedIn;
   }
 
+  void _closePreview() {
+    Modular.to.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
           Listener(
             onPointerSignal: _handlePointerSignal,
             child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
+              onTap: _closePreview,
               child: PhotoView(
                 imageProvider: CachedNetworkImageProvider(widget.imageUrl),
                 controller: _photoViewController,
                 scaleStateController: _scaleStateController,
                 minScale: PhotoViewComputedScale.contained,
                 maxScale: PhotoViewComputedScale.covered * 3,
-                backgroundDecoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
+                backgroundDecoration: const BoxDecoration(color: Colors.black),
                 heroAttributes: widget.heroTag != null
                     ? PhotoViewHeroAttributes(tag: widget.heroTag!)
                     : null,
@@ -123,8 +123,7 @@ class _ImageViewerState extends State<ImageViewer> {
                       Text(
                         '图片加载失败',
                         style: TextStyle(
-                          color:
-                              Theme.of(context).colorScheme.onErrorContainer,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
                         ),
                       ),
                     ],
@@ -143,7 +142,7 @@ class _ImageViewerState extends State<ImageViewer> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: _closePreview,
                 icon: const Icon(Icons.close, color: Colors.white),
               ),
             ),

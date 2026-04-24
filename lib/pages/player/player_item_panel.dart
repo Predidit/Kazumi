@@ -358,7 +358,6 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       dense: true,
       leading: Icon(start ? Icons.flag_outlined : Icons.outlined_flag),
       title: Text('标记$label${start ? '开始' : '结束'}为当前位置'),
-      subtitle: Text(Utils.durationToString(playerController.currentPosition)),
       onTap: () async {
         if (start) {
           final position = playerController.markSkipSegmentStart(type);

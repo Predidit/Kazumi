@@ -113,6 +113,13 @@ abstract class _VideoPageController with Store {
 
   Stream<String> get logStream => _logStreamController.stream;
 
+  void _logSkipSegment(String message) {
+    KazumiLogger().i(message);
+    if (!_logStreamController.isClosed) {
+      _logStreamController.add(message);
+    }
+  }
+
   StreamSubscription<String>? _logSubscription;
   int _skipSegmentResolveGeneration = 0;
   int? _currentSkipResolvedEpisode;
@@ -363,6 +370,11 @@ abstract class _VideoPageController with Store {
     final generation = _skipSegmentResolveGeneration;
     final playerController = Modular.get<PlayerController>();
     playerController.skipSegmentResolving = true;
+    _logSkipSegment(
+      'SkipSegment: start resolving current episode $episode '
+      'duration=${Utils.durationToString(targetDuration)} '
+      'generation=$generation',
+    );
 
     try {
       await _resolveSkipSegmentsForEpisode(
@@ -375,7 +387,12 @@ abstract class _VideoPageController with Store {
         applyToCurrentPlayer: true,
         generation: generation,
       );
+      _logSkipSegment(
+        'SkipSegment: finished resolving current episode $episode '
+        'generation=$generation',
+      );
     } catch (e, stackTrace) {
+      _logSkipSegment('SkipSegment: failed to resolve current episode');
       KazumiLogger().w(
         'SkipSegment: failed to resolve current episode',
         error: e,
@@ -404,6 +421,10 @@ abstract class _VideoPageController with Store {
     final playerController = Modular.get<PlayerController>();
     playerController.resolvedOpeningSegment = null;
     playerController.resolvedEndingSegment = null;
+    _logSkipSegment(
+      'SkipSegment: template changed, refresh resolve state '
+      'episode=$currentEpisode generation=$_skipSegmentResolveGeneration',
+    );
 
     skipSegmentResolveCache.clearEpisode(
       bangumiId: bangumiItem.id,
@@ -418,6 +439,15 @@ abstract class _VideoPageController with Store {
         pluginName: pluginName,
         episode: nextEpisode,
       );
+      _logSkipSegment(
+        'SkipSegment: cleared resolve cache for current episode '
+        '$currentEpisode and next episode $nextEpisode',
+      );
+    } else {
+      _logSkipSegment(
+        'SkipSegment: cleared resolve cache for current episode '
+        '$currentEpisode, no next episode to pre-resolve',
+      );
     }
 
     await resolveCurrentSkipSegmentsIfNeeded(targetDuration);
@@ -431,16 +461,40 @@ abstract class _VideoPageController with Store {
       return;
     }
     final nextEpisode = _nextEpisodeNumber();
-    if (nextEpisode == null || _nextSkipPreResolvedEpisode == nextEpisode) {
+    if (nextEpisode == null) {
+      _logSkipSegment('SkipSegment: skip pre-resolve, no next episode');
+      return;
+    }
+    if (_nextSkipPreResolvedEpisode == nextEpisode) {
+      _logSkipSegment(
+        'SkipSegment: skip pre-resolve for episode $nextEpisode, '
+        'already scheduled or completed',
+      );
       return;
     }
     _nextSkipPreResolvedEpisode = nextEpisode;
     final generation = _skipSegmentResolveGeneration;
+    _logSkipSegment(
+      'SkipSegment: schedule pre-resolve opening for episode $nextEpisode '
+      'durationHint=${Utils.durationToString(targetDurationHint)} '
+      'generation=$generation',
+    );
 
     unawaited(() async {
       try {
         final source = await _resolveEpisodeSourceForSkip(nextEpisode);
-        if (source == null || generation != _skipSegmentResolveGeneration) {
+        if (source == null) {
+          _logSkipSegment(
+            'SkipSegment: skip pre-resolve for episode $nextEpisode, '
+            'failed to resolve source',
+          );
+          return;
+        }
+        if (generation != _skipSegmentResolveGeneration) {
+          _logSkipSegment(
+            'SkipSegment: skip pre-resolve for episode $nextEpisode, '
+            'stale generation=$generation current=$_skipSegmentResolveGeneration',
+          );
           return;
         }
         await _resolveSkipSegmentsForEpisode(
@@ -454,7 +508,12 @@ abstract class _VideoPageController with Store {
           generation: generation,
           types: const [SkipSegmentType.opening],
         );
+        _logSkipSegment(
+          'SkipSegment: finished pre-resolve opening for episode $nextEpisode '
+          'generation=$generation',
+        );
       } catch (e, stackTrace) {
+        _logSkipSegment('SkipSegment: failed to pre-resolve next episode');
         KazumiLogger().w(
           'SkipSegment: failed to pre-resolve next episode',
           error: e,
@@ -476,6 +535,13 @@ abstract class _VideoPageController with Store {
     final resolver = SkipSegmentAudioResolver(
       extractor: FfmpegAudioExtractor(),
     );
+    final mode = applyToCurrentPlayer ? 'resolve' : 'pre-resolve';
+    _logSkipSegment(
+      'SkipSegment: $mode episode $targetEpisode '
+      'types=${types.map((type) => type.name).join(',')} '
+      'duration=${Utils.durationToString(targetDuration)} '
+      'generation=$generation',
+    );
 
     for (final type in types) {
       final cacheKey = SkipSegmentResolveCacheKey(
@@ -486,6 +552,11 @@ abstract class _VideoPageController with Store {
       );
       final cached = skipSegmentResolveCache.get(cacheKey);
       if (cached != null) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'hit cache ${Utils.durationToString(cached.start)} - '
+          '${Utils.durationToString(cached.end)}',
+        );
         if (applyToCurrentPlayer &&
             generation == _skipSegmentResolveGeneration) {
           Modular.get<PlayerController>().setResolvedSkipSegment(cached);
@@ -498,15 +569,39 @@ abstract class _VideoPageController with Store {
         pluginName: pluginName,
         type: type,
       );
-      if (template == null) continue;
+      if (template == null) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'skipped, no template',
+        );
+        continue;
+      }
+
+      _logSkipSegment(
+        'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+        'using template from episode ${template.sourceEpisode} '
+        '${Utils.durationToString(template.start)} - '
+        '${Utils.durationToString(template.end)}',
+      );
 
       final templateSource = await _resolveTemplateSourceForSkip(
         template,
         targetEpisode,
         targetSource,
       );
-      if (templateSource == null ||
-          generation != _skipSegmentResolveGeneration) {
+      if (templateSource == null) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'skipped, failed to resolve template source',
+        );
+        continue;
+      }
+      if (generation != _skipSegmentResolveGeneration) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'skipped, stale generation=$generation '
+          'current=$_skipSegmentResolveGeneration',
+        );
         continue;
       }
 
@@ -523,8 +618,19 @@ abstract class _VideoPageController with Store {
           ),
         ),
       );
-      if (resolved == null) continue;
+      if (resolved == null) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'finished, no match above threshold',
+        );
+        continue;
+      }
       if (generation != _skipSegmentResolveGeneration) {
+        _logSkipSegment(
+          'SkipSegment: $mode ${type.name} for episode $targetEpisode '
+          'discarded resolved result, stale generation=$generation '
+          'current=$_skipSegmentResolveGeneration',
+        );
         continue;
       }
 
@@ -532,7 +638,7 @@ abstract class _VideoPageController with Store {
       if (applyToCurrentPlayer && generation == _skipSegmentResolveGeneration) {
         Modular.get<PlayerController>().setResolvedSkipSegment(resolved);
       }
-      KazumiLogger().i(
+      _logSkipSegment(
         'SkipSegment: resolved ${type.name} for episode $targetEpisode '
         '${Utils.durationToString(resolved.start)} - ${Utils.durationToString(resolved.end)} '
         'score=${resolved.score.toStringAsFixed(3)}',

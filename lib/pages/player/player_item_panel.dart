@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -375,6 +376,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
             message:
                 '已保存$label：${Utils.durationToString(template.start)} - ${Utils.durationToString(template.end)}',
           );
+          unawaited(videoPageController.refreshSkipSegmentsAfterTemplateChanged(
+            playerController.duration,
+          ));
         } catch (e) {
           KazumiDialog.showToast(message: e.toString());
         }
@@ -386,6 +390,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
     await playerController.deleteSkipSegmentTemplate(type);
     KazumiDialog.dismiss();
     KazumiDialog.showToast(message: '已清除${_skipSegmentTypeLabel(type)}模板');
+    unawaited(videoPageController.refreshSkipSegmentsAfterTemplateChanged(
+      playerController.duration,
+    ));
   }
 
   String _skipSegmentTypeLabel(SkipSegmentType type) {

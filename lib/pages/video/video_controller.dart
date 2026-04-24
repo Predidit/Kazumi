@@ -390,6 +390,39 @@ abstract class _VideoPageController with Store {
     _preResolveNextSkipSegmentsWithHint(playerController, targetDuration);
   }
 
+  Future<void> refreshSkipSegmentsAfterTemplateChanged(
+    Duration targetDuration,
+  ) async {
+    if (targetDuration <= Duration.zero || loading) return;
+
+    _skipSegmentResolveGeneration++;
+    _currentSkipResolvedEpisode = null;
+    _nextSkipPreResolvedEpisode = null;
+
+    final pluginName = isOfflineMode ? _offlinePluginName : currentPlugin.name;
+    final currentEpisode = actualEpisodeNumber;
+    final playerController = Modular.get<PlayerController>();
+    playerController.resolvedOpeningSegment = null;
+    playerController.resolvedEndingSegment = null;
+
+    skipSegmentResolveCache.clearEpisode(
+      bangumiId: bangumiItem.id,
+      pluginName: pluginName,
+      episode: currentEpisode,
+    );
+
+    final nextEpisode = _nextEpisodeNumber();
+    if (nextEpisode != null) {
+      skipSegmentResolveCache.clearEpisode(
+        bangumiId: bangumiItem.id,
+        pluginName: pluginName,
+        episode: nextEpisode,
+      );
+    }
+
+    await resolveCurrentSkipSegmentsIfNeeded(targetDuration);
+  }
+
   void _preResolveNextSkipSegmentsWithHint(
     PlayerController playerController,
     Duration? targetDurationHint,
@@ -491,6 +524,9 @@ abstract class _VideoPageController with Store {
         ),
       );
       if (resolved == null) continue;
+      if (generation != _skipSegmentResolveGeneration) {
+        continue;
+      }
 
       skipSegmentResolveCache.put(cacheKey, resolved);
       if (applyToCurrentPlayer && generation == _skipSegmentResolveGeneration) {

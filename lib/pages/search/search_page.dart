@@ -221,8 +221,14 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 barTrailing: [
                   IconButton(
-                    onPressed: () {
-                      Modular.to.pushNamed('/search/image');
+                    onPressed: () async {
+                      final result =
+                          await Modular.to.pushNamed('/search/image');
+                      if (result is String && result.isNotEmpty) {
+                        searchController.text = result;
+                        searchPageController.searchBangumi(result,
+                            type: 'init');
+                      }
                     },
                     icon: const Icon(Icons.image_search_rounded),
                   ),

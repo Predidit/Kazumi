@@ -548,11 +548,18 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                     mainAxisExtent: 152,
                   ),
                   itemBuilder: (context, index) {
-                    return _buildResultCard(
-                      context,
-                      colorScheme,
-                      textTheme,
-                      results[index],
+                    final result = results[index];
+                    return InkWell(
+                      onTap: () {
+                        final title = _formatTraceResultTitle(result);
+                        Navigator.of(context).pop(title);
+                      },
+                      child: _buildResultCard(
+                        context,
+                        colorScheme,
+                        textTheme,
+                        result,
+                      ),
                     );
                   },
                 );

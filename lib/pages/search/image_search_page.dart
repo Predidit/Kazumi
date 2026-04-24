@@ -228,7 +228,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
           border: Border.all(
             color: colorScheme.outline.withValues(alpha: 0.4),
             width: 1.5,
-            strokeAlign: BorderSide.strokeAlignInside,
+            strokeAlign: BorderSide.strokeAlignOutside,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -396,9 +396,11 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       ),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
+          color: colorScheme.outline.withValues(alpha: 0.4),
+          width: 1.5,
+          strokeAlign: BorderSide.strokeAlignOutside,
         ),
       ),
       clipBehavior: Clip.antiAlias,

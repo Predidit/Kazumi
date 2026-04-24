@@ -351,14 +351,8 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     return Column(
       key: const ValueKey('url-input'),
       crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 12,
       children: [
-        Text(
-          '图片 URL',
-          style: textTheme.labelLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
         TextField(
           controller: _urlController,
           decoration: InputDecoration(
@@ -391,7 +385,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
           textInputAction: TextInputAction.search,
           onSubmitted: (_) => _startSearch(),
         ),
-        const SizedBox(height: 12),
         _buildUrlPreview(colorScheme, textTheme),
       ],
     );
@@ -402,8 +395,8 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       duration: const Duration(milliseconds: 250),
       width: double.infinity,
       constraints: BoxConstraints(
-        minHeight: 130,
-        maxHeight: _previewUrl.isNotEmpty ? 300 : 130,
+        minHeight: 170,
+        maxHeight: _previewUrl.isNotEmpty ? 300 : 170,
       ),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),

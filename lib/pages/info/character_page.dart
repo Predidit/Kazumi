@@ -279,10 +279,8 @@ class _CharacterPageState extends State<CharacterPage> {
                     keepAlive: true,
                     child: IndexedSemantics(
                       index: index,
-                      child: SelectionArea(
-                        child: CharacterCommentsCard(
-                          commentItem: commentsList[index],
-                        ),
+                      child: CharacterCommentsCard(
+                        commentItem: commentsList[index],
                       ),
                     ),
                   );

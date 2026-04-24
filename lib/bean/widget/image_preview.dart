@@ -84,7 +84,7 @@ class _ImageViewerState extends State<ImageViewer> {
   }
 
   void _closePreview() {
-    Modular.to.pop();
+    Navigator.of(context).pop();
   }
 
   @override

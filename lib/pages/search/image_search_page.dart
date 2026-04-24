@@ -169,6 +169,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
             constraints: const BoxConstraints(maxWidth: 1400),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 25,
               children: [
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
@@ -176,7 +177,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                       ? _buildUrlInput(colorScheme, textTheme)
                       : _buildUploadArea(colorScheme, textTheme),
                 ),
-                const SizedBox(height: 20),
                 Center(
                   child: TextButton.icon(
                     onPressed: _switchMode,
@@ -187,7 +187,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                     label: Text(_isUrlMode ? '改为上传图片文件' : '改为输入图片 URL'),
                   ),
                 ),
-                const SizedBox(height: 32),
                 Observer(
                   builder: (context) => SizedBox(
                     width: double.infinity,
@@ -215,9 +214,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
                 _buildResultSection(colorScheme, textTheme),
-                const SizedBox(height: 24),
                 _buildTips(colorScheme, textTheme),
               ],
             ),

@@ -114,11 +114,11 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
     } catch (e) {
       KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
     } finally {
-      progressValue.dispose();
-      progressText.dispose();
       if (KazumiDialog.observer.hasKazumiDialog) {
         KazumiDialog.dismiss();
       }
+      progressValue.dispose();
+      progressText.dispose();
       if (mounted) {
         setState(() {
           syncCollectiblesing = false;

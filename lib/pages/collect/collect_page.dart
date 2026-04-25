@@ -86,11 +86,11 @@ class _CollectPageState extends State<CollectPage>
         },
       );
     } finally {
-      progressValue.dispose();
-      progressText.dispose();
       if (KazumiDialog.observer.hasKazumiDialog) {
         KazumiDialog.dismiss();
       }
+      progressValue.dispose();
+      progressText.dispose();
     }
   }
 

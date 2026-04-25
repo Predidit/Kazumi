@@ -10,8 +10,7 @@ import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-
-import '../modules/bangumi/bangumi_collection_type.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -438,7 +437,7 @@ class BangumiHTTP {
   /// Update the Bangumi collection by ID, with customizable data to upload.
   /// [id] The ID of the Bangumi item.
   /// [data] The data to update, in the format of Bangumi collection API.
-  static Future<void> updateBangumiById(
+  static Future<bool> updateBangumiById(
       int id, Map<String, dynamic> data) async {
     const Duration requestInterval = Duration(milliseconds: 250);
     try {
@@ -449,6 +448,7 @@ class BangumiHTTP {
         shouldRethrow: true,
       );
       KazumiLogger().d('Update to Bangumi: Id: $id');
+      return true;
     } on DioException catch (e) {
       String str;
       switch (e.response?.statusCode) {
@@ -465,10 +465,13 @@ class BangumiHTTP {
           str = 'Error $e';
       }
       KazumiLogger().e('BangumiApi: $str', error: e);
+      return false;
     } catch (e) {
       KazumiLogger().e('Network: update bangumi collection failed', error: e);
+      rethrow;
+    } finally {
+      await Future.delayed(requestInterval);
     }
-    await Future.delayed(requestInterval);
   }
 
   /// Update the Bangumi collection by ID,
@@ -476,10 +479,10 @@ class BangumiHTTP {
   ///
   /// [id] The ID of the Bangumi item.
   /// [localType] The local collection type.
-  static Future<void> updateBangumiByType(int id, int localType) async {
+  static Future<bool> updateBangumiByType(int id, int localType) async {
     final type = CollectType.fromValue(localType).toBangumiCollectionType();
     if (type == null) {
-      return;
+      return false;
     }
     return await updateBangumiById(id, {'type': type.value});
   }

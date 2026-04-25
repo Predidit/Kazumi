@@ -249,7 +249,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       setState(() {});
                     },
                     title: Text('Bangumi 同步', style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('允许与Bangumi自动同步观看记录', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('允许与Bangumi自动同步收藏/追番状态', style: TextStyle(fontFamily: fontFamily)),
                     initialValue: bangumiSyncEnable,
                 ),
                 SettingsTile.navigation(

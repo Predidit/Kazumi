@@ -94,9 +94,15 @@ abstract class _CollectController with Store {
       if (showImmediateSyncToast) {
         KazumiDialog.showToast(message: '正在同步到 Bangumi...');
       }
-      await BangumiHTTP.updateBangumiByType(bangumiId, localType);
-      if (showImmediateSyncToast) {
+      final bool synced =
+          await BangumiHTTP.updateBangumiByType(bangumiId, localType);
+      if (synced && showImmediateSyncToast) {
         KazumiDialog.showToast(message: '已同步到 Bangumi');
+      } else if (!synced) {
+        KazumiDialog.showToast(message: '同步到 Bangumi 失败');
+        KazumiLogger().w(
+          'Bangumi: immediate collect sync did not complete. bangumiId=$bangumiId, type=$localType',
+        );
       }
     } catch (e, stackTrace) {
       KazumiDialog.showToast(message: '同步到 Bangumi 失败: $e');

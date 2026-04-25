@@ -26,6 +26,9 @@ class Bangumi {
   /// initial value is 0.
   int _nextCollectChangeId = 0;
 
+  /// Whether the next collectible change ID cache has been initialized.
+  bool _collectChangeIdInitialized = false;
+
   /// lock to prevent concurrent operations that may cause conflicts,
   /// such as ping and syncCollectibles
   bool isUsing = false;
@@ -40,6 +43,7 @@ class Bangumi {
     if (token.isEmpty) {
       throw Exception('请先填写Bangumi Access Token');
     }
+    _initializeNextCollectChangeId();
     try {
       await ping();
       initialized = true;
@@ -51,7 +55,7 @@ class Bangumi {
 
   Future<void> ping() async {
     if (isUsing) {
-      return;
+      throw Exception('Bangumi: 当前有操作正在进行，请稍后再试');
     }
     isUsing = true;
     try {
@@ -69,26 +73,36 @@ class Bangumi {
     }
   }
 
-  /// Generate a new collectible change ID (used for recording collectible update changes)
-  /// The ID is based on the current timestamp (in seconds) to ensure monotonic increase and avoid conflicts with existing IDs.
-  /// Keep next ID not confict with existing IDs in the box, and ensure it is always greater than any existing ID.
-  int _generateCollectChangeId() {
-    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    var nextId = _nextCollectChangeId < currentSeconds
-        ? currentSeconds
-        : _nextCollectChangeId + 1;
+  void _initializeNextCollectChangeId() {
+    if (_collectChangeIdInitialized) {
+      return;
+    }
+
     var maxExistingId = 0;
     for (final key in GStorage.collectChanges.keys) {
       if (key is int && key > maxExistingId) {
         maxExistingId = key;
       }
     }
-    if (nextId <= maxExistingId) {
-      nextId = maxExistingId + 1;
-    }
+
+    _nextCollectChangeId = maxExistingId;
+    _collectChangeIdInitialized = true;
+  }
+
+  /// Generate a new collectible change ID (used for recording collectible update changes)
+  /// The ID is based on the current timestamp (in seconds) to ensure monotonic increase and avoid conflicts with existing IDs.
+  /// Keep next ID not conflict with existing IDs in the box, and ensure it is always greater than any existing ID.
+  int _generateCollectChangeId() {
+    _initializeNextCollectChangeId();
+
+    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    var nextId = _nextCollectChangeId < currentSeconds
+        ? currentSeconds
+        : _nextCollectChangeId + 1;
     while (GStorage.collectChanges.containsKey(nextId)) {
       nextId++;
     }
+    _nextCollectChangeId = nextId;
     return nextId;
   }
 

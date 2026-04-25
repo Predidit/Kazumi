@@ -1,4 +1,3 @@
-import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 import 'bangumi_collection_type.dart';

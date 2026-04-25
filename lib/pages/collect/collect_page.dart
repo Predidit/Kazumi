@@ -187,8 +187,8 @@ class _CollectPageState extends State<CollectPage>
                 await _syncBangumiWithProgress();
               }
               if (webDavenable && bgmSyncEnable) {
-                // 如果两个同步都开启了，那么在完成 Bangumi 同步后再执行 WebDAV 同步
-                // 确保 WebDAV 同步时已经包含了最新的 Bangumi 收藏数据，
+                // 如果两个同步都开启了，那么在完成 Bangumi 同步后再上传到 WebDAV
+                // 确保上传到 WebDAV 的内容已经包含了最新的 Bangumi 收藏数据
                 await collectController.uploadCollectiblesToWebDav();
               }
             } finally {

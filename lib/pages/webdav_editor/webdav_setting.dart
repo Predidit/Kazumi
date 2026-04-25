@@ -246,7 +246,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     bangumiSyncEnable = tBangumiEnableSync;
                     await setting.put(
                         SettingBoxKey.bangumiSyncEnable, bangumiSyncEnable);
-                      setState(() {});
+                    if (!mounted) {
+                      return;
+                    }
+                    setState(() {});
                     },
                     title: Text('Bangumi 同步', style: TextStyle(fontFamily: fontFamily)),
                     description: Text('允许与Bangumi自动同步收藏/追番状态', style: TextStyle(fontFamily: fontFamily)),

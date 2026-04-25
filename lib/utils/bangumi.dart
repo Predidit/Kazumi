@@ -5,6 +5,7 @@ import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
+import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/bangumi.dart';
 
 /// Bangumi 相关工具类
@@ -196,7 +197,15 @@ class Bangumi {
       if (localOnlyIds.isNotEmpty) {
         onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
         for (final id in localOnlyIds) {
-          await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+          final updated = await BangumiHTTP.updateBangumiByType(
+            id,
+            localMap[id]!.type,
+          );
+          if (!updated) {
+            onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
+            KazumiDialog.showToast(message: '同步失败：条目 $id 上传到 Bangumi 失败');
+            return;
+          }
           syncedCount++;
           onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
         }
@@ -226,7 +235,12 @@ class Bangumi {
       if (priority == BangumiSyncPriority.localFirst) {
         onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
         for (final id in mismatchIds) {
-          await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+          final updated =
+              await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+          if (updated != true) {
+            throw Exception(
+                'Bangumi sync failed: updateBangumiByType failed for id=$id');
+          }
           syncedCount++;
           onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
         }

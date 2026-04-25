@@ -4,6 +4,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -13,8 +14,7 @@ import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
-
-import '../../modules/bangumi/bangumi_collection_type.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 part 'collect_controller.g.dart';
 

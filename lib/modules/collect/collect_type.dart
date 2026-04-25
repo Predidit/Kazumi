@@ -1,5 +1,3 @@
-import '../bangumi/bangumi_collection_type.dart';
-
 /// 收藏类型枚举
 ///
 /// 用于标识番剧的收藏状态
@@ -36,29 +34,6 @@ enum CollectType {
       (type) => type.value == value,
       orElse: () => CollectType.none,
     );
-  }
-
-  /// Convert Bangumi's collect type to local collect type
-  /// Bangumi [BangumiCollectionType] => Kazumi
-  static CollectType fromBangumi(int value) {
-    return BangumiCollectionType.fromValue(value).toCollectType();
-  }
-
-  BangumiCollectionType? toBangumiCollectionType() {
-    return switch (this) {
-      CollectType.planToWatch => BangumiCollectionType.planToWatch,
-      CollectType.watched => BangumiCollectionType.watched,
-      CollectType.watching => BangumiCollectionType.watching,
-      CollectType.onHold => BangumiCollectionType.onHold,
-      CollectType.abandoned => BangumiCollectionType.abandoned,
-      CollectType.none => null,
-    };
-  }
-
-  /// Convert local collect type to Bangumi's collect type
-  /// Kazumi => Bangumi [BangumiCollectionType]
-  int toBangumi() {
-    return toBangumiCollectionType()?.value ?? 0;
   }
 
   /// 是否为有效的收藏状态（排除未收藏）

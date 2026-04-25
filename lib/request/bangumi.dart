@@ -10,6 +10,7 @@ import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 class BangumiHTTP {

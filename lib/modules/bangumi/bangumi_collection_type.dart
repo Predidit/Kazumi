@@ -1,8 +1,4 @@
-import '../collect/collect_type.dart';
-
 /// Bangumi 收藏类型枚举。
-///
-/// 注意：该值与本地 [CollectType] 不一致。
 enum BangumiCollectionType {
   unknown(0, '未知'),
 
@@ -31,16 +27,5 @@ enum BangumiCollectionType {
           (type) => type.value == value,
       orElse: () => BangumiCollectionType.unknown,
     );
-  }
-
-  CollectType toCollectType() {
-    return switch (this) {
-      BangumiCollectionType.planToWatch => CollectType.planToWatch,
-      BangumiCollectionType.watched => CollectType.watched,
-      BangumiCollectionType.watching => CollectType.watching,
-      BangumiCollectionType.onHold => CollectType.onHold,
-      BangumiCollectionType.abandoned => CollectType.abandoned,
-      BangumiCollectionType.unknown => CollectType.none,
-    };
   }
 }

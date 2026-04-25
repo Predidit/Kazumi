@@ -91,6 +91,7 @@ abstract class _PlayerController with Store {
   late DanmakuController danmakuController;
   @observable
   Map<int, List<Danmaku>> danDanmakus = {};
+  final List<Danmaku> _rawDanmakus = <Danmaku>[];
   @observable
   bool danmakuOn = false;
   @observable
@@ -634,6 +635,38 @@ abstract class _PlayerController with Store {
     setting.put(SettingBoxKey.arrowKeySkipTime, time);
   }
 
+  void clearLoadedDanmakus() {
+    _rawDanmakus.clear();
+    danDanmakus = <int, List<Danmaku>>{};
+  }
+
+  void rebuildDanmakuMapFromSettings() {
+    if (_rawDanmakus.isEmpty) {
+      danDanmakus = <int, List<Danmaku>>{};
+      return;
+    }
+
+    final bool danmakuDeduplicationEnable =
+        setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
+
+    // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
+    final List<Danmaku> listToAdd = danmakuDeduplicationEnable
+        ? Utils.mergeDuplicateDanmakus(
+            List<Danmaku>.from(_rawDanmakus),
+            timeWindowSeconds: 5,
+          )
+        : _rawDanmakus;
+
+    final Map<int, List<Danmaku>> groupedDanmakus = <int, List<Danmaku>>{};
+    for (final element in listToAdd) {
+      final int second = element.time.toInt();
+      final List<Danmaku> danmakuList = groupedDanmakus[second] ?? <Danmaku>[];
+      danmakuList.add(element);
+      groupedDanmakus[second] = danmakuList;
+    }
+    danDanmakus = groupedDanmakus;
+  }
+
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
   Future<void> _loadDanmaku(
       int bangumiId, String pluginName, int episode) async {
@@ -656,7 +689,7 @@ abstract class _PlayerController with Store {
         'PlayerController: attempting to load cached danmaku for episode $episode');
     danmakuLoading = true;
     try {
-      danDanmakus.clear();
+      clearLoadedDanmakus();
       final downloadController = Modular.get<DownloadController>();
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
@@ -728,7 +761,7 @@ abstract class _PlayerController with Store {
         'PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
     danmakuLoading = true;
     try {
-      danDanmakus.clear();
+      clearLoadedDanmakus();
       bangumiID =
           await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
       var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
@@ -752,7 +785,7 @@ abstract class _PlayerController with Store {
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
-      danDanmakus.clear();
+      clearLoadedDanmakus();
       var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
@@ -763,20 +796,11 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
-    final bool danmakuDeduplicationEnable =
-        setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
-
-    // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
-    final List<Danmaku> listToAdd = danmakuDeduplicationEnable
-        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
-        : danmakus;
-
-    for (var element in listToAdd) {
-      var danmakuList =
-          danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
-      danmakuList.add(element);
-      danDanmakus[element.time.toInt()] = danmakuList;
+    if (danmakus.isEmpty) {
+      return;
     }
+    _rawDanmakus.addAll(danmakus);
+    rebuildDanmakuMapFromSettings();
   }
 
   void lanunchExternalPlayer() async {

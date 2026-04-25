@@ -77,6 +77,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _searchPageController.clearImageSearchState();
       _selectedImageFile = imageFile;

@@ -118,18 +118,34 @@ class Request {
     };
   }
 
+  // Merge extra options into the main options
+  void _applyExtraOptions(Options options, Map? extra) {
+    if (extra == null) {
+      return;
+    }
+
+    if (extra['ua'] != null) {
+      options.headers = {
+        ...?options.headers,
+        'user-agent': headerUa(type: extra['ua']),
+      };
+    }
+
+    if (extra['customError'] != null) {
+      options.extra = {
+        ...?options.extra,
+        'customError': extra['customError'],
+      };
+    }
+  }
+
   Future<Response> get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {
     Response response;
     ResponseType resType = ResponseType.json;
     options ??= Options();
     if (extra != null) {
-      resType = extra!['resType'] ?? ResponseType.json;
-      if (extra['ua'] != null) {
-        options.headers = {'user-agent': headerUa(type: extra['ua'])};
-      }
-      if (extra['customError'] != null) {
-        options.extra = {'customError': extra['customError']};
-      }
+      resType = extra['resType'] ?? ResponseType.json;
+      _applyExtraOptions(options, extra);
     }
     options.responseType = resType;
     try {
@@ -161,16 +177,8 @@ class Request {
     ResponseType resType = ResponseType.json;
     options ??= Options();
     if (extra != null) {
-      // POST refer GET here so Request.extra behaves consistently regardless of method.
       resType = extra['resType'] ?? ResponseType.json;
-      if (extra['ua'] != null) {
-        options.headers = {'user-agent': headerUa(type: extra['ua'])};
-      }
-      if (extra['customError'] != null) {
-        // This currently replaces options.extra because ApiInterceptor only reads
-        // customError. If more extra keys are needed later, merge instead of overwrite.
-        options.extra = {'customError': extra['customError']};
-      }
+      _applyExtraOptions(options, extra);
     }
     options.responseType = resType;
     try {

@@ -6,6 +6,7 @@ import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/bangumi.dart';
@@ -119,9 +120,9 @@ class Bangumi {
     return completer.future;
   }
 
-  // Initialize the next collectible change ID
+  // Initialize the collectible change ID baseline
   // by scanning existing IDs in the box to find the maximum,
-  // and setting the next ID to be greater than that.
+  // and storing that maximum so the next generated ID can be greater than it.
   void _initializeNextCollectChangeId() {
     if (_collectChangeIdInitialized) {
       return;
@@ -213,9 +214,18 @@ class Bangumi {
       final localMap = {
         for (final item in localCollectibles) item.bangumiItem.id: item,
       };
-      final remoteMap = {
-        for (final item in remoteCollection) item.bangumiId: item,
-      };
+      final remoteMap = <int, BangumiCollection>{};
+      for (final item in remoteCollection) {
+        final remoteCollectType = item.type.toCollectType();
+        if (!remoteCollectType.isCollected) {
+          KazumiLogger().w(
+            'Bangumi: skip remote collectible with unsupported type '
+            '${item.type.value} for id=${item.bangumiId}',
+          );
+          continue;
+        }
+        remoteMap[item.bangumiId] = item;
+      }
 
       final localOnlyIds =
           localMap.keys.toSet().difference(remoteMap.keys.toSet());
@@ -265,15 +275,15 @@ class Bangumi {
         onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
         for (final id in remoteOnlyIds) {
           final remote = remoteMap[id]!;
-          final localType = remote.type.toCollectType().value;
+          final localType = remote.type.toCollectType();
           final collected = CollectedBangumi(
             remote.toBangumiItem(),
             remote.updatedAt,
-            localType,
+            localType.value,
           );
           await GStorage.collectibles.put(id, collected);
           // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
-          await _recordCollectibleChange(id, 1, localType);
+          await _recordCollectibleChange(id, 1, localType.value);
           syncedCount++;
           localModified = true;
           onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
@@ -299,12 +309,12 @@ class Bangumi {
         for (final id in mismatchIds) {
           final local = localMap[id]!;
           final remote = remoteMap[id]!;
-          final localType = remote.type.toCollectType().value;
-          local.type = localType;
+          final localType = remote.type.toCollectType();
+          local.type = localType.value;
           local.time = remote.updatedAt;
           await GStorage.collectibles.put(id, local);
           // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
-          await _recordCollectibleChange(id, 2, localType);
+          await _recordCollectibleChange(id, 2, localType.value);
           syncedCount++;
           localModified = true;
           onProgress?.call(

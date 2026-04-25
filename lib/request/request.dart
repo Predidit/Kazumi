@@ -158,6 +158,21 @@ class Request {
   Future<Response> post(url, {data, queryParameters, options, cancelToken, extra, bool shouldRethrow = false}) async {
     // print('post-data: $data');
     Response response;
+    ResponseType resType = ResponseType.json;
+    options ??= Options();
+    if (extra != null) {
+      // POST refer GET here so Request.extra behaves consistently regardless of method.
+      resType = extra['resType'] ?? ResponseType.json;
+      if (extra['ua'] != null) {
+        options.headers = {'user-agent': headerUa(type: extra['ua'])};
+      }
+      if (extra['customError'] != null) {
+        // This currently replaces options.extra because ApiInterceptor only reads
+        // customError. If more extra keys are needed later, merge instead of overwrite.
+        options.extra = {'customError': extra['customError']};
+      }
+    }
+    options.responseType = resType;
     try {
       response = await dio.post(
         url,

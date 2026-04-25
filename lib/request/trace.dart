@@ -31,8 +31,7 @@ class Trace {
             queryParameters: {
               'anilistInfo': anilistInfo,
               'url': imageUrl,
-            },
-            options: Options(headers: {'Content-Type': 'image/jpeg'}))
+            })
         .then((onValue) =>
             ImageSearchItem.fromJson(onValue.data as Map<String, dynamic>));
   }

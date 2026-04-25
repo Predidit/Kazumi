@@ -1,0 +1,84 @@
+{
+  "name": "番剧播放器",
+  "short_name": "番剧",
+  "description": "具有iOS 26液态玻璃美学的渐进式Web应用番剧播放器，支持弹幕、收藏和观看历史",
+  "start_url": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#F5F1E8",
+  "theme_color": "#FF6B6B",
+  "orientation": "any",
+  "id": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "video"],
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "首页 - 热门番剧"
+    },
+    {
+      "src": "/screenshots/player.png",
+      "sizes": "2532x1170",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "播放器 - 弹幕播放"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "搜索番剧",
+      "short_name": "搜索",
+      "description": "搜索您喜欢的番剧",
+      "url": "/search",
+      "icons": [{ "src": "/icons/search.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "我的收藏",
+      "short_name": "收藏",
+      "description": "查看收藏的番剧",
+      "url": "/favorites",
+      "icons": [{ "src": "/icons/favorite.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "观看历史",
+      "short_name": "历史",
+      "description": "继续观看",
+      "url": "/history",
+      "icons": [{ "src": "/icons/history.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ],
+  "related_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

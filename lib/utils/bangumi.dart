@@ -1,7 +1,9 @@
 import 'package:hive_ce/hive.dart';
+import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
@@ -33,6 +35,10 @@ class Bangumi {
   /// lock to prevent concurrent operations that may cause conflicts,
   /// such as ping and syncCollectibles
   bool isUsing = false;
+
+  /// Queue for immediate collectible sync requests, so local edits made during
+  /// a long-running sync can wait and run serially afterwards instead of being dropped.
+  Future<void> _immediateCollectSyncQueue = Future.value();
 
   Bangumi._internal();
   static final Bangumi _instance = Bangumi._internal();
@@ -74,6 +80,48 @@ class Bangumi {
     }
   }
 
+  // Wait until current Bangumi operation finishes,
+  // with a default polling interval of 200ms.
+  Future<void> _waitUntilIdle({
+    Duration interval = const Duration(milliseconds: 200),
+  }) async {
+    while (isUsing) {
+      await Future.delayed(interval);
+    }
+  }
+
+  /// Update a single collectible on Bangumi, waiting for current Bangumi work
+  /// to finish and serializing multiple immediate update requests.
+  Future<bool> syncCollectibleWhenIdle(int bangumiId, int localType) {
+    final completer = Completer<bool>();
+    final previousQueue = _immediateCollectSyncQueue;
+
+    _immediateCollectSyncQueue = (() async {
+      try {
+        await previousQueue;
+      } catch (_) {}
+
+      await _waitUntilIdle();
+      isUsing = true;
+      try {
+        final synced = await BangumiHTTP.updateBangumiByType(
+          bangumiId,
+          localType,
+        );
+        completer.complete(synced);
+      } catch (e, stackTrace) {
+        completer.completeError(e, stackTrace);
+      } finally {
+        isUsing = false;
+      }
+    })();
+
+    return completer.future;
+  }
+
+  // Initialize the next collectible change ID
+  // by scanning existing IDs in the box to find the maximum,
+  // and setting the next ID to be greater than that.
   void _initializeNextCollectChangeId() {
     if (_collectChangeIdInitialized) {
       return;
@@ -109,7 +157,7 @@ class Bangumi {
 
   /// Record a collectible change (used for WebDAV incremental sync)
   /// [action] 1 代表新增（add），2 代表修改（update）
-  /// [type] 1. 在看 2. 想看 3. 搁置 4. 看过 5. 抛弃
+  /// [type] via: [CollectType]
   Future<void> _recordCollectibleChange(
     int bangumiId,
     int action,
@@ -153,6 +201,7 @@ class Bangumi {
 
       // 1. 全量拉取远程收藏（带分页进度）
       final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
+        username: username,
         onProgress: onProgress,
       );
 

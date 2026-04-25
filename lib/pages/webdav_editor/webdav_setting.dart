@@ -228,16 +228,10 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       } else {
                         if (!bangumi.initialized) {
                           try {
-                            await bangumi.ping();
-                            try {
-                              await bangumi.init();
-                            } catch (e) {
-                              KazumiDialog.showToast(message: 'Bangumi 初始化失败');
-                              return;
-                            }
+                            await bangumi.init();
                           } catch (e) {
                             KazumiDialog.showToast(
-                                message: "bangumi 服务器连接失败，请稍后再试");
+                                message: "Bangumi 初始化失败，请稍后再试");
                             return;
                           }
                         }

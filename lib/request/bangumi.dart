@@ -336,6 +336,7 @@ class BangumiHTTP {
   /// Get the Bangumi collection of the current user, with customizable collection types to include.
   ///
   /// [includeBangumiTypes] The collection types to include, default is all types (1-5).
+  /// [username] The Bangumi username to reuse when the caller already has it.
   /// [onProgress] The callback function to report progress, with parameters (message, current, total).
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
@@ -345,14 +346,16 @@ class BangumiHTTP {
       BangumiCollectionType.onHold,
       BangumiCollectionType.abandoned,
     ],
+    String? username,
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiCollection> bangumiCollection = [];
-    final username = await getUsername();
+    final resolvedUsername =
+        username != null && username.isNotEmpty ? username : await getUsername();
     int failedItemCount = 0;
     int progressCurrent = 0;
     int progressTotal = 0;
-    if (username == null) {
+    if (resolvedUsername == null) {
       KazumiLogger().w('get username failed');
       return [];
     }
@@ -373,7 +376,7 @@ class BangumiHTTP {
           try {
             final url =
                 '${Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollection, [
-                  username,
+                  resolvedUsername,
                   limit,
                   offset
                 ])}&type=${collectionType.value}';

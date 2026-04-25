@@ -5,7 +5,6 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
-import 'package:kazumi/request/bangumi.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -73,7 +72,8 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
-  Future<void> _syncBangumiCollectIfEnabled(int bangumiId, int localType) async {
+  Future<void> _syncBangumiCollectIfEnabled(
+      int bangumiId, int localType) async {
     final bool syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
     final bool showImmediateSyncToast = setting.get(
@@ -89,13 +89,12 @@ abstract class _CollectController with Store {
     if (!bangumi.initialized) {
       return;
     }
-
     try {
       if (showImmediateSyncToast) {
         KazumiDialog.showToast(message: '正在同步到 Bangumi...');
       }
       final bool synced =
-          await BangumiHTTP.updateBangumiByType(bangumiId, localType);
+          await bangumi.syncCollectibleWhenIdle(bangumiId, localType);
       if (synced && showImmediateSyncToast) {
         KazumiDialog.showToast(message: '已同步到 Bangumi');
       } else if (!synced) {

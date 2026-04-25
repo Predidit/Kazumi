@@ -361,7 +361,8 @@ class BangumiHTTP {
     }
 
     try {
-      const int limit = 50;
+      // Bangumi fetch page size
+      const int limit = 100;
       const Duration requestInterval = Duration(milliseconds: 250);
 
       for (final collectionType in includeBangumiTypes) {

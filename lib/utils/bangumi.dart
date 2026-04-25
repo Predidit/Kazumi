@@ -227,27 +227,10 @@ class Bangumi {
         remoteMap[item.bangumiId] = item;
       }
 
-      final latestLocalChanges = <int, CollectedBangumiChange>{};
-      for (final change in GStorage.collectChanges.values) {
-        final existing = latestLocalChanges[change.bangumiID];
-        if (existing == null || change.id > existing.id) {
-          latestLocalChanges[change.bangumiID] = change;
-        }
-      }
-      final locallyDeletedIds = latestLocalChanges.values
-          .where(
-            (change) =>
-                change.action == 3 && !localMap.containsKey(change.bangumiID),
-          )
-          .map((change) => change.bangumiID)
-          .toSet();
-
       final localOnlyIds =
           localMap.keys.toSet().difference(remoteMap.keys.toSet());
-      final remoteOnlyIds = remoteMap.keys
-          .toSet()
-          .difference(localMap.keys.toSet())
-          .difference(locallyDeletedIds);
+      final remoteOnlyIds =
+          remoteMap.keys.toSet().difference(localMap.keys.toSet());
       final sharedIds =
           localMap.keys.toSet().intersection(remoteMap.keys.toSet());
       final mismatchIds = <int>[];

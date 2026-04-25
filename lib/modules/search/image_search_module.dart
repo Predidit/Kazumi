@@ -32,7 +32,7 @@ class ImageSearchItem {
 class ResultItem {
   final Anilist? anilist;
   final String? filename;
-  final dynamic episode; // int, List<int> or null
+  final dynamic episode; // num, List<num> or null
   final double? from;
   final double? at;
   final double? to;
@@ -57,7 +57,9 @@ class ResultItem {
   factory ResultItem.fromJson(Map<String, dynamic> json) {
     dynamic ep = json['episode'];
     if (ep is List) {
-      ep = (ep).map((e) => e as int).toList();
+      ep = ep.whereType<num>().toList();
+    } else if (ep is! num) {
+      ep = null;
     }
 
     return ResultItem(

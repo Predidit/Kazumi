@@ -131,11 +131,18 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
 
 
   static String _formatTraceEpisode(dynamic episode) {
-    if (episode is int) {
-      return '第 $episode 集';
+    String formatEpisodeValue(num value) {
+      return value % 1 == 0 ? value.toInt().toString() : value.toString();
+    }
+
+    if (episode is num) {
+      return '第 ${formatEpisodeValue(episode)} 集';
     }
     if (episode is List && episode.isNotEmpty) {
-      return '剧集: ${episode.join(' / ')}';
+      final episodes = episode.whereType<num>().map(formatEpisodeValue);
+      if (episodes.isNotEmpty) {
+        return '剧集: ${episodes.join(' / ')}';
+      }
     }
     return '剧集未知';
   }

@@ -35,7 +35,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
       defaultValue: true,
     );
     syncPriority =
-        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 1);
+        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0);
   }
 
   @override

@@ -197,7 +197,7 @@ class Bangumi {
       onProgress?.call('开始同步 Bangumi 状态', 0, 0);
 
       final priority = BangumiSyncPriority.fromValue(
-        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 1),
+        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0),
       );
 
       // 1. 全量拉取远程收藏（带分页进度）

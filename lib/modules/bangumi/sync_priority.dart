@@ -10,7 +10,7 @@ enum BangumiSyncPriority {
   static BangumiSyncPriority fromValue(int value) {
     return BangumiSyncPriority.values.firstWhere(
       (item) => item.value == value,
-      orElse: () => BangumiSyncPriority.bangumiFirst,
+      orElse: () => BangumiSyncPriority.localFirst,
     );
   }
 }

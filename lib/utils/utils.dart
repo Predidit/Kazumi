@@ -266,6 +266,16 @@ class Utils {
     }
   }
 
+  /// 格式化相似度为百分比字符串，默认为1位小数，空值时返回 `--`
+  static String formatTraceSimilarity(double? similarity,
+      {int fractionDigits = 1, String empty = '--'}) {
+    if (similarity == null) {
+      return empty;
+    }
+    return '${(similarity * 100).toStringAsFixed(fractionDigits)}%';
+  }
+
+
   static Future<String> latest() async {
     try {
       var resp = await Dio().get<Map<String, dynamic>>(Api.latestApp);

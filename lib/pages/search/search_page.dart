@@ -7,6 +7,7 @@ import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -218,6 +219,20 @@ class _SearchPageState extends State<SearchPage> {
                   },
                   icon: Icon(Icons.arrow_back),
                 ),
+                barTrailing: [
+                  IconButton(
+                    onPressed: () async {
+                      final result =
+                          await Modular.to.pushNamed('/search/image');
+                      if (result is String && result.isNotEmpty) {
+                        searchController.text = result;
+                        searchPageController.searchBangumi(result,
+                            type: 'init');
+                      }
+                    },
+                    icon: const Icon(Icons.image_search_rounded),
+                  ),
+                ],
                 isFullScreen: MediaQuery.sizeOf(context).width <
                     LayoutBreakpoint.compact['width']!,
                 suggestionsBuilder: (context, controller) => [
@@ -293,7 +308,6 @@ class _SearchPageState extends State<SearchPage> {
                 );
               }
 
-
               if (searchPageController.isLoading &&
                   searchPageController.bangumiList.isEmpty) {
                 return Center(child: CircularProgressIndicator());
@@ -307,17 +321,20 @@ class _SearchPageState extends State<SearchPage> {
                   LayoutBreakpoint.medium['width']!) {
                 crossCount = 6;
               }
-              List<BangumiItem> filteredList = searchPageController.bangumiList.toList();
+              List<BangumiItem> filteredList =
+                  searchPageController.bangumiList.toList();
 
               if (searchPageController.notShowWatchedBangumis) {
-                final watchedBangumiIds = searchPageController.loadWatchedBangumiIds();
+                final watchedBangumiIds =
+                    searchPageController.loadWatchedBangumiIds();
                 filteredList = filteredList
                     .where((item) => !watchedBangumiIds.contains(item.id))
                     .toList();
               }
 
               if (searchPageController.notShowAbandonedBangumis) {
-                final abandonedBangumiIds = searchPageController.loadAbandonedBangumiIds();
+                final abandonedBangumiIds =
+                    searchPageController.loadAbandonedBangumiIds();
                 filteredList = filteredList
                     .where((item) => !abandonedBangumiIds.contains(item.id))
                     .toList();

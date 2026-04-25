@@ -100,6 +100,7 @@ dependencies:
   material_color_utilities: any
   path: any
   photo_view: ^0.15.0
+  image_picker: ^1.2.1
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git

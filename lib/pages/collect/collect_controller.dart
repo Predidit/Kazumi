@@ -1,4 +1,8 @@
+// ignore_for_file: library_private_types_in_public_api
+
+import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
@@ -16,6 +20,13 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 part 'collect_controller.g.dart';
+
+enum _BangumiDeleteSyncAction {
+  deleteLocalOnly,
+  markAbandoned,
+  openWeb,
+  cancel,
+}
 
 class CollectController = _CollectController with _$CollectController;
 
@@ -60,6 +71,35 @@ abstract class _CollectController with Store {
 
   @action
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
+    final action = await _resolveBangumiDeleteSyncAction(bangumiItem);
+    switch (action) {
+      // 标记删除
+      case _BangumiDeleteSyncAction.markAbandoned:
+        await addCollect(
+          bangumiItem,
+          type: CollectType.abandoned.value,
+        );
+        return;
+
+      // 打开网页
+      case _BangumiDeleteSyncAction.openWeb:
+        await _deleteCollectLocally(bangumiItem);
+        await _openBangumiSubjectPage(bangumiItem.id);
+        return;
+
+      // 未开启 Bangumi 同步走这里
+      case _BangumiDeleteSyncAction.deleteLocalOnly:
+        await _deleteCollectLocally(bangumiItem);
+        return;
+
+      // 取消按钮
+      case _BangumiDeleteSyncAction.cancel:
+      case null:
+        return;
+    }
+  }
+
+  Future<void> _deleteCollectLocally(BangumiItem bangumiItem) async {
     await _collectCrudRepository.deleteCollectible(bangumiItem.id);
     final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     final CollectedBangumiChange collectChange = CollectedBangumiChange(
@@ -70,6 +110,59 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+  }
+
+  Future<_BangumiDeleteSyncAction?> _resolveBangumiDeleteSyncAction(
+      BangumiItem bangumiItem) async {
+    final bool syncEnable =
+        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    if (!syncEnable) {
+      return _BangumiDeleteSyncAction.deleteLocalOnly;
+    }
+
+    final bangumi = Bangumi();
+    if (!bangumi.initialized) {
+      return _BangumiDeleteSyncAction.deleteLocalOnly;
+    }
+
+    return KazumiDialog.show<_BangumiDeleteSyncAction>(
+      clickMaskDismiss: true,
+      builder: (context) => AlertDialog(
+        title: const Text('Bangumi 不支持删除收藏'),
+        content: const Text(
+          '因为安全考虑，Bangumi 未提供删除接口，您可以选择把本地和远端标记为“抛弃”，或者选择仅删除本地收藏并打开网页后手动删除 Bangumi 数据。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(_BangumiDeleteSyncAction.cancel);
+            },
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(_BangumiDeleteSyncAction.openWeb);
+            },
+            child: const Text('打开网页'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop(_BangumiDeleteSyncAction.markAbandoned);
+            },
+            child: const Text('标记为抛弃'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openBangumiSubjectPage(int bangumiId) async {
+    final url = Uri.parse('https://bangumi.tv/subject/$bangumiId');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+      return;
+    }
+    KazumiDialog.showToast(message: '无法打开 Bangumi 网页');
   }
 
   Future<void> _syncBangumiCollectIfEnabled(

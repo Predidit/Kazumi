@@ -1,3 +1,5 @@
+import '../bangumi/bangumi_collection_type.dart';
+
 /// 收藏类型枚举
 ///
 /// 用于标识番剧的收藏状态
@@ -36,32 +38,27 @@ enum CollectType {
     );
   }
 
-  /// bgm 1想看 2看过 3在看 4搁置 5抛弃; 
-  /// 
-  /// 本地 0未收藏 1在看 2想看 3搁置 4看过 5抛弃
-  
-  /// 将bangumi的收藏状态转为本地收藏状态
+  /// Convert Bangumi's collect type to local collect type
+  /// Bangumi [BangumiCollectionType] => Kazumi
   static CollectType fromBangumi(int value) {
-    return switch (value) {
-      1 => CollectType.planToWatch,
-      2 => CollectType.watched,
-      3 => CollectType.watching,
-      4 => CollectType.onHold,
-      5 => CollectType.abandoned,
-      _ => CollectType.none,
+    return BangumiCollectionType.fromValue(value).toCollectType();
+  }
+
+  BangumiCollectionType? toBangumiCollectionType() {
+    return switch (this) {
+      CollectType.planToWatch => BangumiCollectionType.planToWatch,
+      CollectType.watched => BangumiCollectionType.watched,
+      CollectType.watching => BangumiCollectionType.watching,
+      CollectType.onHold => BangumiCollectionType.onHold,
+      CollectType.abandoned => BangumiCollectionType.abandoned,
+      CollectType.none => null,
     };
   }
 
-  /// 将本地收藏状态转为bangumi的收藏状态
+  /// Convert local collect type to Bangumi's collect type
+  /// Kazumi => Bangumi [BangumiCollectionType]
   int toBangumi() {
-    return switch (this) {
-      CollectType.planToWatch => 1,
-      CollectType.watched => 2,
-      CollectType.watching => 3,
-      CollectType.onHold => 4,
-      CollectType.abandoned => 5,
-      _ => 0,
-    };
+    return toBangumiCollectionType()?.value ?? 0;
   }
 
   /// 是否为有效的收藏状态（排除未收藏）

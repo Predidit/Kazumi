@@ -8,29 +8,12 @@ import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
-import 'package:kazumi/modules/collect/collect_module_bangumi.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 
-class BangumiHTTP {
-  /// Bangumi collection type label, used for progress reporting in getBangumiCollectibles.
-  /// 1: 想看, 2: 看过, 3: 在看, 4: 搁置, 5: 抛弃
-  static String _collectionTypeLabel(int collectionType) {
-    switch (collectionType) {
-      case 1:
-        return '想看';
-      case 2:
-        return '看过';
-      case 3:
-        return '在看';
-      case 4:
-        return '搁置';
-      case 5:
-        return '抛弃';
-      default:
-        return '未知';
-    }
-  }
+import '../modules/bangumi/bangumi_collection_type.dart';
 
+class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
   // Because getCalendarBySearch is not stable, it will miss some bangumi items.
   static Future<List<List<BangumiItem>>> getCalendar() async {
@@ -354,17 +337,17 @@ class BangumiHTTP {
   ///
   /// [includeBangumiTypes] The collection types to include, default is all types (1-5).
   /// [onProgress] The callback function to report progress, with parameters (message, current, total).
-  static Future<List<BangumiRemoteCollection>> getBangumiCollectibles({
-    List<int> includeBangumiTypes = const [
-      1, // 想看
-      2, // 看过
-      3, // 在看
-      4, // 搁置
-      5 // 抛弃
+  static Future<List<BangumiCollection>> getBangumiCollectibles({
+    List<BangumiCollectionType> includeBangumiTypes = const [
+      BangumiCollectionType.planToWatch,
+      BangumiCollectionType.watched,
+      BangumiCollectionType.watching,
+      BangumiCollectionType.onHold,
+      BangumiCollectionType.abandoned,
     ],
     void Function(String message, int current, int total)? onProgress,
   }) async {
-    final List<BangumiRemoteCollection> bangumiCollection = [];
+    final List<BangumiCollection> bangumiCollection = [];
     final username = await getUsername();
     int failedItemCount = 0;
     int progressCurrent = 0;
@@ -379,6 +362,9 @@ class BangumiHTTP {
       const Duration requestInterval = Duration(milliseconds: 250);
 
       for (final collectionType in includeBangumiTypes) {
+        if (collectionType == BangumiCollectionType.unknown) {
+          continue;
+        }
         int offset = 0;
         int? total;
         bool totalInitialized = false;
@@ -390,7 +376,7 @@ class BangumiHTTP {
                   username,
                   limit,
                   offset
-                ])}&type=$collectionType';
+                ])}&type=${collectionType.value}';
             res = await Request().get(
               url,
               extra: {'customError': ''},
@@ -398,7 +384,7 @@ class BangumiHTTP {
             );
           } catch (e) {
             KazumiLogger().e(
-              'BangumiHTTP: fetch collection failed. type=$collectionType, offset=$offset',
+              'BangumiHTTP: fetch collection failed. type=${collectionType.value}, offset=$offset',
               error: e,
             );
             break;
@@ -415,11 +401,10 @@ class BangumiHTTP {
           for (dynamic jsonItem in jsonList) {
             if (jsonItem is Map<String, dynamic>) {
               try {
-                bangumiCollection
-                    .add(BangumiRemoteCollection.fromJson(jsonItem));
+                bangumiCollection.add(BangumiCollection.fromJson(jsonItem));
                 progressCurrent++;
                 onProgress?.call(
-                  '正在拉取${_collectionTypeLabel(collectionType)}收藏',
+                  '正在拉取${collectionType.label}收藏',
                   progressCurrent,
                   progressTotal,
                 );
@@ -492,7 +477,10 @@ class BangumiHTTP {
   /// [id] The ID of the Bangumi item.
   /// [localType] The local collection type.
   static Future<void> updateBangumiByType(int id, int localType) async {
-    final type = CollectType.fromValue(localType).toBangumi();
-    return await updateBangumiById(id, {'type': type});
+    final type = CollectType.fromValue(localType).toBangumiCollectionType();
+    if (type == null) {
+      return;
+    }
+    return await updateBangumiById(id, {'type': type.value});
   }
 }

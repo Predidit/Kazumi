@@ -164,13 +164,9 @@ class _InitPageState extends State<InitPage> {
       KazumiLogger().i('Bangumi: Starting Bangumi initialization');
       try {
         await bangumi.init();
-        try {
-          // NOICE: 无观看历史
-        } catch (e) {
-          KazumiDialog.showToast(message: "同步观看记录失败 ${e.toString()}");
-        }
+        // Bangumi 当前无观看历史同步逻辑
       } catch (e) {
-        KazumiDialog.showToast(message: "初始化Bangumi同步失败 ${e.toString()}");
+        KazumiDialog.showToast(message: "初始化Bangumi失败 ${e.toString()}");
       }
     }
   }

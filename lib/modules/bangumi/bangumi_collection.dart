@@ -1,47 +1,47 @@
-
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
-/// Bangumi 远程收藏信息（包含最后更新时间）
-class BangumiRemoteCollection {
+import 'bangumi_collection_type.dart';
+
+/// NOTE: 该类仅用于解析 Bangumi API 返回的收藏数据，不包含本地收藏的额外信息
+class BangumiCollection {
   /// 最后更新时间，秒级
   DateTime updatedAt;
 
+  /// Bangumi ID
   int bangumiId;
 
-  // Bangumi 收藏类型
-  // via: http://bangumi.github.io/api/#/model-CollectionType
-  // 与 CollectedBangumi.type 的数值不完全一致，注意区分
-  // 1. 想看
-  // 2. 看过
-  // 3. 在看
-  // 4. 搁置
-  // 5: 抛弃
-  int type;
+  /// Bangumi 收藏类型。
+  BangumiCollectionType type;
 
-  // 上映日期 "2025-04-12"
+  /// 上映日期
   String? date;
 
+  /// 番剧名称
   String name;
 
+  /// 番剧中文名称
   String nameCn;
 
+  /// 简介
   String shortSummary;
 
-  // 平均评分
+  /// 平均评分
   double score;
 
-  // 总集数
+  /// 总集数
   int eps;
 
-  // 排名
+  /// 排名
   int rank;
 
+  /// 图片链接，包含 large、common、medium、small、grid 五种尺寸
   Map<String, String> images;
 
+  /// 标签列表，每个标签包含 name 和 count 字段
   List<Map<String, dynamic>> tags;
 
-  BangumiRemoteCollection(
+  BangumiCollection(
       this.bangumiId,
       this.date,
       this.updatedAt,
@@ -79,7 +79,7 @@ class BangumiRemoteCollection {
     });
   }
 
-  factory BangumiRemoteCollection.fromJson(Map json) {
+  factory BangumiCollection.fromJson(Map json) {
     final subject = json['subject'];
     final subjectImages = Map<String, String>.from(
       subject['images'] ??
@@ -95,11 +95,11 @@ class BangumiRemoteCollection {
         .whereType<Map>()
         .map((tag) => Map<String, dynamic>.from(tag))
         .toList();
-    return BangumiRemoteCollection(
+    return BangumiCollection(
       subject['id'],
       subject['date'],
       DateTime.parse(json['updated_at']),
-      CollectType.fromBangumi(json['type']).value,
+      BangumiCollectionType.fromValue(json['type']),
       subject['name'],
       subject['name_cn'],
       subject['short_summary'],

@@ -52,6 +52,13 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   }
 
   Future<void> syncWithProgress() async {
+    final syncEnable =
+        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    if (!syncEnable) {
+      KazumiDialog.showToast(message: '请先开启 Bangumi 同步');
+      return;
+    }
+
     final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
     final ValueNotifier<String> progressText =
         ValueNotifier<String>('准备同步 Bangumi 状态...');
@@ -100,7 +107,6 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
       final bangumi = Bangumi();
       await bangumi.ping();
       await bangumi.syncCollectibles(
-        force: true,
         onProgress: (message, current, total) {
           progressText.value =
               total > 0 ? '$message ($current/$total)' : message;

@@ -14,6 +14,8 @@ import 'package:hive_ce/hive.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
 
+import '../../modules/bangumi/bangumi_collection_type.dart';
+
 part 'collect_controller.g.dart';
 
 class CollectController = _CollectController with _$CollectController;
@@ -38,7 +40,6 @@ abstract class _CollectController with Store {
     return _collectCrudRepository.getCollectType(bangumiItem.id);
   }
 
-  /// 添加或更新收藏
   @action
   Future<void> addCollect(BangumiItem bangumiItem, {type = 1}) async {
     if (type == 0) {
@@ -112,7 +113,6 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
-  /// webdav同步收藏
   Future<void> syncCollectibles() async {
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
@@ -195,18 +195,26 @@ abstract class _CollectController with Store {
         .toList();
   }
 
-  /// 添加bangumi上的收藏到本地，将bangumi的type转换成本地的type
-  /// 
-  /// [bangumiItem] bangumi对象
-  /// [bangumiType] bangumi收藏类型
-  Future<void> addCollectBangumi(BangumiItem bangumiItem, {bangumiType = 1}) async {
-    final type = CollectType.fromBangumi(bangumiType).value;
+  /// Put Bangumi's collect into local collectible,
+  /// convert Bangumi's collect type to local collect type
+  ///
+  /// [bangumiItem] Bangumi item
+  /// [bangumiType] Bangumi collect type
+  Future<void> addCollectBangumi(BangumiItem bangumiItem,
+      {bangumiType = 1}) async {
+    final type =
+        BangumiCollectionType.fromValue(bangumiType).toCollectType().value;
     await addCollect(bangumiItem, type: type);
   }
-  
-  /// bgm同步收藏
+
+  /// Sync Bangumi collectibles.
+  ///
+  /// [onProgress] Progress callback, parameters are the name of the currently syncing Bangumi,
+  /// the index of the currently syncing Bangumi, and the total number of Bangumi.
+  /// The callback will be called when syncing each Bangumi, and can be used to show a progress indicator.
   Future<void> syncCollectiblesBangumi(
-      {void Function(String message, int current, int total)? onProgress}) async { 
+      {void Function(String message, int current, int total)?
+          onProgress}) async {
     if (!Bangumi().initialized) {
       KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
       return;

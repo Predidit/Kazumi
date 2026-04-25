@@ -49,7 +49,7 @@ class _CollectPageState extends State<CollectPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Bangumi 首次全量同步中',
+                    'Bangumi 全量同步中',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),

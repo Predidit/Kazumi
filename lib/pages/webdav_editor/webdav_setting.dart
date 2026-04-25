@@ -73,12 +73,12 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
         await webDav.ping();
         try {
           await webDav.updateHistory();
-          KazumiDialog.showToast(message: '同步成功');
+          KazumiDialog.showToast(message: 'WebDav同步成功');
         } catch (e) {
-          KazumiDialog.showToast(message: '同步失败 ${e.toString()}');
+          KazumiDialog.showToast(message: 'WebDav同步失败 ${e.toString()}');
         }
       } catch (e) {
-        KazumiDialog.showToast(message: 'WebDAV连接失败');
+        KazumiDialog.showToast(message: 'WebDav连接失败');
       }
     } else {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');

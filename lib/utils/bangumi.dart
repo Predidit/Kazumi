@@ -292,7 +292,7 @@ class Bangumi {
 
       // 5. 双方都有但不一致：按优先级处理
       if (priority == BangumiSyncPriority.localFirst) {
-        onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
+        onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
         for (final id in mismatchIds) {
           final updated =
               await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
@@ -301,11 +301,11 @@ class Bangumi {
                 'Bangumi sync failed: updateBangumiByType failed for id=$id');
           }
           syncedCount++;
-          onProgress?.call('本地 First：正在处理冲突状态', syncedCount, totalOperations);
+          onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
         }
       } else {
         onProgress?.call(
-            'Bangumi First：正在处理冲突状态', syncedCount, totalOperations);
+            'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
         for (final id in mismatchIds) {
           final local = localMap[id]!;
           final remote = remoteMap[id]!;
@@ -318,7 +318,7 @@ class Bangumi {
           syncedCount++;
           localModified = true;
           onProgress?.call(
-              'Bangumi First：正在处理冲突状态', syncedCount, totalOperations);
+              'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
         }
       }
 

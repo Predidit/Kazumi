@@ -149,7 +149,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   controller: bangumiTokenController,
                   obscureText: !passwordVisible,
                   decoration: InputDecoration(
-                    labelText: 'bangumi Access Token',
+                    labelText: 'Bangumi Access Token',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       onPressed: () {

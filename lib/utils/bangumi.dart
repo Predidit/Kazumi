@@ -133,8 +133,6 @@ class Bangumi {
   }
 
   /// Sync Bangumi collectibles with local data
-  ///
-  /// [onProgress] callback is used to report progress, with a message and current/total counts for operations.
   Future<void> syncCollectibles({
     void Function(String message, int current, int total)? onProgress,
   }) async {

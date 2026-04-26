@@ -244,7 +244,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         await syncWithProgress();
                       },
                       title: Text("立即同步状态"),
-                      description: Text('仅同步状态不一致条目'),
+                      description: Text('同步状态不一致或仅存在于本地/远端的条目'),
                     ),
                   ],
                 ),

@@ -78,7 +78,7 @@ class GStorage {
     _initializeNextCollectChangeIdLocked();
 
     final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    // Ensure ID is greater than any existing ID and also greater than the current timestamp
+    // Ensure ID is greater than any existing ID, or equal to current timestamp.
     var nextId = _nextCollectChangeId < currentSeconds
         ? currentSeconds
         : _nextCollectChangeId + 1;

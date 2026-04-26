@@ -324,10 +324,6 @@ abstract class _CollectController with Store {
   }
 
   /// Sync Bangumi collectibles.
-  ///
-  /// [onProgress] Progress callback, parameters are the name of the currently syncing Bangumi,
-  /// the index of the currently syncing Bangumi, and the total number of Bangumi.
-  /// The callback will be called when syncing each Bangumi, and can be used to show a progress indicator.
   Future<bool> syncCollectiblesBangumi(
       {void Function(String message, int current, int total)?
           onProgress,

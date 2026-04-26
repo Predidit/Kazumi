@@ -1,4 +1,4 @@
-import 'package:card_settings_ui/tile/settings_tile.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -163,76 +163,84 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                     ),
                   ),
                 ),
-                SettingsTile.switchTile(
-                  onToggle: (value) async {
-                    bangumiImmediateSyncToastEnable =
-                        value ?? !bangumiImmediateSyncToastEnable;
-                    await setting.put(
-                      SettingBoxKey.bangumiImmediateSyncToastEnable,
-                      bangumiImmediateSyncToastEnable,
-                    );
-                    if (mounted) {
-                      setState(() {});
-                    }
-                  },
-                  title:
-                      Text('即时同步提示', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('点击追番按钮触发即时同步时显示提示'),
-                  initialValue: bangumiImmediateSyncToastEnable,
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    if (syncPriorityMenuController.isOpen) {
-                      syncPriorityMenuController.close();
-                    } else {
-                      syncPriorityMenuController.open();
-                    }
-                  },
-                  title:
-                      Text('同步优先级', style: TextStyle(fontFamily: fontFamily)),
-                  value: MenuAnchor(
-                      consumeOutsideTap: true,
-                      controller: syncPriorityMenuController,
-                      builder: (context, controller, child) => Text(
-                          BangumiSyncPriority.fromValue(syncPriority).label,
+                const SizedBox(height: 16),
+                SettingsSection(
+                  margin: EdgeInsetsDirectional.zero,
+                  tiles: [
+                    SettingsTile.switchTile(
+                      onToggle: (value) async {
+                        bangumiImmediateSyncToastEnable =
+                            value ?? !bangumiImmediateSyncToastEnable;
+                        await setting.put(
+                          SettingBoxKey.bangumiImmediateSyncToastEnable,
+                          bangumiImmediateSyncToastEnable,
+                        );
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      },
+                      title: Text('即时同步提示',
                           style: TextStyle(fontFamily: fontFamily)),
-                      menuChildren: [
-                        for (final entry in BangumiSyncPriority.values)
-                          MenuItemButton(
-                              requestFocusOnHover: false,
-                              onPressed: () => updateSyncPriority(entry.value),
-                              child: Container(
-                                  height: 48,
-                                  constraints: BoxConstraints(minWidth: 112),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      entry.label,
-                                      style: TextStyle(
-                                        color: entry.value == syncPriority
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                            : null,
-                                        fontFamily: fontFamily,
-                                      ),
-                                    ),
-                                  )))
-                      ]),
-                ),
-                SettingsTile(
-                  trailing: syncCollectiblesing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.sync_rounded),
-                  onPressed: (_) async {
-                    await syncWithProgress();
-                  },
-                  title: Text("立即同步状态"),
-                  description: Text('仅同步状态不一致条目'),
+                      description: Text('点击追番按钮触发即时同步时显示提示'),
+                      initialValue: bangumiImmediateSyncToastEnable,
+                    ),
+                    SettingsTile.navigation(
+                      onPressed: (_) async {
+                        if (syncPriorityMenuController.isOpen) {
+                          syncPriorityMenuController.close();
+                        } else {
+                          syncPriorityMenuController.open();
+                        }
+                      },
+                      title: Text('同步优先级',
+                          style: TextStyle(fontFamily: fontFamily)),
+                      value: MenuAnchor(
+                          consumeOutsideTap: true,
+                          controller: syncPriorityMenuController,
+                          builder: (context, controller, child) => Text(
+                              BangumiSyncPriority.fromValue(syncPriority).label,
+                              style: TextStyle(fontFamily: fontFamily)),
+                          menuChildren: [
+                            for (final entry in BangumiSyncPriority.values)
+                              MenuItemButton(
+                                  requestFocusOnHover: false,
+                                  onPressed: () =>
+                                      updateSyncPriority(entry.value),
+                                  child: Container(
+                                      height: 48,
+                                      constraints:
+                                          BoxConstraints(minWidth: 112),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          entry.label,
+                                          style: TextStyle(
+                                            color: entry.value == syncPriority
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : null,
+                                            fontFamily: fontFamily,
+                                          ),
+                                        ),
+                                      )))
+                          ]),
+                    ),
+                    SettingsTile(
+                      trailing: syncCollectiblesing
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.sync_rounded),
+                      onPressed: (_) async {
+                        await syncWithProgress();
+                      },
+                      title: Text("立即同步状态"),
+                      description: Text('仅同步状态不一致条目'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(

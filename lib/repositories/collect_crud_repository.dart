@@ -56,7 +56,6 @@ abstract class ICollectCrudRepository {
 /// 基于Hive实现的收藏CRUD数据访问层
 class CollectCrudRepository implements ICollectCrudRepository {
   final _collectiblesBox = GStorage.collectibles;
-  final _collectChangesBox = GStorage.collectChanges;
   final _favoritesBox = GStorage.favorites;
 
   @override
@@ -160,8 +159,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
   @override
   Future<void> addCollectChange(CollectedBangumiChange change) async {
     try {
-      await _collectChangesBox.put(change.id, change);
-      await _collectChangesBox.flush();
+      await GStorage.putCollectChange(change);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: record collect change failed. changeId=${change.id}',

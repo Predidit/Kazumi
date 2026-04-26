@@ -2,7 +2,6 @@ import 'package:hive_ce/hive.dart';
 import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -25,13 +24,6 @@ class Bangumi {
 
   /// Hive
   Box setting = GStorage.setting;
-
-  /// Next collectible change ID, used for recording collectible change history,
-  /// initial value is 0.
-  int _nextCollectChangeId = 0;
-
-  /// Whether the next collectible change ID cache has been initialized.
-  bool _collectChangeIdInitialized = false;
 
   /// Number of queued Bangumi operations waiting to enter the exclusive section.
   int _queuedOperationCount = 0;
@@ -62,7 +54,6 @@ class Bangumi {
     if (token.isEmpty) {
       throw Exception('请先填写Bangumi Access Token');
     }
-    _initializeNextCollectChangeId();
     try {
       await ping();
       initialized = true;
@@ -126,38 +117,6 @@ class Bangumi {
     return completer.future;
   }
 
-  // Initialize the collectible change ID
-  void _initializeNextCollectChangeId() {
-    if (_collectChangeIdInitialized) {
-      return;
-    }
-
-    var maxExistingId = 0;
-    for (final key in GStorage.collectChanges.keys) {
-      if (key is int && key > maxExistingId) {
-        maxExistingId = key;
-      }
-    }
-
-    _nextCollectChangeId = maxExistingId;
-    _collectChangeIdInitialized = true;
-  }
-
-  /// Generate a new collectible change ID
-  int _generateCollectChangeId() {
-    _initializeNextCollectChangeId();
-
-    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    var nextId = _nextCollectChangeId < currentSeconds
-        ? currentSeconds
-        : _nextCollectChangeId + 1;
-    while (GStorage.collectChanges.containsKey(nextId)) {
-      nextId++;
-    }
-    _nextCollectChangeId = nextId;
-    return nextId;
-  }
-
   /// Record a collectible change (used for WebDAV incremental sync)
   /// [action] 1 代表新增（add），2 代表修改（update）
   /// [type] via: [CollectType]
@@ -166,15 +125,11 @@ class Bangumi {
     int action,
     int type,
   ) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final change = CollectedBangumiChange(
-      _generateCollectChangeId(),
-      bangumiId,
-      action,
-      type,
-      timestamp,
+    await GStorage.appendCollectChange(
+      bangumiId: bangumiId,
+      action: action,
+      type: type,
     );
-    await GStorage.collectChanges.put(change.id, change);
   }
 
   /// Sync Bangumi collectibles with local data

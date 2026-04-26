@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -23,6 +24,103 @@ class GStorage {
 
   /// Hive directory path, initialized during init()
   static String? _hivePath;
+
+  /// Queue to serialize write operations to collectChanges box
+  static Future<void> _collectChangesWriteQueue = Future.value();
+
+  /// Next ID for collect changes, initialized on demand
+  static int _nextCollectChangeId = 0;
+
+  /// Flag to indicate if the next collect change ID has been initialized
+  static bool _collectChangeIdInitialized = false;
+
+  /// Ensure that collect changes write operations are executed sequential
+  static Future<T> _runCollectChangesWriteExclusive<T>(
+    Future<T> Function() action,
+  ) {
+    final completer = Completer<T>();
+    final previousWrite = _collectChangesWriteQueue;
+
+    _collectChangesWriteQueue = (() async {
+      try {
+        await previousWrite;
+      } catch (_) {}
+
+      try {
+        completer.complete(await action());
+      } catch (e, stackTrace) {
+        completer.completeError(e, stackTrace);
+      }
+    })();
+
+    return completer.future;
+  }
+
+  /// init id generator
+  static void _initializeNextCollectChangeIdLocked() {
+    if (_collectChangeIdInitialized) {
+      return;
+    }
+
+    var maxExistingId = 0;
+    for (final key in collectChanges.keys) {
+      if (key is int && key > maxExistingId) {
+        maxExistingId = key;
+      }
+    }
+
+    _nextCollectChangeId = maxExistingId;
+    _collectChangeIdInitialized = true;
+  }
+
+  /// Generate id for collect change
+  static int _generateCollectChangeIdLocked() {
+    _initializeNextCollectChangeIdLocked();
+
+    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    // Ensure ID is greater than any existing ID and also greater than the current timestamp
+    var nextId = _nextCollectChangeId < currentSeconds
+        ? currentSeconds
+        : _nextCollectChangeId + 1;
+    while (collectChanges.containsKey(nextId)) {
+      nextId++;
+    }
+    _nextCollectChangeId = nextId;
+    return nextId;
+  }
+
+  /// Append a new collect change
+  static Future<CollectedBangumiChange> appendCollectChange({
+    required int bangumiId,
+    required int action,
+    required int type,
+    int? timestamp,
+  }) {
+    return _runCollectChangesWriteExclusive(() async {
+      final change = CollectedBangumiChange(
+        _generateCollectChangeIdLocked(),
+        bangumiId,
+        action,
+        type,
+        timestamp ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      );
+      await collectChanges.put(change.id, change);
+      await collectChanges.flush();
+      return change;
+    });
+  }
+
+  /// Update an existing collect change
+  static Future<void> putCollectChange(CollectedBangumiChange change) {
+    return _runCollectChangesWriteExclusive(() async {
+      _initializeNextCollectChangeIdLocked();
+      if (change.id > _nextCollectChangeId) {
+        _nextCollectChangeId = change.id;
+      }
+      await collectChanges.put(change.id, change);
+      await collectChanges.flush();
+    });
+  }
 
   static Future init() async {
     _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
@@ -180,8 +278,9 @@ class GStorage {
   static Future<void> patchCollectibles(
       List<CollectedBangumi> remoteCollectibles,
       List<CollectedBangumiChange> remoteChanges) async {
-    List<CollectedBangumi> localCollectibles = collectibles.values.toList();
-    List<CollectedBangumiChange> localChanges = collectChanges.values.toList();
+  await _runCollectChangesWriteExclusive(() async {
+    final localCollectibles = collectibles.values.toList();
+    final localChanges = collectChanges.values.toList();
 
     final List<CollectedBangumiChange> newLocalChanges =
         localChanges.where((localChange) {
@@ -253,10 +352,17 @@ class GStorage {
     for (var collect in remoteCollectibles) {
       await collectibles.put(collect.bangumiItem.id, collect);
     }
+    await collectibles.flush();
+
     await collectChanges.clear();
     for (var change in mergedChanges) {
       await collectChanges.put(change.id, change);
     }
+    await collectChanges.flush();
+
+    _collectChangeIdInitialized = false;
+    _initializeNextCollectChangeIdLocked();
+    });
   }
 
   // Prevent instantiation

@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -29,8 +28,6 @@ class CollectController = _CollectController with _$CollectController;
 abstract class _CollectController with Store {
   final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
   final _collectRepository = Modular.get<ICollectRepository>();
-  int _nextCollectChangeId = 0;
-  bool _collectChangeIdInitialized = false;
 
   Box setting = GStorage.setting;
   List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
@@ -46,57 +43,6 @@ abstract class _CollectController with Store {
 
   int getCollectType(BangumiItem bangumiItem) {
     return _collectCrudRepository.getCollectType(bangumiItem.id);
-  }
-
-  // Init _nextCollectChangeId
-  void _initializeNextCollectChangeId() {
-    if (_collectChangeIdInitialized) {
-      return;
-    }
-
-    var maxExistingId = 0;
-    for (final key in GStorage.collectChanges.keys) {
-      if (key is int && key > maxExistingId) {
-        maxExistingId = key;
-      }
-    }
-
-    _nextCollectChangeId = maxExistingId;
-    _collectChangeIdInitialized = true;
-  }
-
-  // Generate a unique and incrementing collect change ID
-  int _generateCollectChangeId() {
-    _initializeNextCollectChangeId();
-
-    final currentSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    // Ensure the new ID is greater than both the last generated ID and the current timestamp
-    var nextId = _nextCollectChangeId < currentSeconds
-        ? currentSeconds
-        : _nextCollectChangeId + 1;
-    while (GStorage.collectChanges.containsKey(nextId)) {
-      nextId++;
-    }
-    _nextCollectChangeId = nextId;
-    return nextId;
-  }
-
-  // Record collect changelog
-  // NOTE: 分离出来是因为如果同一秒内的多次变更需要保证ID唯一且递增
-  Future<void> _recordCollectChange(
-    BangumiItem bangumiItem, {
-    required int action,
-    required int type,
-  }) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final collectChange = CollectedBangumiChange(
-      _generateCollectChangeId(),
-      bangumiItem.id,
-      action,
-      type,
-      timestamp,
-    );
-    await _collectCrudRepository.addCollectChange(collectChange);
   }
 
   @action
@@ -119,8 +65,8 @@ abstract class _CollectController with Store {
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
     await _collectCrudRepository.addCollectible(bangumiItem, type);
-    await _recordCollectChange(
-      bangumiItem,
+    await GStorage.appendCollectChange(
+      bangumiId: bangumiItem.id,
       action: collectChangeAction,
       type: type,
     );
@@ -159,8 +105,8 @@ abstract class _CollectController with Store {
 
   Future<void> _deleteCollectLocally(BangumiItem bangumiItem) async {
     await _collectCrudRepository.deleteCollectible(bangumiItem.id);
-    await _recordCollectChange(
-      bangumiItem,
+    await GStorage.appendCollectChange(
+      bangumiId: bangumiItem.id,
       action: 3,
       type: 5,
     );

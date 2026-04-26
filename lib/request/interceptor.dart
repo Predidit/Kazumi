@@ -34,14 +34,18 @@ class ApiInterceptor extends Interceptor {
     }
     if (options.path.contains(Api.bangumiAPIDomain) ||
         options.path.contains(Api.bangumiAPINextDomain)) {
-      final tokenHeader = {...bangumiHTTPHeader};
+      final mergedHeaders = <String, dynamic>{
+        ...options.headers,
+        ...bangumiHTTPHeader,
+      };
       final token =
           setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
       if (token.toString().isNotEmpty) {
-        tokenHeader['Authorization'] =
-            'Bearer $token'; // 附上用户token 必须是授权的token 或者需要验证的token
+        // Bangumi Access Token
+        mergedHeaders['Authorization'] =
+            'Bearer $token';
       }
-      options.headers = tokenHeader;
+      options.headers = mergedHeaders;
     }
     handler.next(options);
   }

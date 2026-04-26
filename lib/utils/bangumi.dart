@@ -49,8 +49,15 @@ class Bangumi {
   static final Bangumi _instance = Bangumi._internal();
   factory Bangumi() => _instance;
 
+  void reset() {
+    initialized = false;
+    token = '';
+    username = '';
+  }
+
   Future<void> init() async {
     initialized = false;
+    username = '';
     token = setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
     if (token.isEmpty) {
       throw Exception('请先填写Bangumi Access Token');

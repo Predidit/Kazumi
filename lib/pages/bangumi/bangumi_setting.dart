@@ -273,8 +273,12 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
         onPressed: isVerifying
             ? null
             : () async {
-                final token = bangumiTokenController.text;
-                if (token.isEmpty) {
+                final token = bangumiTokenController.text.trim();
+                final bool bangumiSyncEnable =
+                    setting.get(SettingBoxKey.bangumiSyncEnable,
+                        defaultValue: false);
+
+                if (token.isEmpty && bangumiSyncEnable) {
                   KazumiDialog.showToast(message: 'Access Token 不能为空');
                   return;
                 }
@@ -283,6 +287,17 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                 });
                 await setting.put(SettingBoxKey.bangumiAccessToken, token);
                 final bangumi = Bangumi();
+
+                if (token.isEmpty) {
+                  bangumi.reset();
+                  KazumiDialog.showToast(message: 'Bangumi Token 已清空');
+                  if (!mounted) return;
+                  setState(() {
+                    isVerifying = false;
+                  });
+                  return;
+                }
+
                 KazumiDialog.showToast(message: '正在测试 Bangumi Token...');
                 try {
                   await bangumi.init();

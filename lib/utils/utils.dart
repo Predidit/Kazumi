@@ -218,12 +218,15 @@ class Utils {
   static bool needUpdate(localVersion, remoteVersion) {
     List<String> localVersionList = localVersion.split('.');
     List<String> remoteVersionList = remoteVersion.split('.');
-    for (int i = 0; i < localVersionList.length; i++) {
-      int localVersion = int.parse(localVersionList[i]);
-      int remoteVersion = int.parse(remoteVersionList[i]);
-      if (remoteVersion > localVersion) {
+    final maxLength = max(localVersionList.length, remoteVersionList.length);
+    for (int i = 0; i < maxLength; i++) {
+      final int localSegment =
+          i < localVersionList.length ? int.parse(localVersionList[i]) : 0;
+      final int remoteSegment =
+          i < remoteVersionList.length ? int.parse(remoteVersionList[i]) : 0;
+      if (remoteSegment > localSegment) {
         return true;
-      } else if (remoteVersion < localVersion) {
+      } else if (remoteSegment < localSegment) {
         return false;
       }
     }

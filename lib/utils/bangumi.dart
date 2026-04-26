@@ -207,8 +207,6 @@ class Bangumi {
         }
 
         int syncedCount = 0;
-        bool localModified = false;
-
         // 3. 仅本地有：直接上传到 Bangumi
         if (localOnlyIds.isNotEmpty) {
           onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
@@ -238,11 +236,10 @@ class Bangumi {
               remote.updatedAt,
               localType.value,
             );
-            await GStorage.collectibles.put(id, collected);
+            await GStorage.putCollectible(collected);
             // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
             await _recordCollectibleChange(id, 1, localType.value);
             syncedCount++;
-            localModified = true;
             onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
           }
         }
@@ -268,20 +265,13 @@ class Bangumi {
             final localType = remote.type.toCollectType();
             local.type = localType.value;
             local.time = remote.updatedAt;
-            await GStorage.collectibles.put(id, local);
+            await GStorage.putCollectible(local);
             // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
             await _recordCollectibleChange(id, 2, localType.value);
             syncedCount++;
-            localModified = true;
             onProgress?.call(
                 'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
           }
-        }
-
-        if (localModified) {
-          await GStorage.collectibles.flush();
-          // 确保收藏变更记录也持久化，以便后续增量同步时能正确识别已处理的变更
-          await GStorage.collectChanges.flush();
         }
         onProgress?.call('Bangumi 状态同步完成', 1, 1);
       } catch (e) {

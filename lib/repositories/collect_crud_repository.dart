@@ -106,8 +106,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
         DateTime.now(),
         type,
       );
-      await _collectiblesBox.put(bangumiItem.id, collectedBangumi);
-      await _collectiblesBox.flush();
+      await GStorage.putCollectible(collectedBangumi);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: add collectible failed. id=${bangumiItem.id}, type=$type',
@@ -129,8 +128,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
         return;
       }
       collectible.bangumiItem = bangumiItem;
-      await _collectiblesBox.put(bangumiItem.id, collectible);
-      await _collectiblesBox.flush();
+      await GStorage.putCollectible(collectible);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update collectible failed. id=${bangumiItem.id}',
@@ -144,8 +142,7 @@ class CollectCrudRepository implements ICollectCrudRepository {
   @override
   Future<void> deleteCollectible(int id) async {
     try {
-      await _collectiblesBox.delete(id);
-      await _collectiblesBox.flush();
+      await GStorage.deleteCollectible(id);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: delete collectible failed. id=$id',

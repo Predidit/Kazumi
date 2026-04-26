@@ -44,11 +44,16 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
     super.dispose();
   }
 
-  void updateSyncPriority(int value) {
-    setting.put(SettingBoxKey.bangumiSyncPriority, value);
-    setState(() {
-      syncPriority = value;
-    });
+  Future<void> updateSyncPriority(int value) async {
+    try {
+      await setting.put(SettingBoxKey.bangumiSyncPriority, value);
+      if (!mounted) return;
+      setState(() {
+        syncPriority = value;
+      });
+    } catch (e) {
+      KazumiDialog.showToast(message: '同步优先级保存失败');
+    }
   }
 
   Future<void> syncWithProgress() async {

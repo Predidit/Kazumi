@@ -122,6 +122,23 @@ class GStorage {
     });
   }
 
+  /// Put a collectible using the same write queue as collect changes.
+  /// This prevents races with operations that patch both boxes together.
+  static Future<void> putCollectible(CollectedBangumi collectible) {
+    return _runCollectChangesWriteExclusive(() async {
+      await collectibles.put(collectible.bangumiItem.id, collectible);
+      await collectibles.flush();
+    });
+  }
+
+  /// Delete a collectible using the shared collect write queue.
+  static Future<void> deleteCollectible(int bangumiId) {
+    return _runCollectChangesWriteExclusive(() async {
+      await collectibles.delete(bangumiId);
+      await collectibles.flush();
+    });
+  }
+
   static Future init() async {
     _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
 

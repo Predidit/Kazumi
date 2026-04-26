@@ -53,10 +53,10 @@ class _CollectPageState extends State<CollectPage>
     );
   }
 
-  Future<void> _showFullSyncProgressDialog({
+  void _showFullSyncProgressDialog({
     required ValueNotifier<double?> progressValue,
     required ValueNotifier<String> progressText,
-  }) async {
+  }) {
     unawaited(KazumiDialog.show(
       clickMaskDismiss: false,
       builder: (context) {
@@ -119,7 +119,7 @@ class _CollectPageState extends State<CollectPage>
     final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
     final ValueNotifier<String> progressText = ValueNotifier<String>('准备开始同步收藏...');
 
-    await _showFullSyncProgressDialog(
+    _showFullSyncProgressDialog(
       progressValue: progressValue,
       progressText: progressText,
     );

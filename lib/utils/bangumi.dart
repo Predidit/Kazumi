@@ -12,9 +12,6 @@ import 'package:kazumi/request/bangumi.dart';
 
 /// Bangumi 相关工具类
 class Bangumi {
-  /// Bangumi Access Token
-  late String token;
-
   /// Current username corresponding to the token, set by ping()
   String username = '';
 
@@ -37,21 +34,24 @@ class Bangumi {
   /// Whether any Bangumi operation is active or already queued.
   bool get isUsing => _queuedOperationCount > 0 || _activeOperationCount > 0;
 
+  String get _configuredToken =>
+      setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+          .toString()
+          .trim();
+
   Bangumi._internal();
   static final Bangumi _instance = Bangumi._internal();
   factory Bangumi() => _instance;
 
   void reset() {
     initialized = false;
-    token = '';
     username = '';
   }
 
   Future<void> init() async {
     initialized = false;
     username = '';
-    token = setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
-    if (token.isEmpty) {
+    if (_configuredToken.isEmpty) {
       throw Exception('请先填写Bangumi Access Token');
     }
     try {

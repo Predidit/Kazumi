@@ -284,10 +284,20 @@ abstract class _CollectController with Store {
     if (favorites.isNotEmpty) {
       int count = 0;
       for (BangumiItem bangumiItem in favorites) {
-        await addCollect(bangumiItem, type: 1);
+        // Migration should never depend on runtime Bangumi initialization.
+        // Persist locally and append change logs, then let later sync handle remote updates.
+        final int currentCollectType = getCollectType(bangumiItem);
+        final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
+        await _collectCrudRepository.addCollectible(bangumiItem, 1);
+        await GStorage.appendCollectChange(
+          bangumiId: bangumiItem.id,
+          action: collectChangeAction,
+          type: 1,
+        );
         count++;
       }
       await _collectCrudRepository.clearFavorites();
+      loadCollectibles();
       KazumiLogger().d('GStorage: detected $count uncategorized favorites, migrated to collectibles');
     }
   }

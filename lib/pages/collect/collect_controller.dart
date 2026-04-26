@@ -61,12 +61,16 @@ abstract class _CollectController with Store {
       return;
     }
 
+    // 判断新增还是修改收藏
+    final int currentCollectType = getCollectType(bangumiItem);
+    final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
+
     await _collectCrudRepository.addCollectible(bangumiItem, type);
     final int collectChangeId = (DateTime.now().millisecondsSinceEpoch ~/ 1000);
     final CollectedBangumiChange collectChange = CollectedBangumiChange(
         collectChangeId,
         bangumiItem.id,
-        1,
+        collectChangeAction,
         type,
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);

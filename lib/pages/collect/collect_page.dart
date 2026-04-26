@@ -31,11 +31,32 @@ class _CollectPageState extends State<CollectPage>
   bool syncCollectiblesing = false;
   Box setting = GStorage.setting;
 
-  Future<void> _syncBangumiWithProgress() async {
-    final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
-    final ValueNotifier<String> progressText =
-        ValueNotifier<String>('准备同步 Bangumi 收藏...');
+  Future<bool> _syncBangumiWithProgress({
+    required ValueNotifier<double?> progressValue,
+    required ValueNotifier<String> progressText,
+  }) async {
+    progressText.value = '准备同步 Bangumi 收藏...';
+    progressValue.value = null;
 
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+
+    return collectController.syncCollectiblesBangumi(
+      showSuccessToast: false,
+      onProgress: (message, current, total) {
+        progressText.value = total > 0 ? '$message ($current/$total)' : message;
+        if (total > 0) {
+          progressValue.value = (current / total).clamp(0.0, 1.0);
+        } else {
+          progressValue.value = null;
+        }
+      },
+    );
+  }
+
+  Future<void> _showFullSyncProgressDialog({
+    required ValueNotifier<double?> progressValue,
+    required ValueNotifier<String> progressText,
+  }) async {
     unawaited(KazumiDialog.show(
       clickMaskDismiss: false,
       builder: (context) {
@@ -49,7 +70,7 @@ class _CollectPageState extends State<CollectPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Bangumi 全量同步中',
+                    '收藏全量同步中',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
@@ -69,22 +90,68 @@ class _CollectPageState extends State<CollectPage>
         );
       },
     ));
+  }
+
+  String _buildFullSyncSummary({
+    required bool webDavEnabled,
+    required bool bangumiEnabled,
+    required bool webDavSynced,
+    required bool bangumiSynced,
+    required bool webDavUploaded,
+  }) {
+    final List<String> states = [];
+    if (webDavEnabled) {
+      states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
+    }
+    if (bangumiEnabled) {
+      states.add(bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成');
+    }
+    if (webDavEnabled && bangumiEnabled && bangumiSynced) {
+      states.add(webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据');
+    }
+    return states.join('，');
+  }
+
+  Future<void> _runFullSync({
+    required bool webDavEnabled,
+    required bool bangumiEnabled,
+  }) async {
+    final ValueNotifier<double?> progressValue = ValueNotifier<double?>(null);
+    final ValueNotifier<String> progressText = ValueNotifier<String>('准备开始同步收藏...');
+
+    await _showFullSyncProgressDialog(
+      progressValue: progressValue,
+      progressText: progressText,
+    );
 
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
+    bool webDavSynced = false;
+    bool bangumiSynced = false;
+    bool webDavUploaded = false;
+
     try {
-      await collectController.syncCollectiblesBangumi(
-        onProgress: (message, current, total) {
-          progressText.value = total > 0
-              ? '$message ($current/$total)'
-              : message;
-          if (total > 0) {
-            progressValue.value = (current / total).clamp(0.0, 1.0);
-          } else {
-            progressValue.value = null;
-          }
-        },
-      );
+      if (webDavEnabled) {
+        progressText.value = '正在同步 WebDav 收藏...';
+        progressValue.value = null;
+        webDavSynced =
+            await collectController.syncCollectibles(showSuccessToast: false);
+      }
+
+      if (bangumiEnabled) {
+        bangumiSynced = await _syncBangumiWithProgress(
+          progressValue: progressValue,
+          progressText: progressText,
+        );
+      }
+
+      if (webDavEnabled && bangumiEnabled && bangumiSynced) {
+        progressText.value = '正在回传最新收藏到 WebDav...';
+        progressValue.value = null;
+        webDavUploaded = await collectController.uploadCollectiblesToWebDav(
+          showSuccessToast: false,
+        );
+      }
     } finally {
       if (KazumiDialog.observer.hasKazumiDialog) {
         KazumiDialog.dismiss();
@@ -92,6 +159,16 @@ class _CollectPageState extends State<CollectPage>
       progressValue.dispose();
       progressText.dispose();
     }
+
+    KazumiDialog.showToast(
+      message: _buildFullSyncSummary(
+        webDavEnabled: webDavEnabled,
+        bangumiEnabled: bangumiEnabled,
+        webDavSynced: webDavSynced,
+        bangumiSynced: bangumiSynced,
+        webDavUploaded: webDavUploaded,
+      ),
+    );
   }
 
   void onBackPressed(BuildContext context) {
@@ -180,17 +257,10 @@ class _CollectPageState extends State<CollectPage>
               syncCollectiblesing = true;
             });
             try {
-              if (webDavenable) {
-                await collectController.syncCollectibles();
-              }
-              if (bgmSyncEnable) {
-                await _syncBangumiWithProgress();
-              }
-              if (webDavenable && bgmSyncEnable) {
-                // 如果两个同步都开启了，那么在完成 Bangumi 同步后再上传到 WebDAV
-                // 确保上传到 WebDAV 的内容已经包含了最新的 Bangumi 收藏数据
-                await collectController.uploadCollectiblesToWebDav();
-              }
+              await _runFullSync(
+                webDavEnabled: webDavenable,
+                bangumiEnabled: bgmSyncEnable,
+              );
             } finally {
               if (mounted) {
                 setState(() {

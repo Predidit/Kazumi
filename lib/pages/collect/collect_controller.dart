@@ -224,10 +224,10 @@ abstract class _CollectController with Store {
     loadCollectibles();
   }
 
-  Future<void> syncCollectibles() async {
+  Future<bool> syncCollectibles({bool showSuccessToast = true}) async {
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
-      return;
+      return false;
     }
     bool flag = true;
     try {
@@ -238,21 +238,26 @@ abstract class _CollectController with Store {
       flag = false;
     }
     if (!flag) {
-      return;
+      return false;
     }
     try {
       await WebDav().syncCollectibles();
-    } catch (e){
+      if (showSuccessToast) {
+        KazumiDialog.showToast(message: 'WebDav同步完成');
+      }
+    } catch (e) {
       KazumiDialog.showToast(message: 'WebDav同步失败 $e');
+      return false;
     }
     loadCollectibles();
+    return true;
   }
 
   /// 仅上传当前本地收藏与变更日志到 WebDAV，不做下载合并
-  Future<void> uploadCollectiblesToWebDav() async {
+  Future<bool> uploadCollectiblesToWebDav({bool showSuccessToast = true}) async {
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
-      return;
+      return false;
     }
     bool flag = true;
     try {
@@ -263,13 +268,18 @@ abstract class _CollectController with Store {
       flag = false;
     }
     if (!flag) {
-      return;
+      return false;
     }
     try {
       await WebDav().updateCollectibles();
+      if (showSuccessToast) {
+        KazumiDialog.showToast(message: 'WebDav上传完成');
+      }
     } catch (e) {
       KazumiDialog.showToast(message: 'WebDav上传失败 $e');
+      return false;
     }
+    return true;
   }
 
   // migrate collect from old version (favorites)
@@ -311,24 +321,31 @@ abstract class _CollectController with Store {
   /// [onProgress] Progress callback, parameters are the name of the currently syncing Bangumi,
   /// the index of the currently syncing Bangumi, and the total number of Bangumi.
   /// The callback will be called when syncing each Bangumi, and can be used to show a progress indicator.
-  Future<void> syncCollectiblesBangumi(
+  Future<bool> syncCollectiblesBangumi(
       {void Function(String message, int current, int total)?
-          onProgress}) async {
+          onProgress,
+      bool showSuccessToast = true}) async {
     if (!Bangumi().initialized) {
       KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
-      return;
+      return false;
     }
     try {
       await Bangumi().ping();
       try {
         await Bangumi().syncCollectibles(onProgress: onProgress);
+        if (showSuccessToast) {
+          KazumiDialog.showToast(message: 'Bangumi同步完成');
+        }
       } catch (e) {
         KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
+        return false;
       }
     } catch (e) {
       KazumiLogger().e('Bangumi: Bangumi connection failed', error: e);
       KazumiDialog.showToast(message: 'Bangumi访问失败: $e');
+      return false;
     }
     loadCollectibles();
+    return true;
   }
 }

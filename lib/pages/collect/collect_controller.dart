@@ -329,6 +329,13 @@ abstract class _CollectController with Store {
       {void Function(String message, int current, int total)?
           onProgress,
       bool showSuccessToast = true}) async {
+    final bool syncEnable =
+        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    if (!syncEnable) {
+      KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
+      return false;
+    }
+
     if (!Bangumi().initialized) {
       KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
       return false;

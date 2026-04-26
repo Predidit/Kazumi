@@ -33,13 +33,17 @@ class Bangumi {
   /// Whether the next collectible change ID cache has been initialized.
   bool _collectChangeIdInitialized = false;
 
-  /// lock to prevent concurrent operations that may cause conflicts,
-  /// such as ping and syncCollectibles
-  bool isUsing = false;
+  /// Number of queued Bangumi operations waiting to enter the exclusive section.
+  int _queuedOperationCount = 0;
 
-  /// Queue for immediate collectible sync requests, so local edits made during
-  /// a long-running sync can wait and run serially afterwards instead of being dropped.
-  Future<void> _immediateCollectSyncQueue = Future.value();
+  /// Number of Bangumi operations currently running in the exclusive section.
+  int _activeOperationCount = 0;
+
+  /// Shared serial queue for all Bangumi operations that must not overlap.
+  Future<void> _operationQueue = Future.value();
+
+  /// Whether any Bangumi operation is active or already queued.
+  bool get isUsing => _queuedOperationCount > 0 || _activeOperationCount > 0;
 
   Bangumi._internal();
   static final Bangumi _instance = Bangumi._internal();
@@ -65,55 +69,50 @@ class Bangumi {
     if (isUsing) {
       throw Exception('Bangumi: 当前有操作正在进行，请稍后再试');
     }
-    isUsing = true;
-    try {
-      final name = await BangumiHTTP.getUsername();
-      if (name == null) {
-        throw Exception('Bangumi: 获取用户名失败');
-      } else {
-        username = name;
+    await _runExclusive(() async {
+      try {
+        final name = await BangumiHTTP.getUsername();
+        if (name == null) {
+          throw Exception('Bangumi: 获取用户名失败');
+        } else {
+          username = name;
+        }
+      } catch (e) {
+        KazumiLogger().e('Bangumi: Bangumi ping failed', error: e);
+        rethrow;
       }
-    } catch (e) {
-      KazumiLogger().e('Bangumi: Bangumi ping failed', error: e);
-      rethrow;
-    } finally {
-      isUsing = false;
-    }
-  }
-
-  // Wait until current Bangumi operation finishes,
-  // with a default polling interval of 200ms.
-  Future<void> _waitUntilIdle({
-    Duration interval = const Duration(milliseconds: 200),
-  }) async {
-    while (isUsing) {
-      await Future.delayed(interval);
-    }
+    });
   }
 
   /// Update a single collectible on Bangumi, waiting for current Bangumi work
   /// to finish and serializing multiple immediate update requests.
   Future<bool> syncCollectibleWhenIdle(int bangumiId, int localType) {
-    final completer = Completer<bool>();
-    final previousQueue = _immediateCollectSyncQueue;
+    return _runExclusive(() async {
+      return BangumiHTTP.updateBangumiByType(
+        bangumiId,
+        localType,
+      );
+    });
+  }
 
-    _immediateCollectSyncQueue = (() async {
+  Future<T> _runExclusive<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    final previousOperation = _operationQueue;
+    _queuedOperationCount++;
+
+    _operationQueue = (() async {
       try {
-        await previousQueue;
+        await previousOperation;
       } catch (_) {}
 
-      await _waitUntilIdle();
-      isUsing = true;
+      _queuedOperationCount--;
+      _activeOperationCount++;
       try {
-        final synced = await BangumiHTTP.updateBangumiByType(
-          bangumiId,
-          localType,
-        );
-        completer.complete(synced);
+        completer.complete(await action());
       } catch (e, stackTrace) {
         completer.completeError(e, stackTrace);
       } finally {
-        isUsing = false;
+        _activeOperationCount--;
       }
     })();
 
@@ -192,147 +191,145 @@ class Bangumi {
       KazumiLogger().w('Bangumi is currently syncing');
       throw Exception('Bangumi 正在同步');
     }
-    isUsing = true;
-    try {
-      onProgress?.call('开始同步 Bangumi 状态', 0, 0);
+    await _runExclusive(() async {
+      try {
+        onProgress?.call('开始同步 Bangumi 状态', 0, 0);
 
-      final priority = BangumiSyncPriority.fromValue(
-        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0),
-      );
+        final priority = BangumiSyncPriority.fromValue(
+          setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0),
+        );
 
-      // 1. 全量拉取远程收藏（带分页进度）
-      final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
-        username: username,
-        onProgress: onProgress,
-      );
+        // 1. 全量拉取远程收藏（带分页进度）
+        final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
+          username: username,
+          onProgress: onProgress,
+        );
 
-      // 2. 与本地数据对比，分三类处理：
-      // - 仅本地有：直接上传到 Bangumi
-      // - 仅远程有：直接补到本地
-      // - 双方都有但类型不一致：按优先级处理
-      final localCollectibles = GStorage.collectibles.values.toList();
-      final localMap = {
-        for (final item in localCollectibles) item.bangumiItem.id: item,
-      };
-      final remoteMap = <int, BangumiCollection>{};
-      for (final item in remoteCollection) {
-        final remoteCollectType = item.type.toCollectType();
-        if (!remoteCollectType.isCollected) {
-          KazumiLogger().w(
-            'Bangumi: skip remote collectible with unsupported type '
-            '${item.type.value} for id=${item.bangumiId}',
-          );
-          continue;
-        }
-        remoteMap[item.bangumiId] = item;
-      }
-
-      final localOnlyIds =
-          localMap.keys.toSet().difference(remoteMap.keys.toSet());
-      final remoteOnlyIds =
-          remoteMap.keys.toSet().difference(localMap.keys.toSet());
-      final sharedIds =
-          localMap.keys.toSet().intersection(remoteMap.keys.toSet());
-      final mismatchIds = <int>[];
-      for (final id in sharedIds) {
-        if (localMap[id]!.type != remoteMap[id]!.type.toCollectType().value) {
-          mismatchIds.add(id);
-        }
-      }
-
-      final totalOperations =
-          localOnlyIds.length + remoteOnlyIds.length + mismatchIds.length;
-
-      if (totalOperations == 0) {
-        onProgress?.call('未发现状态差异，无需同步', 1, 1);
-        KazumiDialog.showToast(message: '未发现状态差异，无需同步');
-        return;
-      }
-
-      int syncedCount = 0;
-      bool localModified = false;
-
-      // 3. 仅本地有：直接上传到 Bangumi
-      if (localOnlyIds.isNotEmpty) {
-        onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
-        for (final id in localOnlyIds) {
-          final updated = await BangumiHTTP.updateBangumiByType(
-            id,
-            localMap[id]!.type,
-          );
-          if (!updated) {
-            onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
-            KazumiDialog.showToast(message: '同步失败：条目 $id 上传到 Bangumi 失败');
-            return;
+        // 2. 与本地数据对比，分三类处理：
+        // - 仅本地有：直接上传到 Bangumi
+        // - 仅远程有：直接补到本地
+        // - 双方都有但类型不一致：按优先级处理
+        final localCollectibles = GStorage.collectibles.values.toList();
+        final localMap = {
+          for (final item in localCollectibles) item.bangumiItem.id: item,
+        };
+        final remoteMap = <int, BangumiCollection>{};
+        for (final item in remoteCollection) {
+          final remoteCollectType = item.type.toCollectType();
+          if (!remoteCollectType.isCollected) {
+            KazumiLogger().w(
+              'Bangumi: skip remote collectible with unsupported type '
+              '${item.type.value} for id=${item.bangumiId}',
+            );
+            continue;
           }
-          syncedCount++;
+          remoteMap[item.bangumiId] = item;
+        }
+
+        final localOnlyIds =
+            localMap.keys.toSet().difference(remoteMap.keys.toSet());
+        final remoteOnlyIds =
+            remoteMap.keys.toSet().difference(localMap.keys.toSet());
+        final sharedIds =
+            localMap.keys.toSet().intersection(remoteMap.keys.toSet());
+        final mismatchIds = <int>[];
+        for (final id in sharedIds) {
+          if (localMap[id]!.type != remoteMap[id]!.type.toCollectType().value) {
+            mismatchIds.add(id);
+          }
+        }
+
+        final totalOperations =
+            localOnlyIds.length + remoteOnlyIds.length + mismatchIds.length;
+
+        if (totalOperations == 0) {
+          onProgress?.call('未发现状态差异，无需同步', 1, 1);
+          KazumiDialog.showToast(message: '未发现状态差异，无需同步');
+          return;
+        }
+
+        int syncedCount = 0;
+        bool localModified = false;
+
+        // 3. 仅本地有：直接上传到 Bangumi
+        if (localOnlyIds.isNotEmpty) {
           onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
-        }
-      }
-
-      // 4. 仅远程有：直接补到本地
-      if (remoteOnlyIds.isNotEmpty) {
-        onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
-        for (final id in remoteOnlyIds) {
-          final remote = remoteMap[id]!;
-          final localType = remote.type.toCollectType();
-          final collected = CollectedBangumi(
-            remote.toBangumiItem(),
-            remote.updatedAt,
-            localType.value,
-          );
-          await GStorage.collectibles.put(id, collected);
-          // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
-          await _recordCollectibleChange(id, 1, localType.value);
-          syncedCount++;
-          localModified = true;
-          onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
-        }
-      }
-
-      // 5. 双方都有但不一致：按优先级处理
-      if (priority == BangumiSyncPriority.localFirst) {
-        onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
-        for (final id in mismatchIds) {
-          final updated =
-              await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
-          if (updated != true) {
-            throw Exception(
-                'Bangumi sync failed: updateBangumiByType failed for id=$id');
+          for (final id in localOnlyIds) {
+            final updated = await BangumiHTTP.updateBangumiByType(
+              id,
+              localMap[id]!.type,
+            );
+            if (!updated) {
+              onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
+              KazumiDialog.showToast(message: '同步失败：条目 $id 上传到 Bangumi 失败');
+              return;
+            }
+            syncedCount++;
+            onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
           }
-          syncedCount++;
-          onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
         }
-      } else {
-        onProgress?.call(
-            'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
-        for (final id in mismatchIds) {
-          final local = localMap[id]!;
-          final remote = remoteMap[id]!;
-          final localType = remote.type.toCollectType();
-          local.type = localType.value;
-          local.time = remote.updatedAt;
-          await GStorage.collectibles.put(id, local);
-          // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
-          await _recordCollectibleChange(id, 2, localType.value);
-          syncedCount++;
-          localModified = true;
-          onProgress?.call(
-              'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
-        }
-      }
 
-      if (localModified) {
-        await GStorage.collectibles.flush();
-        // 确保收藏变更记录也持久化，以便后续增量同步时能正确识别已处理的变更
-        await GStorage.collectChanges.flush();
+        // 4. 仅远程有：直接补到本地
+        if (remoteOnlyIds.isNotEmpty) {
+          onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
+          for (final id in remoteOnlyIds) {
+            final remote = remoteMap[id]!;
+            final localType = remote.type.toCollectType();
+            final collected = CollectedBangumi(
+              remote.toBangumiItem(),
+              remote.updatedAt,
+              localType.value,
+            );
+            await GStorage.collectibles.put(id, collected);
+            // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
+            await _recordCollectibleChange(id, 1, localType.value);
+            syncedCount++;
+            localModified = true;
+            onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
+          }
+        }
+
+        // 5. 双方都有但不一致：按优先级处理
+        if (priority == BangumiSyncPriority.localFirst) {
+          onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
+          for (final id in mismatchIds) {
+            final updated =
+                await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+            if (updated != true) {
+              throw Exception(
+                  'Bangumi sync failed: updateBangumiByType failed for id=$id');
+            }
+            syncedCount++;
+            onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
+          }
+        } else {
+          onProgress?.call('Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
+          for (final id in mismatchIds) {
+            final local = localMap[id]!;
+            final remote = remoteMap[id]!;
+            final localType = remote.type.toCollectType();
+            local.type = localType.value;
+            local.time = remote.updatedAt;
+            await GStorage.collectibles.put(id, local);
+            // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
+            await _recordCollectibleChange(id, 2, localType.value);
+            syncedCount++;
+            localModified = true;
+            onProgress?.call(
+                'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
+          }
+        }
+
+        if (localModified) {
+          await GStorage.collectibles.flush();
+          // 确保收藏变更记录也持久化，以便后续增量同步时能正确识别已处理的变更
+          await GStorage.collectChanges.flush();
+        }
+        onProgress?.call('Bangumi 状态同步完成', 1, 1);
+      } catch (e) {
+        KazumiLogger().e('Bangumi sync failed', error: e);
+        rethrow;
       }
-      onProgress?.call('Bangumi 状态同步完成', 1, 1);
-    } catch (e) {
-      KazumiLogger().e('Bangumi sync failed', error: e);
-      rethrow;
-    } finally {
-      isUsing = false;
-    }
+    });
   }
 }

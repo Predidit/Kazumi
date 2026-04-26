@@ -137,6 +137,13 @@ class Request {
         'customError': extra['customError'],
       };
     }
+
+    if (extra['requiresBangumiAuth'] != null) {
+      options.extra = {
+        ...?options.extra,
+        'requiresBangumiAuth': extra['requiresBangumiAuth'],
+      };
+    }
   }
 
   Future<Response> get(url, {data, options, cancelToken, extra, bool shouldRethrow = false}) async {

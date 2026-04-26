@@ -40,11 +40,13 @@ class ApiInterceptor extends Interceptor {
       };
       final bool bangumiSyncEnable =
           setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+      final bool requiresBangumiAuth =
+          options.extra['requiresBangumiAuth'] == true;
       final String token = setting
           .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
           .toString()
           .trim();
-      if (bangumiSyncEnable && token.isNotEmpty) {
+      if ((bangumiSyncEnable || requiresBangumiAuth) && token.isNotEmpty) {
         // Bangumi Access Token
         mergedHeaders['Authorization'] =
             'Bearer $token';

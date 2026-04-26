@@ -315,7 +315,7 @@ class BangumiHTTP {
     try {
       final res = await Request().get(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiUsernameByToken, []),
-        extra: {'customError': ''},
+        extra: {'customError': '', 'requiresBangumiAuth': true},
         shouldRethrow: true,
       );
       if (res.data['id'] != null) {
@@ -383,7 +383,7 @@ class BangumiHTTP {
                 ])}&type=${collectionType.value}';
             res = await Request().get(
               url,
-              extra: {'customError': ''},
+              extra: {'customError': '', 'requiresBangumiAuth': true},
               shouldRethrow: true,
             );
           } catch (e) {
@@ -449,7 +449,7 @@ class BangumiHTTP {
       await Request().post(
         Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiSetCollection, [id]),
         data: data,
-        extra: {'customError': ''},
+        extra: {'customError': '', 'requiresBangumiAuth': true},
         shouldRethrow: true,
       );
       KazumiLogger().d('Update to Bangumi: Id: $id');

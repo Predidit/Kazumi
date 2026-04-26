@@ -8,7 +8,6 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/utils/bangumi.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
@@ -17,7 +16,6 @@ import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 part 'collect_controller.g.dart';
 
@@ -308,18 +306,6 @@ abstract class _CollectController with Store {
     return bangumiList
         .where((item) => !excludeIds.contains(item.id))
         .toList();
-  }
-
-  /// Put Bangumi's collect into local collectible,
-  /// convert Bangumi's collect type to local collect type
-  ///
-  /// [bangumiItem] Bangumi item
-  /// [bangumiType] Bangumi collect type
-  Future<void> addCollectBangumi(BangumiItem bangumiItem,
-      {bangumiType = 1}) async {
-    final type =
-        BangumiCollectionType.fromValue(bangumiType).toCollectType().value;
-    await addCollect(bangumiItem, type: type);
   }
 
   /// Sync Bangumi collectibles.

@@ -181,7 +181,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                       },
                       title: Text('即时同步提示',
                           style: TextStyle(fontFamily: fontFamily)),
-                      description: Text('点击追番按钮触发即时同步时显示提示'),
+                      description: Text('点击追番按钮触发即时同步时显示提示框'),
                       initialValue: bangumiImmediateSyncToastEnable,
                     ),
                     SettingsTile.navigation(
@@ -194,6 +194,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                       },
                       title: Text('同步优先级',
                           style: TextStyle(fontFamily: fontFamily)),
+                      description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态'),
                       value: MenuAnchor(
                           consumeOutsideTap: true,
                           controller: syncPriorityMenuController,

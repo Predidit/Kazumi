@@ -346,10 +346,6 @@ class SettingBoxKey {
       shortcutDialogShown = 'shortcutDialogShown',
       bangumiSyncEnable = 'bangumiSyncEnable',
       bangumiAccessToken = 'bangumiAccessToken',
-      bangumiUpdateEnable = 'bangumiUpdateEnable',
-      bangumiDownloadEnable = 'bangumiDownloadEnable',
       bangumiSyncPriority = 'bangumiSyncPriority',
-      bangumiFirstSyncMode = 'bangumiFirstSyncMode',
-      bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',
-      bangumiDeleteEnable = 'bangumiDeleteEnable';
+      bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable';
 }

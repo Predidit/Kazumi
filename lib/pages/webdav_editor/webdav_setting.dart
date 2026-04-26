@@ -223,7 +223,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                           defaultValue: '');
                       if (token.isEmpty) {
                         KazumiDialog.showToast(
-                            message: '请先配置 Bangumi的Access Token');
+                             message: '请先配置 Bangumi 的 Access Token');
                         return;
                       } else {
                         if (!bangumi.initialized) {

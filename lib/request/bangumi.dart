@@ -324,7 +324,7 @@ class BangumiHTTP {
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         KazumiLogger().e('Bangumi token unauthorized, please check your token');
-        throw StateError('Bangumi token unauthorized');
+        throw StateError('Bangumi token 未授权，请检查您的 token');
       }
       rethrow;
     } catch (e) {

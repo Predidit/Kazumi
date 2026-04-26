@@ -91,7 +91,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
-    final searchUrl = plugin.searchURL.replaceAll('@keyword', keyword);
+    final searchUrl = plugin.searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
     _captchaProvider!.loadForCaptcha(
       searchUrl,
@@ -284,7 +284,7 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
-    final searchUrl = plugin.searchURL.replaceAll('@keyword', keyword);
+    final searchUrl = plugin.searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
     void onVerified() {
       if (autoVerified) return;
@@ -607,7 +607,7 @@ class _SourceSheetState extends State<SourceSheet>
                     launchUrl(
                       Uri.parse(pluginsController
                           .pluginList[currentIndex].searchURL
-                          .replaceFirst('@keyword', keyword)),
+                          .replaceFirst('@keyword', Uri.encodeQueryComponent(keyword))),
                       mode: LaunchMode.externalApplication,
                     );
                   },

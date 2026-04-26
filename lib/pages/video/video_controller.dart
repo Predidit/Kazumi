@@ -53,7 +53,7 @@ abstract class _VideoPageController with Store {
   @observable
   bool isCommentsAscending = false;
 
-  /// 画中画状态
+  /// 桌面画中画状态，Android 画中画状态不需要单独维护，进入画中画后会直接切换到系统的全局播放器界面
   @observable
   bool isPip = false;
 
@@ -340,10 +340,9 @@ abstract class _VideoPageController with Store {
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     episodeCommentsList.clear();
     episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
-    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id)
-        .then((value) {
-      episodeCommentsList.addAll(value.commentList);
-    });
+    final value =
+        await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id);
+    episodeCommentsList.addAll(value.commentList);
     if (!isCommentsAscending) {
       episodeCommentsList
           .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));

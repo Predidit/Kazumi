@@ -22,6 +22,7 @@ import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 
 class IndexModule extends Module {
   @override
@@ -73,6 +74,18 @@ class IndexModule extends Module {
       duration: Duration(milliseconds: 70),
     );
     r.module("/video", module: VideoModule());
+    r.child(
+      ImageViewer.routePath,
+      child: (_) {
+        final args = Modular.args.data as ImageViewerRouteArgs;
+        return ImageViewer(
+          imageUrl: args.imageUrl,
+          heroTag: args.heroTag,
+        );
+      },
+      transition: TransitionType.fadeIn,
+      duration: Duration(milliseconds: 220),
+    );
 
     /// The route need [ BangumiItem ] as argument.
     r.module("/info", module: InfoModule());

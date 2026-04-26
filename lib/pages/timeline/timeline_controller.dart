@@ -32,7 +32,10 @@ abstract class _TimelineController with Store {
   @observable
   late bool notShowWatchedBangumis = _collectRepository.getTimelineNotShowWatchedBangumis();
 
-  int sortType = 1;
+  @observable
+  late bool onlyShowWatchingBangumis = _collectRepository.getTimelineOnlyShowWatchingBangumis();
+
+  int sortType = 3;
 
   late DateTime selectedDate;
 
@@ -135,5 +138,15 @@ abstract class _TimelineController with Store {
 
   Set<int> loadWatchedBangumiIds() {
     return _collectRepository.getBangumiIdsByType(CollectType.watched);
+  }
+
+  @action
+  Future<void> setOnlyShowWatchingBangumis(bool value) async {
+    onlyShowWatchingBangumis = value;
+    await _collectRepository.updateTimelineOnlyShowWatchingBangumis(value);
+  }
+
+  Set<int> loadWatchingBangumiIds() {
+    return _collectRepository.getBangumiIdsByType(CollectType.watching);
   }
 }

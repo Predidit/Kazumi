@@ -2,23 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
-class DanmakuShieldSettings extends StatefulWidget {
-  const DanmakuShieldSettings({super.key});
+class DanmakuShieldSettingsSheet extends StatefulWidget {
+  const DanmakuShieldSettingsSheet({super.key});
 
   @override
-  State<DanmakuShieldSettings> createState() => _DanmakuShieldSettingsState();
+  State<DanmakuShieldSettingsSheet> createState() => _DanmakuShieldSettingsSheetState();
 }
 
-class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
+class _DanmakuShieldSettingsSheetState extends State<DanmakuShieldSettingsSheet> {
   final MyController myController = Modular.get<MyController>();
   final TextEditingController textEditingController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(
+      appBar: AppBar(
         title: const Text("弹幕屏蔽"),
       ),
       body: ListView(

@@ -164,6 +164,21 @@ class _AppWidgetState extends State<AppWidget>
     }
   }
 
+  @override
+  Future<void> didChangePlatformBrightness() async {
+    super.didChangePlatformBrightness();
+    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    KazumiLogger().i("Platform brightness changed, themeMode: ${themeProvider.themeMode}");
+
+    // Only update title bar theme when following system
+    // If user has forced a specific theme, keep title bar consistent with app content
+    if (themeProvider.themeMode == ThemeMode.system && Platform.isWindows) {
+      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      KazumiLogger().i("Updating title bar brightness: $brightness");
+      await windowManager.setBrightness(brightness);
+    }
+  }
+
   Future<void> _handleTray() async {
     if (Platform.isWindows) {
       await trayManager.setIcon('assets/images/logo/logo_lanczos.ico');
@@ -215,6 +230,12 @@ class _AppWidgetState extends State<AppWidget>
     if (defaultThemeMode == 'system') {
       themeProvider.setThemeMode(ThemeMode.system, notify: false);
     }
+
+    // Set Windows title bar theme based on app theme
+    if (Platform.isWindows) {
+      windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
+    }
+
     themeProvider.setFontFamily(useSystemFont, notify: false);
     var defaultDarkTheme = ThemeData(
         useMaterial3: true,

@@ -16,11 +16,11 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 2.0.6+20006
+version: 2.0.8+20008
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.41.6
+  flutter: 3.41.7
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -49,6 +49,7 @@ dependencies:
   hive_ce: ^2.16.0
   hive_ce_flutter: ^2.3.3
   cached_network_image: ^3.4.1
+  # cached_network_image_ce: ^4.6.4
   card_settings_ui: ^2.0.1
 
   # fvp: ^0.28.0
@@ -99,14 +100,15 @@ dependencies:
   html: any
   material_color_utilities: any
   path: any
+  photo_view: ^0.15.0
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: 1b9e83371356c04d8b0fb7ab1d20ebacf5cf9764
+      ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git
-      ref: 297b39532c426263d2fa9fde4d70d2b5bdfc8059
+      ref: b429f8ba6b8a99cd0f7eb5fe8d1621f325635c3d
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git

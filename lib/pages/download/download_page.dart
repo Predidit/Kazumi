@@ -32,8 +32,24 @@ class _DownloadPageState extends State<DownloadPage> {
       appBar: const SysAppBar(title: Text('下载管理')),
       body: Observer(builder: (context) {
         if (downloadController.records.isEmpty) {
-          return const Center(
-            child: Text('暂无离线下载'),
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.download_rounded,
+                  size: 72,
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '暂无离线下载',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                ),
+              ],
+            ),
           );
         }
         return ListView.builder(

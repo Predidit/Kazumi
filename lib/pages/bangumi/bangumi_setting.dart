@@ -283,26 +283,20 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                 });
                 await setting.put(SettingBoxKey.bangumiAccessToken, token);
                 final bangumi = Bangumi();
-                bool initSuccess = true;
-                if (!bangumi.initialized || bangumi.token != token) {
-                  try {
-                    await bangumi.init();
-                  } catch (e) {
-                    initSuccess = false;
-                    KazumiDialog.showToast(message: '验证失败：${e.toString()}');
-                    await setting.put(SettingBoxKey.bangumiSyncEnable, false);
-                  }
-                  if (initSuccess) {
-                    KazumiDialog.showToast(message: '配置成功, 开始测试');
-                    try {
-                      await bangumi.ping();
-                      KazumiDialog.showToast(message: '测试成功');
-                    } catch (e) {
-                      KazumiDialog.showToast(message: '测试失败 ${e.toString()}');
-                      await setting.put(SettingBoxKey.bangumiSyncEnable, false);
-                    }
-                  }
+                KazumiDialog.showToast(message: '正在测试 Bangumi Token...');
+                try {
+                  await bangumi.init();
+                } catch (e) {
+                  KazumiDialog.showToast(message: '验证失败：${e.toString()}');
+                  await setting.put(SettingBoxKey.bangumiSyncEnable, false);
+                  if (!mounted) return;
+                  setState(() {
+                    isVerifying = false;
+                  });
+                  return;
                 }
+
+                KazumiDialog.showToast(message: '测试成功');
                 if (!mounted) return;
                 setState(() {
                   isVerifying = false;

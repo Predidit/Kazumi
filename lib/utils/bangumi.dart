@@ -126,9 +126,7 @@ class Bangumi {
     return completer.future;
   }
 
-  // Initialize the collectible change ID baseline
-  // by scanning existing IDs in the box to find the maximum,
-  // and storing that maximum so the next generated ID can be greater than it.
+  // Initialize the collectible change ID
   void _initializeNextCollectChangeId() {
     if (_collectChangeIdInitialized) {
       return;
@@ -145,9 +143,7 @@ class Bangumi {
     _collectChangeIdInitialized = true;
   }
 
-  /// Generate a new collectible change ID (used for recording collectible update changes)
-  /// The ID is based on the current timestamp (in seconds) to ensure monotonic increase and avoid conflicts with existing IDs.
-  /// Keep next ID not conflict with existing IDs in the box, and ensure it is always greater than any existing ID.
+  /// Generate a new collectible change ID
   int _generateCollectChangeId() {
     _initializeNextCollectChangeId();
 

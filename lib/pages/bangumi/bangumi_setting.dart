@@ -137,7 +137,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('Bangumi 高级配置')),
+      appBar: const SysAppBar(title: Text('Bangumi 配置')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Center(

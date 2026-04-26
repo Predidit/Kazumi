@@ -257,7 +257,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         defaultValue: false);
                     setState(() {});
                   },
-                  title: Text('Bangumi 高级配置', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Bangumi 配置', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

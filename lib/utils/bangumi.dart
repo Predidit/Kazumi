@@ -256,7 +256,7 @@ class Bangumi {
             onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
           }
         } else {
-          onProgress?.call('Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
+          onProgress?.call('Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
           for (final id in mismatchIds) {
             final local = localMap[id]!;
             final remote = remoteMap[id]!;
@@ -268,7 +268,7 @@ class Bangumi {
             await _recordCollectibleChange(id, 2, localType.value);
             syncedCount++;
             onProgress?.call(
-                'Bangumi 优先：正在处理冲突状态', syncedCount, totalOperations);
+                'Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
           }
         }
         onProgress?.call('Bangumi 状态同步完成', 1, 1);

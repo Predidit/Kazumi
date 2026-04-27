@@ -4,7 +4,7 @@ import 'bangumi_collection_type.dart';
 
 /// NOTE: 该类仅用于解析 Bangumi API 返回的收藏数据，不包含本地收藏的额外信息
 class BangumiCollection {
-  /// 最后更新时间，秒级
+  /// 最后更新时间
   DateTime updatedAt;
 
   /// Bangumi ID

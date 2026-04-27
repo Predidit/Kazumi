@@ -391,7 +391,7 @@ class BangumiHTTP {
               'BangumiHTTP: fetch collection failed. type=${collectionType.value}, offset=$offset',
               error: e,
             );
-            break;
+            rethrow;
           }
 
           final Map jsonData = res.data;

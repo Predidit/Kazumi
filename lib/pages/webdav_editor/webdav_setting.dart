@@ -220,7 +220,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     if (tBangumiEnableSync == true) {
                       final token = setting.get(
                           SettingBoxKey.bangumiAccessToken,
-                          defaultValue: '');
+                          defaultValue: '').toString().trim();
                       if (token.isEmpty) {
                         KazumiDialog.showToast(
                              message: '请先配置 Bangumi 的 Access Token');

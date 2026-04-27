@@ -216,7 +216,7 @@ class Bangumi {
             if (!updated) {
               onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
               KazumiDialog.showToast(message: '同步失败：条目 $id 上传到 Bangumi 失败');
-              return;
+              throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
             }
             syncedCount++;
             onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);

@@ -111,49 +111,49 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/universal/media_kit_libs_video
 
 dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/macos/media_kit_libs_macos_video
   media_kit_libs_ohos:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: f228407de30278da4109bdc090fffedf1986f769
+      ref: 604d0a95e33792ee8d30cded09ec7c5a2269387c
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:

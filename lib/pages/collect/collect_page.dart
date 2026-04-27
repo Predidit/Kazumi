@@ -106,7 +106,7 @@ class _CollectPageState extends State<CollectPage>
     if (bangumiEnabled) {
       states.add(bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成');
     }
-    if (webDavEnabled && bangumiEnabled && bangumiSynced) {
+    if (webDavEnabled && bangumiEnabled && webDavSynced && bangumiSynced) {
       states.add(webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据');
     }
     return states.join('，');
@@ -145,7 +145,7 @@ class _CollectPageState extends State<CollectPage>
         );
       }
 
-      if (webDavEnabled && bangumiEnabled && bangumiSynced) {
+      if (webDavEnabled && bangumiEnabled && webDavSynced && bangumiSynced) {
         progressText.value = '正在回传最新收藏到 WebDav...';
         progressValue.value = null;
         webDavUploaded = await collectController.uploadCollectiblesToWebDav(

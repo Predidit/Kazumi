@@ -189,6 +189,14 @@ class _AboutPageState extends State<AboutPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
+                    launchUrl(Uri.parse('https://trace.moe'),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('trace.moe', style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
                     launchUrl(Uri.parse(Api.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },

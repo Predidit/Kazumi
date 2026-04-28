@@ -414,7 +414,47 @@ class _SourceSheetState extends State<SourceSheet>
         ],
       );
     }
-    return ListView(children: cardList);
+    return ListView(
+      children: [
+        ...cardList,
+        if (cardList.isNotEmpty) buildSearchActionCard(plugin.name),
+      ],
+    );
+  }
+
+  /// 构建结果列表底部补充检索入口，便于已有结果不准确时换用别名或手动检索关键词
+  Widget buildSearchActionCard(String pluginName) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.all(10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '没有找到想看的结果？',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                GeneralErrorButton(
+                  onPressed: () => showAliasSearchDialog(pluginName),
+                  text: '别名检索',
+                ),
+                GeneralErrorButton(
+                  onPressed: () => showCustomSearchDialog(pluginName),
+                  text: '手动检索',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void showAliasSearchDialog(String pluginName) {

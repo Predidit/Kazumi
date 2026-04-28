@@ -35,6 +35,13 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     scrollController.addListener(scrollListener);
     searchPageController.loadSearchHistories();
+    if (widget.inputTag != '') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final String tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
+        searchController.text = tagString;
+        searchPageController.searchBangumi(tagString, type: 'init');
+      });
+    }
   }
 
   @override
@@ -162,13 +169,6 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.inputTag != '') {
-        final String tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
-        searchController.text = tagString;
-        searchPageController.searchBangumi(tagString, type: 'init');
-      }
-    });
     return Scaffold(
       appBar: SysAppBar(
         backgroundColor: Colors.transparent,

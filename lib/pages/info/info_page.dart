@@ -42,9 +42,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
+  bool commentsIsEmpty = false;
   bool charactersQueryTimeout = false;
+  bool charactersIsEmpty = false;
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
+  bool staffIsEmpty = false;
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
 
@@ -53,22 +56,28 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     setState(() {
       charactersIsLoading = true;
       charactersQueryTimeout = false;
+      charactersIsEmpty = false;
     });
-    infoController
-        .queryBangumiCharactersByID(infoController.bangumiItem.id)
-        .then((_) {
-      if (infoController.characterList.isEmpty && mounted) {
+    try {
+      await infoController
+          .queryBangumiCharactersByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          charactersIsLoading = false;
+          if (infoController.characterList.isEmpty) {
+            charactersIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load characters', error: e);
+      if (mounted) {
         setState(() {
           charactersIsLoading = false;
           charactersQueryTimeout = true;
         });
       }
-      if (infoController.characterList.isNotEmpty && mounted) {
-        setState(() {
-          charactersIsLoading = false;
-        });
-      }
-    });
+    }
   }
 
   Future<void> loadStaff() async {
@@ -76,22 +85,27 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     setState(() {
       staffIsLoading = true;
       staffQueryTimeout = false;
+      staffIsEmpty = false;
     });
-    infoController
-        .queryBangumiStaffsByID(infoController.bangumiItem.id)
-        .then((_) {
-      if (infoController.staffList.isEmpty && mounted) {
+    try {
+      await infoController.queryBangumiStaffsByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          staffIsLoading = false;
+          if (infoController.staffList.isEmpty) {
+            staffIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load staff', error: e);
+      if (mounted) {
         setState(() {
           staffIsLoading = false;
           staffQueryTimeout = true;
         });
       }
-      if (infoController.staffList.isNotEmpty && mounted) {
-        setState(() {
-          staffIsLoading = false;
-        });
-      }
-    });
+    }
   }
 
   Future<void> loadMoreComments({int offset = 0}) async {
@@ -99,22 +113,29 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     setState(() {
       commentsIsLoading = true;
       commentsQueryTimeout = false;
+      commentsIsEmpty = false;
     });
-    infoController
-        .queryBangumiCommentsByID(infoController.bangumiItem.id, offset: offset)
-        .then((_) {
-      if (infoController.commentsList.isEmpty && mounted) {
+    try {
+      await infoController.queryBangumiCommentsByID(
+          infoController.bangumiItem.id,
+          offset: offset);
+      if (mounted) {
+        setState(() {
+          commentsIsLoading = false;
+          if (infoController.commentsList.isEmpty) {
+            commentsIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load comments', error: e);
+      if (mounted) {
         setState(() {
           commentsIsLoading = false;
           commentsQueryTimeout = true;
         });
       }
-      if (infoController.commentsList.isNotEmpty && mounted) {
-        setState(() {
-          commentsIsLoading = false;
-        });
-      }
-    });
+    }
   }
 
   @override
@@ -141,15 +162,23 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       int index = infoTabController.index;
       if (index == 1 &&
           infoController.commentsList.isEmpty &&
-          !commentsIsLoading) {
+          !commentsIsLoading &&
+          !commentsIsEmpty &&
+          !commentsQueryTimeout) {
         loadMoreComments();
       }
       if (index == 2 &&
           infoController.characterList.isEmpty &&
-          !charactersIsLoading) {
+          !charactersIsLoading &&
+          !charactersIsEmpty &&
+          !charactersQueryTimeout) {
         loadCharacters();
       }
-      if (index == 4 && infoController.staffList.isEmpty && !staffIsLoading) {
+      if (index == 4 &&
+          infoController.staffList.isEmpty &&
+          !staffIsLoading &&
+          !staffIsEmpty &&
+          !staffQueryTimeout) {
         loadStaff();
       }
     });
@@ -343,8 +372,11 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
                 commentsQueryTimeout: commentsQueryTimeout,
+                commentsIsEmpty: commentsIsEmpty,
                 charactersQueryTimeout: charactersQueryTimeout,
+                charactersIsEmpty: charactersIsEmpty,
                 staffQueryTimeout: staffQueryTimeout,
+                staffIsEmpty: staffIsEmpty,
                 loadMoreComments: loadMoreComments,
                 loadCharacters: loadCharacters,
                 loadStaff: loadStaff,

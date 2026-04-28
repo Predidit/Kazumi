@@ -35,7 +35,7 @@ abstract class _TimelineController with Store {
   @observable
   late bool onlyShowWatchingBangumis = _collectRepository.getTimelineOnlyShowWatchingBangumis();
 
-  int sortType = 1;
+  int sortType = 3;
 
   late DateTime selectedDate;
 

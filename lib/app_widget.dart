@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -290,19 +292,38 @@ class _AppWidgetState extends State<AppWidget>
             notify: false,
           );
         }
-        return MaterialApp.router(
-          title: "Kazumi",
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          supportedLocales: const [
-            Locale.fromSubtags(
-                languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-          ],
-          locale: const Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
-          theme: themeProvider.light,
-          darkTheme: themeProvider.dark,
-          themeMode: themeProvider.themeMode,
-          routerConfig: Modular.routerConfig,
+        return Shortcuts(
+          shortcuts: <ShortcutActivator, Intent>{
+            LogicalKeySet(LogicalKeyboardKey.escape): const ActivateIntent(),
+          },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (intent) => Modular.to.maybePop(),
+              ),
+            },
+            child: Listener(
+              onPointerDown: (event) {
+                if (event.buttons == kBackMouseButton) {
+                  Modular.to.maybePop();
+                }
+              },
+              child: MaterialApp.router(
+                title: "Kazumi",
+                localizationsDelegates: GlobalMaterialLocalizations.delegates,
+                supportedLocales: const [
+                  Locale.fromSubtags(
+                      languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
+                ],
+                locale: const Locale.fromSubtags(
+                    languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+                theme: themeProvider.light,
+                darkTheme: themeProvider.dark,
+                themeMode: themeProvider.themeMode,
+                routerConfig: Modular.routerConfig,
+              ),
+            ),
+          ),
         );
       },
     );

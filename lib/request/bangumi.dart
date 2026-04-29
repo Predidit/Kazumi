@@ -2,6 +2,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_ranking_period.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
@@ -156,6 +157,50 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi trends list failed', error: e);
+    }
+    return bangumiList;
+  }
+
+  static Future<List<BangumiItem>> getBangumiRankingList(
+      {BangumiRankingPeriod period = BangumiRankingPeriod.month,
+      int limit = 24,
+      int offset = 0}) async {
+    switch (period) {
+      case BangumiRankingPeriod.month:
+        return getBangumiTrendsList(limit: limit, offset: offset);
+      case BangumiRankingPeriod.all:
+        return _getBangumiAllTimeRankingList(limit: limit, offset: offset);
+    }
+  }
+
+  static Future<List<BangumiItem>> _getBangumiAllTimeRankingList(
+      {int limit = 24, int offset = 0}) async {
+    List<BangumiItem> bangumiList = [];
+    var params = <String, dynamic>{
+      'keyword': '',
+      'sort': 'rank',
+      "filter": {
+        "type": [2],
+        "rank": [">0", "<=99999"],
+        "nsfw": false
+      },
+    };
+    try {
+      final res = await Request().post(
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiRankSearch,
+            [limit, offset]),
+        data: params,
+      );
+      final jsonData = res.data;
+      final jsonList = jsonData['data'];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          bangumiList.add(BangumiItem.fromJson(jsonItem));
+        }
+      }
+    } catch (e) {
+      KazumiLogger()
+          .e('Network: resolve bangumi all time ranking failed', error: e);
     }
     return bangumiList;
   }

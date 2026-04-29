@@ -62,6 +62,15 @@ class _MyPageState extends State<MyPage> {
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
+                    Modular.to.pushNamed('/settings/reminder');
+                  },
+                  leading: const Icon(Icons.notifications_active_rounded),
+                  title: Text('更新提醒', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('提醒今天更新的在看番剧',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
                     Modular.to.pushNamed('/settings/download/');
                   },
                   leading: const Icon(Icons.download_rounded),

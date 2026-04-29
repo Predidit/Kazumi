@@ -5,6 +5,7 @@ import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/utils/bangumi_update_reminder_service.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
@@ -52,6 +53,7 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+    BangumiUpdateReminderService.notifyTodayUpdatesIfNeeded();
   }
 
   @action
@@ -66,6 +68,7 @@ abstract class _CollectController with Store {
         (DateTime.now().millisecondsSinceEpoch ~/ 1000));
     await _collectCrudRepository.addCollectChange(collectChange);
     loadCollectibles();
+    BangumiUpdateReminderService.notifyTodayUpdatesIfNeeded();
   }
 
   Future<void> updateLocalCollect(BangumiItem bangumiItem) async {

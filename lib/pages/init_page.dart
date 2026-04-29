@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/utils/bangumi_update_reminder_service.dart';
 import 'package:kazumi/utils/background_download_service.dart';
 import 'package:kazumi/utils/windows_shortcut.dart';
 
@@ -57,11 +58,20 @@ class _InitPageState extends State<InitPage> {
     await _checkRunningOnX11();
     await _pluginInit();
     await _showShortcutDialog();
+    await _notifyBangumiUpdates();
 
     _startDefaultPage();
     // delay to ensure that the default page is fully loaded
     await Future.delayed(const Duration(milliseconds: 500));
     _update();
+  }
+
+  Future<void> _notifyBangumiUpdates() async {
+    try {
+      await BangumiUpdateReminderService.notifyTodayUpdatesIfNeeded();
+    } catch (e) {
+      KazumiLogger().w('InitPage: bangumi update reminder failed', error: e);
+    }
   }
 
   void _setupBackgroundDownloadNavigation() {

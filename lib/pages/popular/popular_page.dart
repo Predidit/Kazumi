@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
+import 'package:kazumi/modules/bangumi/bangumi_ranking_period.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -64,7 +65,9 @@ class _PopularPageState extends State<PopularPage>
             scrollController.position.maxScrollExtent - 200 &&
         !popularController.isLoadingMore) {
       KazumiLogger().i('PopularPageController: Fetching next recommendation batch');
-      if (popularController.currentTag != '') {
+      if (popularController.showRanking) {
+        popularController.queryBangumiByRanking();
+      } else if (popularController.currentTag != '') {
         popularController.queryBangumiByTag();
       } else {
         popularController.queryBangumiByTrend();
@@ -119,6 +122,13 @@ class _PopularPageState extends State<PopularPage>
                 ),
               ),
             ),
+            SliverToBoxAdapter(
+              child: Observer(
+                builder: (_) => popularController.showRanking
+                    ? buildRankingPeriodSwitcher()
+                    : const SizedBox.shrink(),
+              ),
+            ),
             SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
                     StyleString.cardSpace, 0, StyleString.cardSpace, 0),
@@ -132,10 +142,14 @@ class _PopularPageState extends State<PopularPage>
                           actions: [
                             GeneralErrorButton(
                               onPressed: () {
-                                if (popularController.trendList.isEmpty) {
+                                if (popularController.showRanking) {
+                                  popularController.queryBangumiByRanking(
+                                      type: 'init');
+                                } else if (popularController.currentTag == '') {
                                   popularController.queryBangumiByTrend();
                                 } else {
-                                  popularController.queryBangumiByTag();
+                                  popularController.queryBangumiByTag(
+                                      type: 'init');
                                 }
                               },
                               text: '点击重试',
@@ -146,9 +160,12 @@ class _PopularPageState extends State<PopularPage>
                     );
                   }
                   return contentGrid(
-                    (popularController.currentTag == '')
-                        ? popularController.trendList
-                        : popularController.bangumiList,
+                    popularController.showRanking
+                        ? popularController.rankingList
+                        : (popularController.currentTag == '')
+                            ? popularController.trendList
+                            : popularController.bangumiList,
+                    ranked: popularController.showRanking,
                   );
                 })),
           ],
@@ -163,7 +180,7 @@ class _PopularPageState extends State<PopularPage>
     );
   }
 
-  Widget contentGrid(bangumiList) {
+  Widget contentGrid(bangumiList, {bool ranked = false}) {
     int crossCount = 3;
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.compact['width']!) {
       crossCount = 5;
@@ -188,10 +205,75 @@ class _PopularPageState extends State<PopularPage>
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
             return bangumiList!.isNotEmpty
-                ? BangumiCardV(bangumiItem: bangumiList[index])
+                ? ranked
+                    ? Stack(
+                        children: [
+                          BangumiCardV(bangumiItem: bangumiList[index]),
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: buildRankingBadge(index),
+                          ),
+                        ],
+                      )
+                    : BangumiCardV(bangumiItem: bangumiList[index])
                 : null;
           },
           childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,
+        ),
+      ),
+    );
+  }
+
+  Widget buildRankingBadge(int index) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.16),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '#${index + 1}',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+    );
+  }
+
+  Widget buildRankingPeriodSwitcher() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SegmentedButton<BangumiRankingPeriod>(
+          segments: BangumiRankingPeriod.values
+              .map(
+                (period) => ButtonSegment<BangumiRankingPeriod>(
+                  value: period,
+                  label: Text(period.label),
+                  icon: Icon(period == BangumiRankingPeriod.month
+                      ? Icons.calendar_month_rounded
+                      : Icons.leaderboard_rounded),
+                ),
+              )
+              .toList(),
+          selected: {popularController.rankingPeriod},
+          onSelectionChanged: (selection) async {
+            scrollController.animateTo(0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut);
+            await popularController.setRankingPeriod(selection.first);
+          },
         ),
       ),
     );
@@ -230,7 +312,14 @@ class _PopularPageState extends State<PopularPage>
                     height: 44,
                     child: Observer(
                       builder: (_) {
-                        final bool isTrend = popularController.currentTag == '';
+                        final bool isRanking = popularController.showRanking;
+                        final bool isTrend =
+                            !isRanking && popularController.currentTag == '';
+                        final title = isRanking
+                            ? '排行榜'
+                            : isTrend
+                                ? '热门番组'
+                                : popularController.currentTag;
                         return InkWell(
                           key: selectorKey,
                           borderRadius: BorderRadius.circular(8),
@@ -239,7 +328,7 @@ class _PopularPageState extends State<PopularPage>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
+                                title,
                                 style: theme.textTheme.headlineMedium!.copyWith(
                                   fontWeight: fontWeight,
                                   fontSize: fontSize,
@@ -316,9 +405,18 @@ class _PopularPageState extends State<PopularPage>
             maxWidth: 80,
             items: [
               '',
+              popularRankingModeKey,
               ...defaultAnimeTags,
             ],
-            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
+            itemBuilder: (item) {
+              if (item.isEmpty) {
+                return '热门番组';
+              }
+              if (item == popularRankingModeKey) {
+                return '排行榜';
+              }
+              return item;
+            },
           );
         },
         transitionDuration: const Duration(milliseconds: 200),
@@ -327,7 +425,18 @@ class _PopularPageState extends State<PopularPage>
     );
 
     if (selected == null) return;
-    if (selected == '' && popularController.currentTag != '') {
+    if (selected == popularRankingModeKey) {
+      if (!popularController.showRanking) {
+        scrollController.animateTo(0,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut);
+        popularController.enterRankingMode();
+        if (popularController.rankingList.isEmpty) {
+          await popularController.queryBangumiByRanking(type: 'init');
+        }
+      }
+    } else if (selected == '' &&
+        (popularController.currentTag != '' || popularController.showRanking)) {
       scrollController.animateTo(0,
           duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
       popularController.setCurrentTag('');
@@ -335,7 +444,9 @@ class _PopularPageState extends State<PopularPage>
       if (popularController.trendList.isEmpty) {
         await popularController.queryBangumiByTrend();
       }
-    } else if (selected != '' && selected != popularController.currentTag) {
+    } else if (selected != '' &&
+        (selected != popularController.currentTag ||
+            popularController.showRanking)) {
       scrollController.animateTo(0,
           duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
       popularController.setCurrentTag(selected);

@@ -6,11 +6,13 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
+import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:kazumi/utils/bangumi_update_reminder_service.dart';
 import 'package:kazumi/utils/storage.dart';
 
 class CollectPage extends StatefulWidget {
@@ -82,6 +84,23 @@ class _CollectPageState extends State<CollectPage>
           ),
           title: const Text('追番'),
           actions: [
+            Observer(
+              builder: (_) {
+                final updateCount =
+                    BangumiUpdateReminderService.getTodayUpdates().length;
+                return IconButton(
+                  onPressed: showTodayUpdatesSheet,
+                  tooltip: '今日更新',
+                  icon: updateCount > 0
+                      ? Badge.count(
+                          count: updateCount,
+                          child:
+                              const Icon(Icons.notifications_active_rounded),
+                        )
+                      : const Icon(Icons.notifications_none_rounded),
+                );
+              },
+            ),
             IconButton(
                 onPressed: () {
                   setState(() {
@@ -125,6 +144,88 @@ class _CollectPageState extends State<CollectPage>
           return renderBody;
         }),
       ),
+    );
+  }
+
+  void showTodayUpdatesSheet() {
+    final updates = BangumiUpdateReminderService.getTodayUpdates();
+    if (updates.isEmpty) {
+      KazumiDialog.showToast(message: '今天没有在看番剧更新', context: context);
+      return;
+    }
+
+    final showRating =
+        setting.get(SettingBoxKey.showRating, defaultValue: true);
+    final mediaSize = MediaQuery.sizeOf(context);
+    final maxWidth = mediaSize.width >= LayoutBreakpoint.medium['width']!
+        ? mediaSize.width * 9 / 16
+        : mediaSize.width;
+
+    KazumiDialog.showBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      useSafeArea: true,
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxWidth: maxWidth,
+        maxHeight: mediaSize.height * 0.82,
+      ),
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '今日更新',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    onPressed: KazumiDialog.dismiss,
+                    tooltip: '关闭',
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '今天有 ${updates.length} 部在看番剧更新',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: updates.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    return BangumiTimelineCard(
+                      bangumiItem: updates[index],
+                      showRating: showRating,
+                      cardHeight: 132,
+                      enableHero: false,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

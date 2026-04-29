@@ -1,6 +1,10 @@
 package com.example.kazumi
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.BroadcastReceiver
@@ -23,6 +27,8 @@ class MainActivity: AudioServiceActivity() {
     private val CHANNEL = "com.predidit.kazumi/intent"
     private val STORAGE_CHANNEL = "com.predidit.kazumi/storage"
     private val PIP_CHANNEL = "com.predidit.kazumi/pip"
+    private val NOTIFICATION_CHANNEL = "com.predidit.kazumi/notification"
+    private val UPDATE_REMINDER_CHANNEL_ID = "kazumi_bangumi_update_reminder"
     private var intentChannel: MethodChannel? = null
     private var pipChannel: MethodChannel? = null
 
@@ -86,6 +92,16 @@ class MainActivity: AudioServiceActivity() {
                 val path = call.argument<String>("path") ?: filesDir.absolutePath
                 val availableBytes = getAvailableStorage(path)
                 result.success(availableBytes)
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NOTIFICATION_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "showBangumiUpdateReminder") {
+                val title = call.argument<String>("title") ?: "Kazumi"
+                val text = call.argument<String>("text") ?: ""
+                result.success(showBangumiUpdateReminder(title, text))
             } else {
                 result.notImplemented()
             }
@@ -284,6 +300,57 @@ class MainActivity: AudioServiceActivity() {
         }
         unregisterReceiver(pipActionReceiver)
         pipActionReceiverRegistered = false
+    }
+
+    private fun showBangumiUpdateReminder(title: String, text: String): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                UPDATE_REMINDER_CHANNEL_ID,
+                "番剧更新提醒",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            manager.createNotificationChannel(channel)
+        }
+
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            ?: Intent(this, MainActivity::class.java)
+        launchIntent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            2001,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, UPDATE_REMINDER_CHANNEL_ID)
+        } else {
+            Notification.Builder(this)
+        }
+
+        val notification = builder
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(Notification.BigTextStyle().bigText(text))
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
+            .build()
+
+        manager.notify(2001, notification)
+        return true
     }
 
     private fun getAvailableStorage(path: String): Long {

@@ -25,6 +25,38 @@ mixin _$PopularController on _PopularController, Store {
     });
   }
 
+  late final _$showRankingAtom =
+      Atom(name: '_PopularController.showRanking', context: context);
+
+  @override
+  bool get showRanking {
+    _$showRankingAtom.reportRead();
+    return super.showRanking;
+  }
+
+  @override
+  set showRanking(bool value) {
+    _$showRankingAtom.reportWrite(value, super.showRanking, () {
+      super.showRanking = value;
+    });
+  }
+
+  late final _$rankingPeriodAtom =
+      Atom(name: '_PopularController.rankingPeriod', context: context);
+
+  @override
+  BangumiRankingPeriod get rankingPeriod {
+    _$rankingPeriodAtom.reportRead();
+    return super.rankingPeriod;
+  }
+
+  @override
+  set rankingPeriod(BangumiRankingPeriod value) {
+    _$rankingPeriodAtom.reportWrite(value, super.rankingPeriod, () {
+      super.rankingPeriod = value;
+    });
+  }
+
   late final _$bangumiListAtom =
       Atom(name: '_PopularController.bangumiList', context: context);
 
@@ -54,6 +86,22 @@ mixin _$PopularController on _PopularController, Store {
   set trendList(ObservableList<BangumiItem> value) {
     _$trendListAtom.reportWrite(value, super.trendList, () {
       super.trendList = value;
+    });
+  }
+
+  late final _$rankingListAtom =
+      Atom(name: '_PopularController.rankingList', context: context);
+
+  @override
+  ObservableList<BangumiItem> get rankingList {
+    _$rankingListAtom.reportRead();
+    return super.rankingList;
+  }
+
+  @override
+  set rankingList(ObservableList<BangumiItem> value) {
+    _$rankingListAtom.reportWrite(value, super.rankingList, () {
+      super.rankingList = value;
     });
   }
 
@@ -93,8 +141,11 @@ mixin _$PopularController on _PopularController, Store {
   String toString() {
     return '''
 currentTag: ${currentTag},
+showRanking: ${showRanking},
+rankingPeriod: ${rankingPeriod},
 bangumiList: ${bangumiList},
 trendList: ${trendList},
+rankingList: ${rankingList},
 isLoadingMore: ${isLoadingMore},
 isTimeOut: ${isTimeOut}
     ''';

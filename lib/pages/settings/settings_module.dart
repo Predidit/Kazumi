@@ -14,6 +14,7 @@ import 'package:kazumi/pages/settings/proxy/proxy_module.dart';
 import 'package:kazumi/pages/webdav_editor/webdav_module.dart';
 import 'package:kazumi/pages/settings/keyboard_settings.dart';
 import 'package:kazumi/pages/settings/download_settings.dart';
+import 'package:kazumi/pages/settings/bangumi_update_reminder_settings.dart';
 import 'package:kazumi/pages/download/download_page_module.dart';
 
 class SettingsModule extends Module {
@@ -25,6 +26,7 @@ class SettingsModule extends Module {
       child: (_) => const SetDisplayMode(),
     );
     r.child("/keyboard", child: (_) => const KeyboardSettingsPage());
+    r.child("/reminder", child: (_) => const BangumiUpdateReminderSettingsPage());
     r.child("/player", child: (_) => const PlayerSettingsPage());
     r.child("/player/decoder", child: (_) => const DecoderSettings());
     r.child("/player/renderer", child: (_) => const RendererSettings());

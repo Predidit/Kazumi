@@ -62,6 +62,9 @@ class Api {
   /// 获取弹弹番剧元数据（通过BGM番剧ID）
   static const String dandanAPIInfoByBgmBangumiId = "/api/v2/bangumi/bgmtv/{0}";
 
+  /// 图片识别番剧
+  static const String traceApi = 'https://api.trace.moe/search';
+
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {
       url = url.replaceAll('{$i}', params[i].toString());

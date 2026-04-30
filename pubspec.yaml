@@ -124,6 +124,7 @@ dependencies:
       url: https://github.com/Predidit/media-kit.git
       ref: d19286c1fc0bafa1154fc33c3b7ad836dcd78a1b
       path: ./libs/universal/media_kit_libs_video
+  battery_plus: ^7.0.0
 
 dependency_overrides:
   media_kit_libs_linux:

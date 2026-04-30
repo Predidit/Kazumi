@@ -570,7 +570,11 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       if (videoPageController.isPip) {
                         await PipUtils.exitDesktopPIPWindow();
                       } else {
-                        await PipUtils.enterDesktopPIPWindow();
+                        // 进入画中画时使用播放源比例，避免窗口比例与视频比例不一致产生黑边
+                        await PipUtils.enterDesktopPIPWindow(
+                          width: playerController.playerWidth,
+                          height: playerController.playerHeight,
+                        );
                       }
                       videoPageController.isPip = !videoPageController.isPip;
                       return;
@@ -583,8 +587,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     await PipUtils.updateAndroidPIPActions(
                       playing: playerController.playing,
                       danmakuEnabled: playerController.danmakuOn,
+                      width: playerController.playerWidth,
+                      height: playerController.playerHeight,
                     );
-                    final bool entered = await PipUtils.enterAndroidPIPWindow();
+                    final bool entered = await PipUtils.enterAndroidPIPWindow(
+                      width: playerController.playerWidth,
+                      height: playerController.playerHeight,
+                    );
                     if (!entered) {
                       KazumiDialog.showToast(message: '进入画中画失败');
                     }

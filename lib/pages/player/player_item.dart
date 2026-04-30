@@ -127,6 +127,7 @@ class _PlayerItemState extends State<PlayerItem>
   int episodeNum = 0;
   bool? _lastPipPlaying;
   bool? _lastPipDanmakuEnabled;
+  late mobx.ReactionDisposer _playerSizeListener;
 
   late mobx.ReactionDisposer _fullscreenListener;
 
@@ -199,7 +200,26 @@ class _PlayerItemState extends State<PlayerItem>
     await PipUtils.updateAndroidPIPActions(
       playing: playing,
       danmakuEnabled: danmakuEnabled,
+      width: playerController.playerWidth,
+      height: playerController.playerHeight,
     );
+  }
+
+  Future<void> _syncPIPAspectWhenVideoSizeReady() async {
+    if (playerController.playerWidth <= 0 ||
+        playerController.playerHeight <= 0) {
+      return;
+    }
+    if (Platform.isAndroid) {
+      await _updateAndroidPIPActions(force: true);
+      return;
+    }
+    if (Utils.isDesktop() && videoPageController.isPip) {
+      await PipUtils.enterDesktopPIPWindow(
+        width: playerController.playerWidth,
+        height: playerController.playerHeight,
+      );
+    }
   }
 
   void _loadShortcuts() {
@@ -1455,6 +1475,12 @@ class _PlayerItemState extends State<PlayerItem>
         _handleFullscreenChange(context);
       },
     );
+    _playerSizeListener = mobx.reaction<String>(
+      (_) => '${playerController.playerWidth}:${playerController.playerHeight}',
+      (_) {
+        unawaited(_syncPIPAspectWhenVideoSizeReady());
+      },
+    );
     if (Platform.isAndroid) {
       PipUtils.initPipHandler(
         onAction: (action) async {
@@ -1535,6 +1561,7 @@ class _PlayerItemState extends State<PlayerItem>
     // We need to reuse the player after episode is changed and player item is disposed
     // We dispose player after video page disposed
     _fullscreenListener();
+    _playerSizeListener();
     WidgetsBinding.instance.removeObserver(this);
     windowManager.removeListener(this);
     playerTimer?.cancel();
@@ -1604,7 +1631,7 @@ class _PlayerItemState extends State<PlayerItem>
                   }
                 },
                 child: SizedBox(
-                  height: videoPageController.isFullscreen
+                  height: videoPageController.isFullscreen || videoPageController.isPip
                       ? (MediaQuery.of(context).size.height)
                       : (MediaQuery.of(context).size.width * 9.0 / (16.0)),
                   width: MediaQuery.of(context).size.width,
@@ -1682,7 +1709,7 @@ class _PlayerItemState extends State<PlayerItem>
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: videoPageController.isFullscreen
+                      height: videoPageController.isFullscreen || videoPageController.isPip
                           ? MediaQuery.sizeOf(context).height
                           : (MediaQuery.sizeOf(context).width * 9 / 16),
                       child: DanmakuScreen(

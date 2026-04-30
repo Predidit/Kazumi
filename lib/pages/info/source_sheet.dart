@@ -414,7 +414,68 @@ class _SourceSheetState extends State<SourceSheet>
         ],
       );
     }
-    return ListView(children: cardList);
+    return ListView(
+      children: [
+        ...cardList,
+        if (cardList.isNotEmpty) showSupplementarySearchEntry(plugin.name),
+      ],
+    );
+  }
+
+  /// 构建结果列表底部补充检索入口，便于已有结果不准确时换用别名或手动检索关键词
+  Widget showSupplementarySearchEntry(String pluginName) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 2,
+              runSpacing: 4,
+              children: [
+                Text(
+                  '结果不准确？',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color
+                            ?.withValues(alpha: 0.75),
+                      ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    textStyle: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  onPressed: () => showAliasSearchDialog(pluginName),
+                  child: const Text('别名检索'),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    textStyle: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  onPressed: () => showCustomSearchDialog(pluginName),
+                  child: const Text('手动检索'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void showAliasSearchDialog(String pluginName) {

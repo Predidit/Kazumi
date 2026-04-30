@@ -429,10 +429,6 @@ class _SourceSheetState extends State<SourceSheet>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Divider(
-            height: 16,
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.35),
-          ),
           Align(
             alignment: Alignment.centerRight,
             child: Wrap(
@@ -454,7 +450,7 @@ class _SourceSheetState extends State<SourceSheet>
                   style: TextButton.styleFrom(
                     minimumSize: Size.zero,
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
                     textStyle: Theme.of(context).textTheme.bodySmall,
@@ -466,7 +462,7 @@ class _SourceSheetState extends State<SourceSheet>
                   style: TextButton.styleFrom(
                     minimumSize: Size.zero,
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
                     textStyle: Theme.of(context).textTheme.bodySmall,

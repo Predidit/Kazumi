@@ -375,12 +375,9 @@ class BangumiHTTP {
         while (true) {
           Response<dynamic> res;
           try {
-            final url =
-                '${Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiGetCollection, [
-                  resolvedUsername,
-                  limit,
-                  offset
-                ])}&type=${collectionType.value}';
+            final url = Api.formatUrl(
+                Api.bangumiAPIDomain + Api.bangumiGetCollection,
+                [resolvedUsername, limit, offset, collectionType.value]);
             res = await Request().get(
               url,
               extra: {'customError': '', 'requiresBangumiAuth': true},

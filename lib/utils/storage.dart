@@ -25,16 +25,16 @@ class GStorage {
   /// Hive directory path, initialized during init()
   static String? _hivePath;
 
-  /// Queue to serialize write operations across collect-related boxes.
+  /// Queue to serialize write operations
   static Future<void> _collectChangesWriteQueue = Future.value();
 
-  /// Next ID for collectChanges records, initialized on demand.
+  /// Next ID
   static int _nextCollectChangeId = 0;
 
-  /// Flag to indicate if the next collect change ID has been initialized
+  /// Flag to indicate if the next ID has initialized
   static bool _collectChangeIdInitialized = false;
 
-  /// Ensure collect-related write operations are executed sequentially.
+  /// Ensure collect-related write sequentially
   static Future<T> _runCollectChangesWriteExclusive<T>(
     Future<T> Function() action,
   ) {
@@ -122,8 +122,7 @@ class GStorage {
     });
   }
 
-  /// Put a collectible using the same write queue as collect changes.
-  /// This prevents races with operations that patch both boxes together.
+  /// Put a collectible using the same write queue
   static Future<void> putCollectible(CollectedBangumi collectible) {
     return _runCollectChangesWriteExclusive(() async {
       await collectibles.put(collectible.bangumiItem.id, collectible);

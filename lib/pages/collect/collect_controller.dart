@@ -53,6 +53,7 @@ abstract class _CollectController with Store {
       return;
     }
 
+    // 1. Sync with Bangumi if enabled
     final bool syncSucceeded = await _syncBangumiCollectIfEnabled(
       bangumiItem.id,
       type,
@@ -61,10 +62,10 @@ abstract class _CollectController with Store {
       return;
     }
 
-    // 判断新增还是修改收藏
     final int currentCollectType = getCollectType(bangumiItem);
     final int collectChangeAction = currentCollectType == 0 ? 1 : 2;
 
+    // 2. Update local database and change logs
     await _collectCrudRepository.addCollectible(bangumiItem, type);
     await GStorage.appendCollectChange(
       bangumiId: bangumiItem.id,
@@ -76,10 +77,9 @@ abstract class _CollectController with Store {
 
   @action
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
-    // 确认删除收藏的后续动作
+    // Resolve how to handle deletion with user
     final action = await _resolveBangumiDeleteSyncAction(bangumiItem);
     switch (action) {
-      // 标记删除
       case _BangumiDeleteSyncAction.markAbandoned:
         await addCollect(
           bangumiItem,
@@ -87,18 +87,15 @@ abstract class _CollectController with Store {
         );
         return;
 
-      // 打开网页
       case _BangumiDeleteSyncAction.openWeb:
         await _deleteCollectLocally(bangumiItem);
         await _openBangumiSubjectPage(bangumiItem.id);
         return;
 
-      // 未开启 Bangumi 同步走这里
       case _BangumiDeleteSyncAction.deleteLocalOnly:
         await _deleteCollectLocally(bangumiItem);
         return;
 
-      // 取消按钮
       case _BangumiDeleteSyncAction.cancel:
       case null:
         return;

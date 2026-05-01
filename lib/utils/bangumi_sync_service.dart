@@ -33,10 +33,10 @@ class BangumiSyncService {
   /// Whether any Bangumi operation is active or already queued.
   bool get isUsing => _queuedOperationCount > 0 || _activeOperationCount > 0;
 
-  String get _configuredToken =>
-      setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
-          .toString()
-          .trim();
+  String get _configuredToken => setting
+      .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+      .toString()
+      .trim();
 
   BangumiSyncService._internal();
   static final BangumiSyncService _instance = BangumiSyncService._internal();
@@ -230,7 +230,6 @@ class BangumiSyncService {
               localType.value,
             );
             await GStorage.putCollectible(collected);
-            // 记录一次收藏变更，action=1 代表新增（add），以便 WebDAV 增量同步能正确识别并上传变更
             await _recordCollectibleChange(id, 1, localType.value);
             syncedCount++;
             onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
@@ -258,7 +257,6 @@ class BangumiSyncService {
             local.type = localType.value;
             local.time = remote.updatedAt;
             await GStorage.putCollectible(local);
-            // 记录一次收藏变更，action=2 代表修改（update），以便 WebDAV 增量同步能正确识别并上传变更
             await _recordCollectibleChange(id, 2, localType.value);
             syncedCount++;
             onProgress?.call(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/bangumi.dart';
+import 'package:kazumi/utils/bangumi_sync_service.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:hive_ce/hive.dart';
@@ -216,7 +216,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     final tBangumiEnableSync = value ?? !bangumiSyncEnable;
-                    final bangumi = Bangumi();
+                    final bangumi = BangumiSyncService();
                     if (tBangumiEnableSync == true) {
                       final token = setting.get(
                           SettingBoxKey.bangumiAccessToken,

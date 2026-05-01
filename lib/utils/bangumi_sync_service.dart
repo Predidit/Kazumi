@@ -11,7 +11,7 @@ import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/bangumi.dart';
 
 /// Bangumi 相关工具类
-class Bangumi {
+class BangumiSyncService {
   /// Current username corresponding to the token, set by ping()
   String username = '';
 
@@ -39,9 +39,9 @@ class Bangumi {
           .toString()
           .trim();
 
-  Bangumi._internal();
-  static final Bangumi _instance = Bangumi._internal();
-  factory Bangumi() => _instance;
+  BangumiSyncService._internal();
+  static final BangumiSyncService _instance = BangumiSyncService._internal();
+  factory BangumiSyncService() => _instance;
 
   void reset() {
     initialized = false;

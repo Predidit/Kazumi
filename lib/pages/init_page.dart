@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/utils/bangumi.dart';
+import 'package:kazumi/utils/bangumi_sync_service.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -163,7 +163,7 @@ class _InitPageState extends State<InitPage> {
       defaultValue: false,
     );
     if (bangumiEnable) {
-      var bangumi = Bangumi();
+      var bangumi = BangumiSyncService();
       KazumiLogger().i('Bangumi: Starting Bangumi initialization');
       try {
         await bangumi.init();

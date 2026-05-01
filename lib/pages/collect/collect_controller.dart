@@ -5,7 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/utils/bangumi.dart';
+import 'package:kazumi/utils/bangumi_sync_service.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
@@ -121,7 +121,7 @@ abstract class _CollectController with Store {
       return _BangumiDeleteSyncAction.deleteLocalOnly;
     }
 
-    final bangumi = Bangumi();
+    final bangumi = BangumiSyncService();
     if (!bangumi.initialized) {
       return _BangumiDeleteSyncAction.deleteLocalOnly;
     }
@@ -179,7 +179,7 @@ abstract class _CollectController with Store {
       return true;
     }
 
-    final bangumi = Bangumi();
+    final bangumi = BangumiSyncService();
     if (!bangumi.initialized) {
       KazumiDialog.showToast(message: 'Bangumi 未初始化，同步失败，已取消本次状态修改');
       KazumiLogger().w(
@@ -335,15 +335,15 @@ abstract class _CollectController with Store {
       return false;
     }
 
-    if (!Bangumi().initialized) {
+    if (!BangumiSyncService().initialized) {
       KazumiDialog.showToast(message: 'Bangumi同步已开启但未初始化，请检查Token后重试');
       return false;
     }
     try {
-      await Bangumi().ping();
+      await BangumiSyncService().ping();
       try {
         final hasChanges =
-            await Bangumi().syncCollectibles(onProgress: onProgress);
+            await BangumiSyncService().syncCollectibles(onProgress: onProgress);
         if (showSuccessToast) {
           KazumiDialog.showToast(
             message: hasChanges ? 'Bangumi同步完成' : '未发现状态差异，无需同步',

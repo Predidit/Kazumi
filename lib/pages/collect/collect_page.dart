@@ -60,30 +60,33 @@ class _CollectPageState extends State<CollectPage>
     unawaited(KazumiDialog.show(
       clickMaskDismiss: false,
       builder: (context) {
-        return Dialog(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: SizedBox(
-              width: 340,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '收藏全量同步中',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12),
-                  ValueListenableBuilder<String>(
-                    valueListenable: progressText,
-                    builder: (_, value, __) => Text(value),
-                  ),
-                  const SizedBox(height: 12),
-                  ValueListenableBuilder<double?>(
-                    valueListenable: progressValue,
-                    builder: (_, value, __) => LinearProgressIndicator(value: value),
-                  ),
-                ],
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SizedBox(
+                width: 340,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '收藏全量同步中',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    ValueListenableBuilder<String>(
+                      valueListenable: progressText,
+                      builder: (_, value, __) => Text(value),
+                    ),
+                    const SizedBox(height: 12),
+                    ValueListenableBuilder<double?>(
+                      valueListenable: progressValue,
+                      builder: (_, value, __) => LinearProgressIndicator(value: value),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

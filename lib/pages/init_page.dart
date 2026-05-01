@@ -167,7 +167,6 @@ class _InitPageState extends State<InitPage> {
       KazumiLogger().i('Bangumi: Starting Bangumi initialization');
       try {
         await bangumi.init();
-        // Bangumi 当前无观看历史同步逻辑
       } catch (e) {
         bangumi.reset();
         await setting.put(SettingBoxKey.bangumiSyncEnable, false);

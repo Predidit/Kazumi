@@ -16,6 +16,7 @@ import 'package:kazumi/utils/logger.dart';
 
 part 'collect_controller.g.dart';
 
+// Define actions for handling Bangumi collect deletion.
 enum _BangumiDeleteSyncAction {
   deleteLocalOnly,
   markAbandoned,
@@ -240,9 +241,7 @@ abstract class _CollectController with Store {
     }
     try {
       await WebDav().syncCollectibles();
-      if (showSuccessToast) {
-        KazumiDialog.showToast(message: 'WebDav同步完成');
-      }
+      KazumiDialog.showToast(message: 'WebDav同步完成');
     } catch (e) {
       KazumiDialog.showToast(message: 'WebDav同步失败 $e');
       return false;
@@ -251,7 +250,8 @@ abstract class _CollectController with Store {
     return true;
   }
 
-  /// 仅上传当前本地收藏与变更日志到 WebDAV，不做下载合并
+  /// Only upload local collectibles and change logs to WebDAV, without downloading and merging.
+  /// After bangumi sync finished, call this method to push local changes to WebDAV.
   Future<bool> uploadCollectiblesToWebDav({bool showSuccessToast = true}) async {
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');

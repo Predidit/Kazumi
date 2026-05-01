@@ -246,7 +246,6 @@ class _CollectPageState extends State<CollectPage>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            // 收藏页的同步按钮
             bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
               defaultValue: false);
             bool bgmSyncEnable = await setting.get(SettingBoxKey.bangumiSyncEnable,

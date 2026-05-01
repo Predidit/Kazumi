@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:dio/dio.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
@@ -333,11 +335,7 @@ class BangumiHTTP {
     return null;
   }
 
-  /// Get the Bangumi collection of the current user, with customizable collection types to include.
-  ///
-  /// [includeBangumiTypes] The collection types to include, default is all types (1-5).
-  /// [username] The Bangumi username to reuse when the caller already has it.
-  /// [onProgress] The callback function to report progress, with parameters (message, current, total).
+  /// Get the Bangumi collection of the current user
   static Future<List<BangumiCollection>> getBangumiCollectibles({
     List<BangumiCollectionType> includeBangumiTypes = const [
       BangumiCollectionType.planToWatch,
@@ -347,6 +345,7 @@ class BangumiHTTP {
       BangumiCollectionType.abandoned,
     ],
     String? username,
+    required int limit,
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final List<BangumiCollection> bangumiCollection = [];
@@ -361,8 +360,6 @@ class BangumiHTTP {
     }
 
     try {
-      // Bangumi fetch page size
-      const int limit = 100;
       const Duration requestInterval = Duration(milliseconds: 250);
 
       for (final collectionType in includeBangumiTypes) {
@@ -437,9 +434,7 @@ class BangumiHTTP {
     return bangumiCollection;
   }
 
-  /// Update the Bangumi collection by ID, with customizable data to upload.
-  /// [id] The ID of the Bangumi item.
-  /// [data] The data to update, in the format of Bangumi collection API.
+  /// Update the Bangumi collection by ID
   static Future<bool> updateBangumiById(
       int id, Map<String, dynamic> data) async {
     const Duration requestInterval = Duration(milliseconds: 250);
@@ -477,11 +472,7 @@ class BangumiHTTP {
     }
   }
 
-  /// Update the Bangumi collection by ID,
-  /// converting the local collection type to the Bangumi collection type.
-  ///
-  /// [id] The ID of the Bangumi item.
-  /// [localType] The local collection type.
+  /// Update the Bangumi collection by Type
   static Future<bool> updateBangumiByType(int id, int localType) async {
     final type = CollectType.fromValue(localType).toBangumiCollectionType();
     if (type == null) {

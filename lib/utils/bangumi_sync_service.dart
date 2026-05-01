@@ -10,25 +10,24 @@ import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/bangumi.dart';
 
-/// Bangumi 相关工具类
+/// Bangumi 同步服务工具类
 class BangumiSyncService {
-  /// Current username corresponding to the token, set by ping()
+  /// Current username, set by ping()
   String username = '';
 
-  /// is Bangumi initialized successfully
-  /// set to true after successful ping() in init()
+  /// Init status, set after ping() in init()
   bool initialized = false;
 
   /// Hive
   Box setting = GStorage.setting;
 
-  /// Number of queued Bangumi operations waiting to enter the exclusive section.
+  /// Number of queued Bangumi operations waiting
   int _queuedOperationCount = 0;
 
-  /// Number of Bangumi operations currently running in the exclusive section.
+  /// Number of Bangumi operations running
   int _activeOperationCount = 0;
 
-  /// Shared serial queue for all Bangumi operations that must not overlap.
+  /// Serial queue for all Bangumi operations
   Future<void> _operationQueue = Future.value();
 
   /// Whether any Bangumi operation is active or already queued.
@@ -155,16 +154,14 @@ class BangumiSyncService {
           setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0),
         );
 
-        // 1. 全量拉取远程收藏（带分页进度）
+        // 1. 全量拉取远程收藏
         final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
           username: username,
+          limit: 100,
           onProgress: onProgress,
         );
 
-        // 2. 与本地数据对比，分三类处理：
-        // - 仅本地有：直接上传到 Bangumi
-        // - 仅远程有：直接补到本地
-        // - 双方都有但类型不一致：按优先级处理
+        // 2. 与本地数据对比，进行乐观合并（单向填充）之后，按照优先级处理冲突
         final localCollectibles = GStorage.collectibles.values.toList();
         final localMap = {
           for (final item in localCollectibles) item.bangumiItem.id: item,

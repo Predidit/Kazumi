@@ -1,14 +1,7 @@
-/// Conversion between Bangumi's remote collection types and this app's local collection types.
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 
-/// Converts Bangumi API to a local [CollectType].
-/// Example: `collectTypeFromBangumiValue(3)` returns [CollectType.watching]
-CollectType collectTypeFromBangumiValue(int value) {
-  return BangumiCollectionType.fromValue(value).toCollectType();
-}
-
-/// Extension methods for converting [BangumiCollectionType] to local [CollectType].
+/// Converting [BangumiCollectionType] to local [CollectType].
 extension BangumiCollectionTypeMapper on BangumiCollectionType {
 
   /// Converts this Bangumi collection type to the equivalent local type.
@@ -24,7 +17,7 @@ extension BangumiCollectionTypeMapper on BangumiCollectionType {
   }
 }
 
-/// Extension methods for converting [CollectType] to [BangumiCollectionType].
+/// Converting [CollectType] to [BangumiCollectionType].
 extension CollectTypeBangumiMapper on CollectType {
 
   /// Converts this local collection type to the equivalent Bangumi type.
@@ -39,8 +32,4 @@ extension CollectTypeBangumiMapper on CollectType {
     };
   }
 
-  /// Converts this local collection type to a raw Bangumi API integer value.
-  int toBangumi() {
-    return toBangumiCollectionType()?.value ?? 0;
-  }
 }

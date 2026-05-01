@@ -47,9 +47,7 @@ class ApiInterceptor extends Interceptor {
           .toString()
           .trim();
       if ((bangumiSyncEnable || requiresBangumiAuth) && token.isNotEmpty) {
-        // Bangumi Access Token
-        mergedHeaders['Authorization'] =
-            'Bearer $token';
+        mergedHeaders['Authorization'] = 'Bearer $token';
       }
       options.headers = mergedHeaders;
     }

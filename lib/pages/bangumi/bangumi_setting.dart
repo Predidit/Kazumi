@@ -142,142 +142,144 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-    return Scaffold(
-      appBar: const SysAppBar(title: Text('Bangumi 配置')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SizedBox(
-            width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
-            child: Column(
-              children: [
-                TextField(
-                  controller: bangumiTokenController,
-                  obscureText: !passwordVisible,
-                  decoration: InputDecoration(
-                    labelText: 'Bangumi Access Token',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          passwordVisible = !passwordVisible;
-                        });
-                      },
-                      icon: Icon(passwordVisible
-                          ? Icons.visibility_rounded
-                          : Icons.visibility_off_rounded),
+    return PopScope(
+      canPop: !syncCollectiblesing,
+      child: Scaffold(
+        appBar: const SysAppBar(title: Text('Bangumi 配置')),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Center(
+            child: SizedBox(
+              width: (MediaQuery.of(context).size.width > 1000) ? 1000 : null,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: bangumiTokenController,
+                    obscureText: !passwordVisible,
+                    decoration: InputDecoration(
+                      labelText: 'Bangumi Access Token',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            passwordVisible = !passwordVisible;
+                          });
+                        },
+                        icon: Icon(passwordVisible
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                SettingsSection(
-                  margin: EdgeInsetsDirectional.zero,
-                  tiles: [
-                    SettingsTile.switchTile(
-                      onToggle: (value) async {
-                        bangumiImmediateSyncToastEnable =
-                            value ?? !bangumiImmediateSyncToastEnable;
-                        await setting.put(
-                          SettingBoxKey.bangumiImmediateSyncToastEnable,
-                          bangumiImmediateSyncToastEnable,
-                        );
-                        if (mounted) {
-                          setState(() {});
-                        }
-                      },
-                      title: Text('即时同步提示',
-                          style: TextStyle(fontFamily: fontFamily)),
-                      description: Text('点击追番按钮触发即时同步时显示提示框'),
-                      initialValue: bangumiImmediateSyncToastEnable,
-                    ),
-                    SettingsTile.navigation(
-                      onPressed: (_) async {
-                        if (syncPriorityMenuController.isOpen) {
-                          syncPriorityMenuController.close();
-                        } else {
-                          syncPriorityMenuController.open();
-                        }
-                      },
-                      title: Text('同步优先级',
-                          style: TextStyle(fontFamily: fontFamily)),
-                      description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态'),
-                      value: MenuAnchor(
-                          consumeOutsideTap: true,
-                          controller: syncPriorityMenuController,
-                          builder: (context, controller, child) => Text(
-                              BangumiSyncPriority.fromValue(syncPriority).label,
-                              style: TextStyle(fontFamily: fontFamily)),
-                          menuChildren: [
-                            for (final entry in BangumiSyncPriority.values)
-                              MenuItemButton(
-                                  requestFocusOnHover: false,
-                                  onPressed: () =>
-                                      updateSyncPriority(entry.value),
-                                  child: Container(
-                                      height: 48,
-                                      constraints:
-                                          BoxConstraints(minWidth: 112),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          entry.label,
-                                          style: TextStyle(
-                                            color: entry.value == syncPriority
-                                                ? Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                : null,
-                                            fontFamily: fontFamily,
+                  const SizedBox(height: 16),
+                  SettingsSection(
+                    margin: EdgeInsetsDirectional.zero,
+                    tiles: [
+                      SettingsTile.switchTile(
+                        onToggle: (value) async {
+                          bangumiImmediateSyncToastEnable =
+                              value ?? !bangumiImmediateSyncToastEnable;
+                          await setting.put(
+                            SettingBoxKey.bangumiImmediateSyncToastEnable,
+                            bangumiImmediateSyncToastEnable,
+                          );
+                          if (mounted) {
+                            setState(() {});
+                          }
+                        },
+                        title: Text('即时同步提示',
+                            style: TextStyle(fontFamily: fontFamily)),
+                        description: Text('点击追番按钮触发即时同步时显示提示框'),
+                        initialValue: bangumiImmediateSyncToastEnable,
+                      ),
+                      SettingsTile.navigation(
+                        onPressed: (_) async {
+                          if (syncPriorityMenuController.isOpen) {
+                            syncPriorityMenuController.close();
+                          } else {
+                            syncPriorityMenuController.open();
+                          }
+                        },
+                        title: Text('同步优先级',
+                            style: TextStyle(fontFamily: fontFamily)),
+                        description: Text('当本地与 Bangumi 状态不一致时优先使用哪个状态'),
+                        value: MenuAnchor(
+                            consumeOutsideTap: true,
+                            controller: syncPriorityMenuController,
+                            builder: (context, controller, child) => Text(
+                                BangumiSyncPriority.fromValue(syncPriority).label,
+                                style: TextStyle(fontFamily: fontFamily)),
+                            menuChildren: [
+                              for (final entry in BangumiSyncPriority.values)
+                                MenuItemButton(
+                                    requestFocusOnHover: false,
+                                    onPressed: () =>
+                                        updateSyncPriority(entry.value),
+                                    child: Container(
+                                        height: 48,
+                                        constraints:
+                                            BoxConstraints(minWidth: 112),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            entry.label,
+                                            style: TextStyle(
+                                              color: entry.value == syncPriority
+                                                  ? Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                  : null,
+                                              fontFamily: fontFamily,
+                                            ),
                                           ),
-                                        ),
-                                      )))
-                          ]),
-                    ),
-                    SettingsTile(
-                      trailing: syncCollectiblesing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync_rounded),
-                      onPressed: (_) async {
-                        await syncWithProgress();
-                      },
-                      title: Text("立即同步状态"),
-                      description: Text('同步状态不一致或仅存在于本地/远端的条目'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () async {
-                    final url =
-                        Uri.parse('https://next.bgm.tv/demo/access-token');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url,
-                          mode: LaunchMode.externalApplication);
-                    } else {
-                      KazumiDialog.showToast(message: '无法打开链接');
-                    }
-                  },
-                  child: Text(
-                    '你可以点击此处前往 Bangumi 生成 Access Token',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.primary,
-                      fontFamily: fontFamily,
-                      decoration: TextDecoration.underline,
+                                        )))
+                            ]),
+                      ),
+                      SettingsTile(
+                        trailing: syncCollectiblesing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.sync_rounded),
+                        onPressed: (_) async {
+                          await syncWithProgress();
+                        },
+                        title: Text("立即同步状态"),
+                        description: Text('同步状态不一致或仅存在于本地/远端的条目'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () async {
+                      final url =
+                          Uri.parse('https://next.bgm.tv/demo/access-token');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url,
+                            mode: LaunchMode.externalApplication);
+                      } else {
+                        KazumiDialog.showToast(message: '无法打开链接');
+                      }
+                    },
+                    child: Text(
+                      '你可以点击此处前往 Bangumi 生成 Access Token',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontFamily: fontFamily,
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: isVerifying
+        floatingActionButton: FloatingActionButton(
+          onPressed: isVerifying
             ? null
             : () async {
                 final token = bangumiTokenController.text.trim();
@@ -324,7 +326,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   isVerifying = false;
                 });
               },
-        child: const Icon(Icons.save),
+          child: const Icon(Icons.save),
+        ),
       ),
     );
   }

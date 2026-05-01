@@ -175,6 +175,9 @@ class _CollectPageState extends State<CollectPage>
   }
 
   void onBackPressed(BuildContext context) {
+    if (syncCollectiblesing) {
+      return;
+    }
     if (KazumiDialog.observer.hasKazumiDialog) {
       KazumiDialog.dismiss();
       return;
@@ -212,6 +215,9 @@ class _CollectPageState extends State<CollectPage>
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (didPop) {
+          return;
+        }
+        if (syncCollectiblesing) {
           return;
         }
         onBackPressed(context);

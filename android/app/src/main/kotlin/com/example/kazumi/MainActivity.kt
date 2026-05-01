@@ -31,6 +31,8 @@ class MainActivity: AudioServiceActivity() {
     private var pipActionReceiverRegistered = false
     private var autoEnterPipOnHomeGesture = false
     private var pipInPlayerPage = false
+    private var pipAspectWidth = 16
+    private var pipAspectHeight = 9
 
     private val actionPipPlayPause = "com.predidit.kazumi.pip.PLAY_PAUSE"
     private val actionPipForward = "com.predidit.kazumi.pip.FORWARD"
@@ -96,13 +98,15 @@ class MainActivity: AudioServiceActivity() {
             if (call.method == "isPictureInPictureSupported") {
                 result.success(isPictureInPictureSupported())
             } else if (call.method == "enterPictureInPictureMode") {
-                val width = call.argument<Int>("width") ?: 16
-                val height = call.argument<Int>("height") ?: 9
-                val entered = enterPictureInPicture(width, height)
+                pipAspectWidth = call.argument<Int>("width") ?: pipAspectWidth
+                pipAspectHeight = call.argument<Int>("height") ?: pipAspectHeight
+                val entered = enterPictureInPicture()
                 result.success(entered)
             } else if (call.method == "updatePictureInPictureActions") {
                 val playing = call.argument<Boolean>("playing") ?: false
                 val danmakuEnabled = call.argument<Boolean>("danmakuEnabled") ?: false
+                pipAspectWidth = call.argument<Int>("width") ?: pipAspectWidth
+                pipAspectHeight = call.argument<Int>("height") ?: pipAspectHeight
                 updatePictureInPictureActions(playing, danmakuEnabled)
                 result.success(true)
             } else if (call.method == "setAndroidAutoEnterPIPEnabled") {
@@ -145,14 +149,14 @@ class MainActivity: AudioServiceActivity() {
         return packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
-    private fun enterPictureInPicture(width: Int, height: Int): Boolean {
+    private fun enterPictureInPicture(): Boolean {
         if (!isPictureInPictureSupported()) {
             return false
         }
         if (isInPictureInPictureMode) {
             return true
         }
-        return enterPictureInPictureMode(buildPictureInPictureParams(width, height))
+        return enterPictureInPictureMode(buildPictureInPictureParams())
     }
 
     private fun updatePictureInPictureActions(
@@ -167,12 +171,10 @@ class MainActivity: AudioServiceActivity() {
         refreshPictureInPictureParamsIfNeeded()
     }
 
-    private fun buildPictureInPictureParams(width: Int = 16, height: Int = 9): PictureInPictureParams {
-        val safeWidth = if (width > 0) width else 16
-        val safeHeight = if (height > 0) height else 9
+    private fun buildPictureInPictureParams(): PictureInPictureParams {
         val actions = buildPipActions()
         val builder = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(safeWidth, safeHeight))
+            .setAspectRatio(Rational(pipAspectWidth, pipAspectHeight))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setAutoEnterEnabled(autoEnterPipOnHomeGesture && pipInPlayerPage)
             builder.setSeamlessResizeEnabled(false)

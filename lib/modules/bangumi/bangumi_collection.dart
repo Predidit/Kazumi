@@ -54,10 +54,6 @@ class BangumiCollection {
       this.images,
       this.tags);
 
-  int getUpdateAtToInt() {
-    return updatedAt.millisecondsSinceEpoch ~/ 1000;
-  }
-
   BangumiItem toBangumiItem() {
     return BangumiItem.fromJson({
       'id': bangumiId,

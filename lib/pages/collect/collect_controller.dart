@@ -331,12 +331,12 @@ abstract class _CollectController with Store {
     final bool syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
     if (!syncEnable) {
-      KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
+      KazumiDialog.showToast(message: '未开启Bangumi同步，请先在设置中启用');
       return false;
     }
 
     if (!Bangumi().initialized) {
-      KazumiDialog.showToast(message: '未开启Bangumi同步或配置无效');
+      KazumiDialog.showToast(message: 'Bangumi同步已开启但未初始化，请检查Token后重试');
       return false;
     }
     try {

@@ -296,7 +296,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
 
                 if (token.isEmpty) {
                   bangumi.reset();
-                  KazumiDialog.showToast(message: 'Bangumi Token 已清空');
+                  KazumiDialog.showToast(message: 'Bangumi Token 为空，请检查');
                   if (!mounted) return;
                   setState(() {
                     isVerifying = false;
@@ -317,7 +317,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   return;
                 }
 
-                KazumiDialog.showToast(message: '测试成功');
+                KazumiDialog.showToast(message: '测试成功，用户名：${bangumi.username}');
                 if (!mounted) return;
                 setState(() {
                   isVerifying = false;

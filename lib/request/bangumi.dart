@@ -432,6 +432,7 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger().e('Network: get bangumi collection failed', error: e);
+      rethrow;
     }
     KazumiLogger()
         .d('get Bangumi collection count: ${bangumiCollection.length}');

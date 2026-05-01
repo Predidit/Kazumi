@@ -133,7 +133,7 @@ class Bangumi {
   }
 
   /// Sync Bangumi collectibles with local data
-  Future<void> syncCollectibles({
+  Future<bool> syncCollectibles({
     void Function(String message, int current, int total)? onProgress,
   }) async {
     final syncEnable =
@@ -141,13 +141,13 @@ class Bangumi {
     if (!syncEnable) {
       KazumiDialog.showToast(message: '同步已关闭');
       KazumiLogger().i('Bangumi: sync disabled');
-      return;
+      return false;
     }
     if (isUsing) {
       KazumiLogger().w('Bangumi is currently syncing');
       throw Exception('Bangumi 正在同步');
     }
-    await _runExclusive(() async {
+    return _runExclusive(() async {
       try {
         onProgress?.call('开始同步 Bangumi 状态', 0, 0);
 
@@ -200,8 +200,7 @@ class Bangumi {
 
         if (totalOperations == 0) {
           onProgress?.call('未发现状态差异，无需同步', 1, 1);
-          KazumiDialog.showToast(message: '未发现状态差异，无需同步');
-          return;
+          return false;
         }
 
         int syncedCount = 0;
@@ -215,7 +214,6 @@ class Bangumi {
             );
             if (!updated) {
               onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
-              KazumiDialog.showToast(message: '同步失败：条目 $id 上传到 Bangumi 失败');
               throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
             }
             syncedCount++;
@@ -272,6 +270,7 @@ class Bangumi {
           }
         }
         onProgress?.call('Bangumi 状态同步完成', 1, 1);
+        return true;
       } catch (e) {
         KazumiLogger().e('Bangumi sync failed', error: e);
         rethrow;

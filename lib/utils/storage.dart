@@ -25,16 +25,16 @@ class GStorage {
   /// Hive directory path, initialized during init()
   static String? _hivePath;
 
-  /// Queue to serialize write operations to collectChanges box
+  /// Queue to serialize write operations across collect-related boxes.
   static Future<void> _collectChangesWriteQueue = Future.value();
 
-  /// Next ID for collect changes, initialized on demand
+  /// Next ID for collectChanges records, initialized on demand.
   static int _nextCollectChangeId = 0;
 
   /// Flag to indicate if the next collect change ID has been initialized
   static bool _collectChangeIdInitialized = false;
 
-  /// Ensure that collect changes write operations are executed sequential
+  /// Ensure collect-related write operations are executed sequentially.
   static Future<T> _runCollectChangesWriteExclusive<T>(
     Future<T> Function() action,
   ) {

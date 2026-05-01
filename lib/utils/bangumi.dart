@@ -247,8 +247,7 @@ class Bangumi {
             final updated =
                 await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
             if (updated != true) {
-              throw Exception(
-                  'Bangumi sync failed: updateBangumiByType failed for id=$id');
+              throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
             }
             syncedCount++;
             onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);

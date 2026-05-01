@@ -75,6 +75,7 @@ abstract class _CollectController with Store {
 
   @action
   Future<void> deleteCollect(BangumiItem bangumiItem) async {
+    // 确认删除收藏的后续动作
     final action = await _resolveBangumiDeleteSyncAction(bangumiItem);
     switch (action) {
       // 标记删除

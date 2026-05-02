@@ -34,7 +34,22 @@ class ApiInterceptor extends Interceptor {
     }
     if (options.path.contains(Api.bangumiAPIDomain) ||
         options.path.contains(Api.bangumiAPINextDomain)) {
-      options.headers = bangumiHTTPHeader;
+      final mergedHeaders = <String, dynamic>{
+        ...options.headers,
+        ...bangumiHTTPHeader,
+      };
+      final bool bangumiSyncEnable =
+          setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+      final bool requiresBangumiAuth =
+          options.extra['requiresBangumiAuth'] == true;
+      final String token = setting
+          .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+          .toString()
+          .trim();
+      if ((bangumiSyncEnable || requiresBangumiAuth) && token.isNotEmpty) {
+        mergedHeaders['Authorization'] = 'Bearer $token';
+      }
+      options.headers = mergedHeaders;
     }
     handler.next(options);
   }

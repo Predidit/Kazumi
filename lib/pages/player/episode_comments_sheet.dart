@@ -1,25 +1,27 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/episode_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/request/bangumi.dart';
 
-class EpisodeInfo extends InheritedWidget {
+class EpisodeInfoWidget extends InheritedWidget {
   /// This widget receives changes of episode and notify it's child,
   /// trigger [didChangeDependencies] of it's child.
-  const EpisodeInfo({super.key, required this.episode, required super.child});
+  const EpisodeInfoWidget(
+      {super.key, required this.episode, required super.child});
 
   final int episode;
 
   @override
   bool updateShouldNotify(covariant InheritedWidget oldWidget) => true;
 
-  static EpisodeInfo? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<EpisodeInfo>();
+  static EpisodeInfoWidget? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<EpisodeInfoWidget>();
   }
 }
 
@@ -224,45 +226,77 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   // 选择要查看评论的集数
-  void showEpisodeSelection() {
-    final TextEditingController textController = TextEditingController();
+  void showEpisodeSelection() async {
+    final int selectedEpisode =
+        ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;
+    KazumiDialog.showLoading(msg: '分集列表加载中');
+    final List<EpisodeInfo> episodeList =
+        await BangumiHTTP.getBangumiEpisodesByID(
+            videoPageController.bangumiItem.id);
+    KazumiDialog.dismiss();
+    if (episodeList.isEmpty) {
+      KazumiDialog.showToast(message: '未找到分集列表');
+      return;
+    }
     KazumiDialog.show(
       builder: (context) {
-        return AlertDialog(
-          title: const Text('输入集数'),
-          content: StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
-            return TextField(
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly
+        return Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560, maxHeight: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Text('分集列表', style: TextStyle(fontSize: 20)),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: episodeList.length,
+                    itemBuilder: (context, index) {
+                      final episode = episodeList[index];
+                      final episodeTitle = episode.nameCn.isNotEmpty
+                          ? episode.nameCn
+                          : episode.name;
+                      final episodeText =
+                          '${episode.readType()}.${episode.episode}';
+                      final bool selected = index + 1 == selectedEpisode;
+                      return ListTile(
+                        selected: selected,
+                        title: Text(
+                          episodeTitle.isEmpty
+                              ? episodeText
+                              : '$episodeText $episodeTitle',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          ep = index + 1;
+                          _refreshIndicatorKey.currentState?.show();
+                          KazumiDialog.dismiss();
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                    child: TextButton(
+                      onPressed: () => KazumiDialog.dismiss(),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ),
+                  ),
+                ),
               ],
-              controller: textController,
-            );
-          }),
-          actions: [
-            TextButton(
-              onPressed: () => KazumiDialog.dismiss(),
-              child: Text(
-                '取消',
-                style: TextStyle(color: Theme.of(context).colorScheme.outline),
-              ),
             ),
-            TextButton(
-              onPressed: () {
-                if (textController.text.isEmpty) {
-                  KazumiDialog.showToast(message: '请输入集数');
-                  return;
-                }
-                ep = int.tryParse(textController.text) ?? 0;
-                if (ep == 0) {
-                  return;
-                }
-                _refreshIndicatorKey.currentState?.show();
-                KazumiDialog.dismiss();
-              },
-              child: const Text('刷新'),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -270,7 +304,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final int episode = EpisodeInfo.of(context)!.episode;
+    final int episode = EpisodeInfoWidget.of(context)!.episode;
     return Scaffold(
       body: RefreshIndicator(
         key: _refreshIndicatorKey,

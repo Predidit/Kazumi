@@ -1149,7 +1149,7 @@ class _VideoPageState extends State<VideoPage>
                         ),
                     ],
                   ),
-                  EpisodeInfo(
+                  EpisodeInfoWidget(
                     episode: episodeNum,
                     child: EpisodeCommentsSheet(),
                   ),

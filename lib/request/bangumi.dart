@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
@@ -7,6 +8,10 @@ import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/staff/staff_response.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
+import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/collect/collect_type_mapper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 
 class BangumiHTTP {
   // why the api havn't been replaced by getCalendarBySearch?
@@ -235,6 +240,40 @@ class BangumiHTTP {
     return episodeInfo;
   }
 
+  static Future<List<EpisodeInfo>> getBangumiEpisodesByID(int id) async {
+    final List<EpisodeInfo> episodeList = [];
+    const int limit = 100;
+    int offset = 0;
+    int? total;
+    try {
+      do {
+        final params = <String, dynamic>{
+          'subject_id': id,
+          'offset': offset,
+          'limit': limit,
+        };
+        final res = await Request().get(
+          Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
+          data: params,
+        );
+        final jsonData = res.data;
+        total ??= jsonData['total'] as int?;
+        final data = jsonData['data'] as List<dynamic>? ?? [];
+        if (data.isEmpty) {
+          break;
+        }
+        episodeList.addAll(data
+            .whereType<Map<String, dynamic>>()
+            .map((jsonItem) => EpisodeInfo.fromJson(jsonItem)));
+        offset += data.length;
+      } while (total == null || offset < total);
+    } catch (e) {
+      KazumiLogger()
+          .e('Network: resolve bangumi episode list failed', error: e);
+    }
+    return episodeList;
+  }
+
   static Future<CommentResponse> getBangumiCommentsByID(int id,
       {int offset = 0}) async {
     final res = await Request().get(
@@ -304,5 +343,173 @@ class BangumiHTTP {
       KazumiLogger().e('Network: resolve character info failed', error: e);
     }
     return characterFullItem;
+  }
+
+  static Future<String?> getUsername() async {
+    try {
+      final res = await Request().get(
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiUsernameByToken, []),
+        extra: {'customError': '', 'requiresBangumiAuth': true},
+        shouldRethrow: true,
+      );
+      if (res.data['id'] != null) {
+        return res.data['username'] ?? 'Unknown';
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        KazumiLogger().e('Bangumi token unauthorized, please check your token');
+        throw StateError('Bangumi token 未授权，请检查您的 token');
+      }
+      rethrow;
+    } catch (e) {
+      KazumiLogger().e('Network: get username failed', error: e);
+    }
+    return null;
+  }
+
+  /// Get the Bangumi collection of the current user
+  static Future<List<BangumiCollection>> getBangumiCollectibles({
+    List<BangumiCollectionType> includeBangumiTypes = const [
+      BangumiCollectionType.planToWatch,
+      BangumiCollectionType.watched,
+      BangumiCollectionType.watching,
+      BangumiCollectionType.onHold,
+      BangumiCollectionType.abandoned,
+    ],
+    String? username,
+    required int limit,
+    void Function(String message, int current, int total)? onProgress,
+  }) async {
+    final List<BangumiCollection> bangumiCollection = [];
+    final resolvedUsername =
+        username != null && username.isNotEmpty ? username : await getUsername();
+    int failedItemCount = 0;
+    int progressCurrent = 0;
+    int progressTotal = 0;
+    if (resolvedUsername == null) {
+      KazumiLogger().w('get username failed');
+      return [];
+    }
+
+    try {
+      const Duration requestInterval = Duration(milliseconds: 250);
+
+      for (final collectionType in includeBangumiTypes) {
+        if (collectionType == BangumiCollectionType.unknown) {
+          continue;
+        }
+        int offset = 0;
+        int? total;
+        bool totalInitialized = false;
+        while (true) {
+          Response<dynamic> res;
+          try {
+            final url = Api.formatUrl(
+                Api.bangumiAPIDomain + Api.bangumiGetCollection,
+                [resolvedUsername, limit, offset, collectionType.value]);
+            res = await Request().get(
+              url,
+              extra: {'customError': '', 'requiresBangumiAuth': true},
+              shouldRethrow: true,
+            );
+          } catch (e) {
+            KazumiLogger().e(
+              'BangumiHTTP: fetch collection failed. type=${collectionType.value}, offset=$offset',
+              error: e,
+            );
+            rethrow;
+          }
+
+          final Map jsonData = res.data;
+          final List<dynamic> jsonList = jsonData['data'];
+          total ??= jsonData['total'];
+          if (!totalInitialized && total != null) {
+            progressTotal += total;
+            totalInitialized = true;
+          }
+
+          for (dynamic jsonItem in jsonList) {
+            if (jsonItem is Map<String, dynamic>) {
+              try {
+                bangumiCollection.add(BangumiCollection.fromJson(jsonItem));
+                progressCurrent++;
+                onProgress?.call(
+                  '正在拉取${collectionType.label}收藏',
+                  progressCurrent,
+                  progressTotal,
+                );
+              } catch (e) {
+                KazumiLogger().e(
+                  'BangumiHTTP: parse collection item failed: ${e.toString()}',
+                  error: e,
+                );
+                failedItemCount++;
+              }
+            }
+          }
+
+          if (jsonList.isEmpty || (total != null && offset + limit >= total)) {
+            break;
+          }
+
+          offset += limit;
+          await Future.delayed(requestInterval);
+        }
+      }
+    } catch (e) {
+      KazumiLogger().e('Network: get bangumi collection failed', error: e);
+      rethrow;
+    }
+    KazumiLogger()
+        .d('get Bangumi collection count: ${bangumiCollection.length}');
+    KazumiLogger().d('get item failed count: $failedItemCount');
+    return bangumiCollection;
+  }
+
+  /// Update the Bangumi collection by ID
+  static Future<bool> updateBangumiById(
+      int id, Map<String, dynamic> data) async {
+    const Duration requestInterval = Duration(milliseconds: 250);
+    try {
+      await Request().post(
+        Api.formatUrl(Api.bangumiAPIDomain + Api.bangumiSetCollection, [id]),
+        data: data,
+        extra: {'customError': '', 'requiresBangumiAuth': true},
+        shouldRethrow: true,
+      );
+      KazumiLogger().d('Update to Bangumi: Id: $id');
+      return true;
+    } on DioException catch (e) {
+      String str;
+      switch (e.response?.statusCode) {
+        case 400:
+          str = 'Validation Error 验证错误';
+          break;
+        case 401:
+          str = 'Unauthorized 未经授权';
+          break;
+        case 404:
+          str = 'User not found 用户不存在';
+          break;
+        default:
+          str = 'Error $e';
+      }
+      KazumiLogger().e('BangumiApi: $str', error: e);
+      return false;
+    } catch (e) {
+      KazumiLogger().e('Network: update bangumi collection failed', error: e);
+      rethrow;
+    } finally {
+      await Future.delayed(requestInterval);
+    }
+  }
+
+  /// Update the Bangumi collection by Type
+  static Future<bool> updateBangumiByType(int id, int localType) async {
+    final type = CollectType.fromValue(localType).toBangumiCollectionType();
+    if (type == null) {
+      return false;
+    }
+    return await updateBangumiById(id, {'type': type.value});
   }
 }

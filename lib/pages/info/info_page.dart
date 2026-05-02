@@ -55,8 +55,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     final votesCount = bangumiItem.votesCount;
     final missingVoteDistribution = votesCount.isEmpty ||
         bangumiItem.votes <= 0 ||
-        votesCount.length < 10 ||
-        votesCount.every((count) => count == 0);
+        votesCount.length < 10;
     return bangumiItem.summary == '' || missingVoteDistribution;
   }
 

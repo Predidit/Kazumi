@@ -1026,10 +1026,8 @@ class _VideoPageState extends State<VideoPage>
     if (episodeNum == 0 ||
         (!videoPageController.isOfflineMode &&
             episodeNum >
-                videoPageController
-                    .roadList[videoPageController.currentRoad]
-                    .identifier
-                    .length)) {
+                videoPageController.roadList[videoPageController.currentRoad]
+                    .identifier.length)) {
       episodeNum = videoPageController.isOfflineMode
           ? videoPageController.actualEpisodeNumber
           : videoPageController.currentEpisode;
@@ -1150,7 +1148,7 @@ class _VideoPageState extends State<VideoPage>
                         ),
                     ],
                   ),
-                  EpisodeInfo(
+                  EpisodeInfoWidget(
                     episode: episodeNum,
                     child: EpisodeCommentsSheet(),
                   ),

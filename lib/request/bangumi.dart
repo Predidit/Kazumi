@@ -240,6 +240,40 @@ class BangumiHTTP {
     return episodeInfo;
   }
 
+  static Future<List<EpisodeInfo>> getBangumiEpisodesByID(int id) async {
+    final List<EpisodeInfo> episodeList = [];
+    const int limit = 100;
+    int offset = 0;
+    int? total;
+    try {
+      do {
+        final params = <String, dynamic>{
+          'subject_id': id,
+          'offset': offset,
+          'limit': limit,
+        };
+        final res = await Request().get(
+          Api.bangumiAPIDomain + Api.bangumiEpisodeByID,
+          data: params,
+        );
+        final jsonData = res.data;
+        total ??= jsonData['total'] as int?;
+        final data = jsonData['data'] as List<dynamic>? ?? [];
+        if (data.isEmpty) {
+          break;
+        }
+        episodeList.addAll(data
+            .whereType<Map<String, dynamic>>()
+            .map((jsonItem) => EpisodeInfo.fromJson(jsonItem)));
+        offset += data.length;
+      } while (total == null || offset < total);
+    } catch (e) {
+      KazumiLogger()
+          .e('Network: resolve bangumi episode list failed', error: e);
+    }
+    return episodeList;
+  }
+
   static Future<CommentResponse> getBangumiCommentsByID(int id,
       {int offset = 0}) async {
     final res = await Request().get(

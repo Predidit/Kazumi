@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
+import 'package:kazumi/utils/bangumi_sync_service.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -47,6 +48,7 @@ class _InitPageState extends State<InitPage> {
     _loadShaders();
     _loadDanmakuShield();
     _webDavInit();
+    _bangumiInit();
     try {
       await downloadController.init();
       _setupBackgroundDownloadNavigation();
@@ -151,6 +153,30 @@ class _InitPageState extends State<InitPage> {
         }
       } catch (e) {
         KazumiDialog.showToast(message: "初始化WebDav失败 ${e.toString()}");
+      }
+    }
+  }
+
+  Future<void> _bangumiInit() async {
+    bool bangumiEnable = await setting.get(
+      SettingBoxKey.bangumiSyncEnable,
+      defaultValue: false,
+    );
+    if (bangumiEnable) {
+      var bangumi = BangumiSyncService();
+      KazumiLogger().i('Bangumi: Starting Bangumi initialization');
+      try {
+        await bangumi.init();
+      } catch (e) {
+        bangumi.reset();
+        await setting.put(SettingBoxKey.bangumiSyncEnable, false);
+        KazumiLogger().w(
+          'Bangumi: initialization failed, disabling Bangumi sync until user re-enables it',
+          error: e,
+        );
+        KazumiDialog.showToast(
+          message: '初始化Bangumi失败，已关闭 Bangumi 同步: ${e.toString()}',
+        );
       }
     }
   }

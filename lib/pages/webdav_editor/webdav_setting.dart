@@ -246,31 +246,21 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                   title: Text('WEBDAV配置',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
-              ],
-            ),
-            SettingsSection(
-              bottomInfo: Text('立即上传观看记录到WEBDAV',
-                  style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
                 SettingsTile(
                   trailing: const Icon(Icons.cloud_upload_rounded),
                   onPressed: (_) {
                     updateWebdav();
                   },
                   title: Text('手动上传', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('立即上传观看记录到WEBDAV', style: TextStyle(fontFamily: fontFamily)),
                 ),
-              ],
-            ),
-            SettingsSection(
-              bottomInfo:
-                  Text('立即下载观看记录到本地', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
                 SettingsTile(
                   trailing: const Icon(Icons.cloud_download_rounded),
                   onPressed: (_) {
                     downloadWebdav();
                   },
                   title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('立即下载观看记录到本地', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

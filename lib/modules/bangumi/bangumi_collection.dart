@@ -68,7 +68,7 @@ class BangumiCollection {
         'rank': rank,
         'score': score,
         'total': 0,
-        'count': List<int>.filled(10, 0),
+        'count': <int>[],
       },
       'info': '',
     });

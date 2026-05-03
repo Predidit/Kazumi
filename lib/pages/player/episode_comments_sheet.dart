@@ -39,6 +39,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   bool commentsIsEmpty = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
+  int _loadCommentsRequestId = 0;
 
   /// episode input by [showEpisodeSelection]
   int ep = 0;
@@ -49,24 +50,28 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Future<void> loadComments(int episode) async {
+    final int requestId = ++_loadCommentsRequestId;
     commentsQueryTimeout = false;
     commentsIsEmpty = false;
     try {
       await videoPageController.queryBangumiEpisodeCommentsByID(
           videoPageController.bangumiItem.id, episode);
+      if (!mounted || requestId != _loadCommentsRequestId) {
+        return;
+      }
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
         setState(() {
           commentsIsEmpty = true;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && requestId == _loadCommentsRequestId) {
         setState(() {
           commentsQueryTimeout = true;
         });
       }
     }
-    if (mounted) {
+    if (mounted && requestId == _loadCommentsRequestId) {
       setState(() {});
     }
   }

@@ -53,6 +53,8 @@ abstract class _VideoPageController with Store {
   @observable
   bool isCommentsAscending = false;
 
+  int _episodeCommentsRequestId = 0;
+
   /// 桌面画中画状态，Android 画中画状态不需要单独维护，进入画中画后会直接切换到系统的全局播放器界面
   @observable
   bool isPip = false;
@@ -247,7 +249,8 @@ abstract class _VideoPageController with Store {
       referer: '',
       currentRoad: currentRoad,
       coverUrl: bangumiItem.images['large'],
-      bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
+      bangumiName:
+          bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
     final playerController = Modular.get<PlayerController>();
@@ -309,7 +312,9 @@ abstract class _VideoPageController with Store {
         referer: currentPlugin.referer,
         currentRoad: currentRoad,
         coverUrl: bangumiItem.images['large'],
-        bangumiName: bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
+        bangumiName: bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name,
       );
 
       final playerController = Modular.get<PlayerController>();
@@ -338,18 +343,24 @@ abstract class _VideoPageController with Store {
   }
 
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
-    episodeCommentsList.clear();
-    episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
+    final int requestId = ++_episodeCommentsRequestId;
+    final EpisodeInfo latestEpisodeInfo =
+        await BangumiHTTP.getBangumiEpisodeByID(id, episode);
     final value =
-        await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id);
-    episodeCommentsList.addAll(value.commentList);
+        await BangumiHTTP.getBangumiCommentsByEpisodeID(latestEpisodeInfo.id);
+    if (requestId != _episodeCommentsRequestId) {
+      return;
+    }
+    episodeInfo = latestEpisodeInfo;
+    final commentsList = value.commentList;
     if (!isCommentsAscending) {
-      episodeCommentsList
+      commentsList
           .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));
     } else {
-      episodeCommentsList
+      commentsList
           .sort((a, b) => a.comment.createdAt.compareTo(b.comment.createdAt));
     }
+    episodeCommentsList = ObservableList.of(commentsList);
     KazumiLogger().i(
         'VideoPageController: loaded comments list length ${episodeCommentsList.length}');
   }

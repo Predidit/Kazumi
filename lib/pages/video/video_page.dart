@@ -17,6 +17,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:scrollview_observer/scrollview_observer.dart';
 import 'package:kazumi/pages/player/episode_comments_sheet.dart';
+import 'package:kazumi/pages/player/danmaku_list_panel.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
@@ -51,7 +52,6 @@ class _VideoPageState extends State<VideoPage>
   late AnimationController animation;
   late Animation<Offset> _rightOffsetAnimation;
   late Animation<double> _maskOpacityAnimation;
-  late TabController tabController;
 
   // 当前播放列表
   late int currentRoad;
@@ -69,7 +69,6 @@ class _VideoPageState extends State<VideoPage>
     // Check fullscreen when enter video page
     // in case user use system controls to enter fullscreen outside video page
     videoPageController.isDesktopFullscreen();
-    tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
       duration: const Duration(milliseconds: 120),
@@ -232,7 +231,6 @@ class _VideoPageState extends State<VideoPage>
     // 重置离线模式
     videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
-    tabController.dispose();
     // Cancel timed shutdown when leaving anime page
     TimedShutdownService().cancel();
     super.dispose();
@@ -1033,17 +1031,20 @@ class _VideoPageState extends State<VideoPage>
           : videoPageController.currentEpisode;
     }
 
+    final bool isPortrait =
+        MediaQuery.sizeOf(context).width <= MediaQuery.sizeOf(context).height;
+
     return Container(
       color: Theme.of(context).canvasColor,
       child: DefaultTabController(
-        length: 2,
+        key: ValueKey(isPortrait),
+        length: isPortrait ? 2 : 3,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 TabBar(
-                  controller: tabController,
                   dividerHeight: 0,
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
@@ -1054,14 +1055,15 @@ class _VideoPageState extends State<VideoPage>
                       menuJumpToCurrentEpisode();
                     }
                   },
-                  tabs: const [
-                    Tab(text: '选集'),
-                    Tab(text: '评论'),
+                  tabs: [
+                    const Tab(text: '选集'),
+                    const Tab(text: '评论'),
+                    if (!isPortrait) const Tab(text: '弹幕'),
                   ],
                 ),
-                if (MediaQuery.sizeOf(context).width <=
-                    MediaQuery.sizeOf(context).height) ...[
+                if (isPortrait) ...[
                   const Spacer(),
+                  // 弹幕发送按钮
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
@@ -1117,7 +1119,6 @@ class _VideoPageState extends State<VideoPage>
             Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
             Expanded(
               child: TabBarView(
-                controller: tabController,
                 children: [
                   Stack(
                     children: [
@@ -1152,6 +1153,7 @@ class _VideoPageState extends State<VideoPage>
                     episode: episodeNum,
                     child: EpisodeCommentsSheet(),
                   ),
+                  if (!isPortrait) const DanmakuListPanel(),
                 ],
               ),
             ),

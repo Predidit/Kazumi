@@ -51,6 +51,14 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
 
+  bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
+    final votesCount = bangumiItem.votesCount;
+    final missingVoteDistribution = votesCount.isEmpty ||
+        bangumiItem.votes <= 0 ||
+        votesCount.length < 10;
+    return bangumiItem.summary == '' || missingVoteDistribution;
+  }
+
   Future<void> loadCharacters() async {
     if (charactersIsLoading) return;
     setState(() {
@@ -150,8 +158,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     // Because the gap between different bangumi API response is too large, sometimes we need to query the bangumi info again
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
-    if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.votesCount.isEmpty) {
+    if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
     }
     sourceTabController =

@@ -3,6 +3,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/request/api.dart';
 import 'package:kazumi/request/request.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_netx_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/characters_response.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
@@ -204,6 +205,53 @@ class BangumiHTTP {
       }
     } catch (e) {
       KazumiLogger().e('Network: unknown search problem', error: e);
+    }
+    return bangumiList;
+  }
+
+  static Future<List<BangumiNetxItem>> bangumiSearchNext(String keyword,
+      {List<String> tags = const [],
+      int limit = 20,
+      int offset = 0,
+      String sort = 'heat'}) async {
+    List<BangumiNetxItem> bangumiList = [];
+
+    var params = <String, dynamic>{
+      'keyword': keyword,
+      'sort': sort,
+      "filter": {
+        "type": [2],
+        "tag": tags,
+        "rank": (sort == 'rank') ? [">0", "<=99999"] : [">=0", "<=99999"],
+        "nsfw": false
+      },
+    };
+
+    try {
+      final res = await Request().post(
+        Api.formatUrl(
+          Api.bangumiAPINextDomain + Api.bangumiSearchNext,
+          [keyword, limit, offset],
+        ),
+        data: params,
+      );
+      final jsonData = res.data;
+      final jsonList = jsonData['data'];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          try {
+            BangumiNetxItem bangumiItem = BangumiNetxItem.fromJson(jsonItem);
+            if (bangumiItem.nameCn.isNotEmpty || bangumiItem.name.isNotEmpty) {
+              bangumiList.add(bangumiItem);
+            }
+          } catch (e) {
+            KazumiLogger().e('Network: resolve next search results failed',
+                error: e);
+          }
+        }
+      }
+    } catch (e) {
+      KazumiLogger().e('Network: unknown next search problem', error: e);
     }
     return bangumiList;
   }

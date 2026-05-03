@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -26,6 +28,8 @@ class _SearchPageState extends State<SearchPage> {
   final SearchPageController searchPageController = SearchPageController();
   final ScrollController scrollController = ScrollController();
 
+  Timer? searchDebounce;
+
   final List<Tab> tabs = [
     Tab(text: "排序方式"),
     Tab(text: "过滤器"),
@@ -36,6 +40,7 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     scrollController.addListener(scrollListener);
     searchPageController.loadSearchHistories();
+    searchController.addListener(handleSearchTextChanged);
     if (widget.inputTag != '') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final String tagString = 'tag:${Uri.decodeComponent(widget.inputTag)}';
@@ -48,8 +53,17 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void dispose() {
     searchPageController.bangumiList.clear();
+    searchDebounce?.cancel();
     scrollController.removeListener(scrollListener);
     super.dispose();
+  }
+
+  void handleSearchTextChanged() {
+    searchDebounce?.cancel();
+    searchPageController.suggestedResults.clear();
+    searchDebounce = Timer(const Duration(seconds: 2), () {
+      searchPageController.fetchSearchSuggestions(searchController.text);
+    });
   }
 
   void scrollListener() {
@@ -239,10 +253,30 @@ class _SearchPageState extends State<SearchPage> {
                   Observer(
                     builder: (context) {
                       if (controller.text.isNotEmpty) {
-                        return Container(
-                          height: 400,
-                          alignment: Alignment.center,
-                          child: Text("无可用搜索建议，回车以直接检索"),
+                        if (searchPageController.suggestedResults.isEmpty) {
+                          return Container(
+                            height: 400,
+                            alignment: Alignment.center,
+                            child: Text("无可用搜索建议，回车以直接检索"),
+                          );
+                        }
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (var suggestion in searchPageController.suggestedResults)
+                              ListTile(
+                                title: Text(suggestion),
+                                onTap: () {
+                                  controller.text = suggestion;
+                                  searchPageController.searchBangumi(
+                                      suggestion,
+                                      type: 'init');
+                                  if (searchController.isOpen) {
+                                    searchController.closeView(suggestion);
+                                  }
+                                },
+                              ),
+                          ],
                         );
                       } else {
                         return Column(

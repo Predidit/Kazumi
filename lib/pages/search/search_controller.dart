@@ -47,6 +47,10 @@ abstract class _SearchPageController with Store {
   @observable
   ObservableList<ResultItem> imageSearchResults = ObservableList.of([]);
 
+  /// 搜索建议结果
+  @observable
+  ObservableList<String> suggestedResults = ObservableList.of([]);
+
   @action
   void loadSearchHistories() {
     final histories = _searchHistoryRepository.getAllHistories();
@@ -107,6 +111,24 @@ abstract class _SearchPageController with Store {
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
+  }
+
+  /// 获取搜索建议
+  @action
+  Future<void> fetchSearchSuggestions(String input) async {
+    if (input.isEmpty) return;
+
+    final parser = SearchParser(input);
+    final keywords = parser.parseKeywords();
+    final String? tag = parser.parseTag();
+    final String? sort = parser.parseSort();
+
+    final results = await BangumiHTTP.bangumiSearchNext(keywords,
+        tags: [if (tag != null) tag], sort: sort ?? 'heat');
+
+    suggestedResults.addAll(results
+        .map((e) => e.nameCn.isNotEmpty ? e.nameCn : e.name)
+        .where((name) => name.isNotEmpty));
   }
 
   @action

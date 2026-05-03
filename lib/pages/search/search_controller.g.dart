@@ -167,6 +167,22 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$suggestedResultsAtom =
+      Atom(name: '_SearchPageController.suggestedResults', context: context);
+
+  @override
+  ObservableList<String> get suggestedResults {
+    _$suggestedResultsAtom.reportRead();
+    return super.suggestedResults;
+  }
+
+  @override
+  set suggestedResults(ObservableList<String> value) {
+    _$suggestedResultsAtom.reportWrite(value, super.suggestedResults, () {
+      super.suggestedResults = value;
+    });
+  }
+
   late final _$searchBangumiAsyncAction =
       AsyncAction('_SearchPageController.searchBangumi', context: context);
 
@@ -174,6 +190,16 @@ mixin _$SearchPageController on _SearchPageController, Store {
   Future<void> searchBangumi(String input, {String type = 'add'}) {
     return _$searchBangumiAsyncAction
         .run(() => super.searchBangumi(input, type: type));
+  }
+
+  late final _$fetchSearchSuggestionsAsyncAction = AsyncAction(
+      '_SearchPageController.fetchSearchSuggestions',
+      context: context);
+
+  @override
+  Future<void> fetchSearchSuggestions(String input) {
+    return _$fetchSearchSuggestionsAsyncAction
+        .run(() => super.fetchSearchSuggestions(input));
   }
 
   late final _$deleteSearchHistoryAsyncAction = AsyncAction(
@@ -269,7 +295,8 @@ bangumiList: ${bangumiList},
 searchHistories: ${searchHistories},
 isImageSearching: ${isImageSearching},
 imageSearchError: ${imageSearchError},
-imageSearchResults: ${imageSearchResults}
+imageSearchResults: ${imageSearchResults},
+suggestedResults: ${suggestedResults}
     ''';
   }
 }

@@ -56,6 +56,8 @@ class Api {
   static const String bangumiCharacterCommentsByIDNext = '/p1/characters/{0}/comments';
   /// 番剧工作人员信息
   static const String bangumiStaffByIDNext = '/p1/subjects/{0}/staffs/persons';
+  /// 条目搜索
+  static const String bangumiSearchNext = '/p1/search/subjects?limit={1}&offset={2}';
 
   /// DanDanPlay API Domain
   static const String dandanAPIDomain = 'https://api.dandanplay.net';

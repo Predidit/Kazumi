@@ -9,6 +9,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/pip_utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -325,7 +326,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('禁用播放器内的过渡动画', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playerDisableAnimations,
                 ),
-                if (Platform.isAndroid || Platform.isIOS)
+                if (!Utils.isDesktop())
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       brightnessVolumeGesture =

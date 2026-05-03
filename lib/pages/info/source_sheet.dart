@@ -414,9 +414,13 @@ class _SourceSheetState extends State<SourceSheet>
         ],
       );
     }
-    return ListView(
+    return Column(
       children: [
-        ...cardList,
+        Expanded(
+          child: ListView(
+            children: cardList,
+          ),
+        ),
         if (cardList.isNotEmpty) showSupplementarySearchEntry(plugin.name),
       ],
     );

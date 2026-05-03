@@ -9,6 +9,7 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/pip_utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -34,6 +35,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late bool forceAdBlocker;
   late bool autoPlayNext;
   late bool backgroundPlayback;
+  late bool brightnessVolumeGesture;
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
@@ -70,6 +72,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     forceAdBlocker =
         setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
     playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
+
+    brightnessVolumeGesture =
+        setting.get(SettingBoxKey.brightnessVolumeGesture, defaultValue: true);
 
     playerButtonSkipTime =
         setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
@@ -321,6 +326,21 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('禁用播放器内的过渡动画', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playerDisableAnimations,
                 ),
+                if (!Utils.isDesktop())
+                  SettingsTile.switchTile(
+                    onToggle: (value) async {
+                      brightnessVolumeGesture =
+                          value ?? !brightnessVolumeGesture;
+                      await setting.put(SettingBoxKey.brightnessVolumeGesture,
+                          brightnessVolumeGesture);
+                      setState(() {});
+                    },
+                    title:
+                        Text('滑动手势', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('竖向滑动调节音量和亮度',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    initialValue: brightnessVolumeGesture,
+                  ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     privateMode = value ?? !privateMode;

@@ -95,7 +95,7 @@ class DioFactory {
 
 class _GithubMirrorInterceptor extends Interceptor {
   static const _mirrorableHosts = {
-    'ApiEndpoints.github.com',
+    'api.github.com',
     'github.com',
     'raw.githubusercontent.com',
     'objects.githubusercontent.com',

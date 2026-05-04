@@ -97,6 +97,7 @@ class NetworkConfig {
       sendTimeout: sendTimeout,
       proxyHost: parsed.$1,
       proxyPort: parsed.$2,
+      allowBadCertificates: true,
     );
   }
 }

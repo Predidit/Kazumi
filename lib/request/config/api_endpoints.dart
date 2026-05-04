@@ -20,7 +20,7 @@ class ApiEndpoints {
 
   /// 在线升级
   static const String latestApp =
-      'https://ApiEndpoints.github.com/repos/Predidit/Kazumi/releases/latest';
+      'https://api.github.com/repos/Predidit/Kazumi/releases/latest';
 
   /// Github镜像
   static const String gitMirror = 'https://ghfast.top/';
@@ -32,7 +32,7 @@ class ApiEndpoints {
   static const String bangumiIndex = 'https://bangumi.tv/';
 
   /// bangumi API Domain
-  static const String bangumiAPIDomain = 'https://ApiEndpoints.bgm.tv';
+  static const String bangumiAPIDomain = 'https://api.bgm.tv';
 
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
@@ -89,7 +89,7 @@ class ApiEndpoints {
   static const String bangumiStaffByIDNext = '/p1/subjects/{0}/staffs/persons';
 
   /// DanDanPlay API Domain
-  static const String dandanAPIDomain = 'https://ApiEndpoints.dandanplay.net';
+  static const String dandanAPIDomain = 'https://api.dandanplay.net';
 
   /// 获取弹幕
   static const String dandanAPIComment = "/api/v2/comment/";
@@ -104,7 +104,7 @@ class ApiEndpoints {
   static const String dandanAPIInfoByBgmBangumiId = "/api/v2/bangumi/bgmtv/{0}";
 
   /// 图片识别番剧
-  static const String traceApi = 'https://ApiEndpoints.trace.moe/search';
+  static const String traceApi = 'https://api.trace.moe/search';
 
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {

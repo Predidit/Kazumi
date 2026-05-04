@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -143,15 +144,22 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                     child: LayoutBuilder(builder: (context, boxConstraints) {
                       final double maxWidth = boxConstraints.maxWidth;
                       final double maxHeight = boxConstraints.maxHeight;
-                      return Hero(
-                        transitionOnUserGestures: true,
-                        tag: widget.bangumiItem.id,
-                        child: NetworkImgLayer(
-                          src: widget.bangumiItem.images['large'] ?? '',
-                          width: maxWidth,
-                          height: maxHeight,
-                          fadeInDuration: const Duration(milliseconds: 0),
-                          fadeOutDuration: const Duration(milliseconds: 0),
+                      return GestureDetector(
+                        onTap: () => ImageViewer.show(
+                            context,
+                            imageUrl: widget.bangumiItem.images['large'] ?? '',
+                            heroTag: widget.bangumiItem.id
+                        ),
+                        child: Hero(
+                          transitionOnUserGestures: true,
+                          tag: widget.bangumiItem.id,
+                          child: NetworkImgLayer(
+                            src: widget.bangumiItem.images['large'] ?? '',
+                            width: maxWidth,
+                            height: maxHeight,
+                            fadeInDuration: const Duration(milliseconds: 0),
+                            fadeOutDuration: const Duration(milliseconds: 0),
+                          ),
                         ),
                       );
                     }),

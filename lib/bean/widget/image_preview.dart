@@ -8,20 +8,20 @@ class ImageViewerRouteArgs {
   const ImageViewerRouteArgs({required this.imageUrl, this.heroTag});
 
   final String imageUrl;
-  final String? heroTag;
+  final Object? heroTag;
 }
 
 class ImageViewer extends StatefulWidget {
   static const String routePath = '/image-preview';
 
   final String imageUrl;
-  final String? heroTag;
+  final Object? heroTag;
 
   const ImageViewer({super.key, required this.imageUrl, this.heroTag});
 
   /// 显示图片预览
   static Future<void> show(BuildContext context,
-      {required String imageUrl, String? heroTag}) async {
+      {required String imageUrl, Object? heroTag}) async {
     final effectiveHeroTag = heroTag ?? imageUrl;
     await Modular.to.pushNamed(
       routePath,

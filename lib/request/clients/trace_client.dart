@@ -2,10 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
 
-class ApiClient {
-  ApiClient._();
+class TraceClient {
+  TraceClient._();
 
-  static final ApiClient instance = ApiClient._();
+  static final TraceClient instance = TraceClient._();
 
   Future<dynamic> post(
     String url, {

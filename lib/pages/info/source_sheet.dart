@@ -9,7 +9,7 @@ import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/request/query_manager.dart';
+import 'package:kazumi/request/apis/query_manager.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
@@ -91,7 +91,8 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
-    final searchUrl = plugin.searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+    final searchUrl = plugin.searchURL
+        .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
     _captchaProvider!.loadForCaptcha(
       searchUrl,
@@ -284,7 +285,8 @@ class _SourceSheetState extends State<SourceSheet>
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
-    final searchUrl = plugin.searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+    final searchUrl = plugin.searchURL
+        .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
     void onVerified() {
       if (autoVerified) return;
@@ -368,8 +370,7 @@ class _SourceSheetState extends State<SourceSheet>
   }
 
   Widget buildPluginView(Plugin plugin, List<Widget> cardList) {
-    final status =
-        widget.infoController.pluginSearchStatus[plugin.name];
+    final status = widget.infoController.pluginSearchStatus[plugin.name];
     if (status == 'pending') {
       return const Center(child: CircularProgressIndicator());
     }
@@ -672,7 +673,8 @@ class _SourceSheetState extends State<SourceSheet>
                     launchUrl(
                       Uri.parse(pluginsController
                           .pluginList[currentIndex].searchURL
-                          .replaceFirst('@keyword', Uri.encodeQueryComponent(keyword))),
+                          .replaceFirst(
+                              '@keyword', Uri.encodeQueryComponent(keyword))),
                       mode: LaunchMode.externalApplication,
                     );
                   },

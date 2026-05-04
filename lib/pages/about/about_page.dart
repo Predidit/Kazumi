@@ -7,7 +7,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/request/api.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/utils/mortis.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -148,8 +148,10 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/license');
                   },
-                  title: Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看所有开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看所有开源许可证',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -158,34 +160,37 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.projectUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.sourceUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Github', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Github', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.iconUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.bangumiIndex),
+                    launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -193,16 +198,19 @@ class _AboutPageState extends State<AboutPage> {
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('trace.moe', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('trace.moe',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.dandanIndex),
+                    launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('ID: ${mortis['id']}', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('DanDanPlay', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('ID: ${mortis['id']}',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('DanDanPlay',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -218,7 +226,8 @@ class _AboutPageState extends State<AboutPage> {
                         menuController.open();
                       }
                     },
-                    title: Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                    title:
+                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
                       controller: menuController,
@@ -274,7 +283,8 @@ class _AboutPageState extends State<AboutPage> {
                   title: Text('清除缓存', style: TextStyle(fontFamily: fontFamily)),
                   value: _cacheSizeMB == -1
                       ? Text('统计中...', style: TextStyle(fontFamily: fontFamily))
-                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB', style: TextStyle(fontFamily: fontFamily)),
+                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
+                          style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -295,7 +305,8 @@ class _AboutPageState extends State<AboutPage> {
                     myController.checkUpdate();
                   },
                   title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('当前版本 ${Api.version}', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('当前版本 ${ApiEndpoints.version}',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

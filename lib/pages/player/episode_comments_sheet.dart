@@ -7,7 +7,7 @@ import 'package:kazumi/bean/card/episode_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 
 class EpisodeInfoWidget extends InheritedWidget {
   /// This widget receives changes of episode and notify it's child,
@@ -236,7 +236,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;
     KazumiDialog.showLoading(msg: '分集列表加载中');
     final List<EpisodeInfo> episodeList =
-        await BangumiHTTP.getBangumiEpisodesByID(
+        await BangumiApi.getBangumiEpisodesByID(
             videoPageController.bangumiItem.id);
     KazumiDialog.dismiss();
     if (episodeList.isEmpty) {

@@ -8,7 +8,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 
 /// Bangumi 同步服务工具类
 class BangumiSyncService {
@@ -68,7 +68,7 @@ class BangumiSyncService {
     }
     await _runExclusive(() async {
       try {
-        final name = await BangumiHTTP.getUsername();
+        final name = await BangumiApi.getUsername();
         if (name == null) {
           throw Exception('Bangumi: 获取用户名失败');
         } else {
@@ -85,7 +85,7 @@ class BangumiSyncService {
   /// to finish and serializing multiple immediate update requests.
   Future<bool> syncCollectibleWhenIdle(int bangumiId, int localType) {
     return _runExclusive(() async {
-      return BangumiHTTP.updateBangumiByType(
+      return BangumiApi.updateBangumiByType(
         bangumiId,
         localType,
       );
@@ -155,7 +155,7 @@ class BangumiSyncService {
         );
 
         // 1. 全量拉取远程收藏
-        final remoteCollection = await BangumiHTTP.getBangumiCollectibles(
+        final remoteCollection = await BangumiApi.getBangumiCollectibles(
           username: username,
           limit: 100,
           onProgress: onProgress,
@@ -205,7 +205,7 @@ class BangumiSyncService {
         if (localOnlyIds.isNotEmpty) {
           onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
           for (final id in localOnlyIds) {
-            final updated = await BangumiHTTP.updateBangumiByType(
+            final updated = await BangumiApi.updateBangumiByType(
               id,
               localMap[id]!.type,
             );
@@ -241,7 +241,7 @@ class BangumiSyncService {
           onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
           for (final id in mismatchIds) {
             final updated =
-                await BangumiHTTP.updateBangumiByType(id, localMap[id]!.type);
+                await BangumiApi.updateBangumiByType(id, localMap[id]!.type);
             if (updated != true) {
               throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
             }

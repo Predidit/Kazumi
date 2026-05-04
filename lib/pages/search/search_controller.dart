@@ -8,8 +8,8 @@ import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/repositories/search_history_repository.dart';
-import 'package:kazumi/request/bangumi.dart';
-import 'package:kazumi/request/trace.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/request/apis/trace_api.dart';
 import 'package:kazumi/utils/search_parser.dart';
 
 part 'search_controller.g.dart';
@@ -27,10 +27,12 @@ abstract class _SearchPageController with Store {
   bool isTimeOut = false;
 
   @observable
-  late bool notShowWatchedBangumis = _collectRepository.getSearchNotShowWatchedBangumis();
+  late bool notShowWatchedBangumis =
+      _collectRepository.getSearchNotShowWatchedBangumis();
 
   @observable
-  late bool notShowAbandonedBangumis = _collectRepository.getSearchNotShowAbandonedBangumis();
+  late bool notShowAbandonedBangumis =
+      _collectRepository.getSearchNotShowAbandonedBangumis();
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
@@ -93,14 +95,14 @@ abstract class _SearchPageController with Store {
     if (idString != null) {
       final id = int.tryParse(idString);
       if (id != null) {
-        final BangumiItem? item = await BangumiHTTP.getBangumiInfoByID(id);
+        final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
         if (item != null) {
           bangumiList.add(item);
         }
         return;
       }
     }
-    var result = await BangumiHTTP.bangumiSearch(keywords,
+    var result = await BangumiApi.bangumiSearch(keywords,
         tags: [if (tag != null) tag],
         offset: bangumiList.length,
         sort: sort ?? 'heat');
@@ -134,7 +136,7 @@ abstract class _SearchPageController with Store {
     imageSearchError = '';
     imageSearchResults.clear();
     try {
-      final result = await Trace.searchAnimeByImageFile(imageFile);
+      final result = await TraceApi.searchAnimeByImageFile(imageFile);
       imageSearchResults.addAll(result.result ?? []);
       if (result.error != null && result.error!.isNotEmpty) {
         imageSearchError = result.error!;
@@ -154,7 +156,7 @@ abstract class _SearchPageController with Store {
     imageSearchError = '';
     imageSearchResults.clear();
     try {
-      final result = await Trace.searchAnimeByImageUrl(imageUrl);
+      final result = await TraceApi.searchAnimeByImageUrl(imageUrl);
       imageSearchResults.addAll(result.result ?? []);
       if (result.error != null && result.error!.isNotEmpty) {
         imageSearchError = result.error!;

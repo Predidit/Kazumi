@@ -3,7 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
@@ -38,7 +38,7 @@ abstract class _InfoController with Store {
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
-    await BangumiHTTP.getBangumiInfoByID(id).then((value) {
+    await BangumiApi.getBangumiInfoByID(id).then((value) {
       if (value != null) {
         if (type == "init") {
           bangumiItem = value;
@@ -63,15 +63,16 @@ abstract class _InfoController with Store {
     if (offset == 0) {
       commentsList.clear();
     }
-    await BangumiHTTP.getBangumiCommentsByID(id, offset: offset).then((value) {
+    await BangumiApi.getBangumiCommentsByID(id, offset: offset).then((value) {
       commentsList.addAll(value.commentList);
     });
-    KazumiLogger().i('InfoController: loaded comments list length ${commentsList.length}');
+    KazumiLogger().i(
+        'InfoController: loaded comments list length ${commentsList.length}');
   }
 
   Future<void> queryBangumiCharactersByID(int id) async {
     characterList.clear();
-    await BangumiHTTP.getCharatersByBangumiID(id).then((value) {
+    await BangumiApi.getCharatersByBangumiID(id).then((value) {
       characterList.addAll(value.charactersList);
     });
     Map<String, int> relationValue = {
@@ -89,14 +90,16 @@ abstract class _InfoController with Store {
     } catch (e) {
       KazumiDialog.showToast(message: '$e');
     }
-    KazumiLogger().i('InfoController: loaded character list length ${characterList.length}');
+    KazumiLogger().i(
+        'InfoController: loaded character list length ${characterList.length}');
   }
 
   Future<void> queryBangumiStaffsByID(int id) async {
     staffList.clear();
-    await BangumiHTTP.getBangumiStaffByID(id).then((value) {
+    await BangumiApi.getBangumiStaffByID(id).then((value) {
       staffList.addAll(value.data);
     });
-    KazumiLogger().i('InfoController: loaded staff list length ${staffList.length}');
+    KazumiLogger()
+        .i('InfoController: loaded staff list length ${staffList.length}');
   }
 }

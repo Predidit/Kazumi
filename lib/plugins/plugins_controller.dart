@@ -6,10 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugin_validity_tracker.dart';
 import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
-import 'package:kazumi/request/plugin.dart';
+import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/request/api.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 
 part 'plugins_controller.g.dart';
 
@@ -54,15 +54,13 @@ abstract class _PluginsController with Store {
   // Loads all plugins from the directory, populates the plugin list, and saves to plugins.json if needed
   Future<void> loadAllPlugins() async {
     pluginList.clear();
-    KazumiLogger()
-        .i('Plugins Directory: ${newPluginDirectory!.path}');
+    KazumiLogger().i('Plugins Directory: ${newPluginDirectory!.path}');
     if (await newPluginDirectory!.exists()) {
       final pluginsFile = File('${newPluginDirectory!.path}/$pluginsFileName');
       if (await pluginsFile.exists()) {
         final jsonString = await pluginsFile.readAsString();
         pluginList.addAll(getPluginListFromJson(jsonString));
-        KazumiLogger()
-            .i('Plugin: Current Plugin number: ${pluginList.length}');
+        KazumiLogger().i('Plugin: Current Plugin number: ${pluginList.length}');
       } else {
         // No plugins.json
         var jsonFiles = await getPluginFiles();
@@ -169,13 +167,13 @@ abstract class _PluginsController with Store {
 
   Future<void> queryPluginHTTPList() async {
     pluginHTTPList.clear();
-    var pluginHTTPListRes = await PluginHTTP.getPluginList();
+    var pluginHTTPListRes = await PluginCatalogApi.getPluginList();
     pluginHTTPList.addAll(pluginHTTPListRes);
   }
 
   Future<Plugin?> queryPluginHTTP(String name) async {
     Plugin? plugin;
-    plugin = await PluginHTTP.getPlugin(name);
+    plugin = await PluginCatalogApi.getPlugin(name);
     return plugin;
   }
 
@@ -211,7 +209,7 @@ abstract class _PluginsController with Store {
   Future<int> tryUpdatePluginByName(String name) async {
     var pluginHTTPItem = await queryPluginHTTP(name);
     if (pluginHTTPItem != null) {
-      if (int.parse(pluginHTTPItem.api) > Api.apiLevel) {
+      if (int.parse(pluginHTTPItem.api) > ApiEndpoints.apiLevel) {
         return 1;
       }
       updatePlugin(pluginHTTPItem);

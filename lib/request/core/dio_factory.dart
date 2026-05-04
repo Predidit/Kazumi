@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/network_config.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -81,13 +82,7 @@ class DioFactory {
     dio.transformer = BackgroundTransformer();
     dio.interceptors.addAll(interceptors);
     if (config.enableLog) {
-      dio.interceptors.add(
-        LogInterceptor(
-          request: false,
-          requestHeader: false,
-          responseHeader: false,
-        ),
-      );
+      dio.interceptors.add(DioLoggerInterceptor());
     }
     return dio;
   }

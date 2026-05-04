@@ -13,7 +13,7 @@ import 'package:kazumi/utils/format_utils.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/providers/video/providers.dart';
-import 'package:kazumi/request/damaku.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:mobx/mobx.dart';
 
 part 'download_controller.g.dart';
@@ -68,8 +68,7 @@ abstract class _DownloadController with Store {
       bool recordChanged = false;
       for (final entry in record.episodes.entries) {
         final episode = entry.value;
-        if (episode.danmakuData.isEmpty ||
-            episode.downloadDirectory.isEmpty) {
+        if (episode.danmakuData.isEmpty || episode.downloadDirectory.isEmpty) {
           continue;
         }
         try {
@@ -138,7 +137,8 @@ abstract class _DownloadController with Store {
         episode.status == DownloadStatus.paused;
 
     final now = DateTime.now();
-    if (isFinalState || now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
+    if (isFinalState ||
+        now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
       _lastUiUpdateTime = now;
       refreshRecords();
       _updateBackgroundNotification();
@@ -176,7 +176,8 @@ abstract class _DownloadController with Store {
     }
   }
 
-  ({int activeCount, int pendingCount, int totalCount, double overallProgress}) _getDownloadStats() {
+  ({int activeCount, int pendingCount, int totalCount, double overallProgress})
+      _getDownloadStats() {
     int activeCount = 0;
     int pendingCount = 0;
     int totalCount = 0;
@@ -209,8 +210,6 @@ abstract class _DownloadController with Store {
     final key = '${pluginName}_${bangumiId}_$episodeNumber';
     return _speeds[key] ?? 0.0;
   }
-
-
 
   @action
   void refreshRecords() {
@@ -269,8 +268,7 @@ abstract class _DownloadController with Store {
       final decoded = jsonDecode(content);
       if (decoded is List) {
         // 旧格式：纯弹幕数组
-        final danmakus =
-            decoded.map((json) => Danmaku.fromJson(json)).toList();
+        final danmakus = decoded.map((json) => Danmaku.fromJson(json)).toList();
         return (danmakus: danmakus, danDanBangumiID: 0);
       } else if (decoded is Map<String, dynamic>) {
         // 新格式：带 danDanBangumiID 的 wrapper
@@ -289,8 +287,8 @@ abstract class _DownloadController with Store {
   }
 
   /// 写入弹幕数据到文件 (新格式，包含 danDanBangumiID)
-  Future<void> _writeDanmakuToFile(
-      String downloadDirectory, List<Danmaku> danmakus, int danDanBangumiID) async {
+  Future<void> _writeDanmakuToFile(String downloadDirectory,
+      List<Danmaku> danmakus, int danDanBangumiID) async {
     if (downloadDirectory.isEmpty) return;
     final file = File(_danmakuFilePath(downloadDirectory));
     final wrapper = {
@@ -519,7 +517,7 @@ abstract class _DownloadController with Store {
 
         // 获取 DanDan 番剧 ID
         final danDanBangumiID =
-            await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+            await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
         if (danDanBangumiID == 0) {
           KazumiLogger().w(
               'DownloadController: failed to get DanDan bangumiID for $bangumiId');
@@ -528,7 +526,7 @@ abstract class _DownloadController with Store {
 
         // 获取弹幕列表
         final danmakus =
-            await DanmakuRequest.getDanDanmaku(danDanBangumiID, episodeNumber);
+            await DanmakuApi.getDanDanmaku(danDanBangumiID, episodeNumber);
         if (danmakus.isEmpty) {
           KazumiLogger().i(
               'DownloadController: no danmaku found for episode $episodeNumber');
@@ -558,8 +556,7 @@ abstract class _DownloadController with Store {
         }
 
         // 写入独立文件
-        await _writeDanmakuToFile(
-            downloadDirectory, danmakus, danDanBangumiID);
+        await _writeDanmakuToFile(downloadDirectory, danmakus, danDanBangumiID);
 
         KazumiLogger().i(
             'DownloadController: cached ${danmakus.length} danmakus for episode $episodeNumber');
@@ -826,7 +823,6 @@ abstract class _DownloadController with Store {
         .where((e) => e.status == DownloadStatus.completed)
         .length;
   }
-
 }
 
 class _ResolveRequest {

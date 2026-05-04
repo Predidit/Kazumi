@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
@@ -27,7 +27,7 @@ class _CharacterPageState extends State<CharacterPage> {
     setState(() {
       loadingCharacter = true;
     });
-    await BangumiHTTP.getCharacterByCharacterID(widget.characterID)
+    await BangumiApi.getCharacterByCharacterID(widget.characterID)
         .then((character) {
       characterFullItem = character;
     });
@@ -44,8 +44,8 @@ class _CharacterPageState extends State<CharacterPage> {
       commentsError = false;
     });
     try {
-      final value =
-          await BangumiHTTP.getCharacterCommentsByCharacterID(widget.characterID);
+      final value = await BangumiApi.getCharacterCommentsByCharacterID(
+          widget.characterID);
       commentsList = value.commentList;
     } catch (e) {
       if (mounted) {

@@ -8,7 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:mobx/mobx.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:kazumi/request/damaku.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -673,9 +673,9 @@ abstract class _PlayerController with Store {
             .i('PlayerController: no cached danmaku, attempting online fetch');
         try {
           bangumiID =
-              await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+              await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
           if (bangumiID != 0) {
-            var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+            var res = await DanmakuApi.getDanDanmaku(bangumiID, episode);
             if (res.isNotEmpty) {
               addDanmakus(res);
               KazumiLogger()
@@ -730,8 +730,8 @@ abstract class _PlayerController with Store {
     try {
       danDanmakus.clear();
       bangumiID =
-          await DanmakuRequest.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
-      var res = await DanmakuRequest.getDanDanmaku(bangumiID, episode);
+          await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
+      var res = await DanmakuApi.getDanDanmaku(bangumiID, episode);
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().w(
@@ -753,7 +753,7 @@ abstract class _PlayerController with Store {
     danmakuLoading = true;
     try {
       danDanmakus.clear();
-      var res = await DanmakuRequest.getDanDanmakuByEpisodeID(episodeID);
+      var res = await DanmakuApi.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
     } catch (e) {
       KazumiLogger().w('PlayerController: failed to get danmaku', error: e);

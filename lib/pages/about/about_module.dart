@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/request/api.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/pages/about/about_page.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/logs/logs_page.dart';
@@ -16,7 +16,7 @@ class AboutModule extends Module {
       "/license",
       child: (_) => const LicensePage(
         applicationName: 'Kazumi',
-        applicationVersion: Api.version,
+        applicationVersion: ApiEndpoints.version,
         applicationLegalese: '开源许可证',
       ),
     );

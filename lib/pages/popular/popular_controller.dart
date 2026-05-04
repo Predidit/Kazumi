@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:mobx/mobx.dart';
 
@@ -42,7 +42,7 @@ abstract class _PopularController with Store {
     }
     isLoadingMore = true;
     var result =
-        await BangumiHTTP.getBangumiTrendsList(offset: trendList.length);
+        await BangumiApi.getBangumiTrendsList(offset: trendList.length);
     trendList.addAll(result);
     isLoadingMore = false;
     isTimeOut = trendList.isEmpty;
@@ -55,7 +55,7 @@ abstract class _PopularController with Store {
     isLoadingMore = true;
     int randomNumber = Random().nextInt(8000) + 1;
     var tag = currentTag;
-    var result = await BangumiHTTP.getBangumiList(rank: randomNumber, tag: tag);
+    var result = await BangumiApi.getBangumiList(rank: randomNumber, tag: tag);
     bangumiList.addAll(result);
     isLoadingMore = false;
     isTimeOut = bangumiList.isEmpty;

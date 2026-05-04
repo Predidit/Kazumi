@@ -17,7 +17,7 @@ import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -345,9 +345,9 @@ abstract class _VideoPageController with Store {
   Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     final int requestId = ++_episodeCommentsRequestId;
     final EpisodeInfo latestEpisodeInfo =
-        await BangumiHTTP.getBangumiEpisodeByID(id, episode);
+        await BangumiApi.getBangumiEpisodeByID(id, episode);
     final value =
-        await BangumiHTTP.getBangumiCommentsByEpisodeID(latestEpisodeInfo.id);
+        await BangumiApi.getBangumiCommentsByEpisodeID(latestEpisodeInfo.id);
     if (requestId != _episodeCommentsRequestId) {
       return;
     }

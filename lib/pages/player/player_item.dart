@@ -475,11 +475,11 @@ class _PlayerItemState extends State<PlayerItem>
     unawaited(_updateAndroidPIPActions(force: true));
   }
 
-  Future<void> _uploadHistoryToWebDav() async {
+  Future<void> _syncHistoryWithWebDav() async {
     if (webDavEnable && webDavEnableHistory) {
       try {
         var webDav = WebDav();
-        await webDav.updateHistory();
+        await webDav.syncHistory();
       } catch (e) {
         KazumiLogger().w('WebDav: auto history sync failed', error: e);
       }
@@ -561,7 +561,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerController.lockPanel = false;
     playerController.danmakuController.clear();
 
-    await _uploadHistoryToWebDav();
+    await _syncHistoryWithWebDav();
   }
 
   void handleProgressBarDragStart(ThumbDragDetails details) {

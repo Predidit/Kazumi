@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/bangumi_sync_service.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/webdav.dart';
 import 'package:hive_ce/hive.dart';
@@ -44,66 +45,26 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     }
   }
 
-  Future<void> checkWebDav() async {
-    var webDavURL =
-        await setting.get(SettingBoxKey.webDavURL, defaultValue: '');
-    if (webDavURL == '') {
-      await setting.put(SettingBoxKey.webDavEnable, false);
-      KazumiDialog.showToast(message: '未找到有效的webdav配置');
-      return;
-    }
-    try {
-      KazumiDialog.showToast(message: '尝试从WebDav同步');
-      var webDav = WebDav();
-      await webDav.downloadAndPatchHistory();
-      KazumiDialog.showToast(message: '同步成功');
-    } catch (e) {
-      if (e.toString().contains('Error: Not Found')) {
-        KazumiDialog.showToast(message: '配置成功, 这是一个不存在已有同步文件的全新WebDav');
-      } else {
-        KazumiDialog.showToast(message: '同步失败 ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> updateWebdav() async {
+  Future<void> syncHistoryWithWebDav() async {
     var webDavEnable =
         await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     if (webDavEnable) {
-      KazumiDialog.showToast(message: '尝试上传到WebDav');
+      KazumiLogger().i('WebDav: manual history sync started');
+      KazumiDialog.showToast(message: '正在同步观看记录');
       var webDav = WebDav();
       try {
         await webDav.ping();
         try {
-          await webDav.updateHistory();
-          KazumiDialog.showToast(message: 'WebDav同步成功');
+          await webDav.syncHistory();
+          KazumiLogger().i('WebDav: manual history sync completed');
+          KazumiDialog.showToast(message: '观看记录同步完成');
         } catch (e) {
-          KazumiDialog.showToast(message: 'WebDav同步失败 ${e.toString()}');
+          KazumiLogger().w('WebDav: manual history sync failed', error: e);
+          KazumiDialog.showToast(message: '观看记录同步失败 ${e.toString()}');
         }
       } catch (e) {
+        KazumiLogger().w('WebDav: manual history sync ping failed', error: e);
         KazumiDialog.showToast(message: 'WebDav连接失败');
-      }
-    } else {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
-    }
-  }
-
-  Future<void> downloadWebdav() async {
-    var webDavEnable =
-        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    if (webDavEnable) {
-      KazumiDialog.showToast(message: '尝试从WebDav同步');
-      var webDav = WebDav();
-      try {
-        await webDav.ping();
-        try {
-          await webDav.downloadAndPatchHistory();
-          KazumiDialog.showToast(message: 'WebDav同步成功');
-        } catch (e) {
-          KazumiDialog.showToast(message: 'WebDav同步失败 ${e.toString()}');
-        }
-      } catch (e) {
-        KazumiDialog.showToast(message: 'WebDAV连接失败');
       }
     } else {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
@@ -269,21 +230,13 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile(
-                  trailing: const Icon(Icons.cloud_upload_rounded),
+                  trailing: const Icon(Icons.sync_rounded),
                   onPressed: (_) {
-                    updateWebdav();
+                    syncHistoryWithWebDav();
                   },
-                  title: Text('手动上传', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('立即上传观看记录到WEBDAV',
+                  title: Text('立即同步观看记录',
                       style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile(
-                  trailing: const Icon(Icons.cloud_download_rounded),
-                  onPressed: (_) {
-                    downloadWebdav();
-                  },
-                  title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('立即下载观看记录到本地',
+                  description: Text('与WEBDAV双向合并观看记录',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

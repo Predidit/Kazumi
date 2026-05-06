@@ -102,7 +102,7 @@ class WebDav {
     } catch (_) {}
   }
 
-  Future<void> updateHistory() async {
+  Future<void> syncHistory() async {
     if (isHistorySyncing) {
       KazumiLogger().w('WebDav: History is currently syncing');
       throw Exception('History is currently syncing');
@@ -111,7 +111,7 @@ class WebDav {
     try {
       await _runWebDavExclusive(_syncHistory);
     } catch (e) {
-      KazumiLogger().e('WebDav: update history failed', error: e);
+      KazumiLogger().e('WebDav: history sync failed', error: e);
       rethrow;
     } finally {
       isHistorySyncing = false;
@@ -132,29 +132,13 @@ class WebDav {
     }
   }
 
-  Future<void> download(String boxName) async {
+  Future<void> _downloadBox(String boxName) async {
     String fileName = '$boxName.tmp';
     final existingFile = File('${webDavLocalTempDirectory.path}/$fileName');
     if (await existingFile.exists()) {
       await existingFile.delete();
     }
     await client.read2File('$_syncRootPath/$fileName', existingFile.path);
-  }
-
-  Future<void> downloadAndPatchHistory() async {
-    if (isHistorySyncing) {
-      KazumiLogger().w('WebDav: History is currently syncing');
-      throw Exception('History is currently syncing');
-    }
-    isHistorySyncing = true;
-    try {
-      await _runWebDavExclusive(_syncHistory);
-    } catch (e) {
-      KazumiLogger().e('WebDav: download and patch history failed', error: e);
-      rethrow;
-    } finally {
-      isHistorySyncing = false;
-    }
   }
 
   Future<void> syncCollectibles() async {
@@ -180,13 +164,13 @@ class WebDav {
 
     List<Future<void>> downloadFutures = [];
     if (collectiblesExists) {
-      downloadFutures.add(download('collectibles').catchError((e) {
+      downloadFutures.add(_downloadBox('collectibles').catchError((e) {
         KazumiLogger().e('WebDav: download collectibles failed', error: e);
         throw Exception('WebDav: download collectibles failed');
       }));
     }
     if (changesExists) {
-      downloadFutures.add(download('collectchanges').catchError((e) {
+      downloadFutures.add(_downloadBox('collectchanges').catchError((e) {
         KazumiLogger().e('WebDav: download collectchanges failed', error: e);
         throw Exception('WebDav: download collectchanges failed');
       }));

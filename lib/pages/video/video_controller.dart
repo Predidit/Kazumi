@@ -127,6 +127,7 @@ abstract class _VideoPageController with Store {
     title =
         bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
     isOfflineMode = true;
+    isStandaloneLocalPlayback = false;
     _offlineVideoPath = videoPath;
     // 离线模式不需要解析视频源，直接设置 loading 为 false
     loading = false;

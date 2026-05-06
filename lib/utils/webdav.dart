@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:hive_ce/hive.dart';
 import 'package:path_provider/path_provider.dart';
@@ -51,6 +52,7 @@ class WebDav {
       debug: false,
     );
     client.setHeaders({'accept-charset': 'utf-8'});
+    client.c.options.contentType = 'application/octet-stream';
     try {
       await client.ping();
       await _ensureRemoteDirectory(_syncRootPath);
@@ -316,7 +318,7 @@ class WebDav {
     final files = await client.readDir(_historyChangesPath);
     for (final file in files) {
       final name = file.name ?? '';
-      if (!name.endsWith('.jsonl')) {
+      if (!name.endsWith('.jsonl') || file.size == 0) {
         continue;
       }
       try {
@@ -387,41 +389,39 @@ class WebDav {
     Iterable<HistorySyncEvent> events,
   ) async {
     final deviceId = await HistorySyncService().getDeviceId();
-    await _writeRemoteText(
-      '$_historyChangesPath/$deviceId.jsonl',
-      HistorySyncCodec.eventsToJsonLines(events),
-    );
+    final remotePath = '$_historyChangesPath/$deviceId.jsonl';
+    final content = HistorySyncCodec.eventsToJsonLines(events);
+    if (content.isEmpty) {
+      try {
+        await client.remove(remotePath);
+      } catch (_) {}
+      return;
+    }
+    await _writeRemoteText(remotePath, content);
   }
 
   Future<String> _readRemoteText(String remotePath) async {
-    final localPath = _localTempPathForRemote(remotePath);
-    final file = File(localPath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-    await client.read2File(remotePath, localPath);
-    return file.readAsString();
+    final bytes = await client.read(remotePath);
+    return utf8.decode(bytes);
   }
 
   Future<void> _writeRemoteText(String remotePath, String content) async {
-    final localPath = _localTempPathForRemote(remotePath);
-    final file = File(localPath);
-    await file.writeAsString(content, flush: true);
-    try {
-      await client.remove('$remotePath.cache');
-    } catch (_) {}
-    await client.writeFromFile(localPath, '$remotePath.cache');
-    await client.rename('$remotePath.cache', remotePath, true);
-    try {
-      await file.delete();
-    } catch (_) {}
-  }
-
-  String _localTempPathForRemote(String remotePath) {
-    final fileName = remotePath
-        .replaceAll('/', '_')
-        .replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
-    return '${webDavLocalTempDirectory.path}/$fileName';
+    final bytes = Uint8List.fromList(utf8.encode(content));
+    final response = await client.c.req(
+      client,
+      'PUT',
+      remotePath,
+      data: bytes,
+      optionsHandler: (options) {
+        options.contentType = 'application/json; charset=utf-8';
+        options.headers?['content-length'] = bytes.length;
+      },
+    );
+    final statusCode = response.statusCode;
+    if (statusCode == 200 || statusCode == 201 || statusCode == 204) {
+      return;
+    }
+    throw Exception('WebDav: PUT $remotePath failed with $statusCode');
   }
 
   Future<void> ping() async {

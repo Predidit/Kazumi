@@ -417,5 +417,8 @@ class SettingBoxKey {
       bangumiAccessToken = 'bangumiAccessToken',
       bangumiSyncPriority = 'bangumiSyncPriority',
       bangumiImmediateSyncToastEnable = 'bangumiImmediateSyncToastEnable',
-      brightnessVolumeGesture = 'brightnessVolumeGesture';
+      brightnessVolumeGesture = 'brightnessVolumeGesture',
+      historySyncDeviceId = 'historySyncDeviceId',
+      historySyncSequence = 'historySyncSequence',
+      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized';
 }

@@ -397,8 +397,7 @@ class WebDav {
       remotePath,
       data: bytes,
       optionsHandler: (options) {
-        options.contentType = 'application/json; charset=utf-8';
-        options.headers?['content-length'] = bytes.length;
+        options.contentType = 'application/octet-stream';
       },
     );
     final statusCode = response.statusCode;

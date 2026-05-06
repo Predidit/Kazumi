@@ -19,6 +19,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   Box setting = GStorage.setting;
   late bool webDavEnable;
   late bool webDavEnableHistory;
+  late bool webDavEnableCollect;
   late bool enableGitProxy;
   late bool bangumiSyncEnable;
 
@@ -28,6 +29,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
     webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
     webDavEnableHistory =
         setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
+    webDavEnableCollect =
+        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     enableGitProxy =
         setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
     bangumiSyncEnable =
@@ -210,8 +213,11 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     }
                     if (!webDavEnable) {
                       webDavEnableHistory = false;
+                      webDavEnableCollect = false;
                       await setting.put(
                           SettingBoxKey.webDavEnableHistory, false);
+                      await setting.put(
+                          SettingBoxKey.webDavEnableCollect, false);
                     }
                     await setting.put(SettingBoxKey.webDavEnable, webDavEnable);
                     if (mounted) {
@@ -239,6 +245,22 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: webDavEnableHistory,
                 ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    if (!webDavEnable) {
+                      KazumiDialog.showToast(message: '请先开启WEBDAV同步');
+                      return;
+                    }
+                    webDavEnableCollect = value ?? !webDavEnableCollect;
+                    await setting.put(
+                        SettingBoxKey.webDavEnableCollect, webDavEnableCollect);
+                    setState(() {});
+                  },
+                  title: Text('收藏同步', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('允许 WebDAV 参与追番状态同步',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: webDavEnableCollect,
+                ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
                     Modular.to.pushNamed('/settings/webdav/editor');
@@ -252,7 +274,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     updateWebdav();
                   },
                   title: Text('手动上传', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('立即上传观看记录到WEBDAV', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('立即上传观看记录到WEBDAV',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile(
                   trailing: const Icon(Icons.cloud_download_rounded),
@@ -260,7 +283,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     downloadWebdav();
                   },
                   title: Text('手动下载', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('立即下载观看记录到本地', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('立即下载观看记录到本地',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

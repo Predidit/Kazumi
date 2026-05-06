@@ -221,6 +221,12 @@ abstract class _CollectController with Store {
   }
 
   Future<bool> syncCollectibles({bool showSuccessToast = true}) async {
+    final bool webDavCollectEnable =
+        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+    if (!webDavCollectEnable) {
+      KazumiDialog.showToast(message: '未开启WebDav收藏同步');
+      return false;
+    }
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
       return false;
@@ -238,7 +244,9 @@ abstract class _CollectController with Store {
     }
     try {
       await WebDav().syncCollectibles();
-      KazumiDialog.showToast(message: 'WebDav同步完成');
+      if (showSuccessToast) {
+        KazumiDialog.showToast(message: 'WebDav同步完成');
+      }
     } catch (e) {
       KazumiDialog.showToast(message: 'WebDav同步失败 $e');
       return false;
@@ -248,8 +256,15 @@ abstract class _CollectController with Store {
   }
 
   /// Only upload local collectibles and change logs to WebDAV, without downloading and merging.
-  /// After bangumi sync finished, call this method to push local changes to WebDAV.
-  Future<bool> uploadCollectiblesToWebDav({bool showSuccessToast = true}) async {
+  /// Used by full sync to push Bangumi-updated local changes back to WebDAV.
+  Future<bool> uploadCollectiblesToWebDav(
+      {bool showSuccessToast = true}) async {
+    final bool webDavCollectEnable =
+        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+    if (!webDavCollectEnable) {
+      KazumiDialog.showToast(message: '未开启WebDav收藏同步');
+      return false;
+    }
     if (!WebDav().initialized) {
       KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
       return false;
@@ -296,7 +311,8 @@ abstract class _CollectController with Store {
       }
       await _collectCrudRepository.clearFavorites();
       loadCollectibles();
-      KazumiLogger().d('GStorage: detected $count uncategorized favorites, migrated to collectibles');
+      KazumiLogger().d(
+          'GStorage: detected $count uncategorized favorites, migrated to collectibles');
     }
   }
 
@@ -316,15 +332,12 @@ abstract class _CollectController with Store {
   List<BangumiItem> filterBangumiByType(
       List<BangumiItem> bangumiList, CollectType excludeType) {
     final excludeIds = getBangumiIdsByType(excludeType);
-    return bangumiList
-        .where((item) => !excludeIds.contains(item.id))
-        .toList();
+    return bangumiList.where((item) => !excludeIds.contains(item.id)).toList();
   }
 
   /// Sync Bangumi collectibles.
   Future<bool> syncCollectiblesBangumi(
-      {void Function(String message, int current, int total)?
-          onProgress,
+      {void Function(String message, int current, int total)? onProgress,
       bool showSuccessToast = true}) async {
     final bool syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);

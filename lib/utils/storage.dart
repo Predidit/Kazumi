@@ -8,6 +8,7 @@ import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
+import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 
@@ -156,7 +157,8 @@ class GStorage {
     collectibles = await _openBoxSafe<CollectedBangumi>('collectibles');
     histories = await _openBoxSafe<History>('histories');
     setting = await _openBoxSafe<dynamic>('setting');
-    collectChanges = await _openBoxSafe<CollectedBangumiChange>('collectchanges');
+    collectChanges =
+        await _openBoxSafe<CollectedBangumiChange>('collectchanges');
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
@@ -168,7 +170,9 @@ class GStorage {
     try {
       return await Hive.openBox<T>(boxName);
     } catch (e) {
-      KazumiLogger().e('GStorage: Box "$boxName" corrupted, attempting recovery', error: e);
+      KazumiLogger().e(
+          'GStorage: Box "$boxName" corrupted, attempting recovery',
+          error: e);
 
       // Delete the corrupted box files
       await _deleteBoxFiles(boxName);
@@ -176,10 +180,12 @@ class GStorage {
       // Try to open again (will create a new empty box)
       try {
         final box = await Hive.openBox<T>(boxName);
-        KazumiLogger().i('GStorage: Box "$boxName" recovered successfully (data lost)');
+        KazumiLogger()
+            .i('GStorage: Box "$boxName" recovered successfully (data lost)');
         return box;
       } catch (e2) {
-        KazumiLogger().e('GStorage: Failed to recover box "$boxName"', error: e2);
+        KazumiLogger()
+            .e('GStorage: Failed to recover box "$boxName"', error: e2);
         rethrow;
       }
     }
@@ -202,7 +208,8 @@ class GStorage {
         KazumiLogger().i('GStorage: Deleted lock file: $boxName.lock');
       }
     } catch (e) {
-      KazumiLogger().e('GStorage: Failed to delete box files for "$boxName"', error: e);
+      KazumiLogger()
+          .e('GStorage: Failed to delete box files for "$boxName"', error: e);
     }
   }
 
@@ -294,90 +301,29 @@ class GStorage {
   static Future<void> patchCollectibles(
       List<CollectedBangumi> remoteCollectibles,
       List<CollectedBangumiChange> remoteChanges) async {
-  await _runCollectChangesWriteExclusive(() async {
-    final localCollectibles = collectibles.values.toList();
-    final localChanges = collectChanges.values.toList();
+    await _runCollectChangesWriteExclusive(() async {
+      final mergeResult = CollectSyncMerger.mergeWebDav(
+        localCollectibles: collectibles.values.toList(),
+        localChanges: collectChanges.values.toList(),
+        remoteCollectibles: remoteCollectibles,
+        remoteChanges: remoteChanges,
+      );
 
-    final List<CollectedBangumiChange> newLocalChanges =
-        localChanges.where((localChange) {
-      return !remoteChanges
-          .any((remoteChange) => remoteChange.id == localChange.id);
-    }).toList();
-
-    newLocalChanges.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-    // Process local changes
-    for (var change in newLocalChanges) {
-      // For delete action, we don't need to look up the local collectible.
-      // We can directly remove the item from the remote list.
-      if (change.action == 3) {
-        // Action 3: delete
-        remoteCollectibles
-            .removeWhere((b) => b.bangumiItem.id == change.bangumiID);
-      } else {
-        // For add/update, we still need to look up the local collectible.
-        final changedBangumiID = change.bangumiID.toString();
-        for (var localCollect in localCollectibles) {
-          if (localCollect.bangumiItem.id.toString() == changedBangumiID) {
-            if (change.action == 1) {
-              // Action 1: add
-              final exists = remoteCollectibles
-                  .any((b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-              if (!exists) {
-                remoteCollectibles.add(localCollect);
-              } else {
-                final index = remoteCollectibles.indexWhere(
-                    (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-                localCollect.type = change.type;
-                if (index != -1) {
-                  // Update the entry with local data.
-                  remoteCollectibles[index] = localCollect;
-                }
-              }
-            } else if (change.action == 2) {
-              // Action 2: update
-              final index = remoteCollectibles.indexWhere(
-                  (b) => b.bangumiItem.id == localCollect.bangumiItem.id);
-              localCollect.type = change.type;
-              if (index != -1) {
-                // Update the entry with local data.
-                remoteCollectibles[index] = localCollect;
-              }
-            }
-            break;
-          }
-        }
+      // Update local storage
+      await collectibles.clear();
+      for (var collect in mergeResult.collectibles) {
+        await collectibles.put(collect.bangumiItem.id, collect);
       }
-    }
+      await collectibles.flush();
 
-    // merge local changes with remote changes
-    final Map<int, CollectedBangumiChange> mergedMap = {};
-    for (var change in remoteChanges) {
-      mergedMap[change.id] = change;
-    }
-    for (var change in newLocalChanges) {
-      if (!mergedMap.containsKey(change.id)) {
-        mergedMap[change.id] = change;
+      await collectChanges.clear();
+      for (var change in mergeResult.changes) {
+        await collectChanges.put(change.id, change);
       }
-    }
-    final List<CollectedBangumiChange> mergedChanges =
-        mergedMap.values.toList();
+      await collectChanges.flush();
 
-    // Update local storage
-    await collectibles.clear();
-    for (var collect in remoteCollectibles) {
-      await collectibles.put(collect.bangumiItem.id, collect);
-    }
-    await collectibles.flush();
-
-    await collectChanges.clear();
-    for (var change in mergedChanges) {
-      await collectChanges.put(change.id, change);
-    }
-    await collectChanges.flush();
-
-    _collectChangeIdInitialized = false;
-    _initializeNextCollectChangeIdLocked();
+      _collectChangeIdInitialized = false;
+      _initializeNextCollectChangeIdLocked();
     });
   }
 

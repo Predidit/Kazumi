@@ -1,13 +1,10 @@
 import 'package:hive_ce/hive.dart';
 import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/collect/collect_module.dart';
-import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
-import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 
 /// Bangumi 同步服务工具类
@@ -162,38 +159,12 @@ class BangumiSyncService {
         );
 
         // 2. 与本地数据对比，进行乐观合并（单向填充）之后，按照优先级处理冲突
-        final localCollectibles = GStorage.collectibles.values.toList();
-        final localMap = {
-          for (final item in localCollectibles) item.bangumiItem.id: item,
-        };
-        final remoteMap = <int, BangumiCollection>{};
-        for (final item in remoteCollection) {
-          final remoteCollectType = item.type.toCollectType();
-          if (!remoteCollectType.isCollected) {
-            KazumiLogger().w(
-              'Bangumi: skip remote collectible with unsupported type '
-              '${item.type.value} for id=${item.bangumiId}',
-            );
-            continue;
-          }
-          remoteMap[item.bangumiId] = item;
-        }
-
-        final localOnlyIds =
-            localMap.keys.toSet().difference(remoteMap.keys.toSet());
-        final remoteOnlyIds =
-            remoteMap.keys.toSet().difference(localMap.keys.toSet());
-        final sharedIds =
-            localMap.keys.toSet().intersection(remoteMap.keys.toSet());
-        final mismatchIds = <int>[];
-        for (final id in sharedIds) {
-          if (localMap[id]!.type != remoteMap[id]!.type.toCollectType().value) {
-            mismatchIds.add(id);
-          }
-        }
-
-        final totalOperations =
-            localOnlyIds.length + remoteOnlyIds.length + mismatchIds.length;
+        final mergePlan = CollectSyncMerger.planBangumi(
+          localCollectibles: GStorage.collectibles.values.toList(),
+          remoteCollections: remoteCollection,
+          priority: priority,
+        );
+        final totalOperations = mergePlan.totalOperations;
 
         if (totalOperations == 0) {
           onProgress?.call('未发现状态差异，无需同步', 1, 1);
@@ -202,16 +173,16 @@ class BangumiSyncService {
 
         int syncedCount = 0;
         // 3. 仅本地有：直接上传到 Bangumi
-        if (localOnlyIds.isNotEmpty) {
+        if (mergePlan.localOnlyUploads.isNotEmpty) {
           onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
-          for (final id in localOnlyIds) {
+          for (final upload in mergePlan.localOnlyUploads) {
             final updated = await BangumiApi.updateBangumiByType(
-              id,
-              localMap[id]!.type,
+              upload.bangumiId,
+              upload.type,
             );
             if (!updated) {
               onProgress?.call('上传本地新增状态失败', syncedCount, totalOperations);
-              throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
+              throw Exception('同步失败：条目 ${upload.bangumiId} 上传到 Bangumi 失败');
             }
             syncedCount++;
             onProgress?.call('正在上传本地新增状态', syncedCount, totalOperations);
@@ -219,18 +190,15 @@ class BangumiSyncService {
         }
 
         // 4. 仅远程有：直接补到本地
-        if (remoteOnlyIds.isNotEmpty) {
+        if (mergePlan.remoteOnlyPuts.isNotEmpty) {
           onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
-          for (final id in remoteOnlyIds) {
-            final remote = remoteMap[id]!;
-            final localType = remote.type.toCollectType();
-            final collected = CollectedBangumi(
-              remote.toBangumiItem(),
-              remote.updatedAt,
-              localType.value,
+          for (final mutation in mergePlan.remoteOnlyPuts) {
+            await GStorage.putCollectible(mutation.collectible);
+            await _recordCollectibleChange(
+              mutation.collectible.bangumiItem.id,
+              mutation.changeAction,
+              mutation.collectible.type,
             );
-            await GStorage.putCollectible(collected);
-            await _recordCollectibleChange(id, 1, localType.value);
             syncedCount++;
             onProgress?.call('正在补全本地缺失状态', syncedCount, totalOperations);
           }
@@ -239,25 +207,26 @@ class BangumiSyncService {
         // 5. 双方都有但不一致：按优先级处理
         if (priority == BangumiSyncPriority.localFirst) {
           onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
-          for (final id in mismatchIds) {
-            final updated =
-                await BangumiApi.updateBangumiByType(id, localMap[id]!.type);
+          for (final upload in mergePlan.conflictUploads) {
+            final updated = await BangumiApi.updateBangumiByType(
+              upload.bangumiId,
+              upload.type,
+            );
             if (updated != true) {
-              throw Exception('同步失败：条目 $id 上传到 Bangumi 失败');
+              throw Exception('同步失败：条目 ${upload.bangumiId} 上传到 Bangumi 失败');
             }
             syncedCount++;
             onProgress?.call('本地优先：正在处理冲突状态', syncedCount, totalOperations);
           }
         } else {
           onProgress?.call('Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);
-          for (final id in mismatchIds) {
-            final local = localMap[id]!;
-            final remote = remoteMap[id]!;
-            final localType = remote.type.toCollectType();
-            local.type = localType.value;
-            local.time = remote.updatedAt;
-            await GStorage.putCollectible(local);
-            await _recordCollectibleChange(id, 2, localType.value);
+          for (final mutation in mergePlan.conflictLocalUpdates) {
+            await GStorage.putCollectible(mutation.collectible);
+            await _recordCollectibleChange(
+              mutation.collectible.bangumiItem.id,
+              mutation.changeAction,
+              mutation.collectible.type,
+            );
             syncedCount++;
             onProgress?.call(
                 'Bangumi优先：正在处理冲突状态', syncedCount, totalOperations);

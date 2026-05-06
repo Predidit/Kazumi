@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
+import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {
@@ -59,6 +63,32 @@ class NavigationBarState extends ChangeNotifier {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
+  final VideoPageController videoPageController =
+      Modular.get<VideoPageController>();
+
+  Future<void> _openLocalVideo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowMultiple: false,
+      withData: false,
+    );
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    final path = result.files.single.path;
+    if (path == null || path.isEmpty) {
+      KazumiDialog.showToast(message: '无法读取所选视频文件');
+      return;
+    }
+
+    final fileName = p.basenameWithoutExtension(path);
+    videoPageController.initForLocalFilePlayback(
+      videoPath: path,
+      title: fileName.isEmpty ? '本地视频' : fileName,
+    );
+    Modular.to.pushNamed('/video/');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +115,14 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
             itemBuilder: (_, __) => const RouterOutlet(),
           ),
         ),
+        floatingActionButton: state.isHide
+            ? null
+            : FloatingActionButton.small(
+                heroTag: 'openLocalVideoBottom',
+                tooltip: '打开本地视频',
+                onPressed: _openLocalVideo,
+                child: const Icon(Icons.video_file_outlined),
+              ),
         bottomNavigationBar: state.isHide
             ? const SizedBox(height: 0)
             : NavigationBar(
@@ -129,13 +167,27 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
               child: NavigationRail(
                 backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
                 groupAlignment: 1.0,
-                leading: FloatingActionButton(
-                  elevation: 0,
-                  heroTag: null,
-                  onPressed: () {
-                    Modular.to.pushNamed('/search/');
-                  },
-                  child: const Icon(Icons.search),
+                leading: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FloatingActionButton(
+                      elevation: 0,
+                      heroTag: 'search',
+                      tooltip: '搜索',
+                      onPressed: () {
+                        Modular.to.pushNamed('/search/');
+                      },
+                      child: const Icon(Icons.search),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton.small(
+                      elevation: 0,
+                      heroTag: 'openLocalVideoRail',
+                      tooltip: '打开本地视频',
+                      onPressed: _openLocalVideo,
+                      child: const Icon(Icons.video_file_outlined),
+                    ),
+                  ],
                 ),
                 labelType: NavigationRailLabelType.selected,
                 destinations: const <NavigationRailDestination>[

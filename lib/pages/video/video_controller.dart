@@ -71,6 +71,9 @@ abstract class _VideoPageController with Store {
   @observable
   bool isOfflineMode = false;
 
+  /// 直接打开的本地视频，不关联下载记录或番剧条目
+  bool isStandaloneLocalPlayback = false;
+
   /// 离线视频本地路径
   String? _offlineVideoPath;
 
@@ -144,6 +147,49 @@ abstract class _VideoPageController with Store {
         'VideoPageController: initialized for offline playback, episode $episodeNumber (position: $currentEpisode)');
   }
 
+  /// 初始化直接打开的本地视频播放模式
+  void initForLocalFilePlayback({
+    required String videoPath,
+    required String title,
+  }) {
+    final displayTitle = title.trim().isEmpty ? '本地视频' : title.trim();
+    bangumiItem = BangumiItem(
+      id: 0,
+      type: 2,
+      name: displayTitle,
+      nameCn: displayTitle,
+      summary: '',
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: const {'large': ''},
+      tags: const [],
+      alias: const <String>[],
+      ratingScore: 0.0,
+      votes: 0,
+      votesCount: const <int>[],
+      info: '',
+    );
+    _offlinePluginName = 'local_file';
+    currentRoad = 0;
+    currentEpisode = 1;
+    this.title = displayTitle;
+    src = videoPath;
+    isOfflineMode = true;
+    isStandaloneLocalPlayback = true;
+    _offlineVideoPath = videoPath;
+    loading = false;
+    errorMessage = null;
+    showTabBody = true;
+    roadList
+      ..clear()
+      ..add(Road(
+        name: '播放列表1',
+        data: const ['1'],
+        identifier: [displayTitle],
+      ));
+  }
+
   /// 构建离线模式的 roadList
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     roadList.clear();
@@ -162,6 +208,7 @@ abstract class _VideoPageController with Store {
 
   void resetOfflineMode() {
     isOfflineMode = false;
+    isStandaloneLocalPlayback = false;
     _offlineVideoPath = null;
     _offlinePluginName = '';
   }
@@ -211,6 +258,34 @@ abstract class _VideoPageController with Store {
   /// 离线模式下切换集数
   /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
   Future<void> _changeOfflineEpisode(int episode, int offset) async {
+    if (isStandaloneLocalPlayback) {
+      final localPath = _offlineVideoPath;
+      if (localPath == null || localPath.isEmpty) {
+        KazumiDialog.showToast(message: '本地文件不存在');
+        return;
+      }
+      loading = false;
+      final params = PlaybackInitParams(
+        videoUrl: localPath,
+        offset: offset,
+        isLocalPlayback: true,
+        bangumiId: bangumiItem.id,
+        pluginName: _offlinePluginName,
+        episode: 1,
+        httpHeaders: {},
+        adBlockerEnabled: false,
+        episodeTitle: roadList[currentRoad].identifier[0],
+        referer: '',
+        currentRoad: currentRoad,
+        coverUrl: bangumiItem.images['large'],
+        bangumiName: title,
+      );
+
+      final playerController = Modular.get<PlayerController>();
+      await playerController.init(params);
+      return;
+    }
+
     // 从 roadList.data 中获取实际的 episodeNumber
     final actualEpisodeNumber =
         int.tryParse(roadList[currentRoad].data[episode - 1]);

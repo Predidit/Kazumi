@@ -27,6 +27,7 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
 import 'package:kazumi/services/local_video_picker_service.dart';
@@ -1068,6 +1069,10 @@ class _PlayerItemState extends State<PlayerItem>
     BangumiItem? selectedBangumi;
     var results = <BangumiItem>[];
     var searching = false;
+    var episodeLoading = false;
+    var episodeLoadFailed = false;
+    var episodeList = <EpisodeInfo>[];
+    int? selectedEpisode;
     final searchTextController = TextEditingController();
     final episodeTextController = TextEditingController(
         text: videoPageController.actualEpisodeNumber.toString());
@@ -1097,8 +1102,9 @@ class _PlayerItemState extends State<PlayerItem>
               if (selectedBangumi == null) {
                 return;
               }
-              final episode =
-                  int.tryParse(episodeTextController.text.trim()) ?? 1;
+              final episode = selectedEpisode ??
+                  int.tryParse(episodeTextController.text.trim()) ??
+                  1;
               final offset = playerController.playerPosition.inSeconds;
               videoPageController.initForLocalFilePlayback(
                 context: (videoPageController.localVideoContext ??
@@ -1114,6 +1120,31 @@ class _PlayerItemState extends State<PlayerItem>
               Navigator.of(context).pop();
               await widget.changeEpisode(1, currentRoad: 0, offset: offset);
               KazumiDialog.showToast(message: '绑定成功');
+            }
+
+            Future<void> selectBangumi(BangumiItem item) async {
+              setModalState(() {
+                selectedBangumi = item;
+                selectedEpisode = null;
+                episodeList = [];
+                episodeLoadFailed = false;
+                episodeLoading = true;
+              });
+              final value = await BangumiApi.getBangumiEpisodesByID(item.id);
+              if (!context.mounted) {
+                return;
+              }
+              setModalState(() {
+                episodeList = value
+                    .where((episode) => episode.type == 0)
+                    .where((episode) => episode.episode > 0)
+                    .toList();
+                episodeLoading = false;
+                episodeLoadFailed = episodeList.isEmpty;
+              });
+              if (episodeList.isEmpty) {
+                KazumiDialog.showToast(message: '未获取到集数，请手动输入');
+              }
             }
 
             return SafeArea(
@@ -1168,17 +1199,50 @@ class _PlayerItemState extends State<PlayerItem>
                         subtitle: const Text('已选择绑定条目'),
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: episodeTextController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: '集数',
-                            border: OutlineInputBorder(),
+                      if (episodeLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (episodeList.isNotEmpty)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 180),
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              mainAxisExtent: 40,
+                            ),
+                            itemCount: episodeList.length,
+                            itemBuilder: (context, index) {
+                              final episode =
+                                  episodeList[index].episode.toInt();
+                              return FilterChip(
+                                label: Text(episode.toString()),
+                                selected: selectedEpisode == episode,
+                                onSelected: (_) {
+                                  setModalState(() {
+                                    selectedEpisode = episode;
+                                    episodeTextController.text =
+                                        episode.toString();
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        )
+                      else if (episodeLoadFailed)
+                        SizedBox(
+                          width: 120,
+                          child: TextField(
+                            controller: episodeTextController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: '集数',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                     if (results.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -1197,9 +1261,7 @@ class _PlayerItemState extends State<PlayerItem>
                               subtitle: Text(item.airDate),
                               selected: selectedBangumi?.id == item.id,
                               onTap: () {
-                                setModalState(() {
-                                  selectedBangumi = item;
-                                });
+                                selectBangumi(item);
                               },
                             );
                           },
@@ -1210,8 +1272,10 @@ class _PlayerItemState extends State<PlayerItem>
                     Align(
                       alignment: Alignment.centerRight,
                       child: FilledButton(
-                        onPressed:
-                            selectedBangumi == null ? null : bindAndReload,
+                        onPressed: selectedBangumi == null ||
+                                (selectedEpisode == null && !episodeLoadFailed)
+                            ? null
+                            : bindAndReload,
                         child: const Text('绑定并继续播放'),
                       ),
                     ),

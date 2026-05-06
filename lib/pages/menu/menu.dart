@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/playback/playback_source.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -116,12 +117,20 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
 
     var results = <BangumiItem>[];
     var searching = false;
+    var episodeLoading = false;
+    var episodeLoadFailed = false;
+    var episodeList = <EpisodeInfo>[];
+    int? selectedEpisode = selectedBangumi == null ? null : episodeNumber;
     final searchController = TextEditingController();
     final episodeController =
         TextEditingController(text: episodeNumber.toString());
 
-    Future<void> startPlayback({required bool skipBinding}) async {
-      final parsedEpisode = int.tryParse(episodeController.text.trim()) ?? 1;
+    Future<void> startPlayback({
+      required BuildContext sheetContext,
+      required bool skipBinding,
+    }) async {
+      final parsedEpisode =
+          selectedEpisode ?? int.tryParse(episodeController.text.trim()) ?? 1;
       videoPageController.initForLocalFilePlayback(
         context: localVideoContext.copyWith(
           title: (historyProgress?.episodeTitle.isNotEmpty ?? false)
@@ -131,7 +140,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
         boundBangumiItem: skipBinding ? null : selectedBangumi,
         episodeNumber: parsedEpisode < 1 ? 1 : parsedEpisode,
       );
-      KazumiDialog.dismiss();
+      Navigator.of(sheetContext).pop();
       Modular.to.pushNamed('/video/');
     }
 
@@ -156,6 +165,31 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
               });
             }
 
+            Future<void> selectBangumi(BangumiItem item) async {
+              setModalState(() {
+                selectedBangumi = item;
+                selectedEpisode = null;
+                episodeList = [];
+                episodeLoadFailed = false;
+                episodeLoading = true;
+              });
+              final value = await BangumiApi.getBangumiEpisodesByID(item.id);
+              if (!context.mounted) {
+                return;
+              }
+              setModalState(() {
+                episodeList = value
+                    .where((episode) => episode.type == 0)
+                    .where((episode) => episode.episode > 0)
+                    .toList();
+                episodeLoading = false;
+                episodeLoadFailed = episodeList.isEmpty;
+              });
+              if (episodeList.isEmpty) {
+                KazumiDialog.showToast(message: '未获取到集数，请手动输入');
+              }
+            }
+
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -177,7 +211,10 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () => startPlayback(skipBinding: true),
+                          onPressed: () => startPlayback(
+                            sheetContext: context,
+                            skipBinding: true,
+                          ),
                           child: const Text('不绑定'),
                         ),
                       ],
@@ -229,17 +266,49 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                         subtitle: const Text('已选择绑定条目'),
                       ),
                       const SizedBox(height: 12),
-                      SizedBox(
-                        width: 120,
-                        child: TextField(
-                          controller: episodeController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: '集数',
-                            border: OutlineInputBorder(),
+                      if (episodeLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (episodeList.isNotEmpty)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 180),
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              mainAxisExtent: 40,
+                            ),
+                            itemCount: episodeList.length,
+                            itemBuilder: (context, index) {
+                              final episode =
+                                  episodeList[index].episode.toInt();
+                              return FilterChip(
+                                label: Text(episode.toString()),
+                                selected: selectedEpisode == episode,
+                                onSelected: (_) {
+                                  setModalState(() {
+                                    selectedEpisode = episode;
+                                    episodeController.text = episode.toString();
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        )
+                      else if (episodeLoadFailed)
+                        SizedBox(
+                          width: 120,
+                          child: TextField(
+                            controller: episodeController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: '集数',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                     if (results.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -262,9 +331,7 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                               onTap: () {
-                                setModalState(() {
-                                  selectedBangumi = item;
-                                });
+                                selectBangumi(item);
                               },
                             );
                           },
@@ -276,9 +343,14 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         FilledButton(
-                          onPressed: selectedBangumi == null
+                          onPressed: selectedBangumi == null ||
+                                  (selectedEpisode == null &&
+                                      !episodeLoadFailed)
                               ? null
-                              : () => startPlayback(skipBinding: false),
+                              : () => startPlayback(
+                                    sheetContext: context,
+                                    skipBinding: false,
+                                  ),
                           child: const Text('绑定并播放'),
                         ),
                       ],

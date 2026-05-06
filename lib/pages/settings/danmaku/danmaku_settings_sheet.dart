@@ -5,8 +5,6 @@ import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
-import 'package:kazumi/pages/player/player_controller.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
@@ -24,41 +22,6 @@ class DanmakuSettingsSheet extends StatefulWidget {
 
 class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
   Box setting = GStorage.setting;
-  final PlayerController playerController = Modular.get<PlayerController>();
-  late final TextEditingController danmakuOffsetController;
-
-  @override
-  void initState() {
-    super.initState();
-    danmakuOffsetController = TextEditingController(
-      text: _formatDanmakuOffsetSeconds(),
-    );
-  }
-
-  @override
-  void dispose() {
-    danmakuOffsetController.dispose();
-    super.dispose();
-  }
-
-  String _formatDanmakuOffsetSeconds() {
-    return (playerController.danmakuTimeOffsetMs / 1000).toStringAsFixed(1);
-  }
-
-  void _syncDanmakuOffsetInput() {
-    danmakuOffsetController.text = _formatDanmakuOffsetSeconds();
-  }
-
-  void _applyDanmakuOffsetInput(String value) {
-    final offsetSeconds = double.tryParse(value.trim());
-    if (offsetSeconds == null) {
-      _syncDanmakuOffsetInput();
-      return;
-    }
-    playerController.setDanmakuTimeOffsetMs((offsetSeconds * 1000).round());
-    _syncDanmakuOffsetInput();
-    setState(() {});
-  }
 
   void showDanmakuShieldSheet() {
     showModalBottomSheet(
@@ -142,43 +105,6 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
           SettingsSection(
             title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
-              SettingsTile(
-                title: Text('弹幕时间轴', style: TextStyle(fontFamily: fontFamily)),
-                description: Row(
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      child: TextField(
-                        controller: danmakuOffsetController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          signed: true,
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          suffixText: 's',
-                          helperText: '负数提前，正数延后',
-                        ),
-                        onSubmitted: _applyDanmakuOffsetInput,
-                        onTapOutside: (_) => _applyDanmakuOffsetInput(
-                            danmakuOffsetController.text),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _formatDanmakuOffsetSeconds(),
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        playerController.resetDanmakuTimeOffset();
-                        _syncDanmakuOffsetInput();
-                        setState(() {});
-                      },
-                      child: const Text('重置'),
-                    ),
-                  ],
-                ),
-              ),
               SettingsTile(
                 title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(

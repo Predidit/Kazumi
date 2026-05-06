@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/modules/playback/playback_source.dart';
+import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/router.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/services/local_video_picker_service.dart';
 import 'package:kazumi/utils/storage.dart';
-import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {
@@ -65,29 +69,230 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
+  final HistoryController historyController = Modular.get<HistoryController>();
+  final LocalVideoPickerService localVideoPickerService =
+      LocalVideoPickerService();
+
+  History? _findLocalFileHistory(String videoPath) {
+    for (final history in historyController.histories) {
+      if (!history.isLocalVideo) {
+        continue;
+      }
+      if (history.localVideoPath == videoPath || history.lastSrc == videoPath) {
+        return history;
+      }
+      for (final progress in history.progresses.values) {
+        if (progress.localPath == videoPath) {
+          return history;
+        }
+      }
+    }
+    return null;
+  }
 
   Future<void> _openLocalVideo() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.video,
-      allowMultiple: false,
-      withData: false,
-    );
-    if (result == null || result.files.isEmpty) {
+    final context = await localVideoPickerService.pickVideo();
+    if (context == null) {
       return;
     }
 
-    final path = result.files.single.path;
-    if (path == null || path.isEmpty) {
-      KazumiDialog.showToast(message: '无法读取所选视频文件');
-      return;
+    historyController.init();
+    await _showLocalVideoSheet(context);
+  }
+
+  Future<void> _showLocalVideoSheet(
+      LocalVideoPlaybackContext localVideoContext) async {
+    final displayTitle =
+        localVideoContext.title.isEmpty ? '本地视频' : localVideoContext.title;
+    final videoPath = localVideoContext.path;
+    final history = _findLocalFileHistory(videoPath);
+    final historyProgress = history?.progresses[history.lastWatchEpisode];
+    BangumiItem? selectedBangumi =
+        history?.isBoundLocalVideo == true ? history!.bangumiItem : null;
+    var episodeNumber = history?.lastWatchEpisode ?? 1;
+    if (episodeNumber < 1) {
+      episodeNumber = 1;
     }
 
-    final fileName = p.basenameWithoutExtension(path);
-    videoPageController.initForLocalFilePlayback(
-      videoPath: path,
-      title: fileName.isEmpty ? '本地视频' : fileName,
+    var results = <BangumiItem>[];
+    var searching = false;
+    final searchController = TextEditingController();
+    final episodeController =
+        TextEditingController(text: episodeNumber.toString());
+
+    Future<void> startPlayback({required bool skipBinding}) async {
+      final parsedEpisode = int.tryParse(episodeController.text.trim()) ?? 1;
+      videoPageController.initForLocalFilePlayback(
+        context: localVideoContext.copyWith(
+          title: (historyProgress?.episodeTitle.isNotEmpty ?? false)
+              ? historyProgress!.episodeTitle
+              : displayTitle,
+        ),
+        boundBangumiItem: skipBinding ? null : selectedBangumi,
+        episodeNumber: parsedEpisode < 1 ? 1 : parsedEpisode,
+      );
+      KazumiDialog.dismiss();
+      Modular.to.pushNamed('/video/');
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> searchBangumi() async {
+              final keyword = searchController.text.trim();
+              if (keyword.isEmpty) {
+                return;
+              }
+              setModalState(() {
+                searching = true;
+              });
+              final value = await BangumiApi.bangumiSearch(keyword);
+              setModalState(() {
+                results = value;
+                searching = false;
+              });
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '匹配番剧',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => startPlayback(skipBinding: true),
+                          child: const Text('不绑定'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: searchController,
+                            decoration: const InputDecoration(
+                              labelText: 'Bangumi 搜索',
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (_) => searchBangumi(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          onPressed: searching ? null : searchBangumi,
+                          tooltip: '搜索',
+                          icon: searching
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.search),
+                        ),
+                      ],
+                    ),
+                    if (selectedBangumi != null) ...[
+                      const SizedBox(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.check_circle_outline),
+                        title: Text(
+                          selectedBangumi!.nameCn.isNotEmpty
+                              ? selectedBangumi!.nameCn
+                              : selectedBangumi!.name,
+                        ),
+                        subtitle: const Text('已选择绑定条目'),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 120,
+                        child: TextField(
+                          controller: episodeController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: '集数',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (results.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final item = results[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                item.nameCn.isNotEmpty
+                                    ? item.nameCn
+                                    : item.name,
+                              ),
+                              subtitle: Text(
+                                item.airDate,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                setModalState(() {
+                                  selectedBangumi = item;
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FilledButton(
+                          onPressed: selectedBangumi == null
+                              ? null
+                              : () => startPlayback(skipBinding: false),
+                          child: const Text('绑定并播放'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
-    Modular.to.pushNamed('/video/');
+    searchController.dispose();
+    episodeController.dispose();
   }
 
   @override

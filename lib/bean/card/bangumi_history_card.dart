@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'dart:io';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/services/local_video_picker_service.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -42,6 +44,37 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       KazumiDialog.showToast(message: '编辑模式');
       return;
     }
+    if (widget.historyItem.isLocalVideo) {
+      final progress =
+          widget.historyItem.progresses[widget.historyItem.lastWatchEpisode];
+      final localPath = (progress?.localPath.isNotEmpty ?? false)
+          ? progress!.localPath
+          : widget.historyItem.localVideoPath.isNotEmpty
+              ? widget.historyItem.localVideoPath
+              : widget.historyItem.lastSrc;
+      if (localPath.isEmpty || !File(localPath).existsSync()) {
+        KazumiDialog.showToast(message: '本地文件不存在或已移动');
+        return;
+      }
+      final episodeTitle = (progress?.episodeTitle.isNotEmpty ?? false)
+          ? progress!.episodeTitle
+          : widget.historyItem.lastWatchEpisodeName.isNotEmpty
+              ? widget.historyItem.lastWatchEpisodeName
+              : widget.historyItem.localVideoTitle;
+      videoPageController.initForLocalFilePlayback(
+        context: LocalVideoPickerService().buildContext(localPath).copyWith(
+              title: episodeTitle.isEmpty
+                  ? widget.historyItem.localVideoTitle
+                  : episodeTitle,
+            ),
+        boundBangumiItem: widget.historyItem.isBoundLocalVideo
+            ? widget.historyItem.bangumiItem
+            : null,
+        episodeNumber: widget.historyItem.lastWatchEpisode,
+      );
+      Modular.to.pushNamed('/video/');
+      return;
+    }
     KazumiDialog.showLoading(
       msg: '获取中',
       barrierDismissible: Utils.isDesktop(),
@@ -63,14 +96,13 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       return;
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
-    videoPageController.title =
-        widget.historyItem.bangumiItem.nameCn == ''
-            ? widget.historyItem.bangumiItem.name
-            : widget.historyItem.bangumiItem.nameCn;
+    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
+        ? widget.historyItem.bangumiItem.name
+        : widget.historyItem.bangumiItem.nameCn;
     videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(widget.historyItem.lastSrc,
-          videoPageController.currentPlugin.name);
+      await videoPageController.queryRoads(
+          widget.historyItem.lastSrc, videoPageController.currentPlugin.name);
       KazumiDialog.dismiss();
       Modular.to.pushNamed('/video/');
     } catch (_) {
@@ -88,10 +120,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final String title = widget.historyItem.bangumiItem.nameCn == ''
         ? widget.historyItem.bangumiItem.name
         : widget.historyItem.bangumiItem.nameCn;
-    final String episodeText =
-        widget.historyItem.lastWatchEpisodeName.isEmpty
-            ? '第${widget.historyItem.lastWatchEpisode}话'
-            : widget.historyItem.lastWatchEpisodeName;
+    final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
+        ? '第${widget.historyItem.lastWatchEpisode}话'
+        : widget.historyItem.lastWatchEpisodeName;
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -203,8 +234,11 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              Utils.formatTimestampToRelativeTime(
-                                  widget.historyItem.lastWatchTime.millisecondsSinceEpoch ~/ 1000),
+                              Utils.formatTimestampToRelativeTime(widget
+                                      .historyItem
+                                      .lastWatchTime
+                                      .millisecondsSinceEpoch ~/
+                                  1000),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.outline,
                               ),

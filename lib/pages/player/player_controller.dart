@@ -22,6 +22,7 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/modules/playback/playback_source.dart';
 
 part 'player_controller.g.dart';
 
@@ -29,6 +30,8 @@ class PlaybackInitParams {
   final String videoUrl;
   final int offset;
   final bool isLocalPlayback;
+  final PlaybackSourceType sourceType;
+  final LocalVideoPlaybackContext? localVideoContext;
   final int bangumiId;
   final String pluginName;
   final int episode;
@@ -44,6 +47,7 @@ class PlaybackInitParams {
     required this.videoUrl,
     required this.offset,
     required this.isLocalPlayback,
+    required this.sourceType,
     required this.bangumiId,
     required this.pluginName,
     required this.episode,
@@ -54,6 +58,7 @@ class PlaybackInitParams {
     required this.currentRoad,
     this.coverUrl,
     this.bangumiName,
+    this.localVideoContext,
   });
 }
 
@@ -95,8 +100,6 @@ abstract class _PlayerController with Store {
   bool danmakuOn = false;
   @observable
   bool danmakuLoading = false;
-  int danmakuTimeOffsetMs = 0;
-  List<Danmaku> _sourceDanmakus = [];
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
   final StreamController<SyncPlayChatMessage> syncPlayChatStreamController =
       StreamController<SyncPlayChatMessage>.broadcast();
@@ -230,10 +233,14 @@ abstract class _PlayerController with Store {
   StreamSubscription<double?>? playerAudioBitrateSubscription;
 
   bool isLocalPlayback = false;
+  PlaybackSourceType sourceType = PlaybackSourceType.online;
+  LocalVideoPlaybackContext? localVideoContext;
 
   Future<void> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
+    sourceType = params.sourceType;
+    localVideoContext = params.localVideoContext;
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentRoad = params.currentRoad;
@@ -249,8 +256,6 @@ abstract class _PlayerController with Store {
     buffer = Duration.zero;
     duration = Duration.zero;
     completed = false;
-    danmakuTimeOffsetMs = 0;
-    _sourceDanmakus.clear();
     danDanmakus.clear();
     playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
     playerSpeed =
@@ -276,7 +281,13 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = params.episode;
     }
-    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    if (params.sourceType == PlaybackSourceType.localFile &&
+        params.localVideoContext?.boundBangumiItem == null) {
+      danDanmakus.clear();
+      danmakuOn = false;
+    } else {
+      _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    }
     mediaPlayer ??= await createVideoController(
       params.httpHeaders,
       params.adBlockerEnabled,
@@ -670,7 +681,6 @@ abstract class _PlayerController with Store {
       int bangumiId, String pluginName, int episode) async {
     if (bangumiId <= 0) {
       danDanmakus.clear();
-      _sourceDanmakus.clear();
       danmakuOn = false;
       return;
     }
@@ -800,49 +810,20 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
-    _sourceDanmakus = List<Danmaku>.of(danmakus);
-    _rebuildDanmakuBuckets();
-  }
-
-  Danmaku _copyDanmakuWithOffset(Danmaku danmaku) {
-    return Danmaku(
-      message: danmaku.message,
-      time: (danmaku.time + danmakuTimeOffsetMs / 1000.0)
-          .clamp(0.0, double.infinity),
-      type: danmaku.type,
-      color: danmaku.color,
-      source: danmaku.source,
-    );
-  }
-
-  void setDanmakuTimeOffsetMs(int value) {
-    danmakuTimeOffsetMs = value;
-    try {
-      danmakuController.clear();
-    } catch (_) {}
-    _rebuildDanmakuBuckets();
-  }
-
-  void resetDanmakuTimeOffset() {
-    setDanmakuTimeOffsetMs(0);
-  }
-
-  void _rebuildDanmakuBuckets() {
     danDanmakus.clear();
     final bool danmakuDeduplicationEnable =
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
     // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
     final List<Danmaku> listToAdd = danmakuDeduplicationEnable
-        ? Utils.mergeDuplicateDanmakus(_sourceDanmakus, timeWindowSeconds: 5)
-        : _sourceDanmakus;
+        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
+        : danmakus;
 
     for (var element in listToAdd) {
-      final adjusted = _copyDanmakuWithOffset(element);
       var danmakuList =
-          danDanmakus[adjusted.time.toInt()] ?? List.empty(growable: true);
-      danmakuList.add(adjusted);
-      danDanmakus[adjusted.time.toInt()] = danmakuList;
+          danDanmakus[element.time.toInt()] ?? List.empty(growable: true);
+      danmakuList.add(element);
+      danDanmakus[element.time.toInt()] = danmakuList;
     }
   }
 

@@ -23,13 +23,17 @@ class HistoryAdapter extends TypeAdapter<History> {
       fields[4] as DateTime,
       fields[5] as String,
       fields[6] == null ? '' : fields[6] as String,
+      sourceTypeName: fields[7] == null ? 'online' : fields[7] as String,
+      localVideoPath: fields[8] == null ? '' : fields[8] as String,
+      localVideoTitle: fields[9] == null ? '' : fields[9] as String,
+      localVideoFileName: fields[10] == null ? '' : fields[10] as String,
     )..progresses = (fields[0] as Map).cast<int, Progress>();
   }
 
   @override
   void write(BinaryWriter writer, History obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.progresses)
       ..writeByte(1)
@@ -43,7 +47,15 @@ class HistoryAdapter extends TypeAdapter<History> {
       ..writeByte(5)
       ..write(obj.lastSrc)
       ..writeByte(6)
-      ..write(obj.lastWatchEpisodeName);
+      ..write(obj.lastWatchEpisodeName)
+      ..writeByte(7)
+      ..write(obj.sourceTypeName)
+      ..writeByte(8)
+      ..write(obj.localVideoPath)
+      ..writeByte(9)
+      ..write(obj.localVideoTitle)
+      ..writeByte(10)
+      ..write(obj.localVideoFileName);
   }
 
   @override
@@ -71,19 +83,25 @@ class ProgressAdapter extends TypeAdapter<Progress> {
       (fields[0] as num).toInt(),
       (fields[1] as num).toInt(),
       (fields[2] as num).toInt(),
+      localPath: fields[3] == null ? '' : fields[3] as String,
+      episodeTitle: fields[4] == null ? '' : fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Progress obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.episode)
       ..writeByte(1)
       ..write(obj.road)
       ..writeByte(2)
-      ..write(obj._progressInMilli);
+      ..write(obj._progressInMilli)
+      ..writeByte(3)
+      ..write(obj.localPath)
+      ..writeByte(4)
+      ..write(obj.episodeTitle);
   }
 
   @override

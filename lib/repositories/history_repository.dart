@@ -1,6 +1,7 @@
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/modules/playback/playback_source.dart';
 import 'package:kazumi/utils/history_sync_service.dart';
 import 'package:kazumi/utils/logger.dart';
 
@@ -35,6 +36,10 @@ abstract class IHistoryRepository {
     required Duration progress,
     required String lastSrc,
     required String lastWatchEpisodeName,
+    String localPath = '',
+    String episodeTitle = '',
+    PlaybackSourceType sourceType = PlaybackSourceType.online,
+    LocalVideoPlaybackContext? localVideoContext,
   });
 
   /// 获取上次观看的进度
@@ -124,6 +129,10 @@ class HistoryRepository implements IHistoryRepository {
     required Duration progress,
     required String lastSrc,
     required String lastWatchEpisodeName,
+    String localPath = '',
+    String episodeTitle = '',
+    PlaybackSourceType sourceType = PlaybackSourceType.online,
+    LocalVideoPlaybackContext? localVideoContext,
   }) async {
     try {
       // 检查隐私模式
@@ -131,11 +140,27 @@ class HistoryRepository implements IHistoryRepository {
         return;
       }
 
+      final historyKey = History.getKey(
+        adapterName,
+        bangumiItem,
+        sourceTypeName: sourceType.name,
+        localVideoPath: localVideoContext?.path ?? localPath,
+      );
+
       // 获取或创建历史记录
-      var history =
-          _historiesBox.get(History.getKey(adapterName, bangumiItem)) ??
-              History(bangumiItem, episode, adapterName, DateTime.now(),
-                  lastSrc, lastWatchEpisodeName);
+      var history = _historiesBox.get(historyKey) ??
+          History(
+            bangumiItem,
+            episode,
+            adapterName,
+            DateTime.now(),
+            lastSrc,
+            lastWatchEpisodeName,
+            sourceTypeName: sourceType.name,
+            localVideoPath: localVideoContext?.path ?? localPath,
+            localVideoTitle: localVideoContext?.title ?? '',
+            localVideoFileName: localVideoContext?.fileName ?? '',
+          );
 
       // 更新历史记录
       history.lastWatchEpisode = episode;
@@ -146,14 +171,32 @@ class HistoryRepository implements IHistoryRepository {
       if (lastWatchEpisodeName.isNotEmpty) {
         history.lastWatchEpisodeName = lastWatchEpisodeName;
       }
+      history.sourceTypeName = sourceType.name;
+      if (sourceType == PlaybackSourceType.localFile) {
+        history.localVideoPath = localVideoContext?.path ?? localPath;
+        history.localVideoTitle = localVideoContext?.title ?? episodeTitle;
+        history.localVideoFileName = localVideoContext?.fileName ?? '';
+      }
 
       // 更新观看进度
       var prog = history.progresses[episode];
       if (prog == null) {
-        history.progresses[episode] =
-            Progress(episode, road, progress.inMilliseconds);
+        history.progresses[episode] = Progress(
+          episode,
+          road,
+          progress.inMilliseconds,
+          localPath: localPath,
+          episodeTitle: episodeTitle,
+        );
       } else {
         prog.progress = progress;
+        prog.road = road;
+        if (localPath.isNotEmpty) {
+          prog.localPath = localPath;
+        }
+        if (episodeTitle.isNotEmpty) {
+          prog.episodeTitle = episodeTitle;
+        }
       }
 
       // 保存到存储

@@ -25,8 +25,11 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
+import 'package:kazumi/services/local_video_picker_service.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -887,21 +890,29 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
-      if (playerController.playerPlaying &&
-          !videoPageController.loading &&
-          !videoPageController.isOfflineMode) {
-        final pluginName = videoPageController.isOfflineMode
-            ? videoPageController.offlinePluginName
-            : videoPageController.currentPlugin.name;
-        historyController.updateHistory(
-            videoPageController.actualEpisodeNumber,
-            videoPageController.currentRoad,
-            pluginName,
-            videoPageController.bangumiItem,
-            playerController.playerPosition,
-            videoPageController.src,
-            videoPageController.roadList[videoPageController.currentRoad]
-                .identifier[videoPageController.currentEpisode - 1]);
+      if (playerController.playerPlaying && !videoPageController.loading) {
+        if (!WebDav().isHistorySyncing) {
+          final pluginName = videoPageController.isOfflineMode
+              ? videoPageController.offlinePluginName
+              : videoPageController.currentPlugin.name;
+          final episodeTitle = videoPageController
+              .roadList[videoPageController.currentRoad]
+              .identifier[videoPageController.currentEpisode - 1];
+          historyController.updateHistory(
+              videoPageController.actualEpisodeNumber,
+              videoPageController.currentRoad,
+              pluginName,
+              videoPageController.bangumiItem,
+              playerController.playerPosition,
+              videoPageController.src,
+              episodeTitle,
+              localPath: videoPageController.isOfflineMode
+                  ? (videoPageController.offlineVideoPath ?? '')
+                  : '',
+              episodeTitle: episodeTitle,
+              sourceType: videoPageController.sourceType,
+              localVideoContext: videoPageController.localVideoContext);
+        }
       }
       // 自动播放下一集
       if (playerController.completed &&
@@ -1045,6 +1056,176 @@ class _PlayerItemState extends State<PlayerItem>
         );
       },
     );
+  }
+
+  void showLocalBangumiBindSheet() {
+    final localPath = videoPageController.offlineVideoPath;
+    if (localPath == null || localPath.isEmpty) {
+      KazumiDialog.showToast(message: '本地文件不存在');
+      return;
+    }
+
+    BangumiItem? selectedBangumi;
+    var results = <BangumiItem>[];
+    var searching = false;
+    final searchTextController = TextEditingController();
+    final episodeTextController = TextEditingController(
+        text: videoPageController.actualEpisodeNumber.toString());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            Future<void> searchBangumi() async {
+              final keyword = searchTextController.text.trim();
+              if (keyword.isEmpty) {
+                return;
+              }
+              setModalState(() {
+                searching = true;
+              });
+              final value = await BangumiApi.bangumiSearch(keyword);
+              setModalState(() {
+                results = value;
+                searching = false;
+              });
+            }
+
+            Future<void> bindAndReload() async {
+              if (selectedBangumi == null) {
+                return;
+              }
+              final episode =
+                  int.tryParse(episodeTextController.text.trim()) ?? 1;
+              final offset = playerController.playerPosition.inSeconds;
+              videoPageController.initForLocalFilePlayback(
+                context: (videoPageController.localVideoContext ??
+                        LocalVideoPickerService().buildContext(localPath))
+                    .copyWith(
+                  title: videoPageController
+                      .roadList[videoPageController.currentRoad]
+                      .identifier[videoPageController.currentEpisode - 1],
+                ),
+                boundBangumiItem: selectedBangumi,
+                episodeNumber: episode < 1 ? 1 : episode,
+              );
+              Navigator.of(context).pop();
+              await widget.changeEpisode(1, currentRoad: 0, offset: offset);
+              KazumiDialog.showToast(message: '绑定成功');
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('绑定番剧',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: searchTextController,
+                            decoration: const InputDecoration(
+                              labelText: 'Bangumi 搜索',
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (_) => searchBangumi(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          onPressed: searching ? null : searchBangumi,
+                          icon: searching
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.search),
+                        ),
+                      ],
+                    ),
+                    if (selectedBangumi != null) ...[
+                      const SizedBox(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.check_circle_outline),
+                        title: Text(selectedBangumi!.nameCn.isNotEmpty
+                            ? selectedBangumi!.nameCn
+                            : selectedBangumi!.name),
+                        subtitle: const Text('已选择绑定条目'),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 120,
+                        child: TextField(
+                          controller: episodeTextController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: '集数',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (results.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final item = results[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(item.nameCn.isNotEmpty
+                                  ? item.nameCn
+                                  : item.name),
+                              subtitle: Text(item.airDate),
+                              selected: selectedBangumi?.id == item.id,
+                              onTap: () {
+                                setModalState(() {
+                                  selectedBangumi = item;
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed:
+                            selectedBangumi == null ? null : bindAndReload,
+                        child: const Text('绑定并继续播放'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      searchTextController.dispose();
+      episodeTextController.dispose();
+    });
   }
 
   Widget get videoInfoBody {
@@ -1767,6 +1948,8 @@ class _PlayerItemState extends State<PlayerItem>
                             showDanmakuDestinationPickerAndSend:
                                 widget.showDanmakuDestinationPickerAndSend,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
+                            showLocalBangumiBindSheet:
+                                showLocalBangumiBindSheet,
                             disableAnimations: widget.disableAnimations,
                             handleScreenShot: handleScreenshot,
                             skipOP: skipOP,
@@ -1793,6 +1976,8 @@ class _PlayerItemState extends State<PlayerItem>
                             showSyncPlayEndPointSwitchDialog:
                                 showSyncPlayEndPointSwitchDialog,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
+                            showLocalBangumiBindSheet:
+                                showLocalBangumiBindSheet,
                             disableAnimations: widget.disableAnimations,
                             skipOP: skipOP,
                           ),

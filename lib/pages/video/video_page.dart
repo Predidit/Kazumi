@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:canvas_danmaku/models/danmaku_content_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -124,16 +126,44 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initOfflineMode() {
-    videoPageController.showTabBody = true;
+    videoPageController.showTabBody = videoPageController.canShowBangumiPanel;
     videoPageController.historyOffset = 0;
     currentRoad = videoPageController.currentRoad;
 
+    Progress? progress;
+    if (videoPageController.isLocalFilePlayback) {
+      for (final history in historyController.histories) {
+        if (history.isLocalVideo &&
+            history.localVideoPath == videoPageController.offlineVideoPath) {
+          progress =
+              history.progresses[videoPageController.actualEpisodeNumber];
+          break;
+        }
+      }
+    } else {
+      progress = historyController.findProgress(
+        videoPageController.bangumiItem,
+        videoPageController.offlinePluginName,
+        videoPageController.actualEpisodeNumber,
+      );
+    }
+    if (progress != null && playResume) {
+      videoPageController.historyOffset = progress.progress.inSeconds;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (videoPageController.offlineVideoPath != null) {
+        if (videoPageController.isLocalFilePlayback &&
+            !File(videoPageController.offlineVideoPath!).existsSync()) {
+          KazumiDialog.showToast(message: '本地文件不存在或已移动');
+          return;
+        }
         final params = PlaybackInitParams(
           videoUrl: videoPageController.offlineVideoPath!,
           offset: videoPageController.historyOffset,
           isLocalPlayback: true,
+          sourceType: videoPageController.sourceType,
+          localVideoContext: videoPageController.localVideoContext,
           bangumiId: videoPageController.bangumiItem.id,
           pluginName: videoPageController.offlinePluginName,
           episode: videoPageController.actualEpisodeNumber,
@@ -509,7 +539,9 @@ class _VideoPageState extends State<VideoPage>
     final bool islandScape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      openTabBodyAnimated();
+      if (videoPageController.canShowBangumiPanel) {
+        openTabBodyAnimated();
+      }
     });
     return PopScope(
       canPop: false,
@@ -558,7 +590,9 @@ class _VideoPageState extends State<VideoPage>
                           ),
                         ),
                         // when not wideScreen, show tabBody on the bottom
-                        if (!islandScape) Expanded(child: tabBody),
+                        if (!islandScape &&
+                            videoPageController.canShowBangumiPanel)
+                          Expanded(child: tabBody),
                       ],
                     ),
 

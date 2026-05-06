@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -21,6 +22,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/modules/playback/playback_source.dart';
 
 part 'video_controller.g.dart';
 
@@ -71,8 +73,9 @@ abstract class _VideoPageController with Store {
   @observable
   bool isOfflineMode = false;
 
-  /// 直接打开的本地视频，不关联下载记录或番剧条目
-  bool isStandaloneLocalPlayback = false;
+  PlaybackSourceType sourceType = PlaybackSourceType.online;
+
+  LocalVideoPlaybackContext? localVideoContext;
 
   /// 离线视频本地路径
   String? _offlineVideoPath;
@@ -100,6 +103,38 @@ abstract class _VideoPageController with Store {
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
   final Box setting = GStorage.setting;
 
+  bool get hasBangumiBinding {
+    if (sourceType == PlaybackSourceType.localFile) {
+      return localVideoContext?.boundBangumiItem != null;
+    }
+    return bangumiItem.id > 0;
+  }
+
+  bool get isLocalFilePlayback => sourceType == PlaybackSourceType.localFile;
+
+  bool get canShowBangumiPanel => !isLocalFilePlayback || hasBangumiBinding;
+
+  static BangumiItem buildUnboundLocalVideoItem(String title) {
+    final displayTitle = title.trim().isEmpty ? '本地视频' : title.trim();
+    return BangumiItem(
+      id: 0,
+      type: 2,
+      name: displayTitle,
+      nameCn: displayTitle,
+      summary: '',
+      airDate: '',
+      airWeekday: 0,
+      rank: 0,
+      images: const {'large': ''},
+      tags: const [],
+      alias: const <String>[],
+      ratingScore: 0.0,
+      votes: 0,
+      votesCount: const <int>[],
+      info: '',
+    );
+  }
+
   /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
   WebViewVideoSourceProvider? _videoSourceProvider;
 
@@ -123,11 +158,13 @@ abstract class _VideoPageController with Store {
   }) {
     this.bangumiItem = bangumiItem;
     _offlinePluginName = pluginName;
+    sourceType = PlaybackSourceType.downloaded;
+    localVideoContext = null;
     currentRoad = road;
     title =
         bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
+    src = videoPath;
     isOfflineMode = true;
-    isStandaloneLocalPlayback = false;
     _offlineVideoPath = videoPath;
     // 离线模式不需要解析视频源，直接设置 loading 为 false
     loading = false;
@@ -150,43 +187,39 @@ abstract class _VideoPageController with Store {
 
   /// 初始化直接打开的本地视频播放模式
   void initForLocalFilePlayback({
-    required String videoPath,
-    required String title,
+    required LocalVideoPlaybackContext context,
+    BangumiItem? boundBangumiItem,
+    int episodeNumber = 1,
   }) {
-    final displayTitle = title.trim().isEmpty ? '本地视频' : title.trim();
-    bangumiItem = BangumiItem(
-      id: 0,
-      type: 2,
-      name: displayTitle,
-      nameCn: displayTitle,
-      summary: '',
-      airDate: '',
-      airWeekday: 0,
-      rank: 0,
-      images: const {'large': ''},
-      tags: const [],
-      alias: const <String>[],
-      ratingScore: 0.0,
-      votes: 0,
-      votesCount: const <int>[],
-      info: '',
+    final displayTitle =
+        context.title.trim().isEmpty ? '本地视频' : context.title.trim();
+    final actualEpisodeNumber = episodeNumber < 1 ? 1 : episodeNumber;
+    final playbackContext = context.copyWith(
+      boundBangumiItem: boundBangumiItem,
+      boundEpisode: actualEpisodeNumber,
     );
-    _offlinePluginName = 'local_file';
+    localVideoContext = playbackContext;
+    sourceType = PlaybackSourceType.localFile;
+    bangumiItem = boundBangumiItem ?? buildUnboundLocalVideoItem(displayTitle);
+    _offlinePluginName = localVideoHistoryAdapterName;
     currentRoad = 0;
     currentEpisode = 1;
-    this.title = displayTitle;
-    src = videoPath;
+    title = boundBangumiItem == null
+        ? displayTitle
+        : (boundBangumiItem.nameCn.isNotEmpty
+            ? boundBangumiItem.nameCn
+            : boundBangumiItem.name);
+    src = context.path;
     isOfflineMode = true;
-    isStandaloneLocalPlayback = true;
-    _offlineVideoPath = videoPath;
+    _offlineVideoPath = context.path;
     loading = false;
     errorMessage = null;
-    showTabBody = true;
+    showTabBody = boundBangumiItem != null;
     roadList
       ..clear()
       ..add(Road(
         name: '播放列表1',
-        data: const ['1'],
+        data: [actualEpisodeNumber.toString()],
         identifier: [displayTitle],
       ));
   }
@@ -209,7 +242,8 @@ abstract class _VideoPageController with Store {
 
   void resetOfflineMode() {
     isOfflineMode = false;
-    isStandaloneLocalPlayback = false;
+    sourceType = PlaybackSourceType.online;
+    localVideoContext = null;
     _offlineVideoPath = null;
     _offlinePluginName = '';
   }
@@ -222,7 +256,9 @@ abstract class _VideoPageController with Store {
   /// 在线模式下直接返回 currentEpisode
   /// 离线模式下从 roadList.data 中获取实际的 episodeNumber
   int get actualEpisodeNumber {
-    if (isOfflineMode && roadList.isNotEmpty) {
+    if ((sourceType == PlaybackSourceType.downloaded ||
+            sourceType == PlaybackSourceType.localFile) &&
+        roadList.isNotEmpty) {
       try {
         return int.parse(roadList[currentRoad].data[currentEpisode - 1]);
       } catch (_) {
@@ -239,7 +275,7 @@ abstract class _VideoPageController with Store {
     errorMessage = null;
 
     if (isOfflineMode) {
-      await _changeOfflineEpisode(episode, 0);
+      await _changeOfflineEpisode(episode, offset);
       return;
     }
 
@@ -259,27 +295,35 @@ abstract class _VideoPageController with Store {
   /// 离线模式下切换集数
   /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
   Future<void> _changeOfflineEpisode(int episode, int offset) async {
-    if (isStandaloneLocalPlayback) {
+    if (sourceType == PlaybackSourceType.localFile) {
       final localPath = _offlineVideoPath;
-      if (localPath == null || localPath.isEmpty) {
-        KazumiDialog.showToast(message: '本地文件不存在');
+      if (localPath == null ||
+          localPath.isEmpty ||
+          !File(localPath).existsSync()) {
+        KazumiDialog.showToast(message: '本地文件不存在或已移动');
         return;
       }
+      final actualEpisodeNumber =
+          int.tryParse(roadList[currentRoad].data[episode - 1]) ?? episode;
       loading = false;
       final params = PlaybackInitParams(
         videoUrl: localPath,
         offset: offset,
         isLocalPlayback: true,
+        sourceType: PlaybackSourceType.localFile,
+        localVideoContext: localVideoContext,
         bangumiId: bangumiItem.id,
         pluginName: _offlinePluginName,
-        episode: 1,
+        episode: actualEpisodeNumber,
         httpHeaders: {},
         adBlockerEnabled: false,
-        episodeTitle: roadList[currentRoad].identifier[0],
+        episodeTitle: roadList[currentRoad].identifier[episode - 1],
         referer: '',
         currentRoad: currentRoad,
         coverUrl: bangumiItem.images['large'],
-        bangumiName: title,
+        bangumiName: bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name,
       );
 
       final playerController = Modular.get<PlayerController>();
@@ -307,6 +351,7 @@ abstract class _VideoPageController with Store {
       return;
     }
     _offlineVideoPath = localPath;
+    src = localPath;
     loading = false;
 
     KazumiLogger().i(
@@ -316,6 +361,7 @@ abstract class _VideoPageController with Store {
       videoUrl: localPath,
       offset: offset,
       isLocalPlayback: true,
+      sourceType: PlaybackSourceType.downloaded,
       bangumiId: bangumiItem.id,
       pluginName: _offlinePluginName,
       episode: actualEpisodeNumber,
@@ -373,6 +419,7 @@ abstract class _VideoPageController with Store {
         videoUrl: source.url,
         offset: source.offset,
         isLocalPlayback: false,
+        sourceType: PlaybackSourceType.online,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
         episode: currentEpisode,

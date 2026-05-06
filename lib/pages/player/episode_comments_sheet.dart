@@ -50,6 +50,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Future<void> loadComments(int episode) async {
+    if (videoPageController.bangumiItem.id <= 0) {
+      setState(() {
+        commentsIsEmpty = true;
+        commentsQueryTimeout = false;
+      });
+      return;
+    }
     final int requestId = ++_loadCommentsRequestId;
     commentsQueryTimeout = false;
     commentsIsEmpty = false;

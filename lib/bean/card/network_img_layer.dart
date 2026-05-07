@@ -15,6 +15,9 @@ class NetworkImgLayer extends StatelessWidget {
     this.fadeInDuration,
     this.quality,
     this.origAspectRatio,
+    this.filterQuality = FilterQuality.high,
+    this.color,
+    this.colorBlendMode,
   });
 
   final String? src;
@@ -25,6 +28,9 @@ class NetworkImgLayer extends StatelessWidget {
   final Duration? fadeInDuration;
   final int? quality;
   final double? origAspectRatio;
+  final FilterQuality filterQuality;
+  final Color? color;
+  final BlendMode? colorBlendMode;
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +84,12 @@ class NetworkImgLayer extends StatelessWidget {
                   fadeOutDuration ?? const Duration(milliseconds: 120),
               fadeInDuration:
                   fadeInDuration ?? const Duration(milliseconds: 120),
-              filterQuality: FilterQuality.high,
+              filterQuality: filterQuality,
+              color: color,
+              colorBlendMode: colorBlendMode,
               errorListener: (e) {
-                KazumiLogger().w("NetworkImage: network image load error", error: e);
+                KazumiLogger()
+                    .w("NetworkImage: network image load error", error: e);
               },
               errorWidget: (BuildContext context, String url, Object error) =>
                   placeholder(context),
@@ -96,7 +105,10 @@ class NetworkImgLayer extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onInverseSurface.withValues(alpha: 0.4),
+        color: Theme.of(context)
+            .colorScheme
+            .onInverseSurface
+            .withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(type == 'avatar'
             ? 50
             : type == 'emote'

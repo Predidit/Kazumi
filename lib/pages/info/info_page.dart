@@ -53,9 +53,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;
-    final missingVoteDistribution = votesCount.isEmpty ||
-        bangumiItem.votes <= 0 ||
-        votesCount.length < 10;
+    final missingVoteDistribution =
+        votesCount.isEmpty || bangumiItem.votes <= 0 || votesCount.length < 10;
     return bangumiItem.summary == '' || missingVoteDistribution;
   }
 
@@ -96,7 +95,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       staffIsEmpty = false;
     });
     try {
-      await infoController.queryBangumiStaffsByID(infoController.bangumiItem.id);
+      await infoController
+          .queryBangumiStaffsByID(infoController.bangumiItem.id);
       if (mounted) {
         setState(() {
           staffIsLoading = false;
@@ -164,7 +164,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: 5, vsync: this);
-    showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    showRating =
+        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     infoTabController.addListener(() {
       int index = infoTabController.index;
       if (index == 1 &&
@@ -208,7 +209,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
       setState(() {});
     } catch (e) {
-      KazumiLogger().e('InfoController: failed to query bangumi info by ID', error: e);
+      KazumiLogger()
+          .e('InfoController: failed to query bangumi info by ID', error: e);
     }
   }
 
@@ -304,40 +306,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                               Positioned.fill(
                                 bottom: kTextTabBarHeight,
                                 child: IgnorePointer(
-                                  child: Opacity(
-                                    opacity: 0.4,
-                                    child: LayoutBuilder(
-                                      builder: (context, boxConstraints) {
-                                        return ImageFiltered(
-                                          imageFilter: ImageFilter.blur(
-                                              sigmaX: 15.0, sigmaY: 15.0),
-                                          child: ShaderMask(
-                                            shaderCallback: (Rect bounds) {
-                                              return const LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                                  Colors.white,
-                                                  Colors.transparent,
-                                                ],
-                                                stops: [0.8, 1],
-                                              ).createShader(bounds);
-                                            },
-                                            child: NetworkImgLayer(
-                                              src: infoController.bangumiItem
-                                                      .images['large'] ??
-                                                  '',
-                                              width: boxConstraints.maxWidth,
-                                              height: boxConstraints.maxHeight,
-                                              fadeInDuration: const Duration(
-                                                  milliseconds: 0),
-                                              fadeOutDuration: const Duration(
-                                                  milliseconds: 0),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                  child: _InfoHeaderBackground(
+                                    imageUrl: infoController
+                                            .bangumiItem.images['large'] ??
+                                        '',
                                   ),
                                 ),
                               ),
@@ -415,13 +387,122 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 showDragHandle: true,
                 context: context,
                 builder: (context) {
-                  return SourceSheet(tabController: sourceTabController, infoController: infoController);
+                  return SourceSheet(
+                      tabController: sourceTabController,
+                      infoController: infoController);
                 },
               );
             },
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InfoHeaderBackground extends StatelessWidget {
+  const _InfoHeaderBackground({
+    required this.imageUrl,
+  });
+
+  static const double _downsample = 0.5;
+  static const double _blurSigma = 15.0;
+  static const double _opacity = 0.4;
+  static const double _edgeBleed = 32.0;
+  static const double _bottomFeatherHeight = 48.0;
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        if (width <= 0 || height <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final rasterWidth = width * _downsample;
+        final rasterHeight = (height + _edgeBleed) * _downsample;
+
+        final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
+        return ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ShaderMask(
+                shaderCallback: (bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white,
+                      Colors.transparent,
+                    ],
+                    stops: [0.8, 1],
+                  ).createShader(bounds);
+                },
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: RepaintBoundary(
+                    child: Transform.scale(
+                      scale: 1 / _downsample,
+                      alignment: Alignment.topCenter,
+                      filterQuality: FilterQuality.low,
+                      child: SizedBox(
+                        width: rasterWidth,
+                        height: rasterHeight,
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                            sigmaX: _blurSigma * _downsample,
+                            sigmaY: _blurSigma * _downsample,
+                          ),
+                          child: NetworkImgLayer(
+                            src: imageUrl,
+                            width: rasterWidth,
+                            height: rasterHeight,
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
+                            filterQuality: FilterQuality.low,
+                            color: Colors.white.withValues(alpha: _opacity),
+                            colorBlendMode: BlendMode.modulate,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: _bottomFeatherHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        backgroundColor.withValues(alpha: 0),
+                        backgroundColor.withValues(alpha: 0.55),
+                        backgroundColor,
+                      ],
+                      stops: const [0, 0.72, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

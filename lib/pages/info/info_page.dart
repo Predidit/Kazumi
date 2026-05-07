@@ -51,6 +51,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
 
+  void _onBangumiRatingTap() {}
+
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;
     final missingVoteDistribution = votesCount.isEmpty ||
@@ -353,6 +355,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                       bangumiItem: infoController.bangumiItem,
                                       isLoading: infoController.isLoading,
                                       showRating: showRating,
+                                      onRatingTap: _onBangumiRatingTap,
                                     ),
                                   ),
                                 ),

@@ -14,11 +14,13 @@ class BangumiInfoCardV extends StatefulWidget {
     required this.bangumiItem,
     required this.isLoading,
     required this.showRating,
+    this.onRatingTap,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
   final bool showRating;
+  final VoidCallback? onRatingTap;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -204,35 +206,38 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 ],
                               ),
                             if (!widget.isLoading)
-                              Row(
-                                children: [
-                                  Text(
-                                    widget.showRating
-                                        ? '${widget.bangumiItem.ratingScore}'
-                                        : '***',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                              GestureDetector(
+                                onTap: widget.onRatingTap,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      widget.showRating
+                                          ? '${widget.bangumiItem.ratingScore}'
+                                          : '***',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                        Theme.of(context).colorScheme.primary,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  RatingBarIndicator(
-                                    itemCount: 5,
-                                    rating: widget.showRating
-                                        ? widget.bangumiItem.ratingScore
-                                                .toDouble() /
-                                            2
-                                        : 0,
-                                    itemBuilder: (context, index) => Icon(
-                                      Icons.star_rounded,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                    const SizedBox(width: 8),
+                                    RatingBarIndicator(
+                                      itemCount: 5,
+                                      rating: widget.showRating
+                                          ? widget.bangumiItem.ratingScore
+                                          .toDouble() /
+                                          2
+                                          : 0,
+                                      itemBuilder: (context, index) => Icon(
+                                        Icons.star_rounded,
+                                        color:
+                                        Theme.of(context).colorScheme.primary,
+                                      ),
+                                      itemSize: 20.0,
                                     ),
-                                    itemSize: 20.0,
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             SizedBox(height: 8),
                             Text(

@@ -30,7 +30,7 @@ class InfoPage extends StatefulWidget {
 
 class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   static const Duration _minimumBangumiInfoLoadingDuration =
-      Duration(milliseconds: 320);
+      Duration(milliseconds: 400);
 
   /// Don't use modular singleton here. We may have multiple info pages.
   /// Use a new instance of InfoController for each info page.

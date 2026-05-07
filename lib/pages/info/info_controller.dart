@@ -52,6 +52,7 @@ abstract class _InfoController with Store {
           bangumiItem.ratingScore = value.ratingScore;
           bangumiItem.votes = value.votes;
           bangumiItem.votesCount = value.votesCount;
+          bangumiItem.interest = value.interest;
         }
         collectController.updateLocalCollect(bangumiItem);
         isLoading = false;

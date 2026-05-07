@@ -45,4 +45,9 @@ class BangumiInterest {
       updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
     );
   }
+
+  @override
+  String toString() {
+    return 'BangumiInterest{id: $id, rate: $rate, type: $type, comment: $comment, tags: $tags, epStatus: $epStatus, volStatus: $volStatus, private: $private, updatedAt: $updatedAt}';
+  }
 }

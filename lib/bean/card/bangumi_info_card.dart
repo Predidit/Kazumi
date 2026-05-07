@@ -197,6 +197,12 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
+                            if (!widget.isLoading && widget.bangumiItem.interest != null && widget.bangumiItem.interest!.rate > 0)
+                              Row(
+                                children: [
+                                  Text('你的评分:${widget.bangumiItem.interest!.rate}')
+                                ],
+                              ),
                             if (!widget.isLoading)
                               Row(
                                 children: [
@@ -205,7 +211,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                         ? '${widget.bangumiItem.ratingScore}'
                                         : '***',
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                       color:
                                           Theme.of(context).colorScheme.primary,

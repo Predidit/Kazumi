@@ -33,6 +33,7 @@ class LocalVideoPlaybackContext {
     String? title,
     BangumiItem? boundBangumiItem,
     int? boundEpisode,
+    bool clearBangumiBinding = false,
   }) {
     return LocalVideoPlaybackContext(
       path: path,
@@ -40,8 +41,11 @@ class LocalVideoPlaybackContext {
       fileName: fileName,
       fileSize: fileSize,
       lastModified: lastModified,
-      boundBangumiItem: boundBangumiItem ?? this.boundBangumiItem,
-      boundEpisode: boundEpisode ?? this.boundEpisode,
+      boundBangumiItem: clearBangumiBinding
+          ? null
+          : boundBangumiItem ?? this.boundBangumiItem,
+      boundEpisode:
+          clearBangumiBinding ? null : boundEpisode ?? this.boundEpisode,
     );
   }
 }

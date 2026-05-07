@@ -163,6 +163,8 @@ class HistoryRepository implements IHistoryRepository {
           );
 
       // 更新历史记录
+      history.bangumiItem = bangumiItem;
+      history.adapterName = adapterName;
       history.lastWatchEpisode = episode;
       history.lastWatchTime = DateTime.now();
       if (lastSrc.isNotEmpty) {

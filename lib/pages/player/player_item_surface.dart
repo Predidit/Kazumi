@@ -18,7 +18,9 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
       if (playerController.loading ||
-          playerController.videoController == null) {
+          playerController.videoController == null ||
+          playerController.playerWidth <= 1 ||
+          playerController.playerHeight <= 1) {
         return Container(
           color: Colors.black,
           child: const Center(
@@ -28,6 +30,9 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
       }
 
       return Video(
+        key: ValueKey(
+          '${playerController.playbackSession}-${identityHashCode(playerController.videoController)}',
+        ),
         controller: playerController.videoController!,
         controls: NoVideoControls,
         pauseUponEnteringBackgroundMode: false,

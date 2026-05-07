@@ -569,6 +569,22 @@ mixin _$PlayerController on _PlayerController, Store {
     });
   }
 
+  late final _$playbackSessionAtom =
+      Atom(name: '_PlayerController.playbackSession', context: context);
+
+  @override
+  int get playbackSession {
+    _$playbackSessionAtom.reportRead();
+    return super.playbackSession;
+  }
+
+  @override
+  set playbackSession(int value) {
+    _$playbackSessionAtom.reportWrite(value, super.playbackSession, () {
+      super.playbackSession = value;
+    });
+  }
+
   late final _$_PlayerControllerActionController =
       ActionController(name: '_PlayerController', context: context);
 
@@ -620,7 +636,8 @@ playerAudioParams: ${playerAudioParams},
 playerPlaylist: ${playerPlaylist},
 playerAudioTracks: ${playerAudioTracks},
 playerVideoTracks: ${playerVideoTracks},
-playerAudioBitrate: ${playerAudioBitrate}
+playerAudioBitrate: ${playerAudioBitrate},
+playbackSession: ${playbackSession}
     ''';
   }
 }

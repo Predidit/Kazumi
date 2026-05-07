@@ -152,6 +152,9 @@ class _VideoPageState extends State<VideoPage>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
       if (videoPageController.offlineVideoPath != null) {
         if (videoPageController.isLocalFilePlayback &&
             !File(videoPageController.offlineVideoPath!).existsSync()) {
@@ -220,6 +223,9 @@ class _VideoPageState extends State<VideoPage>
 
     // 使用 Provider 模式启动播放
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       changeEpisode(videoPageController.currentEpisode,
           currentRoad: videoPageController.currentRoad,
           offset: videoPageController.historyOffset);
@@ -318,6 +324,9 @@ class _VideoPageState extends State<VideoPage>
 
   void menuJumpToCurrentEpisode() {
     Future.delayed(const Duration(milliseconds: 20), () async {
+      if (!mounted) {
+        return;
+      }
       await observerController.jumpTo(
           index: videoPageController.currentEpisode > 1
               ? videoPageController.currentEpisode - 1
@@ -338,12 +347,17 @@ class _VideoPageState extends State<VideoPage>
     if (!disableAnimations) {
       animation.reverse();
       Future.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) {
+          return;
+        }
         videoPageController.showTabBody = false;
       });
     } else {
       videoPageController.showTabBody = false;
     }
-    keyboardFocus.requestFocus();
+    if (mounted) {
+      keyboardFocus.requestFocus();
+    }
   }
 
   void onBackPressed(BuildContext context) async {
@@ -379,6 +393,9 @@ class _VideoPageState extends State<VideoPage>
 
   /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
+    if (!mounted) {
+      return;
+    }
     keyboardFocus.requestFocus();
     if (playerController.danDanmakus.isEmpty) {
       KazumiDialog.showToast(
@@ -528,6 +545,9 @@ class _VideoPageState extends State<VideoPage>
     );
 
     if (result != null) {
+      if (!mounted) {
+        return;
+      }
       setState(() {});
       playerController.danmakuDestination = result;
       sendDanmaku(msg);
@@ -539,6 +559,9 @@ class _VideoPageState extends State<VideoPage>
     final bool islandScape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       if (videoPageController.canShowBangumiPanel) {
         openTabBodyAnimated();
       }

@@ -92,6 +92,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     ep = 0;
     // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       if (videoPageController.episodeCommentsList.isEmpty) {
         // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();

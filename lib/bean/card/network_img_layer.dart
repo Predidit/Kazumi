@@ -32,9 +32,13 @@ class NetworkImgLayer extends StatelessWidget {
 
     //// We need this to shink memory usage
     int? memCacheWidth, memCacheHeight;
-    double aspectRatio = (width / height).toDouble();
 
     void setMemCacheSizes() {
+      if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
+        return;
+      }
+
+      final double aspectRatio = (width / height).toDouble();
       if (aspectRatio > 1) {
         memCacheHeight = height.cacheSize(context);
       } else if (aspectRatio < 1) {
@@ -54,7 +58,12 @@ class NetworkImgLayer extends StatelessWidget {
     setMemCacheSizes();
 
     if (memCacheWidth == null && memCacheHeight == null) {
-      memCacheWidth = width.toInt();
+      if (width.isFinite && width > 0) {
+        final fallbackWidth = width.toInt();
+        if (fallbackWidth > 0) {
+          memCacheWidth = fallbackWidth;
+        }
+      }
     }
 
     return src != '' && src != null
@@ -80,7 +89,8 @@ class NetworkImgLayer extends StatelessWidget {
                   fadeInDuration ?? const Duration(milliseconds: 120),
               filterQuality: FilterQuality.high,
               errorListener: (e) {
-                KazumiLogger().w("NetworkImage: network image load error", error: e);
+                KazumiLogger()
+                    .w("NetworkImage: network image load error", error: e);
               },
               errorWidget: (BuildContext context, String url, Object error) =>
                   placeholder(context),
@@ -96,7 +106,10 @@ class NetworkImgLayer extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onInverseSurface.withValues(alpha: 0.4),
+        color: Theme.of(context)
+            .colorScheme
+            .onInverseSurface
+            .withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(type == 'avatar'
             ? 50
             : type == 'emote'

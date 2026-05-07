@@ -235,8 +235,11 @@ abstract class _PlayerController with Store {
   bool isLocalPlayback = false;
   PlaybackSourceType sourceType = PlaybackSourceType.online;
   LocalVideoPlaybackContext? localVideoContext;
+  @observable
+  int playbackSession = 0;
 
   Future<void> init(PlaybackInitParams params) async {
+    playbackSession++;
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
     sourceType = params.sourceType;
@@ -267,6 +270,8 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
     arrowKeySkipTime =
         setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
+    videoController = null;
+    await Future<void>.delayed(Duration.zero);
     try {
       await dispose(disposeSyncPlayController: false);
     } catch (_) {}
@@ -306,6 +311,7 @@ abstract class _PlayerController with Store {
     }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().i('PlayerController: video initialized');
+    isBuffering = false;
     loading = false;
 
     coverUrl = params.coverUrl;
@@ -650,9 +656,9 @@ abstract class _PlayerController with Store {
     try {
       await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
+    videoController = null;
     await mediaPlayer?.dispose();
     mediaPlayer = null;
-    videoController = null;
   }
 
   Future<void> stop() async {

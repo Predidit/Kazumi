@@ -197,6 +197,7 @@ abstract class _VideoPageController with Store {
     final playbackContext = context.copyWith(
       boundBangumiItem: boundBangumiItem,
       boundEpisode: actualEpisodeNumber,
+      clearBangumiBinding: boundBangumiItem == null,
     );
     localVideoContext = playbackContext;
     sourceType = PlaybackSourceType.localFile;

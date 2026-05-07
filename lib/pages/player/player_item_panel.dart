@@ -174,7 +174,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           widget.startHideTimer();
           playerController.canHidePlayerPanel = true;
           textFieldFocus.unfocus();
-          widget.keyboardFocus.requestFocus();
+          if (mounted) {
+            widget.keyboardFocus.requestFocus();
+          }
         },
       ),
     );
@@ -772,7 +774,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                     if (videoPageController.hasBangumiBinding)
                                       IconButton(
                                       onPressed: () {
-                                        widget.keyboardFocus.requestFocus();
+                                        if (mounted) {
+                                          widget.keyboardFocus.requestFocus();
+                                        }
                                         showModalBottomSheet(
                                             isScrollControlled: true,
                                             constraints: BoxConstraints(

@@ -73,17 +73,26 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   final HistoryController historyController = Modular.get<HistoryController>();
   final LocalVideoPickerService localVideoPickerService =
       LocalVideoPickerService();
+  bool _openingLocalVideo = false;
+
+  String _normalizeLocalVideoPath(String path) {
+    return path.replaceAll('\\', '/').toLowerCase();
+  }
 
   History? _findLocalFileHistory(String videoPath) {
+    final normalizedVideoPath = _normalizeLocalVideoPath(videoPath);
     for (final history in historyController.histories) {
       if (!history.isLocalVideo) {
         continue;
       }
-      if (history.localVideoPath == videoPath || history.lastSrc == videoPath) {
+      if (_normalizeLocalVideoPath(history.localVideoPath) ==
+              normalizedVideoPath ||
+          _normalizeLocalVideoPath(history.lastSrc) == normalizedVideoPath) {
         return history;
       }
       for (final progress in history.progresses.values) {
-        if (progress.localPath == videoPath) {
+        if (_normalizeLocalVideoPath(progress.localPath) ==
+            normalizedVideoPath) {
           return history;
         }
       }
@@ -92,13 +101,22 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   }
 
   Future<void> _openLocalVideo() async {
+    if (_openingLocalVideo) {
+      return;
+    }
+    _openingLocalVideo = true;
     final context = await localVideoPickerService.pickVideo();
     if (context == null) {
+      _openingLocalVideo = false;
       return;
     }
 
-    historyController.init();
-    await _showLocalVideoSheet(context);
+    try {
+      historyController.init();
+      await _showLocalVideoSheet(context);
+    } finally {
+      _openingLocalVideo = false;
+    }
   }
 
   Future<void> _showLocalVideoSheet(
@@ -119,6 +137,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
     var searching = false;
     var episodeLoading = false;
     var episodeLoadFailed = false;
+    var openingPlayback = false;
+    var shouldOpenPlayback = false;
     var episodeList = <EpisodeInfo>[];
     int? selectedEpisode = selectedBangumi == null ? null : episodeNumber;
     final searchController = TextEditingController();
@@ -129,6 +149,10 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
       required BuildContext sheetContext,
       required bool skipBinding,
     }) async {
+      if (openingPlayback) {
+        return;
+      }
+      openingPlayback = true;
       final parsedEpisode =
           selectedEpisode ?? int.tryParse(episodeController.text.trim()) ?? 1;
       videoPageController.initForLocalFilePlayback(
@@ -140,8 +164,11 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
         boundBangumiItem: skipBinding ? null : selectedBangumi,
         episodeNumber: parsedEpisode < 1 ? 1 : parsedEpisode,
       );
+      if (!sheetContext.mounted) {
+        return;
+      }
+      shouldOpenPlayback = true;
       Navigator.of(sheetContext).pop();
-      Modular.to.pushNamed('/video/');
     }
 
     await showModalBottomSheet(
@@ -158,34 +185,63 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
               setModalState(() {
                 searching = true;
               });
-              final value = await BangumiApi.bangumiSearch(keyword);
-              setModalState(() {
-                results = value;
-                searching = false;
-              });
+              try {
+                final value = await BangumiApi.bangumiSearch(keyword);
+                if (!context.mounted) {
+                  return;
+                }
+                setModalState(() {
+                  results = value;
+                  searching = false;
+                });
+                if (value.isEmpty) {
+                  KazumiDialog.showToast(message: '未找到匹配结果');
+                }
+              } catch (e) {
+                if (!context.mounted) {
+                  return;
+                }
+                setModalState(() {
+                  searching = false;
+                });
+                KazumiDialog.showToast(message: '搜索失败');
+              }
             }
 
             Future<void> selectBangumi(BangumiItem item) async {
               setModalState(() {
                 selectedBangumi = item;
                 selectedEpisode = null;
+                results = [];
                 episodeList = [];
                 episodeLoadFailed = false;
                 episodeLoading = true;
               });
-              final value = await BangumiApi.getBangumiEpisodesByID(item.id);
-              if (!context.mounted) {
-                return;
-              }
-              setModalState(() {
-                episodeList = value
-                    .where((episode) => episode.type == 0)
-                    .where((episode) => episode.episode > 0)
-                    .toList();
-                episodeLoading = false;
-                episodeLoadFailed = episodeList.isEmpty;
-              });
-              if (episodeList.isEmpty) {
+              try {
+                final value = await BangumiApi.getBangumiEpisodesByID(item.id);
+                if (!context.mounted) {
+                  return;
+                }
+                setModalState(() {
+                  episodeList = value
+                      .where((episode) => episode.type == 0)
+                      .where((episode) => episode.episode > 0)
+                      .toList();
+                  episodeLoading = false;
+                  episodeLoadFailed = episodeList.isEmpty;
+                });
+                if (episodeList.isEmpty) {
+                  KazumiDialog.showToast(message: '未获取到集数，请手动输入');
+                }
+              } catch (e) {
+                if (!context.mounted) {
+                  return;
+                }
+                setModalState(() {
+                  episodeList = [];
+                  episodeLoading = false;
+                  episodeLoadFailed = true;
+                });
                 KazumiDialog.showToast(message: '未获取到集数，请手动输入');
               }
             }
@@ -211,11 +267,20 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () => startPlayback(
-                            sheetContext: context,
-                            skipBinding: true,
-                          ),
+                          onPressed: openingPlayback
+                              ? null
+                              : () => startPlayback(
+                                    sheetContext: context,
+                                    skipBinding: true,
+                                  ),
                           child: const Text('不绑定'),
+                        ),
+                        IconButton(
+                          tooltip: '关闭',
+                          onPressed: openingPlayback
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
                         ),
                       ],
                     ),
@@ -231,10 +296,38 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                         Expanded(
                           child: TextField(
                             controller: searchController,
-                            decoration: const InputDecoration(
+                            textInputAction: TextInputAction.search,
+                            decoration: InputDecoration(
                               labelText: 'Bangumi 搜索',
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                tooltip: '清除',
+                                onPressed: () {
+                                  setModalState(() {
+                                    searchController.clear();
+                                    selectedBangumi = null;
+                                    selectedEpisode = null;
+                                    results = [];
+                                    episodeList = [];
+                                    episodeLoadFailed = false;
+                                    episodeLoading = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.clear),
+                              ),
                             ),
+                            onChanged: (_) {
+                              if (selectedBangumi == null) {
+                                return;
+                              }
+                              setModalState(() {
+                                selectedBangumi = null;
+                                selectedEpisode = null;
+                                episodeList = [];
+                                episodeLoadFailed = false;
+                                episodeLoading = false;
+                              });
+                            },
                             onSubmitted: (_) => searchBangumi(),
                           ),
                         ),
@@ -263,35 +356,53 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                               ? selectedBangumi!.nameCn
                               : selectedBangumi!.name,
                         ),
-                        subtitle: const Text('已选择绑定条目'),
+                        subtitle: Text(
+                          selectedEpisode == null && !episodeLoadFailed
+                              ? '已选择绑定条目'
+                              : '已选择绑定条目 · 第${selectedEpisode ?? int.tryParse(episodeController.text.trim()) ?? 1}集',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       if (episodeLoading)
                         const Center(child: CircularProgressIndicator())
                       else if (episodeList.isNotEmpty)
                         ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 180),
-                          child: GridView.builder(
-                            shrinkWrap: true,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
-                              mainAxisSpacing: 8,
-                              crossAxisSpacing: 8,
-                              mainAxisExtent: 40,
-                            ),
-                            itemCount: episodeList.length,
-                            itemBuilder: (context, index) {
-                              final episode =
-                                  episodeList[index].episode.toInt();
-                              return FilterChip(
-                                label: Text(episode.toString()),
-                                selected: selectedEpisode == episode,
-                                onSelected: (_) {
-                                  setModalState(() {
-                                    selectedEpisode = episode;
-                                    episodeController.text = episode.toString();
-                                  });
+                          constraints: const BoxConstraints(maxHeight: 216),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final crossAxisCount = (constraints.maxWidth / 72)
+                                  .floor()
+                                  .clamp(4, 8)
+                                  .toInt();
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  mainAxisExtent: 48,
+                                ),
+                                itemCount: episodeList.length,
+                                itemBuilder: (context, index) {
+                                  final episode =
+                                      episodeList[index].episode.toInt();
+                                  final selected = selectedEpisode == episode;
+                                  return selected
+                                      ? FilledButton.tonal(
+                                          onPressed: () {},
+                                          child: Text(episode.toString()),
+                                        )
+                                      : OutlinedButton(
+                                          onPressed: () {
+                                            setModalState(() {
+                                              selectedEpisode = episode;
+                                              episodeController.text =
+                                                  episode.toString();
+                                            });
+                                          },
+                                          child: Text(episode.toString()),
+                                        );
                                 },
                               );
                             },
@@ -343,7 +454,8 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         FilledButton(
-                          onPressed: selectedBangumi == null ||
+                          onPressed: openingPlayback ||
+                                  selectedBangumi == null ||
                                   (selectedEpisode == null &&
                                       !episodeLoadFailed)
                               ? null
@@ -363,8 +475,10 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
         );
       },
     );
-    searchController.dispose();
-    episodeController.dispose();
+    if (shouldOpenPlayback) {
+      await Future<void>.delayed(Duration.zero);
+      Modular.to.pushNamed('/video/');
+    }
   }
 
   @override

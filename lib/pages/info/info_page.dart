@@ -29,6 +29,9 @@ class InfoPage extends StatefulWidget {
 }
 
 class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
+  static const Duration _minimumBangumiInfoLoadingDuration =
+      Duration(milliseconds: 320);
+
   /// Don't use modular singleton here. We may have multiple info pages.
   /// Use a new instance of InfoController for each info page.
   final InfoController infoController = InfoController();
@@ -48,8 +51,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
+  bool _showBangumiInfoSkeleton = false;
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
+
+  bool get _isShowingBangumiInfoSkeleton =>
+      infoController.isLoading || _showBangumiInfoSkeleton;
 
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;
@@ -159,7 +166,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     // We need the type parameter to determine whether to attach the new data to the old data
     // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
-      queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
+      _showBangumiInfoSkeleton = true;
+      queryBangumiInfoByID(
+        infoController.bangumiItem.id,
+        type: 'attach',
+        enforceMinimumLoadingDuration: true,
+      );
     }
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
@@ -204,13 +216,35 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
+  Future<void> queryBangumiInfoByID(
+    int id, {
+    String type = "init",
+    bool enforceMinimumLoadingDuration = false,
+  }) async {
+    final loadingStartedAt = DateTime.now();
     try {
       await infoController.queryBangumiInfoByID(id, type: type);
-      setState(() {});
     } catch (e) {
       KazumiLogger()
           .e('InfoController: failed to query bangumi info by ID', error: e);
+    } finally {
+      if (enforceMinimumLoadingDuration && mounted) {
+        await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
+      }
+      if (mounted) {
+        setState(() {
+          _showBangumiInfoSkeleton = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _waitForMinimumBangumiInfoLoadingDuration(
+      DateTime loadingStartedAt) async {
+    final elapsed = DateTime.now().difference(loadingStartedAt);
+    final remaining = _minimumBangumiInfoLoadingDuration - elapsed;
+    if (remaining > Duration.zero) {
+      await Future.delayed(remaining);
     }
   }
 
@@ -299,10 +333,12 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
                       background: Observer(builder: (context) {
+                        final showBangumiInfoSkeleton =
+                            _isShowingBangumiInfoSkeleton;
                         return Stack(
                           children: [
                             // No background image when loading to make loading looks better
-                            if (!infoController.isLoading)
+                            if (!showBangumiInfoSkeleton)
                               Positioned.fill(
                                 bottom: kTextTabBarHeight,
                                 child: IgnorePointer(
@@ -323,7 +359,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                         16, kToolbarHeight, 16, 0),
                                     child: BangumiInfoCardV(
                                       bangumiItem: infoController.bangumiItem,
-                                      isLoading: infoController.isLoading,
+                                      isLoading: showBangumiInfoSkeleton,
                                       showRating: showRating,
                                     ),
                                   ),
@@ -347,6 +383,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               ];
             },
             body: Observer(builder: (context) {
+              final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
@@ -362,7 +399,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 commentsList: infoController.commentsList,
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
-                isLoading: infoController.isLoading,
+                isLoading: showBangumiInfoSkeleton,
               );
             }),
           ),

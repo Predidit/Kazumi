@@ -38,7 +38,8 @@ abstract class _InfoController with Store {
 
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
-    await BangumiApi.getBangumiInfoByID(id).then((value) {
+    try {
+      final value = await BangumiApi.getBangumiInfoByID(id);
       if (value != null) {
         if (type == "init") {
           bangumiItem = value;
@@ -54,9 +55,10 @@ abstract class _InfoController with Store {
           bangumiItem.votesCount = value.votesCount;
         }
         collectController.updateLocalCollect(bangumiItem);
-        isLoading = false;
       }
-    });
+    } finally {
+      isLoading = false;
+    }
   }
 
   Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {

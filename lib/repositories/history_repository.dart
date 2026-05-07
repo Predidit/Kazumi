@@ -18,6 +18,12 @@ abstract class IHistoryRepository {
   /// 返回历史记录，不存在返回null
   History? getHistory(String adapterName, BangumiItem bangumiItem);
 
+  /// 获取特定番剧最新的一条继续观看记录
+  ///
+  /// [bangumiItem] 番剧信息
+  /// 返回最新历史记录，不存在返回null
+  History? getContinueHistory(BangumiItem bangumiItem);
+
   /// 更新或创建历史记录
   ///
   /// [episode] 集数
@@ -108,6 +114,31 @@ class HistoryRepository implements IHistoryRepository {
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: get history failed. bangumi=${bangumiItem.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  @override
+  History? getContinueHistory(BangumiItem bangumiItem) {
+    try {
+      final histories = _historiesBox.values
+          .where((history) => history.bangumiItem.id == bangumiItem.id)
+          .toList();
+      if (histories.isEmpty) {
+        return null;
+      }
+      histories.sort(
+        (a, b) =>
+            b.lastWatchTime.millisecondsSinceEpoch -
+            a.lastWatchTime.millisecondsSinceEpoch,
+      );
+      return histories.first;
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: get continue history failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );

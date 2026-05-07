@@ -1,6 +1,7 @@
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
+import 'bangumi_interest.dart';
 
 part 'bangumi_item.g.dart';
 
@@ -36,6 +37,7 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
+  BangumiInterest? interest;
 
   BangumiItem({
     required this.id,
@@ -53,6 +55,7 @@ class BangumiItem {
     required this.votes,
     required this.votesCount,
     required this.info,
+    this.interest,
   });
 
   factory BangumiItem.fromJson(Map<String, dynamic> json) {
@@ -100,6 +103,13 @@ class BangumiItem {
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
     List<int> voteList = parseBangumiVoteCount(json);
+    BangumiInterest? interest;
+    final interestRaw = json['interest'];
+    if (interestRaw is Map<String, dynamic>) {
+      interest = BangumiInterest.fromJson(json['interest']);
+    } else if (interestRaw is Map) {
+      interest = BangumiInterest.fromJson(Map<String, dynamic>.from(interestRaw));
+    }
     return BangumiItem(
       id: json['id'],
       type: json['type'] ?? 2,
@@ -128,6 +138,7 @@ class BangumiItem {
       votes: json['rating']['total'] ?? 0,
       votesCount: voteList,
       info: json['info'] ?? '',
+      interest: interest,
     );
   }
 }

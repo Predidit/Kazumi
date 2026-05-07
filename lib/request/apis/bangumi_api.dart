@@ -211,7 +211,7 @@ class BangumiApi {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
-            ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiInfoByID, [id]),
+            ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiInfoByIDNext, [id]),
       );
       return BangumiItem.fromJson(jsonData);
     } catch (e) {

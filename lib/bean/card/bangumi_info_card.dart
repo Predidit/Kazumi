@@ -147,6 +147,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       final double maxHeight = boxConstraints.maxHeight;
                       return Hero(
                         transitionOnUserGestures: true,
+                        flightShuttleBuilder:
+                            NetworkImgLayer.heroFlightShuttleBuilder,
                         tag: widget.bangumiItem.id,
                         child: NetworkImgLayer(
                           src: widget.bangumiItem.images['large'] ?? '',

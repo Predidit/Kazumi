@@ -509,4 +509,21 @@ class BangumiApi {
     }
     return await updateBangumiById(id, {'type': type.value});
   }
+
+  /// update or add Bangumi evaluation by subjectID
+  static Future<bool> addOrUpdateBangumiEvaluationBySubjectID(
+    int subjectID, {
+    String? comment,
+    bool private = false,
+    int? rate,
+    List<String>? tags,
+  }) async {
+    final data = <String, dynamic>{
+      'private': private
+    };
+    if (comment != null) data['comment'] = comment;
+    if (rate != null) data['rate'] = rate;
+    if (tags != null) data['tags'] = tags;
+    return updateBangumiById(subjectID, data);
+  }
 }

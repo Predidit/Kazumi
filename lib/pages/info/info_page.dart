@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -15,6 +16,7 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -51,7 +53,23 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
 
-  void _onBangumiRatingTap() {}
+  void _onBangumiRatingTap() {
+    final token = GStorage.setting
+        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+        .toString()
+        .trim();
+    if (token.isEmpty) {
+      KazumiDialog.showToast(message: '请先在设置中绑定你的 Bangumi 配置以发表评价');
+      return;
+    }
+    KazumiDialog.show(
+      builder: (context) => RatingReviewDialog(
+        bangumiItem: infoController.bangumiItem,
+        onSubmitted: (data) => infoController.rateBangumi(data),
+      ),
+    );
+  }
+
 
   bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
     final votesCount = bangumiItem.votesCount;

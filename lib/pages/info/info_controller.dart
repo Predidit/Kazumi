@@ -3,6 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -102,5 +103,18 @@ abstract class _InfoController with Store {
     });
     KazumiLogger()
         .i('InfoController: loaded staff list length ${staffList.length}');
+  }
+
+  Future<void> rateBangumi(RatingReviewResult data) async {
+    final trimmedComment = data.comment.trim();
+    if (await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
+      bangumiItem.id,
+      comment: trimmedComment.isNotEmpty ? trimmedComment : null,
+      rate: data.score > 0 ? data.score : null,
+      tags: data.tags.isNotEmpty ? data.tags : null,
+      private: data.private,
+    )) {
+      queryBangumiInfoByID(bangumiItem.id, type: "update");
+    }
   }
 }

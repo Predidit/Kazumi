@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'dart:io';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/history/history_module.dart';
+import 'package:kazumi/services/local_video_picker_service.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -36,10 +38,48 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
+  bool _opening = false;
 
   Future<void> _onTap() async {
+    if (_opening) {
+      return;
+    }
     if (widget.showDelete) {
       KazumiDialog.showToast(message: '编辑模式');
+      return;
+    }
+    _opening = true;
+    if (widget.historyItem.isLocalVideo) {
+      final progress =
+          widget.historyItem.progresses[widget.historyItem.lastWatchEpisode];
+      final localPath = (progress?.localPath.isNotEmpty ?? false)
+          ? progress!.localPath
+          : widget.historyItem.localVideoPath.isNotEmpty
+              ? widget.historyItem.localVideoPath
+              : widget.historyItem.lastSrc;
+      if (localPath.isEmpty || !File(localPath).existsSync()) {
+        KazumiDialog.showToast(message: '本地文件不存在或已移动');
+        _opening = false;
+        return;
+      }
+      final episodeTitle = (progress?.episodeTitle.isNotEmpty ?? false)
+          ? progress!.episodeTitle
+          : widget.historyItem.lastWatchEpisodeName.isNotEmpty
+              ? widget.historyItem.lastWatchEpisodeName
+              : widget.historyItem.localVideoTitle;
+      videoPageController.initForLocalFilePlayback(
+        context: LocalVideoPickerService().buildContext(localPath).copyWith(
+              title: episodeTitle.isEmpty
+                  ? widget.historyItem.localVideoTitle
+                  : episodeTitle,
+            ),
+        boundBangumiItem: widget.historyItem.isBoundLocalVideo
+            ? widget.historyItem.bangumiItem
+            : null,
+        episodeNumber: widget.historyItem.lastWatchEpisode,
+      );
+      Modular.to.pushNamed('/video/');
+      _opening = false;
       return;
     }
     KazumiDialog.showLoading(
@@ -60,22 +100,24 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     if (!flag) {
       KazumiDialog.dismiss();
       KazumiDialog.showToast(message: '未找到关联番剧源');
+      _opening = false;
       return;
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
-    videoPageController.title =
-        widget.historyItem.bangumiItem.nameCn == ''
-            ? widget.historyItem.bangumiItem.name
-            : widget.historyItem.bangumiItem.nameCn;
+    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
+        ? widget.historyItem.bangumiItem.name
+        : widget.historyItem.bangumiItem.nameCn;
     videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(widget.historyItem.lastSrc,
-          videoPageController.currentPlugin.name);
+      await videoPageController.queryRoads(
+          widget.historyItem.lastSrc, videoPageController.currentPlugin.name);
       KazumiDialog.dismiss();
       Modular.to.pushNamed('/video/');
+      _opening = false;
     } catch (_) {
       KazumiLogger().w("QueryManager: failed to query roads");
       KazumiDialog.dismiss();
+      _opening = false;
     }
   }
 
@@ -85,13 +127,33 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final colorScheme = theme.colorScheme;
     final double imageWidth = 80;
     final double imageHeight = 108;
-    final String title = widget.historyItem.bangumiItem.nameCn == ''
-        ? widget.historyItem.bangumiItem.name
-        : widget.historyItem.bangumiItem.nameCn;
-    final String episodeText =
-        widget.historyItem.lastWatchEpisodeName.isEmpty
-            ? '第${widget.historyItem.lastWatchEpisode}话'
-            : widget.historyItem.lastWatchEpisodeName;
+    final progress =
+        widget.historyItem.progresses[widget.historyItem.lastWatchEpisode];
+    final localPath = (progress?.localPath.isNotEmpty ?? false)
+        ? progress!.localPath
+        : widget.historyItem.localVideoPath.isNotEmpty
+            ? widget.historyItem.localVideoPath
+            : widget.historyItem.lastSrc;
+    final localFileName = widget.historyItem.localVideoFileName.isNotEmpty
+        ? widget.historyItem.localVideoFileName
+        : localPath.split(RegExp(r'[\\/]')).last;
+    final String title = widget.historyItem.isLocalVideo
+        ? (localFileName.isNotEmpty
+            ? localFileName
+            : widget.historyItem.localVideoTitle)
+        : widget.historyItem.bangumiItem.nameCn == ''
+            ? widget.historyItem.bangumiItem.name
+            : widget.historyItem.bangumiItem.nameCn;
+    final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
+        ? '第${widget.historyItem.lastWatchEpisode}集'
+        : widget.historyItem.lastWatchEpisodeName;
+    final showEpisodeText = !widget.historyItem.isLocalVideo ||
+        widget.historyItem.isBoundLocalVideo;
+    final sourceText =
+        widget.historyItem.isLocalVideo ? '本地' : widget.historyItem.adapterName;
+    final sourceIcon = widget.historyItem.isLocalVideo
+        ? Icons.movie_outlined
+        : Icons.extension_outlined;
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -151,39 +213,41 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.play_circle_outline,
-                              size: 14,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                episodeText,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                        if (showEpisodeText) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.play_circle_outline,
+                                size: 14,
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  episodeText,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Icon(
-                              Icons.extension_outlined,
+                              sourceIcon,
                               size: 14,
                               color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                widget.historyItem.adapterName,
+                                sourceText,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -203,8 +267,11 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              Utils.formatTimestampToRelativeTime(
-                                  widget.historyItem.lastWatchTime.millisecondsSinceEpoch ~/ 1000),
+                              Utils.formatTimestampToRelativeTime(widget
+                                      .historyItem
+                                      .lastWatchTime
+                                      .millisecondsSinceEpoch ~/
+                                  1000),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.outline,
                               ),

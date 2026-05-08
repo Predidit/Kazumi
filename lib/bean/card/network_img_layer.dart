@@ -38,9 +38,13 @@ class NetworkImgLayer extends StatelessWidget {
 
     //// We need this to shink memory usage
     int? memCacheWidth, memCacheHeight;
-    double aspectRatio = (width / height).toDouble();
 
     void setMemCacheSizes() {
+      if (!width.isFinite || !height.isFinite || width <= 0 || height <= 0) {
+        return;
+      }
+
+      final double aspectRatio = (width / height).toDouble();
       if (aspectRatio > 1) {
         memCacheHeight = height.cacheSize(context);
       } else if (aspectRatio < 1) {
@@ -60,7 +64,12 @@ class NetworkImgLayer extends StatelessWidget {
     setMemCacheSizes();
 
     if (memCacheWidth == null && memCacheHeight == null) {
-      memCacheWidth = width.toInt();
+      if (width.isFinite && width > 0) {
+        final fallbackWidth = width.toInt();
+        if (fallbackWidth > 0) {
+          memCacheWidth = fallbackWidth;
+        }
+      }
     }
 
     return src != '' && src != null

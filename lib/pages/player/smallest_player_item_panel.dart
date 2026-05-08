@@ -41,6 +41,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.showSyncPlayRoomCreateDialog,
     required this.showSyncPlayEndPointSwitchDialog,
     required this.pauseForTimedShutdown,
+    required this.showLocalBangumiBindSheet,
     this.disableAnimations = false,
   });
 
@@ -62,6 +63,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
   final VoidCallback pauseForTimedShutdown;
+  final VoidCallback showLocalBangumiBindSheet;
   final bool disableAnimations;
 
   @override
@@ -604,8 +606,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: const Icon(Icons.picture_in_picture,
                       color: Colors.white)),
             // 弹幕开关
-            _buildDanmakuToggleButton(context),
+            if (videoPageController.hasBangumiBinding)
+              _buildDanmakuToggleButton(context),
             // 追番
+            if (videoPageController.hasBangumiBinding)
             CollectButton(
               bangumiItem: videoPageController.bangumiItem,
               onOpen: () {
@@ -647,6 +651,21 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 );
               },
               menuChildren: [
+                if (videoPageController.isLocalFilePlayback &&
+                    !videoPageController.hasBangumiBinding)
+                  MenuItemButton(
+                    onPressed: () {
+                      widget.showLocalBangumiBindSheet();
+                    },
+                    child: Container(
+                      height: 48,
+                      constraints: BoxConstraints(minWidth: 112),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text("绑定番剧"),
+                      ),
+                    ),
+                  ),
                 SubmenuButton(
                   menuChildren: List<MenuItemButton>.generate(
                     3,
@@ -827,6 +846,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     ),
                   ),
                 ),
+                if (videoPageController.hasBangumiBinding)
                 MenuItemButton(
                   onPressed: () {
                     widget.showDanmakuSwitch();
@@ -840,6 +860,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     ),
                   ),
                 ),
+                if (videoPageController.hasBangumiBinding)
                 MenuItemButton(
                   onPressed: () {
                     showModalBottomSheet(
@@ -869,6 +890,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     ),
                   ),
                 ),
+                if (videoPageController.hasBangumiBinding)
                 MenuItemButton(
                   onPressed: () {
                     widget.showVideoInfo();
@@ -888,7 +910,9 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     playerController.pause();
                     RemotePlay()
                         .castVideo(playerController.videoUrl,
-                            videoPageController.currentPlugin.referer)
+                            videoPageController.isOfflineMode
+                                ? ''
+                                : videoPageController.currentPlugin.referer)
                         .whenComplete(() {
                       if (needRestart) {
                         playerController.play();

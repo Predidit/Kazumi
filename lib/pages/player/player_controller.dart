@@ -22,6 +22,7 @@ import 'package:kazumi/utils/syncplay_endpoint.dart';
 import 'package:kazumi/utils/external_player.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
+import 'package:kazumi/modules/playback/playback_source.dart';
 
 part 'player_controller.g.dart';
 
@@ -29,6 +30,8 @@ class PlaybackInitParams {
   final String videoUrl;
   final int offset;
   final bool isLocalPlayback;
+  final PlaybackSourceType sourceType;
+  final LocalVideoPlaybackContext? localVideoContext;
   final int bangumiId;
   final String pluginName;
   final int episode;
@@ -44,6 +47,7 @@ class PlaybackInitParams {
     required this.videoUrl,
     required this.offset,
     required this.isLocalPlayback,
+    required this.sourceType,
     required this.bangumiId,
     required this.pluginName,
     required this.episode,
@@ -54,6 +58,7 @@ class PlaybackInitParams {
     required this.currentRoad,
     this.coverUrl,
     this.bangumiName,
+    this.localVideoContext,
   });
 }
 
@@ -228,10 +233,17 @@ abstract class _PlayerController with Store {
   StreamSubscription<double?>? playerAudioBitrateSubscription;
 
   bool isLocalPlayback = false;
+  PlaybackSourceType sourceType = PlaybackSourceType.online;
+  LocalVideoPlaybackContext? localVideoContext;
+  @observable
+  int playbackSession = 0;
 
   Future<void> init(PlaybackInitParams params) async {
+    playbackSession++;
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
+    sourceType = params.sourceType;
+    localVideoContext = params.localVideoContext;
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentRoad = params.currentRoad;
@@ -247,6 +259,7 @@ abstract class _PlayerController with Store {
     buffer = Duration.zero;
     duration = Duration.zero;
     completed = false;
+    danDanmakus.clear();
     playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
     playerSpeed =
         setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
@@ -257,6 +270,8 @@ abstract class _PlayerController with Store {
         setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
     arrowKeySkipTime =
         setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
+    videoController = null;
+    await Future<void>.delayed(Duration.zero);
     try {
       await dispose(disposeSyncPlayController: false);
     } catch (_) {}
@@ -271,7 +286,13 @@ abstract class _PlayerController with Store {
     if (episodeFromTitle == 0) {
       episodeFromTitle = params.episode;
     }
-    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    if (params.sourceType == PlaybackSourceType.localFile &&
+        params.localVideoContext?.boundBangumiItem == null) {
+      danDanmakus.clear();
+      danmakuOn = false;
+    } else {
+      _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    }
     mediaPlayer ??= await createVideoController(
       params.httpHeaders,
       params.adBlockerEnabled,
@@ -290,6 +311,7 @@ abstract class _PlayerController with Store {
     }
     setPlaybackSpeed(playerSpeed);
     KazumiLogger().i('PlayerController: video initialized');
+    isBuffering = false;
     loading = false;
 
     coverUrl = params.coverUrl;
@@ -634,9 +656,9 @@ abstract class _PlayerController with Store {
     try {
       await cancelPlayerDebugInfoSubscription();
     } catch (_) {}
+    videoController = null;
     await mediaPlayer?.dispose();
     mediaPlayer = null;
-    videoController = null;
   }
 
   Future<void> stop() async {
@@ -663,6 +685,11 @@ abstract class _PlayerController with Store {
   /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
   Future<void> _loadDanmaku(
       int bangumiId, String pluginName, int episode) async {
+    if (bangumiId <= 0) {
+      danDanmakus.clear();
+      danmakuOn = false;
+      return;
+    }
     if (isLocalPlayback) {
       await _loadCachedDanmaku(bangumiId, pluginName, episode);
     } else {
@@ -789,6 +816,7 @@ abstract class _PlayerController with Store {
   }
 
   void addDanmakus(List<Danmaku> danmakus) {
+    danDanmakus.clear();
     final bool danmakuDeduplicationEnable =
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 

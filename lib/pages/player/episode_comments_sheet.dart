@@ -50,6 +50,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   }
 
   Future<void> loadComments(int episode) async {
+    if (videoPageController.bangumiItem.id <= 0) {
+      setState(() {
+        commentsIsEmpty = true;
+        commentsQueryTimeout = false;
+      });
+      return;
+    }
     final int requestId = ++_loadCommentsRequestId;
     commentsQueryTimeout = false;
     commentsIsEmpty = false;
@@ -85,6 +92,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     ep = 0;
     // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       if (videoPageController.episodeCommentsList.isEmpty) {
         // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();

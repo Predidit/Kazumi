@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -151,6 +153,23 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         });
       }
     }
+  }
+
+  void _onBangumiRatingTap() {
+    final token = GStorage.setting
+        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+        .toString()
+        .trim();
+    if (token.isEmpty) {
+      KazumiDialog.showToast(message: '请先在设置中绑定你的 Bangumi 配置以发表评价');
+      return;
+    }
+    KazumiDialog.show(
+      builder: (context) => RatingReviewDialog(
+        bangumiItem: infoController.bangumiItem,
+        onSubmitted: (data) => infoController.rateBangumi(data),
+      ),
+    );
   }
 
   @override
@@ -361,6 +380,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                       bangumiItem: infoController.bangumiItem,
                                       isLoading: showBangumiInfoSkeleton,
                                       showRating: showRating,
+                                      onRatingTap: () => _onBangumiRatingTap(),
                                     ),
                                   ),
                                 ),

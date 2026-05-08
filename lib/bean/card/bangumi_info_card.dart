@@ -204,7 +204,13 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             if (!widget.isLoading && widget.bangumiItem.interest != null && widget.bangumiItem.interest!.rate > 0)
                               Row(
                                 children: [
-                                  Text('你的评分:${widget.bangumiItem.interest!.rate}')
+                                  Text('你的评分:${widget.bangumiItem.interest!.rate}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  )
                                 ],
                               ),
                             if (!widget.isLoading)

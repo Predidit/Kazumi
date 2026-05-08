@@ -249,7 +249,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                         minLines: 4,
                         maxLines: 8,
                         decoration: InputDecoration(
-                          hintText: '写下你的评价...',
+                          hintText: '写下你的吐槽...',
                           alignLabelWithHint: true,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),

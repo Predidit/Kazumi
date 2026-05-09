@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 
 class RatingReviewResult {
   const RatingReviewResult({
@@ -35,288 +37,479 @@ class RatingReviewDialog extends StatefulWidget {
 }
 
 class _RatingReviewDialogState extends State<RatingReviewDialog> {
-  late int _score;
-  final Set<String> _selectedTags = <String>{};
-  final TextEditingController _tagController = TextEditingController();
-  final TextEditingController _commentController = TextEditingController();
-  bool private = false;
+  static const List<String> scoreLabels = <String>[
+    '未评分',
+    '不忍直视',
+    '很差',
+    '差',
+    '较差',
+    '不过不失',
+    '还行',
+    '推荐',
+    '力荐',
+    '神作',
+    '超神作',
+  ];
 
-  String get _displayTitle {
-    final item = widget.bangumiItem;
-    if (item.nameCn.isNotEmpty) return item.nameCn;
-    return item.name;
-  }
+  /// 番剧热门标签滚动区域固定高度
+  static const double _popularTagsHeight = 160;
+
+  /// 用户最多可选 / 输入的标签数量
+  static const int _maxSelectedTags = 10;
+
+  /// 单个自定义标签最大字符数
+  static const int _maxTagLength = 10;
+
+  /// 吐槽内容最大字符数
+  static const int _maxCommentLength = 380;
+  List<BangumiTag> tabs = [];
+  late int score;
+  late bool private;
+  final TextEditingController commentController = TextEditingController();
+  final tagInputController = TextEditingController();
+  late List<String> selectedTags;
 
   @override
   void initState() {
     super.initState();
     final interest = widget.bangumiItem.interest;
-    if (interest != null && interest.rate > 0) {
-      _score = interest.rate.clamp(1, 10);
-    } else {
-      final s = widget.bangumiItem.ratingScore.round();
-      _score = s.clamp(1, 10);
-      if (_score < 1) _score = 8;
-    }
-    final interestTags = widget.bangumiItem.interest?.tags ?? const [];
-    _selectedTags.addAll(interestTags);
-    if (widget.bangumiItem.interest?.comment != null) {
-      _commentController.text = widget.bangumiItem.interest!.comment;
-    }
+    tabs = widget.bangumiItem.tags;
+    // Todo 还需要添加自己的标签到 tabs
+    selectedTags = List<String>.from(interest?.tags ?? const <String>[]);
+    score = (interest?.rate ?? 0).clamp(0, 10);
+    private = interest?.private ?? false;
+    commentController.text = interest?.comment ?? '';
   }
 
   @override
   void dispose() {
-    _tagController.dispose();
-    _commentController.dispose();
+    commentController.dispose();
+    tagInputController.dispose();
     super.dispose();
   }
 
-  void _toggleTag(String name) {
+  String get _displayName {
+    final cn = widget.bangumiItem.nameCn.trim();
+    if (cn.isNotEmpty) return cn;
+    return widget.bangumiItem.name;
+  }
+
+  String get _scoreLabel => scoreLabels[score.clamp(0, 10)];
+
+  void _toggleTag(String rawTag) {
+    final tag = rawTag.trim();
+    if (tag.isEmpty) return;
     setState(() {
-      if (_selectedTags.contains(name)) {
-        _selectedTags.remove(name);
-      } else {
-        _selectedTags.add(name);
+      if (selectedTags.contains(tag)) {
+        selectedTags.remove(tag);
+        return;
       }
+      if (selectedTags.length >= _maxSelectedTags) {
+        KazumiDialog.showToast(message: '最多只能添加 $_maxSelectedTags 个标签');
+        return;
+      }
+      selectedTags.add(tag);
     });
   }
 
-  void _tryAddTagFromInput() {
-    final raw = _tagController.text.trim();
-    if (raw.isEmpty) return;
+  void _addCustomTag() {
+    final text = tagInputController.text.trim();
+    if (text.isEmpty) return;
+    if (text.length > _maxTagLength) {
+      KazumiDialog.showToast(message: '单个标签不能超过 $_maxTagLength 个字符');
+      return;
+    }
+    if (selectedTags.length >= _maxSelectedTags) {
+      KazumiDialog.showToast(message: '最多只能添加 $_maxSelectedTags 个标签');
+      return;
+    }
+    if (selectedTags.contains(text)) {
+      tagInputController.clear();
+      return;
+    }
     setState(() {
-      _selectedTags.add(raw);
-      _tagController.clear();
+      tabs.insert(0, BangumiTag(name: text, count: 1, totalCount: 1));
+      selectedTags.add(text);
+      tagInputController.clear();
     });
+  }
+
+  void _onSubmit() {
+    final result = RatingReviewResult(
+      score: score,
+      tags: List<String>.unmodifiable(selectedTags),
+      comment: commentController.text,
+      private: private,
+    );
+    Navigator.of(context).pop();
+    widget.onSubmitted?.call(result);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final mediaQuery = MediaQuery.of(context);
+    final maxHeight =
+        mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
+
     return Dialog(
+      clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440, maxHeight: 620),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      _displayTitle,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ],
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(bottom: 10),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        '$_score分',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: RatingBar.builder(
-                          initialRating: _score / 2,
-                          minRating: 0.5,
-                          direction: Axis.horizontal,
-                          allowHalfRating: true,
-                          itemCount: 5,
-                          itemSize: 36,
-                          itemPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                          unratedColor:
-                              theme.colorScheme.outline.withValues(alpha: 0.35),
-                          itemBuilder: (context, _) => Icon(
-                            Icons.star_rounded,
-                            color: Colors.amber.shade600,
-                          ),
-                          onRatingUpdate: (rating) {
-                            setState(() {
-                              _score = (rating * 2).round().clamp(1, 10);
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _tagController,
-                        decoration: InputDecoration(
-                          hintText: '选择标签或手动输入...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: _tryAddTagFromInput,
-                            tooltip: '添加标签',
-                          ),
-                        ),
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _tryAddTagFromInput(),
-                      ),
-                      const SizedBox(height: 12),
-                      if (widget.bangumiItem.tags.isNotEmpty)
-                        SizedBox(
-                          height: 160,
-                          child: SingleChildScrollView(
-                            child: Wrap(
-                              spacing: 5,
-                              runSpacing: 2,
-                              children: widget.bangumiItem.tags.map((t) {
-                                final selected = _selectedTags.contains(t.name);
-                                return FilterChip(
-                                  label: Text('${t.name} ${t.count}'),
-                                  selected: selected,
-                                  onSelected: (_) => _toggleTag(t.name),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      if (_selectedTags.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '已选：',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 5,
-                                  runSpacing: 3,
-                                  children: List.generate(_selectedTags.length,
-                                      (index) {
-                                    final tag = _selectedTags.elementAt(index);
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 3, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.primary
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        tag,
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _commentController,
-                        minLines: 4,
-                        maxLines: 8,
-                        decoration: InputDecoration(
-                          hintText: '写下你的吐槽...',
-                          alignLabelWithHint: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          contentPadding: const EdgeInsets.all(12),
-                        ),
-                      ),
-                    ],
-                  ),
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: maxHeight > 320 ? maxHeight : double.infinity,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(theme),
+            const Divider(height: 1),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBangumiRatingSummary(theme),
+                    const SizedBox(height: 20),
+                    _buildScoreSection(theme),
+                    const SizedBox(height: 20),
+                    _buildTagInput(theme, tabs),
+                    const SizedBox(height: 20),
+                    _buildCommentSection(theme),
+                  ],
                 ),
               ),
-              Row(
-                spacing: 8,
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        final result = RatingReviewResult(
-                          score: _score,
-                          tags: _selectedTags.toList(),
-                          comment: _commentController.text.trim(),
-                          private: private,
-                        );
-                        widget.onSubmitted?.call(result);
-                        Navigator.of(context).pop();
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('发表评价'),
+            ),
+            const Divider(height: 1),
+            _buildActions(theme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('评价 · 吐槽', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            _displayName,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBangumiRatingSummary(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final votes = widget.bangumiItem.votes;
+    final score = widget.bangumiItem.ratingScore;
+    final rank = widget.bangumiItem.rank;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              score.toStringAsFixed(1),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$votes 人评分',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Container(
+          width: 1,
+          height: 40,
+          color: colorScheme.outlineVariant,
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '番剧评分',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              RatingBarIndicator(
+                itemCount: 5,
+                rating: (score / 2).clamp(0, 5).toDouble(),
+                itemBuilder: (context, _) => Icon(
+                  Icons.star_rounded,
+                  color: colorScheme.primary,
+                ),
+                itemSize: 18,
+              ),
+              if (rank > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Bangumi #$rank',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        private = !private;
-                      });
-                    },
-                    child: Row(
-                      spacing: 5,
-                      children: [
-                        Text(private ? '私密' : '公开'),
-                        Icon(
-                          private
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                          size: 16,
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ),
+                ),
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildScoreSection(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final hasScore = score > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('我的评分', style: theme.textTheme.titleSmall),
+            const Spacer(),
+            if (hasScore)
+              Text(
+                '$score / 10  $_scoreLabel',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            else
+              Text(
+                _scoreLabel,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: RatingBar(
+            initialRating: score / 2,
+            minRating: 0,
+            maxRating: 5,
+            allowHalfRating: true,
+            itemCount: 5,
+            itemSize: 36,
+            glow: false,
+            ratingWidget: RatingWidget(
+              full: Icon(Icons.star_rounded, color: colorScheme.primary),
+              half: Icon(Icons.star_half_rounded, color: colorScheme.primary),
+              empty: Icon(
+                Icons.star_outline_rounded,
+                color: colorScheme.outline,
+              ),
+            ),
+            onRatingUpdate: (value) {
+              final newScore = (value * 2).round().clamp(0, 10);
+              if (newScore != score) {
+                setState(() => score = newScore);
+              }
+            },
+          ),
+        ),
+        if (hasScore)
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() => score = 0),
+              child: Text(
+                '清除评分',
+                style: TextStyle(color: colorScheme.outline),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTagInput(ThemeData theme, List<BangumiTag> popularTags) {
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: tagInputController,
+                maxLength: _maxTagLength,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _addCustomTag(),
+                scrollPadding: EdgeInsets.symmetric(vertical: 10),
+                decoration: InputDecoration(
+                  hintText: '输入自定义标签',
+                  hintStyle: TextStyle(fontSize: 12),
+                  isDense: true,
+                  counterText: '',
+                  contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonal(
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _addCustomTag,
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+        if (popularTags.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '番剧热门标签',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                '${selectedTags.length} / $_maxSelectedTags',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: _popularTagsHeight,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: popularTags.map((tag) {
+                  final selected = selectedTags.contains(tag.name);
+                  return FilterChip(
+                    label: Text('${tag.name} (${tag.count})'),
+                    selected: selected,
+                    onSelected: (_) => _toggleTag(tag.name),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCommentSection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('吐槽', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        TextField(
+          controller: commentController,
+          minLines: 3,
+          maxLines: 6,
+          maxLength: _maxCommentLength,
+          textInputAction: TextInputAction.newline,
+          decoration: const InputDecoration(
+            hintText: '写下你对这部番剧的看法…',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActions(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Expanded(
+              child: Row(
+                spacing: 8,
+                children: [
+                  Switch(
+                    value: private,
+                    onChanged: (value) => setState(() => private = value),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          private ? '仅自己可见' : '公开吐槽',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              '取消',
+              style: TextStyle(color: colorScheme.outline),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _onSubmit,
+            child: const Text('提交'),
+          ),
+        ],
       ),
     );
   }

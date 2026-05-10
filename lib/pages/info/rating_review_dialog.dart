@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 
@@ -74,7 +73,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     super.initState();
     final interest = widget.bangumiItem.interest;
     tabs = widget.bangumiItem.tags;
-    // Todo 还需要添加自己的标签到 tabs
     selectedTags = List<String>.from(interest?.tags ?? const <String>[]);
     score = (interest?.rate ?? 0).clamp(0, 10);
     private = interest?.private ?? false;
@@ -105,7 +103,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         return;
       }
       if (selectedTags.length >= _maxSelectedTags) {
-        KazumiDialog.showToast(message: '最多只能添加 $_maxSelectedTags 个标签');
         return;
       }
       selectedTags.add(tag);
@@ -116,11 +113,9 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     final text = tagInputController.text.trim();
     if (text.isEmpty) return;
     if (text.length > _maxTagLength) {
-      KazumiDialog.showToast(message: '单个标签不能超过 $_maxTagLength 个字符');
       return;
     }
     if (selectedTags.length >= _maxSelectedTags) {
-      KazumiDialog.showToast(message: '最多只能添加 $_maxSelectedTags 个标签');
       return;
     }
     if (selectedTags.contains(text)) {
@@ -198,8 +193,16 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('评价 · 吐槽', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('评价 · 吐槽', style: theme.textTheme.titleLarge),
+              InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                child: Icon(Icons.close),
+              ),
+            ],
+          ),
           Text(
             _displayName,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -377,7 +380,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   hintStyle: TextStyle(fontSize: 12),
                   isDense: true,
                   counterText: '',
-                  contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -417,6 +421,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           ),
           const SizedBox(height: 6),
           Container(
+            width: double.infinity,
             height: _popularTagsHeight,
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLow,
@@ -430,10 +435,19 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 runSpacing: 4,
                 children: popularTags.map((tag) {
                   final selected = selectedTags.contains(tag.name);
-                  return FilterChip(
-                    label: Text('${tag.name} (${tag.count})'),
-                    selected: selected,
-                    onSelected: (_) => _toggleTag(tag.name),
+                  return InkWell(
+                    onTap: () => _toggleTag(tag.name),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surface,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text('${tag.name} (${tag.count})'),
+                    ),
                   );
                 }).toList(),
               ),
@@ -466,7 +480,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   }
 
   Widget _buildActions(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -474,37 +487,29 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         children: [
           Expanded(
               child: Row(
-                spacing: 8,
-                children: [
-                  Switch(
-                    value: private,
-                    onChanged: (value) => setState(() => private = value),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          private ? '仅自己可见' : '公开吐槽',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+            spacing: 8,
+            children: [
+              Switch(
+                value: private,
+                onChanged: (value) => setState(() => private = value),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      private ? '仅自己可见' : '公开吐槽',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
-              )),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: colorScheme.outline),
-            ),
-          ),
-          const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ],
+          )),
           FilledButton(
             onPressed: _onSubmit,
             child: const Text('提交'),

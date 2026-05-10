@@ -1,4 +1,5 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -44,6 +45,7 @@ abstract class _InfoController with Store {
       if (value != null) {
         if (type == "init") {
           bangumiItem = value;
+          _fillInterestIfAbsentFromPersisted(bangumiItem.id);
         } else {
           bangumiItem.summary = value.summary;
           bangumiItem.tags = value.tags;
@@ -54,12 +56,28 @@ abstract class _InfoController with Store {
           bangumiItem.ratingScore = value.ratingScore;
           bangumiItem.votes = value.votes;
           bangumiItem.votesCount = value.votesCount;
-          bangumiItem.interest = value.interest;
+          if (value.interest != null) {
+            bangumiItem.interest = value.interest;
+          } else {
+            _fillInterestIfAbsentFromPersisted(bangumiItem.id);
+          }
         }
-        collectController.updateLocalCollect(bangumiItem);
+        await collectController.updateLocalCollect(bangumiItem);
       }
     } finally {
       isLoading = false;
+    }
+  }
+
+  void mergePersistedInterestIfAbsent() {
+    _fillInterestIfAbsentFromPersisted(bangumiItem.id);
+  }
+
+  void _fillInterestIfAbsentFromPersisted(int id) {
+    if (bangumiItem.interest != null) return;
+    final stored = collectController.getCollectibleBangumiItem(id)?.interest;
+    if (stored != null) {
+      bangumiItem.interest = stored;
     }
   }
 
@@ -116,7 +134,15 @@ abstract class _InfoController with Store {
       tags: data.tags.isNotEmpty ? data.tags : null,
       private: data.private,
     )) {
-      queryBangumiInfoByID(bangumiItem.id, type: "update");
+      bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
+        previous: bangumiItem.interest,
+        rate: data.score,
+        comment: trimmedComment,
+        tags: data.tags,
+        private: data.private,
+      );
+      await collectController.updateLocalCollect(bangumiItem);
+      await queryBangumiInfoByID(bangumiItem.id, type: "update");
     }
   }
 }

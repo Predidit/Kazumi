@@ -3,6 +3,7 @@
 // Check in to version control
 
 import 'package:hive_ce/hive_ce.dart';
+import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
@@ -13,6 +14,7 @@ import 'package:kazumi/modules/search/search_history_module.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
+    registerAdapter(BangumiInterestAdapter());
     registerAdapter(BangumiItemAdapter());
     registerAdapter(BangumiTagAdapter());
     registerAdapter(CollectedBangumiAdapter());
@@ -27,6 +29,7 @@ extension HiveRegistrar on HiveInterface {
 
 extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
+    registerAdapter(BangumiInterestAdapter());
     registerAdapter(BangumiItemAdapter());
     registerAdapter(BangumiTagAdapter());
     registerAdapter(CollectedBangumiAdapter());

@@ -1,12 +1,34 @@
+import 'package:hive_ce/hive.dart';
+
+part 'bangumi_interest.g.dart';
+
+@HiveType(typeId: 9)
 class BangumiInterest {
+  @HiveField(0)
   final int id;
+
+  @HiveField(1)
   final int rate;
+
+  @HiveField(2)
   final int type;
+
+  @HiveField(3)
   final String comment;
+
+  @HiveField(4)
   final List<String> tags;
+
+  @HiveField(5)
   final int epStatus;
+
+  @HiveField(6)
   final int volStatus;
+
+  @HiveField(7)
   final bool private;
+
+  @HiveField(8)
   final int updatedAt;
 
   BangumiInterest({
@@ -43,6 +65,26 @@ class BangumiInterest {
       volStatus: (json['volStatus'] as num?)?.toInt() ?? 0,
       private: json['private'] as bool? ?? false,
       updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  factory BangumiInterest.mergeLocalSubmission({
+    BangumiInterest? previous,
+    required int rate,
+    required String comment,
+    required List<String> tags,
+    required bool private,
+  }) {
+    return BangumiInterest(
+      id: previous?.id ?? 0,
+      rate: rate,
+      type: previous?.type ?? 0,
+      comment: comment,
+      tags: List<String>.from(tags),
+      epStatus: previous?.epStatus ?? 0,
+      volStatus: previous?.volStatus ?? 0,
+      private: private,
+      updatedAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
   }
 

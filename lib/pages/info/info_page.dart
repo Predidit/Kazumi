@@ -181,6 +181,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     infoController.bangumiItem = inputBangumiIten;
+    infoController.mergePersistedInterestIfAbsent();
     infoController.characterList.clear();
     infoController.commentsList.clear();
     infoController.staffList.clear();

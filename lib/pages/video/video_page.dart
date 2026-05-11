@@ -62,6 +62,11 @@ class _VideoPageState extends State<VideoPage>
   // SyncPlayChatMessage
   late final StreamSubscription<SyncPlayChatMessage> _syncChatSubscription;
 
+  // player init delay in offline mode.
+  // mpv player initialization will block UI thread, so we delay it a bit to ensure smooth page transition animations.
+  // no need to delay on online mode since webview initialization is async and won't block UI thread, and when webview parser is done, page animations are already finished, mpv can safely initialize without causing jank.
+  static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
+
   @override
   void initState() {
     super.initState();
@@ -129,6 +134,11 @@ class _VideoPageState extends State<VideoPage>
     currentRoad = videoPageController.currentRoad;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(_offlinePlayerInitDelay);
+      if (!mounted) {
+        return;
+      }
+
       if (videoPageController.offlineVideoPath != null) {
         final params = PlaybackInitParams(
           videoUrl: videoPageController.offlineVideoPath!,

@@ -72,7 +72,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   void initState() {
     super.initState();
     final interest = widget.bangumiItem.interest;
-    tabs = widget.bangumiItem.tags;
+    tabs = List<BangumiTag>.from(widget.bangumiItem.tags);
     selectedTags = List<String>.from(interest?.tags ?? const <String>[]);
     score = (interest?.rate ?? 0).clamp(0, 10);
     private = interest?.private ?? false;

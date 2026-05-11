@@ -586,12 +586,14 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           controller: commentController,
           minLines: 3,
           maxLines: 6,
+          decoration: InputDecoration(
+            hintText: '写下你对这部番剧的看法…',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
           maxLength: _maxCommentLength,
           textInputAction: TextInputAction.newline,
-          decoration: const InputDecoration(
-            hintText: '写下你对这部番剧的看法…',
-            border: OutlineInputBorder(),
-          ),
         ),
       ],
     );
@@ -607,22 +609,19 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               child: Row(
             spacing: 8,
             children: [
-              Switch(
-                value: private,
-                onChanged: (value) => setState(() => private = value),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              TextButton(
+                style: TextButton.styleFrom(
+                  side: BorderSide(color: theme.colorScheme.outline),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => setState(() => private = !private),
+                child: Row(
+                  spacing: 5,
                   children: [
-                    Text(
-                      private ? '仅自己可见' : '公开吐槽',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(private ? '仅自己可见' : '公开吐槽'),
+                    Icon(private ? Icons.visibility_off : Icons.visibility),
                   ],
                 ),
               ),
@@ -630,6 +629,11 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           )),
           FilledButton(
             onPressed: onSubmit,
+            style: FilledButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             child: const Text('提交'),
           ),
         ],

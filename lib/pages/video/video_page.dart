@@ -127,6 +127,14 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.showTabBody = true;
     videoPageController.historyOffset = 0;
     currentRoad = videoPageController.currentRoad;
+    final progress = historyController.findProgress(
+      videoPageController.bangumiItem,
+      videoPageController.offlinePluginName,
+      videoPageController.actualEpisodeNumber,
+    );
+    if (progress != null && playResume) {
+      videoPageController.historyOffset = progress.progress.inSeconds;
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (videoPageController.offlineVideoPath != null) {
@@ -282,6 +290,20 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.episodeInfo.reset();
     videoPageController.episodeCommentsList.clear();
     await playerController.stop();
+    if (videoPageController.isOfflineMode && offset == 0 && playResume) {
+      final actualEpisodeNumber = int.tryParse(
+            videoPageController.roadList[currentRoad].data[episode - 1],
+          ) ??
+          episode;
+      final progress = historyController.findProgress(
+        videoPageController.bangumiItem,
+        videoPageController.offlinePluginName,
+        actualEpisodeNumber,
+      );
+      if (progress != null) {
+        offset = progress.progress.inSeconds;
+      }
+    }
     await videoPageController.changeEpisode(episode,
         currentRoad: currentRoad, offset: offset);
   }

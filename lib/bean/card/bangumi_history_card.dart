@@ -4,9 +4,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -34,12 +35,57 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
+
+  bool _openOfflineFallback() {
+    final downloadedEpisodes = downloadController.getCompletedEpisodes(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+    );
+    DownloadEpisode? episode;
+    for (final item in downloadedEpisodes) {
+      if (item.episodeNumber == widget.historyItem.lastWatchEpisode) {
+        episode = item;
+        break;
+      }
+    }
+    if (episode == null) {
+      return false;
+    }
+    final localPath = downloadController.getLocalVideoPath(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+      episode.episodeNumber,
+    );
+    if (localPath == null) {
+      return false;
+    }
+
+    videoPageController.initForOfflinePlayback(
+      bangumiItem: widget.historyItem.bangumiItem,
+      pluginName: widget.historyItem.adapterName,
+      episodeNumber: episode.episodeNumber,
+      episodeName: episode.episodeName,
+      road: episode.road,
+      videoPath: localPath,
+      downloadedEpisodes: downloadedEpisodes,
+    );
+    Modular.to.pushNamed('/video/');
+    return true;
+  }
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
       KazumiDialog.showToast(message: '编辑模式');
+      return;
+    }
+    if (widget.historyItem.lastSrc.isEmpty) {
+      if (_openOfflineFallback()) {
+        return;
+      }
+      KazumiDialog.showToast(message: '未找到关联番剧源或本地下载');
       return;
     }
     KazumiDialog.showLoading(
@@ -63,14 +109,13 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       return;
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
-    videoPageController.title =
-        widget.historyItem.bangumiItem.nameCn == ''
-            ? widget.historyItem.bangumiItem.name
-            : widget.historyItem.bangumiItem.nameCn;
+    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
+        ? widget.historyItem.bangumiItem.name
+        : widget.historyItem.bangumiItem.nameCn;
     videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(widget.historyItem.lastSrc,
-          videoPageController.currentPlugin.name);
+      await videoPageController.queryRoads(
+          widget.historyItem.lastSrc, videoPageController.currentPlugin.name);
       KazumiDialog.dismiss();
       Modular.to.pushNamed('/video/');
     } catch (_) {
@@ -88,10 +133,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final String title = widget.historyItem.bangumiItem.nameCn == ''
         ? widget.historyItem.bangumiItem.name
         : widget.historyItem.bangumiItem.nameCn;
-    final String episodeText =
-        widget.historyItem.lastWatchEpisodeName.isEmpty
-            ? '第${widget.historyItem.lastWatchEpisode}话'
-            : widget.historyItem.lastWatchEpisodeName;
+    final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
+        ? '第${widget.historyItem.lastWatchEpisode}话'
+        : widget.historyItem.lastWatchEpisodeName;
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -203,8 +247,11 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              Utils.formatTimestampToRelativeTime(
-                                  widget.historyItem.lastWatchTime.millisecondsSinceEpoch ~/ 1000),
+                              Utils.formatTimestampToRelativeTime(widget
+                                      .historyItem
+                                      .lastWatchTime
+                                      .millisecondsSinceEpoch ~/
+                                  1000),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.outline,
                               ),

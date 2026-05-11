@@ -22,16 +22,14 @@ class DownloadRecord {
   @HiveField(5)
   DateTime createdAt;
 
+  @HiveField(6, defaultValue: '')
+  String sourceUrl;
+
   String get key => '${pluginName}_$bangumiId';
 
-  DownloadRecord(
-    this.bangumiId,
-    this.bangumiName,
-    this.bangumiCover,
-    this.pluginName,
-    this.episodes,
-    this.createdAt,
-  );
+  DownloadRecord(this.bangumiId, this.bangumiName, this.bangumiCover,
+      this.pluginName, this.episodes, this.createdAt,
+      {this.sourceUrl = ''});
 }
 
 @HiveType(typeId: 8)

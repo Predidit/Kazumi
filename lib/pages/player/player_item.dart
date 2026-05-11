@@ -887,19 +887,20 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
-      if (playerController.playerPlaying &&
-          !videoPageController.loading &&
-          !videoPageController.isOfflineMode) {
+      if (playerController.playerPlaying && !videoPageController.loading) {
         final pluginName = videoPageController.isOfflineMode
             ? videoPageController.offlinePluginName
             : videoPageController.currentPlugin.name;
+        final historySource = videoPageController.isOfflineMode
+            ? videoPageController.offlineHistorySourceUrl
+            : videoPageController.src;
         historyController.updateHistory(
             videoPageController.actualEpisodeNumber,
             videoPageController.currentRoad,
             pluginName,
             videoPageController.bangumiItem,
             playerController.playerPosition,
-            videoPageController.src,
+            historySource,
             videoPageController.roadList[videoPageController.currentRoad]
                 .identifier[videoPageController.currentEpisode - 1]);
       }

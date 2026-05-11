@@ -247,6 +247,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
         episodeName: identifier,
         road: widget.road,
         episodePageUrl: episodePageUrl,
+        sourceUrl: videoPageController.src,
       );
     }
 

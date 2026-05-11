@@ -281,6 +281,7 @@ abstract class _DownloadController with Store {
         ),
       ),
       record.createdAt,
+      sourceUrl: record.sourceUrl,
     );
   }
 
@@ -439,6 +440,7 @@ abstract class _DownloadController with Store {
     required String episodeName,
     required int road,
     required String episodePageUrl,
+    String sourceUrl = '',
   }) async {
     final recordKey = '${pluginName}_$bangumiId';
 
@@ -450,11 +452,21 @@ abstract class _DownloadController with Store {
           pluginName,
           {},
           DateTime.now(),
+          sourceUrl: sourceUrl,
         );
+
+    final sourceUrlUpdated = record.sourceUrl.isEmpty && sourceUrl.isNotEmpty;
+    if (sourceUrlUpdated) {
+      record.sourceUrl = sourceUrl;
+    }
 
     if (episodePageUrl.isNotEmpty) {
       for (final entry in record.episodes.entries) {
         if (entry.value.episodePageUrl == episodePageUrl) {
+          if (sourceUrlUpdated) {
+            await _repository.putRecord(record);
+            refreshRecords();
+          }
           KazumiLogger().i(
               'DownloadController: episode URL already exists at position ${entry.key}, skipping');
           return;

@@ -170,6 +170,16 @@ abstract class _VideoPageController with Store {
 
   String get offlinePluginName => _offlinePluginName;
 
+  String get offlineHistorySourceUrl {
+    if (!isOfflineMode) {
+      return src;
+    }
+    return downloadRepository
+            .getRecordByBangumiId(bangumiItem.id, _offlinePluginName)
+            ?.sourceUrl ??
+        '';
+  }
+
   /// 获取当前实际的集数编号
   /// 在线模式下直接返回 currentEpisode
   /// 离线模式下从 roadList.data 中获取实际的 episodeNumber
@@ -191,7 +201,7 @@ abstract class _VideoPageController with Store {
     errorMessage = null;
 
     if (isOfflineMode) {
-      await _changeOfflineEpisode(episode, 0);
+      await _changeOfflineEpisode(episode, offset);
       return;
     }
 

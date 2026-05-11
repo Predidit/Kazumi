@@ -23,13 +23,14 @@ class DownloadRecordAdapter extends TypeAdapter<DownloadRecord> {
       fields[3] as String,
       (fields[4] as Map).cast<int, DownloadEpisode>(),
       fields[5] as DateTime,
+      sourceUrl: fields[6] == null ? '' : fields[6] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, DownloadRecord obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.bangumiId)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class DownloadRecordAdapter extends TypeAdapter<DownloadRecord> {
       ..writeByte(4)
       ..write(obj.episodes)
       ..writeByte(5)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(6)
+      ..write(obj.sourceUrl);
   }
 
   @override

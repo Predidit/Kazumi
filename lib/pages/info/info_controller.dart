@@ -130,7 +130,7 @@ abstract class _InfoController with Store {
     if (await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
       bangumiItem.id,
       comment: trimmedComment.isNotEmpty ? trimmedComment : null,
-      rate: data.score > 0 ? data.score : null,
+      rate: data.score > 0 ? data.score : 0,
       tags: data.tags.isNotEmpty ? data.tags : null,
       private: data.private,
     )) {

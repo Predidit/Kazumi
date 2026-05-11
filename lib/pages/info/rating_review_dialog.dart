@@ -50,9 +50,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     '超神作',
   ];
 
-  /// 番剧热门标签滚动区域固定高度
-  static const double _popularTagsHeight = 160;
-
   /// 用户最多可选 / 输入的标签数量
   static const int _maxSelectedTags = 10;
 
@@ -61,12 +58,15 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
   /// 吐槽内容最大字符数
   static const int _maxCommentLength = 380;
+
   List<BangumiTag> tabs = [];
   late int score;
   late bool private;
   final TextEditingController commentController = TextEditingController();
   final tagInputController = TextEditingController();
   late List<String> selectedTags;
+
+  bool _isOnTagPage = false;
 
   @override
   void initState() {
@@ -86,15 +86,15 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     super.dispose();
   }
 
-  String get _displayName {
+  String get displayName {
     final cn = widget.bangumiItem.nameCn.trim();
     if (cn.isNotEmpty) return cn;
     return widget.bangumiItem.name;
   }
 
-  String get _scoreLabel => scoreLabels[score.clamp(0, 10)];
+  String get scoreLabel => scoreLabels[score.clamp(0, 10)];
 
-  void _toggleTag(String rawTag) {
+  void toggleTag(String rawTag) {
     final tag = rawTag.trim();
     if (tag.isEmpty) return;
     setState(() {
@@ -109,7 +109,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     });
   }
 
-  void _addCustomTag() {
+  void addCustomTag() {
     final text = tagInputController.text.trim();
     if (text.isEmpty) return;
     if (text.length > _maxTagLength) {
@@ -129,7 +129,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     });
   }
 
-  void _onSubmit() {
+  void onSubmit() {
     final result = RatingReviewResult(
       score: score,
       tags: List<String>.unmodifiable(selectedTags),
@@ -140,55 +140,82 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     widget.onSubmitted?.call(result);
   }
 
+  void openTagSelection() => setState(() => _isOnTagPage = true);
+
+  void closeTagSelection() => setState(() => _isOnTagPage = false);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight =
-        mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
+    final maxHeight = mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
 
-    return Dialog(
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 600,
-          maxHeight: maxHeight > 320 ? maxHeight : double.infinity,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(theme),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBangumiRatingSummary(theme),
-                    const SizedBox(height: 20),
-                    _buildScoreSection(theme),
-                    const SizedBox(height: 20),
-                    _buildTagInput(theme, tabs),
-                    const SizedBox(height: 20),
-                    _buildCommentSection(theme),
-                  ],
+    return PopScope(
+      canPop: !_isOnTagPage,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _isOnTagPage) {
+          closeTagSelection();
+        }
+      },
+      child: Dialog(
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 600,
+            maxHeight: maxHeight > 320 ? maxHeight : double.infinity,
+          ),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isOnTagPage
+                    ? _buildTagPageHeader(theme)
+                    : _buildMainHeader(theme),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: _isOnTagPage
+                      ? _buildTagPageContent(theme)
+                      : _buildMainScrollContent(theme),
                 ),
               ),
-            ),
-            const Divider(height: 1),
-            _buildActions(theme),
-          ],
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isOnTagPage
+                    ? const SizedBox.shrink(key: ValueKey('no-actions'))
+                    : Column(
+                        key: const ValueKey('main-actions'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Divider(height: 1),
+                          _buildActions(theme),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildMainHeader(ThemeData theme) {
     final colorScheme = theme.colorScheme;
     return Padding(
+      key: const ValueKey('main-header'),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,18 +226,208 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               Text('评价 · 吐槽', style: theme.textTheme.titleLarge),
               InkWell(
                 onTap: () => Navigator.of(context).pop(),
-                child: Icon(Icons.close),
+                child: const Icon(Icons.close),
               ),
             ],
           ),
           Text(
-            _displayName,
+            displayName,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTagPageHeader(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    return Padding(
+      key: const ValueKey('tag-header'),
+      padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: closeTagSelection,
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text('选择标签', style: theme.textTheme.titleMedium),
+          ),
+          Text(
+            '${selectedTags.length} / $_maxSelectedTags',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainScrollContent(ThemeData theme) {
+    return SingleChildScrollView(
+      key: const ValueKey('main-content'),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildBangumiRatingSummary(theme),
+          const SizedBox(height: 20),
+          _buildScoreSection(theme),
+          _buildTagSummaryRow(theme),
+          const SizedBox(height: 20),
+          _buildCommentSection(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTagSummaryRow(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final count = selectedTags.length;
+
+    return InkWell(
+      onTap: openTagSelection,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(color: colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.new_label_outlined,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '标签',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: count > 0
+                  ? Text(
+                      '已选 $count 个',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.primary,
+                      ),
+                    )
+                  : Text(
+                      '点击选择标签',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTagPageContent(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+
+    return SingleChildScrollView(
+      key: const ValueKey('tag-content'),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12 ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: tagInputController,
+                  maxLength: _maxTagLength,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => addCustomTag(),
+                  scrollPadding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: InputDecoration(
+                    hintText: '输入自定义标签',
+                    hintStyle: const TextStyle(fontSize: 12),
+                    isDense: true,
+                    counterText: '',
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 8, horizontal: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: addCustomTag,
+                child: const Text('添加'),
+              ),
+            ],
+          ),
+          if (tabs.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              '热门标签',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: tabs.map((tag) {
+                final selected = selectedTags.contains(tag.name);
+                return InkWell(
+                  onTap: () => toggleTag(tag.name),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: selected
+                            ? colorScheme.primary.withValues(alpha: 0.4)
+                            : colorScheme.outlineVariant,
+                      ),
+                    ),
+                    child: Text(
+                      '${tag.name} (${tag.count})',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: selected
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -304,7 +521,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             const Spacer(),
             if (hasScore)
               Text(
-                '$score / 10  $_scoreLabel',
+                '$score / 10  $scoreLabel',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -312,14 +529,13 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               )
             else
               Text(
-                _scoreLabel,
+                scoreLabel,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
         Center(
           child: RatingBar(
             initialRating: score / 2,
@@ -345,6 +561,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             },
           ),
         ),
+        const SizedBox(height: 5),
         if (hasScore)
           Center(
             child: TextButton(
@@ -355,105 +572,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               ),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildTagInput(ThemeData theme, List<BangumiTag> popularTags) {
-    final colorScheme = theme.colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: TextField(
-                controller: tagInputController,
-                maxLength: _maxTagLength,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _addCustomTag(),
-                scrollPadding: EdgeInsets.symmetric(vertical: 10),
-                decoration: InputDecoration(
-                  hintText: '输入自定义标签',
-                  hintStyle: TextStyle(fontSize: 12),
-                  isDense: true,
-                  counterText: '',
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton.tonal(
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: _addCustomTag,
-              child: const Text('添加'),
-            ),
-          ],
-        ),
-        if (popularTags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '番剧热门标签',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                '${selectedTags.length} / $_maxSelectedTags',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            height: _popularTagsHeight,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: popularTags.map((tag) {
-                  final selected = selectedTags.contains(tag.name);
-                  return InkWell(
-                    onTap: () => _toggleTag(tag.name),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? colorScheme.primaryContainer
-                            : colorScheme.surface,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Text('${tag.name} (${tag.count})'),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -481,7 +599,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
   Widget _buildActions(ThemeData theme) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -511,7 +629,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             ],
           )),
           FilledButton(
-            onPressed: _onSubmit,
+            onPressed: onSubmit,
             child: const Text('提交'),
           ),
         ],

@@ -23,6 +23,7 @@ import 'package:kazumi/utils/timed_shutdown_service.dart';
 class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
     super.key,
+    required this.playerController,
     required this.onBackPressed,
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
@@ -44,6 +45,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     this.disableAnimations = false,
   });
 
+  final PlayerController playerController;
   final void Function(BuildContext) onBackPressed;
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
@@ -77,7 +79,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   late Animation<Offset> leftOffsetAnimation;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-  final PlayerController playerController = Modular.get<PlayerController>();
+  late final PlayerController playerController;
   final TextEditingController textController = TextEditingController();
 
   // SVG Caches
@@ -136,6 +138,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   @override
   void initState() {
     super.initState();
+    playerController = widget.playerController;
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),

@@ -157,6 +157,7 @@ abstract class _PlayerController with Store {
   // 播放器实体
   Player? mediaPlayer;
   VideoController? videoController;
+  int _playerLifecycleId = 0;
 
   // 播放器面板状态
   @observable
@@ -187,13 +188,61 @@ abstract class _PlayerController with Store {
   int arrowKeySkipTime = 10;
 
   // 播放器实时状态
-  bool get playerPlaying => mediaPlayer!.state.playing;
-  bool get playerBuffering => mediaPlayer!.state.buffering;
-  bool get playerCompleted => mediaPlayer!.state.completed;
-  double get playerVolume => mediaPlayer!.state.volume;
-  Duration get playerPosition => mediaPlayer!.state.position;
-  Duration get playerBuffer => mediaPlayer!.state.buffer;
-  Duration get playerDuration => mediaPlayer!.state.duration;
+  bool get playerPlaying {
+    try {
+      return mediaPlayer?.state.playing ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool get playerBuffering {
+    try {
+      return mediaPlayer?.state.buffering ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool get playerCompleted {
+    try {
+      return mediaPlayer?.state.completed ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  double get playerVolume {
+    try {
+      return mediaPlayer?.state.volume ?? volume;
+    } catch (_) {
+      return volume;
+    }
+  }
+
+  Duration get playerPosition {
+    try {
+      return mediaPlayer?.state.position ?? currentPosition;
+    } catch (_) {
+      return currentPosition;
+    }
+  }
+
+  Duration get playerBuffer {
+    try {
+      return mediaPlayer?.state.buffer ?? buffer;
+    } catch (_) {
+      return buffer;
+    }
+  }
+
+  Duration get playerDuration {
+    try {
+      return mediaPlayer?.state.duration ?? duration;
+    } catch (_) {
+      return duration;
+    }
+  }
 
   // 播放器调试信息
   /// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细
@@ -229,7 +278,13 @@ abstract class _PlayerController with Store {
 
   bool isLocalPlayback = false;
 
+  // Async init and route disposal can overlap during rapid navigation.
+  bool _isCurrentPlayer(int lifecycleId, Player player) {
+    return _playerLifecycleId == lifecycleId && identical(mediaPlayer, player);
+  }
+
   Future<void> init(PlaybackInitParams params) async {
+    final int lifecycleId = ++_playerLifecycleId;
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
     bangumiId = params.bangumiId;
@@ -258,8 +313,14 @@ abstract class _PlayerController with Store {
     arrowKeySkipTime =
         setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
     try {
-      await dispose(disposeSyncPlayController: false);
+      await dispose(
+        disposeSyncPlayController: false,
+        cancelActiveInit: false,
+      );
     } catch (_) {}
+    if (_playerLifecycleId != lifecycleId) {
+      return;
+    }
     int episodeFromTitle = 0;
     try {
       episodeFromTitle = Utils.extractEpisodeNumber(params.episodeTitle);
@@ -272,23 +333,46 @@ abstract class _PlayerController with Store {
       episodeFromTitle = params.episode;
     }
     _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
-    mediaPlayer ??= await createVideoController(
-      params.httpHeaders,
-      params.adBlockerEnabled,
-      offset: params.offset,
-    );
+    final Player? player;
+    try {
+      player = await createVideoController(
+        params.httpHeaders,
+        params.adBlockerEnabled,
+        offset: params.offset,
+        lifecycleId: lifecycleId,
+      );
+    } catch (e) {
+      if (_playerLifecycleId == lifecycleId) {
+        loading = false;
+        KazumiLogger()
+            .e('PlayerController: failed to initialize video', error: e);
+      }
+      return;
+    }
+    if (player == null || !_isCurrentPlayer(lifecycleId, player)) {
+      return;
+    }
 
     if (Utils.isDesktop()) {
       volume = volume != -1 ? volume : 100;
       await setVolume(volume);
+      if (!_isCurrentPlayer(lifecycleId, player)) {
+        return;
+      }
     } else {
       // mobile is using system volume, don't setVolume here,
       // or iOS will mute if system volume is too low (#732)
       await FlutterVolumeController.getVolume().then((value) {
         volume = (value ?? 0.0) * 100;
       });
+      if (!_isCurrentPlayer(lifecycleId, player)) {
+        return;
+      }
     }
     setPlaybackSpeed(playerSpeed);
+    if (!_isCurrentPlayer(lifecycleId, player)) {
+      return;
+    }
     KazumiLogger().i('PlayerController: video initialized');
     loading = false;
 
@@ -303,62 +387,87 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future<void> setupPlayerDebugInfoSubscription() async {
+  Future<void> setupPlayerDebugInfoSubscription(
+      Player player, int lifecycleId) async {
     await playerLogSubscription?.cancel();
-    playerLogSubscription = mediaPlayer!.stream.log.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerLogSubscription = player.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
         KazumiLogger().i("MPV: ${event.toString()}", forceLog: true);
       }
     });
     await playerWidthSubscription?.cancel();
-    playerWidthSubscription = mediaPlayer!.stream.width.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerWidthSubscription = player.stream.width.listen((event) {
       playerWidth = event ?? 0;
     });
     await playerHeightSubscription?.cancel();
-    playerHeightSubscription = mediaPlayer!.stream.height.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerHeightSubscription = player.stream.height.listen((event) {
       playerHeight = event ?? 0;
     });
     await playerVideoParamsSubscription?.cancel();
-    playerVideoParamsSubscription =
-        mediaPlayer!.stream.videoParams.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerVideoParamsSubscription = player.stream.videoParams.listen((event) {
       playerVideoParams = event.toString();
     });
     await playerAudioParamsSubscription?.cancel();
-    playerAudioParamsSubscription =
-        mediaPlayer!.stream.audioParams.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerAudioParamsSubscription = player.stream.audioParams.listen((event) {
       playerAudioParams = event.toString();
     });
     await playerPlaylistSubscription?.cancel();
-    playerPlaylistSubscription = mediaPlayer!.stream.playlist.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerPlaylistSubscription = player.stream.playlist.listen((event) {
       playerPlaylist = event.toString();
     });
     await playerTracksSubscription?.cancel();
-    playerTracksSubscription = mediaPlayer!.stream.track.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerTracksSubscription = player.stream.track.listen((event) {
       playerAudioTracks = event.audio.toString();
       playerVideoTracks = event.video.toString();
     });
     await playerAudioBitrateSubscription?.cancel();
-    playerAudioBitrateSubscription =
-        mediaPlayer!.stream.audioBitrate.listen((event) {
+    if (!_isCurrentPlayer(lifecycleId, player)) return;
+    playerAudioBitrateSubscription = player.stream.audioBitrate.listen((event) {
       playerAudioBitrate = event.toString();
     });
   }
 
   Future<void> cancelPlayerDebugInfoSubscription() async {
-    await playerLogSubscription?.cancel();
-    await playerWidthSubscription?.cancel();
-    await playerHeightSubscription?.cancel();
-    await playerVideoParamsSubscription?.cancel();
-    await playerAudioParamsSubscription?.cancel();
-    await playerPlaylistSubscription?.cancel();
-    await playerTracksSubscription?.cancel();
-    await playerAudioBitrateSubscription?.cancel();
+    // Detach fields before awaiting so a new player cannot lose its listeners.
+    final logSubscription = playerLogSubscription;
+    final widthSubscription = playerWidthSubscription;
+    final heightSubscription = playerHeightSubscription;
+    final videoParamsSubscription = playerVideoParamsSubscription;
+    final audioParamsSubscription = playerAudioParamsSubscription;
+    final playlistSubscription = playerPlaylistSubscription;
+    final tracksSubscription = playerTracksSubscription;
+    final audioBitrateSubscription = playerAudioBitrateSubscription;
+
+    playerLogSubscription = null;
+    playerWidthSubscription = null;
+    playerHeightSubscription = null;
+    playerVideoParamsSubscription = null;
+    playerAudioParamsSubscription = null;
+    playerPlaylistSubscription = null;
+    playerTracksSubscription = null;
+    playerAudioBitrateSubscription = null;
+
+    await logSubscription?.cancel();
+    await widthSubscription?.cancel();
+    await heightSubscription?.cancel();
+    await videoParamsSubscription?.cancel();
+    await audioParamsSubscription?.cancel();
+    await playlistSubscription?.cancel();
+    await tracksSubscription?.cancel();
+    await audioBitrateSubscription?.cancel();
   }
 
-  Future<Player> createVideoController(
+  Future<Player?> createVideoController(
       Map<String, String> httpHeaders, bool adBlockerEnabled,
-      {int offset = 0}) async {
+      {int offset = 0, required int lifecycleId}) async {
     superResolutionType =
         setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
@@ -372,7 +481,7 @@ abstract class _PlayerController with Store {
     playerDebugMode =
         setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
 
-    mediaPlayer = Player(
+    final Player player = Player(
       configuration: PlayerConfiguration(
         bufferSize: lowMemoryMode ? 15 * 1024 * 1024 : 1500 * 1024 * 1024,
         osc: false,
@@ -380,23 +489,29 @@ abstract class _PlayerController with Store {
         adBlocker: adBlockerEnabled,
       ),
     );
+    mediaPlayer = player;
 
     playerLog.clear();
-    setupPlayerDebugInfoSubscription();
+    await setupPlayerDebugInfoSubscription(player, lifecycleId);
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
 
-    var pp = mediaPlayer!.platform as NativePlayer;
+    var pp = player.platform as NativePlayer;
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
     // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
     // 该设置可以在所有平台上正确启用双重缓存
     await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
     await pp.setProperty("af", "scaletempo2=max-speed=8");
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
+      if (!_isCurrentPlayer(lifecycleId, player)) return null;
       if (androidEnableOpenSLES) {
         await pp.setProperty("ao", "opensles");
       } else {
         await pp.setProperty("ao", "audiotrack");
       }
+      if (!_isCurrentPlayer(lifecycleId, player)) return null;
     }
 
     // 设置 HTTP 代理
@@ -408,13 +523,15 @@ abstract class _PlayerController with Store {
       final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
       if (formattedProxy != null) {
         await pp.setProperty("http-proxy", formattedProxy);
+        if (!_isCurrentPlayer(lifecycleId, player)) return null;
         KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
       }
     }
 
-    await mediaPlayer!.setAudioTrack(
+    await player.setAudioTrack(
       AudioTrack.auto(),
     );
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
 
     String? videoRenderer;
     if (Platform.isAndroid) {
@@ -443,7 +560,7 @@ abstract class _PlayerController with Store {
     }
 
     videoController ??= VideoController(
-      mediaPlayer!,
+      player,
       configuration: VideoControllerConfiguration(
         vo: videoRenderer,
         enableHardwareAcceleration: hAenable,
@@ -451,13 +568,17 @@ abstract class _PlayerController with Store {
         androidAttachSurfaceAfterVideoParameters: false,
       ),
     );
-    mediaPlayer!.setPlaylistMode(PlaylistMode.none);
+    player.setPlaylistMode(PlaylistMode.none);
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
 
     // error handle
     bool showPlayerError =
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
-    mediaPlayer!.stream.error.listen((event) {
+    player.stream.error.listen((event) {
       if (showPlayerError) {
+        if (!_isCurrentPlayer(lifecycleId, player)) {
+          return;
+        }
         if (event.toString().contains('Failed to open') && playerBuffering) {
           KazumiDialog.showToast(
               message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
@@ -473,46 +594,58 @@ abstract class _PlayerController with Store {
     });
 
     if (superResolutionType != 1) {
-      await setShader(superResolutionType);
+      await setShader(superResolutionType, player: player);
+      if (!_isCurrentPlayer(lifecycleId, player)) return null;
     }
 
-    await mediaPlayer!.open(
+    await player.open(
       Media(videoUrl,
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
       play: autoPlay,
     );
+    if (!_isCurrentPlayer(lifecycleId, player)) return null;
 
-    return mediaPlayer!;
+    return player;
   }
 
-  Future<void> setShader(int type, {bool synchronized = true}) async {
-    var pp = mediaPlayer!.platform as NativePlayer;
-    await pp.waitForPlayerInitialization;
-    await pp.waitForVideoControllerInitializationIfAttached;
-    if (type == 2) {
-      await pp.command([
-        'change-list',
-        'glsl-shaders',
-        'set',
-        Utils.buildShadersAbsolutePath(
-            shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
-      ]);
-      superResolutionType = 2;
-      return;
+  Future<void> setShader(int type,
+      {bool synchronized = true, Player? player}) async {
+    final currentPlayer = player ?? mediaPlayer;
+    if (currentPlayer == null) return;
+    try {
+      var pp = currentPlayer.platform as NativePlayer;
+      await pp.waitForPlayerInitialization;
+      await pp.waitForVideoControllerInitializationIfAttached;
+      if (!identical(mediaPlayer, currentPlayer)) {
+        return;
+      }
+      if (type == 2) {
+        await pp.command([
+          'change-list',
+          'glsl-shaders',
+          'set',
+          Utils.buildShadersAbsolutePath(
+              shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+        ]);
+        superResolutionType = 2;
+        return;
+      }
+      if (type == 3) {
+        await pp.command([
+          'change-list',
+          'glsl-shaders',
+          'set',
+          Utils.buildShadersAbsolutePath(
+              shadersController.shadersDirectory.path, mpvAnime4KShaders),
+        ]);
+        superResolutionType = 3;
+        return;
+      }
+      await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
+      superResolutionType = 1;
+    } catch (e) {
+      KazumiLogger().w('PlayerController: failed to set shader', error: e);
     }
-    if (type == 3) {
-      await pp.command([
-        'change-list',
-        'glsl-shaders',
-        'set',
-        Utils.buildShadersAbsolutePath(
-            shadersController.shadersDirectory.path, mpvAnime4KShaders),
-      ]);
-      superResolutionType = 3;
-      return;
-    }
-    await pp.command(['change-list', 'glsl-shaders', 'clr', '']);
-    superResolutionType = 1;
   }
 
   Future<void> setPlaybackSpeed(double playerSpeed) async {
@@ -557,7 +690,12 @@ abstract class _PlayerController with Store {
     final player = mediaPlayer;
     if (player == null) return;
 
-    final state = player.state;
+    final PlayerState state;
+    try {
+      state = player.state;
+    } catch (_) {
+      return;
+    }
     if (playing != state.playing) {
       playing = state.playing;
     }
@@ -579,7 +717,7 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> playOrPause() async {
-    if (mediaPlayer!.state.playing) {
+    if (playerPlaying) {
       await pause();
     } else {
       await play();
@@ -587,9 +725,15 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> seek(Duration duration, {bool enableSync = true}) async {
+    final player = mediaPlayer;
+    if (player == null) return;
     currentPosition = duration;
     danmakuController.clear();
-    await mediaPlayer!.seek(duration);
+    try {
+      await player.seek(duration);
+    } catch (_) {
+      return;
+    }
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
       if (enableSync) {
@@ -599,8 +743,14 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> pause({bool enableSync = true}) async {
+    final player = mediaPlayer;
+    if (player == null) return;
     danmakuController.pause();
-    await mediaPlayer!.pause();
+    try {
+      await player.pause();
+    } catch (_) {
+      return;
+    }
     playing = false;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
@@ -611,8 +761,14 @@ abstract class _PlayerController with Store {
   }
 
   Future<void> play({bool enableSync = true}) async {
+    final player = mediaPlayer;
+    if (player == null) return;
     danmakuController.resume();
-    await mediaPlayer!.play();
+    try {
+      await player.play();
+    } catch (_) {
+      return;
+    }
     playing = true;
     if (syncplayController != null) {
       setSyncPlayCurrentPosition();
@@ -622,7 +778,18 @@ abstract class _PlayerController with Store {
     }
   }
 
-  Future<void> dispose({bool disposeSyncPlayController = true}) async {
+  Future<void> dispose({
+    bool disposeSyncPlayController = true,
+    bool cancelActiveInit = true,
+  }) async {
+    // Bump the generation first so late init continuations cannot touch it.
+    if (cancelActiveInit) {
+      _playerLifecycleId++;
+    }
+    final player = mediaPlayer;
+    mediaPlayer = null;
+    videoController = null;
+    final cancelDebugInfoFuture = cancelPlayerDebugInfoSubscription();
     if (disposeSyncPlayController) {
       try {
         syncplayRoom = '';
@@ -632,16 +799,17 @@ abstract class _PlayerController with Store {
       } catch (_) {}
     }
     try {
-      await cancelPlayerDebugInfoSubscription();
+      await cancelDebugInfoFuture;
     } catch (_) {}
-    await mediaPlayer?.dispose();
-    mediaPlayer = null;
-    videoController = null;
+    try {
+      await player?.dispose();
+    } catch (_) {}
   }
 
   Future<void> stop() async {
     try {
-      await mediaPlayer?.stop();
+      final player = mediaPlayer;
+      await player?.stop();
       loading = true;
     } catch (_) {}
   }

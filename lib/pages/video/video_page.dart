@@ -139,15 +139,17 @@ class _VideoPageState extends State<VideoPage>
       _initOnlineMode(playerController);
     }
 
-    _syncChatSubscription = playerController.syncPlayChatStream.listen((event) {
-      final localUsername = playerController.syncplayController?.username ?? '';
+    _syncChatSubscription =
+        playerController.syncplay.chatStream.listen((event) {
+      final localUsername =
+          playerController.syncplay.syncplayController?.username ?? '';
       final String displayText = '${event.username}：${event.message}';
 
       // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
-      if (playerController.danmakuOn &&
+      if (playerController.danmaku.danmakuOn &&
           event.username != localUsername &&
           event.fromRemote) {
-        playerController.danmakuController.addDanmaku(
+        playerController.danmaku.canvasController.addDanmaku(
           DanmakuContentItem(
             displayText,
             color: Colors.orange,
@@ -407,7 +409,7 @@ class _VideoPageState extends State<VideoPage>
   /// Callback for timed shutdown - pauses video when timer expires
   void pauseForTimedShutdown() {
     final playerController = _playerController;
-    if (playerController != null && playerController.playing) {
+    if (playerController != null && playerController.playback.playing) {
       playerController.pause();
     }
   }
@@ -419,7 +421,7 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
     keyboardFocus.requestFocus();
-    if (playerController.danDanmakus.isEmpty) {
+    if (playerController.danmaku.danDanmakus.isEmpty) {
       KazumiDialog.showToast(
         message: '当前剧集不支持弹幕发送的说',
       );
@@ -433,19 +435,20 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
 
-    final destination = playerController.danmakuDestination;
+    final destination = playerController.danmaku.danmakuDestination;
 
     if (destination == DanmakuDestination.chatRoom) {
-      if (playerController.syncplayRoom.isEmpty) {
+      if (playerController.syncplay.syncplayRoom.isEmpty) {
         KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
         return;
       }
 
-      final sender = playerController.syncplayController?.username ?? '我';
+      final sender =
+          playerController.syncplay.syncplayController?.username ?? '我';
       final String displayText = '$sender：$msg';
 
       // 在播放器渲染自己发送的弹幕
-      playerController.danmakuController.addDanmaku(
+      playerController.danmaku.canvasController.addDanmaku(
         DanmakuContentItem(
           displayText,
           color: Colors.orange,
@@ -460,7 +463,7 @@ class _VideoPageState extends State<VideoPage>
     } else {
       // Todo 接口方限制
 
-      playerController.danmakuController
+      playerController.danmaku.canvasController
           .addDanmaku(DanmakuContentItem(msg, selfSend: true));
     }
   }
@@ -575,7 +578,7 @@ class _VideoPageState extends State<VideoPage>
         return;
       }
       setState(() {});
-      playerController.danmakuDestination = result;
+      playerController.danmaku.danmakuDestination = result;
       sendDanmaku(msg);
     }
   }
@@ -712,7 +715,7 @@ class _VideoPageState extends State<VideoPage>
 
   Widget get playerBody {
     final playerController = _playerController;
-    final bool playerLoading = playerController?.loading ?? true;
+    final bool playerLoading = playerController?.playback.loading ?? true;
     return Stack(
       children: [
         Positioned.fill(
@@ -850,7 +853,7 @@ class _VideoPageState extends State<VideoPage>
           ),
         ),
         Positioned.fill(
-          child: playerController == null || playerController.loading
+          child: playerController == null || playerController.playback.loading
               ? Container()
               : PlayerItem(
                   playerController: playerController,
@@ -1101,7 +1104,7 @@ class _VideoPageState extends State<VideoPage>
 
   Widget get tabBody {
     final playerController = _playerController;
-    final bool danmakuOn = playerController?.danmakuOn ?? false;
+    final bool danmakuOn = playerController?.danmaku.danmakuOn ?? false;
     int episodeNum = 0;
     episodeNum = Utils.extractEpisodeNumber(videoPageController
         .roadList[videoPageController.currentRoad]

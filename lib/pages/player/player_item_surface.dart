@@ -20,8 +20,8 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
   Widget build(BuildContext context) {
     final playerController = widget.playerController;
     return Observer(builder: (context) {
-      if (playerController.loading ||
-          playerController.videoController == null) {
+      if (playerController.playback.loading ||
+          playerController.playback.videoController == null) {
         return Container(
           color: Colors.black,
           child: const Center(
@@ -31,12 +31,12 @@ class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
       }
 
       return Video(
-        controller: playerController.videoController!,
+        controller: playerController.playback.videoController!,
         controls: NoVideoControls,
         pauseUponEnteringBackgroundMode: false,
-        fit: playerController.aspectRatioType == 1
+        fit: playerController.panel.aspectRatioType == 1
             ? BoxFit.contain
-            : playerController.aspectRatioType == 2
+            : playerController.panel.aspectRatioType == 2
                 ? BoxFit.cover
                 : BoxFit.fill,
         subtitleViewConfiguration: SubtitleViewConfiguration(

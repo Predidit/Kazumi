@@ -85,6 +85,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     ep = 0;
     // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
       if (videoPageController.episodeCommentsList.isEmpty) {
         // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();
@@ -239,6 +242,9 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         await BangumiApi.getBangumiEpisodesByID(
             videoPageController.bangumiItem.id);
     KazumiDialog.dismiss();
+    if (!mounted) {
+      return;
+    }
     if (episodeList.isEmpty) {
       KazumiDialog.showToast(message: '未找到分集列表');
       return;

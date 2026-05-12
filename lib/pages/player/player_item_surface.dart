@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 
 class PlayerItemSurface extends StatefulWidget {
-  const PlayerItemSurface({super.key});
+  const PlayerItemSurface({
+    super.key,
+    required this.playerController,
+  });
+
+  final PlayerController playerController;
 
   @override
   State<PlayerItemSurface> createState() => _PlayerItemSurfaceState();
 }
 
 class _PlayerItemSurfaceState extends State<PlayerItemSurface> {
-  final PlayerController playerController = Modular.get<PlayerController>();
-
   @override
   Widget build(BuildContext context) {
+    final playerController = widget.playerController;
     return Observer(builder: (context) {
       if (playerController.loading ||
           playerController.videoController == null) {

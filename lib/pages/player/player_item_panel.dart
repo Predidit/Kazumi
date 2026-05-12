@@ -24,6 +24,7 @@ import 'package:kazumi/pages/download/download_controller.dart';
 class PlayerItemPanel extends StatefulWidget {
   const PlayerItemPanel({
     super.key,
+    required this.playerController,
     required this.onBackPressed,
     required this.setPlaybackSpeed,
     required this.showDanmakuSwitch,
@@ -50,6 +51,7 @@ class PlayerItemPanel extends StatefulWidget {
     this.disableAnimations = false,
   });
 
+  final PlayerController playerController;
   final void Function(BuildContext) onBackPressed;
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
@@ -87,7 +89,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   late Animation<Offset> leftOffsetAnimation;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
-  final PlayerController playerController = Modular.get<PlayerController>();
+  late final PlayerController playerController;
   final DownloadController downloadController =
       Modular.get<DownloadController>();
   final TextEditingController textController = TextEditingController();
@@ -282,6 +284,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   @override
   void initState() {
     super.initState();
+    playerController = widget.playerController;
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),

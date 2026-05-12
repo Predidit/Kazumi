@@ -184,14 +184,22 @@ abstract class _VideoPageController with Store {
     return currentEpisode;
   }
 
-  Future<void> changeEpisode(int episode,
-      {int currentRoad = 0, int offset = 0}) async {
+  Future<void> changeEpisode(
+    int episode, {
+    int currentRoad = 0,
+    int offset = 0,
+    required PlayerController playerController,
+  }) async {
     currentEpisode = episode;
     this.currentRoad = currentRoad;
     errorMessage = null;
 
     if (isOfflineMode) {
-      await _changeOfflineEpisode(episode, 0);
+      await _changeOfflineEpisode(
+        episode,
+        0,
+        playerController: playerController,
+      );
       return;
     }
 
@@ -205,12 +213,20 @@ abstract class _VideoPageController with Store {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
 
-    await _resolveWithProvider(urlItem, offset);
+    await _resolveWithProvider(
+      urlItem,
+      offset,
+      playerController: playerController,
+    );
   }
 
   /// 离线模式下切换集数
   /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
-  Future<void> _changeOfflineEpisode(int episode, int offset) async {
+  Future<void> _changeOfflineEpisode(
+    int episode,
+    int offset, {
+    required PlayerController playerController,
+  }) async {
     // 从 roadList.data 中获取实际的 episodeNumber
     final actualEpisodeNumber =
         int.tryParse(roadList[currentRoad].data[episode - 1]);
@@ -253,7 +269,6 @@ abstract class _VideoPageController with Store {
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
-    final playerController = Modular.get<PlayerController>();
     await playerController.init(params);
   }
 
@@ -266,7 +281,11 @@ abstract class _VideoPageController with Store {
   }
 
   /// 使用 VideoSourceProvider 解析视频源
-  Future<void> _resolveWithProvider(String url, int offset) async {
+  Future<void> _resolveWithProvider(
+    String url,
+    int offset, {
+    required PlayerController playerController,
+  }) async {
     _videoSourceProvider?.cancel();
 
     loading = true;
@@ -317,7 +336,6 @@ abstract class _VideoPageController with Store {
             : bangumiItem.name,
       );
 
-      final playerController = Modular.get<PlayerController>();
       await playerController.init(params);
     } on VideoSourceTimeoutException {
       loading = false;

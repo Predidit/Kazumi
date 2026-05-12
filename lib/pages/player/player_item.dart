@@ -36,6 +36,7 @@ import 'package:kazumi/utils/audio_controller.dart';
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
     super.key,
+    required this.playerController,
     required this.openMenu,
     required this.locateEpisode,
     required this.changeEpisode,
@@ -47,6 +48,7 @@ class PlayerItem extends StatefulWidget {
     this.disableAnimations = false,
   });
 
+  final PlayerController playerController;
   final VoidCallback openMenu;
   final VoidCallback locateEpisode;
   final Future<void> Function(int episode, {int currentRoad, int offset})
@@ -68,7 +70,7 @@ class _PlayerItemState extends State<PlayerItem>
         WidgetsBindingObserver,
         SingleTickerProviderStateMixin {
   Box setting = GStorage.setting;
-  final PlayerController playerController = Modular.get<PlayerController>();
+  late final PlayerController playerController;
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final HistoryController historyController = Modular.get<HistoryController>();
@@ -1461,6 +1463,7 @@ class _PlayerItemState extends State<PlayerItem>
   @override
   void initState() {
     super.initState();
+    playerController = widget.playerController;
     _loadShortcuts();
     _initKeyboardActions();
     _initPlayerMenu();
@@ -1659,7 +1662,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   ? KeyEventResult.handled
                                   : KeyEventResult.ignored;
                             },
-                            child: const PlayerItemSurface())),
+                            child: PlayerItemSurface(
+                                playerController: playerController))),
                     (playerController.isBuffering ||
                             videoPageController.loading)
                         ? const Positioned.fill(
@@ -1741,6 +1745,7 @@ class _PlayerItemState extends State<PlayerItem>
                     // 播放器控制面板
                     (needFullPanel(context))
                         ? PlayerItemPanel(
+                            playerController: playerController,
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,
@@ -1772,6 +1777,7 @@ class _PlayerItemState extends State<PlayerItem>
                             skipOP: skipOP,
                           )
                         : SmallestPlayerItemPanel(
+                            playerController: playerController,
                             onBackPressed: widget.onBackPressed,
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,

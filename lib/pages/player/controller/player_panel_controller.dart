@@ -39,6 +39,7 @@ abstract class _PlayerPanelController with Store {
   @observable
   bool canHidePlayerPanel = true;
 
+  @action
   void reset() {
     lockPanel = false;
     showVideoController = true;

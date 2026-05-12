@@ -173,6 +173,17 @@ mixin _$PlayerPlaybackController on _PlayerPlaybackController, Store {
       ActionController(name: '_PlayerPlaybackController', context: context);
 
   @override
+  void resetForInit() {
+    final _$actionInfo = _$_PlayerPlaybackControllerActionController
+        .startAction(name: '_PlayerPlaybackController.resetForInit');
+    try {
+      return super.resetForInit();
+    } finally {
+      _$_PlayerPlaybackControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void syncPlaybackState() {
     final _$actionInfo = _$_PlayerPlaybackControllerActionController
         .startAction(name: '_PlayerPlaybackController.syncPlaybackState');

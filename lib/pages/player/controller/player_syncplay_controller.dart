@@ -261,6 +261,7 @@ abstract class _PlayerSyncPlayController with Store {
     await syncplayController!.sendChatMessage(message);
   }
 
+  @action
   Future<void> exitRoom() async {
     final controller = syncplayController;
     syncplayController = null;

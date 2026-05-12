@@ -1584,16 +1584,7 @@ class _PlayerItemState extends State<PlayerItem>
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
     }
-    // Reset player panel state
-    playerController.panel.lockPanel = false;
-    playerController.panel.showVideoController = true;
-    playerController.panel.showSeekTime = false;
-    playerController.panel.showBrightness = false;
-    playerController.panel.showVolume = false;
-    playerController.panel.showPlaySpeed = false;
-    playerController.panel.brightnessSeeking = false;
-    playerController.panel.volumeSeeking = false;
-    playerController.panel.canHidePlayerPanel = true;
+    playerController.panel.reset();
     unawaited(_audioController.deactivate());
     _audioController.clearCallbacks();
     super.dispose();

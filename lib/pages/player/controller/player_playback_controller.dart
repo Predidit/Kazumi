@@ -88,6 +88,7 @@ abstract class _PlayerPlaybackController with Store {
     return lifecycleId == expectedLifecycleId && identical(mediaPlayer, player);
   }
 
+  @action
   void resetForInit() {
     playing = false;
     loading = true;

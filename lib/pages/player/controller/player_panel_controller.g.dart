@@ -185,6 +185,20 @@ mixin _$PlayerPanelController on _PlayerPanelController, Store {
     });
   }
 
+  late final _$_PlayerPanelControllerActionController =
+      ActionController(name: '_PlayerPanelController', context: context);
+
+  @override
+  void reset() {
+    final _$actionInfo = _$_PlayerPanelControllerActionController.startAction(
+        name: '_PlayerPanelController.reset');
+    try {
+      return super.reset();
+    } finally {
+      _$_PlayerPanelControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''

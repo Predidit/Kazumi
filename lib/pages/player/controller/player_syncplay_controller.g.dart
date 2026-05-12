@@ -41,6 +41,14 @@ mixin _$PlayerSyncPlayController on _PlayerSyncPlayController, Store {
     });
   }
 
+  late final _$exitRoomAsyncAction =
+      AsyncAction('_PlayerSyncPlayController.exitRoom', context: context);
+
+  @override
+  Future<void> exitRoom() {
+    return _$exitRoomAsyncAction.run(() => super.exitRoom());
+  }
+
   @override
   String toString() {
     return '''

@@ -164,15 +164,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       KazumiDialog.showToast(message: '请先在设置中绑定你的 Bangumi 配置以发表评价');
       return;
     }
-    if (infoController.collectController
-        .getCollectType(infoController.bangumiItem) == 0) {
+    final localType = infoController.collectController.getCollectType(infoController.bangumiItem);
+    if (localType == 0) {
       KazumiDialog.showToast(message: '请先追番后再发表评价');
       return;
     }
     KazumiDialog.show(
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
-        onSubmitted: (data) => infoController.rateBangumi(data),
+        onSubmitted: (data) => infoController.rateBangumi(data, localType: localType),
       ),
     );
   }

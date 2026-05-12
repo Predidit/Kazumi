@@ -125,10 +125,11 @@ abstract class _InfoController with Store {
         .i('InfoController: loaded staff list length ${staffList.length}');
   }
 
-  Future<void> rateBangumi(RatingReviewResult data) async {
+  Future<void> rateBangumi(RatingReviewResult data,{required int localType}) async {
     final trimmedComment = data.comment.trim();
     if (await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
       bangumiItem.id,
+      localType,
       comment: trimmedComment.isNotEmpty ? trimmedComment : null,
       rate: data.score > 0 ? data.score : 0,
       tags: data.tags.isNotEmpty ? data.tags : null,

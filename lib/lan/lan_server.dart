@@ -9,6 +9,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:kazumi/lan/proxy/proxy_session_store.dart';
 import 'package:kazumi/lan/proxy/video_proxy_handler.dart';
 import 'package:kazumi/lan/source_resolver.dart';
+import 'package:kazumi/lan/web_index_html.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/providers/video/video_source_provider.dart';
@@ -91,8 +92,8 @@ class LanServer {
 
     router.get('/', (Request request) {
       return Response.ok(
-        'Kazumi LAN server is running.\n',
-        headers: {'content-type': 'text/plain; charset=utf-8'},
+        lanWebIndexHtml,
+        headers: {'content-type': 'text/html; charset=utf-8'},
       );
     });
     router.get('/healthz', (Request request) {

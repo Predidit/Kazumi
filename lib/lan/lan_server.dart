@@ -14,11 +14,13 @@ import 'package:kazumi/lan/web_index_html.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/providers/video/video_source_provider.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
+import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -119,6 +121,8 @@ class LanServer {
         _handleBangumiCharacters);
     router.get('/api/bangumi/<id|[0-9]+>/comments', _handleBangumiComments);
     router.get('/api/bangumi/<id|[0-9]+>/staff', _handleBangumiStaff);
+
+    router.get('/api/danmaku', _handleDanmaku);
 
     router.get('/assets/<file>', _handleAsset);
 
@@ -484,6 +488,54 @@ class LanServer {
         'comment': c.comment.comment,
         'updatedAt': c.comment.updatedAt,
       };
+
+  Future<Response> _handleDanmaku(Request request) async {
+    final bangumiId =
+        int.tryParse(request.url.queryParameters['bangumiId'] ?? '');
+    final episode =
+        int.tryParse(request.url.queryParameters['episode'] ?? '');
+    if (bangumiId == null || episode == null) {
+      return _jsonError(400, 'invalid_params',
+          'bangumiId and episode are required');
+    }
+    try {
+      // 桌面端的弹幕链路：bgm bangumi id -> dandan bangumi id -> 弹幕
+      final dandanId =
+          await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
+      if (dandanId == 0) {
+        return _json({
+          'bangumiId': bangumiId,
+          'episode': episode,
+          'items': const <Map<String, dynamic>>[],
+          'reason': 'dandan_bangumi_not_found',
+        });
+      }
+      final list = await DanmakuApi.getDanDanmaku(dandanId, episode);
+      return _json({
+        'bangumiId': bangumiId,
+        'episode': episode,
+        'dandanBangumiId': dandanId,
+        'items': list.map(_danmakuToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger().w('LanServer: danmaku fetch failed',
+          error: e, stackTrace: st);
+      return _jsonError(502, 'danmaku_failed', e.toString());
+    }
+  }
+
+  static Map<String, dynamic> _danmakuToJson(Danmaku d) {
+    final colorValue = ((d.color.r * 255).toInt() << 16) |
+        ((d.color.g * 255).toInt() << 8) |
+        (d.color.b * 255).toInt();
+    return {
+      'time': d.time,
+      'type': d.type,
+      'color': colorValue,
+      'source': d.source,
+      'message': d.message,
+    };
+  }
 
   static Map<String, dynamic> _staffItemToJson(StaffFullItem s) => {
         'id': s.staff.id,

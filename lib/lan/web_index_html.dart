@@ -521,6 +521,61 @@ const String lanWebIndexHtml = r'''
     }
     .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
 
+    /* ========== Player wrap + danmaku ========== */
+    .player-wrap {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-2);
+      background: #000;
+    }
+    .player-wrap video {
+      border-radius: 0;
+      box-shadow: none;
+      display: block;
+    }
+    .danmaku-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    .danmaku-canvas.is-hidden { display: none; }
+
+    .danmaku-panel {
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      padding: 4px 12px;
+      margin-top: 12px;
+    }
+    .danmaku-panel summary {
+      cursor: pointer;
+      padding: 10px 0;
+      font-size: 13px;
+      color: var(--on-surface-variant);
+      font-weight: 500;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .danmaku-panel summary::-webkit-details-marker { display: none; }
+    .danmaku-panel summary::after { content: "▾"; margin-left: auto; opacity: 0.7; }
+    .danmaku-panel[open] summary::after { content: "▴"; }
+    .danmaku-panel summary .count { font-weight: 400; opacity: 0.7; }
+    .danmaku-panel .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+      gap: 12px;
+    }
+    .danmaku-panel input[type="range"] { flex: 1; max-width: 60%; }
+    .danmaku-panel input[type="checkbox"] { accent-color: var(--primary); width: 18px; height: 18px; }
+
     /* ========== Footer ========== */
     .footer {
       margin-top: 32px;
@@ -1059,7 +1114,7 @@ const String lanWebIndexHtml = r'''
     }
 
     async function renderEpisodes(params) {
-      const { plugin, src, title } = params;
+      const { plugin, src, title, bid } = params;
       setBar(title || "选择集数", true);
       $app.innerHTML = "";
       $app.append(el("h2", {}, "规则 · " + plugin));
@@ -1077,29 +1132,242 @@ const String lanWebIndexHtml = r'''
           setStatus(container, "没有可用的播放列表");
           return;
         }
-        for (const road of data.roads) {
+        data.roads.forEach((road, roadIdx) => {
           container.append(el("h2", {}, road.name));
           const grid = el("div", { class: "ep-grid" });
-          for (const ep of road.episodes) {
+          road.episodes.forEach((ep, epIdx) => {
+            const params = {
+              plugin,
+              episodeUrl: ep.src,
+              title: (title ? title + " · " : "") + ep.name,
+              episode: String(epIdx + 1),
+              road: String(roadIdx),
+            };
+            if (bid) params.bid = bid;
             const cell = el(
               "div",
-              {
-                class: "ep",
-                onclick: () =>
-                  go("/play", {
-                    plugin,
-                    episodeUrl: ep.src,
-                    title: (title ? title + " · " : "") + ep.name,
-                  }),
-              },
+              { class: "ep", onclick: () => go("/play", params) },
               ep.name
             );
             grid.append(cell);
-          }
+          });
           container.append(grid);
-        }
+        });
       } catch (e) {
         setStatus(container, "加载失败：" + e.message, true);
+      }
+    }
+
+    // ====== Danmaku ======
+    class DanmakuLayer {
+      constructor(video, container) {
+        this.video = video;
+        this.canvas = document.createElement("canvas");
+        this.canvas.className = "danmaku-canvas";
+        container.append(this.canvas);
+        this.ctx = this.canvas.getContext("2d");
+        this.items = [];
+        this.cursor = 0;
+        this.activeRolling = [];
+        this.activeFixed = [];
+        this.lanes = { rolling: [], top: [], bottom: [] };
+        this.lineH = 28;
+        this.lastVideoTime = 0;
+        this.lastTickAt = 0;
+        this.rafId = null;
+        this.config = this.loadConfig();
+        this.applyVisibility();
+
+        this.resizeObs = new ResizeObserver(() => this.resize());
+        this.resizeObs.observe(container);
+        this.resize();
+        this.start();
+      }
+
+      loadConfig() {
+        try {
+          const stored = JSON.parse(localStorage.getItem("danmakuConfig") || "{}");
+          return {
+            enabled: stored.enabled !== false,
+            fontSize: stored.fontSize || 22,
+            opacity: typeof stored.opacity === "number" ? stored.opacity : 0.8,
+            speed: stored.speed || 10,
+          };
+        } catch (_) {
+          return { enabled: true, fontSize: 22, opacity: 0.8, speed: 10 };
+        }
+      }
+
+      saveConfig() {
+        try {
+          localStorage.setItem("danmakuConfig", JSON.stringify(this.config));
+        } catch (_) {}
+      }
+
+      setConfig(patch) {
+        Object.assign(this.config, patch);
+        this.saveConfig();
+        this.applyVisibility();
+        this.recomputeLanes();
+      }
+
+      applyVisibility() {
+        this.canvas.classList.toggle("is-hidden", !this.config.enabled);
+      }
+
+      resize() {
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.cssWidth = rect.width;
+        this.cssHeight = rect.height;
+        this.recomputeLanes();
+      }
+
+      recomputeLanes() {
+        const lineH = this.config.fontSize + 6;
+        this.lineH = lineH;
+        const maxLanes = Math.max(1, Math.floor(this.cssHeight * 0.75 / lineH));
+        const reset = (arr) => {
+          const out = new Array(maxLanes).fill(0);
+          for (let i = 0; i < Math.min(arr.length, maxLanes); i++) out[i] = arr[i];
+          return out;
+        };
+        this.lanes.rolling = reset(this.lanes.rolling);
+        this.lanes.top = reset(this.lanes.top);
+        this.lanes.bottom = reset(this.lanes.bottom);
+      }
+
+      load(items) {
+        this.items = (items || []).slice().sort((a, b) => a.time - b.time);
+        this.cursor = 0;
+        this.activeRolling = [];
+        this.activeFixed = [];
+        this.lanes.rolling = this.lanes.rolling.map(() => 0);
+        this.lanes.top = this.lanes.top.map(() => 0);
+        this.lanes.bottom = this.lanes.bottom.map(() => 0);
+      }
+
+      get count() { return this.items.length; }
+
+      start() {
+        if (this.rafId != null) return;
+        const tick = (now) => {
+          if (!this.lastTickAt) this.lastTickAt = now;
+          const dt = Math.min(0.1, (now - this.lastTickAt) / 1000);
+          this.lastTickAt = now;
+          this.update(dt);
+          this.render();
+          this.rafId = requestAnimationFrame(tick);
+        };
+        this.rafId = requestAnimationFrame(tick);
+      }
+
+      stop() {
+        if (this.rafId != null) cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+
+      dispose() {
+        this.stop();
+        try { this.resizeObs.disconnect(); } catch (_) {}
+        this.canvas.remove();
+      }
+
+      update(dt) {
+        if (!this.config.enabled || !this.items.length || !this.video) return;
+        const now = this.video.currentTime;
+        if (Math.abs(now - this.lastVideoTime) > 1) {
+          // seek
+          let lo = 0, hi = this.items.length;
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (this.items[mid].time < now) lo = mid + 1; else hi = mid;
+          }
+          this.cursor = lo;
+          this.activeRolling = [];
+          this.activeFixed = [];
+        }
+        this.lastVideoTime = now;
+        if (this.video.paused) return;
+
+        while (this.cursor < this.items.length && this.items[this.cursor].time <= now) {
+          this.emit(this.items[this.cursor]);
+          this.cursor++;
+        }
+
+        for (const d of this.activeRolling) d.x -= d.speed * dt;
+        this.activeRolling = this.activeRolling.filter((d) => d.x + d.width > 0);
+        this.activeFixed = this.activeFixed.filter((d) => now < d.endTime);
+      }
+
+      emit(item) {
+        const W = this.cssWidth, H = this.cssHeight;
+        this.ctx.font = this.config.fontSize + "px sans-serif";
+        const width = this.ctx.measureText(item.message).width;
+        const color = "#" + (item.color || 0xffffff).toString(16).padStart(6, "0");
+        if (item.type === 1) {
+          const duration = this.config.speed;
+          const speed = (W + width) / duration;
+          const now = this.video.currentTime;
+          let laneIdx = -1;
+          for (let i = 0; i < this.lanes.rolling.length; i++) {
+            if (this.lanes.rolling[i] <= now) { laneIdx = i; break; }
+          }
+          if (laneIdx < 0) return;
+          this.lanes.rolling[laneIdx] = now + width / speed + 0.3;
+          this.activeRolling.push({
+            message: item.message, x: W, y: laneIdx * this.lineH + this.config.fontSize,
+            speed, width, color,
+          });
+        } else if (item.type === 4 || item.type === 5) {
+          const top = item.type === 5;
+          const lanes = top ? this.lanes.top : this.lanes.bottom;
+          const now = this.video.currentTime;
+          let laneIdx = -1;
+          for (let i = 0; i < lanes.length; i++) {
+            if (lanes[i] <= now) { laneIdx = i; break; }
+          }
+          if (laneIdx < 0) return;
+          const duration = 4;
+          lanes[laneIdx] = now + duration;
+          const y = top
+            ? laneIdx * this.lineH + this.config.fontSize + 4
+            : H - laneIdx * this.lineH - 8;
+          this.activeFixed.push({
+            message: item.message, x: Math.max(4, (W - width) / 2), y,
+            width, color, endTime: now + duration,
+          });
+        }
+      }
+
+      render() {
+        if (!this.config.enabled) return;
+        const ctx = this.ctx;
+        ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
+        ctx.globalAlpha = this.config.opacity;
+        ctx.font = this.config.fontSize + "px sans-serif";
+        ctx.textBaseline = "alphabetic";
+        ctx.shadowColor = "rgba(0,0,0,0.85)";
+        ctx.shadowBlur = 3;
+        for (const d of this.activeRolling) {
+          ctx.fillStyle = d.color;
+          ctx.fillText(d.message, d.x, d.y);
+        }
+        for (const d of this.activeFixed) {
+          ctx.fillStyle = d.color;
+          ctx.fillText(d.message, d.x, d.y);
+        }
+      }
+    }
+
+    let activeDanmaku = null;
+    function disposeDanmaku() {
+      if (activeDanmaku) {
+        try { activeDanmaku.dispose(); } catch (_) {}
+        activeDanmaku = null;
       }
     }
 
@@ -1176,7 +1444,8 @@ const String lanWebIndexHtml = r'''
 
     async function renderPlayer(params) {
       disposeHls();
-      const { plugin, episodeUrl, title } = params;
+      disposeDanmaku();
+      const { plugin, episodeUrl, title, bid, episode } = params;
       setBar(title || "播放", true);
       $app.innerHTML = "";
 
@@ -1195,7 +1464,8 @@ const String lanWebIndexHtml = r'''
           "webkit-playsinline": true,
           preload: "metadata",
         });
-        $app.append(video);
+        const playerWrap = el("div", { class: "player-wrap" }, video);
+        $app.append(playerWrap);
 
         const errorNode = el("div", { class: "status error" });
         errorNode.style.display = "none";
@@ -1228,16 +1498,93 @@ const String lanWebIndexHtml = r'''
         video.addEventListener("error", () => {
           showError("播放器报告错误。可能是源失效或浏览器不支持该格式。");
         });
+
+        // ====== 弹幕 ======
+        const danmaku = new DanmakuLayer(video, playerWrap);
+        activeDanmaku = danmaku;
+
+        const danmakuPanel = el("details", { class: "danmaku-panel" });
+        const summary = el("summary", {},
+          "弹幕",
+          el("span", { class: "count" }, "加载中…")
+        );
+        danmakuPanel.append(summary);
+        const countNode = summary.querySelector(".count");
+
+        // 开关
+        const enabledRow = el("div", { class: "row" });
+        const enabledCb = el("input", { type: "checkbox" });
+        enabledCb.checked = danmaku.config.enabled;
+        enabledCb.addEventListener("change", () => danmaku.setConfig({ enabled: enabledCb.checked }));
+        enabledRow.append(el("span", {}, "开启弹幕"), enabledCb);
+        danmakuPanel.append(enabledRow);
+
+        // 字号
+        const fontRow = el("div", { class: "row" });
+        const fontInput = el("input", { type: "range", min: "14", max: "36", step: "1" });
+        fontInput.value = String(danmaku.config.fontSize);
+        const fontLabel = el("span", {}, "字号 " + fontInput.value);
+        fontInput.addEventListener("input", () => {
+          fontLabel.textContent = "字号 " + fontInput.value;
+          danmaku.setConfig({ fontSize: parseInt(fontInput.value, 10) });
+        });
+        fontRow.append(fontLabel, fontInput);
+        danmakuPanel.append(fontRow);
+
+        // 透明度
+        const opacityRow = el("div", { class: "row" });
+        const opacityInput = el("input", { type: "range", min: "20", max: "100", step: "5" });
+        opacityInput.value = String(Math.round(danmaku.config.opacity * 100));
+        const opacityLabel = el("span", {}, "透明度 " + opacityInput.value + "%");
+        opacityInput.addEventListener("input", () => {
+          opacityLabel.textContent = "透明度 " + opacityInput.value + "%";
+          danmaku.setConfig({ opacity: parseInt(opacityInput.value, 10) / 100 });
+        });
+        opacityRow.append(opacityLabel, opacityInput);
+        danmakuPanel.append(opacityRow);
+
+        // 滚动速度
+        const speedRow = el("div", { class: "row" });
+        const speedInput = el("input", { type: "range", min: "5", max: "20", step: "1" });
+        speedInput.value = String(danmaku.config.speed);
+        const speedLabel = el("span", {}, "滚动时长 " + speedInput.value + "s");
+        speedInput.addEventListener("input", () => {
+          speedLabel.textContent = "滚动时长 " + speedInput.value + "s";
+          danmaku.setConfig({ speed: parseInt(speedInput.value, 10) });
+        });
+        speedRow.append(speedLabel, speedInput);
+        danmakuPanel.append(speedRow);
+
+        $app.append(danmakuPanel);
+
+        // 拉弹幕（需要 bid + episode）
+        if (bid && episode) {
+          try {
+            const dm = await fetchJson(
+              "/api/danmaku?bangumiId=" + encodeURIComponent(bid) +
+              "&episode=" + encodeURIComponent(episode)
+            );
+            danmaku.load(dm.items || []);
+            countNode.textContent = "共 " + danmaku.count + " 条";
+          } catch (e) {
+            countNode.textContent = "加载失败";
+          }
+        } else {
+          countNode.textContent = "需从番剧详情页打开才能加载弹幕";
+        }
       } catch (e) {
         status.remove();
         $app.append(el("div", { class: "status error" }, "解析失败：" + e.message));
       }
     }
 
-    // 离开播放页时销毁 hls.js
+    // 离开播放页时销毁 hls.js + 弹幕
     window.addEventListener("hashchange", () => {
       const { path } = parseRoute();
-      if (path !== "/play") disposeHls();
+      if (path !== "/play") {
+        disposeHls();
+        disposeDanmaku();
+      }
     });
 
     // ====== Dispatch ======

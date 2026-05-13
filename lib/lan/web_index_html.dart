@@ -521,6 +521,117 @@ const String lanWebIndexHtml = r'''
     }
     .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
 
+    /* ========== Bottom tab bar ========== */
+    .tab-bar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      background: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid var(--outline-variant);
+      padding-top: 4px;
+      padding-bottom: calc(env(safe-area-inset-bottom) + 4px);
+      z-index: 8;
+    }
+    .tab-bar .item {
+      flex: 1;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .tab-bar .item.is-active { color: var(--primary); font-weight: 500; }
+    .tab-bar .icon { font-size: 20px; line-height: 1.2; display: block; margin-bottom: 2px; }
+    .bottom-spacer { height: 80px; }
+
+    /* ========== Poster grid ========== */
+    .poster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+      gap: 12px;
+    }
+    .poster-card { cursor: pointer; }
+    .poster-card img {
+      width: 100%;
+      aspect-ratio: 7 / 10;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--surface-container-high);
+      box-shadow: var(--shadow-1);
+      display: block;
+    }
+    .poster-card .name {
+      font-size: 13px;
+      margin-top: 6px;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .poster-card .score {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* ========== Day chips ========== */
+    .day-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin-bottom: 14px;
+      padding-bottom: 2px;
+    }
+    .day-chips::-webkit-scrollbar { display: none; }
+    .day-chip {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border-radius: 18px;
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .day-chip.is-active {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+
+    /* ========== History row ========== */
+    .history-row {
+      display: flex;
+      gap: 12px;
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .history-row:hover { background: var(--surface-container-high); }
+    .history-row img {
+      width: 54px; height: 76px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface-container-high);
+    }
+    .history-row .meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .history-row .name { font-size: 14px; font-weight: 500; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .history-row .sub { font-size: 12px; color: var(--on-surface-variant); }
+
     /* ========== Collect ========== */
     .collect-row {
       display: flex;
@@ -757,10 +868,68 @@ const String lanWebIndexHtml = r'''
     }
 
     // ====== Views ======
-    async function renderHome() {
+    async function renderHome(params) {
+      const tab = (params && params.tab) || "popular";
       setBar("Kazumi", false);
       $app.innerHTML = "";
 
+      const main = el("div", { id: "home-main" });
+      $app.append(main);
+
+      if (tab === "popular") renderTabPopular(main);
+      else if (tab === "timeline") renderTabTimeline(main);
+      else if (tab === "collect") renderTabCollect(main);
+      else if (tab === "my") renderTabMy(main);
+      else renderTabPopular(main);
+
+      $app.append(el("div", { class: "bottom-spacer" }));
+      $app.append(buildTabBar(tab));
+    }
+
+    function buildTabBar(activeTab) {
+      const tabs = [
+        { key: "popular",  icon: "★",  label: "推荐" },
+        { key: "timeline", icon: "📅", label: "时间表" },
+        { key: "collect",  icon: "♥",  label: "追番" },
+        { key: "my",       icon: "☰",  label: "我的" },
+      ];
+      const bar = el("div", { class: "tab-bar" });
+      for (const t of tabs) {
+        const btn = el(
+          "button",
+          {
+            class: "item" + (t.key === activeTab ? " is-active" : ""),
+            onclick: () => go("/home", { tab: t.key }),
+          },
+          el("span", { class: "icon" }, t.icon),
+          el("span", {}, t.label)
+        );
+        bar.append(btn);
+      }
+      return bar;
+    }
+
+    function buildPosterCard(item) {
+      const img = el("img", { loading: "lazy", referrerpolicy: "no-referrer", alt: "" });
+      const src = bestBangumiImage(item.images);
+      if (src) img.src = src;
+      const card = el(
+        "div",
+        {
+          class: "poster-card",
+          onclick: () => go("/bangumi", { id: String(item.id) }),
+        },
+        img,
+        el("div", { class: "name" }, item.nameCn || item.name),
+        item.ratingScore > 0
+          ? el("div", { class: "score" }, "★ " + item.ratingScore.toFixed(1))
+          : null
+      );
+      return card;
+    }
+
+    async function renderTabPopular(container) {
+      // 顶部：bangumi 搜索
       const input = el("input", {
         type: "search",
         placeholder: "搜索番剧（Bangumi）",
@@ -769,7 +938,6 @@ const String lanWebIndexHtml = r'''
         spellcheck: "false",
       });
       input.value = localStorage.getItem("lastBangumiKeyword") || "";
-
       const submit = el("button", { class: "submit", "aria-label": "搜索", type: "submit", html: "&#x2192;" });
       const form = el("form", { class: "search-bar" }, input, submit);
       form.addEventListener("submit", (ev) => {
@@ -779,14 +947,139 @@ const String lanWebIndexHtml = r'''
         localStorage.setItem("lastBangumiKeyword", keyword);
         runBangumiSearch(keyword);
       });
-      $app.append(form);
+      container.append(form);
 
       const results = el("div", { class: "list", id: "bangumi-results" });
-      $app.append(results);
+      container.append(results);
 
-      $app.append(el("div", { class: "footer" }, "Kazumi · Web 预览 · 实验性"));
+      container.append(el("h2", {}, "趋势"));
+      const grid = el("div", { class: "poster-grid" });
+      container.append(grid);
+      setStatus(grid, "加载中…");
+      try {
+        const data = await fetchJson("/api/popular");
+        grid.innerHTML = "";
+        if (!data.items || !data.items.length) {
+          setStatus(grid, "暂无趋势数据");
+        } else {
+          for (const item of data.items) grid.append(buildPosterCard(item));
+        }
+      } catch (e) {
+        setStatus(grid, "加载失败：" + e.message, true);
+      }
 
       if (input.value) runBangumiSearch(input.value);
+    }
+
+    async function renderTabTimeline(container) {
+      const today = ((new Date().getDay() + 6) % 7) + 1; // 周一=1
+      const chips = el("div", { class: "day-chips" });
+      const grid = el("div", { class: "poster-grid" });
+      container.append(chips, grid);
+      setStatus(grid, "加载中…");
+      const dayLabels = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+      try {
+        const data = await fetchJson("/api/timeline");
+        const days = data.days || [];
+        let active = today;
+        const renderDay = () => {
+          grid.innerHTML = "";
+          const list = days[active - 1] || [];
+          if (!list.length) { setStatus(grid, "今日无番剧"); return; }
+          for (const item of list) grid.append(buildPosterCard(item));
+        };
+        const renderChips = () => {
+          chips.innerHTML = "";
+          for (let i = 1; i <= 7; i++) {
+            const len = (days[i - 1] || []).length;
+            const c = el(
+              "div",
+              {
+                class: "day-chip" + (i === active ? " is-active" : ""),
+                onclick: () => { active = i; renderChips(); renderDay(); },
+              },
+              dayLabels[i] + " · " + len
+            );
+            chips.append(c);
+          }
+        };
+        renderChips();
+        renderDay();
+      } catch (e) {
+        setStatus(grid, "加载失败：" + e.message, true);
+      }
+    }
+
+    async function renderTabCollect(container) {
+      setStatus(container, "加载中…");
+      try {
+        const data = await fetchJson("/api/collect/list");
+        container.innerHTML = "";
+        const items = data.items || [];
+        if (!items.length) {
+          setStatus(container, "还没有收藏哦，去推荐页找一部番剧收藏看看吧");
+          return;
+        }
+        const labels = { 1: "在看", 2: "想看", 3: "搁置", 4: "看过", 5: "抛弃" };
+        const groups = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+        for (const it of items) {
+          if (groups[it.type]) groups[it.type].push(it);
+        }
+        for (const type of [1, 2, 3, 4, 5]) {
+          if (!groups[type].length) continue;
+          container.append(el("h2", {}, labels[type] + " · " + groups[type].length));
+          const grid = el("div", { class: "poster-grid" });
+          for (const c of groups[type]) grid.append(buildPosterCard(c.bangumi));
+          container.append(grid);
+        }
+      } catch (e) {
+        setStatus(container, "加载失败：" + e.message, true);
+      }
+    }
+
+    async function renderTabMy(container) {
+      container.append(el("h2", {}, "观看历史"));
+      const list = el("div", {});
+      container.append(list);
+      setStatus(list, "加载中…");
+      try {
+        const data = await fetchJson("/api/history/list");
+        const items = data.items || [];
+        list.innerHTML = "";
+        if (!items.length) {
+          setStatus(list, "还没有观看记录");
+        } else {
+          for (const h of items) {
+            const img = el("img", { loading: "lazy", referrerpolicy: "no-referrer", alt: "" });
+            const src = bestBangumiImage(h.bangumi.images);
+            if (src) img.src = src;
+            const epName = h.lastWatchEpisodeName || ("第 " + h.lastWatchEpisode + " 集");
+            const lastDate = new Date(h.lastWatchTime);
+            const dateStr = lastDate.toLocaleString();
+            list.append(
+              el(
+                "div",
+                {
+                  class: "history-row",
+                  onclick: () => go("/bangumi", { id: String(h.bangumiId) }),
+                },
+                img,
+                el(
+                  "div",
+                  { class: "meta" },
+                  el("div", { class: "name" }, h.bangumi.nameCn || h.bangumi.name),
+                  el("div", { class: "sub" }, "上次：" + epName + " · " + dateStr),
+                  el("div", { class: "sub" }, "规则：" + h.pluginName)
+                )
+              )
+            );
+          }
+        }
+      } catch (e) {
+        setStatus(list, "加载失败：" + e.message, true);
+      }
+
+      container.append(el("div", { class: "footer" }, "Kazumi · Web 预览 · 实验性"));
     }
 
     async function runBangumiSearch(keyword) {
@@ -1761,7 +2054,7 @@ const String lanWebIndexHtml = r'''
     // ====== Dispatch ======
     function dispatch() {
       const { path, params } = parseRoute();
-      if (path === "/home" || path === "/") return renderHome();
+      if (path === "/home" || path === "/") return renderHome(params);
       if (path === "/bangumi") return renderBangumiDetail(params);
       if (path === "/episodes") return renderEpisodes(params);
       if (path === "/play") return renderPlayer(params);

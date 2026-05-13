@@ -126,6 +126,8 @@ class LanServer {
         _handleBangumiCharacters);
     router.get('/api/bangumi/<id|[0-9]+>/comments', _handleBangumiComments);
     router.get('/api/bangumi/<id|[0-9]+>/staff', _handleBangumiStaff);
+    router.get('/api/popular', _handlePopular);
+    router.get('/api/timeline', _handleTimeline);
 
     router.get('/api/danmaku', _handleDanmaku);
 
@@ -437,6 +439,39 @@ class LanServer {
       KazumiLogger().e('LanServer: bangumi comments failed',
           error: e, stackTrace: st);
       return _jsonError(500, 'comments_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handlePopular(Request request) async {
+    final offset =
+        int.tryParse(request.url.queryParameters['offset'] ?? '0') ?? 0;
+    final limit =
+        int.tryParse(request.url.queryParameters['limit'] ?? '24') ?? 24;
+    try {
+      final list = await BangumiApi.getBangumiTrendsList(
+          offset: offset, limit: limit);
+      return _json({
+        'items': list.map(_bangumiItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: popular failed', error: e, stackTrace: st);
+      return _jsonError(500, 'popular_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleTimeline(Request request) async {
+    try {
+      final calendar = await BangumiApi.getCalendar();
+      return _json({
+        'days': calendar
+            .map((day) => day.map(_bangumiItemToJson).toList())
+            .toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: timeline failed', error: e, stackTrace: st);
+      return _jsonError(500, 'timeline_failed', e.toString());
     }
   }
 

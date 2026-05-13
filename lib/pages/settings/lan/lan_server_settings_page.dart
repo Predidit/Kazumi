@@ -45,6 +45,8 @@ class _LanServerSettingsPageState extends State<LanServerSettingsPage> {
         final running = controller.isRunning;
         final currentPort = controller.port;
         final addresses = controller.lanAddresses.toList();
+        final hostname = controller.hostname;
+        final mdnsOn = controller.mdnsBroadcasting;
         return SettingsList(
           maxWidth: 800,
           sections: [
@@ -95,11 +97,49 @@ class _LanServerSettingsPageState extends State<LanServerSettingsPage> {
                           style: TextStyle(fontFamily: fontFamily),
                         ),
                       ),
+                  if (hostname != null && hostname.isNotEmpty && !Platform.isWindows)
+                    SettingsTile.navigation(
+                      onPressed: (_) =>
+                          _copy('http://$hostname.local:$currentPort'),
+                      leading: const Icon(Icons.dns_rounded),
+                      title: Text(
+                        'http://$hostname.local:$currentPort',
+                        style: TextStyle(fontFamily: fontFamily),
+                      ),
+                      description: Text(
+                        '系统主机名形式（macOS/Linux 默认支持，iOS/macOS 浏览器可直接访问）',
+                        style: TextStyle(fontFamily: fontFamily),
+                      ),
+                    ),
                   SettingsTile.navigation(
                     onPressed: (_) => controller.refreshAddresses(),
                     leading: const Icon(Icons.refresh_rounded),
                     title: Text('刷新地址列表',
                         style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                ],
+              ),
+            if (running)
+              SettingsSection(
+                title: Text('服务发现',
+                    style: TextStyle(fontFamily: fontFamily)),
+                tiles: [
+                  SettingsTile(
+                    leading: Icon(mdnsOn
+                        ? Icons.podcasts_rounded
+                        : Icons.podcasts_outlined),
+                    title: Text(
+                      mdnsOn ? 'Bonjour 广播已启用' : 'Bonjour 广播未启用',
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
+                    description: Text(
+                      mdnsOn
+                          ? '同一局域网下支持 DNS-SD 的设备能发现 Kazumi 服务（iOS/macOS 网络发现、avahi-browse 等）'
+                          : Platform.isWindows
+                              ? 'Windows 未安装 Bonjour Print Services / iTunes 时此项不可用，不影响通过 IP 访问'
+                              : '未能启动 mDNS 广播，请稍后重试或忽略——通过 IP 仍可访问',
+                      style: TextStyle(fontFamily: fontFamily),
+                    ),
                   ),
                 ],
               ),
@@ -111,7 +151,7 @@ class _LanServerSettingsPageState extends State<LanServerSettingsPage> {
                   title: Text('实验性功能',
                       style: TextStyle(fontFamily: fontFamily)),
                   description: Text(
-                    '让局域网内其他设备的浏览器访问 Kazumi。功能正在逐步完善，目前仅提供基础探活',
+                    '让局域网内其他设备的浏览器访问 Kazumi。主要给没有 Kazumi 客户端的设备（如 iOS）使用——在 Safari 中打开上面任一地址即可',
                     style: TextStyle(fontFamily: fontFamily),
                   ),
                 ),

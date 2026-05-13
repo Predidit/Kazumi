@@ -73,13 +73,47 @@ mixin _$LanServerController on _LanServerController, Store {
     });
   }
 
+  late final _$hostnameAtom =
+      Atom(name: '_LanServerController.hostname', context: context);
+
+  @override
+  String? get hostname {
+    _$hostnameAtom.reportRead();
+    return super.hostname;
+  }
+
+  @override
+  set hostname(String? value) {
+    _$hostnameAtom.reportWrite(value, super.hostname, () {
+      super.hostname = value;
+    });
+  }
+
+  late final _$mdnsBroadcastingAtom =
+      Atom(name: '_LanServerController.mdnsBroadcasting', context: context);
+
+  @override
+  bool get mdnsBroadcasting {
+    _$mdnsBroadcastingAtom.reportRead();
+    return super.mdnsBroadcasting;
+  }
+
+  @override
+  set mdnsBroadcasting(bool value) {
+    _$mdnsBroadcastingAtom.reportWrite(value, super.mdnsBroadcasting, () {
+      super.mdnsBroadcasting = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
 isRunning: ${isRunning},
 port: ${port},
 lanAddresses: ${lanAddresses},
-errorMessage: ${errorMessage}
+errorMessage: ${errorMessage},
+hostname: ${hostname},
+mdnsBroadcasting: ${mdnsBroadcasting}
     ''';
   }
 }

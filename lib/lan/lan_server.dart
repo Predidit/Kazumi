@@ -6,9 +6,14 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
+import 'package:kazumi/lan/proxy/proxy_session_store.dart';
+import 'package:kazumi/lan/proxy/video_proxy_handler.dart';
+import 'package:kazumi/lan/source_resolver.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/providers/video/video_source_provider.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/utils.dart';
 
 /// 用回调形式拿 [PluginsController] 而非构造时持有引用，
 /// 避免在 Modular DI 初始化阶段就触发依赖链。
@@ -20,9 +25,16 @@ typedef PluginsProvider = PluginsController Function();
 /// v1a 阶段提供搜索/选集 JSON API；视频代理与播放页在后续切片加入。
 class LanServer {
   LanServer({required PluginsProvider pluginsProvider})
-      : _pluginsProvider = pluginsProvider;
+      : _pluginsProvider = pluginsProvider,
+        _sessionStore = ProxySessionStore(),
+        _sourceResolver = LanSourceResolver() {
+    _proxyHandler = VideoProxyHandler(sessionStore: _sessionStore);
+  }
 
   final PluginsProvider _pluginsProvider;
+  final ProxySessionStore _sessionStore;
+  final LanSourceResolver _sourceResolver;
+  late final VideoProxyHandler _proxyHandler;
 
   HttpServer? _httpServer;
 
@@ -49,6 +61,9 @@ class LanServer {
     } catch (e) {
       KazumiLogger().w('LanServer: stop error: $e');
     }
+    _sessionStore.clear();
+    await _sourceResolver.dispose();
+    _proxyHandler.close();
     KazumiLogger().i('LanServer: stopped');
   }
 
@@ -87,6 +102,15 @@ class LanServer {
     router.get('/api/plugins', _handlePlugins);
     router.get('/api/search', _handleSearch);
     router.get('/api/episodes', _handleEpisodes);
+    router.get('/api/resolve', _handleResolve);
+
+    router.all('/proxy/<token>', (Request request, String token) {
+      return _proxyHandler.handle(request, token);
+    });
+    router.all('/proxy/<token>/<subPath>',
+        (Request request, String token, String subPath) {
+      return _proxyHandler.handle(request, token, subPath);
+    });
 
     return router;
   }
@@ -183,6 +207,58 @@ class LanServer {
       KazumiLogger()
           .e('LanServer: episodes unexpected error', error: e, stackTrace: st);
       return _jsonError(500, 'internal_error', e.toString());
+    }
+  }
+
+  Future<Response> _handleResolve(Request request) async {
+    final pluginName = request.url.queryParameters['plugin']?.trim() ?? '';
+    final episodeUrl =
+        request.url.queryParameters['episodeUrl']?.trim() ?? '';
+    if (pluginName.isEmpty) {
+      return _jsonError(400, 'plugin_required', 'plugin is required');
+    }
+    if (episodeUrl.isEmpty) {
+      return _jsonError(
+          400, 'episode_url_required', 'episodeUrl is required');
+    }
+    final plugin = _findPlugin(pluginName);
+    if (plugin == null) {
+      return _jsonError(404, 'plugin_not_found', 'plugin $pluginName not found');
+    }
+
+    final fullEpisodeUrl = plugin.buildFullUrl(episodeUrl);
+
+    try {
+      final source = await _sourceResolver.resolve(
+        plugin: plugin,
+        episodeUrl: fullEpisodeUrl,
+      );
+      final session = ProxySession(
+        originalUrl: source.url,
+        referer: plugin.referer,
+        userAgent: plugin.userAgent.isEmpty
+            ? Utils.getRandomUA()
+            : plugin.userAgent,
+        pluginName: plugin.name,
+        createdAt: DateTime.now(),
+      );
+      final token = _sessionStore.register(session);
+      return _json({
+        'token': token,
+        'playUrl': VideoProxyHandler.buildRootUrl(token),
+        'originalUrl': source.url,
+        'pluginName': plugin.name,
+      });
+    } on VideoSourceTimeoutException catch (e) {
+      return _jsonError(504, 'resolve_timeout', e.toString());
+    } on VideoSourceCancelledException catch (e) {
+      return _jsonError(499, 'resolve_cancelled', e.toString());
+    } on VideoSourceNotFoundException catch (e) {
+      return _jsonError(404, 'video_source_not_found', e.toString());
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: resolve unexpected error',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'resolve_failed', e.toString());
     }
   }
 

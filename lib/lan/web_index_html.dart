@@ -521,6 +521,29 @@ const String lanWebIndexHtml = r'''
     }
     .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
 
+    /* ========== Collect ========== */
+    .collect-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin: 12px 0 4px;
+      flex-wrap: wrap;
+    }
+    .collect-btn {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border: 1px solid transparent;
+      padding: 9px 18px;
+      border-radius: 18px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .collect-btn.is-collected { background: var(--primary); color: var(--on-primary); }
+    .collect-row .hint { font-size: 12px; color: var(--on-surface-variant); }
+
     /* ========== Player wrap + danmaku ========== */
     .player-wrap {
       position: relative;
@@ -873,6 +896,87 @@ const String lanWebIndexHtml = r'''
       }
       hero.append(el("div", { class: "hero-row" }, coverImg, heroMeta));
       $app.append(hero);
+
+      // Collect row
+      const collectRow = el("div", { class: "collect-row" });
+      const collectBtn = el("button", { class: "collect-btn" }, "+ 收藏");
+      const collectHint = el("span", { class: "hint" });
+      collectRow.append(collectBtn, collectHint);
+      $app.append(collectRow);
+
+      const collectTypes = [
+        { value: 1, label: "在看" },
+        { value: 2, label: "想看" },
+        { value: 3, label: "搁置" },
+        { value: 4, label: "看过" },
+        { value: 5, label: "抛弃" },
+      ];
+      const collectLabelOf = (t) => (collectTypes.find((x) => x.value === t) || {}).label || "";
+      const updateCollectBtn = (type) => {
+        if (type === 0 || type == null) {
+          collectBtn.className = "collect-btn";
+          collectBtn.textContent = "+ 收藏";
+        } else {
+          collectBtn.className = "collect-btn is-collected";
+          collectBtn.textContent = "已" + collectLabelOf(type);
+        }
+      };
+      let currentCollectType = 0;
+      fetchJson("/api/collect?bangumiId=" + id)
+        .then((data) => {
+          currentCollectType = data.type || 0;
+          updateCollectBtn(currentCollectType);
+        })
+        .catch(() => {});
+      collectBtn.addEventListener("click", () => {
+        openModal((sheet, _close) => {
+          sheet.append(el("div", { class: "modal-title" }, "选择收藏状态"));
+          const list = el("div", { class: "list" });
+          for (const t of collectTypes) {
+            const node = el(
+              "div",
+              { class: "item" },
+              t.label + (t.value === currentCollectType ? " · 当前" : "")
+            );
+            node.addEventListener("click", async () => {
+              try {
+                const res = await fetch("/api/collect", {
+                  method: "PUT",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ bangumiId: id, type: t.value }),
+                });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const body = await res.json();
+                currentCollectType = body.type;
+                updateCollectBtn(currentCollectType);
+                _close();
+              } catch (e) {
+                collectHint.textContent = "保存失败：" + e.message;
+              }
+            });
+            list.append(node);
+          }
+          if (currentCollectType !== 0) {
+            const removeBtn = el("button", { class: "tonal" }, "取消收藏");
+            removeBtn.style.marginTop = "10px";
+            removeBtn.style.width = "100%";
+            removeBtn.addEventListener("click", async () => {
+              try {
+                const res = await fetch("/api/collect?bangumiId=" + id, { method: "DELETE" });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                currentCollectType = 0;
+                updateCollectBtn(0);
+                _close();
+              } catch (e) {
+                collectHint.textContent = "删除失败：" + e.message;
+              }
+            });
+            sheet.append(list, removeBtn);
+          } else {
+            sheet.append(list);
+          }
+        });
+      });
 
       // Tabs
       const tabBar = el("div", { class: "tabs" });
@@ -1371,6 +1475,26 @@ const String lanWebIndexHtml = r'''
       }
     }
 
+    // ====== Progress reporting ======
+    let activeProgressTimer = null;
+    function disposeProgressReporter() {
+      if (activeProgressTimer != null) {
+        clearInterval(activeProgressTimer);
+        activeProgressTimer = null;
+      }
+    }
+    async function reportProgress(payload) {
+      try {
+        await fetch("/api/history/progress", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } catch (_) {
+        // 进度上报失败不打扰用户
+      }
+    }
+
     // 当前播放页持有的 hls.js 实例，跳出页面时销毁
     let activeHls = null;
     function disposeHls() {
@@ -1445,7 +1569,8 @@ const String lanWebIndexHtml = r'''
     async function renderPlayer(params) {
       disposeHls();
       disposeDanmaku();
-      const { plugin, episodeUrl, title, bid, episode } = params;
+      disposeProgressReporter();
+      const { plugin, episodeUrl, title, bid, episode, road } = params;
       setBar(title || "播放", true);
       $app.innerHTML = "";
 
@@ -1572,18 +1697,64 @@ const String lanWebIndexHtml = r'''
         } else {
           countNode.textContent = "需从番剧详情页打开才能加载弹幕";
         }
+
+        // ====== 进度同步 ======
+        if (bid && episode && plugin) {
+          const epNum = parseInt(episode, 10);
+          const roadNum = parseInt(road || "0", 10);
+          // 取上次进度并 resume
+          try {
+            const data = await fetchJson(
+              "/api/history?bangumiId=" + encodeURIComponent(bid) +
+              "&pluginName=" + encodeURIComponent(plugin)
+            );
+            const history = data.history;
+            const prog = history && history.progresses && history.progresses[String(epNum)];
+            if (prog && prog.progressMs > 5000) {
+              const seekTo = prog.progressMs / 1000;
+              const doSeek = () => {
+                if (Math.abs((video.currentTime || 0) - seekTo) > 2) {
+                  try { video.currentTime = seekTo; } catch (_) {}
+                }
+              };
+              if (video.readyState >= 1) doSeek();
+              else video.addEventListener("loadedmetadata", doSeek, { once: true });
+            }
+          } catch (_) {}
+
+          const epName = (title || "").split(" · ").pop() || "";
+          const send = () => {
+            const t = video.currentTime || 0;
+            if (t < 5) return;
+            reportProgress({
+              bangumiId: parseInt(bid, 10),
+              pluginName: plugin,
+              episode: epNum,
+              road: roadNum,
+              progressMs: Math.floor(t * 1000),
+              lastSrc: episodeUrl,
+              episodeName: epName,
+            });
+          };
+          activeProgressTimer = setInterval(send, 5000);
+          // 暂停时立即上报一次
+          video.addEventListener("pause", send);
+          // 离开页面前再上报一次
+          window.addEventListener("pagehide", send, { once: true });
+        }
       } catch (e) {
         status.remove();
         $app.append(el("div", { class: "status error" }, "解析失败：" + e.message));
       }
     }
 
-    // 离开播放页时销毁 hls.js + 弹幕
+    // 离开播放页时销毁 hls.js + 弹幕 + 进度上报
     window.addEventListener("hashchange", () => {
       const { path } = parseRoute();
       if (path !== "/play") {
         disposeHls();
         disposeDanmaku();
+        disposeProgressReporter();
       }
     });
 

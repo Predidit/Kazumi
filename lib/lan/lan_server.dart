@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -13,12 +14,16 @@ import 'package:kazumi/lan/source_resolver.dart';
 import 'package:kazumi/lan/web_index_html.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/providers/video/video_source_provider.dart';
+import 'package:kazumi/repositories/collect_crud_repository.dart';
+import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -123,6 +128,16 @@ class LanServer {
     router.get('/api/bangumi/<id|[0-9]+>/staff', _handleBangumiStaff);
 
     router.get('/api/danmaku', _handleDanmaku);
+
+    router.get('/api/history', _handleGetHistory);
+    router.get('/api/history/list', _handleListHistory);
+    router.post('/api/history/progress', _handleUpdateProgress);
+    router.delete('/api/history', _handleDeleteHistory);
+
+    router.get('/api/collect', _handleGetCollect);
+    router.get('/api/collect/list', _handleListCollect);
+    router.put('/api/collect', _handlePutCollect);
+    router.delete('/api/collect', _handleDeleteCollect);
 
     router.get('/assets/<file>', _handleAsset);
 
@@ -522,6 +537,206 @@ class LanServer {
           error: e, stackTrace: st);
       return _jsonError(502, 'danmaku_failed', e.toString());
     }
+  }
+
+  // ====== History ======
+  IHistoryRepository get _historyRepo => Modular.get<IHistoryRepository>();
+  ICollectCrudRepository get _collectRepo =>
+      Modular.get<ICollectCrudRepository>();
+
+  Response _handleGetHistory(Request request) {
+    final bangumiId =
+        int.tryParse(request.url.queryParameters['bangumiId'] ?? '');
+    final pluginName =
+        request.url.queryParameters['pluginName']?.trim() ?? '';
+    if (bangumiId == null || pluginName.isEmpty) {
+      return _jsonError(400, 'invalid_params',
+          'bangumiId and pluginName are required');
+    }
+    final history = GStorage.histories.get('$pluginName$bangumiId');
+    if (history == null) {
+      return _json({'history': null});
+    }
+    return _json({'history': _historyToJson(history)});
+  }
+
+  Response _handleListHistory(Request request) {
+    final list = _historyRepo.getAllHistories();
+    return _json({
+      'items': list.map(_historyToJson).toList(),
+    });
+  }
+
+  Future<Response> _handleUpdateProgress(Request request) async {
+    final body = await request.readAsString();
+    Map<String, dynamic>? json;
+    try {
+      json = jsonDecode(body) as Map<String, dynamic>;
+    } catch (_) {
+      return _jsonError(400, 'invalid_body', 'body must be json');
+    }
+    final bangumiId = (json['bangumiId'] as num?)?.toInt();
+    final pluginName = (json['pluginName'] as String?)?.trim();
+    final episode = (json['episode'] as num?)?.toInt();
+    final road = (json['road'] as num?)?.toInt() ?? 0;
+    final progressMs = (json['progressMs'] as num?)?.toInt();
+    final lastSrc = (json['lastSrc'] as String?) ?? '';
+    final episodeName = (json['episodeName'] as String?) ?? '';
+    if (bangumiId == null ||
+        pluginName == null ||
+        pluginName.isEmpty ||
+        episode == null ||
+        progressMs == null) {
+      return _jsonError(400, 'invalid_params',
+          'bangumiId, pluginName, episode, progressMs are required');
+    }
+
+    final bangumi = await _resolveBangumiItem(bangumiId, pluginName);
+    if (bangumi == null) {
+      return _jsonError(404, 'bangumi_not_found', 'bangumi not found');
+    }
+
+    try {
+      await _historyRepo.updateHistory(
+        episode: episode,
+        road: road,
+        adapterName: pluginName,
+        bangumiItem: bangumi,
+        progress: Duration(milliseconds: progressMs),
+        lastSrc: lastSrc,
+        lastWatchEpisodeName: episodeName,
+      );
+      return _json({'ok': true});
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: history update failed',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'history_update_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleDeleteHistory(Request request) async {
+    final bangumiId =
+        int.tryParse(request.url.queryParameters['bangumiId'] ?? '');
+    final pluginName =
+        request.url.queryParameters['pluginName']?.trim() ?? '';
+    if (bangumiId == null || pluginName.isEmpty) {
+      return _jsonError(400, 'invalid_params',
+          'bangumiId and pluginName are required');
+    }
+    final history = GStorage.histories.get('$pluginName$bangumiId');
+    if (history == null) return _json({'ok': true});
+    await _historyRepo.deleteHistory(history);
+    return _json({'ok': true});
+  }
+
+  Map<String, dynamic> _historyToJson(History h) {
+    final progresses = <String, dynamic>{};
+    h.progresses.forEach((ep, p) {
+      progresses[ep.toString()] = {
+        'episode': p.episode,
+        'road': p.road,
+        'progressMs': p.progress.inMilliseconds,
+      };
+    });
+    return {
+      'bangumiId': h.bangumiItem.id,
+      'pluginName': h.adapterName,
+      'lastWatchEpisode': h.lastWatchEpisode,
+      'lastWatchEpisodeName': h.lastWatchEpisodeName,
+      'lastWatchTime': h.lastWatchTime.millisecondsSinceEpoch,
+      'lastSrc': h.lastSrc,
+      'progresses': progresses,
+      'bangumi': _bangumiItemToJson(h.bangumiItem),
+    };
+  }
+
+  // ====== Collect ======
+  Response _handleGetCollect(Request request) {
+    final bangumiId =
+        int.tryParse(request.url.queryParameters['bangumiId'] ?? '');
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_params', 'bangumiId is required');
+    }
+    final type = _collectRepo.getCollectType(bangumiId);
+    final collectible = _collectRepo.getCollectible(bangumiId);
+    return _json({
+      'bangumiId': bangumiId,
+      'type': type,
+      'time': collectible?.time.millisecondsSinceEpoch,
+    });
+  }
+
+  Response _handleListCollect(Request request) {
+    final filterType = int.tryParse(request.url.queryParameters['type'] ?? '');
+    final all = _collectRepo.getAllCollectibles();
+    final list = filterType == null
+        ? all
+        : all.where((c) => c.type == filterType).toList();
+    list.sort((a, b) => b.time.compareTo(a.time));
+    return _json({
+      'items': list.map(_collectibleToJson).toList(),
+    });
+  }
+
+  Future<Response> _handlePutCollect(Request request) async {
+    final body = await request.readAsString();
+    Map<String, dynamic>? json;
+    try {
+      json = jsonDecode(body) as Map<String, dynamic>;
+    } catch (_) {
+      return _jsonError(400, 'invalid_body', 'body must be json');
+    }
+    final bangumiId = (json['bangumiId'] as num?)?.toInt();
+    final type = (json['type'] as num?)?.toInt();
+    if (bangumiId == null || type == null) {
+      return _jsonError(
+          400, 'invalid_params', 'bangumiId and type are required');
+    }
+    if (type == 0) {
+      await _collectRepo.deleteCollectible(bangumiId);
+      return _json({'ok': true, 'type': 0});
+    }
+    final bangumi = await _resolveBangumiItem(bangumiId, null);
+    if (bangumi == null) {
+      return _jsonError(404, 'bangumi_not_found', 'bangumi not found');
+    }
+    try {
+      await _collectRepo.addCollectible(bangumi, type);
+      return _json({'ok': true, 'type': type});
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: collect update failed', error: e, stackTrace: st);
+      return _jsonError(500, 'collect_update_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleDeleteCollect(Request request) async {
+    final bangumiId =
+        int.tryParse(request.url.queryParameters['bangumiId'] ?? '');
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_params', 'bangumiId is required');
+    }
+    await _collectRepo.deleteCollectible(bangumiId);
+    return _json({'ok': true});
+  }
+
+  Map<String, dynamic> _collectibleToJson(CollectedBangumi c) => {
+        'bangumiId': c.bangumiItem.id,
+        'type': c.type,
+        'time': c.time.millisecondsSinceEpoch,
+        'bangumi': _bangumiItemToJson(c.bangumiItem),
+      };
+
+  /// 找一个可用的 BangumiItem：本地 history / 收藏里有就直接复用，否则现拉。
+  Future<BangumiItem?> _resolveBangumiItem(
+      int bangumiId, String? pluginName) async {
+    if (pluginName != null && pluginName.isNotEmpty) {
+      final existing = GStorage.histories.get('$pluginName$bangumiId');
+      if (existing != null) return existing.bangumiItem;
+    }
+    final collected = _collectRepo.getCollectible(bangumiId);
+    if (collected != null) return collected.bangumiItem;
+    return BangumiApi.getBangumiInfoByID(bangumiId);
   }
 
   static Map<String, dynamic> _danmakuToJson(Danmaku d) {

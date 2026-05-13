@@ -1,6 +1,8 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
 
 import 'package:kazumi/lan/lan_server.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 
@@ -9,7 +11,9 @@ part 'lan_server_controller.g.dart';
 class LanServerController = _LanServerController with _$LanServerController;
 
 abstract class _LanServerController with Store {
-  final LanServer _server = LanServer();
+  late final LanServer _server = LanServer(
+    pluginsProvider: () => Modular.get<PluginsController>(),
+  );
 
   @observable
   bool isRunning = false;

@@ -5,6 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/utils/utils.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -162,21 +163,23 @@ class _MyPageState extends State<MyPage> {
                 ),
               ],
             ),
-            SettingsSection(
-              title: Text('实验性功能', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    Modular.to.pushNamed('/settings/lan/');
-                  },
-                  leading: const Icon(Icons.lan_rounded),
-                  title:
-                      Text('局域网 Web 服务', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('在本机开启 HTTP 服务，让局域网内其他设备访问',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
+            if (Utils.isDesktop())
+              SettingsSection(
+                title: Text('实验性功能',
+                    style: TextStyle(fontFamily: fontFamily)),
+                tiles: [
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      Modular.to.pushNamed('/settings/lan/');
+                    },
+                    leading: const Icon(Icons.lan_rounded),
+                    title: Text('局域网 Web 服务',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('在本机开启 HTTP 服务，让局域网内其他设备访问',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                ],
+              ),
             SettingsSection(
               title: Text('其他', style: TextStyle(fontFamily: fontFamily)),
               tiles: [

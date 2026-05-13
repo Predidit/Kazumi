@@ -293,6 +293,234 @@ const String lanWebIndexHtml = r'''
     }
     button.tonal:hover { background: var(--surface-container-highest); }
 
+    /* ========== Bangumi card (search result) ========== */
+    .bangumi-card {
+      display: flex;
+      gap: 12px;
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .bangumi-card:hover { background: var(--surface-container-high); }
+    .bangumi-card .cover {
+      width: 78px;
+      height: 110px;
+      flex-shrink: 0;
+      background: var(--surface-container-high);
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: var(--shadow-1);
+    }
+    .bangumi-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .bangumi-card .name { font-size: 15px; font-weight: 500; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .bangumi-card .alt { font-size: 12px; color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bangumi-card .summary { font-size: 12px; color: var(--on-surface-variant); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .bangumi-card .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--on-surface-variant); margin-top: auto; }
+    .bangumi-card .score { color: var(--primary); font-weight: 600; }
+
+    /* ========== Detail hero ========== */
+    .hero {
+      position: relative;
+      margin: -16px -16px 16px;
+      padding: calc(env(safe-area-inset-top) + 16px) 16px 18px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -40px;
+      background-size: cover;
+      background-position: center;
+      background-image: var(--hero-bg);
+      filter: blur(28px) saturate(120%);
+      opacity: 0.45;
+      z-index: -2;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 0%, var(--surface) 100%);
+      z-index: -1;
+    }
+    .hero-row { display: flex; gap: 14px; }
+    .hero-cover {
+      width: 110px;
+      height: 156px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--surface-container);
+      box-shadow: var(--shadow-2);
+      flex-shrink: 0;
+    }
+    .hero-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .hero-title { font-size: 18px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+    .hero-alt { font-size: 13px; color: var(--on-surface-variant); word-break: break-word; }
+    .hero-stat { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; }
+    .hero-score { font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1; }
+    .hero-stars { font-size: 14px; color: var(--primary); }
+    .hero-votes { font-size: 12px; color: var(--on-surface-variant); }
+    .hero-rank { font-size: 12px; color: var(--on-surface-variant); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--surface-container-high);
+      border: 1px solid var(--outline-variant);
+      color: var(--on-surface-variant);
+    }
+
+    /* ========== Tabs ========== */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--outline-variant);
+      margin: 18px 0 12px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--on-surface-variant);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab.is-active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+
+    /* ========== Summary ========== */
+    .summary-card {
+      background: var(--surface-container);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      border: 1px solid var(--outline-variant);
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--on-surface);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .summary-card.collapsed {
+      max-height: 8.5em;
+      overflow: hidden;
+      mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+      -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+    }
+    .summary-toggle {
+      display: block;
+      margin: 10px auto 0;
+      background: transparent;
+      color: var(--primary);
+      border: none;
+      font: inherit;
+      cursor: pointer;
+      padding: 6px 12px;
+    }
+
+    /* ========== Character / staff / comment grids ========== */
+    .char-grid, .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .char-card, .staff-card {
+      display: flex;
+      gap: 10px;
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      align-items: center;
+    }
+    .char-card img, .staff-card img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface-container-high);
+      flex-shrink: 0;
+    }
+    .char-card .meta, .staff-card .meta { min-width: 0; line-height: 1.35; }
+    .char-card .name, .staff-card .name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .char-card .relation, .staff-card .position { font-size: 11px; color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .char-actors { font-size: 11px; color: var(--on-surface-variant); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .comment-card {
+      background: var(--surface-container);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .comment-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .comment-head img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface-container-high); }
+    .comment-head .username { font-weight: 500; }
+    .comment-head .rate { margin-left: auto; font-size: 12px; color: var(--primary); }
+    .comment-body { font-size: 13px; line-height: 1.6; color: var(--on-surface); white-space: pre-wrap; word-break: break-word; }
+
+    /* ========== FAB ========== */
+    .fab {
+      position: fixed;
+      right: 18px;
+      bottom: calc(env(safe-area-inset-bottom) + 18px);
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      border-radius: 18px;
+      padding: 14px 22px;
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      box-shadow: var(--shadow-2);
+      z-index: 9;
+    }
+    .fab:active { transform: scale(0.97); }
+
+    /* ========== Modal ========== */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 50;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-sheet {
+      background: var(--surface-container-lowest);
+      width: 100%;
+      max-width: 560px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 14px 16px calc(env(safe-area-inset-bottom) + 18px);
+      box-shadow: var(--shadow-2);
+    }
+    @media (min-width: 600px) {
+      .modal-mask { align-items: center; }
+      .modal-sheet { border-radius: var(--radius-lg); max-height: 86vh; }
+    }
+    .modal-handle {
+      width: 36px; height: 4px; background: var(--outline);
+      border-radius: 2px; margin: 0 auto 12px; opacity: 0.6;
+    }
+    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+
     /* ========== Footer ========== */
     .footer {
       margin-top: 32px;
@@ -422,95 +650,412 @@ const String lanWebIndexHtml = r'''
       else $backBtn.setAttribute("hidden", "");
     }
 
+    // ====== Modal ======
+    function openModal(builder) {
+      const mask = el("div", { class: "modal-mask" });
+      const sheet = el("div", { class: "modal-sheet" });
+      sheet.append(el("div", { class: "modal-handle" }));
+      mask.append(sheet);
+      mask.addEventListener("click", (ev) => {
+        if (ev.target === mask) mask.remove();
+      });
+      const close = () => mask.remove();
+      builder(sheet, close);
+      document.body.append(mask);
+      return close;
+    }
+
+    // ====== Bangumi helpers ======
+    function bestBangumiImage(images) {
+      if (!images) return "";
+      return images.large || images.common || images.medium || images.small || images.grid || "";
+    }
+    function renderStars(score) {
+      if (!score || score <= 0) return "";
+      const full = Math.floor(score / 2);
+      const half = score - full * 2 >= 1 ? 1 : 0;
+      const empty = 5 - full - half;
+      return "★".repeat(full) + (half ? "☆" : "") + "·".repeat(empty);
+    }
+
     // ====== Views ======
     async function renderHome() {
       setBar("Kazumi", false);
       $app.innerHTML = "";
 
-      let plugins;
-      try {
-        plugins = await fetchJson("/api/plugins");
-      } catch (e) {
-        setStatus($app, "加载规则失败：" + e.message, true);
-        return;
-      }
-      if (!plugins.length) {
-        setStatus($app, "当前没有可用规则，请先在桌面端的「规则管理」里安装", true);
-        return;
-      }
-
-      const lastPlugin = localStorage.getItem("lastPlugin");
-      const select = el("select", { "aria-label": "规则" });
-      for (const p of plugins) {
-        select.append(el("option", { value: p.name }, p.name));
-      }
-      if (lastPlugin && plugins.some((p) => p.name === lastPlugin)) {
-        select.value = lastPlugin;
-      }
-
       const input = el("input", {
         type: "search",
-        placeholder: "搜索番剧",
+        placeholder: "搜索番剧（Bangumi）",
         autocomplete: "off",
         autocorrect: "off",
         spellcheck: "false",
       });
-      input.value = localStorage.getItem("lastKeyword") || "";
+      input.value = localStorage.getItem("lastBangumiKeyword") || "";
 
       const submit = el("button", { class: "submit", "aria-label": "搜索", type: "submit", html: "&#x2192;" });
-
-      const form = el("form", { class: "search-bar" }, select, input, submit);
+      const form = el("form", { class: "search-bar" }, input, submit);
       form.addEventListener("submit", (ev) => {
         ev.preventDefault();
         const keyword = input.value.trim();
         if (!keyword) return;
-        localStorage.setItem("lastPlugin", select.value);
-        localStorage.setItem("lastKeyword", keyword);
-        runSearch(select.value, keyword);
+        localStorage.setItem("lastBangumiKeyword", keyword);
+        runBangumiSearch(keyword);
       });
       $app.append(form);
 
-      const results = el("div", { class: "list", id: "search-results" });
+      const results = el("div", { class: "list", id: "bangumi-results" });
       $app.append(results);
 
       $app.append(el("div", { class: "footer" }, "Kazumi · Web 预览 · 实验性"));
 
-      if (input.value) runSearch(select.value, input.value);
+      if (input.value) runBangumiSearch(input.value);
     }
 
-    async function runSearch(pluginName, keyword) {
-      const results = document.getElementById("search-results");
+    async function runBangumiSearch(keyword) {
+      const results = document.getElementById("bangumi-results");
       if (!results) return;
       setStatus(results, "搜索中…");
       try {
-        const data = await fetchJson(
-          "/api/search?plugin=" + encodeURIComponent(pluginName) + "&keyword=" + encodeURIComponent(keyword)
-        );
+        const data = await fetchJson("/api/bangumi/search?keyword=" + encodeURIComponent(keyword));
         results.innerHTML = "";
         if (!data.items || !data.items.length) {
           setStatus(results, "没有结果");
           return;
         }
         for (const item of data.items) {
-          results.append(
-            el(
-              "div",
-              {
-                class: "item",
-                onclick: () =>
-                  go("/episodes", {
-                    plugin: pluginName,
-                    src: item.src,
-                    title: item.name,
-                  }),
-              },
-              item.name
-            )
-          );
+          results.append(buildBangumiCard(item));
         }
       } catch (e) {
         setStatus(results, "搜索失败：" + e.message, true);
       }
+    }
+
+    function buildBangumiCard(item) {
+      const img = el("img", {
+        class: "cover",
+        loading: "lazy",
+        alt: "",
+        referrerpolicy: "no-referrer",
+      });
+      const cover = bestBangumiImage(item.images);
+      if (cover) img.src = cover;
+      const tagsRow = el("div", { class: "meta" });
+      if (item.ratingScore > 0) {
+        tagsRow.append(el("span", { class: "score" }, item.ratingScore.toFixed(1)));
+      }
+      if (item.airDate) tagsRow.append(el("span", {}, item.airDate));
+      const info = el(
+        "div",
+        { class: "info" },
+        el("div", { class: "name" }, item.nameCn || item.name),
+        item.nameCn && item.name && item.nameCn !== item.name
+          ? el("div", { class: "alt" }, item.name)
+          : null,
+        item.summary
+          ? el("div", { class: "summary" }, item.summary)
+          : null,
+        tagsRow
+      );
+      const card = el("div", { class: "bangumi-card" }, img, info);
+      card.addEventListener("click", () => go("/bangumi", { id: String(item.id) }));
+      return card;
+    }
+
+    // 旧的 plugin 搜索保留：详情页"开始观看"选源 modal 复用它
+    async function pluginSearchOnce(pluginName, keyword) {
+      const data = await fetchJson(
+        "/api/search?plugin=" + encodeURIComponent(pluginName) + "&keyword=" + encodeURIComponent(keyword)
+      );
+      return data.items || [];
+    }
+
+    async function renderBangumiDetail(params) {
+      const id = parseInt(params.id, 10);
+      if (!id) { go("/home"); return; }
+      setBar("番剧详情", true);
+      $app.innerHTML = "";
+
+      const skeleton = el("div", { class: "status" }, "加载中…");
+      $app.append(skeleton);
+
+      let bangumi;
+      try {
+        bangumi = await fetchJson("/api/bangumi/" + id);
+      } catch (e) {
+        skeleton.remove();
+        setStatus($app, "加载番剧详情失败：" + e.message, true);
+        return;
+      }
+      skeleton.remove();
+
+      // Hero
+      const cover = bestBangumiImage(bangumi.images);
+      const hero = el("div", { class: "hero" });
+      if (cover) hero.style.setProperty("--hero-bg", "url('" + cover + "')");
+      const coverImg = el("img", { class: "hero-cover", loading: "lazy", alt: "", referrerpolicy: "no-referrer" });
+      if (cover) coverImg.src = cover;
+      const heroMeta = el("div", { class: "hero-meta" });
+      heroMeta.append(el("div", { class: "hero-title" }, bangumi.nameCn || bangumi.name));
+      if (bangumi.name && bangumi.nameCn && bangumi.name !== bangumi.nameCn) {
+        heroMeta.append(el("div", { class: "hero-alt" }, bangumi.name));
+      }
+      if (bangumi.ratingScore > 0) {
+        const stat = el("div", { class: "hero-stat" });
+        stat.append(el("span", { class: "hero-score" }, bangumi.ratingScore.toFixed(1)));
+        const stars = renderStars(bangumi.ratingScore);
+        if (stars) stat.append(el("span", { class: "hero-stars" }, stars));
+        if (bangumi.votes > 0) stat.append(el("span", { class: "hero-votes" }, bangumi.votes + " 人评分"));
+        if (bangumi.rank > 0) stat.append(el("span", { class: "hero-rank" }, "Rank #" + bangumi.rank));
+        heroMeta.append(stat);
+      }
+      if (bangumi.airDate) heroMeta.append(el("div", { class: "hero-alt" }, "上映：" + bangumi.airDate));
+      if (Array.isArray(bangumi.tags) && bangumi.tags.length) {
+        const chips = el("div", { class: "chips" });
+        for (const t of bangumi.tags.slice(0, 10)) {
+          chips.append(el("span", { class: "chip" }, t.name));
+        }
+        heroMeta.append(chips);
+      }
+      hero.append(el("div", { class: "hero-row" }, coverImg, heroMeta));
+      $app.append(hero);
+
+      // Tabs
+      const tabBar = el("div", { class: "tabs" });
+      const tabBody = el("div", {});
+      const tabs = [
+        { key: "summary", label: "简介" },
+        { key: "characters", label: "角色" },
+        { key: "staff", label: "制作" },
+        { key: "comments", label: "吐槽" },
+      ];
+      const tabNodes = {};
+      let activeTab = "summary";
+      const switchTab = (key) => {
+        activeTab = key;
+        for (const k of Object.keys(tabNodes)) {
+          tabNodes[k].classList.toggle("is-active", k === key);
+        }
+        renderTabBody(key);
+      };
+      for (const t of tabs) {
+        const node = el("div", { class: "tab" + (t.key === activeTab ? " is-active" : "") }, t.label);
+        node.addEventListener("click", () => switchTab(t.key));
+        tabNodes[t.key] = node;
+        tabBar.append(node);
+      }
+      $app.append(tabBar);
+      $app.append(tabBody);
+
+      function renderTabBody(key) {
+        tabBody.innerHTML = "";
+        if (key === "summary") renderSummary();
+        else if (key === "characters") renderCharacters();
+        else if (key === "staff") renderStaff();
+        else if (key === "comments") renderComments();
+      }
+
+      function renderSummary() {
+        if (!bangumi.summary) {
+          tabBody.append(el("div", { class: "status" }, "暂无简介"));
+          return;
+        }
+        const card = el("div", { class: "summary-card collapsed" }, bangumi.summary);
+        const toggle = el("button", { class: "summary-toggle" }, "展开");
+        toggle.addEventListener("click", () => {
+          const expanded = card.classList.toggle("collapsed");
+          toggle.textContent = expanded ? "展开" : "收起";
+        });
+        tabBody.append(card, toggle);
+        if (Array.isArray(bangumi.alias) && bangumi.alias.length) {
+          tabBody.append(el("h2", {}, "别名"));
+          const chips = el("div", { class: "chips" });
+          for (const a of bangumi.alias) chips.append(el("span", { class: "chip" }, a));
+          tabBody.append(chips);
+        }
+      }
+
+      async function renderCharacters() {
+        tabBody.append(el("div", { class: "status" }, "加载中…"));
+        try {
+          const data = await fetchJson("/api/bangumi/" + id + "/characters");
+          tabBody.innerHTML = "";
+          if (!data.characters || !data.characters.length) {
+            tabBody.append(el("div", { class: "status" }, "暂无角色"));
+            return;
+          }
+          const grid = el("div", { class: "char-grid" });
+          for (const c of data.characters) {
+            const img = el("img", { loading: "lazy", alt: "", referrerpolicy: "no-referrer" });
+            if (c.image) img.src = c.image;
+            const actors = (c.actors || []).map((a) => a.name).filter(Boolean).join(" / ");
+            grid.append(
+              el(
+                "div",
+                { class: "char-card" },
+                img,
+                el(
+                  "div",
+                  { class: "meta" },
+                  el("div", { class: "name" }, c.name),
+                  el("div", { class: "relation" }, c.relation || ""),
+                  actors ? el("div", { class: "char-actors" }, "CV：" + actors) : null
+                )
+              )
+            );
+          }
+          tabBody.append(grid);
+        } catch (e) {
+          tabBody.innerHTML = "";
+          setStatus(tabBody, "加载失败：" + e.message, true);
+        }
+      }
+
+      async function renderStaff() {
+        tabBody.append(el("div", { class: "status" }, "加载中…"));
+        try {
+          const data = await fetchJson("/api/bangumi/" + id + "/staff");
+          tabBody.innerHTML = "";
+          if (!data.items || !data.items.length) {
+            tabBody.append(el("div", { class: "status" }, "暂无制作信息"));
+            return;
+          }
+          const grid = el("div", { class: "staff-grid" });
+          for (const s of data.items) {
+            const img = el("img", { loading: "lazy", alt: "", referrerpolicy: "no-referrer" });
+            if (s.image) img.src = s.image;
+            const positions = (s.positions || []).map((p) => p.type).filter(Boolean).join(" / ");
+            grid.append(
+              el(
+                "div",
+                { class: "staff-card" },
+                img,
+                el(
+                  "div",
+                  { class: "meta" },
+                  el("div", { class: "name" }, s.nameCN || s.name),
+                  el("div", { class: "position" }, positions)
+                )
+              )
+            );
+          }
+          tabBody.append(grid);
+        } catch (e) {
+          tabBody.innerHTML = "";
+          setStatus(tabBody, "加载失败：" + e.message, true);
+        }
+      }
+
+      async function renderComments() {
+        tabBody.append(el("div", { class: "status" }, "加载中…"));
+        try {
+          const data = await fetchJson("/api/bangumi/" + id + "/comments");
+          tabBody.innerHTML = "";
+          if (!data.items || !data.items.length) {
+            tabBody.append(el("div", { class: "status" }, "暂无吐槽"));
+            return;
+          }
+          for (const c of data.items) {
+            const head = el("div", { class: "comment-head" });
+            const avatar = el("img", { alt: "", referrerpolicy: "no-referrer" });
+            if (c.user && c.user.avatar) avatar.src = c.user.avatar;
+            head.append(avatar);
+            head.append(el("span", { class: "username" }, (c.user && (c.user.nickname || c.user.username)) || "用户"));
+            if (c.rate > 0) head.append(el("span", { class: "rate" }, "★ " + c.rate));
+            tabBody.append(
+              el(
+                "div",
+                { class: "comment-card" },
+                head,
+                el("div", { class: "comment-body" }, c.comment)
+              )
+            );
+          }
+        } catch (e) {
+          tabBody.innerHTML = "";
+          setStatus(tabBody, "加载失败：" + e.message, true);
+        }
+      }
+
+      renderTabBody("summary");
+
+      // FAB: 开始观看
+      const fab = el("button", { class: "fab" }, "开始观看");
+      fab.addEventListener("click", () => openSourcePicker(bangumi));
+      $app.append(fab);
+    }
+
+    async function openSourcePicker(bangumi) {
+      const close = openModal(async (sheet, _close) => {
+        sheet.append(el("div", { class: "modal-title" }, "选择视频源"));
+
+        let plugins = [];
+        try {
+          plugins = await fetchJson("/api/plugins");
+        } catch (e) {
+          sheet.append(el("div", { class: "status error" }, "加载规则失败：" + e.message));
+          return;
+        }
+        if (!plugins.length) {
+          sheet.append(el("div", { class: "status" }, "当前没有可用规则"));
+          return;
+        }
+
+        const select = el("select", {});
+        for (const p of plugins) select.append(el("option", { value: p.name }, p.name));
+        const lastPlugin = localStorage.getItem("lastPlugin");
+        if (lastPlugin && plugins.some((p) => p.name === lastPlugin)) select.value = lastPlugin;
+
+        const keywordInput = el("input", {
+          type: "search",
+          placeholder: "搜索关键词",
+          autocomplete: "off",
+          autocorrect: "off",
+          spellcheck: "false",
+        });
+        keywordInput.value = bangumi.nameCn || bangumi.name;
+
+        const submit = el("button", { class: "submit", type: "submit", "aria-label": "搜索", html: "&#x2192;" });
+        const form = el("form", { class: "search-bar" }, select, keywordInput, submit);
+        sheet.append(form);
+
+        const list = el("div", { class: "list" });
+        sheet.append(list);
+
+        const run = async () => {
+          setStatus(list, "搜索中…");
+          try {
+            const items = await pluginSearchOnce(select.value, keywordInput.value.trim());
+            list.innerHTML = "";
+            if (!items.length) { setStatus(list, "没有结果"); return; }
+            for (const item of items) {
+              list.append(
+                el(
+                  "div",
+                  {
+                    class: "item",
+                    onclick: () => {
+                      localStorage.setItem("lastPlugin", select.value);
+                      _close();
+                      go("/episodes", {
+                        plugin: select.value,
+                        src: item.src,
+                        title: bangumi.nameCn || bangumi.name,
+                        bid: String(bangumi.id),
+                      });
+                    },
+                  },
+                  item.name
+                )
+              );
+            }
+          } catch (e) {
+            setStatus(list, "搜索失败：" + e.message, true);
+          }
+        };
+        form.addEventListener("submit", (ev) => { ev.preventDefault(); run(); });
+        run();
+      });
+      return close;
     }
 
     async function renderEpisodes(params) {
@@ -699,6 +1244,7 @@ const String lanWebIndexHtml = r'''
     function dispatch() {
       const { path, params } = parseRoute();
       if (path === "/home" || path === "/") return renderHome();
+      if (path === "/bangumi") return renderBangumiDetail(params);
       if (path === "/episodes") return renderEpisodes(params);
       if (path === "/play") return renderPlayer(params);
       go("/home");

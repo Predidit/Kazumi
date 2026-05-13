@@ -11,9 +11,14 @@ import 'package:kazumi/lan/proxy/proxy_session_store.dart';
 import 'package:kazumi/lan/proxy/video_proxy_handler.dart';
 import 'package:kazumi/lan/source_resolver.dart';
 import 'package:kazumi/lan/web_index_html.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
+import 'package:kazumi/modules/characters/character_item.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/providers/video/video_source_provider.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
@@ -107,6 +112,13 @@ class LanServer {
     router.get('/api/episodes', _handleEpisodes);
     router.get('/api/resolve', _handleResolve);
     router.get('/api/theme', _handleTheme);
+
+    router.get('/api/bangumi/search', _handleBangumiSearch);
+    router.get('/api/bangumi/<id|[0-9]+>', _handleBangumiDetail);
+    router.get('/api/bangumi/<id|[0-9]+>/characters',
+        _handleBangumiCharacters);
+    router.get('/api/bangumi/<id|[0-9]+>/comments', _handleBangumiComments);
+    router.get('/api/bangumi/<id|[0-9]+>/staff', _handleBangumiStaff);
 
     router.get('/assets/<file>', _handleAsset);
 
@@ -326,6 +338,165 @@ class LanServer {
       return _jsonError(500, 'resolve_failed', e.toString());
     }
   }
+
+  Future<Response> _handleBangumiSearch(Request request) async {
+    final keyword = request.url.queryParameters['keyword']?.trim() ?? '';
+    if (keyword.isEmpty) {
+      return _jsonError(400, 'keyword_required', 'keyword is required');
+    }
+    final offset =
+        int.tryParse(request.url.queryParameters['offset'] ?? '0') ?? 0;
+    try {
+      final list = await BangumiApi.bangumiSearch(keyword, offset: offset);
+      return _json({
+        'items': list.map(_bangumiItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: bangumi search failed',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'search_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleBangumiDetail(Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    try {
+      final item = await BangumiApi.getBangumiInfoByID(bangumiId);
+      if (item == null) {
+        return _jsonError(404, 'not_found', 'bangumi not found');
+      }
+      return _json(_bangumiItemToJson(item));
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: bangumi detail failed', error: e, stackTrace: st);
+      return _jsonError(500, 'detail_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleBangumiCharacters(
+      Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    try {
+      final res = await BangumiApi.getCharatersByBangumiID(bangumiId);
+      final ordered = [...res.charactersList];
+      const relationOrder = {'主角': 1, '配角': 2, '客串': 3};
+      ordered.sort((a, b) =>
+          (relationOrder[a.relation] ?? 4)
+              .compareTo(relationOrder[b.relation] ?? 4));
+      return _json({
+        'characters': ordered.map(_characterItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: bangumi characters failed',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'characters_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleBangumiComments(
+      Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    final offset =
+        int.tryParse(request.url.queryParameters['offset'] ?? '0') ?? 0;
+    try {
+      final res = await BangumiApi.getBangumiCommentsByID(bangumiId,
+          offset: offset);
+      return _json({
+        'total': res.total,
+        'items': res.commentList.map(_commentItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: bangumi comments failed',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'comments_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleBangumiStaff(Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    try {
+      final res = await BangumiApi.getBangumiStaffByID(bangumiId);
+      return _json({
+        'total': res.total,
+        'items': res.data.map(_staffItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: bangumi staff failed', error: e, stackTrace: st);
+      return _jsonError(500, 'staff_failed', e.toString());
+    }
+  }
+
+  static Map<String, dynamic> _bangumiItemToJson(BangumiItem b) => {
+        'id': b.id,
+        'type': b.type,
+        'name': b.name,
+        'nameCn': b.nameCn,
+        'summary': b.summary,
+        'airDate': b.airDate,
+        'airWeekday': b.airWeekday,
+        'rank': b.rank,
+        'ratingScore': b.ratingScore,
+        'votes': b.votes,
+        'votesCount': b.votesCount,
+        'images': b.images,
+        'tags': b.tags
+            .map((t) => {'name': t.name, 'count': t.count})
+            .toList(),
+        'alias': b.alias,
+      };
+
+  static Map<String, dynamic> _characterItemToJson(CharacterItem c) => {
+        'id': c.id,
+        'name': c.name,
+        'relation': c.relation,
+        'image': c.avator.large.isNotEmpty
+            ? c.avator.large
+            : c.avator.medium,
+        'actors': c.actorList
+            .map((a) => {
+                  'id': a.id,
+                  'name': a.name,
+                  'image': a.avator.medium,
+                })
+            .toList(),
+      };
+
+  static Map<String, dynamic> _commentItemToJson(CommentItem c) => {
+        'user': {
+          'username': c.user.username,
+          'nickname': c.user.nickname,
+          'avatar': c.user.avatar.medium,
+        },
+        'rate': c.comment.rate,
+        'comment': c.comment.comment,
+        'updatedAt': c.comment.updatedAt,
+      };
+
+  static Map<String, dynamic> _staffItemToJson(StaffFullItem s) => {
+        'id': s.staff.id,
+        'name': s.staff.name,
+        'nameCN': s.staff.nameCN,
+        'image': s.staff.images?.medium ?? s.staff.images?.large ?? '',
+        'positions': s.positions
+            .map((p) => {
+                  'type': p.type.cn.isNotEmpty ? p.type.cn : p.type.en,
+                  'summary': p.summary,
+                })
+            .toList(),
+      };
 
   Plugin? _findPlugin(String name) {
     for (final p in _pluginsProvider().pluginList) {

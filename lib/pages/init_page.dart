@@ -18,6 +18,7 @@ import 'package:kazumi/shaders/shaders_controller.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/utils/background_download_service.dart';
 import 'package:kazumi/utils/windows_shortcut.dart';
+import 'package:kazumi/lan/lan_server_controller.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -49,6 +50,7 @@ class _InitPageState extends State<InitPage> {
     _loadDanmakuShield();
     _webDavInit();
     _bangumiInit();
+    _lanServerInit();
     try {
       await downloadController.init();
       _setupBackgroundDownloadNavigation();
@@ -162,6 +164,18 @@ class _InitPageState extends State<InitPage> {
           stackTrace: stackTrace,
         );
       }
+    }
+  }
+
+  Future<void> _lanServerInit() async {
+    final enabled =
+        setting.get(SettingBoxKey.lanServerEnable, defaultValue: false);
+    if (!enabled) return;
+    try {
+      await Modular.get<LanServerController>()
+          .start(persistPreference: false);
+    } catch (e) {
+      KazumiLogger().w('LanServer: auto start failed', error: e);
     }
   }
 

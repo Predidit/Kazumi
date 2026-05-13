@@ -163,6 +163,21 @@ class _MyPageState extends State<MyPage> {
               ],
             ),
             SettingsSection(
+              title: Text('实验性功能', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    Modular.to.pushNamed('/settings/lan/');
+                  },
+                  leading: const Icon(Icons.lan_rounded),
+                  title:
+                      Text('局域网 Web 服务', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('在本机开启 HTTP 服务，让局域网内其他设备访问',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            SettingsSection(
               title: Text('其他', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(

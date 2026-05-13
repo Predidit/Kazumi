@@ -23,6 +23,7 @@ import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
+import 'package:kazumi/lan/lan_server_controller.dart';
 
 class IndexModule extends Module {
   @override
@@ -48,6 +49,7 @@ class IndexModule extends Module {
     i.addSingleton(MyController.new);
     i.addSingleton(ShadersController.new);
     i.addSingleton(DownloadController.new);
+    i.addSingleton(LanServerController.new);
   }
 
   @override

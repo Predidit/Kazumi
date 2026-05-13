@@ -2,15 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart' hide Router;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
+import 'package:kazumi/bean/settings/effective_color_scheme_notifier.dart';
 import 'package:kazumi/lan/proxy/proxy_session_store.dart';
 import 'package:kazumi/lan/proxy/video_proxy_handler.dart';
 import 'package:kazumi/lan/source_resolver.dart';
+import 'package:kazumi/lan/theme_export.dart';
 import 'package:kazumi/lan/web_index_html.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
@@ -53,6 +57,14 @@ class LanServer {
 
   HttpServer? _httpServer;
 
+  /// SSE 主题推送通道。所有连接到 `/api/theme/stream` 的客户端共享这个
+  /// broadcast stream；桌面端 setting 变化或 effective ColorScheme 重算
+  /// 时调 [_emitTheme]，每个连接都会收到一条。
+  final StreamController<String> _themeEventController =
+      StreamController<String>.broadcast();
+  StreamSubscription<BoxEvent>? _settingWatchSub;
+  bool _notifierListenerAttached = false;
+
   bool get isRunning => _httpServer != null;
 
   int? get port => _httpServer?.port;
@@ -64,6 +76,7 @@ class LanServer {
         .addHandler(_buildRouter().call);
     _httpServer =
         await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+    _attachThemeWatchers();
     KazumiLogger().i('LanServer: listening on port ${_httpServer!.port}');
   }
 
@@ -76,10 +89,48 @@ class LanServer {
     } catch (e) {
       KazumiLogger().w('LanServer: stop error: $e');
     }
+    _detachThemeWatchers();
     _sessionStore.clear();
     await _sourceResolver.dispose();
     _proxyHandler.close();
     KazumiLogger().i('LanServer: stopped');
+  }
+
+  void _attachThemeWatchers() {
+    _settingWatchSub ??= GStorage.setting.watch().listen((event) {
+      // 只关心主题相关 key，过滤掉无关变更避免噪音
+      final key = event.key;
+      if (key == SettingBoxKey.themeMode ||
+          key == SettingBoxKey.themeColor ||
+          key == SettingBoxKey.useDynamicColor ||
+          key == SettingBoxKey.oledEnhance) {
+        _emitTheme();
+      }
+    });
+    if (!_notifierListenerAttached) {
+      effectiveColorSchemeNotifier.addListener(_emitTheme);
+      _notifierListenerAttached = true;
+    }
+  }
+
+  void _detachThemeWatchers() {
+    _settingWatchSub?.cancel();
+    _settingWatchSub = null;
+    if (_notifierListenerAttached) {
+      effectiveColorSchemeNotifier.removeListener(_emitTheme);
+      _notifierListenerAttached = false;
+    }
+  }
+
+  void _emitTheme() {
+    if (_themeEventController.isClosed) return;
+    try {
+      final payload = _buildThemePayload();
+      _themeEventController.add('data: ${jsonEncode(payload)}\n\n');
+    } catch (e, st) {
+      KazumiLogger().w('LanServer: emit theme failed',
+          error: e, stackTrace: st);
+    }
   }
 
   /// 枚举本机非回环的 IPv4 地址。供设置页展示给用户。
@@ -119,6 +170,7 @@ class LanServer {
     router.get('/api/episodes', _handleEpisodes);
     router.get('/api/resolve', _handleResolve);
     router.get('/api/theme', _handleTheme);
+    router.get('/api/theme/stream', _handleThemeStream);
 
     router.get('/api/bangumi/search', _handleBangumiSearch);
     router.get('/api/bangumi/<id|[0-9]+>', _handleBangumiDetail);
@@ -155,28 +207,97 @@ class LanServer {
   }
 
   Response _handleTheme(Request request) {
+    return _json(_buildThemePayload());
+  }
+
+  /// SSE：把 [_themeEventController] 的事件流原样返给客户端。
+  Response _handleThemeStream(Request request) {
+    final headers = {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      'connection': 'keep-alive',
+      // 阻止 nginx / 反代缓冲
+      'x-accel-buffering': 'no',
+      // SSE 同源同地址，CORS 也开放
+      'access-control-allow-origin': '*',
+    };
+    // 连接建立后立刻推一条当前状态，避免新连接要等到下次变更才拿到数据
+    scheduleMicrotask(_emitTheme);
+    return Response.ok(
+      _themeEventController.stream.transform(utf8.encoder),
+      headers: headers,
+    );
+  }
+
+  /// 构造 v2 theme payload。
+  ///
+  /// 颜色优先从 [effectiveColorSchemeNotifier] 拿（桌面端 DynamicColorBuilder
+  /// 已经决定的"实际生效"ColorScheme）；若 Notifier 还没就绪（启动早期）
+  /// 回退到 `ColorScheme.fromSeed(seed)` 自行生成。
+  Map<String, dynamic> _buildThemePayload() {
     final box = GStorage.setting;
     final themeMode =
         box.get(SettingBoxKey.themeMode, defaultValue: 'system') as String;
     final rawColor =
         box.get(SettingBoxKey.themeColor, defaultValue: 'default') as String;
-    String primaryColor = _defaultPrimaryHex;
-    if (rawColor != 'default') {
-      try {
-        final argb = int.parse(rawColor, radix: 16);
-        final rgb = argb & 0xFFFFFF;
-        primaryColor = '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
-      } catch (_) {
-        primaryColor = _defaultPrimaryHex;
-      }
-    }
+    final oledEnhance =
+        box.get(SettingBoxKey.oledEnhance, defaultValue: false) as bool;
     final useDynamicColor =
         box.get(SettingBoxKey.useDynamicColor, defaultValue: false) as bool;
-    return _json({
+
+    final seedColor = _parseSeedColor(rawColor);
+    final primaryHex = _colorToHex(seedColor);
+
+    final cached = effectiveColorSchemeNotifier.value;
+    final lightScheme = cached?.light ??
+        buildScheme(
+          seed: seedColor,
+          brightness: Brightness.light,
+          oledEnhance: false,
+        );
+    final darkScheme = cached?.dark ??
+        buildScheme(
+          seed: seedColor,
+          brightness: Brightness.dark,
+          oledEnhance: oledEnhance,
+        );
+
+    return {
+      'version': 2,
+      // v1 兼容字段
       'themeMode': themeMode,
-      'primaryColor': primaryColor,
+      'primaryColor': primaryHex,
       'useDynamicColor': useDynamicColor,
-    });
+      // v2 扩展
+      'oledEnhance': oledEnhance,
+      'schemes': {
+        'light': exportColorTokens(lightScheme),
+        'dark': exportColorTokens(darkScheme),
+      },
+      'typography': exportTypographyTokens(),
+    };
+  }
+
+  Color _parseSeedColor(String raw) {
+    if (raw == 'default') return Colors.green;
+    try {
+      final argb = int.parse(raw, radix: 16);
+      // raw 是 ARGB hex；如果是 6 位则补 alpha
+      return Color(argb >= 0xFF000000 ? argb : (argb | 0xFF000000));
+    } catch (_) {
+      return Colors.green;
+    }
+  }
+
+  String _colorToHex(Color c) {
+    final r = (c.r * 255).round() & 0xFF;
+    final g = (c.g * 255).round() & 0xFF;
+    final b = (c.b * 255).round() & 0xFF;
+    return '#'
+        '${r.toRadixString(16).padLeft(2, '0')}'
+        '${g.toRadixString(16).padLeft(2, '0')}'
+        '${b.toRadixString(16).padLeft(2, '0')}'
+        .toUpperCase();
   }
 
   Future<Response> _handleAsset(Request request, String file) async {
@@ -198,8 +319,6 @@ class LanServer {
       return Response.notFound('asset load error');
     }
   }
-
-  static const String _defaultPrimaryHex = '#4CAF50';
 
   static final Map<String, _StaticAsset> _staticAssets = {
     'MiSans-Regular.ttf': _StaticAsset(
@@ -830,11 +949,18 @@ class LanServer {
 
   /// 简单的 CORS 中间件。当前服务端通常被同源访问（HTML 客户端来自同一服务），
   /// 但保留宽松 CORS 便于开发期 curl/调试以及未来从 Kazumi 桌面端直接调用。
+  ///
+  /// SSE 路径必须跳过 `change(headers: ...)` 包装——shelf 的 change 会
+  /// 重新封装 body 触发缓冲，导致流式推送被卡住。
   Middleware _corsMiddleware() {
     return (Handler inner) {
       return (Request request) async {
         if (request.method == 'OPTIONS') {
           return Response.ok('', headers: _corsHeaders);
+        }
+        final isSse = request.url.path.endsWith('theme/stream');
+        if (isSse) {
+          return inner(request);
         }
         final response = await inner(request);
         return response.change(headers: {

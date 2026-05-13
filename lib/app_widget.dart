@@ -11,6 +11,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/bean/settings/effective_color_scheme_notifier.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -341,6 +342,21 @@ class _AppWidgetState extends State<AppWidget>
         final effectiveDarkTheme = useDynamicColor && oledEnhance
             ? Utils.oledDarkTheme(dynamicDarkTheme)
             : dynamicDarkTheme;
+
+        // 把当前生效的 ColorScheme 同步给 LanServer / SSE 订阅者。
+        // 在 builder 里直接 set 是 OK 的——ValueNotifier 自带 != 比较，相同
+        // 引用不会触发额外 listener；不同引用才会推。
+        final newScheme = EffectiveColorScheme(
+          light: lightTheme.colorScheme,
+          dark: effectiveDarkTheme.colorScheme,
+        );
+        if (effectiveColorSchemeNotifier.value?.light != newScheme.light ||
+            effectiveColorSchemeNotifier.value?.dark != newScheme.dark) {
+          // 用 microtask 延后到当前 build 之外，避免在 build 里改 Notifier
+          // 触发 listener 同步再 setState 引发的 reentrancy 警告。
+          Future.microtask(
+              () => effectiveColorSchemeNotifier.value = newScheme);
+        }
 
         return MaterialApp.router(
           title: "Kazumi",

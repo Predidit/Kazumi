@@ -23,66 +23,69 @@ const String lanWebIndexHtml = r'''
     :root {
       --primary: #4CAF50;
       --on-primary: #ffffff;
-      --primary-container: rgba(76, 175, 80, 0.14);
+      --primary-container: rgba(76, 175, 80, 0.16);
       --on-primary-container: #1d5224;
 
-      --surface: #fafafa;
+      --surface: #ffffff;
       --surface-container-lowest: #ffffff;
-      --surface-container: #f4f4f4;
-      --surface-container-high: #ececec;
-      --surface-container-highest: #e3e3e3;
-      --on-surface: #1c1b1f;
-      --on-surface-variant: #5b5b62;
+      --surface-container: #f5f5f7;
+      --surface-container-high: #ebebef;
+      --surface-container-highest: #e2e2e6;
+      --on-surface: #181a1c;
+      --on-surface-variant: #4a4d52;
       --outline: #b8b8be;
-      --outline-variant: #e3e0e3;
+      --outline-variant: #e3e3e8;
       --error: #b3261e;
 
       --shadow-1: 0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04);
-      --shadow-2: 0 2px 6px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-2: 0 2px 8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.04);
 
       --radius-sm: 10px;
-      --radius-md: 14px;
+      --radius-md: 12px;
       --radius-lg: 20px;
       --radius-xl: 28px;
+
+      --nav-rail-width: 84px;
+      --nav-bottom-height: 64px;
     }
 
     :root[data-theme="dark"] {
       --on-primary-container: #b4f4bb;
-      --primary-container: rgba(76, 175, 80, 0.22);
+      --primary-container: rgba(76, 175, 80, 0.24);
 
-      --surface: #131316;
-      --surface-container-lowest: #0e0e10;
-      --surface-container: #1c1c1f;
-      --surface-container-high: #26262a;
-      --surface-container-highest: #303034;
-      --on-surface: #e6e1e5;
-      --on-surface-variant: #c3c3c7;
-      --outline: #6a6a70;
-      --outline-variant: #303034;
+      --surface: #060708;
+      --surface-container-lowest: #000000;
+      --surface-container: #0d0e10;
+      --surface-container-high: #1c1d20;
+      --surface-container-highest: #2a2b2e;
+      --on-surface: #f1f1f4;
+      --on-surface-variant: #a6a7ad;
+      --outline: #5a5b62;
+      --outline-variant: #1a1b1d;
       --error: #f2b8b5;
 
-      --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
-      --shadow-2: 0 4px 12px rgba(0,0,0,0.55);
+      --shadow-1: 0 1px 2px rgba(0,0,0,0.55);
+      --shadow-2: 0 6px 18px rgba(0,0,0,0.65);
     }
 
     @media (prefers-color-scheme: dark) {
       :root[data-theme="auto"] {
         --on-primary-container: #b4f4bb;
-        --primary-container: rgba(76, 175, 80, 0.22);
+        --primary-container: rgba(76, 175, 80, 0.24);
 
-        --surface: #131316;
-        --surface-container-lowest: #0e0e10;
-        --surface-container: #1c1c1f;
-        --surface-container-high: #26262a;
-        --surface-container-highest: #303034;
-        --on-surface: #e6e1e5;
-        --on-surface-variant: #c3c3c7;
-        --outline: #6a6a70;
-        --outline-variant: #303034;
+        --surface: #060708;
+        --surface-container-lowest: #000000;
+        --surface-container: #0d0e10;
+        --surface-container-high: #1c1d20;
+        --surface-container-highest: #2a2b2e;
+        --on-surface: #f1f1f4;
+        --on-surface-variant: #a6a7ad;
+        --outline: #5a5b62;
+        --outline-variant: #1a1b1d;
         --error: #f2b8b5;
 
-        --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
-        --shadow-2: 0 4px 12px rgba(0,0,0,0.55);
+        --shadow-1: 0 1px 2px rgba(0,0,0,0.55);
+        --shadow-2: 0 6px 18px rgba(0,0,0,0.65);
       }
     }
 
@@ -98,31 +101,71 @@ const String lanWebIndexHtml = r'''
       transition: background 0.2s, color 0.2s;
     }
 
-    /* ========== App bar ========== */
-    .app-bar {
+    /* ========== Layout: NavigationRail (desktop) / NavigationBar (mobile) ========== */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      align-items: stretch;
+    }
+    .nav-rail {
+      width: var(--nav-rail-width);
+      flex-shrink: 0;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 0 14px;
+      padding-top: calc(env(safe-area-inset-top) + 14px);
+      padding-left: env(safe-area-inset-left);
+      gap: 8px;
       position: sticky;
       top: 0;
-      z-index: 10;
-      background: color-mix(in srgb, var(--surface) 88%, transparent);
-      backdrop-filter: saturate(180%) blur(12px);
-      -webkit-backdrop-filter: saturate(180%) blur(12px);
-      border-bottom: 1px solid var(--outline-variant);
-      padding: 12px 16px;
-      padding-top: calc(env(safe-area-inset-top) + 12px);
+      max-height: 100vh;
+      z-index: 9;
+    }
+    .nav-search {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      margin-bottom: 6px;
+      box-shadow: var(--shadow-1);
+      transition: filter 0.15s, transform 0.1s;
+      flex-shrink: 0;
     }
-    .app-bar .title {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 0.2px;
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .nav-search:hover { filter: brightness(1.08); }
+    .nav-search:active { transform: scale(0.96); }
+    .nav-main { flex: 1; display: flex; flex-direction: column; gap: 6px; width: 100%; align-items: center; }
+    .nav-bottom { display: flex; flex-direction: column; gap: 6px; width: 100%; align-items: center; }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      width: 64px;
+      padding: 10px 4px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--on-surface-variant);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 16px;
+      transition: background 0.15s, color 0.15s;
     }
+    .nav-item .icon { font-size: 22px; line-height: 1.1; }
+    .nav-item:hover { background: var(--surface-container); color: var(--on-surface); }
+    .nav-item.is-active { background: var(--surface-container-high); color: var(--on-surface); }
+
     .icon-btn {
       display: inline-flex;
       align-items: center;
@@ -141,34 +184,99 @@ const String lanWebIndexHtml = r'''
     .icon-btn:hover { background: var(--surface-container-high); }
     .icon-btn:active { background: var(--surface-container-highest); }
 
-    /* ========== Container ========== */
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 16px;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
+    /* ========== Content area ========== */
+    .content {
+      flex: 1;
+      min-width: 0;
+      padding: 20px 28px calc(env(safe-area-inset-bottom) + 32px);
+      padding-right: max(28px, env(safe-area-inset-right));
     }
     h2 {
       font-size: 15px;
       font-weight: 500;
       color: var(--on-surface-variant);
-      margin: 22px 0 10px;
+      margin: 22px 0 12px;
       letter-spacing: 0.3px;
     }
     h2:first-child { margin-top: 4px; }
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0 18px;
+      min-height: 56px;
+    }
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .page-title .chev { font-size: 22px; opacity: 0.75; line-height: 1; }
+
+    /* 窄屏：rail 切换为底部 NavigationBar */
+    @media (max-width: 599px) {
+      .layout { flex-direction: column; }
+      .nav-rail {
+        order: 2;
+        width: 100%;
+        max-height: none;
+        flex-direction: row;
+        padding: 4px 8px;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 4px);
+        padding-left: max(8px, env(safe-area-inset-left));
+        gap: 0;
+        position: sticky;
+        top: auto;
+        bottom: 0;
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-top: 1px solid var(--outline-variant);
+      }
+      .nav-search {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        font-size: 18px;
+        margin-bottom: 0;
+        margin-right: 4px;
+      }
+      .nav-main {
+        flex: 1;
+        flex-direction: row;
+        gap: 0;
+        justify-content: space-around;
+      }
+      .nav-bottom { display: none; }
+      .nav-item { flex: 1; width: auto; padding: 6px 4px; border-radius: 14px; }
+      .nav-item .icon { font-size: 20px; }
+      .content {
+        order: 1;
+        padding: 14px 16px calc(env(safe-area-inset-bottom) + 14px);
+      }
+      .page-header { padding: 4px 0 14px; }
+      .page-title { font-size: 24px; }
+    }
 
     /* ========== Search bar ========== */
     .search-bar {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--surface-container-high);
+      background: var(--surface-container);
       border-radius: var(--radius-xl);
-      padding: 4px 4px 4px 8px;
-      box-shadow: var(--shadow-1);
-      transition: box-shadow 0.15s;
+      padding: 4px 4px 4px 14px;
+      transition: background 0.15s;
     }
-    .search-bar:focus-within { box-shadow: var(--shadow-2); }
+    .search-bar:focus-within { background: var(--surface-container-high); }
     .search-bar select, .search-bar input {
       font: inherit;
       color: var(--on-surface);
@@ -190,7 +298,7 @@ const String lanWebIndexHtml = r'''
       cursor: pointer;
       border-radius: 18px;
     }
-    .search-bar select:hover { background: var(--surface-container-highest); }
+    .search-bar select:hover { background: var(--surface-container-high); }
     .search-bar .submit {
       flex-shrink: 0;
       background: var(--primary);
@@ -204,25 +312,24 @@ const String lanWebIndexHtml = r'''
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-1);
     }
     .search-bar .submit:active { transform: scale(0.96); }
     .search-bar .submit:disabled { opacity: 0.5; }
 
     /* ========== List items ========== */
-    .list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
     .item {
-      background: var(--surface-container);
+      background: transparent;
       border-radius: var(--radius-md);
       padding: 14px 16px;
       cursor: pointer;
-      border: 1px solid var(--outline-variant);
+      border: none;
       transition: background 0.15s, transform 0.1s;
       line-height: 1.5;
       font-size: 15px;
     }
-    .item:hover { background: var(--surface-container-high); }
-    .item:active { transform: scale(0.99); background: var(--surface-container-highest); }
+    .item:hover { background: var(--surface-container); }
+    .item:active { transform: scale(0.99); background: var(--surface-container-high); }
 
     /* ========== Episode grid ========== */
     .ep-grid {
@@ -234,19 +341,18 @@ const String lanWebIndexHtml = r'''
       text-align: center;
       padding: 12px 6px;
       background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      border: none;
       border-radius: var(--radius-sm);
       cursor: pointer;
       font-size: 13px;
       line-height: 1.35;
       word-break: break-all;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      transition: background 0.15s, color 0.15s;
       color: var(--on-surface);
     }
     .ep:hover { background: var(--surface-container-high); }
     .ep:active, .ep.is-active {
       background: var(--primary-container);
-      border-color: var(--primary);
       color: var(--on-primary-container);
     }
 
@@ -282,8 +388,8 @@ const String lanWebIndexHtml = r'''
     }
     button.tonal {
       flex: 1;
-      background: var(--surface-container-high);
-      border: 1px solid var(--outline-variant);
+      background: var(--surface-container);
+      border: none;
       color: var(--on-surface);
       font: inherit;
       padding: 12px 18px;
@@ -291,31 +397,30 @@ const String lanWebIndexHtml = r'''
       cursor: pointer;
       transition: background 0.15s;
     }
-    button.tonal:hover { background: var(--surface-container-highest); }
+    button.tonal:hover { background: var(--surface-container-high); }
 
-    /* ========== Bangumi card (search result) ========== */
+    /* ========== Bangumi card (search result list row) ========== */
     .bangumi-card {
       display: flex;
       gap: 12px;
-      background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      background: transparent;
+      border: none;
       border-radius: var(--radius-md);
-      padding: 12px;
+      padding: 10px 8px;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .bangumi-card:hover { background: var(--surface-container-high); }
+    .bangumi-card:hover { background: var(--surface-container); }
     .bangumi-card .cover {
       width: 78px;
       height: 110px;
       flex-shrink: 0;
-      background: var(--surface-container-high);
-      border-radius: 8px;
+      background: var(--surface-container);
+      border-radius: var(--radius-md);
       object-fit: cover;
-      box-shadow: var(--shadow-1);
     }
     .bangumi-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .bangumi-card .name { font-size: 15px; font-weight: 500; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .bangumi-card .name { font-size: 15px; font-weight: 600; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .bangumi-card .alt { font-size: 12px; color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bangumi-card .summary { font-size: 12px; color: var(--on-surface-variant); line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .bangumi-card .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--on-surface-variant); margin-top: auto; }
@@ -324,10 +429,13 @@ const String lanWebIndexHtml = r'''
     /* ========== Detail hero ========== */
     .hero {
       position: relative;
-      margin: -16px -16px 16px;
-      padding: calc(env(safe-area-inset-top) + 16px) 16px 18px;
+      margin: -20px -28px 16px;
+      padding: calc(env(safe-area-inset-top) + 20px) 28px 18px;
       overflow: hidden;
       isolation: isolate;
+    }
+    @media (max-width: 599px) {
+      .hero { margin: -14px -16px 16px; padding: calc(env(safe-area-inset-top) + 14px) 16px 18px; }
     }
     .hero::before {
       content: "";
@@ -371,8 +479,8 @@ const String lanWebIndexHtml = r'''
       font-size: 11px;
       padding: 4px 10px;
       border-radius: 12px;
-      background: var(--surface-container-high);
-      border: 1px solid var(--outline-variant);
+      background: var(--surface-container);
+      border: none;
       color: var(--on-surface-variant);
     }
 
@@ -381,7 +489,7 @@ const String lanWebIndexHtml = r'''
       display: flex;
       gap: 4px;
       border-bottom: 1px solid var(--outline-variant);
-      margin: 18px 0 12px;
+      margin: 22px 0 14px;
       overflow-x: auto;
       scrollbar-width: none;
     }
@@ -399,12 +507,12 @@ const String lanWebIndexHtml = r'''
 
     /* ========== Summary ========== */
     .summary-card {
-      background: var(--surface-container);
-      border-radius: var(--radius-md);
-      padding: 14px 16px;
-      border: 1px solid var(--outline-variant);
+      background: transparent;
+      border-radius: 0;
+      padding: 4px 0;
+      border: none;
       font-size: 14px;
-      line-height: 1.65;
+      line-height: 1.75;
       color: var(--on-surface);
       white-space: pre-wrap;
       word-break: break-word;
@@ -436,7 +544,7 @@ const String lanWebIndexHtml = r'''
       display: flex;
       gap: 10px;
       background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      border: none;
       border-radius: var(--radius-md);
       padding: 10px;
       align-items: center;
@@ -456,7 +564,7 @@ const String lanWebIndexHtml = r'''
 
     .comment-card {
       background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      border: none;
       border-radius: var(--radius-md);
       padding: 12px 14px;
       margin-bottom: 8px;
@@ -476,20 +584,36 @@ const String lanWebIndexHtml = r'''
     /* ========== FAB ========== */
     .fab {
       position: fixed;
-      right: 18px;
-      bottom: calc(env(safe-area-inset-bottom) + 18px);
+      right: 24px;
+      bottom: calc(env(safe-area-inset-bottom) + 24px);
       background: var(--primary);
       color: var(--on-primary);
       border: none;
       border-radius: 18px;
-      padding: 14px 22px;
+      width: 56px;
+      height: 56px;
       font: inherit;
-      font-weight: 500;
+      font-size: 22px;
       cursor: pointer;
       box-shadow: var(--shadow-2);
-      z-index: 9;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: filter 0.15s, transform 0.1s;
     }
-    .fab:active { transform: scale(0.97); }
+    .fab:hover { filter: brightness(1.08); }
+    .fab:active { transform: scale(0.96); }
+    .fab.fab-extended {
+      width: auto;
+      padding: 0 22px;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    @media (max-width: 599px) {
+      .fab { bottom: calc(var(--nav-bottom-height) + env(safe-area-inset-bottom) + 16px); right: 16px; }
+    }
 
     /* ========== Modal ========== */
     .modal-mask {
@@ -521,66 +645,44 @@ const String lanWebIndexHtml = r'''
     }
     .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
 
-    /* ========== Bottom tab bar ========== */
-    .tab-bar {
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      display: flex;
-      background: color-mix(in srgb, var(--surface-container-lowest) 92%, transparent);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-top: 1px solid var(--outline-variant);
-      padding-top: 4px;
-      padding-bottom: calc(env(safe-area-inset-bottom) + 4px);
-      z-index: 8;
-    }
-    .tab-bar .item {
-      flex: 1;
-      padding: 6px 4px;
-      text-align: center;
-      font-size: 11px;
-      color: var(--on-surface-variant);
-      cursor: pointer;
-      background: none;
-      border: none;
-      font-family: inherit;
-      transition: color 0.15s;
-    }
-    .tab-bar .item.is-active { color: var(--primary); font-weight: 500; }
-    .tab-bar .icon { font-size: 20px; line-height: 1.2; display: block; margin-bottom: 2px; }
-    .bottom-spacer { height: 80px; }
+    /* ========== Legacy bottom tab bar (kept hidden; v4 uses .nav-rail) ========== */
+    .tab-bar { display: none; }
+    .bottom-spacer { height: 0; }
 
     /* ========== Poster grid ========== */
     .poster-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+      gap: 18px 14px;
     }
-    .poster-card { cursor: pointer; }
+    @media (max-width: 599px) {
+      .poster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+    }
+    .poster-card { cursor: pointer; background: transparent; border: none; padding: 0; }
     .poster-card img {
       width: 100%;
       aspect-ratio: 7 / 10;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       object-fit: cover;
-      background: var(--surface-container-high);
-      box-shadow: var(--shadow-1);
+      background: var(--surface-container);
       display: block;
+      transition: transform 0.15s;
     }
+    .poster-card:hover img { transform: translateY(-2px); }
     .poster-card .name {
-      font-size: 13px;
-      margin-top: 6px;
-      line-height: 1.35;
+      font-size: 14px;
+      margin-top: 10px;
+      line-height: 1.4;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      color: var(--on-surface);
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
-    .poster-card .score {
-      font-size: 12px;
-      color: var(--primary);
-      font-weight: 500;
-      margin-top: 2px;
-    }
+    /* 评分挪到详情页，不在卡片显示 */
+    .poster-card .score { display: none; }
 
     /* ========== Day chips ========== */
     .day-chips {
@@ -588,7 +690,7 @@ const String lanWebIndexHtml = r'''
       gap: 6px;
       overflow-x: auto;
       scrollbar-width: none;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
       padding-bottom: 2px;
     }
     .day-chips::-webkit-scrollbar { display: none; }
@@ -597,30 +699,30 @@ const String lanWebIndexHtml = r'''
       padding: 8px 14px;
       border-radius: 18px;
       background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      border: none;
       font-size: 13px;
       cursor: pointer;
+      color: var(--on-surface);
       transition: background 0.15s;
     }
     .day-chip.is-active {
       background: var(--primary);
       color: var(--on-primary);
-      border-color: var(--primary);
     }
 
     /* ========== History row ========== */
     .history-row {
       display: flex;
       gap: 12px;
-      background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      background: transparent;
+      border: none;
       border-radius: var(--radius-md);
-      padding: 10px 12px;
-      margin-bottom: 8px;
+      padding: 10px 8px;
+      margin-bottom: 6px;
       cursor: pointer;
       transition: background 0.15s;
     }
-    .history-row:hover { background: var(--surface-container-high); }
+    .history-row:hover { background: var(--surface-container); }
     .history-row img {
       width: 54px; height: 76px;
       border-radius: 6px;
@@ -660,7 +762,6 @@ const String lanWebIndexHtml = r'''
       position: relative;
       border-radius: var(--radius-md);
       overflow: hidden;
-      box-shadow: var(--shadow-2);
       background: #000;
     }
     .player-wrap video {
@@ -679,9 +780,9 @@ const String lanWebIndexHtml = r'''
 
     .danmaku-panel {
       background: var(--surface-container);
-      border: 1px solid var(--outline-variant);
+      border: none;
       border-radius: var(--radius-md);
-      padding: 4px 12px;
+      padding: 4px 14px;
       margin-top: 12px;
     }
     .danmaku-panel summary {
@@ -728,19 +829,15 @@ const String lanWebIndexHtml = r'''
   </style>
 </head>
 <body>
-  <div class="app-bar" id="app-bar">
-    <button class="icon-btn" id="back-btn" hidden aria-label="返回">&#x2190;</button>
-    <div class="title" id="bar-title">Kazumi</div>
+  <div class="layout">
+    <nav class="nav-rail" id="nav-rail"></nav>
+    <main class="content" id="app"></main>
   </div>
-  <div class="container" id="app"></div>
   <script>
     "use strict";
 
     const $app = document.getElementById("app");
-    const $barTitle = document.getElementById("bar-title");
-    const $backBtn = document.getElementById("back-btn");
-
-    $backBtn.addEventListener("click", () => history.back());
+    const $navRail = document.getElementById("nav-rail");
 
     // ====== Theme ======
     function applyTheme(theme) {
@@ -833,11 +930,78 @@ const String lanWebIndexHtml = r'''
       return res.json();
     }
 
-    function setBar(title, showBack) {
-      $barTitle.textContent = title;
-      if (showBack) $backBtn.removeAttribute("hidden");
-      else $backBtn.setAttribute("hidden", "");
+    // ====== Page header (replaces the old sticky app bar) ======
+    function pageHeader(title, opts) {
+      opts = opts || {};
+      const header = el("div", { class: "page-header" });
+      if (opts.back) {
+        const back = el("button", { class: "icon-btn", "aria-label": "返回" }, "←");
+        back.addEventListener("click", () => history.back());
+        header.append(back);
+      }
+      const titleNode = el("div", { class: "page-title" });
+      titleNode.append(typeof title === "string" ? document.createTextNode(title) : title);
+      if (opts.chev) {
+        titleNode.append(el("span", { class: "chev" }, "▾"));
+      }
+      if (opts.onTitleClick) titleNode.addEventListener("click", opts.onTitleClick);
+      header.append(titleNode);
+      if (opts.trailing) header.append(opts.trailing);
+      return header;
     }
+
+    // ====== NavigationRail ======
+    const NAV_TABS = [
+      { key: "popular",  icon: "⌂", label: "推荐" },
+      { key: "timeline", icon: "◫", label: "时间表" },
+      { key: "collect",  icon: "♥", label: "追番" },
+      { key: "my",       icon: "☰", label: "我的" },
+    ];
+    function renderNavRail(activeTab) {
+      $navRail.innerHTML = "";
+
+      const search = el("button", {
+        class: "nav-search",
+        "aria-label": "搜索",
+        onclick: () => go("/search"),
+      });
+      // 放大镜
+      search.innerHTML = "\u{1F50D}";
+      $navRail.append(search);
+
+      const main = el("div", { class: "nav-main" });
+      for (const t of NAV_TABS) {
+        main.append(
+          el(
+            "button",
+            {
+              class: "nav-item" + (t.key === activeTab ? " is-active" : ""),
+              onclick: () => go("/home", { tab: t.key }),
+            },
+            el("span", { class: "icon" }, t.icon),
+            el("span", { class: "label" }, t.label)
+          )
+        );
+      }
+      $navRail.append(main);
+
+      const bottom = el("div", { class: "nav-bottom" });
+      bottom.append(
+        el(
+          "button",
+          {
+            class: "nav-item",
+            "aria-label": "设置",
+            onclick: () => go("/home", { tab: "my" }),
+          },
+          el("span", { class: "icon" }, "⚙"),
+          el("span", { class: "label" }, "设置")
+        )
+      );
+      $navRail.append(bottom);
+    }
+    // 初始渲染
+    renderNavRail("popular");
 
     // ====== Modal ======
     function openModal(builder) {
@@ -870,44 +1034,17 @@ const String lanWebIndexHtml = r'''
     // ====== Views ======
     async function renderHome(params) {
       const tab = (params && params.tab) || "popular";
-      setBar("Kazumi", false);
       $app.innerHTML = "";
+      renderNavRail(tab);
 
-      const main = el("div", { id: "home-main" });
-      $app.append(main);
-
-      if (tab === "popular") renderTabPopular(main);
-      else if (tab === "timeline") renderTabTimeline(main);
-      else if (tab === "collect") renderTabCollect(main);
-      else if (tab === "my") renderTabMy(main);
-      else renderTabPopular(main);
-
-      $app.append(el("div", { class: "bottom-spacer" }));
-      $app.append(buildTabBar(tab));
+      if (tab === "popular") renderTabPopular($app);
+      else if (tab === "timeline") renderTabTimeline($app);
+      else if (tab === "collect") renderTabCollect($app);
+      else if (tab === "my") renderTabMy($app);
+      else renderTabPopular($app);
     }
 
-    function buildTabBar(activeTab) {
-      const tabs = [
-        { key: "popular",  icon: "★",  label: "推荐" },
-        { key: "timeline", icon: "📅", label: "时间表" },
-        { key: "collect",  icon: "♥",  label: "追番" },
-        { key: "my",       icon: "☰",  label: "我的" },
-      ];
-      const bar = el("div", { class: "tab-bar" });
-      for (const t of tabs) {
-        const btn = el(
-          "button",
-          {
-            class: "item" + (t.key === activeTab ? " is-active" : ""),
-            onclick: () => go("/home", { tab: t.key }),
-          },
-          el("span", { class: "icon" }, t.icon),
-          el("span", {}, t.label)
-        );
-        bar.append(btn);
-      }
-      return bar;
-    }
+    function buildTabBar() { return el("div", { class: "tab-bar" }); }
 
     function buildPosterCard(item) {
       const img = el("img", { loading: "lazy", referrerpolicy: "no-referrer", alt: "" });
@@ -929,30 +1066,7 @@ const String lanWebIndexHtml = r'''
     }
 
     async function renderTabPopular(container) {
-      // 顶部：bangumi 搜索
-      const input = el("input", {
-        type: "search",
-        placeholder: "搜索番剧（Bangumi）",
-        autocomplete: "off",
-        autocorrect: "off",
-        spellcheck: "false",
-      });
-      input.value = localStorage.getItem("lastBangumiKeyword") || "";
-      const submit = el("button", { class: "submit", "aria-label": "搜索", type: "submit", html: "&#x2192;" });
-      const form = el("form", { class: "search-bar" }, input, submit);
-      form.addEventListener("submit", (ev) => {
-        ev.preventDefault();
-        const keyword = input.value.trim();
-        if (!keyword) return;
-        localStorage.setItem("lastBangumiKeyword", keyword);
-        runBangumiSearch(keyword);
-      });
-      container.append(form);
-
-      const results = el("div", { class: "list", id: "bangumi-results" });
-      container.append(results);
-
-      container.append(el("h2", {}, "趋势"));
+      container.append(pageHeader("热门番组", { chev: true }));
       const grid = el("div", { class: "poster-grid" });
       container.append(grid);
       setStatus(grid, "加载中…");
@@ -967,11 +1081,10 @@ const String lanWebIndexHtml = r'''
       } catch (e) {
         setStatus(grid, "加载失败：" + e.message, true);
       }
-
-      if (input.value) runBangumiSearch(input.value);
     }
 
     async function renderTabTimeline(container) {
+      container.append(pageHeader("时间表"));
       const today = ((new Date().getDay() + 6) % 7) + 1; // 周一=1
       const chips = el("div", { class: "day-chips" });
       const grid = el("div", { class: "poster-grid" });
@@ -1011,13 +1124,16 @@ const String lanWebIndexHtml = r'''
     }
 
     async function renderTabCollect(container) {
-      setStatus(container, "加载中…");
+      container.append(pageHeader("追番"));
+      const body = el("div", {});
+      container.append(body);
+      setStatus(body, "加载中…");
       try {
         const data = await fetchJson("/api/collect/list");
-        container.innerHTML = "";
+        body.innerHTML = "";
         const items = data.items || [];
         if (!items.length) {
-          setStatus(container, "还没有收藏哦，去推荐页找一部番剧收藏看看吧");
+          setStatus(body, "还没有收藏哦，去推荐页找一部番剧收藏看看吧");
           return;
         }
         const labels = { 1: "在看", 2: "想看", 3: "搁置", 4: "看过", 5: "抛弃" };
@@ -1027,17 +1143,18 @@ const String lanWebIndexHtml = r'''
         }
         for (const type of [1, 2, 3, 4, 5]) {
           if (!groups[type].length) continue;
-          container.append(el("h2", {}, labels[type] + " · " + groups[type].length));
+          body.append(el("h2", {}, labels[type] + " · " + groups[type].length));
           const grid = el("div", { class: "poster-grid" });
           for (const c of groups[type]) grid.append(buildPosterCard(c.bangumi));
-          container.append(grid);
+          body.append(grid);
         }
       } catch (e) {
-        setStatus(container, "加载失败：" + e.message, true);
+        setStatus(body, "加载失败：" + e.message, true);
       }
     }
 
     async function renderTabMy(container) {
+      container.append(pageHeader("我的"));
       container.append(el("h2", {}, "观看历史"));
       const list = el("div", {});
       container.append(list);
@@ -1101,6 +1218,38 @@ const String lanWebIndexHtml = r'''
       }
     }
 
+    async function renderSearch(params) {
+      $app.innerHTML = "";
+      renderNavRail("");
+      $app.append(pageHeader("搜索", { back: true }));
+
+      const input = el("input", {
+        type: "search",
+        placeholder: "搜索番剧（Bangumi）",
+        autocomplete: "off",
+        autocorrect: "off",
+        spellcheck: "false",
+      });
+      input.value = (params && params.q) || localStorage.getItem("lastBangumiKeyword") || "";
+      const submit = el("button", { class: "submit", "aria-label": "搜索", type: "submit", html: "&#x2192;" });
+      const form = el("form", { class: "search-bar" }, input, submit);
+      form.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const keyword = input.value.trim();
+        if (!keyword) return;
+        localStorage.setItem("lastBangumiKeyword", keyword);
+        runBangumiSearch(keyword);
+      });
+      $app.append(form);
+
+      const results = el("div", { class: "list", id: "bangumi-results" });
+      $app.append(results);
+
+      // 自动聚焦输入
+      setTimeout(() => { try { input.focus(); } catch (_) {} }, 50);
+      if (input.value) runBangumiSearch(input.value);
+    }
+
     function buildBangumiCard(item) {
       const img = el("img", {
         class: "cover",
@@ -1143,8 +1292,17 @@ const String lanWebIndexHtml = r'''
     async function renderBangumiDetail(params) {
       const id = parseInt(params.id, 10);
       if (!id) { go("/home"); return; }
-      setBar("番剧详情", true);
       $app.innerHTML = "";
+      renderNavRail("");
+      // 内联返回按钮（覆盖在 hero 区左上）
+      const backRow = el("div", { class: "page-header", style: "padding: 4px 0 0;" },
+        (() => {
+          const back = el("button", { class: "icon-btn", "aria-label": "返回" }, "←");
+          back.addEventListener("click", () => history.back());
+          return back;
+        })()
+      );
+      $app.append(backRow);
 
       const skeleton = el("div", { class: "status" }, "加载中…");
       $app.append(skeleton);
@@ -1512,8 +1670,9 @@ const String lanWebIndexHtml = r'''
 
     async function renderEpisodes(params) {
       const { plugin, src, title, bid } = params;
-      setBar(title || "选择集数", true);
       $app.innerHTML = "";
+      renderNavRail("");
+      $app.append(pageHeader(title || "选择集数", { back: true }));
       $app.append(el("h2", {}, "规则 · " + plugin));
 
       const container = el("div", {});
@@ -1864,8 +2023,9 @@ const String lanWebIndexHtml = r'''
       disposeDanmaku();
       disposeProgressReporter();
       const { plugin, episodeUrl, title, bid, episode, road } = params;
-      setBar(title || "播放", true);
       $app.innerHTML = "";
+      renderNavRail("");
+      $app.append(pageHeader(title || "播放", { back: true }));
 
       const status = el("div", { class: "status" }, "正在解析视频源，可能需要几秒…");
       $app.append(status);
@@ -2055,6 +2215,7 @@ const String lanWebIndexHtml = r'''
     function dispatch() {
       const { path, params } = parseRoute();
       if (path === "/home" || path === "/") return renderHome(params);
+      if (path === "/search") return renderSearch(params);
       if (path === "/bangumi") return renderBangumiDetail(params);
       if (path === "/episodes") return renderEpisodes(params);
       if (path === "/play") return renderPlayer(params);

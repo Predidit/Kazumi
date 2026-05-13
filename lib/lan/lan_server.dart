@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -14,6 +15,7 @@ import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/providers/video/video_source_provider.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/utils.dart';
 
 /// 用回调形式拿 [PluginsController] 而非构造时持有引用，
@@ -104,6 +106,9 @@ class LanServer {
     router.get('/api/search', _handleSearch);
     router.get('/api/episodes', _handleEpisodes);
     router.get('/api/resolve', _handleResolve);
+    router.get('/api/theme', _handleTheme);
+
+    router.get('/assets/<file>', _handleAsset);
 
     router.all('/proxy/<token>', (Request request, String token) {
       return _proxyHandler.handle(request, token);
@@ -115,6 +120,60 @@ class LanServer {
 
     return router;
   }
+
+  Response _handleTheme(Request request) {
+    final box = GStorage.setting;
+    final themeMode =
+        box.get(SettingBoxKey.themeMode, defaultValue: 'system') as String;
+    final rawColor =
+        box.get(SettingBoxKey.themeColor, defaultValue: 'default') as String;
+    String primaryColor = _defaultPrimaryHex;
+    if (rawColor != 'default') {
+      try {
+        final argb = int.parse(rawColor, radix: 16);
+        final rgb = argb & 0xFFFFFF;
+        primaryColor = '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
+      } catch (_) {
+        primaryColor = _defaultPrimaryHex;
+      }
+    }
+    final useDynamicColor =
+        box.get(SettingBoxKey.useDynamicColor, defaultValue: false) as bool;
+    return _json({
+      'themeMode': themeMode,
+      'primaryColor': primaryColor,
+      'useDynamicColor': useDynamicColor,
+    });
+  }
+
+  Future<Response> _handleAsset(Request request, String file) async {
+    final entry = _staticAssets[file];
+    if (entry == null) {
+      return Response.notFound('asset not found');
+    }
+    try {
+      final data = await rootBundle.load(entry.assetPath);
+      return Response.ok(
+        data.buffer.asUint8List(),
+        headers: {
+          'content-type': entry.contentType,
+          'cache-control': 'public, max-age=604800',
+        },
+      );
+    } catch (e) {
+      KazumiLogger().w('LanServer: asset load failed: ${entry.assetPath} ($e)');
+      return Response.notFound('asset load error');
+    }
+  }
+
+  static const String _defaultPrimaryHex = '#4CAF50';
+
+  static final Map<String, _StaticAsset> _staticAssets = {
+    'MiSans-Regular.ttf': _StaticAsset(
+      assetPath: 'assets/fonts/MiSans-Regular.ttf',
+      contentType: 'font/ttf',
+    ),
+  };
 
   Response _handlePlugins(Request request) {
     final plugins = _pluginsProvider().pluginList;
@@ -305,4 +364,10 @@ class LanServer {
     'access-control-allow-headers': 'content-type, range',
     'access-control-expose-headers': 'content-length, content-range',
   };
+}
+
+class _StaticAsset {
+  const _StaticAsset({required this.assetPath, required this.contentType});
+  final String assetPath;
+  final String contentType;
 }

@@ -173,6 +173,10 @@ class LanServer {
       assetPath: 'assets/fonts/MiSans-Regular.ttf',
       contentType: 'font/ttf',
     ),
+    'hls.min.js': _StaticAsset(
+      assetPath: 'assets/lan_web/hls.min.js',
+      contentType: 'application/javascript; charset=utf-8',
+    ),
   };
 
   Response _handlePlugins(Request request) {
@@ -308,6 +312,7 @@ class LanServer {
         'playUrl': VideoProxyHandler.buildRootUrl(token),
         'originalUrl': source.url,
         'pluginName': plugin.name,
+        'streamType': _detectStreamType(source.url),
       });
     } on VideoSourceTimeoutException catch (e) {
       return _jsonError(504, 'resolve_timeout', e.toString());
@@ -327,6 +332,15 @@ class LanServer {
       if (p.name == name) return p;
     }
     return null;
+  }
+
+  static String _detectStreamType(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('.m3u8')) return 'hls';
+    if (lower.contains('.mp4') || lower.contains('.m4v') || lower.contains('.mov')) {
+      return 'mp4';
+    }
+    return 'unknown';
   }
 
   Response _json(Object? body, {int status = 200}) {

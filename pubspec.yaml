@@ -232,6 +232,7 @@ flutter:
     - assets/shaders/
     - assets/images/logo/
     - assets/statements/
+    - assets/lan_web/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

@@ -558,7 +558,79 @@ const String lanWebIndexHtml = r'''
       }
     }
 
+    // 当前播放页持有的 hls.js 实例，跳出页面时销毁
+    let activeHls = null;
+    function disposeHls() {
+      if (activeHls) {
+        try { activeHls.destroy(); } catch (_) {}
+        activeHls = null;
+      }
+    }
+
+    // 懒加载 hls.js（只在需要时）
+    let hlsLoaderPromise = null;
+    function ensureHlsLoaded() {
+      if (typeof Hls !== "undefined") return Promise.resolve();
+      if (hlsLoaderPromise) return hlsLoaderPromise;
+      hlsLoaderPromise = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "/assets/hls.min.js";
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("hls.js 加载失败"));
+        document.head.append(s);
+      });
+      return hlsLoaderPromise;
+    }
+
+    function nativeHlsSupported(video) {
+      return !!(
+        video.canPlayType("application/vnd.apple.mpegurl") ||
+        video.canPlayType("application/x-mpegURL") ||
+        video.canPlayType("audio/mpegurl")
+      );
+    }
+
+    async function attachStream(video, data, onError) {
+      const streamType = data.streamType || "unknown";
+      const looksLikeHls = streamType === "hls" || /\.m3u8/i.test(data.originalUrl || "");
+
+      if (looksLikeHls && !nativeHlsSupported(video)) {
+        try {
+          await ensureHlsLoaded();
+        } catch (e) {
+          onError("加载 hls.js 失败：" + e.message);
+          return;
+        }
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+        });
+        activeHls = hls;
+        hls.on(Hls.Events.ERROR, (_, info) => {
+          if (info.fatal) {
+            switch (info.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                onError("HLS 错误：" + (info.details || info.type));
+                disposeHls();
+            }
+          }
+        });
+        hls.loadSource(data.playUrl);
+        hls.attachMedia(video);
+      } else {
+        video.src = data.playUrl;
+      }
+    }
+
     async function renderPlayer(params) {
+      disposeHls();
       const { plugin, episodeUrl, title } = params;
       setBar(title || "播放", true);
       $app.innerHTML = "";
@@ -577,11 +649,31 @@ const String lanWebIndexHtml = r'''
           playsinline: true,
           "webkit-playsinline": true,
           preload: "metadata",
-          src: data.playUrl,
         });
         $app.append(video);
+
+        const errorNode = el("div", { class: "status error" });
+        errorNode.style.display = "none";
+        $app.append(errorNode);
+        const showError = (msg) => {
+          errorNode.textContent = msg;
+          errorNode.style.display = "block";
+        };
+
+        await attachStream(video, data, showError);
+
+        const typeLabel =
+          data.streamType === "hls"
+            ? "HLS" + (nativeHlsSupported(video) ? "（原生）" : "（hls.js）")
+            : data.streamType === "mp4"
+              ? "MP4"
+              : "直链";
         $app.append(
-          el("div", { class: "player-meta" }, "规则：" + data.pluginName + " · 源：" + data.originalUrl)
+          el(
+            "div",
+            { class: "player-meta" },
+            "规则：" + data.pluginName + " · 流：" + typeLabel + " · 源：" + data.originalUrl
+          )
         );
 
         const reload = el("button", { class: "tonal" }, "重新解析");
@@ -589,18 +681,19 @@ const String lanWebIndexHtml = r'''
         $app.append(el("div", { class: "player-actions" }, reload));
 
         video.addEventListener("error", () => {
-          const errNode = el(
-            "div",
-            { class: "status error" },
-            "播放器报告错误。可能是当前浏览器不支持该流格式（如非 Safari 不支持 HLS），或源已失效。"
-          );
-          $app.append(errNode);
+          showError("播放器报告错误。可能是源失效或浏览器不支持该格式。");
         });
       } catch (e) {
         status.remove();
         $app.append(el("div", { class: "status error" }, "解析失败：" + e.message));
       }
     }
+
+    // 离开播放页时销毁 hls.js
+    window.addEventListener("hashchange", () => {
+      const { path } = parseRoute();
+      if (path !== "/play") disposeHls();
+    });
 
     // ====== Dispatch ======
     function dispatch() {

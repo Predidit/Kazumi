@@ -142,7 +142,7 @@ class PlayerController {
       await FlutterVolumeController.updateShowSystemUI(false);
       FlutterVolumeController.addListener((volume) {
         playback.volume = volume * 100;
-        if (!Platform.isAndroid && panel.volumeSeeking) {
+        if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
           hideVolumeUITimer?.cancel();
           hideVolumeUITimer = Timer(const Duration(seconds: 2), () {

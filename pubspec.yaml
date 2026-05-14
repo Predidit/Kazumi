@@ -61,7 +61,10 @@ dependencies:
     git:
       url: https://github.com/Predidit/audio-service-mpris.git
       ref: d30b53fb7dbdd8f10ceda7447fe0a0218711a220
-  audio_service_win: ^0.0.2
+  audio_service_win:
+    git:
+      url: https://github.com/Predidit/audio_service_win.git
+      ref: 8ad650c6eb487208b9861d44755c8e58db061c88
   audio_session: ^0.2.2
   dynamic_color: ^1.8.1
   provider: ^6.1.2
@@ -104,7 +107,7 @@ dependencies:
   webview_windows:
     git:
       url: https://github.com/Predidit/flutter-webview-windows.git
-      ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
+      ref: 8e3578e6032c93f1723f58db930d480b7828d796
   desktop_webview_window:
     git:
       url: https://github.com/Predidit/linux_webview_window.git

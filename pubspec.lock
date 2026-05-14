@@ -93,11 +93,12 @@ packages:
   audio_service_win:
     dependency: "direct main"
     description:
-      name: audio_service_win
-      sha256: "8e8cd6a576901e4386dc22a8ca6d959317bf41c74b2bc4c6c5466826d0e529e8"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.2"
+      path: "."
+      ref: "8ad650c6eb487208b9861d44755c8e58db061c88"
+      resolved-ref: "8ad650c6eb487208b9861d44755c8e58db061c88"
+      url: "https://github.com/Predidit/audio_service_win.git"
+    source: git
+    version: "0.0.3"
   audio_session:
     dependency: "direct main"
     description:
@@ -1833,8 +1834,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
-      resolved-ref: d9bbeabe51562e727850fe3f60407cf0f6239a8e
+      ref: "8e3578e6032c93f1723f58db930d480b7828d796"
+      resolved-ref: "8e3578e6032c93f1723f58db930d480b7828d796"
       url: "https://github.com/Predidit/flutter-webview-windows.git"
     source: git
     version: "0.4.0"

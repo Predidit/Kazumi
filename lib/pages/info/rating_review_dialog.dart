@@ -8,7 +8,6 @@ class RatingReviewResult {
     required this.score,
     required this.tags,
     required this.comment,
-    required this.private,
   });
 
   final int score;
@@ -16,8 +15,6 @@ class RatingReviewResult {
   final List<String> tags;
 
   final String comment;
-
-  final bool private;
 }
 
 class RatingReviewDialog extends StatefulWidget {
@@ -61,7 +58,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
   List<BangumiTag> tabs = [];
   late int score;
-  late bool private;
   final TextEditingController commentController = TextEditingController();
   final tagInputController = TextEditingController();
   late List<String> selectedTags;
@@ -75,7 +71,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     tabs = List<BangumiTag>.from(widget.bangumiItem.tags);
     selectedTags = List<String>.from(interest?.tags ?? const <String>[]);
     score = (interest?.rate ?? 0).clamp(0, 10);
-    private = interest?.private ?? false;
     commentController.text = interest?.comment ?? '';
   }
 
@@ -134,7 +129,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       score: score,
       tags: List<String>.unmodifiable(selectedTags),
       comment: commentController.text,
-      private: private,
     );
     Navigator.of(context).pop();
     widget.onSubmitted?.call(result);
@@ -171,41 +165,41 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             alignment: Alignment.topCenter,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _isOnTagPage
-                    ? _buildTagPageHeader(theme)
-                    : _buildMainHeader(theme),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
                   child: _isOnTagPage
-                      ? _buildTagPageContent(theme)
-                      : _buildMainScrollContent(theme),
+                      ? _buildTagPageHeader(theme)
+                      : _buildMainHeader(theme),
                 ),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _isOnTagPage
-                    ? const SizedBox.shrink(key: ValueKey('no-actions'))
-                    : Column(
-                        key: const ValueKey('main-actions'),
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Divider(height: 1),
-                          _buildActions(theme),
-                        ],
-                      ),
-              ),
-            ],
-          ),
+                const Divider(height: 1),
+                Flexible(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: _isOnTagPage
+                        ? _buildTagPageContent(theme)
+                        : _buildMainScrollContent(theme),
+                  ),
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _isOnTagPage
+                      ? const SizedBox.shrink(key: ValueKey('no-actions'))
+                      : Column(
+                    key: const ValueKey('main-actions'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Divider(height: 1),
+                      _buildActions(theme),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -317,17 +311,17 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             Expanded(
               child: count > 0
                   ? Text(
-                      '已选 $count 个',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.primary,
-                      ),
-                    )
+                '已选 $count 个',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.primary,
+                ),
+              )
                   : Text(
-                      '点击选择标签',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                '点击选择标签',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
             Icon(
               Icons.chevron_right_rounded,
@@ -605,28 +599,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Expanded(
-              child: Row(
-            spacing: 8,
-            children: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  side: BorderSide(color: theme.colorScheme.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () => setState(() => private = !private),
-                child: Row(
-                  spacing: 5,
-                  children: [
-                    Text(private ? '仅自己可见' : '公开吐槽'),
-                    Icon(private ? Icons.visibility_off : Icons.visibility),
-                  ],
-                ),
-              ),
-            ],
-          )),
           FilledButton(
             onPressed: onSubmit,
             style: FilledButton.styleFrom(

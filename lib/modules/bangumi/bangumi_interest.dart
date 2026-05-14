@@ -26,9 +26,6 @@ class BangumiInterest {
   final int volStatus;
 
   @HiveField(7)
-  final bool private;
-
-  @HiveField(8)
   final int updatedAt;
 
   BangumiInterest({
@@ -39,7 +36,6 @@ class BangumiInterest {
     required this.tags,
     required this.epStatus,
     required this.volStatus,
-    required this.private,
     required this.updatedAt,
   });
 
@@ -63,7 +59,6 @@ class BangumiInterest {
       tags: tagList,
       epStatus: (json['epStatus'] as num?)?.toInt() ?? 0,
       volStatus: (json['volStatus'] as num?)?.toInt() ?? 0,
-      private: json['private'] as bool? ?? false,
       updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
     );
   }
@@ -73,7 +68,6 @@ class BangumiInterest {
     required int rate,
     required String comment,
     required List<String> tags,
-    required bool private,
   }) {
     return BangumiInterest(
       id: previous?.id ?? 0,
@@ -83,13 +77,12 @@ class BangumiInterest {
       tags: List<String>.from(tags),
       epStatus: previous?.epStatus ?? 0,
       volStatus: previous?.volStatus ?? 0,
-      private: private,
       updatedAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
   }
 
   @override
   String toString() {
-    return 'BangumiInterest{id: $id, rate: $rate, type: $type, comment: $comment, tags: $tags, epStatus: $epStatus, volStatus: $volStatus, private: $private, updatedAt: $updatedAt}';
+    return 'BangumiInterest{id: $id, rate: $rate, type: $type, comment: $comment, tags: $tags, epStatus: $epStatus, volStatus: $volStatus, updatedAt: $updatedAt}';
   }
 }

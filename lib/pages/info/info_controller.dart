@@ -133,14 +133,12 @@ abstract class _InfoController with Store {
       comment: trimmedComment.isNotEmpty ? trimmedComment : null,
       rate: data.score > 0 ? data.score : 0,
       tags: data.tags.isNotEmpty ? data.tags : null,
-      private: data.private,
     )) {
       bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
         previous: bangumiItem.interest,
         rate: data.score,
         comment: trimmedComment,
         tags: data.tags,
-        private: data.private,
       );
       await collectController.updateLocalCollect(bangumiItem);
       await queryBangumiInfoByID(bangumiItem.id, type: "update");

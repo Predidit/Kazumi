@@ -515,7 +515,6 @@ class BangumiApi {
     int subjectID,
     int localType, {
     String? comment,
-    bool private = false,
     int? rate,
     List<String>? tags,
   }) async {
@@ -523,7 +522,7 @@ class BangumiApi {
     if (bangumiType == null) {
       return false;
     }
-    final data = <String, dynamic>{'private': private, 'type': bangumiType.value};
+    final data = <String, dynamic>{'type': bangumiType.value};
     if (comment != null) data['comment'] = comment;
     if (rate != null) data['rate'] = rate;
     if (tags != null) data['tags'] = tags;

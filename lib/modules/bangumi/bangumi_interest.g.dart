@@ -24,15 +24,14 @@ class BangumiInterestAdapter extends TypeAdapter<BangumiInterest> {
       tags: (fields[4] as List).cast<String>(),
       epStatus: (fields[5] as num).toInt(),
       volStatus: (fields[6] as num).toInt(),
-      private: fields[7] as bool,
-      updatedAt: (fields[8] as num).toInt(),
+      updatedAt: (fields[7] as num).toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, BangumiInterest obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -48,8 +47,6 @@ class BangumiInterestAdapter extends TypeAdapter<BangumiInterest> {
       ..writeByte(6)
       ..write(obj.volStatus)
       ..writeByte(7)
-      ..write(obj.private)
-      ..writeByte(8)
       ..write(obj.updatedAt);
   }
 

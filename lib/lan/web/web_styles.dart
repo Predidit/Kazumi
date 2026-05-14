@@ -107,10 +107,12 @@ body {
 .content {
   flex: 1;
   min-width: 0;
-  background: var(--primary-container);
-  color: var(--on-primary-container);
-  border-top-left-radius: var(--content-corner);
-  border-bottom-left-radius: var(--content-corner);
+  /* 桌面端 menu.dart 的 Container(primaryContainer) 实际被内层
+   * PopularPage.Scaffold 默认的 colorScheme.surface 完全覆盖；
+   * primaryContainer 仅在 ClipRRect 的圆角边角短暂露出。所以
+   * 真实可见的"内容区背景"是 surface，对齐它。 */
+  background: var(--surface);
+  color: var(--on-surface);
   padding: 20px 28px calc(env(safe-area-inset-bottom) + 32px);
   padding-right: max(28px, env(safe-area-inset-right));
 }

@@ -100,6 +100,26 @@ class BangumiItem {
       return [];
     }
 
+    String resolveAirDateString(Map<String, dynamic> jsonData) {
+      String? nonEmpty(dynamic v) {
+        if (v == null) return null;
+        final s = v.toString().trim();
+        return s.isEmpty ? null : s;
+      }
+      // For api.bgm.tv date
+      final fromTop = nonEmpty(jsonData['date']);
+      if (fromTop != null) return fromTop;
+      // For next.bgm.tv date
+      final airtime = jsonData['airtime'];
+      if (airtime is Map) {
+        final fromAir = nonEmpty(airtime['date']);
+        if (fromAir != null) return fromAir;
+      }
+      return '';
+    }
+
+    final String airDateStr = resolveAirDateString(json);
+
     List list = json['tags'] ?? [];
     List<String> bangumiAlias = parseBangumiAliases(json);
     List<BangumiTag> tagList = list.map((i) => BangumiTag.fromJson(i)).toList();
@@ -119,8 +139,8 @@ class BangumiItem {
           ? (((json['nameCN'] ?? '') == '') ? json['name'] : json['nameCN'])
           : json['name_cn'],
       summary: json['summary'] ?? '',
-      airDate: json['date'] ?? '',
-      airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
+      airDate: airDateStr,
+      airWeekday: Utils.dateStringToWeekday(airDateStr.isEmpty ? '2000-11-11' : airDateStr),
       rank: json['rating']['rank'] ?? 0,
       images: Map<String, String>.from(
         json['images'] ??

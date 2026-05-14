@@ -878,11 +878,6 @@ class _PlayerItemState extends State<PlayerItem>
         if (Utils.isDesktop()) {
           playerController.playback.volume =
               playerController.playback.playerVolume;
-        } else {
-          FlutterVolumeController.getVolume().then((value) {
-            final volume = value ?? 0.0;
-            playerController.playback.volume = volume * 100;
-          });
         }
       }
       // 亮度相关
@@ -1898,11 +1893,6 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 if (playerController.panel.volumeSeeking) {
                                   playerController.panel.volumeSeeking = false;
-                                  Future.delayed(const Duration(seconds: 1),
-                                      () {
-                                    FlutterVolumeController.updateShowSystemUI(
-                                        true);
-                                  });
                                 }
                                 if (playerController.panel.brightnessSeeking) {
                                   playerController.panel.brightnessSeeking =

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
@@ -22,6 +24,7 @@ class PlayerController {
   final ShadersController shadersController = Modular.get<ShadersController>();
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
+  Timer? hideVolumeUITimer;
 
   late final PlayerDanmakuController danmaku = PlayerDanmakuController(
     setting: setting,
@@ -133,11 +136,21 @@ class PlayerController {
         return;
       }
     } else {
-      // mobile is using system volume, don't setVolume here,
-      // or iOS will mute if system volume is too low (#732)
       await FlutterVolumeController.getVolume().then((value) {
         playback.volume = (value ?? 0.0) * 100;
       });
+      await FlutterVolumeController.updateShowSystemUI(false);
+      FlutterVolumeController.addListener((volume) {
+        playback.volume = volume * 100;
+        if (!Platform.isAndroid && panel.volumeSeeking) {
+          panel.showVolume = true;
+          hideVolumeUITimer?.cancel();
+          hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+            panel.showVolume = false;
+            hideVolumeUITimer = null;
+          });
+        }
+      }, emitOnStart: false);
       if (!playback.isCurrentPlayer(lifecycleId, player)) {
         return;
       }

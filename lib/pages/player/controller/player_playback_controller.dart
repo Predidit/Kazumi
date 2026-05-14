@@ -360,7 +360,6 @@ abstract class _PlayerPlaybackController with Store {
       if (Utils.isDesktop()) {
         await mediaPlayer!.setVolume(value);
       } else {
-        await FlutterVolumeController.updateShowSystemUI(false);
         await FlutterVolumeController.setVolume(value / 100);
       }
     } catch (_) {}

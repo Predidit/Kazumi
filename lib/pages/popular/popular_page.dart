@@ -154,6 +154,7 @@ class _PopularPageState extends State<PopularPage>
           ],
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'fab_play',
           onPressed: () => scrollController.animateTo(0,
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOut),

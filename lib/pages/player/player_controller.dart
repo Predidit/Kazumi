@@ -150,7 +150,7 @@ class PlayerController {
             hideVolumeUITimer = null;
           });
         }
-      }, emitOnStart: false);
+      }, category: AudioSessionCategory.playback, emitOnStart: false);
       if (!playback.isCurrentPlayer(lifecycleId, player)) {
         return;
       }
@@ -265,6 +265,7 @@ class PlayerController {
   }) async {
     hideVolumeUITimer?.cancel();
     FlutterVolumeController.removeListener();
+    FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
       cancelActiveInit: cancelActiveInit,

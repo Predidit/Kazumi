@@ -139,8 +139,20 @@ class PlayerController {
       await FlutterVolumeController.getVolume().then((value) {
         playback.volume = (value ?? 0.0) * 100;
       });
+      if (!playback.isCurrentPlayer(lifecycleId, player)) {
+        return;
+      }
+
       await FlutterVolumeController.updateShowSystemUI(false);
+      if (!playback.isCurrentPlayer(lifecycleId, player)) {
+        await FlutterVolumeController.updateShowSystemUI(true);
+        return;
+      }
+
       FlutterVolumeController.addListener((volume) {
+        if (player == null || !playback.isCurrentPlayer(lifecycleId, player)) {
+          return;
+        }
         playback.volume = volume * 100;
         if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
@@ -265,7 +277,7 @@ class PlayerController {
   }) async {
     hideVolumeUITimer?.cancel();
     FlutterVolumeController.removeListener();
-    FlutterVolumeController.updateShowSystemUI(true);
+    await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
       cancelActiveInit: cancelActiveInit,

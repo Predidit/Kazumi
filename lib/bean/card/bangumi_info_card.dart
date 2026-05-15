@@ -14,13 +14,11 @@ class BangumiInfoCardV extends StatefulWidget {
     required this.bangumiItem,
     required this.isLoading,
     required this.showRating,
-    this.onRatingTap,
   });
 
   final BangumiItem bangumiItem;
   final bool isLoading;
   final bool showRating;
-  final VoidCallback? onRatingTap;
 
   @override
   State<BangumiInfoCardV> createState() => _BangumiInfoCardVState();
@@ -202,9 +200,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 ),
                               ),
                             if (!widget.isLoading)
-                              GestureDetector(
-                                onTap: widget.onRatingTap,
-                                child: Row(
+                               Row(
                                   children: [
                                     Text(
                                       widget.showRating
@@ -233,8 +229,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                       itemSize: 20.0,
                                     ),
                                   ],
-                                ),
-                              ),
+                               ),
                             SizedBox(height: 8),
                             Text(
                               'Bangumi Ranked:',

@@ -155,7 +155,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  void _onBangumiRatingTap() {
+  void onBangumiRatingTap() {
     final token = GStorage.setting
         .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
         .toString()
@@ -386,7 +386,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                       bangumiItem: infoController.bangumiItem,
                                       isLoading: showBangumiInfoSkeleton,
                                       showRating: showRating,
-                                      onRatingTap: () => _onBangumiRatingTap(),
                                     ),
                                   ),
                                 ),
@@ -435,9 +434,9 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               FloatingActionButton(
-                heroTag: 'info_page_fab_rating',
+                heroTag: 'fab_rating',
                 tooltip: '评价',
-                onPressed: _onBangumiRatingTap,
+                onPressed: onBangumiRatingTap,
                 child: const Icon(Icons.rate_review_rounded),
               ),
               FloatingActionButton(

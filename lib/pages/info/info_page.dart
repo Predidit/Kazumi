@@ -428,47 +428,55 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               );
             }),
           ),
-          floatingActionButton: Column(
-            spacing: 10,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              FloatingActionButton(
-                heroTag: 'fab_rating',
-                tooltip: '评价',
-                onPressed: onBangumiRatingTap,
-                child: const Icon(Icons.rate_review_rounded),
-              ),
-              FloatingActionButton(
-                heroTag: 'fab_play',
-                tooltip: '开始观看',
-                onPressed: () async {
-                  showModalBottomSheet(
-                    isScrollControlled: true,
-                    constraints: BoxConstraints(
-                      maxHeight: (MediaQuery.sizeOf(context).height >=
-                              LayoutBreakpoint.compact['height']!)
-                          ? MediaQuery.of(context).size.height * 3 / 4
-                          : MediaQuery.of(context).size.height,
-                      maxWidth: (MediaQuery.sizeOf(context).width >=
-                              LayoutBreakpoint.medium['width']!)
-                          ? MediaQuery.of(context).size.width * 9 / 16
-                          : MediaQuery.of(context).size.width,
+          floatingActionButton: AnimatedBuilder(
+            animation: infoTabController,
+            builder: (context, child) {
+              final showRatingFab = infoTabController.index == 1;
+              return Column(
+                spacing: 10,
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (showRatingFab)
+                    FloatingActionButton(
+                      heroTag: 'fab_rating',
+                      tooltip: '吐槽',
+                      onPressed: onBangumiRatingTap,
+                      child: const Icon(Icons.rate_review_rounded),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                    showDragHandle: true,
-                    context: context,
-                    builder: (context) {
-                      return SourceSheet(
-                          tabController: sourceTabController,
-                          infoController: infoController);
+                  FloatingActionButton(
+                    heroTag: 'fab_play',
+                    tooltip: '开始观看',
+                    onPressed: () async {
+                      showModalBottomSheet(
+                        isScrollControlled: true,
+                        constraints: BoxConstraints(
+                          maxHeight: (MediaQuery.sizeOf(context).height >=
+                                  LayoutBreakpoint.compact['height']!)
+                              ? MediaQuery.of(context).size.height * 3 / 4
+                              : MediaQuery.of(context).size.height,
+                          maxWidth: (MediaQuery.sizeOf(context).width >=
+                                  LayoutBreakpoint.medium['width']!)
+                              ? MediaQuery.of(context).size.width * 9 / 16
+                              : MediaQuery.of(context).size.width,
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        backgroundColor:
+                            Theme.of(context).scaffoldBackgroundColor,
+                        showDragHandle: true,
+                        context: context,
+                        builder: (context) {
+                          return SourceSheet(
+                              tabController: sourceTabController,
+                              infoController: infoController);
+                        },
+                      );
                     },
-                  );
-                },
-                child: const Icon(Icons.play_arrow_rounded),
-              ),
-            ],
+                    child: const Icon(Icons.play_arrow_rounded),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

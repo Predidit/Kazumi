@@ -788,7 +788,7 @@ class _PlayerItemState extends State<PlayerItem>
       }
       playerController.panel.showVolume = true;
       hideVolumeUITimer?.cancel();
-      hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+      hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
         if (mounted) {
           playerController.panel.showVolume = false;
         }

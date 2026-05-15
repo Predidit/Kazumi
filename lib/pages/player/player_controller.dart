@@ -24,7 +24,6 @@ class PlayerController {
   final ShadersController shadersController = Modular.get<ShadersController>();
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
-  Timer? hideVolumeUITimer;
 
   late final PlayerDanmakuController danmaku = PlayerDanmakuController(
     setting: setting,
@@ -63,6 +62,7 @@ class PlayerController {
   String? coverUrl;
   String videoUrl = '';
   bool isLocalPlayback = false;
+  Timer? hideVolumeUITimer;
 
   Future<void> init(PlaybackInitParams params) async {
     final int lifecycleId = playback.beginInit();
@@ -145,7 +145,7 @@ class PlayerController {
         if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
           hideVolumeUITimer?.cancel();
-          hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+          hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
             panel.showVolume = false;
             hideVolumeUITimer = null;
           });
@@ -263,6 +263,8 @@ class PlayerController {
     bool disposeSyncPlayController = true,
     bool cancelActiveInit = true,
   }) async {
+    hideVolumeUITimer?.cancel();
+    FlutterVolumeController.removeListener();
     await playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
       cancelActiveInit: cancelActiveInit,

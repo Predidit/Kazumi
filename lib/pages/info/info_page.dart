@@ -432,20 +432,15 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             animation: infoTabController,
             builder: (context, child) {
               final showRatingFab = infoTabController.index == 1;
-              return Column(
-                spacing: 10,
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (showRatingFab)
-                    FloatingActionButton(
-                      heroTag: 'fab_rating',
+              return showRatingFab ?
+                    FloatingActionButton.extended(
                       tooltip: '吐槽',
                       onPressed: onBangumiRatingTap,
-                      child: const Icon(Icons.rate_review_rounded),
-                    ),
-                  FloatingActionButton(
-                    heroTag: 'fab_play',
+                      label: const Text('发表吐槽'),
+                      icon: const Icon(Icons.rate_review_rounded),
+                    )
+                  :
+                  FloatingActionButton.extended(
                     tooltip: '开始观看',
                     onPressed: () async {
                       showModalBottomSheet(
@@ -472,9 +467,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         },
                       );
                     },
-                    child: const Icon(Icons.play_arrow_rounded),
-                  ),
-                ],
+                    label: const Text('开始观看'),
+                    icon: const Icon(Icons.play_arrow_rounded),
               );
             },
           ),

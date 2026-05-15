@@ -19,7 +19,6 @@ import 'package:window_manager/window_manager.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
-import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:hive_ce/hive.dart';
@@ -788,7 +787,7 @@ class _PlayerItemState extends State<PlayerItem>
       }
       playerController.panel.showVolume = true;
       hideVolumeUITimer?.cancel();
-      hideVolumeUITimer = Timer(const Duration(seconds: 2), () {
+      hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
         if (mounted) {
           playerController.panel.showVolume = false;
         }
@@ -878,11 +877,6 @@ class _PlayerItemState extends State<PlayerItem>
         if (Utils.isDesktop()) {
           playerController.playback.volume =
               playerController.playback.playerVolume;
-        } else {
-          FlutterVolumeController.getVolume().then((value) {
-            final volume = value ?? 0.0;
-            playerController.playback.volume = volume * 100;
-          });
         }
       }
       // 亮度相关
@@ -1898,11 +1892,6 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 if (playerController.panel.volumeSeeking) {
                                   playerController.panel.volumeSeeking = false;
-                                  Future.delayed(const Duration(seconds: 1),
-                                      () {
-                                    FlutterVolumeController.updateShowSystemUI(
-                                        true);
-                                  });
                                 }
                                 if (playerController.panel.brightnessSeeking) {
                                   playerController.panel.brightnessSeeking =

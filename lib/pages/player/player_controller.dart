@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
@@ -60,6 +62,7 @@ class PlayerController {
   String? coverUrl;
   String videoUrl = '';
   bool isLocalPlayback = false;
+  Timer? hideVolumeUITimer;
 
   Future<void> init(PlaybackInitParams params) async {
     final int lifecycleId = playback.beginInit();
@@ -133,11 +136,33 @@ class PlayerController {
         return;
       }
     } else {
-      // mobile is using system volume, don't setVolume here,
-      // or iOS will mute if system volume is too low (#732)
       await FlutterVolumeController.getVolume().then((value) {
         playback.volume = (value ?? 0.0) * 100;
       });
+      if (!playback.isCurrentPlayer(lifecycleId, player)) {
+        return;
+      }
+
+      await FlutterVolumeController.updateShowSystemUI(false);
+      if (!playback.isCurrentPlayer(lifecycleId, player)) {
+        await FlutterVolumeController.updateShowSystemUI(true);
+        return;
+      }
+
+      FlutterVolumeController.addListener((volume) {
+        if (player == null || !playback.isCurrentPlayer(lifecycleId, player)) {
+          return;
+        }
+        playback.volume = volume * 100;
+        if (!Platform.isAndroid && !panel.volumeSeeking) {
+          panel.showVolume = true;
+          hideVolumeUITimer?.cancel();
+          hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
+            panel.showVolume = false;
+            hideVolumeUITimer = null;
+          });
+        }
+      }, category: AudioSessionCategory.playback, emitOnStart: false);
       if (!playback.isCurrentPlayer(lifecycleId, player)) {
         return;
       }
@@ -250,6 +275,9 @@ class PlayerController {
     bool disposeSyncPlayController = true,
     bool cancelActiveInit = true,
   }) async {
+    hideVolumeUITimer?.cancel();
+    FlutterVolumeController.removeListener();
+    await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
       cancelActiveInit: cancelActiveInit,

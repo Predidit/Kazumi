@@ -17,6 +17,16 @@ part 'player_danmaku_controller.g.dart';
 class PlayerDanmakuController = _PlayerDanmakuController
     with _$PlayerDanmakuController;
 
+class DanmakuLoadResult {
+  const DanmakuLoadResult({
+    required this.danmakus,
+    required this.bangumiID,
+  });
+
+  final List<Danmaku> danmakus;
+  final int bangumiID;
+}
+
 abstract class _PlayerDanmakuController with Store {
   _PlayerDanmakuController({
     required this.setting,
@@ -36,32 +46,49 @@ abstract class _PlayerDanmakuController with Store {
   bool danmakuLoading = false;
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
 
-  // DanDanPlay 弹幕ID
   int bangumiID = 0;
 
-  /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
-  Future<void> loadDanmaku(
-      int bangumiId, String pluginName, int episode) async {
+  // Fetching must not mutate current danmaku state; VideoPageController applies
+  // the result only after confirming the playback session is still current.
+  Future<DanmakuLoadResult> fetchDanmaku(
+    int bangumiId,
+    String pluginName,
+    int episode,
+  ) async {
     if (isLocalPlayback()) {
-      await _loadCachedDanmaku(bangumiId, pluginName, episode);
-    } else {
-      await getDanDanmakuByBgmBangumiID(bangumiId, episode);
+      return await _fetchCachedDanmaku(
+        bangumiId,
+        pluginName,
+        episode,
+      );
     }
+    return await _fetchDanDanmakuByBgmBangumiID(
+      bangumiId,
+      episode,
+    );
   }
 
-  Future<void> _loadCachedDanmaku(
-      int bangumiId, String pluginName, int episode) async {
-    if (danmakuLoading) {
-      KazumiLogger()
-          .i('PlayerController: danmaku is loading, ignore duplicate request');
-      return;
-    }
+  void beginDanmakuLoad() {
+    danDanmakus.clear();
+    danmakuLoading = true;
+  }
 
+  void applyDanmakuLoad(DanmakuLoadResult result) {
+    bangumiID = result.bangumiID;
+    addDanmakus(result.danmakus);
+    danmakuLoading = false;
+  }
+
+  void finishDanmakuLoad() {
+    danmakuLoading = false;
+  }
+
+  Future<DanmakuLoadResult> _fetchCachedDanmaku(
+      int bangumiId, String pluginName, int episode) async {
     KazumiLogger().i(
         'PlayerController: attempting to load cached danmaku for episode $episode');
-    danmakuLoading = true;
+    var nextBangumiID = bangumiID;
     try {
-      danDanmakus.clear();
       final downloadController = Modular.get<DownloadController>();
       final cachedDanmakus = await downloadController.getCachedDanmakus(
         bangumiId,
@@ -70,24 +97,30 @@ abstract class _PlayerDanmakuController with Store {
       );
 
       if (cachedDanmakus != null && cachedDanmakus.isNotEmpty) {
-        addDanmakus(cachedDanmakus);
         KazumiLogger().i(
             'PlayerController: loaded ${cachedDanmakus.length} cached danmakus');
+        return DanmakuLoadResult(
+          danmakus: cachedDanmakus,
+          bangumiID: nextBangumiID,
+        );
       } else {
         KazumiLogger()
             .i('PlayerController: no cached danmaku, attempting online fetch');
         try {
-          bangumiID =
+          nextBangumiID =
               await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bangumiId);
-          if (bangumiID != 0) {
-            var res = await DanmakuApi.getDanDanmaku(bangumiID, episode);
+          if (nextBangumiID != 0) {
+            var res = await DanmakuApi.getDanDanmaku(nextBangumiID, episode);
             if (res.isNotEmpty) {
-              addDanmakus(res);
               KazumiLogger()
                   .i('PlayerController: fetched ${res.length} danmakus online');
-              _saveDanmakuToCache(
-                  downloadController, bangumiId, pluginName, episode, res);
+              _saveDanmakuToCache(downloadController, bangumiId, pluginName,
+                  episode, res, nextBangumiID);
             }
+            return DanmakuLoadResult(
+              danmakus: res,
+              bangumiID: nextBangumiID,
+            );
           }
         } catch (e) {
           KazumiLogger().w(
@@ -98,20 +131,19 @@ abstract class _PlayerDanmakuController with Store {
     } catch (e) {
       KazumiLogger()
           .w('PlayerController: failed to load cached danmaku', error: e);
-    } finally {
-      danmakuLoading = false;
     }
+    return DanmakuLoadResult(danmakus: const [], bangumiID: nextBangumiID);
   }
 
   void _saveDanmakuToCache(DownloadController downloadController, int bangumiId,
-      String pluginName, int episode, List<Danmaku> danmakus) {
+      String pluginName, int episode, List<Danmaku> danmakus, int danDanID) {
     try {
       downloadController.updateCachedDanmakus(
         bangumiId,
         pluginName,
         episode,
         danmakus,
-        bangumiID,
+        danDanID,
       );
       KazumiLogger()
           .i('PlayerController: saved ${danmakus.length} danmakus to cache');
@@ -121,39 +153,25 @@ abstract class _PlayerDanmakuController with Store {
     }
   }
 
-  Future<void> getDanDanmakuByBgmBangumiID(
+  Future<DanmakuLoadResult> _fetchDanDanmakuByBgmBangumiID(
       int bgmBangumiID, int episode) async {
-    if (danmakuLoading) {
-      KazumiLogger()
-          .i('PlayerController: danmaku is loading, ignore duplicate request');
-      return;
-    }
-
     KazumiLogger().i(
         'PlayerController: attempting to get danmaku [BgmBangumiID] $bgmBangumiID');
-    danmakuLoading = true;
+    var nextBangumiID = bangumiID;
     try {
-      danDanmakus.clear();
-      bangumiID =
+      nextBangumiID =
           await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
-      var res = await DanmakuApi.getDanDanmaku(bangumiID, episode);
-      addDanmakus(res);
+      var res = await DanmakuApi.getDanDanmaku(nextBangumiID, episode);
+      return DanmakuLoadResult(danmakus: res, bangumiID: nextBangumiID);
     } catch (e) {
       KazumiLogger().w(
           'PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID',
           error: e);
-    } finally {
-      danmakuLoading = false;
     }
+    return DanmakuLoadResult(danmakus: const [], bangumiID: nextBangumiID);
   }
 
   Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
-    if (danmakuLoading) {
-      KazumiLogger()
-          .i('PlayerController: danmaku is loading, ignore duplicate request');
-      return;
-    }
-
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
@@ -171,7 +189,6 @@ abstract class _PlayerDanmakuController with Store {
     final bool danmakuDeduplicationEnable =
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
-    // 如果启用了弹幕去重功能则处理5秒内相邻重复类似的弹幕进行合并
     final List<Danmaku> listToAdd = danmakuDeduplicationEnable
         ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;

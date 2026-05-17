@@ -64,8 +64,7 @@ class PlayerController {
   bool isLocalPlayback = false;
   Timer? hideVolumeUITimer;
 
-  Future<void> init(PlaybackInitParams params) async {
-    final int lifecycleId = playback.beginInit();
+  Future<bool> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
     bangumiId = params.bangumiId;
@@ -91,66 +90,47 @@ class PlayerController {
     try {
       await dispose(
         disposeSyncPlayController: false,
-        cancelActiveInit: false,
       );
     } catch (_) {}
-    if (playback.lifecycleId != lifecycleId) {
-      return;
-    }
-    int episodeFromTitle = 0;
-    try {
-      episodeFromTitle = Utils.extractEpisodeNumber(params.episodeTitle);
-    } catch (e) {
-      KazumiLogger().e(
-          'PlayerController: failed to extract episode number from title',
-          error: e);
-    }
-    if (episodeFromTitle == 0) {
-      episodeFromTitle = params.episode;
-    }
-    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
     final Player? player;
     try {
       player = await playback.createVideoController(
         params.httpHeaders,
         params.adBlockerEnabled,
         offset: params.offset,
-        lifecycleId: lifecycleId,
       );
     } catch (e) {
-      if (playback.lifecycleId == lifecycleId) {
-        playback.loading = false;
-        KazumiLogger()
-            .e('PlayerController: failed to initialize video', error: e);
-      }
-      return;
+      playback.loading = false;
+      KazumiLogger()
+          .e('PlayerController: failed to initialize video', error: e);
+      return false;
     }
-    if (player == null || !playback.isCurrentPlayer(lifecycleId, player)) {
-      return;
+    if (player == null || !playback.isCurrentPlayer(player)) {
+      return false;
     }
 
     if (Utils.isDesktop()) {
       playback.volume = playback.volume != -1 ? playback.volume : 100;
       await setVolume(playback.volume);
-      if (!playback.isCurrentPlayer(lifecycleId, player)) {
-        return;
+      if (!playback.isCurrentPlayer(player)) {
+        return false;
       }
     } else {
       await FlutterVolumeController.getVolume().then((value) {
         playback.volume = (value ?? 0.0) * 100;
       });
-      if (!playback.isCurrentPlayer(lifecycleId, player)) {
-        return;
+      if (!playback.isCurrentPlayer(player)) {
+        return false;
       }
 
       await FlutterVolumeController.updateShowSystemUI(false);
-      if (!playback.isCurrentPlayer(lifecycleId, player)) {
+      if (!playback.isCurrentPlayer(player)) {
         await FlutterVolumeController.updateShowSystemUI(true);
-        return;
+        return false;
       }
 
       FlutterVolumeController.addListener((volume) {
-        if (player == null || !playback.isCurrentPlayer(lifecycleId, player)) {
+        if (player == null || !playback.isCurrentPlayer(player)) {
           return;
         }
         playback.volume = volume * 100;
@@ -163,13 +143,13 @@ class PlayerController {
           });
         }
       }, category: AudioSessionCategory.playback, emitOnStart: false);
-      if (!playback.isCurrentPlayer(lifecycleId, player)) {
-        return;
+      if (!playback.isCurrentPlayer(player)) {
+        return false;
       }
     }
     setPlaybackSpeed(playback.playerSpeed);
-    if (!playback.isCurrentPlayer(lifecycleId, player)) {
-      return;
+    if (!playback.isCurrentPlayer(player)) {
+      return false;
     }
     KazumiLogger().i('PlayerController: video initialized');
     playback.loading = false;
@@ -183,6 +163,7 @@ class PlayerController {
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
     }
+    return true;
   }
 
   Future<void> setShader(int type,
@@ -273,14 +254,12 @@ class PlayerController {
 
   Future<void> dispose({
     bool disposeSyncPlayController = true,
-    bool cancelActiveInit = true,
   }) async {
     hideVolumeUITimer?.cancel();
     FlutterVolumeController.removeListener();
     await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
       disposeSyncPlayController: disposeSyncPlayController,
-      cancelActiveInit: cancelActiveInit,
     );
   }
 
@@ -300,12 +279,6 @@ class PlayerController {
   void setArrowKeyForwardTime(int time) {
     playback.arrowKeySkipTime = time;
     setting.put(SettingBoxKey.arrowKeySkipTime, time);
-  }
-
-  /// 加载弹幕 (离线模式优先从缓存加载，无缓存时尝试在线获取)
-  Future<void> _loadDanmaku(
-      int bangumiId, String pluginName, int episode) async {
-    await danmaku.loadDanmaku(bangumiId, pluginName, episode);
   }
 
   Future<void> launchExternalPlayer() async {

@@ -53,28 +53,19 @@ class _VideoPageState extends State<VideoPage>
   late Animation<double> _maskOpacityAnimation;
   late TabController tabController;
 
-  // 当前播放列表
-  int currentRoad = 0;
+  int visibleRoad = 0;
 
-  // disable animation.
   late final bool disableAnimations;
 
-  // SyncPlayChatMessage
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
-  int _playbackRequestId = 0;
-
-  bool _isActivePlaybackRequest(int requestId) {
-    return mounted && requestId == _playbackRequestId;
-  }
 
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
-    // Check fullscreen when enter video page
-    // in case user use system controls to enter fullscreen outside video page
+    // Window fullscreen can be changed outside this page through system chrome.
     videoPageController.isDesktopFullscreen();
     tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
@@ -101,7 +92,8 @@ class _VideoPageState extends State<VideoPage>
     disableAnimations =
         setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
 
-    // Resolve the route-scoped player after the page survives its first frame.
+    // PlayerController is route-scoped and may not be registered until after
+    // the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadPlayerController();
     });
@@ -145,7 +137,6 @@ class _VideoPageState extends State<VideoPage>
           playerController.syncplay.syncplayController?.username ?? '';
       final String displayText = '${event.username}：${event.message}';
 
-      // 只有在弹幕开启时渲染弹幕并确保是别人发送的弹幕
       if (playerController.danmaku.danmakuOn &&
           event.username != localUsername &&
           event.fromRemote) {
@@ -165,44 +156,24 @@ class _VideoPageState extends State<VideoPage>
   void _initOfflineMode(PlayerController playerController) {
     videoPageController.showTabBody = true;
     videoPageController.historyOffset = 0;
-    currentRoad = videoPageController.currentRoad;
-    // A newer request or dispose must make this delayed init a no-op.
-    final int requestId = ++_playbackRequestId;
+    visibleRoad = videoPageController.selectedEpisode.road;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(_offlinePlayerInitDelay);
-      if (!_isActivePlaybackRequest(requestId)) {
+      if (!mounted) {
         return;
       }
 
-      if (videoPageController.offlineVideoPath != null) {
-        final params = PlaybackInitParams(
-          videoUrl: videoPageController.offlineVideoPath!,
-          offset: videoPageController.historyOffset,
-          isLocalPlayback: true,
-          bangumiId: videoPageController.bangumiItem.id,
-          pluginName: videoPageController.offlinePluginName,
-          episode: videoPageController.actualEpisodeNumber,
-          httpHeaders: {},
-          adBlockerEnabled: false,
-          episodeTitle: videoPageController
-              .roadList[videoPageController.currentRoad]
-              .identifier[videoPageController.currentEpisode - 1],
-          referer: '',
-          currentRoad: videoPageController.currentRoad,
-          coverUrl: videoPageController.bangumiItem.images['large'],
-          bangumiName: videoPageController.bangumiItem.nameCn.isNotEmpty
-              ? videoPageController.bangumiItem.nameCn
-              : videoPageController.bangumiItem.name,
-        );
-        await playerController.init(params);
-      }
+      await changeEpisode(
+        videoPageController.selectedEpisode.episode,
+        currentRoad: videoPageController.selectedEpisode.road,
+        offset: videoPageController.historyOffset,
+      );
     });
   }
 
   void _initOnlineMode(PlayerController playerController) {
-    videoPageController.currentEpisode = 1;
-    videoPageController.currentRoad = 0;
+    videoPageController.resetEpisodeState();
     videoPageController.historyOffset = 0;
     videoPageController.showTabBody = true;
 
@@ -213,15 +184,17 @@ class _VideoPageState extends State<VideoPage>
       if (videoPageController.roadList.length > progress.road) {
         if (videoPageController.roadList[progress.road].data.length >=
             progress.episode) {
-          videoPageController.currentEpisode = progress.episode;
-          videoPageController.currentRoad = progress.road;
+          videoPageController.resetEpisodeState(
+            episode: progress.episode,
+            road: progress.road,
+          );
           if (playResume) {
             videoPageController.historyOffset = progress.progress.inSeconds;
           }
         }
       }
     }
-    currentRoad = videoPageController.currentRoad;
+    visibleRoad = videoPageController.selectedEpisode.road;
 
     _logSubscription = videoPageController.logStream.listen((log) {
       if (mounted) {
@@ -238,8 +211,8 @@ class _VideoPageState extends State<VideoPage>
       if (!mounted) {
         return;
       }
-      changeEpisode(videoPageController.currentEpisode,
-          currentRoad: videoPageController.currentRoad,
+      changeEpisode(videoPageController.selectedEpisode.episode,
+          currentRoad: videoPageController.selectedEpisode.road,
           offset: videoPageController.historyOffset);
     });
   }
@@ -261,7 +234,7 @@ class _VideoPageState extends State<VideoPage>
     try {
       _logSubscription?.cancel();
     } catch (_) {}
-    _playbackRequestId++;
+    videoPageController.cancelVideoSourceResolution();
     try {
       _playerController?.dispose();
     } catch (e) {
@@ -269,23 +242,19 @@ class _VideoPageState extends State<VideoPage>
           'VideoPageController: failed to dispose playerController',
           error: e);
     }
-    videoPageController.cancelVideoSourceResolution();
     if (!Utils.isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
-    videoPageController.episodeInfo.reset();
-    videoPageController.episodeCommentsList.clear();
+    videoPageController.resetEpisodeComments();
     videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
     tabController.dispose();
-    // Cancel timed shutdown when leaving anime page
     TimedShutdownService().cancel();
     super.dispose();
   }
 
-  // Handle fullscreen change invoked by system controls
   @override
   void onWindowEnterFullScreen() {
     videoPageController.handleOnEnterFullScreen();
@@ -326,20 +295,11 @@ class _VideoPageState extends State<VideoPage>
     if (playerController == null) {
       return;
     }
-    final int requestId = ++_playbackRequestId;
     if (!mounted) {
       return;
     }
     clearWebviewLog();
     hideDebugConsole();
-    videoPageController.loading = true;
-    videoPageController.errorMessage = null;
-    videoPageController.episodeInfo.reset();
-    videoPageController.episodeCommentsList.clear();
-    await playerController.stop();
-    if (!_isActivePlaybackRequest(requestId)) {
-      return;
-    }
     await videoPageController.changeEpisode(episode,
         currentRoad: currentRoad,
         offset: offset,
@@ -352,9 +312,9 @@ class _VideoPageState extends State<VideoPage>
         return;
       }
       await observerController.jumpTo(
-          index: videoPageController.currentEpisode > 1
-              ? videoPageController.currentEpisode - 1
-              : videoPageController.currentEpisode);
+          index: videoPageController.selectedEpisode.episode > 1
+              ? videoPageController.selectedEpisode.episode - 1
+              : videoPageController.selectedEpisode.episode);
     });
   }
 
@@ -406,7 +366,6 @@ class _VideoPageState extends State<VideoPage>
     Navigator.of(context).pop();
   }
 
-  /// Callback for timed shutdown - pauses video when timer expires
   void pauseForTimedShutdown() {
     final playerController = _playerController;
     if (playerController != null && playerController.playback.playing) {
@@ -414,7 +373,6 @@ class _VideoPageState extends State<VideoPage>
     }
   }
 
-  /// 发送弹幕 由于接口限制, 暂时未提交云端
   void sendDanmaku(String msg) async {
     final playerController = _playerController;
     if (playerController == null) {
@@ -447,7 +405,6 @@ class _VideoPageState extends State<VideoPage>
           playerController.syncplay.syncplayController?.username ?? '我';
       final String displayText = '$sender：$msg';
 
-      // 在播放器渲染自己发送的弹幕
       playerController.danmaku.canvasController.addDanmaku(
         DanmakuContentItem(
           displayText,
@@ -458,11 +415,10 @@ class _VideoPageState extends State<VideoPage>
         ),
       );
 
-      // 发送弹幕到聊天室
       playerController.sendSyncPlayChatMessage(msg);
     } else {
-      // Todo 接口方限制
-
+      // The remote danmaku provider does not expose a send API here; render the
+      // local echo so the user still sees their message immediately.
       playerController.danmaku.canvasController
           .addDanmaku(DanmakuContentItem(msg, selfSend: true));
     }
@@ -812,8 +768,10 @@ class _VideoPageState extends State<VideoPage>
                             icon: const Icon(Icons.refresh_outlined,
                                 color: Colors.white),
                             onPressed: () {
-                              changeEpisode(videoPageController.currentEpisode,
-                                  currentRoad: videoPageController.currentRoad);
+                              changeEpisode(
+                                  videoPageController.selectedEpisode.episode,
+                                  currentRoad:
+                                      videoPageController.selectedEpisode.road);
                             },
                           ),
                           Visibility(
@@ -908,7 +866,7 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   child: Text(
-                    '播放列表${currentRoad + 1} ',
+                    '播放列表${visibleRoad + 1} ',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -919,7 +877,7 @@ class _VideoPageState extends State<VideoPage>
               (int i) => MenuItemButton(
                 onPressed: () {
                   setState(() {
-                    currentRoad = i;
+                    visibleRoad = i;
                   });
                 },
                 child: Container(
@@ -930,7 +888,7 @@ class _VideoPageState extends State<VideoPage>
                     child: Text(
                       '播放列表${i + 1}',
                       style: TextStyle(
-                        color: i == currentRoad
+                        color: i == visibleRoad
                             ? Theme.of(context).colorScheme.primary
                             : null,
                       ),
@@ -1006,7 +964,7 @@ class _VideoPageState extends State<VideoPage>
       builder: (context) {
         var cardList = <Widget>[];
         for (var road in videoPageController.roadList) {
-          if (road.name == '播放列表${currentRoad + 1}') {
+          if (road.name == '播放列表${visibleRoad + 1}') {
             int count = 1;
             for (var urlItem in road.data) {
               int count0 = count;
@@ -1018,14 +976,16 @@ class _VideoPageState extends State<VideoPage>
                   clipBehavior: Clip.hardEdge,
                   child: InkWell(
                     onTap: () async {
-                      if (count0 == videoPageController.currentEpisode &&
-                          videoPageController.currentRoad == currentRoad) {
+                      if (count0 ==
+                              videoPageController.selectedEpisode.episode &&
+                          videoPageController.selectedEpisode.road ==
+                              visibleRoad) {
                         return;
                       }
                       KazumiLogger()
                           .i('VideoPageController: video URL is $urlItem');
                       closeTabBodyAnimated();
-                      changeEpisode(count0, currentRoad: currentRoad);
+                      changeEpisode(count0, currentRoad: visibleRoad);
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -1036,10 +996,11 @@ class _VideoPageState extends State<VideoPage>
                           Row(
                             children: [
                               if (count0 ==
-                                      (videoPageController.currentEpisode) &&
-                                  currentRoad ==
+                                      (videoPageController
+                                          .selectedEpisode.episode) &&
+                                  visibleRoad ==
                                       videoPageController
-                                          .currentRoad) ...<Widget>[
+                                          .selectedEpisode.road) ...<Widget>[
                                 Image.asset(
                                   'assets/images/playing.gif',
                                   color: Theme.of(context).colorScheme.primary,
@@ -1056,9 +1017,10 @@ class _VideoPageState extends State<VideoPage>
                                     fontSize: 13,
                                     color: (count0 ==
                                                 videoPageController
-                                                    .currentEpisode &&
-                                            currentRoad ==
-                                                videoPageController.currentRoad)
+                                                    .selectedEpisode.episode &&
+                                            visibleRoad ==
+                                                videoPageController
+                                                    .selectedEpisode.road)
                                         ? Theme.of(context).colorScheme.primary
                                         : Theme.of(context)
                                             .colorScheme
@@ -1105,19 +1067,7 @@ class _VideoPageState extends State<VideoPage>
   Widget get tabBody {
     final playerController = _playerController;
     final bool danmakuOn = playerController?.danmaku.danmakuOn ?? false;
-    int episodeNum = 0;
-    episodeNum = Utils.extractEpisodeNumber(videoPageController
-        .roadList[videoPageController.currentRoad]
-        .identifier[videoPageController.currentEpisode - 1]);
-    if (episodeNum == 0 ||
-        (!videoPageController.isOfflineMode &&
-            episodeNum >
-                videoPageController.roadList[videoPageController.currentRoad]
-                    .identifier.length)) {
-      episodeNum = videoPageController.isOfflineMode
-          ? videoPageController.actualEpisodeNumber
-          : videoPageController.currentEpisode;
-    }
+    final int episodeNum = videoPageController.commentsEpisode;
 
     return Container(
       color: Theme.of(context).canvasColor,
@@ -1224,7 +1174,7 @@ class _VideoPageState extends State<VideoPage>
                                 context: context,
                                 isScrollControlled: true,
                                 builder: (context) =>
-                                    DownloadEpisodeSheet(road: currentRoad),
+                                    DownloadEpisodeSheet(road: visibleRoad),
                               );
                             },
                           ),

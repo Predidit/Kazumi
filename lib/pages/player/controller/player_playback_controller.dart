@@ -39,7 +39,6 @@ abstract class _PlayerPlaybackController with Store {
 
   Player? mediaPlayer;
   VideoController? videoController;
-  int lifecycleId = 0;
 
   bool hAenable = true;
   late String hardwareDecoder;
@@ -57,7 +56,6 @@ abstract class _PlayerPlaybackController with Store {
   @observable
   int superResolutionType = 1;
 
-  // 视频音量
   @observable
   double volume = -1;
 
@@ -78,14 +76,18 @@ abstract class _PlayerPlaybackController with Store {
   @observable
   double playerSpeed = 1.0;
 
-  int beginInit() => ++lifecycleId;
-
-  void cancelActiveInit() {
-    lifecycleId++;
+  bool isCurrentPlayer(Player player) {
+    return identical(mediaPlayer, player);
   }
 
-  bool isCurrentPlayer(int expectedLifecycleId, Player player) {
-    return lifecycleId == expectedLifecycleId && identical(mediaPlayer, player);
+  Future<Player?> _discardIfNotCurrent(Player player) async {
+    if (isCurrentPlayer(player)) {
+      return player;
+    }
+    try {
+      await player.dispose();
+    } catch (_) {}
+    return null;
   }
 
   @action
@@ -157,7 +159,7 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<Player?> createVideoController(
       Map<String, String> httpHeaders, bool adBlockerEnabled,
-      {int offset = 0, required int lifecycleId}) async {
+      {int offset = 0}) async {
     superResolutionType =
         setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
     hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
@@ -184,32 +186,40 @@ abstract class _PlayerPlaybackController with Store {
     debug.playerLog.clear();
     await debug.setup(
       player,
-      lifecycleId: lifecycleId,
       isCurrentPlayer: isCurrentPlayer,
       playerDebugMode: playerDebugMode,
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     var pp = player.platform as NativePlayer;
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
     // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
     // 该设置可以在所有平台上正确启用双重缓存
     await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
     await pp.setProperty("af", "scaletempo2=max-speed=8");
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
       if (androidEnableOpenSLES) {
         await pp.setProperty("ao", "opensles");
       } else {
         await pp.setProperty("ao", "audiotrack");
       }
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
     }
 
-    // 设置 HTTP 代理
     final bool proxyEnable =
         setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
     if (proxyEnable) {
@@ -218,7 +228,9 @@ abstract class _PlayerPlaybackController with Store {
       final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
       if (formattedProxy != null) {
         await pp.setProperty("http-proxy", formattedProxy);
-        if (!isCurrentPlayer(lifecycleId, player)) return null;
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(player);
+        }
         KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
       }
     }
@@ -226,7 +238,9 @@ abstract class _PlayerPlaybackController with Store {
     await player.setAudioTrack(
       AudioTrack.auto(),
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     String? videoRenderer;
     if (Platform.isAndroid) {
@@ -238,6 +252,9 @@ abstract class _PlayerPlaybackController with Store {
         // GPU-NEXT 需要 Vulkan 1.2 支持
         // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
         final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(player);
+        }
         if (androidSdkVersion >= 34) {
           videoRenderer = 'gpu-next';
         } else {
@@ -264,14 +281,15 @@ abstract class _PlayerPlaybackController with Store {
       ),
     );
     player.setPlaylistMode(PlaylistMode.none);
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
-    // error handle
     bool showPlayerError =
         setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
     player.stream.error.listen((event) {
       if (showPlayerError) {
-        if (!isCurrentPlayer(lifecycleId, player)) {
+        if (!isCurrentPlayer(player)) {
           return;
         }
         if (event.toString().contains('Failed to open') && playerBuffering) {
@@ -290,7 +308,9 @@ abstract class _PlayerPlaybackController with Store {
 
     if (superResolutionType != 1) {
       await setShader(superResolutionType, player: player);
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
     }
 
     await player.open(
@@ -298,7 +318,9 @@ abstract class _PlayerPlaybackController with Store {
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
       play: autoPlay,
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     return player;
   }
@@ -409,12 +431,7 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<void> dispose({
     bool disposeSyncPlayController = true,
-    bool cancelActiveInit = true,
   }) async {
-    // Bump the generation first so late init continuations cannot touch it.
-    if (cancelActiveInit) {
-      this.cancelActiveInit();
-    }
     final player = mediaPlayer;
     mediaPlayer = null;
     videoController = null;
@@ -435,7 +452,11 @@ abstract class _PlayerPlaybackController with Store {
   Future<void> stop() async {
     try {
       final player = mediaPlayer;
+      mediaPlayer = null;
+      videoController = null;
+      await debug.cancel();
       await player?.stop();
+      await player?.dispose();
       loading = true;
     } catch (_) {}
   }

@@ -1258,6 +1258,7 @@ class _PlayerItemState extends State<PlayerItem>
               child: ListBody(
                 children: <Widget>[
                   DropdownButtonFormField<String>(
+                    key: ValueKey(selectedSyncPlayEndPoint),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),

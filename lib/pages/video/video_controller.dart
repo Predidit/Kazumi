@@ -42,17 +42,17 @@ class _AsyncSessionOwner {
   }
 
   bool owns(_AsyncSession session) {
-    return identical(session._owner, this) && session._version == _version;
+    return identical(session.owner, this) && session.version == _version;
   }
 }
 
 class _AsyncSession {
-  const _AsyncSession(this._owner, this._version);
+  const _AsyncSession(this.owner, this.version);
 
-  final _AsyncSessionOwner _owner;
-  final int _version;
+  final _AsyncSessionOwner owner;
+  final int version;
 
-  bool get isActive => _owner.owns(this);
+  bool get isActive => owner.owns(this);
 
   bool get isStale => !isActive;
 }

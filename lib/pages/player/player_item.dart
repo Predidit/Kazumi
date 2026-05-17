@@ -986,6 +986,8 @@ class _PlayerItemState extends State<PlayerItem>
                               onTap: () async {
                                 KazumiDialog.dismiss();
                                 try {
+                                  videoPageController
+                                      .cancelAutomaticDanmakuLoad();
                                   await playerController.danmaku
                                       .getDanDanmakuByEpisodeID(
                                           episode.episodeId);

@@ -121,9 +121,11 @@ abstract class _VideoPageController with Store {
   @observable
   bool isCommentsAscending = false;
 
-  // Playback resolution and comment loading have separate owners. Episode
-  // switches reset comments explicitly; comment refreshes never cancel playback.
+  // Playback, automatic danmaku loading, and comment loading have separate
+  // owners. Manual danmaku selection can cancel auto danmaku without touching
+  // playback; comment refreshes never cancel playback.
   final _AsyncSessionOwner _playbackSessions = _AsyncSessionOwner();
+  final _AsyncSessionOwner _danmakuSessions = _AsyncSessionOwner();
   final _AsyncSessionOwner _commentSessions = _AsyncSessionOwner();
 
   @observable
@@ -274,6 +276,8 @@ abstract class _VideoPageController with Store {
     playingEpisode = null;
     commentsEpisode = commentEpisodeForSelection(selection);
     resetEpisodeComments();
+    _danmakuSessions.cancel();
+    playerController.danmaku.finishDanmakuLoad();
     _videoSourceProvider?.cancel();
     loading = true;
     errorMessage = null;
@@ -389,6 +393,7 @@ abstract class _VideoPageController with Store {
     PlaybackInitParams params,
     _AsyncSession session,
   ) async {
+    final danmakuSession = _danmakuSessions.begin();
     playerController.danmaku.beginDanmakuLoad();
     try {
       final result = await playerController.danmaku.fetchDanmaku(
@@ -396,15 +401,19 @@ abstract class _VideoPageController with Store {
         params.pluginName,
         _danmakuEpisodeForPlayback(params),
       );
-      if (session.isActive) {
+      if (session.isActive && danmakuSession.isActive) {
         playerController.danmaku.applyDanmakuLoad(result);
       }
     } catch (e) {
-      if (session.isActive) {
+      if (session.isActive && danmakuSession.isActive) {
         playerController.danmaku.finishDanmakuLoad();
       }
       KazumiLogger().w('VideoPageController: failed to load danmaku', error: e);
     }
+  }
+
+  void cancelAutomaticDanmakuLoad() {
+    _danmakuSessions.cancel();
   }
 
   String? _getLocalVideoPath(
@@ -498,6 +507,7 @@ abstract class _VideoPageController with Store {
 
   void cancelVideoSourceResolution() {
     _playbackSessions.cancel();
+    _danmakuSessions.cancel();
     _logSubscription?.cancel();
     _logSubscription = null;
     if (!_logStreamController.isClosed) {

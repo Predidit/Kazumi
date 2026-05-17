@@ -139,7 +139,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() {
           commentsIsLoading = false;
-          if (infoController.commentsList.isEmpty) {
+          if (infoController.commentsList.isEmpty && infoController.bangumiItem.interest == null) {
             commentsIsEmpty = true;
           }
         });
@@ -181,7 +181,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     infoController.bangumiItem = inputBangumiIten;
-    infoController.mergePersistedInterestIfAbsent();
     infoController.characterList.clear();
     infoController.commentsList.clear();
     infoController.staffList.clear();
@@ -203,34 +202,47 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoTabController = TabController(length: 5, vsync: this);
     showRating =
         GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
-    infoTabController.addListener(() {
-      int index = infoTabController.index;
-      if (index == 1 &&
-          infoController.commentsList.isEmpty &&
-          !commentsIsLoading &&
-          !commentsIsEmpty &&
-          !commentsQueryTimeout) {
-        loadMoreComments();
-      }
-      if (index == 2 &&
-          infoController.characterList.isEmpty &&
-          !charactersIsLoading &&
-          !charactersIsEmpty &&
-          !charactersQueryTimeout) {
-        loadCharacters();
-      }
-      if (index == 4 &&
-          infoController.staffList.isEmpty &&
-          !staffIsLoading &&
-          !staffIsEmpty &&
-          !staffQueryTimeout) {
-        loadStaff();
-      }
-    });
+    infoTabController.addListener(onInfoTabChanged);
+  }
+
+  void onInfoTabChanged() {
+    final index = infoTabController.index;
+    if (index == 2 &&
+        infoController.characterList.isEmpty &&
+        !charactersIsLoading &&
+        !charactersIsEmpty &&
+        !charactersQueryTimeout) {
+      loadCharacters();
+    }
+    if (index == 4 &&
+        infoController.staffList.isEmpty &&
+        !staffIsLoading &&
+        !staffIsEmpty &&
+        !staffQueryTimeout) {
+      loadStaff();
+    }
+  }
+
+  Future<void> onCommentsTabSelected() async {
+    final interest = infoController.bangumiItem.interest;
+    final token = GStorage.setting
+        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+        .toString()
+        .trim();
+    if (interest != null && token.isNotEmpty) {
+      await infoController.fillInterestUserProfileIfNeeded();
+    }
+    if (infoController.commentsList.isEmpty &&
+        !commentsIsLoading &&
+        !commentsIsEmpty &&
+        !commentsQueryTimeout) {
+      loadMoreComments();
+    }
   }
 
   @override
   void dispose() {
+    infoTabController.removeListener(onInfoTabChanged);
     infoController.characterList.clear();
     infoController.commentsList.clear();
     infoController.staffList.clear();
@@ -409,6 +421,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             },
             body: Observer(builder: (context) {
               final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
+              // 触发 interest 用户信息更新后重建吐槽列表
+              final _ = infoController.interestProfileEpoch;
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
@@ -422,6 +436,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 loadCharacters: loadCharacters,
                 loadStaff: loadStaff,
                 commentsList: infoController.commentsList,
+                commentsIsLoading: commentsIsLoading,
+                onCommentsTabSelected: onCommentsTabSelected,
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
                 isLoading: showBangumiInfoSkeleton,

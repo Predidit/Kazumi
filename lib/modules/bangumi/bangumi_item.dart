@@ -37,7 +37,6 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
-  @HiveField(15)
   BangumiInterest? interest;
 
   BangumiItem({

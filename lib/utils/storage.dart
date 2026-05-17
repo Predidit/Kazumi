@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
@@ -143,7 +142,6 @@ class GStorage {
   static Future init() async {
     _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
 
-    Hive.registerAdapter(BangumiInterestAdapter());
     Hive.registerAdapter(BangumiItemAdapter());
     Hive.registerAdapter(BangumiTagAdapter());
     Hive.registerAdapter(CollectedBangumiAdapter());

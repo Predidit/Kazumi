@@ -38,6 +38,46 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
+  @observable
+  int interestProfileEpoch = 0;
+
+  bool _isFillingInterestUserProfile = false;
+
+  Future<bool> fillInterestUserProfileIfNeeded() async {
+    final interest = bangumiItem.interest;
+    if (interest == null || interest.hasUserProfile) {
+      return false;
+    }
+    if (_isFillingInterestUserProfile) {
+      return false;
+    }
+    _isFillingInterestUserProfile = true;
+    try {
+      final user = await BangumiApi.getCurrentUser();
+      if (user == null) {
+        return false;
+      }
+      bangumiItem.interest = interest.copyWithUser(user: user);
+      await collectController.updateLocalCollect(bangumiItem);
+      interestProfileEpoch++;
+      return true;
+    } catch (e) {
+      KazumiLogger().e('InfoController: failed to fill interest user profile',
+          error: e);
+      return false;
+    } finally {
+      _isFillingInterestUserProfile = false;
+    }
+  }
+
+  void _stripOwnInterestDuplicatesFromComments() {
+    final interest = bangumiItem.interest;
+    if (interest == null) return;
+    final userId = interest.user?.id;
+    if (userId == null) return;
+    commentsList.removeWhere((item) => item.user.id == userId);
+  }
+
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
     try {
@@ -45,7 +85,6 @@ abstract class _InfoController with Store {
       if (value != null) {
         if (type == "init") {
           bangumiItem = value;
-          _fillInterestIfAbsentFromPersisted(bangumiItem.id);
         } else {
           bangumiItem.summary = value.summary;
           bangumiItem.tags = value.tags;
@@ -56,10 +95,15 @@ abstract class _InfoController with Store {
           bangumiItem.ratingScore = value.ratingScore;
           bangumiItem.votes = value.votes;
           bangumiItem.votesCount = value.votesCount;
-          if (value.interest != null) {
-            bangumiItem.interest = value.interest;
+          final incomingInterest = value.interest;
+          final previousInterest = bangumiItem.interest;
+          if (incomingInterest == null) {
+            bangumiItem.interest = null;
+          } else if (previousInterest == null ||
+              !previousInterest.hasUserProfile) {
+            bangumiItem.interest = incomingInterest;
           } else {
-            _fillInterestIfAbsentFromPersisted(bangumiItem.id);
+            bangumiItem.interest = incomingInterest.copyWithUser(user: previousInterest.user);
           }
         }
         await collectController.updateLocalCollect(bangumiItem);
@@ -69,24 +113,13 @@ abstract class _InfoController with Store {
     }
   }
 
-  void mergePersistedInterestIfAbsent() {
-    _fillInterestIfAbsentFromPersisted(bangumiItem.id);
-  }
-
-  void _fillInterestIfAbsentFromPersisted(int id) {
-    if (bangumiItem.interest != null) return;
-    final stored = collectController.getCollectibleBangumiItem(id)?.interest;
-    if (stored != null) {
-      bangumiItem.interest = stored;
-    }
-  }
-
   Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {
     if (offset == 0) {
       commentsList.clear();
     }
     await BangumiApi.getBangumiCommentsByID(id, offset: offset).then((value) {
       commentsList.addAll(value.commentList);
+      _stripOwnInterestDuplicatesFromComments();
     });
     KazumiLogger().i(
         'InfoController: loaded comments list length ${commentsList.length}');
@@ -141,6 +174,11 @@ abstract class _InfoController with Store {
         tags: data.tags,
       );
       await collectController.updateLocalCollect(bangumiItem);
+      await fillInterestUserProfileIfNeeded();
+      _stripOwnInterestDuplicatesFromComments();
+      if (commentsList.isNotEmpty) {
+        await queryBangumiCommentsByID(bangumiItem.id);
+      }
       await queryBangumiInfoByID(bangumiItem.id, type: "update");
     }
   }

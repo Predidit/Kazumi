@@ -1,32 +1,23 @@
-import 'package:hive_ce/hive.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 
-part 'bangumi_interest.g.dart';
-
-@HiveType(typeId: 9)
 class BangumiInterest {
-  @HiveField(0)
   final int id;
 
-  @HiveField(1)
   final int rate;
 
-  @HiveField(2)
   final int type;
 
-  @HiveField(3)
   final String comment;
 
-  @HiveField(4)
   final List<String> tags;
 
-  @HiveField(5)
   final int epStatus;
 
-  @HiveField(6)
   final int volStatus;
 
-  @HiveField(7)
   final int updatedAt;
+
+  final User? user;
 
   BangumiInterest({
     required this.id,
@@ -37,7 +28,25 @@ class BangumiInterest {
     required this.epStatus,
     required this.volStatus,
     required this.updatedAt,
+    this.user,
   });
+
+
+  bool get hasUserProfile => user != null;
+
+  BangumiInterest copyWithUser({User? user}) {
+    return BangumiInterest(
+      id: id,
+      rate: rate,
+      type: type,
+      comment: comment,
+      tags: tags,
+      epStatus: epStatus,
+      volStatus: volStatus,
+      updatedAt: updatedAt,
+      user: user ?? this.user,
+    );
+  }
 
   factory BangumiInterest.fromJson(Map<String, dynamic> json) {
     final tagsRaw = json['tags'];
@@ -78,11 +87,12 @@ class BangumiInterest {
       epStatus: previous?.epStatus ?? 0,
       volStatus: previous?.volStatus ?? 0,
       updatedAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      user: previous?.user,
     );
   }
 
   @override
   String toString() {
-    return 'BangumiInterest{id: $id, rate: $rate, type: $type, comment: $comment, tags: $tags, epStatus: $epStatus, volStatus: $volStatus, updatedAt: $updatedAt}';
+    return 'BangumiInterest{id: $id, rate: $rate, type: $type, comment: $comment, tags: $tags, epStatus: $epStatus, volStatus: $volStatus, updatedAt: $updatedAt, user: $user}';
   }
 }

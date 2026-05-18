@@ -36,8 +36,9 @@ class PlayerItem extends StatefulWidget {
   const PlayerItem({
     super.key,
     required this.playerController,
-    required this.openMenu,
-    required this.locateEpisode,
+    required this.toggleMenu,
+    required this.showMenuImmediately,
+    required this.hideMenuImmediately,
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
@@ -48,8 +49,9 @@ class PlayerItem extends StatefulWidget {
   });
 
   final PlayerController playerController;
-  final VoidCallback openMenu;
-  final VoidCallback locateEpisode;
+  final VoidCallback toggleMenu;
+  final VoidCallback showMenuImmediately;
+  final VoidCallback hideMenuImmediately;
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
@@ -714,12 +716,11 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isFullscreen) {
       Utils.exitFullScreen();
       if (!Utils.isDesktop()) {
-        widget.locateEpisode();
-        videoPageController.showTabBody = true;
+        widget.showMenuImmediately();
       }
     } else {
       Utils.enterFullScreen();
-      videoPageController.showTabBody = false;
+      widget.hideMenuImmediately();
     }
     videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
@@ -1749,7 +1750,7 @@ class _PlayerItemState extends State<PlayerItem>
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,
                             changeEpisode: widget.changeEpisode,
-                            openMenu: widget.openMenu,
+                            toggleMenu: widget.toggleMenu,
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,

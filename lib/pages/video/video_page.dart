@@ -54,12 +54,15 @@ class _VideoPageState extends State<VideoPage>
   late TabController tabController;
 
   int visibleRoad = 0;
+  bool _tabBodyTargetVisible = true;
+  int _tabBodyAnimationRun = 0;
 
   late final bool disableAnimations;
 
   StreamSubscription<SyncPlayChatMessage>? _syncChatSubscription;
 
   static const Duration _offlinePlayerInitDelay = Duration(milliseconds: 400);
+  static const Duration _sideTabAnimationDuration = Duration(milliseconds: 120);
 
   @override
   void initState() {
@@ -70,7 +73,7 @@ class _VideoPageState extends State<VideoPage>
     tabController = TabController(length: 2, vsync: this);
     observerController = GridObserverController(controller: scrollController);
     animation = AnimationController(
-      duration: const Duration(milliseconds: 120),
+      duration: _sideTabAnimationDuration,
       vsync: this,
     );
     _rightOffsetAnimation = Tween<Offset>(
@@ -154,7 +157,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void _initOfflineMode(PlayerController playerController) {
-    videoPageController.showTabBody = true;
+    _showTabBodyImmediately(locateEpisode: false);
     videoPageController.historyOffset = 0;
     visibleRoad = videoPageController.selectedEpisode.road;
 
@@ -175,7 +178,7 @@ class _VideoPageState extends State<VideoPage>
   void _initOnlineMode(PlayerController playerController) {
     videoPageController.resetEpisodeState();
     videoPageController.historyOffset = 0;
-    videoPageController.showTabBody = true;
+    _showTabBodyImmediately(locateEpisode: false);
 
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
@@ -257,6 +260,7 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   void onWindowEnterFullScreen() {
+    _hideTabBodyImmediately();
     videoPageController.handleOnEnterFullScreen();
   }
 
@@ -318,28 +322,96 @@ class _VideoPageState extends State<VideoPage>
     });
   }
 
-  void openTabBodyAnimated() {
-    if (videoPageController.showTabBody) {
-      if (!disableAnimations) {
-        animation.forward();
-      }
+  bool get _isSideTabLayout =>
+      MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
+
+  bool get _canAnimateSideTab =>
+      mounted && _isSideTabLayout && !disableAnimations;
+
+  void _openTabBodyAnimated() {
+    _setTabBodyVisible(true, animated: true);
+    menuJumpToCurrentEpisode();
+  }
+
+  void _closeTabBodyAnimated() {
+    _setTabBodyVisible(false, animated: true);
+    keyboardFocus.requestFocus();
+  }
+
+  void _toggleTabBodyAnimated() {
+    if (_tabBodyTargetVisible) {
+      _closeTabBodyAnimated();
+    } else {
+      _openTabBodyAnimated();
+    }
+  }
+
+  void _showTabBodyImmediately({bool locateEpisode = true}) {
+    _setTabBodyVisible(true, animated: false);
+    if (locateEpisode) {
       menuJumpToCurrentEpisode();
     }
   }
 
-  void closeTabBodyAnimated() {
-    if (!disableAnimations) {
-      animation.reverse();
-      Future.delayed(const Duration(milliseconds: 120), () {
-        if (!mounted) {
+  void _hideTabBodyImmediately() {
+    _setTabBodyVisible(false, animated: false);
+  }
+
+  void _setTabBodyVisible(bool visible, {required bool animated}) {
+    _tabBodyTargetVisible = visible;
+    final int animationRun = ++_tabBodyAnimationRun;
+
+    if (visible) {
+      if (!videoPageController.showTabBody) {
+        animation.value = 0.0;
+        videoPageController.showTabBody = true;
+      }
+      if (_canAnimateSideTab && animated) {
+        animation.forward(from: animation.value);
+      } else {
+        animation.value = 1.0;
+      }
+      return;
+    }
+
+    if (!videoPageController.showTabBody) {
+      animation.value = 0.0;
+      return;
+    }
+
+    if (_canAnimateSideTab && animated && animation.value > 0.0) {
+      animation.reverse().whenComplete(() {
+        if (!mounted || animationRun != _tabBodyAnimationRun) {
           return;
         }
         videoPageController.showTabBody = false;
+        animation.value = 0.0;
       });
-    } else {
-      videoPageController.showTabBody = false;
+      return;
     }
-    keyboardFocus.requestFocus();
+
+    videoPageController.showTabBody = false;
+    animation.value = 0.0;
+  }
+
+  void _syncTabBodyAnimationAfterLayout() {
+    if (!_tabBodyTargetVisible) {
+      if (!videoPageController.showTabBody) {
+        animation.value = 0.0;
+      }
+      return;
+    }
+    if (!videoPageController.showTabBody) {
+      animation.value = 0.0;
+      return;
+    }
+    if (!_isSideTabLayout || disableAnimations) {
+      animation.value = 1.0;
+      return;
+    }
+    if (animation.value == 0.0 && animation.status != AnimationStatus.reverse) {
+      animation.forward();
+    }
   }
 
   void onBackPressed(BuildContext context) async {
@@ -355,7 +427,7 @@ class _VideoPageState extends State<VideoPage>
     if (videoPageController.isFullscreen && !Utils.isTablet()) {
       menuJumpToCurrentEpisode();
       await Utils.exitFullScreen();
-      videoPageController.showTabBody = false;
+      _hideTabBodyImmediately();
       videoPageController.isFullscreen = false;
       return;
     }
@@ -541,13 +613,13 @@ class _VideoPageState extends State<VideoPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool islandScape =
+    final bool isLandscape =
         MediaQuery.sizeOf(context).width > MediaQuery.sizeOf(context).height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
-      openTabBodyAnimated();
+      _syncTabBodyAnimationAfterLayout();
     });
     return PopScope(
       canPop: false,
@@ -561,12 +633,12 @@ class _VideoPageState extends State<VideoPage>
         if (!Utils.isDesktop()) {
           if (orientation == Orientation.landscape &&
               !videoPageController.isFullscreen) {
+            _hideTabBodyImmediately();
             videoPageController.enterFullScreen();
           } else if (orientation == Orientation.portrait &&
               videoPageController.isFullscreen) {
             videoPageController.exitFullScreen();
-            menuJumpToCurrentEpisode();
-            videoPageController.showTabBody = true;
+            _showTabBodyImmediately();
           }
         }
         return Observer(builder: (context) {
@@ -584,24 +656,20 @@ class _VideoPageState extends State<VideoPage>
                     Column(
                       children: [
                         Flexible(
-                          // make it unflexible when not wideScreen.
-                          flex: (islandScape) ? 1 : 0,
+                          flex: isLandscape ? 1 : 0,
                           child: Container(
                             color: Colors.black,
-                            height: (islandScape)
+                            height: isLandscape
                                 ? MediaQuery.sizeOf(context).height
                                 : MediaQuery.sizeOf(context).width * 9 / 16,
                             width: MediaQuery.sizeOf(context).width,
                             child: playerBody,
                           ),
                         ),
-                        // when not wideScreen, show tabBody on the bottom
-                        if (!islandScape) Expanded(child: tabBody),
+                        if (!isLandscape) Expanded(child: tabBody),
                       ],
                     ),
-
-                    // when is wideScreen, show tabBody on the right side with SlideTransition or direct visibility
-                    if (islandScape && videoPageController.showTabBody) ...[
+                    if (isLandscape && videoPageController.showTabBody) ...[
                       if (disableAnimations) ...[
                         sideTabMask,
                         sideTabBody,
@@ -651,7 +719,7 @@ class _VideoPageState extends State<VideoPage>
 
   Widget get sideTabMask {
     return GestureDetector(
-      onTap: closeTabBodyAnimated,
+      onTap: _closeTabBodyAnimated,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -779,12 +847,10 @@ class _VideoPageState extends State<VideoPage>
                                 MediaQuery.sizeOf(context).height,
                             child: IconButton(
                               onPressed: () {
-                                videoPageController.showTabBody =
-                                    !videoPageController.showTabBody;
-                                openTabBodyAnimated();
+                                _toggleTabBodyAnimated();
                               },
                               icon: Icon(
-                                videoPageController.showTabBody
+                                _tabBodyTargetVisible
                                     ? Icons.menu_open
                                     : Icons.menu_open_outlined,
                                 color: Colors.white,
@@ -815,8 +881,9 @@ class _VideoPageState extends State<VideoPage>
               ? Container()
               : PlayerItem(
                   playerController: playerController,
-                  openMenu: openTabBodyAnimated,
-                  locateEpisode: menuJumpToCurrentEpisode,
+                  toggleMenu: _toggleTabBodyAnimated,
+                  showMenuImmediately: _showTabBodyImmediately,
+                  hideMenuImmediately: _hideTabBodyImmediately,
                   changeEpisode: changeEpisode,
                   onBackPressed: onBackPressed,
                   keyboardFocus: keyboardFocus,
@@ -984,7 +1051,7 @@ class _VideoPageState extends State<VideoPage>
                       }
                       KazumiLogger()
                           .i('VideoPageController: video URL is $urlItem');
-                      closeTabBodyAnimated();
+                      _closeTabBodyAnimated();
                       changeEpisode(count0, currentRoad: visibleRoad);
                     },
                     child: Padding(

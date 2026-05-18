@@ -36,7 +36,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
     required this.animationController,
-    required this.openMenu,
+    required this.toggleMenu,
     required this.keyboardFocus,
     required this.sendDanmaku,
     required this.startHideTimer,
@@ -56,7 +56,7 @@ class PlayerItemPanel extends StatefulWidget {
   final Future<void> Function(double) setPlaybackSpeed;
   final void Function() showDanmakuSwitch;
   final Future<void> Function(int, {int currentRoad, int offset}) changeEpisode;
-  final void Function() openMenu;
+  final void Function() toggleMenu;
   final void Function() handleFullscreen;
   final void Function() handleScreenShot;
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
@@ -1047,9 +1047,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             icon: const Icon(Icons.menu_open_rounded),
                             tooltip: '选集面板',
                             onPressed: () {
-                              videoPageController.showTabBody =
-                                  !videoPageController.showTabBody;
-                              widget.openMenu();
+                              widget.toggleMenu();
                             },
                           ),
                     (Utils.isTablet() &&

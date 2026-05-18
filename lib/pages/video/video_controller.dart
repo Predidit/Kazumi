@@ -611,7 +611,6 @@ abstract class _VideoPageController with Store {
 
   void enterFullScreen() {
     isFullscreen = true;
-    showTabBody = false;
     Utils.enterFullScreen(lockOrientation: false);
   }
 
@@ -628,7 +627,6 @@ abstract class _VideoPageController with Store {
 
   void handleOnEnterFullScreen() async {
     isFullscreen = true;
-    showTabBody = false;
   }
 
   void handleOnExitFullScreen() async {

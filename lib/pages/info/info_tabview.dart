@@ -27,6 +27,8 @@ class InfoTabView extends StatefulWidget {
     required this.loadStaff,
     required this.bangumiItem,
     required this.commentsList,
+    required this.commentsIsLoading,
+    this.onCommentsTabSelected,
     required this.characterList,
     required this.staffList,
     required this.isLoading,
@@ -34,6 +36,8 @@ class InfoTabView extends StatefulWidget {
 
   final bool commentsQueryTimeout;
   final bool commentsIsEmpty;
+  final bool commentsIsLoading;
+  final VoidCallback? onCommentsTabSelected;
   final bool charactersQueryTimeout;
   final bool charactersIsEmpty;
   final bool staffQueryTimeout;
@@ -57,6 +61,27 @@ class _InfoTabViewState extends State<InfoTabView>
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.tabController.addListener(_onTabChanged);
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabController.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
 
   Widget get infoBody {
     return Center(
@@ -225,11 +250,30 @@ class _InfoTabViewState extends State<InfoTabView>
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverLayoutBuilder(builder: (context, _) {
-                if (widget.commentsList.isNotEmpty) {
+                final ownInterest = widget.bangumiItem.interest;
+                final showOwnInterest = !widget.commentsIsLoading && ownInterest != null && ownInterest.hasUserProfile;
+                final listItemCount = widget.commentsList.length + (showOwnInterest ? 1 : 0);
+
+                if (listItemCount > 0) {
                   return SliverList.separated(
                     addAutomaticKeepAlives: false,
-                    itemCount: widget.commentsList.length,
+                    itemCount: listItemCount,
                     itemBuilder: (context, index) {
+                      final commentIndex = showOwnInterest ? index - 1 : index;
+                      final ownUser = ownInterest?.user;
+                      final card = showOwnInterest && index == 0 && ownUser != null
+                          ? CommentsCard.own(
+                              commentItem: CommentItem(
+                                  user: ownUser,
+                                  comment: Comment(
+                                      rate: ownInterest.rate,
+                                      comment: ownInterest.comment,
+                                      updatedAt: ownInterest.updatedAt
+                                  )),
+                            )
+                          : CommentsCard(
+                              commentItem: widget.commentsList[commentIndex],
+                            );
                       return SafeArea(
                         top: false,
                         bottom: false,
@@ -241,9 +285,7 @@ class _InfoTabViewState extends State<InfoTabView>
                               width: MediaQuery.sizeOf(context).width > maxWidth
                                   ? maxWidth
                                   : MediaQuery.sizeOf(context).width - 32,
-                              child: CommentsCard(
-                                commentItem: widget.commentsList[index],
-                              ),
+                              child: card,
                             ),
                           ),
                         ),

@@ -12,6 +12,7 @@ import 'package:kazumi/modules/bangumi/bangumi_collection.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
+import 'package:kazumi/modules/comments/comment_item.dart';
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
@@ -211,7 +212,7 @@ class BangumiApi {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
-            ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiInfoByID, [id]),
+            ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiInfoByIDNext, [id]),
       );
       return BangumiItem.fromJson(jsonData);
     } catch (e) {
@@ -340,6 +341,11 @@ class BangumiApi {
   }
 
   static Future<String?> getUsername() async {
+    final user = await getCurrentUser();
+    return user?.username;
+  }
+
+  static Future<User?> getCurrentUser() async {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -348,7 +354,7 @@ class BangumiApi {
         requiresAuth: true,
       );
       if (jsonData['id'] != null) {
-        return jsonData['username'] ?? 'Unknown';
+        return User.fromJson(Map<String, dynamic>.from(jsonData));
       }
     } on NetworkException catch (e) {
       if (e.statusCode == 401) {
@@ -357,7 +363,7 @@ class BangumiApi {
       }
       rethrow;
     } catch (e) {
-      KazumiLogger().e('Network: get username failed', error: e);
+      KazumiLogger().e('Network: get current user failed', error: e);
     }
     return null;
   }
@@ -508,5 +514,24 @@ class BangumiApi {
       return false;
     }
     return await updateBangumiById(id, {'type': type.value});
+  }
+
+  /// update or add Bangumi evaluation by subjectID
+  static Future<bool> addOrUpdateBangumiEvaluationBySubjectID(
+    int subjectID,
+    int localType, {
+    String? comment,
+    int? rate,
+    List<String>? tags,
+  }) async {
+    final bangumiType = CollectType.fromValue(localType).toBangumiCollectionType();
+    if (bangumiType == null) {
+      return false;
+    }
+    final data = <String, dynamic>{'type': bangumiType.value};
+    if (comment != null) data['comment'] = comment;
+    if (rate != null) data['rate'] = rate;
+    if (tags != null) data['tags'] = tags;
+    return updateBangumiById(subjectID, data);
   }
 }

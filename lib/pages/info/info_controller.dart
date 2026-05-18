@@ -1,8 +1,10 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/modules/bangumi/bangumi_interest.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -36,6 +38,46 @@ abstract class _InfoController with Store {
   @observable
   var staffList = ObservableList<StaffFullItem>();
 
+  @observable
+  int interestProfileEpoch = 0;
+
+  bool _isFillingInterestUserProfile = false;
+
+  Future<bool> fillInterestUserProfileIfNeeded() async {
+    final interest = bangumiItem.interest;
+    if (interest == null || interest.hasUserProfile) {
+      return false;
+    }
+    if (_isFillingInterestUserProfile) {
+      return false;
+    }
+    _isFillingInterestUserProfile = true;
+    try {
+      final user = await BangumiApi.getCurrentUser();
+      if (user == null) {
+        return false;
+      }
+      bangumiItem.interest = interest.copyWithUser(user: user);
+      await collectController.updateLocalCollect(bangumiItem);
+      interestProfileEpoch++;
+      return true;
+    } catch (e) {
+      KazumiLogger().e('InfoController: failed to fill interest user profile',
+          error: e);
+      return false;
+    } finally {
+      _isFillingInterestUserProfile = false;
+    }
+  }
+
+  void _stripOwnInterestDuplicatesFromComments() {
+    final interest = bangumiItem.interest;
+    if (interest == null) return;
+    final userId = interest.user?.id;
+    if (userId == null) return;
+    commentsList.removeWhere((item) => item.user.id == userId);
+  }
+
   Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
     isLoading = true;
     try {
@@ -53,8 +95,18 @@ abstract class _InfoController with Store {
           bangumiItem.ratingScore = value.ratingScore;
           bangumiItem.votes = value.votes;
           bangumiItem.votesCount = value.votesCount;
+          final incomingInterest = value.interest;
+          final previousInterest = bangumiItem.interest;
+          if (incomingInterest == null) {
+            bangumiItem.interest = null;
+          } else if (previousInterest == null ||
+              !previousInterest.hasUserProfile) {
+            bangumiItem.interest = incomingInterest;
+          } else {
+            bangumiItem.interest = incomingInterest.copyWithUser(user: previousInterest.user);
+          }
         }
-        collectController.updateLocalCollect(bangumiItem);
+        await collectController.updateLocalCollect(bangumiItem);
       }
     } finally {
       isLoading = false;
@@ -67,6 +119,7 @@ abstract class _InfoController with Store {
     }
     await BangumiApi.getBangumiCommentsByID(id, offset: offset).then((value) {
       commentsList.addAll(value.commentList);
+      _stripOwnInterestDuplicatesFromComments();
     });
     KazumiLogger().i(
         'InfoController: loaded comments list length ${commentsList.length}');
@@ -103,5 +156,30 @@ abstract class _InfoController with Store {
     });
     KazumiLogger()
         .i('InfoController: loaded staff list length ${staffList.length}');
+  }
+
+  Future<void> rateBangumi(RatingReviewResult data,{required int localType}) async {
+    final trimmedComment = data.comment.trim();
+    if (await BangumiApi.addOrUpdateBangumiEvaluationBySubjectID(
+      bangumiItem.id,
+      localType,
+      comment: trimmedComment.isNotEmpty ? trimmedComment : null,
+      rate: data.score > 0 ? data.score : 0,
+      tags: data.tags.isNotEmpty ? data.tags : null,
+    )) {
+      bangumiItem.interest = BangumiInterest.mergeLocalSubmission(
+        previous: bangumiItem.interest,
+        rate: data.score,
+        comment: trimmedComment,
+        tags: data.tags,
+      );
+      await collectController.updateLocalCollect(bangumiItem);
+      await fillInterestUserProfileIfNeeded();
+      _stripOwnInterestDuplicatesFromComments();
+      if (commentsList.isNotEmpty) {
+        await queryBangumiCommentsByID(bangumiItem.id);
+      }
+      await queryBangumiInfoByID(bangumiItem.id, type: "update");
+    }
   }
 }

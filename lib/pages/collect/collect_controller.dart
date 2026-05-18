@@ -46,6 +46,10 @@ abstract class _CollectController with Store {
     return _collectCrudRepository.getCollectType(bangumiItem.id);
   }
 
+  BangumiItem? getCollectibleBangumiItem(int id) {
+    return _collectCrudRepository.getCollectible(id)?.bangumiItem;
+  }
+
   @action
   Future<void> addCollect(BangumiItem bangumiItem, {type = 1}) async {
     if (type == 0) {

@@ -16,6 +16,12 @@ class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
   final TextEditingController textEditingController = TextEditingController();
 
   @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(

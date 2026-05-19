@@ -82,6 +82,27 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   }
 
   @override
+  void dispose() {
+    apiController.dispose();
+    typeController.dispose();
+    nameController.dispose();
+    versionController.dispose();
+    userAgentController.dispose();
+    baseURLController.dispose();
+    searchURLController.dispose();
+    searchListController.dispose();
+    searchNameController.dispose();
+    searchResultController.dispose();
+    chapterRoadsController.dispose();
+    chapterResultController.dispose();
+    refererController.dispose();
+    captchaImageController.dispose();
+    captchaInputController.dispose();
+    captchaButtonController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final Plugin plugin = Modular.args.data as Plugin;
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
@@ -153,50 +174,67 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 const SizedBox(height: 20),
                 ExpansionTile(
                   title: const Text('高级选项'),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero),
                   children: [
                     SettingsSection(
-                      title: Text('行为设置', style: TextStyle(fontFamily: fontFamily)),
+                      title: Text('行为设置',
+                          style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         SettingsTile.switchTile(
-                          title: Text('简易解析', style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用简易解析器而不是现代解析器', style: TextStyle(fontFamily: fontFamily)),
+                          title: Text('简易解析',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用简易解析器而不是现代解析器',
+                              style: TextStyle(fontFamily: fontFamily)),
                           initialValue: useLegacyParser,
-                          onToggle: (v) => setState(() => useLegacyParser = v ?? !useLegacyParser),
+                          onToggle: (v) => setState(
+                              () => useLegacyParser = v ?? !useLegacyParser),
                         ),
                         SettingsTile.switchTile(
-                          title: Text('POST', style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用 POST 而不是 GET 进行检索', style: TextStyle(fontFamily: fontFamily)),
+                          title: Text('POST',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用 POST 而不是 GET 进行检索',
+                              style: TextStyle(fontFamily: fontFamily)),
                           initialValue: usePost,
-                          onToggle: (v) => setState(() => usePost = v ?? !usePost),
+                          onToggle: (v) =>
+                              setState(() => usePost = v ?? !usePost),
                         ),
                         SettingsTile.switchTile(
-                          title: Text('内置播放器', style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用内置播放器播放视频', style: TextStyle(fontFamily: fontFamily)),
+                          title: Text('内置播放器',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用内置播放器播放视频',
+                              style: TextStyle(fontFamily: fontFamily)),
                           initialValue: useNativePlayer,
-                          onToggle: (v) => setState(() => useNativePlayer = v ?? !useNativePlayer),
+                          onToggle: (v) => setState(
+                              () => useNativePlayer = v ?? !useNativePlayer),
                         ),
                         SettingsTile.switchTile(
-                          title: Text('广告过滤', style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('启用 HLS 广告过滤', style: TextStyle(fontFamily: fontFamily)),
+                          title: Text('广告过滤',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('启用 HLS 广告过滤',
+                              style: TextStyle(fontFamily: fontFamily)),
                           initialValue: adBlocker,
-                          onToggle: (v) => setState(() => adBlocker = v ?? !adBlocker),
+                          onToggle: (v) =>
+                              setState(() => adBlocker = v ?? !adBlocker),
                         ),
                       ],
                     ),
                     SettingsSection(
-                      title: Text('网络设置', style: TextStyle(fontFamily: fontFamily)),
+                      title: Text('网络设置',
+                          style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         CustomSettingsTile(
                           child: (info) => _buildTextFieldTile(
-                            context, info,
+                            context,
+                            info,
                             controller: userAgentController,
                             label: 'UserAgent',
                           ),
                         ),
                         CustomSettingsTile(
                           child: (info) => _buildTextFieldTile(
-                            context, info,
+                            context,
+                            info,
                             controller: refererController,
                             label: 'Referer',
                           ),
@@ -204,13 +242,17 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                       ],
                     ),
                     SettingsSection(
-                      title: Text('反反爬虫配置', style: TextStyle(fontFamily: fontFamily)),
+                      title: Text('反反爬虫配置',
+                          style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         SettingsTile.switchTile(
-                          title: Text('启用反反爬虫', style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('检索失败时显示验证码验证按钮而非重试', style: TextStyle(fontFamily: fontFamily)),
+                          title: Text('启用反反爬虫',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('检索失败时显示验证码验证按钮而非重试',
+                              style: TextStyle(fontFamily: fontFamily)),
                           initialValue: antiCrawlerEnabled,
-                          onToggle: (v) => setState(() => antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
+                          onToggle: (v) => setState(() =>
+                              antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
                         ),
                         if (antiCrawlerEnabled) ...[
                           SettingsTile.navigation(
@@ -221,7 +263,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 captchaTypeMenuController.open();
                               }
                             },
-                            title: Text('验证类型', style: TextStyle(fontFamily: fontFamily)),
+                            title: Text('验证类型',
+                                style: TextStyle(fontFamily: fontFamily)),
                             description: Text(
                               captchaType == CaptchaType.imageCaptcha
                                   ? '图片验证码（展示验证码图片，用户手动输入）'
@@ -239,17 +282,21 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 for (final entry in _captchaTypeMap.entries)
                                   MenuItemButton(
                                     requestFocusOnHover: false,
-                                    onPressed: () => setState(() => captchaType = entry.key),
+                                    onPressed: () =>
+                                        setState(() => captchaType = entry.key),
                                     child: Container(
                                       height: 48,
-                                      constraints: const BoxConstraints(minWidth: 160),
+                                      constraints:
+                                          const BoxConstraints(minWidth: 160),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: Text(
                                           entry.value,
                                           style: TextStyle(
                                             color: entry.key == captchaType
-                                                ? Theme.of(context).colorScheme.primary
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
                                                 : null,
                                             fontFamily: fontFamily,
                                           ),
@@ -263,7 +310,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                           if (captchaType == CaptchaType.imageCaptcha) ...[
                             CustomSettingsTile(
                               child: (info) => _buildTextFieldTile(
-                                context, info,
+                                context,
+                                info,
                                 controller: captchaImageController,
                                 label: 'CaptchaImage (XPath)',
                                 hint: '//img[@class="captcha"]',
@@ -272,7 +320,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                             ),
                             CustomSettingsTile(
                               child: (info) => _buildTextFieldTile(
-                                context, info,
+                                context,
+                                info,
                                 controller: captchaInputController,
                                 label: 'CaptchaInput (XPath)',
                                 hint: '//input[@name="captcha"]',
@@ -282,7 +331,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                           ],
                           CustomSettingsTile(
                             child: (info) => _buildTextFieldTile(
-                              context, info,
+                              context,
+                              info,
                               controller: captchaButtonController,
                               label: captchaType == CaptchaType.imageCaptcha
                                   ? 'CaptchaButton (XPath)'
@@ -337,7 +387,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                     captchaInput: captchaInputController.text,
                     captchaButton: captchaButtonController.text,
                   ));
-              Modular.to.pushNamed('/settings/plugin/test', arguments: pluginText);
+              Modular.to
+                  .pushNamed('/settings/plugin/test', arguments: pluginText);
             },
           ),
           SizedBox(width: 15),

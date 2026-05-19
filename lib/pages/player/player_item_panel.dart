@@ -103,6 +103,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
 
+  @override
+  void dispose() {
+    textController.dispose();
+    textFieldFocus.dispose();
+    super.dispose();
+  }
+
   Widget get danmakuTextField {
     return Container(
       constraints: Utils.isDesktop()
@@ -1244,7 +1251,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                             .castVideo(playerController.videoUrl,
                                 videoPageController.currentPlugin.referer)
                             .whenComplete(() {
-                          if (needRestart) {
+                          if (mounted && needRestart) {
                             playerController.play();
                           }
                         });

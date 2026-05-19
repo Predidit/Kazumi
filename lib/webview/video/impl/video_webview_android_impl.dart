@@ -284,6 +284,7 @@ class VideoWebviewAndroidImpl
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 
   Future<void> _setupProxy() async {

@@ -48,7 +48,9 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void dispose() {
     searchPageController.bangumiList.clear();
+    searchController.dispose();
     scrollController.removeListener(scrollListener);
+    scrollController.dispose();
     super.dispose();
   }
 

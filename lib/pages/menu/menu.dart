@@ -61,6 +61,12 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
 
   @override
+  void dispose() {
+    _page.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
         create: (context) => NavigationBarState(),

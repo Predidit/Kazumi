@@ -114,7 +114,8 @@ class VideoWebviewAppleImpl
           logEventController.add('loading completed: $url');
         },
         onReceivedError: (controller, request, error) {
-          KazumiLogger().e('WebView: error: ${error.toString()} - Request: ${request.url}');
+          KazumiLogger().e(
+              'WebView: error: ${error.toString()} - Request: ${request.url}');
         },
       ),
     );
@@ -199,8 +200,7 @@ class VideoWebviewAppleImpl
     }
   }
 
-  Future<void> addUserScripts(
-      bool useLegacyParser) async {
+  Future<void> addUserScripts(bool useLegacyParser) async {
     final List<UserScript> scripts = [];
 
     if (useLegacyParser) {
@@ -327,5 +327,6 @@ class VideoWebviewAppleImpl
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 }

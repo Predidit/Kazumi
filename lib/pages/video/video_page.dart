@@ -226,7 +226,7 @@ class _VideoPageState extends State<VideoPage>
       windowManager.removeListener(this);
     } catch (_) {}
     try {
-      observerController.controller?.dispose();
+      scrollController.dispose();
     } catch (_) {}
     try {
       animation.dispose();
@@ -253,6 +253,7 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.resetEpisodeComments();
     videoPageController.resetOfflineMode();
     Utils.unlockScreenRotation();
+    keyboardFocus.dispose();
     tabController.dispose();
     TimedShutdownService().cancel();
     super.dispose();
@@ -497,7 +498,7 @@ class _VideoPageState extends State<VideoPage>
   }
 
   void showMobileDanmakuInput() {
-    final TextEditingController textController = TextEditingController();
+    String danmakuText = '';
     showModalBottomSheet(
       shape: const BeveledRectangleBorder(),
       isScrollControlled: true,
@@ -518,9 +519,9 @@ class _VideoPageState extends State<VideoPage>
                       constraints: const BoxConstraints(maxHeight: 34),
                       child: TextField(
                         style: const TextStyle(fontSize: 15),
-                        controller: textController,
                         autofocus: true,
                         textAlignVertical: TextAlignVertical.center,
+                        onChanged: (value) => danmakuText = value,
                         decoration: const InputDecoration(
                           filled: true,
                           floatingLabelBehavior: FloatingLabelBehavior.never,
@@ -536,7 +537,6 @@ class _VideoPageState extends State<VideoPage>
                         ),
                         onSubmitted: (msg) {
                           showDanmakuDestinationPickerAndSend(msg);
-                          textController.clear();
                           Navigator.pop(context);
                         },
                       ),
@@ -544,10 +544,8 @@ class _VideoPageState extends State<VideoPage>
                   ),
                   IconButton(
                     onPressed: () {
-                      final msg = textController.text;
                       Navigator.pop(context);
-                      showDanmakuDestinationPickerAndSend(msg);
-                      textController.clear();
+                      showDanmakuDestinationPickerAndSend(danmakuText);
                     },
                     icon: Icon(
                       Icons.send_rounded,

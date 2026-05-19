@@ -888,6 +888,7 @@ class _PlayerItemState extends State<PlayerItem>
           !Platform.isLinux &&
           !playerController.panel.brightnessSeeking) {
         ScreenBrightnessPlatform.instance.application.then((value) {
+          if (!mounted) return;
           playerController.panel.brightness = value;
         });
       }
@@ -1014,19 +1015,18 @@ class _PlayerItemState extends State<PlayerItem>
 
   // 弹幕查询
   void showDanmakuSwitch() {
+    String searchKeyword = videoPageController.title;
     KazumiDialog.show(
       builder: (context) {
-        final TextEditingController searchTextController =
-            TextEditingController();
-        searchTextController.text = videoPageController.title;
         return AlertDialog(
           title: const Text('弹幕检索'),
-          content: TextField(
-            controller: searchTextController,
+          content: TextFormField(
+            initialValue: searchKeyword,
             decoration: const InputDecoration(
               hintText: '番剧名',
             ),
-            onSubmitted: (keyword) {
+            onChanged: (value) => searchKeyword = value,
+            onFieldSubmitted: (keyword) {
               showDanmakuSearchDialog(keyword);
             },
           ),
@@ -1043,7 +1043,7 @@ class _PlayerItemState extends State<PlayerItem>
             ),
             TextButton(
               onPressed: () {
-                showDanmakuSearchDialog(searchTextController.text);
+                showDanmakuSearchDialog(searchKeyword);
               },
               child: const Text(
                 '提交',
@@ -1285,16 +1285,16 @@ class _PlayerItemState extends State<PlayerItem>
                     onChanged: (String? newValue) {
                       if (newValue != null) {
                         if (newValue == defaultCustomSyncPlayEndPoint) {
-                          final serverTextController = TextEditingController();
+                          String serverText = '';
                           KazumiDialog.show(
                             builder: (context) {
                               return AlertDialog(
                                 title: const Text('自定义服务器'),
                                 content: TextField(
-                                  controller: serverTextController,
                                   decoration: const InputDecoration(
                                     hintText: '请输入服务器地址',
                                   ),
+                                  onChanged: (value) => serverText = value,
                                 ),
                                 actions: <Widget>[
                                   TextButton(
@@ -1306,16 +1306,13 @@ class _PlayerItemState extends State<PlayerItem>
                                   TextButton(
                                     child: const Text('确认'),
                                     onPressed: () {
-                                      if (serverTextController
-                                              .text.isNotEmpty &&
-                                          !syncPlayEndPoints.contains(
-                                              serverTextController.text)) {
+                                      if (serverText.isNotEmpty &&
+                                          !syncPlayEndPoints
+                                              .contains(serverText)) {
                                         KazumiDialog.dismiss();
                                         setDialogState(() {
-                                          customSyncPlayEndPoint =
-                                              serverTextController.text;
-                                          selectedSyncPlayEndPoint =
-                                              serverTextController.text;
+                                          customSyncPlayEndPoint = serverText;
+                                          selectedSyncPlayEndPoint = serverText;
                                         });
                                       } else {
                                         KazumiDialog.showToast(
@@ -1364,8 +1361,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   void showSyncPlayRoomCreateDialog() {
     final formKey = GlobalKey<FormState>();
-    final TextEditingController roomController = TextEditingController();
-    final TextEditingController usernameController = TextEditingController();
+    String room = '';
+    String username = '';
     KazumiDialog.show(builder: (BuildContext context) {
       return AlertDialog(
         title: const Text('加入房间'),
@@ -1375,11 +1372,11 @@ class _PlayerItemState extends State<PlayerItem>
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: roomController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: '房间号',
                 ),
+                onChanged: (value) => room = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return '请输入房间号';
@@ -1393,10 +1390,10 @@ class _PlayerItemState extends State<PlayerItem>
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: usernameController,
                 decoration: const InputDecoration(
                   labelText: '用户名',
                 ),
+                onChanged: (value) => username = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return '请输入用户名';
@@ -1422,8 +1419,8 @@ class _PlayerItemState extends State<PlayerItem>
             onPressed: () {
               if (formKey.currentState!.validate()) {
                 KazumiDialog.dismiss();
-                playerController.createSyncPlayRoom(roomController.text,
-                    usernameController.text, widget.changeEpisode);
+                playerController.createSyncPlayRoom(
+                    room, username, widget.changeEpisode);
               }
             },
             child: const Text('确定'),

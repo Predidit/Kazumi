@@ -90,6 +90,12 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
 
+  @override
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
+
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
       String input = "";
@@ -898,7 +904,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         .castVideo(playerController.videoUrl,
                             videoPageController.currentPlugin.referer)
                         .whenComplete(() {
-                      if (needRestart) {
+                      if (mounted && needRestart) {
                         playerController.play();
                       }
                     });

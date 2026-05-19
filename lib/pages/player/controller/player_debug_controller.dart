@@ -45,12 +45,11 @@ abstract class _PlayerDebugController with Store {
 
   Future<void> setup(
     Player player, {
-    required int lifecycleId,
-    required bool Function(int lifecycleId, Player player) isCurrentPlayer,
+    required bool Function(Player player) isCurrentPlayer,
     required bool playerDebugMode,
   }) async {
     await playerLogSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerLogSubscription = player.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
@@ -58,38 +57,38 @@ abstract class _PlayerDebugController with Store {
       }
     });
     await playerWidthSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerWidthSubscription = player.stream.width.listen((event) {
       playerWidth = event ?? 0;
     });
     await playerHeightSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerHeightSubscription = player.stream.height.listen((event) {
       playerHeight = event ?? 0;
     });
     await playerVideoParamsSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerVideoParamsSubscription = player.stream.videoParams.listen((event) {
       playerVideoParams = event.toString();
     });
     await playerAudioParamsSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerAudioParamsSubscription = player.stream.audioParams.listen((event) {
       playerAudioParams = event.toString();
     });
     await playerPlaylistSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerPlaylistSubscription = player.stream.playlist.listen((event) {
       playerPlaylist = event.toString();
     });
     await playerTracksSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerTracksSubscription = player.stream.track.listen((event) {
       playerAudioTracks = event.audio.toString();
       playerVideoTracks = event.video.toString();
     });
     await playerAudioBitrateSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerAudioBitrateSubscription = player.stream.audioBitrate.listen((event) {
       playerAudioBitrate = event.toString();
     });

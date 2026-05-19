@@ -36,8 +36,9 @@ class PlayerItem extends StatefulWidget {
   const PlayerItem({
     super.key,
     required this.playerController,
-    required this.openMenu,
-    required this.locateEpisode,
+    required this.toggleMenu,
+    required this.showMenuImmediately,
+    required this.hideMenuImmediately,
     required this.changeEpisode,
     required this.onBackPressed,
     required this.keyboardFocus,
@@ -48,8 +49,9 @@ class PlayerItem extends StatefulWidget {
   });
 
   final PlayerController playerController;
-  final VoidCallback openMenu;
-  final VoidCallback locateEpisode;
+  final VoidCallback toggleMenu;
+  final VoidCallback showMenuImmediately;
+  final VoidCallback hideMenuImmediately;
   final Future<void> Function(int episode, {int currentRoad, int offset})
       changeEpisode;
   final void Function(BuildContext) onBackPressed;
@@ -307,13 +309,14 @@ class _PlayerItemState extends State<PlayerItem>
   //上一集下一集动作
   Future<void> handlePreNextEpisode(String direction) async {
     if (videoPageController.loading) return;
-    final currentRoad = videoPageController.currentRoad;
+    final selection = videoPageController.selectedEpisode;
+    final currentRoad = selection.road;
     final episodes = videoPageController.roadList[currentRoad].data;
     int targetEpisode;
     if (direction == 'next') {
-      targetEpisode = videoPageController.currentEpisode + 1;
+      targetEpisode = selection.episode + 1;
     } else if (direction == 'prev') {
-      targetEpisode = videoPageController.currentEpisode - 1;
+      targetEpisode = selection.episode - 1;
     } else {
       return;
     }
@@ -505,8 +508,9 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _syncAudioServiceState() {
     try {
-      final currentRoad = videoPageController.currentRoad;
-      final currentEpisode = videoPageController.currentEpisode;
+      final selection = videoPageController.playbackEpisode;
+      final currentRoad = selection.road;
+      final currentEpisode = selection.episode;
       if (videoPageController.roadList.isEmpty ||
           currentRoad < 0 ||
           currentRoad >= videoPageController.roadList.length) {
@@ -712,12 +716,11 @@ class _PlayerItemState extends State<PlayerItem>
     if (videoPageController.isFullscreen) {
       Utils.exitFullScreen();
       if (!Utils.isDesktop()) {
-        widget.locateEpisode();
-        videoPageController.showTabBody = true;
+        widget.showMenuImmediately();
       }
     } else {
       Utils.enterFullScreen();
-      videoPageController.showTabBody = false;
+      widget.hideMenuImmediately();
     }
     videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
@@ -895,31 +898,32 @@ class _PlayerItemState extends State<PlayerItem>
         final pluginName = videoPageController.isOfflineMode
             ? videoPageController.offlinePluginName
             : videoPageController.currentPlugin.name;
+        final selection = videoPageController.playbackEpisode;
         historyController.updateHistory(
-            videoPageController.actualEpisodeNumber,
-            videoPageController.currentRoad,
+            videoPageController.playingActualEpisodeNumber,
+            selection.road,
             pluginName,
             videoPageController.bangumiItem,
             playerController.playback.playerPosition,
             videoPageController.src,
-            videoPageController.roadList[videoPageController.currentRoad]
-                .identifier[videoPageController.currentEpisode - 1]);
+            videoPageController
+                .roadList[selection.road].identifier[selection.episode - 1]);
       }
       // 自动播放下一集
+      final playingSelection = videoPageController.playbackEpisode;
       if (playerController.playback.completed &&
-          videoPageController.currentEpisode <
-              videoPageController
-                  .roadList[videoPageController.currentRoad].data.length &&
+          playingSelection.episode <
+              videoPageController.roadList[playingSelection.road].data.length &&
           !videoPageController.loading &&
           autoPlayNext) {
         KazumiDialog.showToast(
             message:
-                '正在加载${videoPageController.roadList[videoPageController.currentRoad].identifier[videoPageController.currentEpisode]}');
+                '正在加载${videoPageController.roadList[playingSelection.road].identifier[playingSelection.episode]}');
         try {
           playerTimer!.cancel();
         } catch (_) {}
-        widget.changeEpisode(videoPageController.currentEpisode + 1,
-            currentRoad: videoPageController.currentRoad);
+        widget.changeEpisode(playingSelection.episode + 1,
+            currentRoad: playingSelection.road);
       }
       // 一起去看相关
       playerController.setSyncPlayCurrentPosition();
@@ -983,6 +987,8 @@ class _PlayerItemState extends State<PlayerItem>
                               onTap: () async {
                                 KazumiDialog.dismiss();
                                 try {
+                                  videoPageController
+                                      .cancelAutomaticDanmakuLoad();
                                   await playerController.danmaku
                                       .getDanDanmakuByEpisodeID(
                                           episode.episodeId);
@@ -1253,11 +1259,12 @@ class _PlayerItemState extends State<PlayerItem>
               child: ListBody(
                 children: <Widget>[
                   DropdownButtonFormField<String>(
+                    key: ValueKey(selectedSyncPlayEndPoint),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
                     ),
                     isExpanded: true,
-                    value: selectedSyncPlayEndPoint,
+                    initialValue: selectedSyncPlayEndPoint,
                     items: syncPlayEndPoints.map((String value) {
                       return DropdownMenuItem<String>(
                         value: value,
@@ -1560,9 +1567,8 @@ class _PlayerItemState extends State<PlayerItem>
 
   @override
   void dispose() {
-    // Don't dispose player here
-    // We need to reuse the player after episode is changed and player item is disposed
-    // We dispose player after video page disposed
+    // Playback lifetime is owned by the route-scoped PlayerController.
+    // This widget only detaches UI listeners and timers.
     _fullscreenListener();
     _playerSizeListener();
     WidgetsBinding.instance.removeObserver(this);
@@ -1744,7 +1750,7 @@ class _PlayerItemState extends State<PlayerItem>
                             setPlaybackSpeed: setPlaybackSpeed,
                             showDanmakuSwitch: showDanmakuSwitch,
                             changeEpisode: widget.changeEpisode,
-                            openMenu: widget.openMenu,
+                            toggleMenu: widget.toggleMenu,
                             handleFullscreen: handleFullscreen,
                             handleProgressBarDragStart:
                                 handleProgressBarDragStart,

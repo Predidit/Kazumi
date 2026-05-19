@@ -20,7 +20,7 @@ version: 2.1.1+20101
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.41.9
+  flutter: 3.44.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -170,7 +170,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  build_runner: ^2.10.4
+  build_runner: ^2.15.0
   mobx_codegen: ^2.7.5
   hive_ce_generator: ^1.10.0
   flutter_launcher_icons: ^0.14.3

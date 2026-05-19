@@ -1,7 +1,7 @@
 class SearchParser {
   final String query;
   final RegExp _idRegExp = RegExp(r'id:(\d+)', caseSensitive: false);
-  final RegExp _tagRegExp = RegExp(r'tag:([\w\u4e00-\u9fa5\u30A0-\u30FF\.\-]+)', caseSensitive: false);
+  final RegExp _tagRegExp = RegExp(r'tag:(\S+)', caseSensitive: false);
   final RegExp _sortRegExp = RegExp(r'sort:([\w\-]+)', caseSensitive: false);
 
   SearchParser(this.query);

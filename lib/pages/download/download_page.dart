@@ -374,9 +374,7 @@ class _DownloadPageState extends State<DownloadPage> {
       bangumiItem: bangumiItem,
       pluginName: record.pluginName,
       episodeNumber: episode.episodeNumber,
-      episodeName: episode.episodeName,
       road: episode.road,
-      videoPath: localPath,
       downloadedEpisodes: downloadedEpisodes,
     );
 

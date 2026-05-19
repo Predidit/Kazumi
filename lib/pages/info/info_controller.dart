@@ -43,6 +43,13 @@ abstract class _InfoController with Store {
 
   bool _isFillingInterestUserProfile = false;
 
+  int _commentsOffset = 0;
+
+  void clearComments() {
+    commentsList.clear();
+    _commentsOffset = 0;
+  }
+
   Future<bool> fillInterestUserProfileIfNeeded() async {
     final interest = bangumiItem.interest;
     if (interest == null || interest.hasUserProfile) {
@@ -113,16 +120,16 @@ abstract class _InfoController with Store {
     }
   }
 
-  Future<void> queryBangumiCommentsByID(int id, {int offset = 0}) async {
-    if (offset == 0) {
-      commentsList.clear();
+  Future<void> queryBangumiCommentsByID(int id, {bool refresh = true}) async {
+    if (refresh) {
+      clearComments();
     }
-    await BangumiApi.getBangumiCommentsByID(id, offset: offset).then((value) {
-      commentsList.addAll(value.commentList);
-      _stripOwnInterestDuplicatesFromComments();
-    });
+    final commentsValue = await BangumiApi.getBangumiCommentsByID(id, offset: _commentsOffset);
+    commentsList.addAll(commentsValue.commentList);
+    _commentsOffset += commentsValue.commentList.length;
+    _stripOwnInterestDuplicatesFromComments();
     KazumiLogger().i(
-        'InfoController: loaded comments list length ${commentsList.length}');
+        'InfoController: loaded comments list length ${commentsList.length}, offset $_commentsOffset');
   }
 
   Future<void> queryBangumiCharactersByID(int id) async {

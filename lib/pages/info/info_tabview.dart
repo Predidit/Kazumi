@@ -43,7 +43,7 @@ class InfoTabView extends StatefulWidget {
   final bool staffQueryTimeout;
   final bool staffIsEmpty;
   final TabController tabController;
-  final Future<void> Function({int offset}) loadMoreComments;
+  final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
   final Future<void> Function() loadStaff;
   final BangumiItem bangumiItem;
@@ -235,7 +235,7 @@ class _InfoTabViewState extends State<InfoTabView>
           onNotification: (scrollEnd) {
             final metrics = scrollEnd.metrics;
             if (metrics.pixels >= metrics.maxScrollExtent - 200) {
-              widget.loadMoreComments(offset: widget.commentsList.length);
+              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
             }
             return true;
           },
@@ -320,7 +320,7 @@ class _InfoTabViewState extends State<InfoTabView>
                         GeneralErrorButton(
                           onPressed: () {
                             widget.loadMoreComments(
-                                offset: widget.commentsList.length);
+                                loadMore: widget.commentsList.isNotEmpty);
                           },
                           text: '重试',
                         ),

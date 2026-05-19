@@ -125,7 +125,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> loadMoreComments({int offset = 0}) async {
+  Future<void> loadMoreComments({bool loadMore = false}) async {
     if (commentsIsLoading) return;
     setState(() {
       commentsIsLoading = true;
@@ -135,7 +135,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     try {
       await infoController.queryBangumiCommentsByID(
           infoController.bangumiItem.id,
-          offset: offset);
+          refresh: !loadMore);
       if (mounted) {
         setState(() {
           commentsIsLoading = false;
@@ -182,7 +182,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     super.initState();
     infoController.bangumiItem = inputBangumiIten;
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.currentEpisode = 1;
@@ -244,7 +244,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   void dispose() {
     infoTabController.removeListener(onInfoTabChanged);
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.currentEpisode = 1;

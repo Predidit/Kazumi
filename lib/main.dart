@@ -40,11 +40,10 @@ void main() async {
     // Log the error for debugging (if logger is available)
     debugPrint('Storage initialization failed: $e');
 
-    if (Platform.isWindows) {
+    if (Utils.isDesktop()) {
       await windowManager.ensureInitialized();
       windowManager.waitUntilReadyToShow(null, () async {
-        // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
-        // Without this. the window will never show on Windows.
+        // window_manager controls desktop visibility to avoid startup flicker.
         await windowManager.show();
         await windowManager.focus();
       });
@@ -80,8 +79,7 @@ void main() async {
       title: 'Kazumi',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
-      // Native window show has been blocked in `flutter_windows.cppL36` to avoid flickering.
-      // Without this. the window will never show on Windows.
+      // window_manager controls desktop visibility to avoid startup flicker.
       await windowManager.show();
       await windowManager.focus();
     });

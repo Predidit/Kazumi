@@ -124,10 +124,11 @@ abstract class _InfoController with Store {
     if (refresh) {
       clearComments();
     }
-    final commentsValue = await BangumiApi.getBangumiCommentsByID(id, offset: _commentsOffset);
-    commentsList.addAll(commentsValue.commentList);
-    _commentsOffset += commentsValue.commentList.length;
-    _stripOwnInterestDuplicatesFromComments();
+    await BangumiApi.getBangumiCommentsByID(id, offset: _commentsOffset).then((value) {
+      commentsList.addAll(value.commentList);
+      _commentsOffset += value.commentList.length;
+      _stripOwnInterestDuplicatesFromComments();
+    });
     KazumiLogger().i(
         'InfoController: loaded comments list length ${commentsList.length}, offset $_commentsOffset');
   }

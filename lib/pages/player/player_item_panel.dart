@@ -816,6 +816,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                               onUpdateDanmakuSpeed:
                                                   playerController
                                                       .updateDanmakuSpeed,
+                                              onTimelineOffsetChanged:
+                                                  playerController.danmaku
+                                                      .clearAndInvalidateScheduledDanmakus,
                                             );
                                           });
                                     },
@@ -867,6 +870,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                                         .danmaku.canvasController,
                                     onUpdateDanmakuSpeed:
                                         playerController.updateDanmakuSpeed,
+                                    onTimelineOffsetChanged: playerController
+                                        .danmaku
+                                        .clearAndInvalidateScheduledDanmakus,
                                   );
                                 });
                           },

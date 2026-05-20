@@ -79,7 +79,7 @@ abstract class _DownloadController with Store {
         }
         try {
           // danmakuData 已经是弹幕数组的 JSON 字符串，直接拼接成新格式写入
-          // 避免 jsonDecode → Danmaku.fromJson × N → toJson × N → jsonEncode 的开销
+          // 避免 jsonDecode → DanmakuEntry.fromJson × N → toJson × N → jsonEncode 的开销
           final file = File(_danmakuFilePath(episode.downloadDirectory));
           await file.writeAsString(
               '{"danDanBangumiID":${episode.danDanBangumiID},"danmakus":${episode.danmakuData}}');
@@ -345,8 +345,8 @@ abstract class _DownloadController with Store {
 
   /// 从文件读取弹幕数据
   /// 支持新格式 (带 danDanBangumiID 的 wrapper) 和旧格式 (纯数组)
-  Future<({List<Danmaku> danmakus, int danDanBangumiID})?> _readDanmakuFromFile(
-      String downloadDirectory) async {
+  Future<({List<DanmakuEntry> danmakus, int danDanBangumiID})?>
+      _readDanmakuFromFile(String downloadDirectory) async {
     if (downloadDirectory.isEmpty) return null;
     final file = File(_danmakuFilePath(downloadDirectory));
     if (!await file.exists()) return null;
@@ -355,14 +355,15 @@ abstract class _DownloadController with Store {
       final decoded = jsonDecode(content);
       if (decoded is List) {
         // 旧格式：纯弹幕数组
-        final danmakus = decoded.map((json) => Danmaku.fromJson(json)).toList();
+        final danmakus =
+            decoded.map((json) => DanmakuEntry.fromJson(json)).toList();
         return (danmakus: danmakus, danDanBangumiID: 0);
       } else if (decoded is Map<String, dynamic>) {
         // 新格式：带 danDanBangumiID 的 wrapper
         final danDanBangumiID = decoded['danDanBangumiID'] as int? ?? 0;
         final List<dynamic> jsonList = decoded['danmakus'] as List? ?? [];
         final danmakus =
-            jsonList.map((json) => Danmaku.fromJson(json)).toList();
+            jsonList.map((json) => DanmakuEntry.fromJson(json)).toList();
         return (danmakus: danmakus, danDanBangumiID: danDanBangumiID);
       }
       return null;
@@ -375,7 +376,7 @@ abstract class _DownloadController with Store {
 
   /// 写入弹幕数据到文件 (新格式，包含 danDanBangumiID)
   Future<void> _writeDanmakuToFile(String downloadDirectory,
-      List<Danmaku> danmakus, int danDanBangumiID) async {
+      List<DanmakuEntry> danmakus, int danDanBangumiID) async {
     if (downloadDirectory.isEmpty) return;
     final file = File(_danmakuFilePath(downloadDirectory));
     final wrapper = {
@@ -385,7 +386,7 @@ abstract class _DownloadController with Store {
     await file.writeAsString(jsonEncode(wrapper));
   }
 
-  Future<List<Danmaku>?> getCachedDanmakus(
+  Future<List<DanmakuEntry>?> getCachedDanmakus(
       int bangumiId, String pluginName, int episodeNumber) async {
     final episode =
         _repository.getEpisode(bangumiId, pluginName, episodeNumber);
@@ -404,7 +405,7 @@ abstract class _DownloadController with Store {
     int bangumiId,
     String pluginName,
     int episodeNumber,
-    List<Danmaku> danmakus,
+    List<DanmakuEntry> danmakus,
     int danDanBangumiID,
   ) async {
     final recordKey = '${pluginName}_$bangumiId';

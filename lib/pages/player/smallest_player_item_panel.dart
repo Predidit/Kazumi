@@ -850,6 +850,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               playerController.danmaku.canvasController,
                           onUpdateDanmakuSpeed:
                               playerController.updateDanmakuSpeed,
+                          onTimelineOffsetChanged: playerController
+                              .danmaku.clearAndInvalidateScheduledDanmakus,
                         );
                       },
                     );

@@ -23,8 +23,32 @@ class DanmakuLoadResult {
     required this.bangumiID,
   });
 
-  final List<Danmaku> danmakus;
+  final List<DanmakuEntry> danmakus;
   final int bangumiID;
+}
+
+class DanmakuTimeline {
+  static int? resolveSourceSecond(
+    Duration playbackPosition,
+    double timelineOffsetSeconds,
+  ) {
+    final sourceMilliseconds = playbackPosition.inMilliseconds -
+        (timelineOffsetSeconds * 1000).round();
+    if (sourceMilliseconds < 0) {
+      return null;
+    }
+    return Duration(milliseconds: sourceMilliseconds).inSeconds;
+  }
+
+  static int staggerDelayMilliseconds({
+    required int index,
+    required int total,
+  }) {
+    if (total <= 0) {
+      return 0;
+    }
+    return index * 1000 ~/ total;
+  }
 }
 
 abstract class _PlayerDanmakuController with Store {
@@ -39,7 +63,7 @@ abstract class _PlayerDanmakuController with Store {
   late canvas.DanmakuController canvasController;
 
   @observable
-  Map<int, List<Danmaku>> danDanmakus = {};
+  Map<int, List<DanmakuEntry>> danDanmakus = {};
   @observable
   bool danmakuOn = false;
   @observable
@@ -47,6 +71,35 @@ abstract class _PlayerDanmakuController with Store {
   DanmakuDestination danmakuDestination = DanmakuDestination.remoteDanmaku;
 
   int bangumiID = 0;
+  int _scheduledDanmakuGeneration = 0;
+
+  int get scheduledDanmakuGeneration => _scheduledDanmakuGeneration;
+
+  double get timelineOffsetSeconds {
+    final offset =
+        setting.get(SettingBoxKey.danmakuTimeOffset, defaultValue: 0.0);
+    return offset is num ? offset.toDouble() : 0.0;
+  }
+
+  int? resolveDanmakuSecond(Duration playbackPosition) {
+    return DanmakuTimeline.resolveSourceSecond(
+      playbackPosition,
+      timelineOffsetSeconds,
+    );
+  }
+
+  List<DanmakuEntry> danmakusForPlaybackPosition(Duration playbackPosition) {
+    final danmakuSecond = resolveDanmakuSecond(playbackPosition);
+    if (danmakuSecond == null) {
+      return const [];
+    }
+    return danDanmakus[danmakuSecond] ?? const [];
+  }
+
+  void clearAndInvalidateScheduledDanmakus() {
+    _scheduledDanmakuGeneration++;
+    canvasController.clear();
+  }
 
   // Fetching must not mutate current danmaku state; VideoPageController applies
   // the result only after confirming the playback session is still current.
@@ -135,8 +188,13 @@ abstract class _PlayerDanmakuController with Store {
     return DanmakuLoadResult(danmakus: const [], bangumiID: nextBangumiID);
   }
 
-  void _saveDanmakuToCache(DownloadController downloadController, int bangumiId,
-      String pluginName, int episode, List<Danmaku> danmakus, int danDanID) {
+  void _saveDanmakuToCache(
+      DownloadController downloadController,
+      int bangumiId,
+      String pluginName,
+      int episode,
+      List<DanmakuEntry> danmakus,
+      int danDanID) {
     try {
       downloadController.updateCachedDanmakus(
         bangumiId,
@@ -185,11 +243,11 @@ abstract class _PlayerDanmakuController with Store {
     }
   }
 
-  void addDanmakus(List<Danmaku> danmakus) {
+  void addDanmakus(List<DanmakuEntry> danmakus) {
     final bool danmakuDeduplicationEnable =
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
-    final List<Danmaku> listToAdd = danmakuDeduplicationEnable
+    final List<DanmakuEntry> listToAdd = danmakuDeduplicationEnable
         ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;
 

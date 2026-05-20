@@ -356,6 +356,7 @@ class SettingBoxKey {
       danmakuColor = 'danmakuColor',
       danmakuDuration = 'danmakuDuration',
       danmakuLineHeight = 'danmakuLineHeight',
+      danmakuTimeOffset = 'danmakuTimeOffset',
       danmakuEnabledByDefault = 'danmakuEnabledByDefault',
       danmakuBiliBiliSource = 'danmakuBiliBiliSource',
       danmakuGamerSource = 'danmakuGamerSource',

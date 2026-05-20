@@ -310,11 +310,11 @@ class Utils {
     return color;
   }
 
-  static List<Danmaku> mergeDuplicateDanmakus(
-    List<Danmaku> danmakus, {
+  static List<DanmakuEntry> mergeDuplicateDanmakus(
+    List<DanmakuEntry> danmakus, {
     double timeWindowSeconds = 0,
   }) {
-    final Map<String, List<Danmaku>> grouped = {};
+    final Map<String, List<DanmakuEntry>> grouped = {};
 
     // 弹幕规范化处理
     // 去首尾空格并小写，全角转半角，去掉所有空白、标点符号，连续重复内容压缩，保留日语字符
@@ -354,7 +354,7 @@ class Utils {
       grouped[text]!.add(d);
     }
 
-    final List<Danmaku> result = [];
+    final List<DanmakuEntry> result = [];
 
     grouped.forEach((normalized, list) {
       if (list.isEmpty) return;
@@ -364,7 +364,7 @@ class Utils {
           result.add(list.first);
         } else {
           result.add(
-            Danmaku(
+            DanmakuEntry(
               message: '${list.first.message} x${list.length}',
               time: list.first.time, // 默认取第一条
               type: 5,
@@ -378,7 +378,7 @@ class Utils {
 
       list.sort((a, b) => a.time.compareTo(b.time));
 
-      List<Danmaku> currentGroup = [];
+      List<DanmakuEntry> currentGroup = [];
       for (var item in list) {
         if (currentGroup.isEmpty) {
           currentGroup.add(item);
@@ -392,7 +392,7 @@ class Utils {
             result.add(currentGroup.first);
           } else {
             result.add(
-              Danmaku(
+              DanmakuEntry(
                 message:
                     '${currentGroup.first.message} x${currentGroup.length}',
                 time: currentGroup.first.time,
@@ -411,7 +411,7 @@ class Utils {
           result.add(currentGroup.first);
         } else {
           result.add(
-            Danmaku(
+            DanmakuEntry(
               message: '${currentGroup.first.message} x${currentGroup.length}',
               time: currentGroup.first.time,
               type: 5,

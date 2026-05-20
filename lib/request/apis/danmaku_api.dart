@@ -90,8 +90,9 @@ class DanmakuApi {
     return danmakuSearchResponse;
   }
 
-  static Future<List<Danmaku>> getDanDanmaku(int bangumiID, int episode) async {
-    List<Danmaku> danmakus = [];
+  static Future<List<DanmakuEntry>> getDanDanmaku(
+      int bangumiID, int episode) async {
+    List<DanmakuEntry> danmakus = [];
     if (bangumiID == 0) {
       return danmakus;
     }
@@ -108,16 +109,17 @@ class DanmakuApi {
     List<dynamic> comments = jsonData['comments'];
 
     for (var comment in comments) {
-      Danmaku danmaku = Danmaku.fromJson(comment);
+      DanmakuEntry danmaku = DanmakuEntry.fromJson(comment);
       danmakus.add(danmaku);
     }
     return danmakus;
   }
 
-  static Future<List<Danmaku>> getDanDanmakuByEpisodeID(int episodeID) async {
+  static Future<List<DanmakuEntry>> getDanDanmakuByEpisodeID(
+      int episodeID) async {
     var path = ApiEndpoints.dandanAPIComment + episodeID.toString();
     var endPoint = ApiEndpoints.dandanAPIDomain + path;
-    List<Danmaku> danmakus = [];
+    List<DanmakuEntry> danmakus = [];
     Map<String, String> withRelated = {
       'withRelated': 'true',
     };
@@ -125,7 +127,7 @@ class DanmakuApi {
     List<dynamic> comments = jsonData['comments'];
 
     for (var comment in comments) {
-      Danmaku danmaku = Danmaku.fromJson(comment);
+      DanmakuEntry danmaku = DanmakuEntry.fromJson(comment);
       danmakus.add(danmaku);
     }
     return danmakus;

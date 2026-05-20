@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -11,7 +12,6 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -33,9 +33,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleSuperResolutionChange,
     required this.animationController,
     required this.keyboardFocus,
-    required this.handleHove,
-    required this.startHideTimer,
-    required this.cancelHideTimer,
+    required this.acquirePlayerPanelHold,
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
@@ -55,11 +53,9 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
-  final void Function() handleHove;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
-  final void Function() startHideTimer;
-  final void Function() cancelHideTimer;
+  final PlayerPanelHold Function() acquirePlayerPanelHold;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
@@ -617,29 +613,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             // 弹幕开关
             _buildDanmakuToggleButton(context),
             // 追番
-            CollectButton(
+            PlayerPanelHoldCollectButton(
+              acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
               bangumiItem: videoPageController.bangumiItem,
-              onOpen: () {
-                widget.cancelHideTimer();
-                playerController.panel.canHidePlayerPanel = false;
-              },
-              onClose: () {
-                widget.cancelHideTimer();
-                widget.startHideTimer();
-                playerController.panel.canHidePlayerPanel = true;
-              },
             ),
-            MenuAnchor(
+            PlayerPanelHoldMenuAnchor(
+              acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
               consumeOutsideTap: true,
-              onOpen: () {
-                widget.cancelHideTimer();
-                playerController.panel.canHidePlayerPanel = false;
-              },
-              onClose: () {
-                widget.cancelHideTimer();
-                widget.startHideTimer();
-                playerController.panel.canHidePlayerPanel = true;
-              },
               builder: (BuildContext context, MenuController controller,
                   Widget? child) {
                 return IconButton(

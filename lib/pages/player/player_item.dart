@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
+import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
@@ -121,6 +122,9 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
   Timer? hideVolumeUITimer;
+  final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
+  PlayerPanelHold? _progressBarDragHold;
+  PlayerPanelHold? _horizontalDragHold;
 
   double lastVolume = 0;
 
@@ -430,14 +434,6 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _handleHove() {
-    if (!playerController.panel.showVideoController) {
-      displayVideoController();
-    }
-    hideTimer?.cancel();
-    startHideTimer();
-  }
-
   void _handleMouseScroller() {
     playerController.panel.showVolume = true;
     mouseScrollerTimer?.cancel();
@@ -565,6 +561,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void _handleFullscreenChange(BuildContext context) async {
     playerController.panel.lockPanel = false;
+    _releasePlayerPanelHolds();
     playerController.danmaku.canvasController.clear();
 
     await _syncHistoryWithWebDav();
@@ -574,14 +571,15 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer?.cancel();
     playerController.pause(enableSync: false);
     _syncAudioServiceState();
-    hideTimer?.cancel();
-    playerController.panel.showVideoController = true;
+    _progressBarDragHold?.release();
+    _progressBarDragHold = acquirePlayerPanelHold();
   }
 
   void handleProgressBarDragEnd() {
     playerController.play(enableSync: false);
     _syncAudioServiceState();
-    startHideTimer();
+    _progressBarDragHold?.release();
+    _progressBarDragHold = null;
     playerTimer?.cancel();
     playerTimer = getPlayerTimer();
   }
@@ -725,17 +723,61 @@ class _PlayerItemState extends State<PlayerItem>
     videoPageController.isFullscreen = !videoPageController.isFullscreen;
   }
 
-  void displayVideoController() {
+  bool get _canHidePlayerPanel =>
+      playerController.panel.canHidePlayerPanel && _playerPanelHolds.isEmpty;
+
+  void showVideoController({bool restartHideTimer = true}) {
     animationController?.forward();
-    hideTimer?.cancel();
-    startHideTimer();
     playerController.panel.showVideoController = true;
+    if (restartHideTimer && _canHidePlayerPanel) {
+      _startHideTimer();
+    }
+  }
+
+  void displayVideoController() {
+    showVideoController();
   }
 
   void hideVideoController() {
+    if (!_canHidePlayerPanel) {
+      return;
+    }
     animationController?.reverse();
-    hideTimer?.cancel();
+    _cancelHideTimer();
     playerController.panel.showVideoController = false;
+  }
+
+  // All temporary panel blockers flow through this single lease registry.
+  PlayerPanelHold acquirePlayerPanelHold() {
+    late final PlayerPanelHold hold;
+    hold = PlayerPanelHold(
+      onRelease: () {
+        _playerPanelHolds.remove(hold);
+        if (_playerPanelHolds.isNotEmpty) {
+          return;
+        }
+        playerController.panel.canHidePlayerPanel = true;
+        _startHideTimer();
+      },
+    );
+    _playerPanelHolds.add(hold);
+    playerController.panel.canHidePlayerPanel = false;
+    _cancelHideTimer();
+    showVideoController(restartHideTimer: false);
+    return hold;
+  }
+
+  // Fullscreen/system overlay changes can dispose menus without delivering
+  // MenuAnchor.onClose, so the parent owns the emergency release path.
+  void _releasePlayerPanelHolds() {
+    for (final hold in _playerPanelHolds.toList()) {
+      hold.releaseSilently();
+    }
+    _playerPanelHolds.clear();
+    _progressBarDragHold = null;
+    _horizontalDragHold = null;
+    playerController.panel.canHidePlayerPanel = true;
+    _startHideTimer();
   }
 
   Future<void> setPlaybackSpeed(double speed) async {
@@ -808,19 +850,22 @@ class _PlayerItemState extends State<PlayerItem>
     } catch (_) {}
   }
 
-  void startHideTimer() {
+  void _startHideTimer() {
+    _cancelHideTimer();
+    if (!_canHidePlayerPanel) {
+      return;
+    }
     hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && playerController.panel.canHidePlayerPanel) {
-        playerController.panel.showVideoController = false;
-        animationController?.reverse();
+      if (mounted) {
+        hideVideoController();
       }
       hideTimer = null;
     });
   }
 
-  // Used to pass hideTimer operation to panel layer
-  void cancelHideTimer() {
+  void _cancelHideTimer() {
     hideTimer?.cancel();
+    hideTimer = null;
   }
 
   Timer getPlayerTimer() {
@@ -1608,7 +1653,7 @@ class _PlayerItemState extends State<PlayerItem>
                   if (pointerEvent.position.dy > 50 &&
                       pointerEvent.position.dy <
                           MediaQuery.of(context).size.height - 70) {
-                    _handleHove();
+                    displayVideoController();
                   } else {
                     if (!playerController.panel.showVideoController) {
                       animationController?.forward();
@@ -1758,8 +1803,7 @@ class _PlayerItemState extends State<PlayerItem>
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
                             sendDanmaku: widget.sendDanmaku,
-                            startHideTimer: startHideTimer,
-                            cancelHideTimer: cancelHideTimer,
+                            acquirePlayerPanelHold: acquirePlayerPanelHold,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
@@ -1786,9 +1830,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 handleSuperResolutionChange,
                             animationController: animationController!,
                             keyboardFocus: widget.keyboardFocus,
-                            handleHove: _handleHove,
-                            startHideTimer: startHideTimer,
-                            cancelHideTimer: cancelHideTimer,
+                            acquirePlayerPanelHold: acquirePlayerPanelHold,
                             handleDanmaku: handleDanmaku,
                             showVideoInfo: showVideoInfo,
                             showSyncPlayRoomCreateDialog:
@@ -1810,12 +1852,8 @@ class _PlayerItemState extends State<PlayerItem>
                           ? Container()
                           : GestureDetector(
                               onHorizontalDragStart: (_) {
-                                if (!playerController
-                                    .panel.showVideoController) {
-                                  animationController?.forward();
-                                }
-                                playerController.panel.canHidePlayerPanel =
-                                    false;
+                                _horizontalDragHold?.release();
+                                _horizontalDragHold = acquirePlayerPanelHold();
                               },
                               onHorizontalDragUpdate:
                                   (DragUpdateDetails details) {
@@ -1838,15 +1876,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 playerController.play(enableSync: false);
                                 playerController.seek(
                                     playerController.playback.currentPosition);
-                                playerController.panel.canHidePlayerPanel =
-                                    true;
-                                if (!playerController
-                                    .panel.showVideoController) {
-                                  animationController?.reverse();
-                                } else {
-                                  hideTimer?.cancel();
-                                  startHideTimer();
-                                }
+                                _horizontalDragHold?.release();
+                                _horizontalDragHold = null;
                                 playerTimer?.cancel();
                                 playerTimer = getPlayerTimer();
                                 playerController.panel.showSeekTime = false;

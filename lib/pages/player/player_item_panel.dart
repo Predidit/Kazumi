@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
+import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -13,7 +14,6 @@ import 'package:flutter/services.dart';
 import 'package:kazumi/utils/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/utils/storage.dart';
@@ -39,8 +39,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.toggleMenu,
     required this.keyboardFocus,
     required this.sendDanmaku,
-    required this.startHideTimer,
-    required this.cancelHideTimer,
+    required this.acquirePlayerPanelHold,
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
@@ -64,8 +63,7 @@ class PlayerItemPanel extends StatefulWidget {
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
-  final void Function() startHideTimer;
-  final void Function() cancelHideTimer;
+  final PlayerPanelHold Function() acquirePlayerPanelHold;
   final void Function() handleDanmaku;
   final void Function(String direction) handlePreNextEpisode;
   final void Function() skipOP;
@@ -94,6 +92,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       Modular.get<DownloadController>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocus = FocusNode();
+  PlayerPanelHold? _danmakuTextFieldHold;
   // SVG Caches
   String? cachedSvgString;
   Widget? cachedDanmakuOnIcon;
@@ -105,9 +104,22 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    _releaseDanmakuTextFieldPanel();
     textController.dispose();
     textFieldFocus.dispose();
     super.dispose();
+  }
+
+  void _holdDanmakuTextFieldPanel() {
+    if (_danmakuTextFieldHold?.isReleased == false) {
+      return;
+    }
+    _danmakuTextFieldHold = widget.acquirePlayerPanelHold();
+  }
+
+  void _releaseDanmakuTextFieldPanel() {
+    _danmakuTextFieldHold?.release();
+    _danmakuTextFieldHold = null;
   }
 
   Widget get danmakuTextField {
@@ -169,21 +181,16 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         ),
         onTapAlwaysCalled: true,
         onTap: () {
-          widget.cancelHideTimer();
-          playerController.panel.canHidePlayerPanel = false;
+          _holdDanmakuTextFieldPanel();
         },
         onSubmitted: (msg) {
           textFieldFocus.unfocus();
           widget.showDanmakuDestinationPickerAndSend(msg);
-          widget.cancelHideTimer();
-          widget.startHideTimer();
-          playerController.panel.canHidePlayerPanel = true;
+          _releaseDanmakuTextFieldPanel();
           textController.clear();
         },
         onTapOutside: (_) {
-          widget.cancelHideTimer();
-          widget.startHideTimer();
-          playerController.panel.canHidePlayerPanel = true;
+          _releaseDanmakuTextFieldPanel();
           textFieldFocus.unfocus();
           widget.keyboardFocus.requestFocus();
         },
@@ -674,18 +681,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         bottom: videoPageController.isFullscreen,
         left: videoPageController.isFullscreen,
         right: videoPageController.isFullscreen,
-        child: MouseRegion(
+        child: PlayerPanelHoldMouseRegion(
+          acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
           cursor: (videoPageController.isFullscreen &&
                   !playerController.panel.showVideoController)
               ? SystemMouseCursors.none
               : SystemMouseCursors.basic,
-          onEnter: (_) {
-            widget.cancelHideTimer();
-          },
-          onExit: (_) {
-            widget.cancelHideTimer();
-            widget.startHideTimer();
-          },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -878,17 +879,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       if (!playerController.danmaku.danmakuOn) const Spacer(),
                     ],
                     // 超分辨率
-                    MenuAnchor(
+                    PlayerPanelHoldMenuAnchor(
+                      acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                       consumeOutsideTap: true,
-                      onOpen: () {
-                        widget.cancelHideTimer();
-                        playerController.panel.canHidePlayerPanel = false;
-                      },
-                      onClose: () {
-                        widget.cancelHideTimer();
-                        widget.startHideTimer();
-                        playerController.panel.canHidePlayerPanel = true;
-                      },
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return TextButton(
@@ -935,17 +928,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                       ),
                     ),
                     // 倍速播放
-                    MenuAnchor(
+                    PlayerPanelHoldMenuAnchor(
+                      acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                       consumeOutsideTap: true,
-                      onOpen: () {
-                        widget.cancelHideTimer();
-                        playerController.panel.canHidePlayerPanel = false;
-                      },
-                      onClose: () {
-                        widget.cancelHideTimer();
-                        widget.startHideTimer();
-                        playerController.panel.canHidePlayerPanel = true;
-                      },
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return TextButton(
@@ -992,17 +977,9 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                         ],
                       ],
                     ),
-                    MenuAnchor(
+                    PlayerPanelHoldMenuAnchor(
+                      acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                       consumeOutsideTap: true,
-                      onOpen: () {
-                        widget.cancelHideTimer();
-                        playerController.panel.canHidePlayerPanel = false;
-                      },
-                      onClose: () {
-                        widget.cancelHideTimer();
-                        widget.startHideTimer();
-                        playerController.panel.canHidePlayerPanel = true;
-                      },
                       builder: (BuildContext context, MenuController controller,
                           Widget? child) {
                         return IconButton(
@@ -1095,18 +1072,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           bottom: false,
           left: videoPageController.isFullscreen,
           right: videoPageController.isFullscreen,
-          child: MouseRegion(
+          child: PlayerPanelHoldMouseRegion(
+            acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
             cursor: (videoPageController.isFullscreen &&
                     !playerController.panel.showVideoController)
                 ? SystemMouseCursors.none
                 : SystemMouseCursors.basic,
-            onEnter: (_) {
-              widget.cancelHideTimer();
-            },
-            onExit: (_) {
-              widget.cancelHideTimer();
-              widget.startHideTimer();
-            },
             child: Row(
               children: [
                 IconButton(
@@ -1176,29 +1147,13 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
                     ),
                   ),
                 // 追番
-                CollectButton(
+                PlayerPanelHoldCollectButton(
+                  acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                   bangumiItem: videoPageController.bangumiItem,
-                  onOpen: () {
-                    widget.cancelHideTimer();
-                    playerController.panel.canHidePlayerPanel = false;
-                  },
-                  onClose: () {
-                    widget.cancelHideTimer();
-                    widget.startHideTimer();
-                    playerController.panel.canHidePlayerPanel = true;
-                  },
                 ),
-                MenuAnchor(
+                PlayerPanelHoldMenuAnchor(
+                  acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
                   consumeOutsideTap: true,
-                  onOpen: () {
-                    widget.cancelHideTimer();
-                    playerController.panel.canHidePlayerPanel = false;
-                  },
-                  onClose: () {
-                    widget.cancelHideTimer();
-                    widget.startHideTimer();
-                    playerController.panel.canHidePlayerPanel = true;
-                  },
                   builder: (BuildContext context, MenuController controller,
                       Widget? child) {
                     return IconButton(

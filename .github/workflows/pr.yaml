@@ -114,12 +114,15 @@
               distribution: 'temurin'          
           - name: Set up Flutter
             uses: subosito/flutter-action@v2.16.0
+            id: flutter-action
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
+          - name: Remove build id
+            run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}/hosted/pub.dev/jni-*/src/CMakeLists.txt
           - name: Print Flutter version
             run: flutter doctor -v
             shell: bash

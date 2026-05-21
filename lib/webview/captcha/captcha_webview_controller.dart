@@ -13,9 +13,9 @@ abstract class CaptchaWebviewController<T> {
   /// used to determine if verification is successful after page navigation
   bool captchaWasFound = false;
 
-  /// For type-2 (auto-click button), we set this flag when the button click is triggered.
-  /// Then on page navigation or DOM change, if this flag is set,
-  /// we can confirm verification success without relying solely on captcha disappearance.
+  /// For automated flows, set when JavaScript has triggered a verification
+  /// action. A later navigation can then confirm success even if no captcha
+  /// element disappears in the current DOM.
   bool buttonWasClicked = false;
 
   final StreamController<String> captchaImageFoundController =
@@ -33,7 +33,7 @@ abstract class CaptchaWebviewController<T> {
   /// 验证码图片 src 找到时触发（携带图片绝对 URL）
   Stream<String> get onCaptchaImageFound => captchaImageFoundController.stream;
 
-  /// 验证码图片从页面消失时触发
+  /// 验证完成时触发
   Stream<void> get onCaptchaDisappeared => captchaDisappearedController.stream;
 
   /// 调试日志
@@ -51,10 +51,15 @@ abstract class CaptchaWebviewController<T> {
 
   /// 加载指定 URL，并注入监听验证按钮的 JS 脚本（类型2：自动点击验证按钮）
   ///
-  /// 检测到 [buttonXpath] 元素后立即模拟点击；按钮消失时触发 [onCaptchaDisappeared]。
+  /// 检测到 [buttonXpath] 元素后立即模拟点击；按钮消失或页面跳转时触发 [onCaptchaDisappeared]。
   /// [url] 要加载的页面地址
   /// [buttonXpath] 验证按钮元素的 XPath 选择器
   Future<void> loadPageForButtonClick(String url, String buttonXpath);
+
+  /// 加载指定 URL，并在页面内执行自定义验证脚本（类型3：自定义 JS 验证）
+  ///
+  /// 脚本可调用 window.KazumiCaptcha.log/clicked/done/fail。
+  Future<void> loadPageForCustomScript(String url, String script);
 
   /// 在 WebView 内通过 JS 模拟输入验证码并模拟点击提交按钮
   ///

@@ -72,6 +72,9 @@ class _SourceSheetState extends State<SourceSheet>
   /// 根据插件的验证类型分发到对应的验证对话框
   void showAntiCrawlerDialog(Plugin plugin) {
     switch (plugin.antiCrawlerConfig.captchaType) {
+      case CaptchaType.customJavaScript:
+        showCustomScriptDialog(plugin);
+        break;
       case CaptchaType.autoClickButton:
         showButtonClickDialog(plugin);
         break;
@@ -156,20 +159,60 @@ class _SourceSheetState extends State<SourceSheet>
   }
 
   void showButtonClickDialog(Plugin plugin) {
-    /// flag whether onVerified was fired by the auto-click flow (cookies already saved + page unloaded)
-    bool autoVerified = false;
+    showAutomatedVerifyDialog(
+      plugin,
+      statusText: '${plugin.name} 正在自动完成验证，请稍候',
+      detailText: '已检测到验证按钮并模拟点击，等待验证通过…',
+      startVerification: (provider, searchUrl, onVerified) {
+        return provider.loadForButtonClick(
+          url: searchUrl,
+          buttonXpath: plugin.antiCrawlerConfig.captchaButton,
+          pluginName: plugin.name,
+          onVerified: onVerified,
+        );
+      },
+    );
+  }
+
+  void showCustomScriptDialog(Plugin plugin) {
+    showAutomatedVerifyDialog(
+      plugin,
+      statusText: '${plugin.name} 正在执行验证脚本，请稍候',
+      detailText: '已加载验证页面并执行自定义脚本，等待验证通过…',
+      startVerification: (provider, searchUrl, onVerified) {
+        return provider.loadForCustomScript(
+          url: searchUrl,
+          script: plugin.antiCrawlerConfig.captchaScript,
+          pluginName: plugin.name,
+          onVerified: onVerified,
+        );
+      },
+    );
+  }
+
+  void showAutomatedVerifyDialog(
+    Plugin plugin, {
+    required String statusText,
+    required String detailText,
+    required Future<void> Function(
+      CaptchaProvider provider,
+      String searchUrl,
+      void Function() onVerified,
+    ) startVerification,
+  }) {
+    bool verified = false;
 
     _captchaProvider?.dispose();
     _captchaProvider = CaptchaProvider();
 
+    final provider = _captchaProvider!;
     final searchUrl = plugin.searchURL
         .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
     void onVerified() {
-      if (autoVerified) return;
-      autoVerified = true;
+      if (verified) return;
+      verified = true;
       KazumiDialog.dismiss();
-      // show a 3s countdown progress dialog before re-querying
       KazumiDialog.showTimedSuccessDialog(
         title: '验证成功',
         message: '正在重新检索，请稍候…',
@@ -177,23 +220,15 @@ class _SourceSheetState extends State<SourceSheet>
       );
     }
 
-    _captchaProvider!.loadForButtonClick(
-      url: searchUrl,
-      buttonXpath: plugin.antiCrawlerConfig.captchaButton,
-      pluginName: plugin.name,
-      onVerified: onVerified,
-    );
+    unawaited(startVerification(provider, searchUrl, onVerified));
 
     KazumiDialog.show(
       onDismiss: () async {
-        // Capture the current provider instance locally before any await.
         final provider = _captchaProvider;
         _captchaProvider = null;
-        if (autoVerified) {
-          // auto-verify already saved cookies and unloaded the page
+        if (verified) {
           provider?.dispose();
         } else {
-          // save whatever cookies are present and unload the page
           await provider?.saveAndUnload(plugin.name);
           provider?.dispose();
           queryManager?.querySource(keyword, plugin.name);
@@ -215,14 +250,14 @@ class _SourceSheetState extends State<SourceSheet>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${plugin.name} 正在自动完成验证，请稍候',
+                  statusText,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 24),
                 const CircularProgressIndicator(),
                 const SizedBox(height: 12),
                 Text(
-                  '已检测到验证按钮并模拟点击，等待验证通过…',
+                  detailText,
                   style: Theme.of(context).textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),

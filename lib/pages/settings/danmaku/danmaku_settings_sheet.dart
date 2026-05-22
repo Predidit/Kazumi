@@ -9,11 +9,13 @@ import 'package:card_settings_ui/card_settings_ui.dart';
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
   final VoidCallback? onUpdateDanmakuSpeed;
+  final VoidCallback? onTimelineOffsetChanged;
 
   const DanmakuSettingsSheet({
     super.key,
     required this.danmakuController,
     this.onUpdateDanmakuSpeed,
+    this.onTimelineOffsetChanged,
   });
 
   @override
@@ -22,6 +24,30 @@ class DanmakuSettingsSheet extends StatefulWidget {
 
 class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
   Box setting = GStorage.setting;
+  late double _danmakuTimeOffset;
+
+  double _readDanmakuTimeOffset() {
+    final offset =
+        setting.get(SettingBoxKey.danmakuTimeOffset, defaultValue: 0.0);
+    if (offset is num) {
+      return offset.toDouble().clamp(-60.0, 60.0).toDouble();
+    }
+    return 0.0;
+  }
+
+  String _formatDanmakuTimeOffset(double value) {
+    if (value == 0) {
+      return '无偏移';
+    }
+    final direction = value > 0 ? '延后' : '提前';
+    return '$direction ${value.abs().toStringAsFixed(1)} 秒';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _danmakuTimeOffset = _readDanmakuTimeOffset();
+  }
 
   void showDanmakuShieldSheet() {
     showModalBottomSheet(
@@ -36,7 +62,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         builder: (context) {
           return SafeArea(
             bottom: false,
-            child:  DanmakuShieldSettingsSheet(),
+            child: DanmakuShieldSettingsSheet(),
           );
         });
   }
@@ -106,6 +132,24 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
+                title: Text('时间轴偏移', style: TextStyle(fontFamily: fontFamily)),
+                description: Slider(
+                  value: _danmakuTimeOffset,
+                  min: -60,
+                  max: 60,
+                  divisions: 240,
+                  label: _formatDanmakuTimeOffset(_danmakuTimeOffset),
+                  onChanged: (value) {
+                    final offset = double.parse(value.toStringAsFixed(1));
+                    setState(() {
+                      _danmakuTimeOffset = offset;
+                    });
+                    setting.put(SettingBoxKey.danmakuTimeOffset, offset);
+                    widget.onTimelineOffsetChanged?.call();
+                  },
+                ),
+              ),
+              SettingsTile(
                 title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.area,
@@ -124,21 +168,22 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                   },
                 ),
               ),
-              SettingsTile(title: Text('持续时间', style: TextStyle(fontFamily: fontFamily)),
+              SettingsTile(
+                title: Text('持续时间', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.duration.toDouble(),
                   min: 2,
                   max: 16,
                   divisions: 14,
-                  label:
-                      '${widget.danmakuController.option.duration.round()}',
+                  label: '${widget.danmakuController.option.duration.round()}',
                   onChanged: (value) {
                     setState(() => widget.danmakuController.updateOption(
                           widget.danmakuController.option.copyWith(
                             duration: value,
                           ),
                         ));
-                    setting.put(SettingBoxKey.danmakuDuration, value.round().toDouble());
+                    setting.put(SettingBoxKey.danmakuDuration,
+                        value.round().toDouble());
                   },
                 ),
               ),
@@ -149,14 +194,16 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                   min: 0,
                   max: 3,
                   divisions: 30,
-                  label: widget.danmakuController.option.lineHeight.toStringAsFixed(1),
+                  label: widget.danmakuController.option.lineHeight
+                      .toStringAsFixed(1),
                   onChanged: (value) {
                     setState(() => widget.danmakuController.updateOption(
                           widget.danmakuController.option.copyWith(
                             lineHeight: double.parse(value.toStringAsFixed(1)),
                           ),
                         ));
-                    setting.put(SettingBoxKey.danmakuLineHeight, double.parse(value.toStringAsFixed(1)));
+                    setting.put(SettingBoxKey.danmakuLineHeight,
+                        double.parse(value.toStringAsFixed(1)));
                   },
                 ),
               ),
@@ -175,7 +222,8 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               ),
               SettingsTile.switchTile(
                 onToggle: (value) async {
-                  bool show = value ?? widget.danmakuController.option.hideBottom;
+                  bool show =
+                      value ?? widget.danmakuController.option.hideBottom;
                   setState(() => widget.danmakuController.updateOption(
                         widget.danmakuController.option.copyWith(
                           hideBottom: !show,
@@ -188,7 +236,8 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               ),
               SettingsTile.switchTile(
                 onToggle: (value) async {
-                  bool show = value ?? widget.danmakuController.option.hideScroll;
+                  bool show =
+                      value ?? widget.danmakuController.option.hideScroll;
                   setState(() => widget.danmakuController.updateOption(
                         widget.danmakuController.option.copyWith(
                           hideScroll: !show,
@@ -201,14 +250,18 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
               ),
               SettingsTile.switchTile(
                 onToggle: (value) async {
-                  bool followSpeed = value ?? !setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true);
+                  bool followSpeed = value ??
+                      !setting.get(SettingBoxKey.danmakuFollowSpeed,
+                          defaultValue: true);
                   setting.put(SettingBoxKey.danmakuFollowSpeed, followSpeed);
                   widget.onUpdateDanmakuSpeed?.call();
                   setState(() {});
                 },
                 title: Text('跟随视频倍速', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('弹幕速度随视频倍速变化', style: TextStyle(fontFamily: fontFamily)),
-                initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed, defaultValue: true),
+                description: Text('弹幕速度随视频倍速变化',
+                    style: TextStyle(fontFamily: fontFamily)),
+                initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed,
+                    defaultValue: true),
               ),
             ],
           ),

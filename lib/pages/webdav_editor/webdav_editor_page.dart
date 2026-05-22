@@ -35,6 +35,14 @@ class _WebDavEditorPageState extends State<WebDavEditorPage> {
   }
 
   @override
+  void dispose() {
+    webDavURLController.dispose();
+    webDavUsernameController.dispose();
+    webDavPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const SysAppBar(

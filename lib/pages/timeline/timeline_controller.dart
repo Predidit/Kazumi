@@ -1,6 +1,6 @@
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
@@ -27,13 +27,16 @@ abstract class _TimelineController with Store {
   bool isTimeOut = false;
 
   @observable
-  late bool notShowAbandonedBangumis = _collectRepository.getTimelineNotShowAbandonedBangumis();
+  late bool notShowAbandonedBangumis =
+      _collectRepository.getTimelineNotShowAbandonedBangumis();
 
   @observable
-  late bool notShowWatchedBangumis = _collectRepository.getTimelineNotShowWatchedBangumis();
+  late bool notShowWatchedBangumis =
+      _collectRepository.getTimelineNotShowWatchedBangumis();
 
   @observable
-  late bool onlyShowWatchingBangumis = _collectRepository.getTimelineOnlyShowWatchingBangumis();
+  late bool onlyShowWatchingBangumis =
+      _collectRepository.getTimelineOnlyShowWatchingBangumis();
 
   int sortType = 3;
 
@@ -49,7 +52,7 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
-    final resBangumiCalendar = await BangumiHTTP.getCalendar();
+    final resBangumiCalendar = await BangumiApi.getCalendar();
     bangumiCalendar.clear();
     bangumiCalendar.addAll(resBangumiCalendar);
     changeSortType(sortType);
@@ -68,7 +71,7 @@ abstract class _TimelineController with Store {
     var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
     for (time = 0; time < maxTime; time++) {
       final offset = time * limit;
-      var newList = await BangumiHTTP.getCalendarBySearch(
+      var newList = await BangumiApi.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
       for (int i = 0; i < resBangumiCalendar.length; ++i) {
         resBangumiCalendar[i].addAll(newList[i]);

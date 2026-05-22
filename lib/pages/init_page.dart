@@ -146,13 +146,21 @@ class _InitPageState extends State<InitPage> {
       try {
         await webDav.init();
         try {
-          await webDav.downloadAndPatchHistory();
+          await webDav.syncHistory();
           KazumiLogger().i('WebDav: Completed syncing watch history');
-        } catch (e) {
-          KazumiDialog.showToast(message: "同步观看记录失败 ${e.toString()}");
+        } catch (e, stackTrace) {
+          KazumiLogger().w(
+            'WebDav: automatic watch history sync failed',
+            error: e,
+            stackTrace: stackTrace,
+          );
         }
-      } catch (e) {
-        KazumiDialog.showToast(message: "初始化WebDav失败 ${e.toString()}");
+      } catch (e, stackTrace) {
+        KazumiLogger().w(
+          'WebDav: automatic initialization failed',
+          error: e,
+          stackTrace: stackTrace,
+        );
       }
     }
   }
@@ -223,7 +231,9 @@ class _InitPageState extends State<InitPage> {
 
   Future<void> _showShortcutDialog() async {
     if (!Platform.isWindows) return;
-    if (setting.get(SettingBoxKey.shortcutDialogShown, defaultValue: false)) return;
+    if (setting.get(SettingBoxKey.shortcutDialogShown, defaultValue: false)) {
+      return;
+    }
 
     final create = await KazumiDialog.show<bool>(
       clickMaskDismiss: false,
@@ -233,7 +243,8 @@ class _InitPageState extends State<InitPage> {
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: false),
-            child: Text('暂不创建', style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+            child: Text('暂不创建',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline)),
           ),
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: true),

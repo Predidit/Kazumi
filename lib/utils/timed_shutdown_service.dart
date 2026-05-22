@@ -5,22 +5,24 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/utils/logger.dart';
 
 class TimedShutdownService {
-  static final TimedShutdownService _instance = TimedShutdownService._internal();
+  static final TimedShutdownService _instance =
+      TimedShutdownService._internal();
   factory TimedShutdownService() => _instance;
   TimedShutdownService._internal();
 
   Timer? _shutdownTimer;
   int _remainingSeconds = 0;
   bool _isDialogShowing = false;
+
   /// Last set minutes, used for repeat functionality
   int _lastSetMinutes = 0;
 
   /// Callback to invoke when timer expires (e.g., pause video)
   VoidCallback? _onExpiredCallback;
-  
+
   /// Remaining time in seconds notifier
   final ValueNotifier<int> remainingSecondsNotifier = ValueNotifier<int>(0);
-  
+
   /// Currently set minutes notifier (for UI display)
   final ValueNotifier<int> setMinutesNotifier = ValueNotifier<int>(0);
 
@@ -29,7 +31,7 @@ class TimedShutdownService {
 
   /// Currently set minutes (0 = disabled)
   int get setMinutes => setMinutesNotifier.value;
-  
+
   /// Remaining time in seconds
   int get remainingSeconds => remainingSecondsNotifier.value;
 
@@ -44,14 +46,14 @@ class TimedShutdownService {
     remainingSecondsNotifier.value = _remainingSeconds;
     setMinutesNotifier.value = minutes;
     _onExpiredCallback = onExpired;
-    
+
     // Update remaining time every second (runs globally, not tied to playback)
     _shutdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingSeconds > 0) {
         _remainingSeconds--;
         remainingSecondsNotifier.value = _remainingSeconds;
       }
-      
+
       if (_remainingSeconds <= 0) {
         timer.cancel();
         _shutdownTimer = null;
@@ -79,7 +81,7 @@ class TimedShutdownService {
     if (setMinutesNotifier.value != 0) {
       setMinutesNotifier.value = 0;
     }
-    
+
     // If dialog is showing, dismiss it
     if (_isDialogShowing) {
       KazumiDialog.dismiss();
@@ -91,14 +93,15 @@ class TimedShutdownService {
   void _onTimerExpired() {
     // Reset UI state so it doesn't show 00:00
     setMinutesNotifier.value = 0;
-    
+
     // Invoke the callback if set (e.g., pause video)
     try {
       _onExpiredCallback?.call();
     } catch (e) {
-      KazumiLogger().e('TimedShutdownService: onExpired callback failed', error: e);
+      KazumiLogger()
+          .e('TimedShutdownService: onExpired callback failed', error: e);
     }
-    
+
     _showTimerExpiredDialog();
   }
 
@@ -173,96 +176,152 @@ class TimedShutdownService {
     VoidCallback? onExpired,
     void Function(int)? onResult,
   }) {
-    int selectedHours = 0;
-    int selectedMinutes = 0;
-
     KazumiDialog.show(
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(title),
-              content: SizedBox(
-                height: 200,
-                child: Row(
-                  children: [
-                    // Hours picker
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const Text('时', style: TextStyle(fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: CupertinoPicker(
-                              scrollController: FixedExtentScrollController(initialItem: selectedHours),
-                              itemExtent: 40,
-                              onSelectedItemChanged: (index) {
-                                setState(() => selectedHours = index);
-                              },
-                              children: List.generate(25, (index) => Center(
-                                child: Text(index.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 20)),
-                              )),
-                            ),
+      builder: (context) => _CustomTimerDialog(
+        title: title,
+        autoStart: autoStart,
+        onExpired: onExpired,
+        onResult: onResult,
+      ),
+    );
+  }
+}
+
+class _CustomTimerDialog extends StatefulWidget {
+  const _CustomTimerDialog({
+    required this.title,
+    required this.autoStart,
+    required this.onExpired,
+    required this.onResult,
+  });
+
+  final String title;
+  final bool autoStart;
+  final VoidCallback? onExpired;
+  final void Function(int)? onResult;
+
+  @override
+  State<_CustomTimerDialog> createState() => _CustomTimerDialogState();
+}
+
+class _CustomTimerDialogState extends State<_CustomTimerDialog> {
+  late final FixedExtentScrollController _hoursController;
+  late final FixedExtentScrollController _minutesController;
+  int _selectedHours = 0;
+  int _selectedMinutes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoursController = FixedExtentScrollController(initialItem: _selectedHours);
+    _minutesController =
+        FixedExtentScrollController(initialItem: _selectedMinutes);
+  }
+
+  @override
+  void dispose() {
+    _hoursController.dispose();
+    _minutesController.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    final totalMinutes = _selectedHours * 60 + _selectedMinutes;
+    if (totalMinutes <= 0) {
+      KazumiDialog.showToast(message: '请选择有效的时间');
+      return;
+    }
+    KazumiDialog.dismiss();
+    if (widget.autoStart) {
+      TimedShutdownService().start(totalMinutes, onExpired: widget.onExpired);
+      KazumiDialog.showToast(
+        message:
+            '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
+      );
+    }
+    widget.onResult?.call(totalMinutes);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        height: 200,
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  const Text('时', style: TextStyle(fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: CupertinoPicker(
+                      scrollController: _hoursController,
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() => _selectedHours = index);
+                      },
+                      children: List.generate(
+                        25,
+                        (index) => Center(
+                          child: Text(
+                            index.toString().padLeft(2, '0'),
+                            style: const TextStyle(fontSize: 20),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                    const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    // Minutes picker
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const Text('分', style: TextStyle(fontSize: 14)),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: CupertinoPicker(
-                              scrollController: FixedExtentScrollController(initialItem: selectedMinutes),
-                              itemExtent: 40,
-                              onSelectedItemChanged: (index) {
-                                setState(() => selectedMinutes = index);
-                              },
-                              children: List.generate(60, (index) => Center(
-                                child: Text(index.toString().padLeft(2, '0'), style: const TextStyle(fontSize: 20)),
-                              )),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => KazumiDialog.dismiss(),
-                  child: Text(
-                    '取消',
-                    style: TextStyle(color: Theme.of(context).colorScheme.outline),
                   ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final totalMinutes = selectedHours * 60 + selectedMinutes;
-                    if (totalMinutes <= 0) {
-                      KazumiDialog.showToast(message: '请选择有效的时间');
-                      return;
-                    }
-                    KazumiDialog.dismiss();
-                    if (autoStart) {
-                      TimedShutdownService().start(totalMinutes, onExpired: onExpired);
-                      KazumiDialog.showToast(
-                        message: '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
-                      );
-                    }
-                    onResult?.call(totalMinutes);
-                  },
-                  child: const Text('确定'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                ],
+              ),
+            ),
+            const Text(
+              ':',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  const Text('分', style: TextStyle(fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: CupertinoPicker(
+                      scrollController: _minutesController,
+                      itemExtent: 40,
+                      onSelectedItemChanged: (index) {
+                        setState(() => _selectedMinutes = index);
+                      },
+                      children: List.generate(
+                        60,
+                        (index) => Center(
+                          child: Text(
+                            index.toString().padLeft(2, '0'),
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => KazumiDialog.dismiss(),
+          child: Text(
+            '取消',
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+        ),
+        TextButton(
+          onPressed: _confirm,
+          child: const Text('确定'),
+        ),
+      ],
     );
   }
 }

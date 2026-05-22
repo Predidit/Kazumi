@@ -156,8 +156,9 @@ class _InfoTabViewState extends State<InfoTabView>
                       ],
                     ),
                     onPressed: () {
-                      Modular.to.pushNamed(
-                          '/search/${widget.bangumiItem.tags[index].name}');
+                      final tagName = Uri.encodeComponent(
+                          widget.bangumiItem.tags[index].name);
+                      Modular.to.pushNamed('/search/$tagName');
                     },
                   );
                 }).toList(),

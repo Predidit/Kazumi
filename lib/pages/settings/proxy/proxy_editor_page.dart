@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/utils/proxy_utils.dart';
 import 'package:kazumi/utils/proxy_manager.dart';
-import 'package:kazumi/request/request.dart';
+import 'package:kazumi/request/core/dio_factory.dart';
+import 'package:kazumi/request/core/network_config.dart';
 
 class ProxyEditorPage extends StatefulWidget {
   const ProxyEditorPage({super.key});
@@ -24,10 +24,9 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
   @override
   void initState() {
     super.initState();
-    urlController.text =
-        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
-    testUrlController.text =
-        setting.get(SettingBoxKey.proxyTestUrl, defaultValue: 'https://www.google.com');
+    urlController.text = setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    testUrlController.text = setting.get(SettingBoxKey.proxyTestUrl,
+        defaultValue: 'https://www.google.com');
   }
 
   @override
@@ -62,15 +61,26 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
     ProxyManager.applyProxy();
 
     try {
-      await Request().get(
-        testUrl,
-        options: Options(
-          sendTimeout: const Duration(seconds: 10),
+      final parsed = ProxyUtils.parseProxyUrl(url);
+      if (parsed == null) {
+        throw StateError('Invalid proxy URL');
+      }
+      final dio = DioFactory.createForConfig(
+        NetworkConfig(
+          connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
-          validateStatus: (status) => true,
+          sendTimeout: const Duration(seconds: 10),
+          proxyHost: parsed.$1,
+          proxyPort: parsed.$2,
+          allowBadCertificates: true,
+          enableLog: false,
         ),
-        shouldRethrow: true,
-      ).timeout(const Duration(seconds: 15));
+      );
+      await dio
+          .get(
+            testUrl,
+          )
+          .timeout(const Duration(seconds: 15));
       await setting.put(SettingBoxKey.proxyConfigured, true);
       KazumiDialog.showToast(message: '测试成功');
     } catch (e) {

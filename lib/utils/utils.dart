@@ -4,12 +4,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/request/api.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/request/clients/github_client.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/utils/mortis.dart';
@@ -278,17 +278,11 @@ class Utils {
     return '${(similarity * 100).toStringAsFixed(fractionDigits)}%';
   }
 
-
   static Future<String> latest() async {
     try {
-      var resp = await Dio().get<Map<String, dynamic>>(Api.latestApp);
-      if (resp.data?.containsKey("tag_name") ?? false) {
-        return resp.data!["tag_name"];
-      } else {
-        throw resp.data?["message"];
-      }
+      return await GithubClient.instance.latestVersion();
     } catch (e) {
-      return Api.version;
+      return ApiEndpoints.version;
     }
   }
 
@@ -316,11 +310,11 @@ class Utils {
     return color;
   }
 
-  static List<Danmaku> mergeDuplicateDanmakus(
-    List<Danmaku> danmakus, {
-      double timeWindowSeconds = 0,
-    }) {
-    final Map<String, List<Danmaku>> grouped = {};
+  static List<DanmakuEntry> mergeDuplicateDanmakus(
+    List<DanmakuEntry> danmakus, {
+    double timeWindowSeconds = 0,
+  }) {
+    final Map<String, List<DanmakuEntry>> grouped = {};
 
     // 弹幕规范化处理
     // 去首尾空格并小写，全角转半角，去掉所有空白、标点符号，连续重复内容压缩，保留日语字符
@@ -344,10 +338,12 @@ class Utils {
 
       text = text.replaceAll(RegExp(r'\s+'), '');
 
-      text = text.replaceAll(RegExp(
-        r'[^\w\u4e00-\u9fff\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]',
-        unicode: true,
-      ),'');
+      text = text.replaceAll(
+          RegExp(
+            r'[^\w\u4e00-\u9fff\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF65-\uFF9F]',
+            unicode: true,
+          ),
+          '');
 
       text = text.replaceAllMapped(RegExp(r'(.)\1{2,}'), (match) {
         final char = match.group(1)!;
@@ -358,7 +354,7 @@ class Utils {
       grouped[text]!.add(d);
     }
 
-    final List<Danmaku> result = [];
+    final List<DanmakuEntry> result = [];
 
     grouped.forEach((normalized, list) {
       if (list.isEmpty) return;
@@ -368,7 +364,7 @@ class Utils {
           result.add(list.first);
         } else {
           result.add(
-            Danmaku(
+            DanmakuEntry(
               message: '${list.first.message} x${list.length}',
               time: list.first.time, // 默认取第一条
               type: 5,
@@ -382,7 +378,7 @@ class Utils {
 
       list.sort((a, b) => a.time.compareTo(b.time));
 
-      List<Danmaku> currentGroup = [];
+      List<DanmakuEntry> currentGroup = [];
       for (var item in list) {
         if (currentGroup.isEmpty) {
           currentGroup.add(item);
@@ -396,8 +392,9 @@ class Utils {
             result.add(currentGroup.first);
           } else {
             result.add(
-              Danmaku(
-                message: '${currentGroup.first.message} x${currentGroup.length}',
+              DanmakuEntry(
+                message:
+                    '${currentGroup.first.message} x${currentGroup.length}',
                 time: currentGroup.first.time,
                 type: 5,
                 color: Utils.generateDanmakuColor(0xFFFFFF),
@@ -414,7 +411,7 @@ class Utils {
           result.add(currentGroup.first);
         } else {
           result.add(
-            Danmaku(
+            DanmakuEntry(
               message: '${currentGroup.first.message} x${currentGroup.length}',
               time: currentGroup.first.time,
               type: 5,
@@ -529,9 +526,14 @@ class Utils {
       await windowManager.setFullScreen(true);
       return;
     }
-    await SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
-    );
+    if (Platform.isAndroid) {
+      const platform = MethodChannel('com.predidit.kazumi/intent');
+      await platform.invokeMethod('enterFullscreen');
+    } else {
+      await SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.immersiveSticky,
+      );
+    }
     if (!lockOrientation) {
       return;
     }
@@ -567,26 +569,14 @@ class Utils {
     if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
       await windowManager.setFullScreen(false);
     }
-    late SystemUiMode mode = SystemUiMode.edgeToEdge;
     try {
       if (Platform.isAndroid || Platform.isIOS) {
         if (Platform.isAndroid) {
           const platform = MethodChannel('com.predidit.kazumi/intent');
-          try {
-            final int sdkVersion =
-                await platform.invokeMethod('getAndroidSdkVersion');
-            if (sdkVersion < 29) {
-              mode = SystemUiMode.manual;
-            }
-          } on PlatformException catch (e) {
-            KazumiLogger()
-                .e("Failed to get Android SDK version: '${e.message}'.");
-          }
+          await platform.invokeMethod('exitFullscreen');
+        } else {
+          await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         }
-        await SystemChrome.setEnabledSystemUIMode(
-          mode,
-          overlays: SystemUiOverlay.values,
-        );
         if (Utils.isCompact() && lockOrientation) {
           if (Platform.isAndroid) {
             bool isInMultiWindowMode = await Utils.isInMultiWindowMode();

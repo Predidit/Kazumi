@@ -46,6 +46,8 @@ class BangumiCardV extends StatelessWidget {
                   return enableHero
                       ? Hero(
                           transitionOnUserGestures: true,
+                          flightShuttleBuilder:
+                              NetworkImgLayer.heroFlightShuttleBuilder,
                           tag: bangumiItem.id,
                           child: NetworkImgLayer(
                             src: bangumiItem.images['large'] ?? '',
@@ -78,15 +80,16 @@ class BangumiContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ts = MediaQuery.textScalerOf(context);
 
-    final int maxTextLines = Utils.isDesktop() ? 3 
-      : (Utils.isTablet() && MediaQuery.of(context).orientation == Orientation.landscape) ? 3 : 2;
+    final int maxTextLines = Utils.isDesktop()
+        ? 3
+        : (Utils.isTablet() &&
+                MediaQuery.of(context).orientation == Orientation.landscape)
+            ? 3
+            : 2;
 
     return Expanded(
       child: Padding(
-        // 多列
         padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
-        // 单列
-        // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
         child: Text(
           bangumiItem.nameCn,
           textAlign: TextAlign.start,

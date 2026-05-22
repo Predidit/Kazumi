@@ -31,7 +31,8 @@ class _DownloadPageState extends State<DownloadPage> {
     return Scaffold(
       appBar: const SysAppBar(title: Text('下载管理')),
       body: Observer(builder: (context) {
-        if (downloadController.records.isEmpty) {
+        final recordKeys = downloadController.recordKeys.toList();
+        if (recordKeys.isEmpty) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -39,7 +40,10 @@ class _DownloadPageState extends State<DownloadPage> {
                 Icon(
                   Icons.download_rounded,
                   size: 72,
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -54,85 +58,90 @@ class _DownloadPageState extends State<DownloadPage> {
         }
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          itemCount: downloadController.records.length,
+          itemCount: recordKeys.length,
           itemBuilder: (context, index) {
-            final record = downloadController.records[index];
-            return _buildRecordCard(record);
+            return _buildRecordCard(recordKeys[index]);
           },
         );
       }),
     );
   }
 
-  Widget _buildRecordCard(DownloadRecord record) {
-    final episodes = record.episodes.values.toList()
-      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-    final completedCount = downloadController.completedCount(record);
+  Widget _buildRecordCard(String recordKey) {
+    return Observer(builder: (context) {
+      final record = downloadController.getRecordSnapshot(recordKey);
+      if (record == null) {
+        return const SizedBox.shrink();
+      }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                record.bangumiCover,
-                width: 48,
-                height: 64,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+      final episodes = record.episodes.values.toList()
+        ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+      final completedCount = downloadController.completedCount(record);
+
+      return Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.network(
+                  record.bangumiCover,
                   width: 48,
                   height: 64,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.movie_outlined),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 48,
+                    height: 64,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: const Icon(Icons.movie_outlined),
+                  ),
                 ),
               ),
-            ),
-            title: Text(
-              record.bangumiName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              '来源: ${record.pluginName} · $completedCount/${episodes.length} 已完成',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.outline,
+              title: Text(
+                record.bangumiName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '来源: ${record.pluginName} · $completedCount/${episodes.length} 已完成',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _confirmDeleteRecord(record);
+                  } else if (value == 'resume_all') {
+                    downloadController.resumeAllDownloads(
+                      record.bangumiId,
+                      record.pluginName,
+                    );
+                    KazumiDialog.showToast(message: '已开始恢复下载');
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'resume_all',
+                    child: Text('开始全部'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('删除全部'),
+                  ),
+                ],
               ),
             ),
-            trailing: PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'delete') {
-                  _confirmDeleteRecord(record);
-                } else if (value == 'resume_all') {
-                  downloadController.resumeAllDownloads(
-                    record.bangumiId,
-                    record.pluginName,
-                  );
-                  KazumiDialog.showToast(message: '已开始恢复下载');
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'resume_all',
-                  child: Text('开始全部'),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Text('删除全部'),
-                ),
-              ],
-            ),
-          ),
-          // Episode list
-          ...episodes.map((ep) => _buildEpisodeTile(record, ep)),
-        ],
-      ),
-    );
+            ...episodes.map((ep) => _buildEpisodeTile(record, ep)),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildEpisodeTile(DownloadRecord record, DownloadEpisode episode) {
@@ -337,7 +346,6 @@ class _DownloadPageState extends State<DownloadPage> {
       return;
     }
 
-    // 构建 BangumiItem
     final bangumiItem = BangumiItem(
       id: record.bangumiId,
       type: 2,
@@ -356,25 +364,20 @@ class _DownloadPageState extends State<DownloadPage> {
       info: '',
     );
 
-    // 获取所有已下载集数（通过 Controller 委托给 Repository 层）
     final downloadedEpisodes = downloadController.getCompletedEpisodes(
       record.bangumiId,
       record.pluginName,
     );
 
-    // 初始化离线模式
     final videoPageController = Modular.get<VideoPageController>();
     videoPageController.initForOfflinePlayback(
       bangumiItem: bangumiItem,
       pluginName: record.pluginName,
       episodeNumber: episode.episodeNumber,
-      episodeName: episode.episodeName,
       road: episode.road,
-      videoPath: localPath,
       downloadedEpisodes: downloadedEpisodes,
     );
 
-    // 导航到 VideoPage
     Modular.to.pushNamed('/video/');
   }
 
@@ -382,7 +385,8 @@ class _DownloadPageState extends State<DownloadPage> {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
         title: const Text('删除下载'),
-        content: Text('确定要删除「${episode.episodeName.isNotEmpty ? episode.episodeName : '第${episode.episodeNumber}集'}」的下载文件吗？'),
+        content: Text(
+            '确定要删除「${episode.episodeName.isNotEmpty ? episode.episodeName : '第${episode.episodeNumber}集'}」的下载文件吗？'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(),

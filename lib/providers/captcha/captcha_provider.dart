@@ -6,7 +6,7 @@ import 'package:kazumi/utils/logger.dart';
 
 /// 验证码解决 Provider
 ///
-/// 支持两种独立的验证流程：
+/// 支持三种独立的验证流程：
 ///
 /// **类型1：图片验证码**（[loadForCaptcha] + [submitCaptcha]）
 ///   1. 初始化 WebView
@@ -21,8 +21,14 @@ import 'package:kazumi/utils/logger.dart';
 ///   1. 初始化 WebView
 ///   2. 加载搜索页面，注入 JS 脚本轮询验证按钮
 ///   3. 检测到按钮后自动模拟点击
-///   4. 按钮消失时，获取页面 Cookie 并保存到 [PluginCookieManager]
+///   4. 按钮消失或页面跳转时，获取页面 Cookie 并保存到 [PluginCookieManager]
 ///   5. 通过 [onVerified] 回调通知 UI 发起重新检索
+///
+/// **类型3：自定义 JS 验证**（[loadForCustomScript]）
+///   1. 初始化 WebView
+///   2. 加载搜索页面，注入规则中配置的 JS 验证脚本
+///   3. 脚本调用 KazumiCaptcha.clicked/done 或返回 true 后完成验证
+///   4. 获取页面 Cookie 并保存到 [PluginCookieManager]
 class CaptchaProvider {
   CaptchaWebviewController? _controller;
 
@@ -62,7 +68,8 @@ class CaptchaProvider {
   /// [url] 要加载的页面地址
   /// [captchaXpath] 验证码图片元素的 XPath
   /// [inputXpath] 可选，验证码输入框的 XPath。如果提供，会在检测验证码前先触发输入框的 focus 事件
-  Future<void> loadForCaptcha(String url, String captchaXpath, {String? inputXpath}) async {
+  Future<void> loadForCaptcha(String url, String captchaXpath,
+      {String? inputXpath}) async {
     _pageUrl = url;
     await _ensureInitialized();
     if (_disposed || _controller == null) return;
@@ -100,28 +107,24 @@ class CaptchaProvider {
 
     KazumiLogger().i('[CaptchaProvider] Submitting captcha code via interact');
 
-    bool _handled = false;
+    bool handled = false;
 
     Future<void> onDisappeared() async {
-      if (_handled) return;
-      _handled = true;
+      if (handled) return;
+      handled = true;
       _disappearedSub?.cancel();
-      final cookieString = await _controller!.getCookieString(_pageUrl);
-      KazumiLogger().i('[CaptchaProvider] Captured cookies: $cookieString');
-      if (cookieString.isNotEmpty) {
-        await PluginCookieManager.instance
-            .saveFromWebView(pluginName, _pageUrl, cookieString);
-        KazumiLogger()
-            .i('[CaptchaProvider] Cookies saved for plugin: $pluginName');
-      }
-      await _controller!.unloadPage();
+      final controller = _controller;
+      if (controller == null) return;
+      await _saveCookiesAndUnload(controller, pluginName);
       onVerified();
     }
+
     _disappearedSub?.cancel();
     _disappearedSub = _controller!.onCaptchaDisappeared.listen((_) {
       onDisappeared();
     });
-    await _controller!.submitCaptchaInteract(captchaCode, inputXpath, buttonXpath);
+    await _controller!
+        .submitCaptchaInteract(captchaCode, inputXpath, buttonXpath);
   }
 
   /// 加载页面并自动点击验证按钮
@@ -129,7 +132,7 @@ class CaptchaProvider {
   /// [url] 要加载的页面地址
   /// [buttonXpath] 验证按钮元素的 XPath，检测到后自动点击
   /// [pluginName] 规则名（用于保存 Cookie）
-  /// [onVerified] 按钮消失（验证通过）后的回调
+  /// [onVerified] 验证通过后的回调
   Future<void> loadForButtonClick({
     required String url,
     required String buttonXpath,
@@ -140,21 +143,16 @@ class CaptchaProvider {
     await _ensureInitialized();
     if (_disposed || _controller == null) return;
 
-    bool _handled = false;
+    bool handled = false;
 
     Future<void> onDisappeared() async {
-      if (_handled) return;
-      _handled = true;
+      if (handled) return;
+      handled = true;
       _disappearedSub?.cancel();
-      final cookieString = await _controller!.getCookieString(_pageUrl);
-      KazumiLogger().i('[CaptchaProvider] (type2) Captured cookies: $cookieString');
-      if (cookieString.isNotEmpty) {
-        await PluginCookieManager.instance
-            .saveFromWebView(pluginName, _pageUrl, cookieString);
-        KazumiLogger()
-            .i('[CaptchaProvider] (type2) Cookies saved for plugin: $pluginName');
-      }
-      await _controller!.unloadPage();
+      final controller = _controller;
+      if (controller == null) return;
+      await _saveCookiesAndUnload(controller, pluginName,
+          logPrefix: '(type2) ');
       onVerified();
     }
 
@@ -164,7 +162,41 @@ class CaptchaProvider {
     });
 
     await _controller!.loadPageForButtonClick(url, buttonXpath);
-    KazumiLogger().i('[CaptchaProvider] (type2) Page loading for button click: $url');
+    KazumiLogger()
+        .i('[CaptchaProvider] (type2) Page loading for button click: $url');
+  }
+
+  Future<void> loadForCustomScript({
+    required String url,
+    required String script,
+    required String pluginName,
+    required void Function() onVerified,
+  }) async {
+    _pageUrl = url;
+    await _ensureInitialized();
+    if (_disposed || _controller == null) return;
+
+    bool handled = false;
+
+    Future<void> onDisappeared() async {
+      if (handled) return;
+      handled = true;
+      _disappearedSub?.cancel();
+      final controller = _controller;
+      if (controller == null) return;
+      await _saveCookiesAndUnload(controller, pluginName,
+          logPrefix: '(type3) ');
+      onVerified();
+    }
+
+    _disappearedSub?.cancel();
+    _disappearedSub = _controller!.onCaptchaDisappeared.listen((_) {
+      onDisappeared();
+    });
+
+    await _controller!.loadPageForCustomScript(url, script);
+    KazumiLogger()
+        .i('[CaptchaProvider] (type3) Page loading for custom script: $url');
   }
 
   Future<void> saveAndUnload(String pluginName) async {
@@ -174,14 +206,26 @@ class CaptchaProvider {
     // between two awaits cannot cause a force-unwrap crash.
     final controller = _controller;
     if (controller == null || _pageUrl.isEmpty) return;
+    await _saveCookiesAndUnload(
+      controller,
+      pluginName,
+      logPrefix: 'on cancel ',
+    );
+  }
+
+  Future<void> _saveCookiesAndUnload(
+    CaptchaWebviewController controller,
+    String pluginName, {
+    String logPrefix = '',
+  }) async {
     final cookieString = await controller.getCookieString(_pageUrl);
     KazumiLogger()
-        .i('[CaptchaProvider] Captured cookies on cancel: $cookieString');
+        .i('[CaptchaProvider] ${logPrefix}Captured cookies: $cookieString');
     if (cookieString.isNotEmpty) {
       await PluginCookieManager.instance
           .saveFromWebView(pluginName, _pageUrl, cookieString);
-      KazumiLogger()
-          .i('[CaptchaProvider] Cookies saved on cancel for plugin: $pluginName');
+      KazumiLogger().i(
+          '[CaptchaProvider] ${logPrefix}Cookies saved for plugin: $pluginName');
     }
     await controller.unloadPage();
   }

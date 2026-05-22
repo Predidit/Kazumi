@@ -19,6 +19,12 @@ class _RendererSettingsState extends State<RendererSettings> {
   );
 
   @override
+  void dispose() {
+    renderer.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(

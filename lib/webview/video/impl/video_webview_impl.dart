@@ -40,8 +40,7 @@ class VideoWebviewImpl
           if (_isAdUrl(lower)) return null;
           if (_isM3U8Url(lower) ||
               _isRangeVideoRequest(lower, request.headers)) {
-            logEventController
-                .add('Native intercepted video URL: $url');
+            logEventController.add('Native intercepted video URL: $url');
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
             videoLoadingEventController.add(false);
@@ -67,8 +66,8 @@ class VideoWebviewImpl
               'Console [${consoleMessage.messageLevel}]: ${consoleMessage.message}');
         },
         onReceivedError: (controller, request, error) {
-          logEventController.add(
-              'Error: ${error.description} - ${request.url}');
+          logEventController
+              .add('Error: ${error.description} - ${request.url}');
         },
       ),
     );
@@ -427,8 +426,8 @@ class VideoWebviewImpl
   Future<void> unloadPage() async {
     videoParserTimer?.cancel();
     videoParserTimer = null;
-    await webviewController
-        ?.loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
+    await webviewController?.loadUrl(
+        urlRequest: URLRequest(url: WebUri("about:blank")));
   }
 
   @override
@@ -438,6 +437,7 @@ class VideoWebviewImpl
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 
   bool _isM3U8Url(String lower) {

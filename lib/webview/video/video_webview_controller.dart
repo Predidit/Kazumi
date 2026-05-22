@@ -45,11 +45,26 @@ abstract class VideoWebviewController<T> {
   final StreamController<(String, int)> videoParserEventController =
       StreamController<(String, int)>.broadcast();
 
-  Stream<(String, int)> get onVideoURLParser => videoParserEventController.stream;
+  Stream<(String, int)> get onVideoURLParser =>
+      videoParserEventController.stream;
+
+  void disposeEventControllers() {
+    if (!initEventController.isClosed) {
+      initEventController.close();
+    }
+    if (!logEventController.isClosed) {
+      logEventController.close();
+    }
+    if (!videoLoadingEventController.isClosed) {
+      videoLoadingEventController.close();
+    }
+    if (!videoParserEventController.isClosed) {
+      videoParserEventController.close();
+    }
+  }
 
   /// Webview load URL method
-  Future<void> loadUrl(String url, bool useLegacyParser,
-      {int offset = 0});
+  Future<void> loadUrl(String url, bool useLegacyParser, {int offset = 0});
 
   /// Webview unload page method
   Future<void> unloadPage();

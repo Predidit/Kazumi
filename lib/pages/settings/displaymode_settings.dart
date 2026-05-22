@@ -61,6 +61,13 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   }
 
   @override
+  void dispose() {
+    controller.dispose();
+    page.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
@@ -71,7 +78,8 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
               maxWidth: 1000,
               sections: [
                 SettingsSection(
-                  title: Text('没有生效? 重启app试试', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('没有生效? 重启app试试',
+                      style: TextStyle(fontFamily: fontFamily)),
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
                             radioValue: e,
@@ -85,8 +93,10 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
                               await fetchAll();
                             },
                             title: e == DisplayMode.auto
-                                ? Text('自动', style: TextStyle(fontFamily: fontFamily))
-                                : Text('$e${e == active ? "  [系统]" : ""}', style: TextStyle(fontFamily: fontFamily)),
+                                ? Text('自动',
+                                    style: TextStyle(fontFamily: fontFamily))
+                                : Text('$e${e == active ? "  [系统]" : ""}',
+                                    style: TextStyle(fontFamily: fontFamily)),
                           ))
                       .toList(),
                 ),

@@ -45,13 +45,16 @@ class QueryManager {
           }
 
           if (error is CaptchaRequiredException) {
-            KazumiLogger().w('QueryManager: captcha required for ${error.pluginName}');
+            KazumiLogger()
+                .w('QueryManager: captcha required for ${error.pluginName}');
             infoController.pluginSearchStatus[error.pluginName] = 'captcha';
           } else if (error is NoResultException) {
-            KazumiLogger().i('QueryManager: no results for ${error.pluginName}');
+            KazumiLogger()
+                .i('QueryManager: no results for ${error.pluginName}');
             infoController.pluginSearchStatus[error.pluginName] = 'noResult';
           } else {
-            final name = error is SearchErrorException ? error.pluginName : plugin.name;
+            final name =
+                error is SearchErrorException ? error.pluginName : plugin.name;
             KazumiLogger().w('QueryManager: search error for $name');
             infoController.pluginSearchStatus[name] = 'error';
           }
@@ -87,13 +90,15 @@ class QueryManager {
         }
 
         if (error is CaptchaRequiredException) {
-          KazumiLogger().w('QueryManager: captcha required for ${error.pluginName}');
+          KazumiLogger()
+              .w('QueryManager: captcha required for ${error.pluginName}');
           infoController.pluginSearchStatus[error.pluginName] = 'captcha';
         } else if (error is NoResultException) {
           KazumiLogger().i('QueryManager: no results for ${error.pluginName}');
           infoController.pluginSearchStatus[error.pluginName] = 'noResult';
         } else {
-          final name = error is SearchErrorException ? error.pluginName : plugin.name;
+          final name =
+              error is SearchErrorException ? error.pluginName : plugin.name;
           KazumiLogger().w('QueryManager: search error for $name');
           infoController.pluginSearchStatus[name] = 'error';
         }

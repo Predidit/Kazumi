@@ -104,6 +104,7 @@ class VideoWebviewWindowsImpl
     subscriptions.clear();
     headlessWebview?.dispose();
     headlessWebview = null;
+    disposeEventControllers();
   }
 
   // The webview_windows package does not have a method to unload the current page.

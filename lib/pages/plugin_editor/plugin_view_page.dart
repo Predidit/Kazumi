@@ -78,45 +78,46 @@ class _PluginViewPageState extends State<PluginViewPage> {
   }
 
   void _showInputDialog() {
-    final TextEditingController textController = TextEditingController();
-    KazumiDialog.show(builder: (context) {
-      return AlertDialog(
-        title: const Text('导入规则'),
-        content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-          return TextField(
-            controller: textController,
-          );
-        }),
-        actions: [
-          TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
-            ),
-          ),
-          StatefulBuilder(
+    String pluginText = '';
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('导入规则'),
+          content: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
-            return TextButton(
-              onPressed: () async {
-                final String msg = textController.text;
-                try {
-                  pluginsController.updatePlugin(Plugin.fromJson(
-                      json.decode(Utils.kazumiBase64ToJson(msg))));
-                  KazumiDialog.showToast(message: '导入成功');
-                } catch (e) {
-                  KazumiDialog.dismiss();
-                  KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
-                }
-                KazumiDialog.dismiss();
-              },
-              child: const Text('导入'),
+            return TextField(
+              onChanged: (value) => pluginText = value,
             );
-          })
-        ],
-      );
-    });
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+              return TextButton(
+                onPressed: () async {
+                  try {
+                    pluginsController.updatePlugin(Plugin.fromJson(
+                        json.decode(Utils.kazumiBase64ToJson(pluginText))));
+                    KazumiDialog.showToast(message: '导入成功');
+                  } catch (e) {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('导入'),
+              );
+            })
+          ],
+        );
+      },
+    );
   }
 
   void onBackPressed(BuildContext context) {

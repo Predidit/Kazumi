@@ -28,20 +28,47 @@ class _AppWidgetState extends State<AppWidget>
 
   final TrayManager trayManager = TrayManager.instance;
   bool showingExitDialog = false;
+  bool _didApplyStoredThemeSettings = false;
+  Brightness? _lastTitleBarBrightness;
 
   @override
   void initState() {
+    super.initState();
     trayManager.addListener(this);
     windowManager.addListener(this);
-    setPreventClose();
     WidgetsBinding.instance.addObserver(this);
-    super.initState();
+    Modular.setObservers([KazumiDialog.observer]);
+    _initializePlatformIntegrations();
   }
 
-  void setPreventClose() async {
+  Future<void> _initializePlatformIntegrations() async {
     if (Utils.isDesktop()) {
       await windowManager.setPreventClose(true);
-      setState(() {});
+      await _handleTray();
+    }
+    await _configurePreferredDisplayMode();
+  }
+
+  Future<void> _configurePreferredDisplayMode() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      final modes = await FlutterDisplayMode.supported;
+      final storageDisplay = setting.get(SettingBoxKey.displayMode);
+      DisplayMode selectedMode = DisplayMode.auto;
+      if (storageDisplay != null) {
+        selectedMode = modes.firstWhere(
+          (e) => e.toString() == storageDisplay,
+          orElse: () => DisplayMode.auto,
+        );
+      }
+      final preferred = modes.firstWhere(
+        (el) => el == selectedMode,
+        orElse: () => DisplayMode.auto,
+      );
+      await FlutterDisplayMode.setPreferredMode(preferred);
+    } catch (e) {
+      KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
     }
   }
 
@@ -51,6 +78,96 @@ class _AppWidgetState extends State<AppWidget>
     windowManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    _applyStoredThemeSettings(themeProvider);
+    _syncWindowsTitleBarBrightness(themeProvider);
+  }
+
+  void _applyStoredThemeSettings(ThemeProvider themeProvider) {
+    if (_didApplyStoredThemeSettings) return;
+    _didApplyStoredThemeSettings = true;
+
+    themeProvider.setThemeMode(_storedThemeMode(), notify: false);
+    themeProvider.setDynamic(
+      setting.get(SettingBoxKey.useDynamicColor, defaultValue: false),
+      notify: false,
+    );
+    themeProvider.setFontFamily(
+      setting.get(SettingBoxKey.useSystemFont, defaultValue: false),
+      notify: false,
+    );
+
+    final color = _storedThemeColor();
+    final oledEnhance =
+        setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    final defaultDarkTheme = _buildAppTheme(
+      brightness: Brightness.dark,
+      color: color,
+      fontFamily: themeProvider.currentFontFamily,
+    );
+    themeProvider.setTheme(
+      _buildAppTheme(
+        brightness: Brightness.light,
+        color: color,
+        fontFamily: themeProvider.currentFontFamily,
+      ),
+      oledEnhance ? Utils.oledDarkTheme(defaultDarkTheme) : defaultDarkTheme,
+      notify: false,
+    );
+  }
+
+  ThemeMode _storedThemeMode() {
+    return switch (
+        setting.get(SettingBoxKey.themeMode, defaultValue: 'system')) {
+      'dark' => ThemeMode.dark,
+      'light' => ThemeMode.light,
+      _ => ThemeMode.system,
+    };
+  }
+
+  Color _storedThemeColor() {
+    final defaultThemeColor =
+        setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
+    if (defaultThemeColor == 'default') {
+      return Colors.green;
+    }
+    return Color(int.parse(defaultThemeColor, radix: 16));
+  }
+
+  ThemeData _buildAppTheme({
+    required Brightness brightness,
+    required String? fontFamily,
+    Color? color,
+    ColorScheme? colorScheme,
+  }) {
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: fontFamily,
+      brightness: brightness,
+      colorSchemeSeed: color,
+      colorScheme: colorScheme,
+      progressIndicatorTheme: progressIndicatorTheme2024,
+      sliderTheme: sliderTheme2024,
+      pageTransitionsTheme: pageTransitionsTheme2024,
+    );
+  }
+
+  void _syncWindowsTitleBarBrightness(ThemeProvider themeProvider) {
+    if (!Platform.isWindows) return;
+
+    final brightness =
+        themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light;
+    if (_lastTitleBarBrightness == brightness) return;
+
+    _lastTitleBarBrightness = brightness;
+    windowManager.setBrightness(brightness).catchError((e) {
+      KazumiLogger().w('Window: set title bar brightness failed', error: e);
+    });
   }
 
   @override
@@ -167,16 +284,12 @@ class _AppWidgetState extends State<AppWidget>
   @override
   Future<void> didChangePlatformBrightness() async {
     super.didChangePlatformBrightness();
-    final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    KazumiLogger().i("Platform brightness changed, themeMode: ${themeProvider.themeMode}");
+    final ThemeProvider themeProvider =
+        Provider.of<ThemeProvider>(context, listen: false);
+    KazumiLogger().i(
+        "Platform brightness changed, themeMode: ${themeProvider.themeMode}");
 
-    // Only update title bar theme when following system
-    // If user has forced a specific theme, keep title bar consistent with app content
-    if (themeProvider.themeMode == ThemeMode.system && Platform.isWindows) {
-      final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      KazumiLogger().i("Updating title bar brightness: $brightness");
-      await windowManager.setBrightness(brightness);
-    }
+    _syncWindowsTitleBarBrightness(themeProvider);
   }
 
   Future<void> _handleTray() async {
@@ -204,92 +317,31 @@ class _AppWidgetState extends State<AppWidget>
   @override
   Widget build(BuildContext context) {
     final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
-    if (Utils.isDesktop()) {
-      _handleTray();
-    }
-    dynamic color;
-    dynamic defaultThemeColor =
-        setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
-    if (defaultThemeColor == 'default') {
-      color = Colors.green;
-    } else {
-      color = Color(int.parse(defaultThemeColor, radix: 16));
-    }
     bool oledEnhance =
         setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
-    bool useSystemFont =
-        setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
-    final defaultThemeMode =
-        setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
-    if (defaultThemeMode == 'dark') {
-      themeProvider.setThemeMode(ThemeMode.dark, notify: false);
-    }
-    if (defaultThemeMode == 'light') {
-      themeProvider.setThemeMode(ThemeMode.light, notify: false);
-    }
-    if (defaultThemeMode == 'system') {
-      themeProvider.setThemeMode(ThemeMode.system, notify: false);
-    }
 
-    // Set Windows title bar theme based on app theme
-    if (Platform.isWindows) {
-      windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
-    }
-
-    themeProvider.setFontFamily(useSystemFont, notify: false);
-    var defaultDarkTheme = ThemeData(
-        useMaterial3: true,
-        fontFamily: themeProvider.currentFontFamily,
-        brightness: Brightness.dark,
-        colorSchemeSeed: color,
-        progressIndicatorTheme: progressIndicatorTheme2024,
-        sliderTheme: sliderTheme2024,
-        pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
-    themeProvider.setTheme(
-      ThemeData(
-          useMaterial3: true,
-          fontFamily: themeProvider.currentFontFamily,
-          brightness: Brightness.light,
-          colorSchemeSeed: color,
-          progressIndicatorTheme: progressIndicatorTheme2024,
-          sliderTheme: sliderTheme2024,
-          pageTransitionsTheme: pageTransitionsTheme2024),
-      oledEnhance ? oledDarkTheme : defaultDarkTheme,
-      notify: false,
-    );
     var app = DynamicColorBuilder(
       builder: (theme, darkTheme) {
-        if (themeProvider.useDynamicColor) {
-          themeProvider.setTheme(
-            ThemeData(
-                useMaterial3: true,
-                fontFamily: themeProvider.currentFontFamily,
-                colorScheme: theme,
+        final useDynamicColor =
+            themeProvider.useDynamicColor && theme != null && darkTheme != null;
+        final lightTheme = useDynamicColor
+            ? _buildAppTheme(
                 brightness: Brightness.light,
-                progressIndicatorTheme: progressIndicatorTheme2024,
-                sliderTheme: sliderTheme2024,
-                pageTransitionsTheme: pageTransitionsTheme2024),
-            oledEnhance
-                ? Utils.oledDarkTheme(ThemeData(
-                    useMaterial3: true,
-                    fontFamily: themeProvider.currentFontFamily,
-                    colorScheme: darkTheme,
-                    brightness: Brightness.dark,
-                    progressIndicatorTheme: progressIndicatorTheme2024,
-                    sliderTheme: sliderTheme2024,
-                    pageTransitionsTheme: pageTransitionsTheme2024))
-                : ThemeData(
-                    useMaterial3: true,
-                    fontFamily: themeProvider.currentFontFamily,
-                    colorScheme: darkTheme,
-                    brightness: Brightness.dark,
-                    progressIndicatorTheme: progressIndicatorTheme2024,
-                    sliderTheme: sliderTheme2024,
-                    pageTransitionsTheme: pageTransitionsTheme2024),
-            notify: false,
-          );
-        }
+                colorScheme: theme,
+                fontFamily: themeProvider.currentFontFamily,
+              )
+            : themeProvider.light;
+        final dynamicDarkTheme = useDynamicColor
+            ? _buildAppTheme(
+                brightness: Brightness.dark,
+                colorScheme: darkTheme,
+                fontFamily: themeProvider.currentFontFamily,
+              )
+            : themeProvider.dark;
+        final effectiveDarkTheme = useDynamicColor && oledEnhance
+            ? Utils.oledDarkTheme(dynamicDarkTheme)
+            : dynamicDarkTheme;
+
         return MaterialApp.router(
           title: "Kazumi",
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -299,33 +351,13 @@ class _AppWidgetState extends State<AppWidget>
           ],
           locale: const Locale.fromSubtags(
               languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
-          theme: themeProvider.light,
-          darkTheme: themeProvider.dark,
+          theme: lightTheme,
+          darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,
           routerConfig: Modular.routerConfig,
         );
       },
     );
-    Modular.setObservers([KazumiDialog.observer]);
-
-    // 强制设置高帧率
-    if (Platform.isAndroid) {
-      try {
-        late List modes;
-        FlutterDisplayMode.supported.then((value) {
-          modes = value;
-          var storageDisplay = setting.get(SettingBoxKey.displayMode);
-          DisplayMode f = DisplayMode.auto;
-          if (storageDisplay != null) {
-            f = modes.firstWhere((e) => e.toString() == storageDisplay);
-          }
-          DisplayMode preferred = modes.toList().firstWhere((el) => el == f);
-          FlutterDisplayMode.setPreferredMode(preferred);
-        });
-      } catch (e) {
-        KazumiLogger().e('DisPlay: set preferred mode failed', error: e);
-      }
-    }
 
     return app;
   }

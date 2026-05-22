@@ -19,6 +19,12 @@ class _DecoderSettingsState extends State<DecoderSettings> {
   );
 
   @override
+  void dispose() {
+    decoder.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
@@ -29,11 +35,14 @@ class _DecoderSettingsState extends State<DecoderSettings> {
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('选择不受支持的解码器将回退到软件解码', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('选择不受支持的解码器将回退到软件解码',
+                style: TextStyle(fontFamily: fontFamily)),
             tiles: hardwareDecodersList.entries
                 .map((e) => SettingsTile<String>.radioTile(
-                      title: Text(e.key, style: TextStyle(fontFamily: fontFamily)),
-                      description: Text(e.value, style: TextStyle(fontFamily: fontFamily)),
+                      title:
+                          Text(e.key, style: TextStyle(fontFamily: fontFamily)),
+                      description: Text(e.value,
+                          style: TextStyle(fontFamily: fontFamily)),
                       radioValue: e.key,
                       groupValue: decoder.value,
                       onChanged: (String? value) {

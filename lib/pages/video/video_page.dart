@@ -1164,6 +1164,7 @@ class _VideoPageState extends State<VideoPage>
                     MediaQuery.sizeOf(context).height) ...[
                   const Spacer(),
                   Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
                       border: Border.all(
@@ -1173,8 +1174,6 @@ class _VideoPageState extends State<VideoPage>
                         width: 0.5,
                       ),
                     ),
-                    width: 120,
-                    height: 31,
                     child: GestureDetector(
                       onTap: () {
                         if (danmakuOn && !videoPageController.loading) {
@@ -1197,13 +1196,12 @@ class _VideoPageState extends State<VideoPage>
                                   : Theme.of(context).disabledColor,
                             ),
                           ),
-                          Icon(
-                            Icons.send_rounded,
-                            size: 20,
-                            color: danmakuOn
-                                ? Theme.of(context).hintColor
-                                : Theme.of(context).disabledColor,
-                          ),
+                          if (danmakuOn)
+                            Icon(
+                              Icons.send_rounded,
+                              size: 20,
+                              color: Theme.of(context).hintColor,
+                            ),
                         ],
                       ),
                     ),

@@ -96,6 +96,10 @@ sudo pacman -S kazumi
 
 欢迎向我们的 [规则仓库](https://github.com/Predidit/KazumiRules) 提交您的自定义规则。您可以自由选择是否在规则中留下您的ID
 
+## 讨论群组
+
+Telegram: [https://t.me/kazumi_app](https://t.me/kazumi_app)
+
 ## Q&A
 
 <details>
@@ -190,6 +194,5 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 感谢 [avbuild](https://github.com/wang-bin/avbuild) 本项目使用了来自 avbuild 的树外补丁实现非标准视频流播放。
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive。
-
 
 

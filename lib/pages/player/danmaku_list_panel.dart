@@ -16,6 +16,13 @@ class DanmakuListPanel extends StatefulWidget {
 class _DanmakuListPanelState extends State<DanmakuListPanel> {
   final PlayerController playerController = Modular.get<PlayerController>();
 
+  List<DanmakuEntry> get allDanmakus {
+    return playerController.danmaku.danDanmakus.values
+        .expand((element) => element)
+        .toList(growable: false)
+      ..sort((a, b) => a.time.compareTo(b.time));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +33,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
     super.dispose();
   }
 
-  Widget _buildDanmakuItem(Danmaku item) {
+  Widget _buildDanmakuItem(DanmakuEntry item) {
     final timeSeconds = item.time.toInt();
 
     return Material(
@@ -35,7 +42,6 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
         onTap: () {
           playerController.seek(
             Duration(seconds: timeSeconds),
-            clearDanmakuLayer: false,
           );
         },
         child: Padding(
@@ -79,7 +85,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
               ),
               Observer(builder: (context) {
                 return Text(
-                  '共 ${playerController.allDanmakus.length} 条',
+                  '共 ${allDanmakus.length} 条',
                   style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline),
@@ -92,12 +98,12 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
         Expanded(
           child: Observer(
             builder: (context) {
-              if (playerController.danmakuLoading) {
+              if (playerController.danmaku.danmakuLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
               return Observer(
                 builder: (context) {
-                  final displayedDanmakus = playerController.allDanmakus;
+                  final displayedDanmakus = allDanmakus;
                   if (displayedDanmakus.isEmpty) {
                     return Center(
                       child: Text(
@@ -109,7 +115,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
                     );
                   }
                   return ListView.builder(
-                    prototypeItem: _buildDanmakuItem(Danmaku(
+                    prototypeItem: _buildDanmakuItem(DanmakuEntry(
                       message: '测',
                       time: 0,
                       type: 1,

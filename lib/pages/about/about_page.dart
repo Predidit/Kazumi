@@ -214,6 +214,21 @@ class _AboutPageState extends State<AboutPage> {
                 ),
               ],
             ),
+            SettingsSection(
+              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('Telegram', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Kazumi 官方 Telegram 群组',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
             if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
                 title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),

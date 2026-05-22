@@ -323,10 +323,11 @@ async function renderPlayer(params) {
   disposeHls();
   disposeDanmaku();
   disposeProgressReporter();
-  const { plugin, episodeUrl, title, bid, episode, road } = params;
+  const { plugin, episodeUrl, title, bid, episode, road, src } = params;
+  const epNum = parseInt(episode || "1", 10);
+  const roadNum = parseInt(road || "0", 10);
   $app.innerHTML = "";
   renderNavRail("");
-  $app.append(pageHeader(title || "播放", { back: true }));
 
   const status = el("div", { class: "status" }, "正在解析视频源，可能需要几秒…");
   $app.append(status);
@@ -344,6 +345,13 @@ async function renderPlayer(params) {
       preload: "metadata",
     });
     const playerWrap = el("div", { class: "player-wrap" }, video);
+
+    // 浮在 video 左上的返回按钮 —— 对齐详情页 hero overlay 风格
+    const backBtn = el("button", { class: "icon-btn player-back", "aria-label": "返回" });
+    backBtn.innerHTML = ICONS.arrow_back;
+    backBtn.addEventListener("click", () => history.back());
+    playerWrap.append(backBtn);
+
     $app.append(playerWrap);
 
     const errorNode = el("div", { class: "status error" });
@@ -355,6 +363,87 @@ async function renderPlayer(params) {
     };
 
     await attachStream(video, data, showError);
+
+    // ====== 控件行：上一集/下一集 + 倍速 + 视频比例 + 重新解析 ======
+    const controls = el("div", { class: "player-controls" });
+
+    const prevBtn = el("button", { class: "ctrl-btn", type: "button" }, "上一集");
+    const nextBtn = el("button", { class: "ctrl-btn", type: "button" }, "下一集");
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+
+    // 倍速：HTML5 video.playbackRate（iOS 原生控件可能不暴露，所以自己加）
+    const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    const rateSelect = el("select", { class: "ctrl-select", "aria-label": "倍速" });
+    for (const r of rateOptions) {
+      const opt = el("option", { value: String(r) }, r === 1.0 ? "倍速 1x" : "倍速 " + r + "x");
+      if (r === 1.0) opt.setAttribute("selected", "");
+      rateSelect.append(opt);
+    }
+    rateSelect.addEventListener("change", () => {
+      const r = parseFloat(rateSelect.value);
+      if (!Number.isNaN(r)) video.playbackRate = r;
+    });
+
+    // 视频比例：object-fit contain / cover / fill
+    const fitOptions = [
+      { v: "contain", label: "比例 适应" },
+      { v: "cover", label: "比例 填充" },
+      { v: "fill", label: "比例 拉伸" },
+    ];
+    const fitSelect = el("select", { class: "ctrl-select", "aria-label": "视频比例" });
+    for (const f of fitOptions) {
+      const opt = el("option", { value: f.v }, f.label);
+      if (f.v === "contain") opt.setAttribute("selected", "");
+      fitSelect.append(opt);
+    }
+    fitSelect.addEventListener("change", () => {
+      video.style.objectFit = fitSelect.value;
+    });
+
+    const reload = el("button", { class: "ctrl-btn", type: "button" }, "重新解析");
+    reload.addEventListener("click", () => renderPlayer(params));
+
+    controls.append(prevBtn, nextBtn, rateSelect, fitSelect, reload);
+    $app.append(controls);
+
+    // 上一集/下一集：需要 plugin + src 拉 episodes，从 roads[road] 取
+    if (plugin && src) {
+      fetchJson(
+        "/api/episodes?plugin=" + encodeURIComponent(plugin) + "&src=" + encodeURIComponent(src)
+      ).then((roadsData) => {
+        const roads = roadsData.roads || [];
+        const currentRoad = roads[roadNum];
+        if (!currentRoad || !Array.isArray(currentRoad.episodes)) return;
+        const eps = currentRoad.episodes;
+        const idx = epNum - 1;
+        const goEp = (newIdx) => {
+          if (newIdx < 0 || newIdx >= eps.length) return;
+          const next = eps[newIdx];
+          const newTitle = (title || "").split(" · ").slice(0, -1).join(" · ");
+          const pp = {
+            plugin,
+            episodeUrl: next.src,
+            title: (newTitle ? newTitle + " · " : "") + next.name,
+            episode: String(newIdx + 1),
+            road: String(roadNum),
+            src,
+          };
+          if (bid) pp.bid = bid;
+          go("/play", pp);
+        };
+        if (idx > 0) {
+          prevBtn.disabled = false;
+          prevBtn.addEventListener("click", () => goEp(idx - 1));
+        }
+        if (idx < eps.length - 1) {
+          nextBtn.disabled = false;
+          nextBtn.addEventListener("click", () => goEp(idx + 1));
+        }
+      }).catch(() => {
+        // 拉取失败保持 disabled
+      });
+    }
 
     const typeLabel =
       data.streamType === "hls"
@@ -369,10 +458,6 @@ async function renderPlayer(params) {
         "规则：" + data.pluginName + " · 流：" + typeLabel + " · 源：" + data.originalUrl
       )
     );
-
-    const reload = el("button", { class: "tonal" }, "重新解析");
-    reload.addEventListener("click", () => renderPlayer(params));
-    $app.append(el("div", { class: "player-actions" }, reload));
 
     video.addEventListener("error", () => {
       showError("播放器报告错误。可能是源失效或浏览器不支持该格式。");

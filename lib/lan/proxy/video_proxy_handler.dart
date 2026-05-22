@@ -8,6 +8,8 @@ import 'package:shelf/shelf.dart';
 import 'package:kazumi/lan/proxy/m3u8_rewriter.dart';
 import 'package:kazumi/lan/proxy/proxy_session_store.dart';
 import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/m3u8_ad_filter.dart';
+import 'package:kazumi/utils/m3u8_parser.dart';
 
 /// 处理 `/proxy/<token>` 与 `/proxy/<token>/<encodedSubUrl>` 的请求。
 ///
@@ -131,11 +133,25 @@ class VideoProxyHandler {
   }) async {
     final bodyBytes = await _readAll(upstreamResponse);
     final bodyText = utf8.decode(bodyBytes, allowMalformed: true);
-    final rewriter = M3u8Rewriter(
-      baseUrl: targetUri,
-      subUriBuilder: (absUrl) => buildSubUrl(token, absUrl),
-    );
-    final rewritten = rewriter.rewrite(bodyText);
+
+    // Media playlist 走"解析 + 广告过滤 + 重写"路径，浏览器拿到的是 clean m3u8。
+    // Master playlist 不含 segment，没有可过滤的内容，用旧 rewriter 直接改写
+    // variants URI。
+    final String rewritten;
+    if (M3u8Parser.detectType(bodyText) == M3u8Type.media) {
+      rewritten = _buildFilteredMediaPlaylist(
+        bodyText: bodyText,
+        baseUri: targetUri,
+        token: token,
+      );
+    } else {
+      final rewriter = M3u8Rewriter(
+        baseUrl: targetUri,
+        subUriBuilder: (absUrl) => buildSubUrl(token, absUrl),
+      );
+      rewritten = rewriter.rewrite(bodyText);
+    }
+
     return Response.ok(
       rewritten,
       headers: {
@@ -143,6 +159,94 @@ class VideoProxyHandler {
         'cache-control': 'no-store',
       },
     );
+  }
+
+  /// 用 [M3u8AdFilter] 去广告，再把每条 segment / EXT-X-KEY 的 URI 改写成
+  /// 通过本服务代理的 `/proxy/<token>/<base64>` 形式。
+  ///
+  /// 安全降级：当源 m3u8 不含 #EXT-X-DISCONTINUITY 时 filterAds 直接返回原列表。
+  /// 偶发解析异常时降级为旧的逐行 rewrite，至少能播。
+  String _buildFilteredMediaPlaylist({
+    required String bodyText,
+    required Uri baseUri,
+    required String token,
+  }) {
+    try {
+      final playlist =
+          M3u8Parser.parseMediaPlaylist(bodyText, baseUri.toString());
+      final originalCount = playlist.segments.length;
+      final filtered = M3u8AdFilter.filterAds(playlist.segments);
+      final removed = originalCount - filtered.length;
+      if (removed > 0) {
+        KazumiLogger().i(
+            'VideoProxyHandler: filtered $removed ad segment(s) from $baseUri');
+      }
+
+      final targetDuration = playlist.targetDuration > 0
+          ? playlist.targetDuration
+          : M3u8AdFilter.calculateTargetDuration(filtered);
+
+      final sb = StringBuffer();
+      sb.writeln('#EXTM3U');
+      sb.writeln('#EXT-X-VERSION:3');
+      sb.writeln('#EXT-X-TARGETDURATION:${targetDuration.ceil()}');
+      sb.writeln('#EXT-X-MEDIA-SEQUENCE:0');
+      if (playlist.isVod) {
+        sb.writeln('#EXT-X-PLAYLIST-TYPE:VOD');
+      }
+
+      int lastDiscontinuityGroup =
+          filtered.isNotEmpty ? filtered.first.discontinuityGroup : 0;
+      M3u8Key? lastKey;
+      // 强制首段也写一次 #EXT-X-KEY，避免遗漏；用一个哨兵触发首次差异检测。
+      var firstSegment = true;
+
+      for (int i = 0; i < filtered.length; i++) {
+        final seg = filtered[i];
+
+        if (i > 0 && seg.discontinuityGroup != lastDiscontinuityGroup) {
+          sb.writeln('#EXT-X-DISCONTINUITY');
+          lastDiscontinuityGroup = seg.discontinuityGroup;
+        }
+
+        if (firstSegment || seg.key != lastKey) {
+          if (seg.key == null) {
+            // 仅当上一段有 key 时显式声明 NONE 关闭加密
+            if (lastKey != null) {
+              sb.writeln('#EXT-X-KEY:METHOD=NONE');
+            }
+          } else {
+            final proxiedKeyUri = buildSubUrl(token, seg.key!.uri);
+            final keySb = StringBuffer(
+                '#EXT-X-KEY:METHOD=${seg.key!.method},URI="$proxiedKeyUri"');
+            if (seg.key!.iv != null) {
+              keySb.write(',IV=${seg.key!.iv}');
+            }
+            sb.writeln(keySb.toString());
+          }
+          lastKey = seg.key;
+          firstSegment = false;
+        }
+
+        sb.writeln('#EXTINF:${seg.duration.toStringAsFixed(6)},');
+        sb.writeln(buildSubUrl(token, seg.uri));
+      }
+
+      if (playlist.isVod) {
+        sb.writeln('#EXT-X-ENDLIST');
+      }
+      return sb.toString();
+    } catch (e, st) {
+      KazumiLogger().w(
+          'VideoProxyHandler: media playlist filter failed, fallback to passthrough rewrite',
+          error: e,
+          stackTrace: st);
+      final rewriter = M3u8Rewriter(
+        baseUrl: baseUri,
+        subUriBuilder: (absUrl) => buildSubUrl(token, absUrl),
+      );
+      return rewriter.rewrite(bodyText);
+    }
   }
 
   Response _streamingResponse(HttpClientResponse upstreamResponse) {

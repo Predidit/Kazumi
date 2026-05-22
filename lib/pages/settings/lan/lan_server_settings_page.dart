@@ -36,6 +36,90 @@ class _LanServerSettingsPageState extends State<LanServerSettingsPage> {
     KazumiDialog.showToast(message: '已复制 $text');
   }
 
+  /// 端口 tile 的描述：综合"是否运行""偏好端口""实际端口"三态显示。
+  String _portDescription(bool running, int? currentPort) {
+    final preferred = controller.preferredPort;
+    if (running && currentPort != null) {
+      if (preferred != null && preferred != currentPort) {
+        return '当前监听 $currentPort · 配置偏好 $preferred（被占用，已临时降级）';
+      }
+      return '当前监听 $currentPort';
+    }
+    if (preferred != null) return '保存的偏好：$preferred';
+    return '尚未设置，首次启动将随机分配并自动保存';
+  }
+
+  Future<void> _editPort() async {
+    final preferred = controller.preferredPort;
+    final initialText = (preferred ?? controller.port ?? '').toString();
+    final textController = TextEditingController(text: initialText);
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
+    KazumiDialog.show(builder: (dialogContext) {
+      return AlertDialog(
+        title: Text('监听端口', style: TextStyle(fontFamily: fontFamily)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: textController,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: '端口号',
+                hintText: '1024–65535',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              controller.isRunning
+                  ? '保存后需要重启服务才能生效'
+                  : '保存后下次启动服务时生效',
+              style: TextStyle(
+                fontFamily: fontFamily,
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: KazumiDialog.dismiss,
+            child: Text('取消',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.outline,
+                    fontFamily: fontFamily)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final value = int.tryParse(textController.text.trim());
+              if (value == null) {
+                KazumiDialog.showToast(message: '请输入数字');
+                return;
+              }
+              final err = await controller.setPreferredPort(value);
+              if (err != null) {
+                KazumiDialog.showToast(message: err);
+                return;
+              }
+              KazumiDialog.dismiss();
+              if (mounted) setState(() {});
+              KazumiDialog.showToast(
+                message: controller.isRunning
+                    ? '已保存。重启服务后生效'
+                    : '已保存：$value',
+              );
+            },
+            child: Text('保存', style: TextStyle(fontFamily: fontFamily)),
+          ),
+        ],
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
@@ -62,10 +146,23 @@ class _LanServerSettingsPageState extends State<LanServerSettingsPage> {
                   description: Text(
                     running && currentPort != null
                         ? '服务运行中，端口 $currentPort'
-                        : '关闭。开启后将在本机随机可用端口监听 HTTP 请求',
+                        : (controller.preferredPort != null
+                            ? '关闭。开启后将监听端口 ${controller.preferredPort}'
+                            : '关闭。开启后将在本机随机可用端口监听 HTTP 请求'),
                     style: TextStyle(fontFamily: fontFamily),
                   ),
                   initialValue: running,
+                ),
+                SettingsTile.navigation(
+                  leading: const Icon(Icons.numbers_rounded),
+                  title: Text('监听端口',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text(
+                    _portDescription(running, currentPort),
+                    style: TextStyle(fontFamily: fontFamily),
+                  ),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onPressed: (_) => _editPort(),
                 ),
               ],
             ),

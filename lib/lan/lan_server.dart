@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart' hide Router;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
@@ -19,6 +18,7 @@ import 'package:kazumi/lan/web_index_html.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
+import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
@@ -57,14 +57,6 @@ class LanServer {
 
   HttpServer? _httpServer;
 
-  /// SSE 主题推送通道。所有连接到 `/api/theme/stream` 的客户端共享这个
-  /// broadcast stream；桌面端 setting 变化或 effective ColorScheme 重算
-  /// 时调 [_emitTheme]，每个连接都会收到一条。
-  final StreamController<String> _themeEventController =
-      StreamController<String>.broadcast();
-  StreamSubscription<BoxEvent>? _settingWatchSub;
-  bool _notifierListenerAttached = false;
-
   bool get isRunning => _httpServer != null;
 
   int? get port => _httpServer?.port;
@@ -73,10 +65,11 @@ class LanServer {
     if (_httpServer != null) return;
     final handler = const Pipeline()
         .addMiddleware(_corsMiddleware())
+        .addMiddleware(_accessLogMiddleware())
+        .addMiddleware(_errorHandlerMiddleware())
         .addHandler(_buildRouter().call);
     _httpServer =
         await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-    _attachThemeWatchers();
     KazumiLogger().i('LanServer: listening on port ${_httpServer!.port}');
   }
 
@@ -89,48 +82,10 @@ class LanServer {
     } catch (e) {
       KazumiLogger().w('LanServer: stop error: $e');
     }
-    _detachThemeWatchers();
     _sessionStore.clear();
     await _sourceResolver.dispose();
     _proxyHandler.close();
     KazumiLogger().i('LanServer: stopped');
-  }
-
-  void _attachThemeWatchers() {
-    _settingWatchSub ??= GStorage.setting.watch().listen((event) {
-      // 只关心主题相关 key，过滤掉无关变更避免噪音
-      final key = event.key;
-      if (key == SettingBoxKey.themeMode ||
-          key == SettingBoxKey.themeColor ||
-          key == SettingBoxKey.useDynamicColor ||
-          key == SettingBoxKey.oledEnhance) {
-        _emitTheme();
-      }
-    });
-    if (!_notifierListenerAttached) {
-      effectiveColorSchemeNotifier.addListener(_emitTheme);
-      _notifierListenerAttached = true;
-    }
-  }
-
-  void _detachThemeWatchers() {
-    _settingWatchSub?.cancel();
-    _settingWatchSub = null;
-    if (_notifierListenerAttached) {
-      effectiveColorSchemeNotifier.removeListener(_emitTheme);
-      _notifierListenerAttached = false;
-    }
-  }
-
-  void _emitTheme() {
-    if (_themeEventController.isClosed) return;
-    try {
-      final payload = _buildThemePayload();
-      _themeEventController.add('data: ${jsonEncode(payload)}\n\n');
-    } catch (e, st) {
-      KazumiLogger().w('LanServer: emit theme failed',
-          error: e, stackTrace: st);
-    }
   }
 
   /// 枚举本机非回环的 IPv4 地址。供设置页展示给用户。
@@ -164,13 +119,16 @@ class LanServer {
     router.get('/healthz', (Request request) {
       return Response.ok('ok');
     });
+    // 浏览器默认会请求 /favicon.ico；不显式处理会被 Router 转成 404，污染日志。
+    router.get('/favicon.ico', (Request request) {
+      return Response(204);
+    });
 
     router.get('/api/plugins', _handlePlugins);
     router.get('/api/search', _handleSearch);
     router.get('/api/episodes', _handleEpisodes);
     router.get('/api/resolve', _handleResolve);
     router.get('/api/theme', _handleTheme);
-    router.get('/api/theme/stream', _handleThemeStream);
 
     router.get('/api/bangumi/search', _handleBangumiSearch);
     router.get('/api/bangumi/<id|[0-9]+>', _handleBangumiDetail);
@@ -178,6 +136,9 @@ class LanServer {
         _handleBangumiCharacters);
     router.get('/api/bangumi/<id|[0-9]+>/comments', _handleBangumiComments);
     router.get('/api/bangumi/<id|[0-9]+>/staff', _handleBangumiStaff);
+    router.get('/api/bangumi/<id|[0-9]+>/episodes', _handleBangumiEpisodes);
+    router.get('/api/bangumi/<id|[0-9]+>/episode-comments',
+        _handleEpisodeComments);
     router.get('/api/popular', _handlePopular);
     router.get('/api/timeline', _handleTimeline);
 
@@ -208,25 +169,6 @@ class LanServer {
 
   Response _handleTheme(Request request) {
     return _json(_buildThemePayload());
-  }
-
-  /// SSE：把 [_themeEventController] 的事件流原样返给客户端。
-  Response _handleThemeStream(Request request) {
-    final headers = {
-      'content-type': 'text/event-stream; charset=utf-8',
-      'cache-control': 'no-cache, no-transform',
-      'connection': 'keep-alive',
-      // 阻止 nginx / 反代缓冲
-      'x-accel-buffering': 'no',
-      // SSE 同源同地址，CORS 也开放
-      'access-control-allow-origin': '*',
-    };
-    // 连接建立后立刻推一条当前状态，避免新连接要等到下次变更才拿到数据
-    scheduleMicrotask(_emitTheme);
-    return Response.ok(
-      _themeEventController.stream.transform(utf8.encoder),
-      headers: headers,
-    );
   }
 
   /// 构造 v2 theme payload。
@@ -562,13 +504,18 @@ class LanServer {
   }
 
   Future<Response> _handlePopular(Request request) async {
+    final tag = request.url.queryParameters['tag']?.trim() ?? '';
     final offset =
         int.tryParse(request.url.queryParameters['offset'] ?? '0') ?? 0;
     final limit =
         int.tryParse(request.url.queryParameters['limit'] ?? '24') ?? 24;
     try {
-      final list = await BangumiApi.getBangumiTrendsList(
-          offset: offset, limit: limit);
+      // 无 tag → 趋势接口；有 tag → tag 搜索（对齐桌面端 PopularController
+      // queryBangumiTrends vs queryBangumiByTag 的二态切换）。
+      final list = tag.isEmpty
+          ? await BangumiApi.getBangumiTrendsList(offset: offset, limit: limit)
+          : await BangumiApi.getBangumiList(
+              rank: Random().nextInt(8000) + 1, tag: tag);
       return _json({
         'items': list.map(_bangumiItemToJson).toList(),
       });
@@ -580,9 +527,55 @@ class LanServer {
   }
 
   Future<Response> _handleTimeline(Request request) async {
+    final season = request.url.queryParameters['season']?.trim() ?? '';
     try {
-      final calendar = await BangumiApi.getCalendar();
+      if (season.isEmpty) {
+        // 默认拉本周日历，与桌面端 timeline_controller.getSchedules 一致
+        final calendar = await BangumiApi.getCalendar();
+        return _json({
+          'days': calendar
+              .map((day) => day.map(_bangumiItemToJson).toList())
+              .toList(),
+        });
+      }
+
+      // 桌面端 timeline_controller.getSchedulesBySeason：
+      // 4 次 × limit 20 累积拉取，按 air_date 落到对应 weekday。
+      final parts = season.split('-');
+      if (parts.length != 2) {
+        return _jsonError(400, 'invalid_season', 'season must be YYYY-Q');
+      }
+      final year = int.tryParse(parts[0]);
+      final quarter = int.tryParse(parts[1]);
+      if (year == null || quarter == null || quarter < 1 || quarter > 4) {
+        return _jsonError(400, 'invalid_season', 'season must be YYYY-Q');
+      }
+      // anime_season.toSeasonStartAndEnd 算法：起始月 = (季-1)*3，
+      // 0 月归并到上一年 12 月（"上一个季节的起始月"）。
+      final seasonIndex = quarter - 1;
+      var startMonth = seasonIndex * 3;
+      var startYear = year;
+      if (startMonth == 0) {
+        startMonth = 12;
+        startYear -= 1;
+      }
+      final start = DateTime(startYear, startMonth, 1);
+      final end = DateTime(year, (seasonIndex + 1) * 3, 1);
+      final dateRange = [start.toString(), end.toString()];
+
+      const maxRound = 4;
+      const limit = 20;
+      final calendar = List.generate(7, (_) => <BangumiItem>[]);
+      for (var round = 0; round < maxRound; round++) {
+        final offset = round * limit;
+        final newList =
+            await BangumiApi.getCalendarBySearch(dateRange, limit, offset);
+        for (var i = 0; i < calendar.length; i++) {
+          calendar[i].addAll(newList[i]);
+        }
+      }
       return _json({
+        'season': season,
         'days': calendar
             .map((day) => day.map(_bangumiItemToJson).toList())
             .toList(),
@@ -593,6 +586,88 @@ class LanServer {
       return _jsonError(500, 'timeline_failed', e.toString());
     }
   }
+
+  Future<Response> _handleBangumiEpisodes(Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    try {
+      final list = await BangumiApi.getBangumiEpisodesByID(bangumiId);
+      return _json({
+        'items': list.map(_episodeInfoToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger()
+          .e('LanServer: episodes failed', error: e, stackTrace: st);
+      return _jsonError(500, 'episodes_failed', e.toString());
+    }
+  }
+
+  Future<Response> _handleEpisodeComments(Request request, String id) async {
+    final bangumiId = int.tryParse(id);
+    if (bangumiId == null) {
+      return _jsonError(400, 'invalid_id', 'invalid id');
+    }
+    final episode =
+        int.tryParse(request.url.queryParameters['episode'] ?? '');
+    if (episode == null || episode < 1) {
+      return _jsonError(
+          400, 'invalid_episode', 'episode query is required (>=1)');
+    }
+    try {
+      // 桌面端链路：先按集数拿 EpisodeInfo，再用 episode.id 拿评论
+      final epInfo =
+          await BangumiApi.getBangumiEpisodeByID(bangumiId, episode);
+      if (epInfo.id == 0) {
+        return _json({
+          'episode': null,
+          'items': const <Map<String, dynamic>>[],
+        });
+      }
+      final res =
+          await BangumiApi.getBangumiCommentsByEpisodeID(epInfo.id);
+      return _json({
+        'episode': _episodeInfoToJson(epInfo),
+        'items': res.commentList.map(_episodeCommentItemToJson).toList(),
+      });
+    } catch (e, st) {
+      KazumiLogger().e('LanServer: episode comments failed',
+          error: e, stackTrace: st);
+      return _jsonError(500, 'episode_comments_failed', e.toString());
+    }
+  }
+
+  static Map<String, dynamic> _episodeInfoToJson(EpisodeInfo e) => {
+        'id': e.id,
+        'episode': e.episode,
+        'type': e.type,
+        'name': e.name,
+        'nameCn': e.nameCn,
+        'readType': e.readType(),
+      };
+
+  static Map<String, dynamic> _episodeCommentItemToJson(EpisodeCommentItem c) =>
+      {
+        'user': {
+          'username': c.comment.user.username,
+          'nickname': c.comment.user.nickname,
+          'avatar': c.comment.user.avatar.medium,
+        },
+        'content': c.comment.comment,
+        'createdAt': c.comment.createdAt,
+        'replies': c.replies
+            .map((r) => {
+                  'user': {
+                    'username': r.user.username,
+                    'nickname': r.user.nickname,
+                    'avatar': r.user.avatar.medium,
+                  },
+                  'content': r.comment,
+                  'createdAt': r.createdAt,
+                })
+            .toList(),
+      };
 
   Future<Response> _handleBangumiStaff(Request request, String id) async {
     final bangumiId = int.tryParse(id);
@@ -625,6 +700,8 @@ class LanServer {
         'votes': b.votes,
         'votesCount': b.votesCount,
         'images': b.images,
+        // info: bangumi 信息行（"导演 / CV / 制作组"），timeline 卡片副文本优先用它
+        'info': b.info,
         'tags': b.tags
             .map((t) => {'name': t.name, 'count': t.count})
             .toList(),
@@ -947,20 +1024,69 @@ class LanServer {
     return _json({'error': code, 'message': message}, status: status);
   }
 
+  /// 把每个进入服务的请求记一行：方法 + 路径 + status + 耗时。
+  /// 关键作用：根因排查时能直接从 KazumiLogger 看到请求是否真的到达 handler、
+  /// 跑了多久就被切断、返回了什么 status。ERR_EMPTY_RESPONSE 类问题这是
+  /// 第一手证据。
+  Middleware _accessLogMiddleware() {
+    return (Handler inner) {
+      return (Request request) async {
+        final sw = Stopwatch()..start();
+        final method = request.method;
+        final path = request.requestedUri.path;
+        try {
+          final response = await inner(request);
+          sw.stop();
+          KazumiLogger().i(
+              'LanServer: $method $path -> ${response.statusCode} (${sw.elapsedMilliseconds}ms)');
+          return response;
+        } catch (e) {
+          sw.stop();
+          KazumiLogger().w(
+              'LanServer: $method $path -> THROW after ${sw.elapsedMilliseconds}ms: $e');
+          rethrow;
+        }
+      };
+    };
+  }
+
+  /// 把 handler 里同步/await 抛出的异常兜成 500 JSON。
+  ///
+  /// 默认 shelf 在 handler 抛错时会让连接被无声切断，浏览器侧表现为
+  /// `ERR_EMPTY_RESPONSE` —— 既看不到 5xx 也拿不到错误信息。这里显式
+  /// 包一层，错误打到日志、客户端拿到结构化 JSON。
+  Middleware _errorHandlerMiddleware() {
+    return (Handler inner) {
+      return (Request request) async {
+        try {
+          return await inner(request);
+        } catch (e, st) {
+          KazumiLogger().e(
+            'LanServer: unhandled handler error on ${request.method} ${request.requestedUri.path}',
+            error: e,
+            stackTrace: st,
+          );
+          return Response(
+            500,
+            body: jsonEncode({
+              'error': 'unhandled',
+              'message': e.toString(),
+              'path': request.requestedUri.path,
+            }),
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }
+      };
+    };
+  }
+
   /// 简单的 CORS 中间件。当前服务端通常被同源访问（HTML 客户端来自同一服务），
   /// 但保留宽松 CORS 便于开发期 curl/调试以及未来从 Kazumi 桌面端直接调用。
-  ///
-  /// SSE 路径必须跳过 `change(headers: ...)` 包装——shelf 的 change 会
-  /// 重新封装 body 触发缓冲，导致流式推送被卡住。
   Middleware _corsMiddleware() {
     return (Handler inner) {
       return (Request request) async {
         if (request.method == 'OPTIONS') {
           return Response.ok('', headers: _corsHeaders);
-        }
-        final isSse = request.url.path.endsWith('theme/stream');
-        if (isSse) {
-          return inner(request);
         }
         final response = await inner(request);
         return response.change(headers: {

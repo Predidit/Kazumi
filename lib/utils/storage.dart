@@ -421,5 +421,6 @@ class SettingBoxKey {
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
       historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
-      lanServerEnable = 'lanServerEnable';
+      lanServerEnable = 'lanServerEnable',
+      lanServerPort = 'lanServerPort';
 }

@@ -1937,13 +1937,19 @@ class _PlayerItemState extends State<PlayerItem>
                                   playerController.panel.brightness = result;
                                 } else {
                                   // 右边区域
-                                  playerController.panel.volumeSeeking = true;
-                                  playerController.panel.showVolume = true;
+                                  if (!playerController.panel.volumeSeeking) {
+                                    playerController.panel.volumeSeeking = true;
+                                    playerController.panel.showVolume = true;
+                                  }
+                                  final double baseVolume = playerController
+                                              .playback.preciseVolume >= 0
+                                      ? playerController.playback.preciseVolume
+                                      : playerController.playback.volume;
                                   final double level = (totalHeight) * 0.03;
                                   final double volume =
-                                      playerController.playback.volume -
-                                          delta / level;
-                                  playerController.setVolume(volume);
+                                      baseVolume - delta / level;
+                                  playerController
+                                      .setVolumeDuringGesture(volume);
                                 }
                               },
                               onVerticalDragEnd: (_) {
@@ -1952,6 +1958,8 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                                 if (playerController.panel.volumeSeeking) {
                                   playerController.panel.volumeSeeking = false;
+                                  unawaited(
+                                      playerController.finishVolumeGesture());
                                 }
                                 if (playerController.panel.brightnessSeeking) {
                                   playerController.panel.brightnessSeeking =

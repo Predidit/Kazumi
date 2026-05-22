@@ -590,31 +590,34 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
         Positioned(
             top: 25,
             child: Observer(builder: (context) {
-              return playerController.panel.showVolume
-                  ? Wrap(
-                      alignment: WrapAlignment.center,
-                      children: <Widget>[
-                        Container(
-                            padding: const EdgeInsets.all(8.0),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                const Icon(Icons.volume_down,
-                                    color: Colors.white),
-                                Text(
-                                  ' ${playerController.playback.volume.toInt()}%',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            )),
-                      ],
-                    )
-                  : Container();
+              if (!playerController.panel.showVolume) {
+                return const SizedBox.shrink();
+              }
+              return Wrap(
+                alignment: WrapAlignment.center,
+                children: <Widget>[
+                  Container(
+                      padding: const EdgeInsets.all(8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Icon(Icons.volume_down, color: Colors.white),
+                          Observer(builder: (context) {
+                            return Text(
+                              ' ${playerController.playback.volume.toInt()}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ),
+                            );
+                          }),
+                        ],
+                      )),
+                ],
+              );
             })),
         (Utils.isDesktop() || !videoPageController.isFullscreen)
             ? Container()

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -17,6 +17,12 @@ class _RendererSettingsState extends State<RendererSettings> {
   late final ValueNotifier<String> renderer = ValueNotifier<String>(
     setting.get(SettingBoxKey.androidVideoRenderer, defaultValue: 'auto'),
   );
+
+  @override
+  void dispose() {
+    renderer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

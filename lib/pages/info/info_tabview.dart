@@ -5,12 +5,12 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/utils/device.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -148,7 +148,7 @@ class _InfoTabViewState extends State<InfoTabView>
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
-                runSpacing: Utils.isDesktop() ? 8 : 0,
+                runSpacing: isDesktop() ? 8 : 0,
                 children: List<Widget>.generate(
                     fullTag || widget.bangumiItem.tags.length < 13
                         ? widget.bangumiItem.tags.length

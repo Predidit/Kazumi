@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
-import 'package:kazumi/utils/mortis.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/dandan_credentials.dart';
+import 'package:kazumi/utils/http_headers.dart';
+import 'package:kazumi/utils/crypto.dart';
 
 class DanmakuClient {
   DanmakuClient._();
@@ -18,12 +19,12 @@ class DanmakuClient {
     final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final uri = Uri.parse(url);
     final requestHeaders = <String, dynamic>{
-      'user-agent': Utils.getRandomUA(),
+      'user-agent': getRandomUA(),
       'referer': '',
       'X-Auth': 1,
-      'X-AppId': mortis['id'],
+      'X-AppId': dandanCredentials['id'],
       'X-Timestamp': timestamp,
-      'X-Signature': Utils.generateDandanSignature(uri.path, timestamp),
+      'X-Signature': generateDandanSignature(uri.path, timestamp),
       ...headers,
     };
 

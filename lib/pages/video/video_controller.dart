@@ -8,12 +8,11 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/utils/download_manager.dart';
-import 'package:kazumi/providers/video/providers.dart';
+import 'package:kazumi/services/download/download_manager.dart';
+import 'package:kazumi/services/video_source/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
@@ -21,7 +20,11 @@ import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/http_headers.dart';
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/services/platform/display_mode_service.dart';
 
 part 'video_controller.g.dart';
 
@@ -161,7 +164,7 @@ abstract class _VideoPageController with Store {
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
   final Box setting = GStorage.setting;
 
-  WebViewVideoSourceProvider? _videoSourceProvider;
+  WebViewVideoSourceService? _videoSourceService;
 
   final StreamController<String> _logStreamController =
       StreamController<String>.broadcast();
@@ -251,7 +254,7 @@ abstract class _VideoPageController with Store {
       return selection.episode;
     }
 
-    final extractedEpisode = Utils.extractEpisodeNumber(road.identifier[index]);
+    final extractedEpisode = extractEpisodeNumber(road.identifier[index]);
     if (extractedEpisode == 0 ||
         (!isOfflineMode && extractedEpisode > road.identifier.length)) {
       return isOfflineMode
@@ -278,7 +281,7 @@ abstract class _VideoPageController with Store {
     resetEpisodeComments();
     _danmakuSessions.cancel();
     playerController.danmaku.finishDanmakuLoad();
-    _videoSourceProvider?.cancel();
+    _videoSourceService?.cancel();
     loading = true;
     errorMessage = null;
 
@@ -306,7 +309,7 @@ abstract class _VideoPageController with Store {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
 
-    await _resolveWithProvider(
+    await _resolveWithVideoSourceService(
       urlItem,
       offset,
       selection: selection,
@@ -375,7 +378,7 @@ abstract class _VideoPageController with Store {
 
   int _danmakuEpisodeForPlayback(PlaybackInitParams params) {
     try {
-      final episodeFromTitle = Utils.extractEpisodeNumber(params.episodeTitle);
+      final episodeFromTitle = extractEpisodeNumber(params.episodeTitle);
       if (episodeFromTitle != 0) {
         return episodeFromTitle;
       }
@@ -423,24 +426,24 @@ abstract class _VideoPageController with Store {
     return downloadManager.getLocalVideoPath(episode);
   }
 
-  Future<void> _resolveWithProvider(
+  Future<void> _resolveWithVideoSourceService(
     String url,
     int offset, {
     required VideoEpisodeSelection selection,
     required _AsyncSession session,
     required PlayerController playerController,
   }) async {
-    _videoSourceProvider ??= WebViewVideoSourceProvider();
+    _videoSourceService ??= WebViewVideoSourceService();
 
     await _logSubscription?.cancel();
-    _logSubscription = _videoSourceProvider!.onLog.listen((log) {
+    _logSubscription = _videoSourceService!.onLog.listen((log) {
       if (!_logStreamController.isClosed) {
         _logStreamController.add(log);
       }
     });
 
     try {
-      final source = await _videoSourceProvider!.resolve(
+      final source = await _videoSourceService!.resolve(
         url,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: offset,
@@ -465,7 +468,7 @@ abstract class _VideoPageController with Store {
         episode: selection.episode,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty
-              ? Utils.getRandomUA()
+              ? getRandomUA()
               : currentPlugin.userAgent,
           if (currentPlugin.referer.isNotEmpty)
             'referer': currentPlugin.referer,
@@ -513,8 +516,8 @@ abstract class _VideoPageController with Store {
     if (!_logStreamController.isClosed) {
       _logStreamController.close();
     }
-    _videoSourceProvider?.dispose();
-    _videoSourceProvider = null;
+    _videoSourceService?.dispose();
+    _videoSourceService = null;
   }
 
   void resetEpisodeComments() {
@@ -611,16 +614,16 @@ abstract class _VideoPageController with Store {
 
   void enterFullScreen() {
     isFullscreen = true;
-    Utils.enterFullScreen(lockOrientation: false);
+    DisplayModeService.enterFullScreen(lockOrientation: false);
   }
 
   void exitFullScreen() {
     isFullscreen = false;
-    Utils.exitFullScreen();
+    DisplayModeService.exitFullScreen();
   }
 
   void isDesktopFullscreen() async {
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       isFullscreen = await windowManager.isFullScreen();
     }
   }

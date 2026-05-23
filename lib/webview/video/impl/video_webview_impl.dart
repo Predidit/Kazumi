@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
     as android_webview;
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class VideoWebviewImpl
     extends VideoWebviewController<PlatformInAppWebViewController> {
@@ -23,7 +24,7 @@ class VideoWebviewImpl
       PlatformHeadlessInAppWebViewCreationParams(
         initialSize: const Size(360, 640),
         initialSettings: InAppWebViewSettings(
-          userAgent: Utils.getRandomUA(),
+          userAgent: getRandomUA(),
           mediaPlaybackRequiresUserGesture: true,
           upgradeKnownHostsToHTTPS: false,
           mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
@@ -40,8 +41,7 @@ class VideoWebviewImpl
           if (_isAdUrl(lower)) return null;
           if (_isM3U8Url(lower) ||
               _isRangeVideoRequest(lower, request.headers)) {
-            logEventController
-                .add('Native intercepted video URL: $url');
+            logEventController.add('Native intercepted video URL: $url');
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
             videoLoadingEventController.add(false);
@@ -67,8 +67,8 @@ class VideoWebviewImpl
               'Console [${consoleMessage.messageLevel}]: ${consoleMessage.message}');
         },
         onReceivedError: (controller, request, error) {
-          logEventController.add(
-              'Error: ${error.description} - ${request.url}');
+          logEventController
+              .add('Error: ${error.description} - ${request.url}');
         },
       ),
     );
@@ -122,15 +122,15 @@ class VideoWebviewImpl
                 !message.contains('adtrafficquality')) {
               logEventController.add('Parsing video source $message');
               String encodedUrl = Uri.encodeFull(message);
-              if (Utils.decodeVideoSource(encodedUrl) != encodedUrl) {
+              if (decodeVideoSource(encodedUrl) != encodedUrl) {
                 isIframeLoaded = true;
                 isVideoSourceLoaded = true;
                 videoLoadingEventController.add(false);
                 logEventController.add(
-                    'Loading video source ${Utils.decodeVideoSource(encodedUrl)}');
+                    'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
                 videoParserEventController
-                    .add((Utils.decodeVideoSource(encodedUrl), offset));
+                    .add((decodeVideoSource(encodedUrl), offset));
               }
             }
           });
@@ -427,8 +427,8 @@ class VideoWebviewImpl
   Future<void> unloadPage() async {
     videoParserTimer?.cancel();
     videoParserTimer = null;
-    await webviewController
-        ?.loadUrl(urlRequest: URLRequest(url: WebUri("about:blank")));
+    await webviewController?.loadUrl(
+        urlRequest: URLRequest(url: WebUri("about:blank")));
   }
 
   @override
@@ -438,6 +438,7 @@ class VideoWebviewImpl
     headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 
   bool _isM3U8Url(String lower) {

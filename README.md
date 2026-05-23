@@ -1,4 +1,7 @@
 # Kazumi
+
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white)](https://t.me/kazumi_app)
+
 使用 Flutter 开发的基于自定义规则的番剧采集与在线观看程序。使用最多五行基于 `Xpath` 语法的选择器构建自己的规则。支持规则导入与规则分享。支持基于 `Anime4K` 的实时超分辨率。绝赞开发中 (～￣▽￣)～
 
 ## 支持平台
@@ -70,7 +73,6 @@
 
 ### GNU/Linux
 
-&nbsp;&nbsp;
 <a href="https://flathub.org/apps/io.github.Predidit.Kazumi">
   <img src="https://flathub.org/api/badge?svg&locale=en" alt="Get it on Flathub" width="175"/>
 </a>
@@ -190,6 +192,5 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 感谢 [avbuild](https://github.com/wang-bin/avbuild) 本项目使用了来自 avbuild 的树外补丁实现非标准视频流播放。
 
 感谢 [hive](https://github.com/isar/hive) 本项目持久化储存能力来自 hive。
-
 
 

@@ -12,7 +12,7 @@ abstract class _HistoryController with Store {
   final _historyRepository = Modular.get<IHistoryRepository>();
 
   @observable
-  ObservableList<History> histories = ObservableList<History>(); 
+  ObservableList<History> histories = ObservableList<History>();
 
   void init() {
     final temp = _historyRepository.getAllHistories();
@@ -21,7 +21,13 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> updateHistory(
-      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc, String lastWatchEpisodeName) async {
+      int episode,
+      int road,
+      String adapterName,
+      BangumiItem bangumiItem,
+      Duration progress,
+      String lastSrc,
+      String lastWatchEpisodeName) async {
     await _historyRepository.updateHistory(
       episode: episode,
       road: road,
@@ -38,7 +44,8 @@ abstract class _HistoryController with Store {
     return _historyRepository.getLastWatchingProgress(bangumiItem, adapterName);
   }
 
-  Progress? findProgress(BangumiItem bangumiItem, String adapterName, int episode) {
+  Progress? findProgress(
+      BangumiItem bangumiItem, String adapterName, int episode) {
     return _historyRepository.findProgress(bangumiItem, adapterName, episode);
   }
 
@@ -47,7 +54,8 @@ abstract class _HistoryController with Store {
     init();
   }
 
-  Future<void> clearProgress(BangumiItem bangumiItem, String adapterName, int episode) async {
+  Future<void> clearProgress(
+      BangumiItem bangumiItem, String adapterName, int episode) async {
     await _historyRepository.clearProgress(bangumiItem, adapterName, episode);
     init();
   }

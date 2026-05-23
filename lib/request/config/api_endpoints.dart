@@ -1,9 +1,9 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.1.1';
+  static const String version = '2.1.2';
 
   /// 规则API级别
-  static const int apiLevel = 6;
+  static const int apiLevel = 7;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
@@ -33,6 +33,9 @@ class ApiEndpoints {
 
   /// bangumi API Domain
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
+
+  /// Telegram 群组
+  static const String telegramGroup = 'https://t.me/kazumi_app';
 
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';

@@ -1,6 +1,6 @@
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 /// 收藏数据访问接口
 ///
@@ -151,7 +151,8 @@ class CollectRepository implements ICollectRepository {
   @override
   Future<void> updateSearchNotShowAbandonedBangumis(bool value) async {
     try {
-      await _settingBox.put(SettingBoxKey.searchNotShowAbandonedBangumis, value);
+      await _settingBox.put(
+          SettingBoxKey.searchNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update search not show abandoned bangumis setting failed. value=$value',
@@ -184,7 +185,8 @@ class CollectRepository implements ICollectRepository {
   @override
   Future<void> updateTimelineNotShowAbandonedBangumis(bool value) async {
     try {
-      await _settingBox.put(SettingBoxKey.timelineNotShowAbandonedBangumis, value);
+      await _settingBox.put(
+          SettingBoxKey.timelineNotShowAbandonedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update timeline not show abandoned bangumis setting failed. value=$value',
@@ -215,7 +217,8 @@ class CollectRepository implements ICollectRepository {
   @override
   Future<void> updateTimelineNotShowWatchedBangumis(bool value) async {
     try {
-      await _settingBox.put(SettingBoxKey.timelineNotShowWatchedBangumis, value);
+      await _settingBox.put(
+          SettingBoxKey.timelineNotShowWatchedBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update timeline not show watched bangumis setting failed. value=$value',
@@ -246,7 +249,8 @@ class CollectRepository implements ICollectRepository {
   @override
   Future<void> updateTimelineOnlyShowWatchingBangumis(bool value) async {
     try {
-      await _settingBox.put(SettingBoxKey.timelineOnlyShowWatchingBangumis, value);
+      await _settingBox.put(
+          SettingBoxKey.timelineOnlyShowWatchingBangumis, value);
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: update timeline only show watching bangumis setting failed. value=$value',

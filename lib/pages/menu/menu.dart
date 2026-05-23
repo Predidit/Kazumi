@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {
@@ -59,6 +59,12 @@ class NavigationBarState extends ChangeNotifier {
 
 class _ScaffoldMenu extends State<ScaffoldMenu> {
   final PageController _page = PageController();
+
+  @override
+  void dispose() {
+    _page.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

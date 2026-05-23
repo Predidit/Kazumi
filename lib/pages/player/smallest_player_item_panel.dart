@@ -3,22 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/pip_utils.dart';
+import 'package:kazumi/pages/player/player_panel_hold.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:flutter/services.dart';
-import 'package:kazumi/utils/remote.dart';
+import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
-import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
-import 'package:kazumi/utils/timed_shutdown_service.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/format.dart';
 
 class SmallestPlayerItemPanel extends StatefulWidget {
   const SmallestPlayerItemPanel({
@@ -33,9 +34,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleSuperResolutionChange,
     required this.animationController,
     required this.keyboardFocus,
-    required this.handleHove,
-    required this.startHideTimer,
-    required this.cancelHideTimer,
+    required this.acquirePlayerPanelHold,
     required this.handleDanmaku,
     required this.skipOP,
     required this.showVideoInfo,
@@ -55,11 +54,9 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
-  final void Function() handleHove;
   final AnimationController animationController;
   final FocusNode keyboardFocus;
-  final void Function() startHideTimer;
-  final void Function() cancelHideTimer;
+  final PlayerPanelHold Function() acquirePlayerPanelHold;
   final void Function() showVideoInfo;
   final void Function() showSyncPlayRoomCreateDialog;
   final void Function() showSyncPlayEndPointSwitchDialog;
@@ -89,6 +86,12 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
 
   static const double _danmakuIconSize = 24.0;
   static const double _loadingIndicatorStrokeWidth = 2.0;
+
+  @override
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
 
   void showForwardChange() {
     KazumiDialog.show(builder: (context) {
@@ -524,7 +527,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             ),
           ),
           Text(
-            "    ${Utils.durationToString(playerController.playback.currentPosition)} / ${Utils.durationToString(playerController.playback.duration)}",
+            "    ${durationToString(playerController.playback.currentPosition)} / ${durationToString(playerController.playback.duration)}",
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12.0,
@@ -569,10 +572,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             ),
             // 跳过
             forwardIcon(),
-            if (Utils.isDesktop() || Platform.isAndroid)
+            if (isDesktop() || Platform.isAndroid)
               IconButton(
                   onPressed: () async {
-                    if (Utils.isDesktop()) {
+                    if (isDesktop()) {
                       if (videoPageController.isPip) {
                         await PipUtils.exitDesktopPIPWindow();
                       } else {
@@ -611,29 +614,13 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             // 弹幕开关
             _buildDanmakuToggleButton(context),
             // 追番
-            CollectButton(
+            PlayerPanelHoldCollectButton(
+              acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
               bangumiItem: videoPageController.bangumiItem,
-              onOpen: () {
-                widget.cancelHideTimer();
-                playerController.panel.canHidePlayerPanel = false;
-              },
-              onClose: () {
-                widget.cancelHideTimer();
-                widget.startHideTimer();
-                playerController.panel.canHidePlayerPanel = true;
-              },
             ),
-            MenuAnchor(
+            PlayerPanelHoldMenuAnchor(
+              acquirePlayerPanelHold: widget.acquirePlayerPanelHold,
               consumeOutsideTap: true,
-              onOpen: () {
-                widget.cancelHideTimer();
-                playerController.panel.canHidePlayerPanel = false;
-              },
-              onClose: () {
-                widget.cancelHideTimer();
-                widget.startHideTimer();
-                playerController.panel.canHidePlayerPanel = true;
-              },
               builder: (BuildContext context, MenuController controller,
                   Widget? child) {
                 return IconButton(
@@ -853,7 +840,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       isScrollControlled: true,
                       constraints: BoxConstraints(
                           maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                          maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                          maxWidth: (isDesktop() || isTablet())
                               ? MediaQuery.of(context).size.width * 9 / 16
                               : MediaQuery.of(context).size.width),
                       clipBehavior: Clip.antiAlias,
@@ -864,6 +851,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               playerController.danmaku.canvasController,
                           onUpdateDanmakuSpeed:
                               playerController.updateDanmakuSpeed,
+                          onTimelineOffsetChanged: playerController
+                              .danmaku.clearAndInvalidateScheduledDanmakus,
                         );
                       },
                     );
@@ -898,7 +887,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         .castVideo(playerController.videoUrl,
                             videoPageController.currentPlugin.referer)
                         .whenComplete(() {
-                      if (needRestart) {
+                      if (mounted && needRestart) {
                         playerController.play();
                       }
                     });

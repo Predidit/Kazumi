@@ -2,13 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/clients/plugin_site_client.dart';
+import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugin_cookie_manager.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 /// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
 /// (i.e. the [AntiCrawlerConfig.captchaImage] XPath selector matches something
@@ -186,7 +187,7 @@ class Plugin {
         var httpHeaders = {
           'referer': '$baseUrl/',
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept-Language': Utils.getRandomAcceptedLanguage(),
+          'Accept-Language': getRandomAcceptedLanguage(),
           'Connection': 'keep-alive',
           if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
         };
@@ -198,7 +199,7 @@ class Plugin {
       } else {
         var httpHeaders = {
           'referer': '$baseUrl/',
-          'Accept-Language': Utils.getRandomAcceptedLanguage(),
+          'Accept-Language': getRandomAcceptedLanguage(),
           'Connection': 'keep-alive',
           if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
         };
@@ -210,21 +211,10 @@ class Plugin {
 
       var htmlElement = parse(htmlString).documentElement!;
 
-      // Detect captcha challenge: if antiCrawlerConfig is enabled, check both
-      // captchaImage and captchaButton XPaths — if either matches, throw so
-      // callers can show the dedicated captcha UI instead of a generic error.
-      if (antiCrawlerConfig.enabled) {
-        final List<String> detectionXpaths = [
-          antiCrawlerConfig.captchaImage,
-          antiCrawlerConfig.captchaButton,
-        ].where((x) => x.isNotEmpty).toList();
-        final bool captchaDetected = detectionXpaths
-            .any((xpath) => htmlElement.queryXPath(xpath).node != null);
-        if (captchaDetected) {
-          KazumiLogger()
-              .w('Plugin: $name detected captcha challenge in search response');
-          throw CaptchaRequiredException(name);
-        }
+      if (detectsCaptchaChallenge(htmlString, htmlElement: htmlElement)) {
+        KazumiLogger()
+            .w('Plugin: $name detected captcha challenge in search response');
+        throw CaptchaRequiredException(name);
       }
 
       htmlElement.queryXPath(searchList).nodes.forEach((element) {
@@ -266,7 +256,7 @@ class Plugin {
     }
     var httpHeaders = {
       'referer': '$baseUrl/',
-      'Accept-Language': Utils.getRandomAcceptedLanguage(),
+      'Accept-Language': getRandomAcceptedLanguage(),
       'Connection': 'keep-alive',
     };
     try {
@@ -317,7 +307,7 @@ class Plugin {
       var httpHeaders = {
         'referer': '$baseUrl/',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
       htmlString = await _siteClient.postFormText(
@@ -329,7 +319,7 @@ class Plugin {
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
       htmlString = await _siteClient.getText(
@@ -356,6 +346,39 @@ class Plugin {
     }
   }
 
+  bool detectsCaptchaChallenge(String htmlString, {Element? htmlElement}) {
+    if (!antiCrawlerConfig.enabled) return false;
+
+    final detectValue = antiCrawlerConfig.captchaDetectValue.trim();
+    if (detectValue.isNotEmpty) {
+      switch (antiCrawlerConfig.captchaDetectType) {
+        case CaptchaDetectType.text:
+          return htmlString.contains(detectValue);
+        case CaptchaDetectType.regex:
+          try {
+            return RegExp(detectValue, caseSensitive: false, dotAll: true)
+                .hasMatch(htmlString);
+          } catch (e) {
+            KazumiLogger()
+                .w('Plugin: $name invalid captcha detect regex: $detectValue');
+            return false;
+          }
+        case CaptchaDetectType.xpath:
+        default:
+          final element = htmlElement ?? parse(htmlString).documentElement!;
+          return element.queryXPath(detectValue).node != null;
+      }
+    }
+
+    final element = htmlElement ?? parse(htmlString).documentElement!;
+    final List<String> detectionXpaths = [
+      antiCrawlerConfig.captchaImage,
+      antiCrawlerConfig.captchaButton,
+    ].where((x) => x.isNotEmpty).toList();
+    return detectionXpaths
+        .any((xpath) => element.queryXPath(xpath).node != null);
+  }
+
   String buildFullUrl(String urlItem) {
     if (urlItem.contains(baseUrl) ||
         urlItem.contains(baseUrl.replaceAll('https', 'http'))) {
@@ -366,7 +389,7 @@ class Plugin {
 
   Map<String, String> buildHttpHeaders() {
     return {
-      'user-agent': userAgent.isEmpty ? Utils.getRandomUA() : userAgent,
+      'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
   }

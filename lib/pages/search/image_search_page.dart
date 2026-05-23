@@ -10,8 +10,8 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/search/image_search_module.dart';
 import 'package:kazumi/pages/search/search_controller.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/utils/format.dart';
 
 class ImageSearchPage extends StatefulWidget {
   const ImageSearchPage({super.key});
@@ -36,7 +36,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
     _urlController.addListener(_onUrlChanged);
   }
 
-
   @override
   void dispose() {
     _debounceTimer?.cancel();
@@ -59,7 +58,7 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       setState(() {
         _searchPageController.clearImageSearchState();
         _previewUrl = text;
-      } );
+      });
     });
   }
 
@@ -128,7 +127,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
         result.filename ??
         '未知番剧';
   }
-
 
   static String _formatTraceEpisode(dynamic episode) {
     String formatEpisodeValue(num value) {
@@ -672,17 +670,17 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
                       _buildInfoLine(
                         textTheme,
                         colorScheme,
-                       _formatTraceEpisode(result.episode),
+                        _formatTraceEpisode(result.episode),
                       ),
                       _buildInfoLine(
                         textTheme,
                         colorScheme,
-                        '相似度: ${Utils.formatTraceSimilarity(result.similarity)}',
+                        '相似度: ${formatTraceSimilarity(result.similarity)}',
                       ),
                       _buildInfoLine(
                         textTheme,
                         colorScheme,
-                        '时间: ${Utils.durationToString(Duration(seconds: (result.from ?? 0).floor()))} - ${Utils.durationToString(Duration(seconds: (result.to ?? 0).floor()))}',
+                        '时间: ${durationToString(Duration(seconds: (result.from ?? 0).floor()))} - ${durationToString(Duration(seconds: (result.to ?? 0).floor()))}',
                       ),
                     ],
                   ),
@@ -710,7 +708,6 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       ),
     );
   }
-
 
   Widget _buildTips(ColorScheme colorScheme, TextTheme textTheme) {
     final baseStyle = textTheme.bodySmall?.copyWith(
@@ -749,51 +746,51 @@ class _ImageSearchPageState extends State<ImageSearchPage> {
       ),
     ];
 
-    return  Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 16,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 16,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '以图搜番',
+              style: textTheme.labelLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '以图搜番',
-                style: textTheme.labelLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ...tips.map(
-            (tipWidget) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 5),
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: dotColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: tipWidget),
-                ],
+                fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...tips.map(
+          (tipWidget) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: tipWidget),
+              ],
+            ),
           ),
-        ],
+        ),
+      ],
     );
   }
 }

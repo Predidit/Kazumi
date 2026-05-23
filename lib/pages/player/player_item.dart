@@ -951,8 +951,8 @@ class _PlayerItemState extends State<PlayerItem>
       // 音量相关
       if (!playerController.panel.volumeSeeking) {
         if (isDesktop()) {
-          playerController.playback.volume =
-              playerController.playback.playerVolume;
+          playerController.playback.applyExternalVolume(
+              playerController.playback.playerVolume);
         }
       }
       // 亮度相关
@@ -1941,6 +1941,8 @@ class _PlayerItemState extends State<PlayerItem>
                                   if (!playerController.panel.volumeSeeking) {
                                     playerController.panel.volumeSeeking = true;
                                     playerController.panel.showVolume = true;
+                                    playerController.playback
+                                        .invalidatePreciseVolume();
                                   }
                                   final double baseVolume = playerController
                                               .playback.preciseVolume >= 0

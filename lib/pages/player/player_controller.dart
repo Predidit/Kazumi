@@ -86,9 +86,9 @@ class PlayerController {
     final vol = _pendingGestureVolume;
     _pendingGestureVolume = null;
     if (vol != null) {
-      playback.preciseVolume = vol;
       playback.volume = vol;
     }
+    playback.invalidatePreciseVolume();
     await playback.syncVolumeToDevice(vol);
   }
 
@@ -164,7 +164,7 @@ class PlayerController {
         if (panel.volumeSeeking) {
           return;
         }
-        playback.volume = volume * 100;
+        playback.applyExternalVolume(volume * 100);
         if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
           hideVolumeUITimer?.cancel();

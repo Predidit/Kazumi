@@ -396,6 +396,18 @@ abstract class _PlayerPlaybackController with Store {
     volume = value;
   }
 
+  /// 外部来源（硬件键、系统面板等）变更音量时同步，并清除手势缓存
+  @action
+  void applyExternalVolume(double value) {
+    value = value.clamp(0.0, 100.0);
+    preciseVolume = -1;
+    volume = value;
+  }
+
+  void invalidatePreciseVolume() {
+    preciseVolume = -1;
+  }
+
   Future<void> syncVolumeToDevice([double? value]) async {
     final vol = (value ?? volume).clamp(0.0, 100.0);
     try {

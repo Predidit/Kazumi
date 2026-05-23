@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/webdav.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 
 class WebDavEditorPage extends StatefulWidget {
   const WebDavEditorPage({

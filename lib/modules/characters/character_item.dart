@@ -44,10 +44,7 @@ class CharacterExtraInfo {
     if (hasNameCn == '简体中文名') {
       nameCn = json['infobox'][0]['value'];
     }
-    return CharacterExtraInfo(
-      nameCn: nameCn,
-      summary: json['summary']
-    );
+    return CharacterExtraInfo(nameCn: nameCn, summary: json['summary']);
   }
 }
 
@@ -60,29 +57,28 @@ class CharacterItem {
   final List<ActorItem> actorList;
   CharacterExtraInfo info;
 
-  CharacterItem({
-    required this.id,
-    required this.type,
-    required this.name,
-    required this.relation,
-    required this.avator,
-    required this.actorList,
-    required this.info
-  });
+  CharacterItem(
+      {required this.id,
+      required this.type,
+      required this.name,
+      required this.relation,
+      required this.avator,
+      required this.actorList,
+      required this.info});
 
   factory CharacterItem.fromJson(Map<String, dynamic> json) {
     var list = json['actors'] as List;
     List<ActorItem> resActorList =
         list.map((i) => ActorItem.fromJson(i)).toList();
     return CharacterItem(
-      id: json['id'] ?? 0,
-      type: json['type'] ?? 0,
-      name: json['name'] ?? '',
-      relation: json['relation'] ?? '未知',
-      avator: CharacterAvator.fromJson(json['images'] as Map<String, dynamic>),
-      actorList: resActorList,
-      info: CharacterExtraInfo(nameCn: '', summary: '')
-    );
+        id: json['id'] ?? 0,
+        type: json['type'] ?? 0,
+        name: json['name'] ?? '',
+        relation: json['relation'] ?? '未知',
+        avator:
+            CharacterAvator.fromJson(json['images'] as Map<String, dynamic>),
+        actorList: resActorList,
+        info: CharacterExtraInfo(nameCn: '', summary: ''));
   }
 
   Map<String, dynamic> toJson() {

@@ -5,11 +5,11 @@ import 'package:kazumi/request/clients/plugin_site_client.dart';
 import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
-import 'package:kazumi/plugins/plugin_cookie_manager.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 /// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
 /// (i.e. the [AntiCrawlerConfig.captchaImage] XPath selector matches something
@@ -187,7 +187,7 @@ class Plugin {
         var httpHeaders = {
           'referer': '$baseUrl/',
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept-Language': Utils.getRandomAcceptedLanguage(),
+          'Accept-Language': getRandomAcceptedLanguage(),
           'Connection': 'keep-alive',
           if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
         };
@@ -199,7 +199,7 @@ class Plugin {
       } else {
         var httpHeaders = {
           'referer': '$baseUrl/',
-          'Accept-Language': Utils.getRandomAcceptedLanguage(),
+          'Accept-Language': getRandomAcceptedLanguage(),
           'Connection': 'keep-alive',
           if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
         };
@@ -256,7 +256,7 @@ class Plugin {
     }
     var httpHeaders = {
       'referer': '$baseUrl/',
-      'Accept-Language': Utils.getRandomAcceptedLanguage(),
+      'Accept-Language': getRandomAcceptedLanguage(),
       'Connection': 'keep-alive',
     };
     try {
@@ -307,7 +307,7 @@ class Plugin {
       var httpHeaders = {
         'referer': '$baseUrl/',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
       htmlString = await _siteClient.postFormText(
@@ -319,7 +319,7 @@ class Plugin {
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
       htmlString = await _siteClient.getText(
@@ -389,7 +389,7 @@ class Plugin {
 
   Map<String, String> buildHttpHeaders() {
     return {
-      'user-agent': userAgent.isEmpty ? Utils.getRandomUA() : userAgent,
+      'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
   }

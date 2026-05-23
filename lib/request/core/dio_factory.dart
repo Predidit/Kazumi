@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class DioFactory {
   DioFactory._();
@@ -18,7 +18,7 @@ class DioFactory {
         NetworkConfig.fromSettings(),
         defaultHeaders: {
           'referer': '',
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
       );
 
@@ -26,7 +26,7 @@ class DioFactory {
         NetworkConfig.fromSettings(),
         defaultHeaders: {
           'accept': 'application/vnd.github+json',
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
         interceptors: [_GithubMirrorInterceptor()],
       );
@@ -34,8 +34,8 @@ class DioFactory {
   static Dio get pluginDio => _pluginDio ??= _create(
         NetworkConfig.fromSettings(),
         defaultHeaders: {
-          'user-agent': Utils.getRandomUA(),
-          'accept-language': Utils.getRandomAcceptedLanguage(),
+          'user-agent': getRandomUA(),
+          'accept-language': getRandomAcceptedLanguage(),
         },
       );
 
@@ -45,7 +45,7 @@ class DioFactory {
           receiveTimeout: const Duration(seconds: 30),
         ),
         defaultHeaders: {
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
       );
 

@@ -10,11 +10,11 @@ import 'package:kazumi/utils/constants.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/utils/device.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -281,7 +281,7 @@ class _PopularPageState extends State<PopularPage>
         icon: const Icon(Icons.history),
       ),
     );
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       if (!showWindowButton()) {
         actions.add(
           IconButton(

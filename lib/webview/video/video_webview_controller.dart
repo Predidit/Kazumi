@@ -6,10 +6,10 @@ import 'package:kazumi/webview/video/impl/video_webview_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_windows_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_linux_impl.dart';
 import 'package:kazumi/webview/video/impl/video_webview_apple_impl.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/platform/webview_feature_service.dart';
 
 abstract class VideoWebviewController<T> {
-  // Webview controller
+  // WebView controller.
   T? webviewController;
 
   // Retry count
@@ -19,7 +19,7 @@ abstract class VideoWebviewController<T> {
   bool isIframeLoaded = false;
   bool isVideoSourceLoaded = false;
 
-  /// Webview initialization method
+  /// WebView initialization method.
   Future<void> init();
 
   final StreamController<bool> initEventController =
@@ -63,13 +63,13 @@ abstract class VideoWebviewController<T> {
     }
   }
 
-  /// Webview load URL method
+  /// WebView load URL method.
   Future<void> loadUrl(String url, bool useLegacyParser, {int offset = 0});
 
-  /// Webview unload page method
+  /// WebView unload page method.
   Future<void> unloadPage();
 
-  /// Webview dispose method
+  /// WebView dispose method.
   void dispose();
 }
 
@@ -84,7 +84,8 @@ class VideoWebviewControllerFactory {
     if (Platform.isMacOS || Platform.isIOS) {
       return VideoWebviewAppleImpl();
     }
-    if (Platform.isAndroid && Utils.isDocumentStartScriptSupported) {
+    if (Platform.isAndroid &&
+        WebViewFeatureService.isDocumentStartScriptSupported) {
       return VideoWebviewAndroidImpl();
     }
     return VideoWebviewImpl();

@@ -5,13 +5,12 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/player/player_item.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/pip_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
@@ -22,7 +21,9 @@ import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/utils/timed_shutdown_service.dart';
+import 'package:kazumi/services/player/timed_shutdown_service.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/services/platform/display_mode_service.dart';
 
 class VideoPage extends StatefulWidget {
   const VideoPage({super.key});
@@ -245,14 +246,14 @@ class _VideoPageState extends State<VideoPage>
           'VideoPageController: failed to dispose playerController',
           error: e);
     }
-    if (!Utils.isDesktop()) {
+    if (!isDesktop()) {
       try {
         ScreenBrightnessPlatform.instance.resetApplicationScreenBrightness();
       } catch (_) {}
     }
     videoPageController.resetEpisodeComments();
     videoPageController.resetOfflineMode();
-    Utils.unlockScreenRotation();
+    DisplayModeService.unlockScreenRotation();
     keyboardFocus.dispose();
     tabController.dispose();
     TimedShutdownService().cancel();
@@ -420,20 +421,20 @@ class _VideoPageState extends State<VideoPage>
       KazumiDialog.dismiss();
       return;
     }
-    if (videoPageController.isPip && Utils.isDesktop()) {
+    if (videoPageController.isPip && isDesktop()) {
       PipUtils.exitDesktopPIPWindow();
       videoPageController.isPip = false;
       return;
     }
-    if (videoPageController.isFullscreen && !Utils.isTablet()) {
+    if (videoPageController.isFullscreen && !isTablet()) {
       menuJumpToCurrentEpisode();
-      await Utils.exitFullScreen();
+      await DisplayModeService.exitFullScreen();
       _hideTabBodyImmediately();
       videoPageController.isFullscreen = false;
       return;
     }
     if (videoPageController.isFullscreen) {
-      Utils.exitFullScreen();
+      DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = false;
     }
     Navigator.of(context).pop();
@@ -628,7 +629,7 @@ class _VideoPageState extends State<VideoPage>
         onBackPressed(context);
       },
       child: OrientationBuilder(builder: (context, orientation) {
-        if (!Utils.isDesktop()) {
+        if (!isDesktop()) {
           if (orientation == Orientation.landscape &&
               !videoPageController.isFullscreen) {
             _hideTabBodyImmediately();
@@ -693,7 +694,7 @@ class _VideoPageState extends State<VideoPage>
   Widget get sideTabBody {
     return SizedBox(
       height: MediaQuery.sizeOf(context).height,
-      width: (!Utils.isDesktop() && !Utils.isTablet())
+      width: (!isDesktop() && !isTablet())
           ? MediaQuery.sizeOf(context).height
           : (MediaQuery.sizeOf(context).width / 3 > 420
               ? 420
@@ -702,7 +703,7 @@ class _VideoPageState extends State<VideoPage>
         color: Theme.of(context).canvasColor,
         child: GridViewObserver(
           controller: observerController,
-          child: (Utils.isDesktop() || Utils.isTablet())
+          child: (isDesktop() || isTablet())
               ? tabBody
               : Column(
                   children: [
@@ -1212,7 +1213,7 @@ class _VideoPageState extends State<VideoPage>
                 const SizedBox(width: 8),
               ],
             ),
-            Divider(height: Utils.isDesktop() ? 0.5 : 0.2),
+            Divider(height: isDesktop() ? 0.5 : 0.2),
             Expanded(
               child: TabBarView(
                 controller: tabController,

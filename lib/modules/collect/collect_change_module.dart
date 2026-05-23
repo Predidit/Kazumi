@@ -29,11 +29,11 @@ class CollectedBangumiChange {
   @HiveField(3)
   int type;
 
-
   @HiveField(4)
   int timestamp;
 
-  CollectedBangumiChange(this.id, this.bangumiID, this.action,this.type, this.timestamp);
+  CollectedBangumiChange(
+      this.id, this.bangumiID, this.action, this.type, this.timestamp);
 
   @override
   String toString() {

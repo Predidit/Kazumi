@@ -14,7 +14,8 @@ class ThemeProvider extends ChangeNotifier {
   bool isEffectiveDark() {
     if (themeMode == ThemeMode.dark) return true;
     if (themeMode == ThemeMode.light) return false;
-    final platformBrightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
+    final platformBrightness =
+        SchedulerBinding.instance.platformDispatcher.platformBrightness;
     return platformBrightness == Brightness.dark;
   }
 

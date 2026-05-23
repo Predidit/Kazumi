@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:desktop_webview_window/desktop_webview_window.dart';
+import 'package:kazumi/utils/media.dart';
 
 class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
   bool bridgeInited = false;
@@ -102,18 +102,17 @@ class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
             !messageItem.contains('prestrain.html') &&
             !messageItem.contains('prestrain%2Ehtml') &&
             !messageItem.contains('adtrafficquality')) {
-          if (Utils.decodeVideoSource(messageItem) !=
-                  Uri.encodeFull(messageItem) &&
+          if (decodeVideoSource(messageItem) != Uri.encodeFull(messageItem) &&
               useLegacyParser) {
             logEventController.add('Parsing video source $messageItem');
             isIframeLoaded = true;
             isVideoSourceLoaded = true;
             videoLoadingEventController.add(false);
-            logEventController.add(
-                'Loading video source ${Utils.decodeVideoSource(messageItem)}');
+            logEventController
+                .add('Loading video source ${decodeVideoSource(messageItem)}');
             unloadPage();
             videoParserEventController
-                .add((Utils.decodeVideoSource(messageItem), offset));
+                .add((decodeVideoSource(messageItem), offset));
           }
         }
       }

@@ -7,12 +7,12 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/utils/background_download_service.dart';
-import 'package:kazumi/utils/download_manager.dart';
-import 'package:kazumi/utils/format_utils.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/providers/video/providers.dart';
+import 'package:kazumi/services/download/background_download_service.dart';
+import 'package:kazumi/services/download/download_manager.dart';
+import 'package:kazumi/utils/format.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/video_source/services.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:mobx/mobx.dart';
 
@@ -527,9 +527,9 @@ abstract class _DownloadController with Store {
         'DownloadController: resolving video URL for episode ${request.episodeNumber} from $fullUrl');
 
     String? m3u8Url;
-    final provider = WebViewVideoSourceProvider();
+    final videoSourceService = WebViewVideoSourceService();
     try {
-      final source = await provider.resolve(
+      final source = await videoSourceService.resolve(
         fullUrl,
         useLegacyParser: plugin.useLegacyParser,
         timeout: const Duration(seconds: 30),
@@ -543,7 +543,7 @@ abstract class _DownloadController with Store {
       KazumiLogger()
           .e('DownloadController: WebView resolution failed', error: e);
     } finally {
-      provider.dispose();
+      videoSourceService.dispose();
     }
 
     if (m3u8Url == null || m3u8Url.isEmpty) {

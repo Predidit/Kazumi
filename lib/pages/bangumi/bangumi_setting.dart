@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
-import 'package:kazumi/utils/bangumi_sync_service.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
 

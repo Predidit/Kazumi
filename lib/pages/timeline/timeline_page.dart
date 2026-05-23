@@ -5,14 +5,14 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/timeline/timeline_controller.dart';
 import 'package:kazumi/bean/card/bangumi_timeline_card.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/utils/device.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
@@ -88,7 +88,7 @@ class _TimelinePageState extends State<TimelinePage>
   final seasons = ['秋', '夏', '春', '冬'];
 
   String getStringByDateTime(DateTime d) {
-    return d.year.toString() + Utils.getSeasonStringByMonth(d.month);
+    return d.year.toString() + getSeasonStringByMonth(d.month);
   }
 
   Future<void> scrollToFilterSection() async {
@@ -314,7 +314,7 @@ class _TimelinePageState extends State<TimelinePage>
 
   DateTime? getSelectedSeason(List<DateTime> availableSeasons) {
     for (final season in availableSeasons) {
-      if (Utils.isSameSeason(timelineController.selectedDate, season)) {
+      if (isSameSeason(timelineController.selectedDate, season)) {
         return season;
       }
     }
@@ -377,9 +377,9 @@ class _TimelinePageState extends State<TimelinePage>
       spacing: 12,
       runSpacing: 12,
       children: availableSeasons.map((date) {
-        final seasonName = Utils.getSeasonStringByMonth(date.month);
+        final seasonName = getSeasonStringByMonth(date.month);
         final isSelected =
-            selectedSeason != null && Utils.isSameSeason(selectedSeason, date);
+            selectedSeason != null && isSameSeason(selectedSeason, date);
 
         return ChoiceChip(
           label: Text(seasonName),
@@ -420,7 +420,7 @@ class _TimelinePageState extends State<TimelinePage>
     final currDate = DateTime.now();
     timelineController.tryEnterSeason(date);
 
-    if (Utils.isSameSeason(timelineController.selectedDate, currDate)) {
+    if (isSameSeason(timelineController.selectedDate, currDate)) {
       await timelineController.getSchedules();
     } else {
       await timelineController.getSchedulesBySeason();
@@ -901,8 +901,7 @@ class _TimelinePageState extends State<TimelinePage>
     if (MediaQuery.sizeOf(context).width > LayoutBreakpoint.medium['width']!) {
       crossCount = 3;
     }
-    double cardHeight =
-        Utils.isDesktop() ? 160 : (Utils.isTablet() ? 140 : 120);
+    double cardHeight = isDesktop() ? 160 : (isTablet() ? 140 : 120);
     for (var bangumiList in bangumiCalendar) {
       // 根据过滤器设置过滤番剧
       var filteredList = bangumiList;

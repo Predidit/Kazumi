@@ -3,7 +3,6 @@ import 'package:kazumi/modules/collect/collect_type.dart';
 
 /// Converting [BangumiCollectionType] to local [CollectType].
 extension BangumiCollectionTypeMapper on BangumiCollectionType {
-
   /// Converts this Bangumi collection type to the equivalent local type.
   CollectType toCollectType() {
     return switch (this) {
@@ -19,7 +18,6 @@ extension BangumiCollectionTypeMapper on BangumiCollectionType {
 
 /// Converting [CollectType] to [BangumiCollectionType].
 extension CollectTypeBangumiMapper on CollectType {
-
   /// Converts this local collection type to the equivalent Bangumi type.
   BangumiCollectionType? toBangumiCollectionType() {
     return switch (this) {
@@ -31,5 +29,4 @@ extension CollectTypeBangumiMapper on CollectType {
       CollectType.none => null,
     };
   }
-
 }

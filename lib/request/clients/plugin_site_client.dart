@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class PluginSiteClient {
   PluginSiteClient._();
@@ -55,8 +55,8 @@ class PluginSiteClient {
 
   Map<String, dynamic> _headers(Map<String, dynamic> headers) {
     return {
-      'user-agent': Utils.getRandomUA(),
-      'Accept-Language': Utils.getRandomAcceptedLanguage(),
+      'user-agent': getRandomUA(),
+      'Accept-Language': getRandomAcceptedLanguage(),
       'Connection': 'keep-alive',
       ...headers,
     };

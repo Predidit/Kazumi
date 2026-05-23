@@ -1,6 +1,6 @@
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
+import 'package:kazumi/utils/date_time.dart';
 
 part 'bangumi_item.g.dart';
 
@@ -87,7 +87,7 @@ class BangumiItem {
       final json = jsonData['rating']['count'];
       // For api.bgm.tv
       if (json is Map<String, dynamic>) {
-        return List<int>.generate(10, (i) => json['${i+1}'] as int);
+        return List<int>.generate(10, (i) => json['${i + 1}'] as int);
       }
       // For next.bgm.tv
       if (json is List<dynamic>) {
@@ -109,7 +109,7 @@ class BangumiItem {
           : json['name_cn'],
       summary: json['summary'] ?? '',
       airDate: json['date'] ?? '',
-      airWeekday: Utils.dateStringToWeekday(json['date'] ?? '2000-11-11'),
+      airWeekday: dateStringToWeekday(json['date'] ?? '2000-11-11'),
       rank: json['rating']['rank'] ?? 0,
       images: Map<String, String>.from(
         json['images'] ??

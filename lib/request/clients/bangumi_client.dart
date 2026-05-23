@@ -3,7 +3,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class BangumiClient {
   BangumiClient._();

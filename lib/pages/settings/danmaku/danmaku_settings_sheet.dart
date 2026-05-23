@@ -1,10 +1,10 @@
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/settings/danmaku/danmaku_shield_settings_sheet.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:kazumi/utils/device.dart';
 
 class DanmakuSettingsSheet extends StatefulWidget {
   final DanmakuController danmakuController;
@@ -54,7 +54,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
         isScrollControlled: true,
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-            maxWidth: (Utils.isDesktop() || Utils.isTablet())
+            maxWidth: (isDesktop() || isTablet())
                 ? MediaQuery.of(context).size.width * 9 / 16
                 : MediaQuery.of(context).size.width),
         clipBehavior: Clip.antiAlias,
@@ -93,7 +93,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 description: Slider(
                   value: widget.danmakuController.option.fontSize,
                   min: 10,
-                  max: Utils.isCompact() ? 32 : 48,
+                  max: isCompact() ? 32 : 48,
                   label:
                       '${widget.danmakuController.option.fontSize.floorToDouble()}',
                   onChanged: (value) {

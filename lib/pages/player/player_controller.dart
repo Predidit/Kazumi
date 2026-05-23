@@ -5,23 +5,24 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/pages/player/controller/external_playback_launcher.dart';
+import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/utils/device.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
 
 class PlayerController {
   final Box setting = GStorage.setting;
-  final ShadersController shadersController = Modular.get<ShadersController>();
+  final ShaderAssetService shaderAssetService =
+      Modular.get<ShaderAssetService>();
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
 
@@ -31,7 +32,7 @@ class PlayerController {
   );
   late final PlayerPlaybackController playback = PlayerPlaybackController(
     setting: setting,
-    shadersController: shadersController,
+    shaderAssetService: shaderAssetService,
     debug: debug,
     videoUrl: () => videoUrl,
     onExitSyncPlayRoom: () => syncplay.exitRoom(),
@@ -136,7 +137,7 @@ class PlayerController {
       return false;
     }
 
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       playback.volume = playback.volume != -1 ? playback.volume : 100;
       await setVolume(playback.volume);
       if (!playback.isCurrentPlayer(player)) {

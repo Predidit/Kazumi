@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/pages/router.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:provider/provider.dart';
 
 class ScaffoldMenu extends StatefulWidget {

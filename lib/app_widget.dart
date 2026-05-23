@@ -5,15 +5,16 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/theme.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -42,7 +43,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Future<void> _initializePlatformIntegrations() async {
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       await windowManager.setPreventClose(true);
       await _handleTray();
     }
@@ -116,7 +117,7 @@ class _AppWidgetState extends State<AppWidget>
         color: color,
         fontFamily: themeProvider.currentFontFamily,
       ),
-      oledEnhance ? Utils.oledDarkTheme(defaultDarkTheme) : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme(defaultDarkTheme) : defaultDarkTheme,
       notify: false,
     );
   }
@@ -339,7 +340,7 @@ class _AppWidgetState extends State<AppWidget>
               )
             : themeProvider.dark;
         final effectiveDarkTheme = useDynamicColor && oledEnhance
-            ? Utils.oledDarkTheme(dynamicDarkTheme)
+            ? oledDarkTheme(dynamicDarkTheme)
             : dynamicDarkTheme;
 
         return MaterialApp.router(

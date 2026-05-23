@@ -5,10 +5,9 @@ import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/pip_utils.dart';
-import 'package:kazumi/utils/webdav.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
@@ -23,7 +22,7 @@ import 'package:screen_brightness_platform_interface/screen_brightness_platform_
 import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
@@ -33,7 +32,10 @@ import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:saver_gallery/saver_gallery.dart';
-import 'package:kazumi/utils/audio_controller.dart';
+import 'package:kazumi/services/player/audio_controller.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/services/platform/display_mode_service.dart';
+import 'package:kazumi/services/platform/player_menu_service.dart';
 
 class PlayerItem extends StatefulWidget {
   const PlayerItem({
@@ -224,7 +226,7 @@ class _PlayerItemState extends State<PlayerItem>
       await _updateAndroidPIPActions(force: true);
       return;
     }
-    if (Utils.isDesktop() && videoPageController.isPip) {
+    if (isDesktop() && videoPageController.isPip) {
       await PipUtils.enterDesktopPIPWindow(
         width: playerController.debug.playerWidth,
         height: playerController.debug.playerHeight,
@@ -273,12 +275,12 @@ class _PlayerItemState extends State<PlayerItem>
 
   //初始化播放器菜单
   void _initPlayerMenu() {
-    Utils.initPlayerMenu(keyboardActions);
+    PlayerMenuService.initialize(keyboardActions);
   }
 
   //销毁播放器菜单
   void _disposePlayerMenu() {
-    Utils.disposePlayerMenu();
+    PlayerMenuService.dispose();
   }
 
   //快捷键按下
@@ -404,11 +406,11 @@ class _PlayerItemState extends State<PlayerItem>
 
   //退出全屏快捷键动作
   void handleShortcutExitFullscreen() {
-    if (videoPageController.isFullscreen && !Utils.isTablet()) {
+    if (videoPageController.isFullscreen && !isTablet()) {
       try {
         playerController.danmaku.canvasController.clear();
       } catch (_) {}
-      Utils.exitFullScreen();
+      DisplayModeService.exitFullScreen();
       videoPageController.isFullscreen = !videoPageController.isFullscreen;
     } else if (!Platform.isMacOS) {
       playerController.pause();
@@ -417,7 +419,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleTap() {
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       playerController.playOrPause();
     } else {
       if (playerController.panel.showVideoController) {
@@ -429,7 +431,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _handleDoubleTap() {
-    if (Utils.isDesktop() && !videoPageController.isPip) {
+    if (isDesktop() && !videoPageController.isPip) {
       handleFullscreen();
     } else {
       playerController.playOrPause();
@@ -598,7 +600,7 @@ class _PlayerItemState extends State<PlayerItem>
         return;
       }
 
-      if (Utils.isDesktop()) {
+      if (isDesktop()) {
         KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
         return;
       }
@@ -714,12 +716,12 @@ class _PlayerItemState extends State<PlayerItem>
   void handleFullscreen() {
     _handleFullscreenChange(context);
     if (videoPageController.isFullscreen) {
-      Utils.exitFullScreen();
-      if (!Utils.isDesktop()) {
+      DisplayModeService.exitFullScreen();
+      if (!isDesktop()) {
         widget.showMenuImmediately();
       }
     } else {
-      Utils.enterFullScreen();
+      DisplayModeService.enterFullScreen();
       widget.hideMenuImmediately();
     }
     videoPageController.isFullscreen = !videoPageController.isFullscreen;
@@ -948,7 +950,7 @@ class _PlayerItemState extends State<PlayerItem>
       _emitDanmakusForCurrentPosition();
       // 音量相关
       if (!playerController.panel.volumeSeeking) {
-        if (Utils.isDesktop()) {
+        if (isDesktop()) {
           playerController.playback.volume =
               playerController.playback.playerVolume;
         }
@@ -1266,7 +1268,7 @@ class _PlayerItemState extends State<PlayerItem>
         isScrollControlled: true,
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-            maxWidth: (Utils.isDesktop() || Utils.isTablet())
+            maxWidth: (isDesktop() || isTablet())
                 ? MediaQuery.of(context).size.width * 9 / 16
                 : MediaQuery.of(context).size.width),
         clipBehavior: Clip.antiAlias,
@@ -1515,14 +1517,14 @@ class _PlayerItemState extends State<PlayerItem>
       return false;
     }
     // does not meet Google's phone landscape height and tablet landscape width requirements.
-    if (!Utils.isDesktop() &&
+    if (!isDesktop() &&
         (MediaQuery.sizeOf(context).height >
                 LayoutBreakpoint.compact['height']! &&
             MediaQuery.sizeOf(context).width <
                 LayoutBreakpoint.medium['width']!)) {
       return false;
     }
-    if (Utils.isDesktop() &&
+    if (isDesktop() &&
         (MediaQuery.sizeOf(context).height >
                 LayoutBreakpoint.compact['height']! &&
             MediaQuery.sizeOf(context).width <
@@ -1596,7 +1598,7 @@ class _PlayerItemState extends State<PlayerItem>
     _border = setting.get(SettingBoxKey.danmakuBorder, defaultValue: true);
     _opacity = setting.get(SettingBoxKey.danmakuOpacity, defaultValue: 1.0);
     _fontSize = setting.get(SettingBoxKey.danmakuFontSize,
-        defaultValue: (Utils.isCompact()) ? 16.0 : 25.0);
+        defaultValue: (isCompact()) ? 16.0 : 25.0);
     _danmakuArea = setting.get(SettingBoxKey.danmakuArea, defaultValue: 1.0);
     _hideTop = !setting.get(SettingBoxKey.danmakuTop, defaultValue: true);
     _hideBottom =
@@ -1675,7 +1677,7 @@ class _PlayerItemState extends State<PlayerItem>
               onHover: (PointerEvent pointerEvent) {
                 // workaround for android.
                 // I don't know why, but android tap event will trigger onHover event.
-                if (Utils.isDesktop()) {
+                if (isDesktop()) {
                   if (pointerEvent.position.dy > 50 &&
                       pointerEvent.position.dy <
                           MediaQuery.of(context).size.height - 70) {
@@ -1873,8 +1875,7 @@ class _PlayerItemState extends State<PlayerItem>
                       top: 25,
                       right: 15,
                       bottom: 15,
-                      child: (Utils.isDesktop() ||
-                              playerController.panel.lockPanel)
+                      child: (isDesktop() || playerController.panel.lockPanel)
                           ? Container()
                           : GestureDetector(
                               onHorizontalDragStart: (_) {

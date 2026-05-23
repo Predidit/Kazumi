@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/utils/date_time.dart';
 
 class CommentsCard extends StatelessWidget {
   CommentsCard({
@@ -69,7 +69,7 @@ class CommentsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(commentItem!.user.nickname),
-                    Text(Utils.dateFormat(commentItem!.comment.updatedAt)),
+                    Text(dateFormat(commentItem!.comment.updatedAt)),
                   ],
                 ),
                 Expanded(child: Container(height: 10)),

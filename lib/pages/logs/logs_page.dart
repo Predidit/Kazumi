@@ -16,11 +16,11 @@ class LogsPage extends StatefulWidget {
 class _LogsPageState extends State<LogsPage> {
   final List<String> _logLines = [];
   final ScrollController _scrollController = ScrollController();
-  
+
   bool _isLoading = true;
   bool _hasError = false;
   String _fullContent = '';
-  
+
   static const int _initialLoadCount = 50;
   static const int _loadMoreCount = 100;
   int _displayedLines = 0;
@@ -44,11 +44,11 @@ class _LogsPageState extends State<LogsPage> {
     if (!mounted || _displayedLines >= _allLines.length) {
       return;
     }
-    
+
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     final threshold = maxScroll * 0.8;
-    
+
     if (currentScroll >= threshold) {
       _loadMoreLines();
     }
@@ -56,22 +56,22 @@ class _LogsPageState extends State<LogsPage> {
 
   Future<void> _loadLogs() async {
     if (!mounted) return;
-    
+
     try {
       final file = await _getLogsFile();
       if (!mounted) return;
-      
+
       if (await file.exists()) {
         final content = await file.readAsString();
         if (!mounted) return;
-        
+
         _allLines = content.split('\n');
         _fullContent = content;
-        
-        final initialCount = _allLines.length < _initialLoadCount 
-            ? _allLines.length 
+
+        final initialCount = _allLines.length < _initialLoadCount
+            ? _allLines.length
             : _initialLoadCount;
-        
+
         if (!mounted) return;
         setState(() {
           _logLines.clear();
@@ -98,18 +98,17 @@ class _LogsPageState extends State<LogsPage> {
     if (_displayedLines >= _allLines.length) {
       return;
     }
-    
+
     // 使用 Future.microtask 避免在构建过程中调用 setState
     Future.microtask(() {
       if (!mounted) return;
-      
+
       final remainingLines = _allLines.length - _displayedLines;
-      final linesToLoad = remainingLines < _loadMoreCount 
-          ? remainingLines 
-          : _loadMoreCount;
-      
+      final linesToLoad =
+          remainingLines < _loadMoreCount ? remainingLines : _loadMoreCount;
+
       final newLines = _allLines.skip(_displayedLines).take(linesToLoad);
-      
+
       if (!mounted) return;
       setState(() {
         _logLines.addAll(newLines);
@@ -129,7 +128,7 @@ class _LogsPageState extends State<LogsPage> {
       final file = await _getLogsFile();
       await file.writeAsString('');
       if (!mounted) return;
-      
+
       setState(() {
         _logLines.clear();
         _allLines.clear();
@@ -170,19 +169,19 @@ class _LogsPageState extends State<LogsPage> {
         child: CircularProgressIndicator(),
       );
     }
-    
+
     if (_hasError) {
       return const Center(
         child: Text('加载日志失败'),
       );
     }
-    
+
     if (_logLines.isEmpty) {
       return const Center(
         child: Text('没有数据'),
       );
     }
-    
+
     return SelectionArea(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,

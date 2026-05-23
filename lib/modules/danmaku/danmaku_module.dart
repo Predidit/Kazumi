@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/danmaku.dart';
 
 class DanmakuEntry {
   // 弹幕内容
@@ -25,7 +25,7 @@ class DanmakuEntry {
     List<String> parts = json['p'].split(',');
     double timeValue = double.parse(parts[0]);
     int typeValue = int.parse(parts[1]);
-    Color color = Utils.generateDanmakuColor(int.parse(parts[2]));
+    Color color = generateDanmakuColor(int.parse(parts[2]));
     String sourceValue = parts[3];
     return DanmakuEntry(
         time: timeValue,

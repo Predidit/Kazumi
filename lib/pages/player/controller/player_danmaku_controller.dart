@@ -7,10 +7,10 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
+import 'package:kazumi/utils/danmaku.dart';
 
 part 'player_danmaku_controller.g.dart';
 
@@ -248,7 +248,7 @@ abstract class _PlayerDanmakuController with Store {
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
     final List<DanmakuEntry> listToAdd = danmakuDeduplicationEnable
-        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
+        ? mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;
 
     for (var element in listToAdd) {

@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
     as android_webview;
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class VideoWebviewImpl
     extends VideoWebviewController<PlatformInAppWebViewController> {
@@ -23,7 +24,7 @@ class VideoWebviewImpl
       PlatformHeadlessInAppWebViewCreationParams(
         initialSize: const Size(360, 640),
         initialSettings: InAppWebViewSettings(
-          userAgent: Utils.getRandomUA(),
+          userAgent: getRandomUA(),
           mediaPlaybackRequiresUserGesture: true,
           upgradeKnownHostsToHTTPS: false,
           mixedContentMode: MixedContentMode.MIXED_CONTENT_COMPATIBILITY_MODE,
@@ -121,15 +122,15 @@ class VideoWebviewImpl
                 !message.contains('adtrafficquality')) {
               logEventController.add('Parsing video source $message');
               String encodedUrl = Uri.encodeFull(message);
-              if (Utils.decodeVideoSource(encodedUrl) != encodedUrl) {
+              if (decodeVideoSource(encodedUrl) != encodedUrl) {
                 isIframeLoaded = true;
                 isVideoSourceLoaded = true;
                 videoLoadingEventController.add(false);
                 logEventController.add(
-                    'Loading video source ${Utils.decodeVideoSource(encodedUrl)}');
+                    'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
                 videoParserEventController
-                    .add((Utils.decodeVideoSource(encodedUrl), offset));
+                    .add((decodeVideoSource(encodedUrl), offset));
               }
             }
           });

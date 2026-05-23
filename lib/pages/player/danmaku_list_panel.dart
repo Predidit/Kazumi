@@ -125,7 +125,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
               ? const Center(child: CircularProgressIndicator())
               : Observer(
                   builder: (context) {
-                    if (pc.danmaku.danmakuLoading) {
+                    if (pc.danmaku.danmakuLoading || pc.playback.loading) {
                       return const Center(child: CircularProgressIndicator());
                     }
                     return Observer(

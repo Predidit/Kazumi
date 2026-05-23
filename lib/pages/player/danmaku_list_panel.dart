@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/logger.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 
@@ -14,10 +15,12 @@ class DanmakuListPanel extends StatefulWidget {
 }
 
 class _DanmakuListPanelState extends State<DanmakuListPanel> {
-  final PlayerController playerController = Modular.get<PlayerController>();
+  PlayerController? _playerController;
 
   List<DanmakuEntry> get allDanmakus {
-    return playerController.danmaku.danDanmakus.values
+    final c = _playerController;
+    if (c == null) return [];
+    return c.danmaku.danDanmakus.values
         .expand((element) => element)
         .toList(growable: false)
       ..sort((a, b) => a.time.compareTo(b.time));
@@ -26,6 +29,26 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
   @override
   void initState() {
     super.initState();
+    // PlayerController is route-scoped and may not be registered until after
+    // the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPlayerController();
+    });
+  }
+
+  void _loadPlayerController() {
+    if (!mounted) return;
+    try {
+      _playerController = Modular.get<PlayerController>();
+    } catch (e) {
+      KazumiLogger().e(
+        'DanmakuListPanel: failed to load PlayerController',
+        error: e,
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() {});
   }
 
   @override
@@ -35,15 +58,16 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
 
   Widget _buildDanmakuItem(DanmakuEntry item) {
     final timeSeconds = item.time.toInt();
+    final pc = _playerController;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          playerController.seek(
-            Duration(seconds: timeSeconds),
-          );
-        },
+        onTap: pc == null
+            ? null
+            : () {
+                pc.seek(Duration(seconds: timeSeconds));
+              },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
@@ -71,6 +95,7 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final pc = _playerController;
     return Column(
       children: [
         Padding(
@@ -96,41 +121,45 @@ class _DanmakuListPanelState extends State<DanmakuListPanel> {
         ),
         const Divider(height: 1),
         Expanded(
-          child: Observer(
-            builder: (context) {
-              if (playerController.danmaku.danmakuLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return Observer(
-                builder: (context) {
-                  final displayedDanmakus = allDanmakus;
-                  if (displayedDanmakus.isEmpty) {
-                    return Center(
-                      child: Text(
-                        '暂无弹幕',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.outline),
-                      ),
+          child: pc == null
+              ? const Center(child: CircularProgressIndicator())
+              : Observer(
+                  builder: (context) {
+                    if (pc.danmaku.danmakuLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return Observer(
+                      builder: (context) {
+                        final displayedDanmakus = allDanmakus;
+                        if (displayedDanmakus.isEmpty) {
+                          return Center(
+                            child: Text(
+                              '暂无弹幕',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color:
+                                      Theme.of(context).colorScheme.outline),
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          prototypeItem: _buildDanmakuItem(DanmakuEntry(
+                            message: '测',
+                            time: 0,
+                            type: 1,
+                            color: Colors.transparent,
+                            source: 'dandanplay',
+                          )),
+                          itemCount: displayedDanmakus.length,
+                          itemBuilder: (context, index) {
+                            return _buildDanmakuItem(
+                                displayedDanmakus[index]);
+                          },
+                        );
+                      },
                     );
-                  }
-                  return ListView.builder(
-                    prototypeItem: _buildDanmakuItem(DanmakuEntry(
-                      message: '测',
-                      time: 0,
-                      type: 1,
-                      color: Colors.transparent,
-                      source: 'dandanplay',
-                    )),
-                    itemCount: displayedDanmakus.length,
-                    itemBuilder: (context, index) {
-                      return _buildDanmakuItem(displayedDanmakus[index]);
-                    },
-                  );
-                },
-              );
-            },
-          ),
+                  },
+                ),
         ),
       ],
     );

@@ -163,7 +163,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         .toString()
         .trim();
     if (token.isEmpty) {
-      KazumiDialog.showToast(message: '请先在设置中绑定你的 Bangumi 配置以发表评价');
+      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
       return;
     }
     final localType = infoController.collectController

@@ -303,6 +303,10 @@ class PlayerController {
     return await playback.screenshot(format: format);
   }
 
+  Future<Uint8List?> screenshotPng() async {
+    return await playback.screenshotPng();
+  }
+
   void setButtonForwardTime(int time) {
     playback.buttonSkipTime = time;
     setting.put(SettingBoxKey.buttonSkipTime, time);

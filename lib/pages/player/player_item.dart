@@ -592,8 +592,7 @@ class _PlayerItemState extends State<PlayerItem>
   Future<void> handleScreenshot() async {
     KazumiDialog.showToast(message: '截图中...');
     try {
-      Uint8List? screenshot =
-          await playerController.screenshot(format: 'image/png');
+      Uint8List? screenshot = await playerController.screenshotPng();
 
       if (screenshot == null) {
         KazumiDialog.showToast(message: '截图失败：未获取到图像');

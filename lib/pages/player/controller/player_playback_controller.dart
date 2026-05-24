@@ -11,6 +11,7 @@ import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/player/player_screenshot_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -38,6 +39,8 @@ abstract class _PlayerPlaybackController with Store {
   final PlayerDebugController debug;
   final String Function() videoUrl;
   final Future<void> Function() onExitSyncPlayRoom;
+  final PlayerScreenshotService screenshotService =
+      const PlayerScreenshotService();
 
   Player? mediaPlayer;
   VideoController? videoController;
@@ -495,5 +498,13 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
     return await mediaPlayer!.screenshot(format: format);
+  }
+
+  Future<Uint8List?> screenshotPng() async {
+    final player = mediaPlayer;
+    if (player == null) {
+      return null;
+    }
+    return await screenshotService.capturePng(player);
   }
 }

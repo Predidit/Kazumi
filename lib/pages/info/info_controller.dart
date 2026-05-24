@@ -73,7 +73,7 @@ abstract class _InfoController with Store {
     }
   }
 
-  void _stripOwnInterestDuplicatesFromComments() {
+  void _removeCurrentUserFromPublicComments() {
     final interest = bangumiItem.interest;
     if (interest == null) return;
     final userId = interest.user?.id;
@@ -153,7 +153,7 @@ abstract class _InfoController with Store {
       _commentsOffset = refresh
           ? value.commentList.length
           : _commentsOffset + value.commentList.length;
-      _stripOwnInterestDuplicatesFromComments();
+      _removeCurrentUserFromPublicComments();
     });
     KazumiLogger().i(
         'InfoController: loaded comments list length ${commentsList.length}, offset $_commentsOffset');
@@ -221,7 +221,7 @@ abstract class _InfoController with Store {
       );
       await collectController.updateLocalCollect(bangumiItem);
       await fillInterestUserProfileIfNeeded();
-      _stripOwnInterestDuplicatesFromComments();
+      _removeCurrentUserFromPublicComments();
       await refreshBangumiCommentsSilently(bangumiItem.id);
       await refreshBangumiInfoByID(bangumiItem.id);
       return true;

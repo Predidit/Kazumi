@@ -140,7 +140,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         setState(() {
           commentsIsLoading = false;
           if (infoController.commentsList.isEmpty &&
-              infoController.bangumiItem.interest == null) {
+              !(infoController.bangumiItem.interest?.hasReviewContent ??
+                  false)) {
             commentsIsEmpty = true;
           }
         });

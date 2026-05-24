@@ -31,8 +31,9 @@ class BangumiInterest {
     this.user,
   });
 
-
   bool get hasUserProfile => user != null;
+
+  bool get hasReviewContent => rate > 0 || comment.trim().isNotEmpty;
 
   BangumiInterest copyWithUser({User? user}) {
     return BangumiInterest(

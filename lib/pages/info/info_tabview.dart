@@ -251,26 +251,31 @@ class _InfoTabViewState extends State<InfoTabView>
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverLayoutBuilder(builder: (context, _) {
-                final ownInterest = widget.bangumiItem.interest;
-                final showOwnInterest = !widget.commentsIsLoading && ownInterest != null && ownInterest.hasUserProfile;
-                final listItemCount = widget.commentsList.length + (showOwnInterest ? 1 : 0);
+                final myInterest = widget.bangumiItem.interest;
+                final showMyReview = !widget.commentsIsLoading &&
+                    myInterest != null &&
+                    myInterest.hasUserProfile &&
+                    myInterest.hasReviewContent;
+                final listItemCount =
+                    widget.commentsList.length + (showMyReview ? 1 : 0);
 
                 if (listItemCount > 0) {
                   return SliverList.separated(
                     addAutomaticKeepAlives: false,
                     itemCount: listItemCount,
                     itemBuilder: (context, index) {
-                      final commentIndex = showOwnInterest ? index - 1 : index;
-                      final ownUser = ownInterest?.user;
-                      final card = showOwnInterest && index == 0 && ownUser != null
+                      final commentIndex = showMyReview ? index - 1 : index;
+                      final myUser = myInterest?.user;
+                      final card = showMyReview && index == 0 && myUser != null
                           ? CommentsCard.own(
                               commentItem: CommentItem(
-                                  user: ownUser,
-                                  comment: Comment(
-                                      rate: ownInterest.rate,
-                                      comment: ownInterest.comment,
-                                      updatedAt: ownInterest.updatedAt
-                                  )),
+                                user: myUser,
+                                comment: Comment(
+                                  rate: myInterest.rate,
+                                  comment: myInterest.comment,
+                                  updatedAt: myInterest.updatedAt,
+                                ),
+                              ),
                             )
                           : CommentsCard(
                               commentItem: widget.commentsList[commentIndex],

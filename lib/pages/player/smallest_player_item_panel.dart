@@ -32,7 +32,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
-    required this.animationController,
+    required this.panelVisibilityController,
     required this.keyboardFocus,
     required this.acquirePlayerPanelHold,
     required this.handleDanmaku,
@@ -54,7 +54,7 @@ class SmallestPlayerItemPanel extends StatefulWidget {
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
-  final AnimationController animationController;
+  final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
   final void Function() showVideoInfo;
@@ -146,21 +146,21 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     bottomOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, 1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     leftOffsetAnimation = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);

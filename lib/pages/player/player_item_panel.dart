@@ -36,7 +36,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.handleProgressBarDragStart,
     required this.handleProgressBarDragEnd,
     required this.handleSuperResolutionChange,
-    required this.animationController,
+    required this.panelVisibilityController,
     required this.toggleMenu,
     required this.keyboardFocus,
     required this.sendDanmaku,
@@ -62,7 +62,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function(ThumbDragDetails details) handleProgressBarDragStart;
   final void Function() handleProgressBarDragEnd;
   final Future<void> Function(int shaderIndex) handleSuperResolutionChange;
-  final AnimationController animationController;
+  final AnimationController panelVisibilityController;
   final FocusNode keyboardFocus;
   final PlayerPanelHold Function() acquirePlayerPanelHold;
   final void Function() handleDanmaku;
@@ -303,21 +303,21 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       begin: const Offset(0.0, -1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     bottomOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, 1.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     leftOffsetAnimation = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: const Offset(0.0, 0.0),
     ).animate(CurvedAnimation(
-      parent: widget.animationController,
+      parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
     haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);

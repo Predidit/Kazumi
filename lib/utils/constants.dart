@@ -23,7 +23,7 @@ const ProgressIndicatorThemeData progressIndicatorTheme2024 =
 /// ignore: deprecated_member_use
 const SliderThemeData sliderTheme2024 = SliderThemeData(
   year2023: false,
-  showValueIndicator: ShowValueIndicator.always,
+  showValueIndicator: ShowValueIndicator.onDrag,
 );
 
 /// Flutter-managed platform transitions. Route-level Modular transitions should

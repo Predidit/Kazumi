@@ -81,7 +81,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           pageTransitionsTheme: pageTransitionsTheme2024),
       oledEnhance ? oledTheme : defaultDarkTheme,
     );
-    defaultThemeColor = color?.value.toRadixString(16) ?? 'default';
+    defaultThemeColor = color?.toARGB32().toRadixString(16) ?? 'default';
     setting.put(SettingBoxKey.themeColor, defaultThemeColor);
   }
 

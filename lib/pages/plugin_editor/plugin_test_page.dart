@@ -283,7 +283,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
                       style: TextButton.styleFrom(
                           backgroundColor: theme
                               .getCoreColor(CoreColorType.error)
-                              .withOpacity(0.1)),
+                              .withValues(alpha: 0.1)),
                       child: Text('重试测试',
                           style: TextStyle(
                               color: theme.colorScheme.onErrorContainer)),

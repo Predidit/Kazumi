@@ -61,6 +61,9 @@ abstract class _PlayerPlaybackController with Store {
   @observable
   double volume = -1;
 
+  /// 手势调节时的精确音量，避免 UI 节流导致累计误差
+  double preciseVolume = -1;
+
   @observable
   bool loading = true;
   @observable
@@ -379,13 +382,39 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> setVolume(double value) async {
+    updateVolume(value);
+    await syncVolumeToDevice(preciseVolume >= 0 ? preciseVolume : volume);
+  }
+
+  @action
+  void updateVolume(double value) {
     value = value.clamp(0.0, 100.0);
+    preciseVolume = value;
+    if (volume.toInt() == value.toInt()) {
+      return;
+    }
     volume = value;
+  }
+
+  /// 外部来源（硬件键、系统面板等）变更音量时同步，并清除手势缓存
+  @action
+  void applyExternalVolume(double value) {
+    value = value.clamp(0.0, 100.0);
+    preciseVolume = -1;
+    volume = value;
+  }
+
+  void invalidatePreciseVolume() {
+    preciseVolume = -1;
+  }
+
+  Future<void> syncVolumeToDevice([double? value]) async {
+    final vol = (value ?? volume).clamp(0.0, 100.0);
     try {
       if (isDesktop()) {
-        await mediaPlayer!.setVolume(value);
+        await mediaPlayer!.setVolume(vol);
       } else {
-        await FlutterVolumeController.setVolume(value / 100);
+        await FlutterVolumeController.setVolume(vol / 100);
       }
     } catch (_) {}
   }

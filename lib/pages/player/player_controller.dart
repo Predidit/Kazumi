@@ -64,6 +64,33 @@ class PlayerController {
   String videoUrl = '';
   bool isLocalPlayback = false;
   Timer? hideVolumeUITimer;
+  Timer? _volumeGestureSyncTimer;
+  double? _pendingGestureVolume;
+
+  void setVolumeDuringGesture(double value) {
+    _pendingGestureVolume = value.clamp(0.0, 100.0);
+    playback.updateVolume(_pendingGestureVolume!);
+    _volumeGestureSyncTimer?.cancel();
+    _volumeGestureSyncTimer = Timer(const Duration(milliseconds: 80), () {
+      final vol = _pendingGestureVolume;
+      if (vol == null) {
+        return;
+      }
+      unawaited(playback.syncVolumeToDevice(vol));
+    });
+  }
+
+  Future<void> finishVolumeGesture() async {
+    _volumeGestureSyncTimer?.cancel();
+    _volumeGestureSyncTimer = null;
+    final vol = _pendingGestureVolume;
+    _pendingGestureVolume = null;
+    if (vol != null) {
+      playback.volume = vol;
+    }
+    playback.invalidatePreciseVolume();
+    await playback.syncVolumeToDevice(vol);
+  }
 
   Future<bool> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
@@ -134,7 +161,10 @@ class PlayerController {
         if (player == null || !playback.isCurrentPlayer(player)) {
           return;
         }
-        playback.volume = volume * 100;
+        if (panel.volumeSeeking) {
+          return;
+        }
+        playback.applyExternalVolume(volume * 100);
         if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
           hideVolumeUITimer?.cancel();
@@ -257,6 +287,7 @@ class PlayerController {
     bool disposeSyncPlayController = true,
   }) async {
     hideVolumeUITimer?.cancel();
+    _volumeGestureSyncTimer?.cancel();
     FlutterVolumeController.removeListener();
     await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(

@@ -456,25 +456,18 @@ class _PlayerItemState extends State<PlayerItem>
 
   void handleDanmaku() {
     playerController.danmaku.canvasController.clear();
-    // if true, turn off danmaku.
     if (playerController.danmaku.danmakuOn) {
-      setState(() {
-        playerController.danmaku.danmakuOn = false;
-      });
+      playerController.danmaku.danmakuOn = false;
       setting.put(SettingBoxKey.danmakuEnabledByDefault, false);
       unawaited(_updateAndroidPIPActions(force: true));
       return;
     }
-    // if false and empty, show dialog.
     if (playerController.danmaku.danDanmakus.isEmpty) {
       showDanmakuSwitch();
       unawaited(_updateAndroidPIPActions(force: true));
       return;
     }
-    // turn on danmaku.
-    setState(() {
-      playerController.danmaku.danmakuOn = true;
-    });
+    playerController.danmaku.danmakuOn = true;
     setting.put(SettingBoxKey.danmakuEnabledByDefault, true);
     unawaited(_updateAndroidPIPActions(force: true));
   }
@@ -1066,10 +1059,20 @@ class _PlayerItemState extends State<PlayerItem>
                                 try {
                                   videoPageController
                                       .cancelAutomaticDanmakuLoad();
-                                  await playerController.danmaku
+                                  final hasDanmakus = await playerController
+                                      .danmaku
                                       .getDanDanmakuByEpisodeID(
                                           episode.episodeId);
-                                  KazumiDialog.showToast(message: '弹幕切换成功');
+                                  if (!mounted) {
+                                    return;
+                                  }
+                                  if (hasDanmakus) {
+                                    playerController.danmaku.danmakuOn = true;
+                                    KazumiDialog.showToast(message: '弹幕切换成功');
+                                  } else {
+                                    playerController.danmaku.danmakuOn = false;
+                                    KazumiDialog.showToast(message: '未找到弹幕内容');
+                                  }
                                 } catch (e) {
                                   KazumiDialog.showToast(message: '弹幕切换失败');
                                 }

@@ -405,11 +405,26 @@ abstract class _VideoPageController with Store {
         _danmakuEpisodeForPlayback(params),
       );
       if (session.isActive && danmakuSession.isActive) {
-        playerController.danmaku.applyDanmakuLoad(result);
+        if (result.hasDanmakus) {
+          final bool enableDanmaku = setting.get(
+            SettingBoxKey.danmakuEnabledByDefault,
+            defaultValue: false,
+          );
+          playerController.danmaku.applyDanmakuLoad(
+            result,
+            enableDanmaku: enableDanmaku,
+          );
+        } else {
+          playerController.danmaku.applyUnavailableDanmakuLoad(result);
+          if (result.isFailed) {
+            KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+          }
+        }
       }
     } catch (e) {
       if (session.isActive && danmakuSession.isActive) {
-        playerController.danmaku.finishDanmakuLoad();
+        playerController.danmaku.finishDanmakuLoad(disableDanmaku: true);
+        KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
       }
       KazumiLogger().w('VideoPageController: failed to load danmaku', error: e);
     }

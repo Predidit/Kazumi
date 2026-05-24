@@ -174,12 +174,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     KazumiDialog.show(
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
-        onSubmitted: (data) async {
+        onSubmit: (data) async {
           final updated =
               await infoController.rateBangumi(data, localType: localType);
           if (updated && mounted) {
             setState(() {});
           }
+          return updated;
         },
       ),
     );
@@ -194,9 +195,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.resetEpisodeState();
-    // Because the gap between different bangumi API response is too large, sometimes we need to query the bangumi info again
-    // We need the type parameter to determine whether to attach the new data to the old data
-    // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
+    // Search results can miss rating distribution or summaries, so fill those
+    // fields without replacing image URLs that are already rendered.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
       queryBangumiInfoByID(
@@ -274,7 +274,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
     } catch (e) {
       KazumiLogger()
-          .e('InfoController: failed to query bangumi info by ID', error: e);
+          .e('InfoPage: failed to query bangumi info by ID', error: e);
     } finally {
       if (enforceMinimumLoadingDuration && mounted) {
         await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class RatingReviewResult {
   const RatingReviewResult({
@@ -17,16 +18,20 @@ class RatingReviewResult {
   final String comment;
 }
 
+typedef RatingReviewSubmitCallback = Future<bool> Function(
+  RatingReviewResult result,
+);
+
 class RatingReviewDialog extends StatefulWidget {
   const RatingReviewDialog({
     super.key,
     required this.bangumiItem,
-    this.onSubmitted,
+    this.onSubmit,
   });
 
   final BangumiItem bangumiItem;
 
-  final ValueChanged<RatingReviewResult>? onSubmitted;
+  final RatingReviewSubmitCallback? onSubmit;
 
   @override
   State<RatingReviewDialog> createState() => _RatingReviewDialogState();
@@ -63,6 +68,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   late List<String> selectedTags;
 
   bool _isOnTagPage = false;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -89,7 +95,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
   String get scoreLabel => scoreLabels[score.clamp(0, 10)];
 
-  void toggleTag(String rawTag) {
+  void _toggleTag(String rawTag) {
+    if (_isSubmitting) return;
     final tag = rawTag.trim();
     if (tag.isEmpty) return;
     setState(() {
@@ -104,7 +111,8 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     });
   }
 
-  void addCustomTag() {
+  void _addCustomTag() {
+    if (_isSubmitting) return;
     final text = tagInputController.text.trim();
     if (text.isEmpty) return;
     if (text.length > _maxTagLength) {
@@ -124,32 +132,55 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     });
   }
 
-  void onSubmit() {
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
     final result = RatingReviewResult(
       score: score,
       tags: List<String>.unmodifiable(selectedTags),
       comment: commentController.text,
     );
-    Navigator.of(context).pop();
-    widget.onSubmitted?.call(result);
+    setState(() => _isSubmitting = true);
+    try {
+      final submitted = await widget.onSubmit?.call(result) ?? true;
+      if (submitted && mounted) {
+        Navigator.of(context).pop();
+        return;
+      }
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'RatingReviewDialog: failed to submit rating review',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+    if (mounted) {
+      setState(() => _isSubmitting = false);
+    }
   }
 
-  void openTagSelection() => setState(() => _isOnTagPage = true);
+  void _openTagSelection() {
+    if (_isSubmitting) return;
+    setState(() => _isOnTagPage = true);
+  }
 
-  void closeTagSelection() => setState(() => _isOnTagPage = false);
+  void _closeTagSelection() {
+    if (_isSubmitting) return;
+    setState(() => _isOnTagPage = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
+    final maxHeight =
+        mediaQuery.size.height - mediaQuery.viewInsets.bottom - 80;
 
     return PopScope(
-      canPop: !_isOnTagPage,
+      canPop: !_isSubmitting && !_isOnTagPage,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _isOnTagPage) {
-          closeTagSelection();
+        if (!didPop && _isOnTagPage && !_isSubmitting) {
+          _closeTagSelection();
         }
       },
       child: Dialog(
@@ -190,13 +221,13 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   child: _isOnTagPage
                       ? const SizedBox.shrink(key: ValueKey('no-actions'))
                       : Column(
-                    key: const ValueKey('main-actions'),
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Divider(height: 1),
-                      _buildActions(theme),
-                    ],
-                  ),
+                          key: const ValueKey('main-actions'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Divider(height: 1),
+                            _buildActions(theme),
+                          ],
+                        ),
                 ),
               ],
             ),
@@ -219,8 +250,13 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             children: [
               Text('评价 · 吐槽', style: theme.textTheme.titleLarge),
               InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                child: const Icon(Icons.close),
+                onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                child: Icon(
+                  Icons.close,
+                  color: _isSubmitting
+                      ? colorScheme.onSurface.withValues(alpha: 0.38)
+                      : null,
+                ),
               ),
             ],
           ),
@@ -246,7 +282,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: closeTagSelection,
+            onPressed: _isSubmitting ? null : _closeTagSelection,
           ),
           const SizedBox(width: 4),
           Expanded(
@@ -286,7 +322,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     final count = selectedTags.length;
 
     return InkWell(
-      onTap: openTagSelection,
+      onTap: _openTagSelection,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -311,17 +347,17 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             Expanded(
               child: count > 0
                   ? Text(
-                '已选 $count 个',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.primary,
-                ),
-              )
+                      '已选 $count 个',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.primary,
+                      ),
+                    )
                   : Text(
-                '点击选择标签',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
+                      '点击选择标签',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
             ),
             Icon(
               Icons.chevron_right_rounded,
@@ -339,7 +375,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
 
     return SingleChildScrollView(
       key: const ValueKey('tag-content'),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12 ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -351,15 +387,16 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   controller: tagInputController,
                   maxLength: _maxTagLength,
                   textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => addCustomTag(),
+                  onSubmitted: (_) => _addCustomTag(),
+                  enabled: !_isSubmitting,
                   scrollPadding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: InputDecoration(
                     hintText: '输入自定义标签',
                     hintStyle: const TextStyle(fontSize: 12),
                     isDense: true,
                     counterText: '',
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 8, horizontal: 10),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -373,7 +410,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: addCustomTag,
+                onPressed: _isSubmitting ? null : _addCustomTag,
                 child: const Text('添加'),
               ),
             ],
@@ -393,11 +430,11 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               children: tabs.map((tag) {
                 final selected = selectedTags.contains(tag.name);
                 return InkWell(
-                  onTap: () => toggleTag(tag.name),
+                  onTap: _isSubmitting ? null : () => _toggleTag(tag.name),
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: selected
                           ? colorScheme.primaryContainer
@@ -548,6 +585,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               ),
             ),
             onRatingUpdate: (value) {
+              if (_isSubmitting) return;
               final newScore = (value * 2).round().clamp(0, 10);
               if (newScore != score) {
                 setState(() => score = newScore);
@@ -559,7 +597,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         if (hasScore)
           Center(
             child: TextButton(
-              onPressed: () => setState(() => score = 0),
+              onPressed: _isSubmitting ? null : () => setState(() => score = 0),
               child: Text(
                 '清除评分',
                 style: TextStyle(color: colorScheme.outline),
@@ -578,6 +616,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         const SizedBox(height: 8),
         TextField(
           controller: commentController,
+          enabled: !_isSubmitting,
           minLines: 3,
           maxLines: 6,
           decoration: InputDecoration(
@@ -600,13 +639,28 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FilledButton(
-            onPressed: onSubmit,
+            onPressed: _isSubmitting ? null : _submit,
             style: FilledButton.styleFrom(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('提交'),
+            child: SizedBox(
+              width: 36,
+              height: 20,
+              child: Center(
+                child: _isSubmitting
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : const Text('提交'),
+              ),
+            ),
           ),
         ],
       ),

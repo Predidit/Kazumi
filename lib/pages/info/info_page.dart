@@ -139,7 +139,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       if (mounted) {
         setState(() {
           commentsIsLoading = false;
-          if (infoController.commentsList.isEmpty && infoController.bangumiItem.interest == null) {
+          if (infoController.commentsList.isEmpty &&
+              infoController.bangumiItem.interest == null) {
             commentsIsEmpty = true;
           }
         });
@@ -164,7 +165,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       KazumiDialog.showToast(message: '请先在设置中绑定你的 Bangumi 配置以发表评价');
       return;
     }
-    final localType = infoController.collectController.getCollectType(infoController.bangumiItem);
+    final localType = infoController.collectController
+        .getCollectType(infoController.bangumiItem);
     if (localType == 0) {
       KazumiDialog.showToast(message: '请先追番后再发表评价');
       return;
@@ -172,7 +174,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     KazumiDialog.show(
       builder: (context) => RatingReviewDialog(
         bangumiItem: infoController.bangumiItem,
-        onSubmitted: (data) => infoController.rateBangumi(data, localType: localType),
+        onSubmitted: (data) async {
+          final updated =
+              await infoController.rateBangumi(data, localType: localType);
+          if (updated && mounted) {
+            setState(() {});
+          }
+        },
       ),
     );
   }
@@ -230,7 +238,10 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         .toString()
         .trim();
     if (interest != null && token.isNotEmpty) {
-      await infoController.fillInterestUserProfileIfNeeded();
+      final updated = await infoController.fillInterestUserProfileIfNeeded();
+      if (updated && mounted) {
+        setState(() {});
+      }
     }
     if (infoController.commentsList.isEmpty &&
         !commentsIsLoading &&
@@ -421,8 +432,6 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             },
             body: Observer(builder: (context) {
               final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
-              // 触发 interest 用户信息更新后重建吐槽列表
-              final _ = infoController.interestProfileEpoch;
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
@@ -448,44 +457,43 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
             animation: infoTabController,
             builder: (context, child) {
               final showRatingFab = infoTabController.index == 1;
-              return showRatingFab ?
-                    FloatingActionButton.extended(
+              return showRatingFab
+                  ? FloatingActionButton.extended(
                       tooltip: '吐槽',
                       onPressed: onBangumiRatingTap,
                       label: const Text('发表吐槽'),
                       icon: const Icon(Icons.rate_review_rounded),
                     )
-                  :
-                  FloatingActionButton.extended(
-                    tooltip: '开始观看',
-                    onPressed: () async {
-                      showModalBottomSheet(
-                        isScrollControlled: true,
-                        constraints: BoxConstraints(
-                          maxHeight: (MediaQuery.sizeOf(context).height >=
-                                  LayoutBreakpoint.compact['height']!)
-                              ? MediaQuery.of(context).size.height * 3 / 4
-                              : MediaQuery.of(context).size.height,
-                          maxWidth: (MediaQuery.sizeOf(context).width >=
-                                  LayoutBreakpoint.medium['width']!)
-                              ? MediaQuery.of(context).size.width * 9 / 16
-                              : MediaQuery.of(context).size.width,
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        backgroundColor:
-                            Theme.of(context).scaffoldBackgroundColor,
-                        showDragHandle: true,
-                        context: context,
-                        builder: (context) {
-                          return SourceSheet(
-                              tabController: sourceTabController,
-                              infoController: infoController);
-                        },
-                      );
-                    },
-                    label: const Text('开始观看'),
-                    icon: const Icon(Icons.play_arrow_rounded),
-              );
+                  : FloatingActionButton.extended(
+                      tooltip: '开始观看',
+                      onPressed: () async {
+                        showModalBottomSheet(
+                          isScrollControlled: true,
+                          constraints: BoxConstraints(
+                            maxHeight: (MediaQuery.sizeOf(context).height >=
+                                    LayoutBreakpoint.compact['height']!)
+                                ? MediaQuery.of(context).size.height * 3 / 4
+                                : MediaQuery.of(context).size.height,
+                            maxWidth: (MediaQuery.sizeOf(context).width >=
+                                    LayoutBreakpoint.medium['width']!)
+                                ? MediaQuery.of(context).size.width * 9 / 16
+                                : MediaQuery.of(context).size.width,
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          backgroundColor:
+                              Theme.of(context).scaffoldBackgroundColor,
+                          showDragHandle: true,
+                          context: context,
+                          builder: (context) {
+                            return SourceSheet(
+                                tabController: sourceTabController,
+                                infoController: infoController);
+                          },
+                        );
+                      },
+                      label: const Text('开始观看'),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                    );
             },
           ),
         ),

@@ -106,23 +106,6 @@ mixin _$InfoController on _InfoController, Store {
     });
   }
 
-  late final _$interestProfileEpochAtom =
-      Atom(name: '_InfoController.interestProfileEpoch', context: context);
-
-  @override
-  int get interestProfileEpoch {
-    _$interestProfileEpochAtom.reportRead();
-    return super.interestProfileEpoch;
-  }
-
-  @override
-  set interestProfileEpoch(int value) {
-    _$interestProfileEpochAtom.reportWrite(value, super.interestProfileEpoch,
-        () {
-      super.interestProfileEpoch = value;
-    });
-  }
-
   @override
   String toString() {
     return '''
@@ -131,8 +114,7 @@ pluginSearchResponseList: ${pluginSearchResponseList},
 pluginSearchStatus: ${pluginSearchStatus},
 commentsList: ${commentsList},
 characterList: ${characterList},
-staffList: ${staffList},
-interestProfileEpoch: ${interestProfileEpoch}
+staffList: ${staffList}
     ''';
   }
 }

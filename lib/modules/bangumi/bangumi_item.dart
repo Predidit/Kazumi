@@ -63,20 +63,25 @@ class BangumiItem {
       if (jsonData.containsKey('infobox') && jsonData['infobox'] is List) {
         final List<dynamic> infobox = jsonData['infobox'];
         for (var item in infobox) {
-          if (item is Map<String, dynamic> && item['key'] == '别名') {
-            final dynamic value = item['value'];
-            if (value is List) {
-              return value
+          if (item is Map && item['key'] == '别名') {
+            // api.bgm.tv /v0 uses `value`; next.bgm.tv /p1 uses `values`
+            final dynamic raw = item['values'] ?? item['value'];
+            if (raw == null) {
+              return [];
+            }
+            if (raw is List) {
+              return raw
                   .map<String>((element) {
-                    if (element is Map<String, dynamic> &&
-                        element.containsKey('v')) {
+                    if (element is Map && element.containsKey('v')) {
                       return element['v'].toString();
                     }
-                    return '';
+                    return element.toString().trim();
                   })
                   .where((alias) => alias.isNotEmpty)
                   .toList();
             }
+            final text = raw.toString().trim();
+            return text.isEmpty ? [] : [text];
           }
         }
       }

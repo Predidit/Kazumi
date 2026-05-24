@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
@@ -123,7 +125,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> loadMoreComments({int offset = 0}) async {
+  Future<void> loadMoreComments({bool loadMore = false}) async {
     if (commentsIsLoading) return;
     setState(() {
       commentsIsLoading = true;
@@ -133,11 +135,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     try {
       await infoController.queryBangumiCommentsByID(
           infoController.bangumiItem.id,
-          offset: offset);
+          refresh: !loadMore);
       if (mounted) {
         setState(() {
           commentsIsLoading = false;
-          if (infoController.commentsList.isEmpty) {
+          if (infoController.commentsList.isEmpty &&
+              !(infoController.bangumiItem.interest?.hasReviewContent ??
+                  false)) {
             commentsIsEmpty = true;
           }
         });
@@ -153,18 +157,47 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
   }
 
+  void onBangumiRatingTap() {
+    final token = GStorage.setting
+        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+        .toString()
+        .trim();
+    if (token.isEmpty) {
+      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
+      return;
+    }
+    final localType = infoController.collectController
+        .getCollectType(infoController.bangumiItem);
+    if (localType == 0) {
+      KazumiDialog.showToast(message: '请先追番后再发表评价');
+      return;
+    }
+    KazumiDialog.show(
+      builder: (context) => RatingReviewDialog(
+        bangumiItem: infoController.bangumiItem,
+        onSubmit: (data) async {
+          final updated =
+              await infoController.rateBangumi(data, localType: localType);
+          if (updated && mounted) {
+            setState(() {});
+          }
+          return updated;
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     infoController.bangumiItem = inputBangumiIten;
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.resetEpisodeState();
-    // Because the gap between different bangumi API response is too large, sometimes we need to query the bangumi info again
-    // We need the type parameter to determine whether to attach the new data to the old data
-    // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
+    // Search results can miss rating distribution or summaries, so fill those
+    // fields without replacing image URLs that are already rendered.
     if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
       _showBangumiInfoSkeleton = true;
       queryBangumiInfoByID(
@@ -178,36 +211,52 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     infoTabController = TabController(length: 5, vsync: this);
     showRating =
         GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
-    infoTabController.addListener(() {
-      int index = infoTabController.index;
-      if (index == 1 &&
-          infoController.commentsList.isEmpty &&
-          !commentsIsLoading &&
-          !commentsIsEmpty &&
-          !commentsQueryTimeout) {
-        loadMoreComments();
+    infoTabController.addListener(onInfoTabChanged);
+  }
+
+  void onInfoTabChanged() {
+    final index = infoTabController.index;
+    if (index == 2 &&
+        infoController.characterList.isEmpty &&
+        !charactersIsLoading &&
+        !charactersIsEmpty &&
+        !charactersQueryTimeout) {
+      loadCharacters();
+    }
+    if (index == 4 &&
+        infoController.staffList.isEmpty &&
+        !staffIsLoading &&
+        !staffIsEmpty &&
+        !staffQueryTimeout) {
+      loadStaff();
+    }
+  }
+
+  Future<void> onCommentsTabSelected() async {
+    final interest = infoController.bangumiItem.interest;
+    final token = GStorage.setting
+        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
+        .toString()
+        .trim();
+    if (interest != null && token.isNotEmpty) {
+      final updated = await infoController.fillInterestUserProfileIfNeeded();
+      if (updated && mounted) {
+        setState(() {});
       }
-      if (index == 2 &&
-          infoController.characterList.isEmpty &&
-          !charactersIsLoading &&
-          !charactersIsEmpty &&
-          !charactersQueryTimeout) {
-        loadCharacters();
-      }
-      if (index == 4 &&
-          infoController.staffList.isEmpty &&
-          !staffIsLoading &&
-          !staffIsEmpty &&
-          !staffQueryTimeout) {
-        loadStaff();
-      }
-    });
+    }
+    if (infoController.commentsList.isEmpty &&
+        !commentsIsLoading &&
+        !commentsIsEmpty &&
+        !commentsQueryTimeout) {
+      loadMoreComments();
+    }
   }
 
   @override
   void dispose() {
+    infoTabController.removeListener(onInfoTabChanged);
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
     videoPageController.resetEpisodeState();
@@ -226,7 +275,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
       await infoController.queryBangumiInfoByID(id, type: type);
     } catch (e) {
       KazumiLogger()
-          .e('InfoController: failed to query bangumi info by ID', error: e);
+          .e('InfoPage: failed to query bangumi info by ID', error: e);
     } finally {
       if (enforceMinimumLoadingDuration && mounted) {
         await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
@@ -397,38 +446,55 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                 loadCharacters: loadCharacters,
                 loadStaff: loadStaff,
                 commentsList: infoController.commentsList,
+                commentsIsLoading: commentsIsLoading,
+                onCommentsTabSelected: onCommentsTabSelected,
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
                 isLoading: showBangumiInfoSkeleton,
               );
             }),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text('开始观看'),
-            onPressed: () async {
-              showModalBottomSheet(
-                isScrollControlled: true,
-                constraints: BoxConstraints(
-                  maxHeight: (MediaQuery.sizeOf(context).height >=
-                          LayoutBreakpoint.compact['height']!)
-                      ? MediaQuery.of(context).size.height * 3 / 4
-                      : MediaQuery.of(context).size.height,
-                  maxWidth: (MediaQuery.sizeOf(context).width >=
-                          LayoutBreakpoint.medium['width']!)
-                      ? MediaQuery.of(context).size.width * 9 / 16
-                      : MediaQuery.of(context).size.width,
-                ),
-                clipBehavior: Clip.antiAlias,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                showDragHandle: true,
-                context: context,
-                builder: (context) {
-                  return SourceSheet(
-                      tabController: sourceTabController,
-                      infoController: infoController);
-                },
-              );
+          floatingActionButton: AnimatedBuilder(
+            animation: infoTabController,
+            builder: (context, child) {
+              final showRatingFab = infoTabController.index == 1;
+              return showRatingFab
+                  ? FloatingActionButton.extended(
+                      tooltip: '吐槽',
+                      onPressed: onBangumiRatingTap,
+                      label: const Text('发表吐槽'),
+                      icon: const Icon(Icons.rate_review_rounded),
+                    )
+                  : FloatingActionButton.extended(
+                      tooltip: '开始观看',
+                      onPressed: () async {
+                        showModalBottomSheet(
+                          isScrollControlled: true,
+                          constraints: BoxConstraints(
+                            maxHeight: (MediaQuery.sizeOf(context).height >=
+                                    LayoutBreakpoint.compact['height']!)
+                                ? MediaQuery.of(context).size.height * 3 / 4
+                                : MediaQuery.of(context).size.height,
+                            maxWidth: (MediaQuery.sizeOf(context).width >=
+                                    LayoutBreakpoint.medium['width']!)
+                                ? MediaQuery.of(context).size.width * 9 / 16
+                                : MediaQuery.of(context).size.width,
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          backgroundColor:
+                              Theme.of(context).scaffoldBackgroundColor,
+                          showDragHandle: true,
+                          context: context,
+                          builder: (context) {
+                            return SourceSheet(
+                                tabController: sourceTabController,
+                                infoController: infoController);
+                          },
+                        );
+                      },
+                      label: const Text('开始观看'),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                    );
             },
           ),
         ),

@@ -297,6 +297,7 @@ class _AdjustmentTrackPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const trackHeight = 12.0;
+    const fillEndRadius = 2.0;
     final rect = Offset(0, (size.height - trackHeight) / 2) &
         Size(size.width, trackHeight);
     final radius = Radius.circular(trackHeight / 2);
@@ -306,13 +307,22 @@ class _AdjustmentTrackPainter extends CustomPainter {
 
     final fillWidth = (size.width * progress).clamp(0.0, size.width).toDouble();
     if (fillWidth > 0) {
-      final fillRect =
-          Rect.fromLTWH(rect.left, rect.top, fillWidth, rect.height);
-      final fill = RRect.fromRectAndRadius(fillRect, radius);
+      canvas.save();
+      canvas.clipRRect(track);
+      final fillRect = Rect.fromLTWH(rect.left, rect.top, fillWidth, rect.height);
+      final fillEnd = Radius.circular(fillEndRadius);
+      final isFull = fillWidth >= rect.width;
       canvas.drawRRect(
-        fill,
+        isFull
+            ? RRect.fromRectAndRadius(fillRect, radius)
+            : RRect.fromRectAndCorners(
+                fillRect,
+                topRight: fillEnd,
+                bottomRight: fillEnd,
+              ),
         Paint()..color = accent,
       );
+      canvas.restore();
     }
 
     final tickPaint = Paint()

@@ -113,8 +113,8 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
     final accent = _accent(colorScheme);
     final container = _container(colorScheme);
     final onContainer = _onContainer(colorScheme);
-    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.74);
-    final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
+    final frostedBackground = colorScheme.surface.withValues(alpha: 0.38);
+    final frostedBorder = colorScheme.onSurface.withValues(alpha: 0.12);
     final duration = widget.disableAnimations
         ? Duration.zero
         : const Duration(milliseconds: 280);
@@ -154,9 +154,12 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: surface,
+                    color: frostedBackground,
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: border),
+                    border: Border.all(
+                      color: frostedBorder,
+                      width: 0.6,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: accent.withValues(

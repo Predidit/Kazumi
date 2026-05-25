@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:kazumi/pages/player/player_adjustment_hud.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
 import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -394,66 +395,22 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   : Container();
             })),
         Positioned(
-            top: 25,
-            child: Observer(builder: (context) {
-              return playerController.panel.showBrightness
-                  ? Wrap(
-                      alignment: WrapAlignment.center,
-                      children: <Widget>[
-                        Container(
-                            padding: const EdgeInsets.all(8.0),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                const Icon(Icons.brightness_7,
-                                    color: Colors.white),
-                                Text(
-                                  ' ${(playerController.panel.brightness * 100).toInt()} %',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            )),
-                      ],
-                    )
-                  : Container();
-            })),
-        Positioned(
-            top: 25,
-            child: Observer(builder: (context) {
-              if (!playerController.panel.showVolume) {
-                return const SizedBox.shrink();
-              }
-              return Wrap(
-                alignment: WrapAlignment.center,
-                children: <Widget>[
-                  Container(
-                      padding: const EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Icon(Icons.volume_down, color: Colors.white),
-                          Observer(builder: (context) {
-                            return Text(
-                              ' ${playerController.playback.volume.toInt()}%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                              ),
-                            );
-                          }),
-                        ],
-                      )),
-                ],
-              );
-            })),
+          top: 25,
+          child: Observer(builder: (context) {
+            final showVolume = playerController.panel.showVolume;
+            final showBrightness = playerController.panel.showBrightness;
+            return PlayerAdjustmentHud(
+              visible: showVolume || showBrightness,
+              type: showVolume
+                  ? PlayerAdjustmentHudType.volume
+                  : PlayerAdjustmentHudType.brightness,
+              value: showVolume
+                  ? playerController.playback.volume
+                  : playerController.panel.brightness,
+              disableAnimations: widget.disableAnimations,
+            );
+          }),
+        ),
         Positioned(
           top: 0,
           left: 0,

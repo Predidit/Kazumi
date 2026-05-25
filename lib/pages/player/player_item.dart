@@ -123,7 +123,7 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
-  Timer? hideVolumeUITimer;
+  Timer? _adjustmentHudHideTimer;
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
   PlayerPanelHold? _progressBarDragHold;
   PlayerPanelHold? _horizontalDragHold;
@@ -448,7 +448,51 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  //跳过指定秒数
+  void _cancelAdjustmentHudHideTimer() {
+    _adjustmentHudHideTimer?.cancel();
+    _adjustmentHudHideTimer = null;
+  }
+
+  void _showVolumeAdjustmentHud() {
+    _cancelAdjustmentHudHideTimer();
+    playerController.panel.showBrightness = false;
+    playerController.panel.showVolume = true;
+  }
+
+  void _showBrightnessAdjustmentHud() {
+    _cancelAdjustmentHudHideTimer();
+    playerController.panel.showVolume = false;
+    playerController.panel.showBrightness = true;
+  }
+
+  void _scheduleAdjustmentHudHide({
+    Duration delay = const Duration(milliseconds: 650),
+  }) {
+    _cancelAdjustmentHudHideTimer();
+    _adjustmentHudHideTimer = Timer(delay, () {
+      if (mounted) {
+        playerController.panel.showVolume = false;
+        playerController.panel.showBrightness = false;
+      }
+      _adjustmentHudHideTimer = null;
+    });
+  }
+
+  void _finishAdjustmentGesture() {
+    if (!brightnessVolumeGesture) {
+      return;
+    }
+    if (playerController.panel.volumeSeeking) {
+      playerController.panel.volumeSeeking = false;
+      unawaited(playerController.finishVolumeGesture());
+    }
+    if (playerController.panel.brightnessSeeking) {
+      playerController.panel.brightnessSeeking = false;
+    }
+    _scheduleAdjustmentHudHide();
+  }
+
+  // 跳过指定秒数
   Future<void> skipOP() async {
     await playerController.seek(playerController.playback.currentPosition +
         Duration(seconds: playerController.playback.buttonSkipTime));
@@ -830,14 +874,8 @@ class _PlayerItemState extends State<PlayerItem>
         default:
           return;
       }
-      playerController.panel.showVolume = true;
-      hideVolumeUITimer?.cancel();
-      hideVolumeUITimer = Timer(const Duration(seconds: 1), () {
-        if (mounted) {
-          playerController.panel.showVolume = false;
-        }
-        hideVolumeUITimer = null;
-      });
+      _showVolumeAdjustmentHud();
+      _scheduleAdjustmentHudHide(delay: const Duration(seconds: 1));
     } catch (e) {
       KazumiLogger().e('PlayerController: volume change failed', error: e);
     }
@@ -1660,7 +1698,7 @@ class _PlayerItemState extends State<PlayerItem>
     playerTimer?.cancel();
     hideTimer?.cancel();
     mouseScrollerTimer?.cancel();
-    hideVolumeUITimer?.cancel();
+    _adjustmentHudHideTimer?.cancel();
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
@@ -1948,7 +1986,7 @@ class _PlayerItemState extends State<PlayerItem>
                                   // 左边区域
                                   playerController.panel.brightnessSeeking =
                                       true;
-                                  playerController.panel.showBrightness = true;
+                                  _showBrightnessAdjustmentHud();
                                   final double level = (totalHeight) * 2;
                                   final double brightness =
                                       playerController.panel.brightness -
@@ -1959,9 +1997,9 @@ class _PlayerItemState extends State<PlayerItem>
                                   playerController.panel.brightness = result;
                                 } else {
                                   // 右边区域
+                                  _showVolumeAdjustmentHud();
                                   if (!playerController.panel.volumeSeeking) {
                                     playerController.panel.volumeSeeking = true;
-                                    playerController.panel.showVolume = true;
                                     playerController.playback
                                         .invalidatePreciseVolume();
                                   }
@@ -1978,20 +2016,10 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                               },
                               onVerticalDragEnd: (_) {
-                                if (!brightnessVolumeGesture) {
-                                  return;
-                                }
-                                if (playerController.panel.volumeSeeking) {
-                                  playerController.panel.volumeSeeking = false;
-                                  unawaited(
-                                      playerController.finishVolumeGesture());
-                                }
-                                if (playerController.panel.brightnessSeeking) {
-                                  playerController.panel.brightnessSeeking =
-                                      false;
-                                }
-                                playerController.panel.showVolume = false;
-                                playerController.panel.showBrightness = false;
+                                _finishAdjustmentGesture();
+                              },
+                              onVerticalDragCancel: () {
+                                _finishAdjustmentGesture();
                               },
                             ),
                     ),

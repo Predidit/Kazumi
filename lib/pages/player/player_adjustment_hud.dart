@@ -110,7 +110,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
     final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
     final duration = widget.disableAnimations
         ? Duration.zero
-        : const Duration(milliseconds: 280);
+        : const Duration(milliseconds: 200);
     final snapProgress = _snapProgressOnNextBuild;
     if (snapProgress) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -144,8 +144,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                   duration: duration,
                   curve: Curves.easeOutCubic,
                   width: 224,
-                  padding:
-                      const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: surface,
                     borderRadius: BorderRadius.circular(30),
@@ -198,14 +197,13 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: SliderTheme(
                           data: SliderThemeData(
                             trackHeight: 32,
                             activeTrackColor: colorScheme.primary,
-                            inactiveTrackColor:
-                                colorScheme.secondaryContainer,
+                            inactiveTrackColor: colorScheme.secondaryContainer,
                             thumbColor: colorScheme.primary,
                             overlayShape: SliderComponentShape.noOverlay,
                             trackShape: const _HudSliderTrackShape(
@@ -222,9 +220,18 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                             tickMarkShape: SliderTickMarkShape.noTickMark,
                             padding: EdgeInsets.zero,
                           ),
-                          child: Slider(
-                            value: _progress,
-                            onChanged: (_) {},
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween<double>(end: _progress),
+                            duration: widget.disableAnimations || snapProgress
+                                ? Duration.zero
+                                : const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, animatedProgress, child) {
+                              return Slider(
+                                value: animatedProgress,
+                                onChanged: (_) {},
+                              );
+                            },
                           ),
                         ),
                       ),

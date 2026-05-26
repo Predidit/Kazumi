@@ -79,13 +79,6 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
     return Icons.volume_up_rounded;
   }
 
-  String get _label {
-    return switch (_displayType) {
-      PlayerAdjustmentHudType.brightness => '亮度',
-      PlayerAdjustmentHudType.volume => '音量',
-    };
-  }
-
   Color _accent(ColorScheme colorScheme) {
     return switch (_displayType) {
       PlayerAdjustmentHudType.brightness => colorScheme.tertiary,
@@ -144,18 +137,18 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
             duration: duration,
             curve: Curves.easeOutBack,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(30),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 236,
+                  width: 224,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: surface,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: border),
                     boxShadow: [
                       BoxShadow(
@@ -178,11 +171,11 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       AnimatedContainer(
                         duration: duration,
                         curve: Curves.easeOutCubic,
-                        width: 42,
-                        height: 42,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: container.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(21),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: AnimatedSwitcher(
                           duration: duration,
@@ -207,66 +200,32 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: colorScheme.onSurface
-                                          .withValues(alpha: 0.88),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '$_percent%',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurface,
-                                    fontSize: 13,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
+                        child: SliderTheme(
+                          data: SliderThemeData(
+                            trackHeight: 32,
+                            activeTrackColor: colorScheme.primary,
+                            inactiveTrackColor:
+                                colorScheme.secondaryContainer,
+                            thumbColor: colorScheme.primary,
+                            overlayShape: SliderComponentShape.noOverlay,
+                            trackShape: const _HudSliderTrackShape(
+                              outerRadius: 12,
+                              innerRadius: 2,
+                              thumbGap: 12,
+                              edgeInset: 6,
                             ),
-                            const SizedBox(height: 8),
-                            TweenAnimationBuilder<double>(
-                              tween: Tween<double>(
-                                end: _progress,
-                              ),
-                              duration: widget.disableAnimations || snapProgress
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 360),
-                              curve: Curves.easeOutCubic,
-                              builder: (context, animatedProgress, _) {
-                                return SizedBox(
-                                  width: double.infinity,
-                                  height: 16,
-                                  child: CustomPaint(
-                                    painter: _AdjustmentTrackPainter(
-                                      progress: animatedProgress,
-                                      accent: accent,
-                                      trackColor: colorScheme
-                                          .surfaceContainerHighest
-                                          .withValues(alpha: 0.86),
-                                      tickColor: colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.18),
-                                    ),
-                                  ),
-                                );
-                              },
+                            thumbShape: const _HudSliderThumbShape(
+                              width: 4,
+                              height: 40,
+                              cornerRadius: 2,
                             ),
-                          ],
+                            tickMarkShape: SliderTickMarkShape.noTickMark,
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: Slider(
+                            value: _progress,
+                            onChanged: (_) {},
+                          ),
                         ),
                       ),
                     ],
@@ -281,59 +240,263 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
   }
 }
 
-class _AdjustmentTrackPainter extends CustomPainter {
-  const _AdjustmentTrackPainter({
-    required this.progress,
-    required this.accent,
-    required this.trackColor,
-    required this.tickColor,
+class _HudSliderTrackShape extends SliderTrackShape {
+  const _HudSliderTrackShape({
+    required this.outerRadius,
+    required this.innerRadius,
+    this.thumbGap = 10,
+    this.edgeInset = 6,
   });
 
-  final double progress;
-  final Color accent;
-  final Color trackColor;
-  final Color tickColor;
+  final double outerRadius;
+  final double innerRadius;
+  final double thumbGap;
+  final double edgeInset;
+
+  Rect _baseTrackRect({
+    required RenderBox parentBox,
+    required Offset offset,
+    required SliderThemeData sliderTheme,
+    required bool isEnabled,
+    required bool isDiscrete,
+  }) {
+    final thumbWidth =
+        sliderTheme.thumbShape?.getPreferredSize(isEnabled, isDiscrete).width ??
+            0;
+    final trackHeight = sliderTheme.trackHeight ?? 0;
+    final trackLeft = offset.dx + thumbWidth / 2;
+    final trackTop = offset.dy + (parentBox.size.height - trackHeight) / 2;
+    final trackWidth = parentBox.size.width - thumbWidth;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
+  }
 
   @override
-  void paint(Canvas canvas, Size size) {
-    const trackHeight = 12.0;
-    final rect = Offset(0, (size.height - trackHeight) / 2) &
-        Size(size.width, trackHeight);
-    final radius = Radius.circular(trackHeight / 2);
-    final track = RRect.fromRectAndRadius(rect, radius);
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final baseTrackRect = _baseTrackRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
 
-    canvas.drawRRect(track, Paint()..color = trackColor);
+    final safeInset = edgeInset.clamp(0.0, baseTrackRect.width / 2).toDouble();
+    return Rect.fromLTRB(
+      baseTrackRect.left + safeInset,
+      baseTrackRect.top,
+      baseTrackRect.right - safeInset,
+      baseTrackRect.bottom,
+    );
+  }
 
-    final fillWidth = (size.width * progress).clamp(0.0, size.width).toDouble();
-    if (fillWidth > 0) {
-      final fillRect =
-          Rect.fromLTWH(rect.left, rect.top, fillWidth, rect.height);
-      final fill = RRect.fromRectAndRadius(fillRect, radius);
-      canvas.drawRRect(
-        fill,
-        Paint()..color = accent,
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset, {
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required Offset thumbCenter,
+    Offset? secondaryOffset,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+    required TextDirection textDirection,
+  }) {
+    final canvas = context.canvas;
+    final baseTrackRect = _baseTrackRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final effectiveTrackRect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+
+    final activeColor = ColorTween(
+          begin: sliderTheme.disabledActiveTrackColor,
+          end: sliderTheme.activeTrackColor,
+        ).evaluate(enableAnimation) ??
+        Colors.transparent;
+    final inactiveColor = ColorTween(
+          begin: sliderTheme.disabledInactiveTrackColor,
+          end: sliderTheme.inactiveTrackColor,
+        ).evaluate(enableAnimation) ??
+        Colors.transparent;
+
+    final thumbX = thumbCenter.dx.clamp(
+      effectiveTrackRect.left,
+      effectiveTrackRect.right,
+    );
+    var halfGap = thumbGap / 2;
+    final leftRoom = thumbX - baseTrackRect.left;
+    final rightRoom = baseTrackRect.right - thumbX;
+    if (halfGap > leftRoom) {
+      halfGap = leftRoom;
+    }
+    if (halfGap > rightRoom) {
+      halfGap = rightRoom;
+    }
+
+    final leftEnd = (thumbX - halfGap).clamp(
+      baseTrackRect.left,
+      baseTrackRect.right,
+    );
+    final rightStart = (thumbX + halfGap).clamp(
+      baseTrackRect.left,
+      baseTrackRect.right,
+    );
+
+    final leftRect = Rect.fromLTRB(
+      baseTrackRect.left,
+      baseTrackRect.top,
+      leftEnd,
+      baseTrackRect.bottom,
+    );
+    final rightRect = Rect.fromLTRB(
+      rightStart,
+      baseTrackRect.top,
+      baseTrackRect.right,
+      baseTrackRect.bottom,
+    );
+
+    final leftColor =
+        textDirection == TextDirection.ltr ? activeColor : inactiveColor;
+    final rightColor =
+        textDirection == TextDirection.ltr ? inactiveColor : activeColor;
+    final hasLeftSegment = leftRect.width > 0;
+    final hasRightSegment = rightRect.width > 0;
+
+    if (hasLeftSegment) {
+      _paintSegment(
+        canvas: canvas,
+        segmentRect: leftRect,
+        color: leftColor,
+        startRadius: outerRadius,
+        endRadius: innerRadius,
+        anchorToStart: true,
       );
     }
 
-    final tickPaint = Paint()
-      ..color = tickColor
-      ..strokeWidth = 1
-      ..strokeCap = StrokeCap.round;
-    for (var i = 1; i < 6; i++) {
-      final x = rect.left + rect.width * i / 6;
-      canvas.drawLine(
-        Offset(x, rect.top + 3),
-        Offset(x, rect.bottom - 3),
-        tickPaint,
+    if (hasRightSegment) {
+      _paintSegment(
+        canvas: canvas,
+        segmentRect: rightRect,
+        color: rightColor,
+        startRadius: innerRadius,
+        endRadius: outerRadius,
+        anchorToStart: false,
       );
     }
   }
 
+  void _paintSegment({
+    required Canvas canvas,
+    required Rect segmentRect,
+    required Color color,
+    required double startRadius,
+    required double endRadius,
+    required bool anchorToStart,
+  }) {
+    if (segmentRect.width <= 0) {
+      return;
+    }
+
+    final minTemplateWidth = startRadius + endRadius;
+    final templateWidth = segmentRect.width < minTemplateWidth
+        ? minTemplateWidth
+        : segmentRect.width;
+    final templateRect = anchorToStart
+        ? Rect.fromLTWH(
+            segmentRect.left,
+            segmentRect.top,
+            templateWidth,
+            segmentRect.height,
+          )
+        : Rect.fromLTWH(
+            segmentRect.right - templateWidth,
+            segmentRect.top,
+            templateWidth,
+            segmentRect.height,
+          );
+
+    canvas.save();
+    canvas.clipRect(segmentRect);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        templateRect,
+        topLeft: Radius.circular(startRadius),
+        bottomLeft: Radius.circular(startRadius),
+        topRight: Radius.circular(endRadius),
+        bottomRight: Radius.circular(endRadius),
+      ),
+      Paint()..color = color,
+    );
+    canvas.restore();
+  }
+}
+
+class _HudSliderThumbShape extends SliderComponentShape {
+  const _HudSliderThumbShape({
+    required this.width,
+    required this.height,
+    required this.cornerRadius,
+  });
+
+  final double width;
+  final double height;
+  final double cornerRadius;
+
   @override
-  bool shouldRepaint(covariant _AdjustmentTrackPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.accent != accent ||
-        oldDelegate.trackColor != trackColor ||
-        oldDelegate.tickColor != tickColor;
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return Size(width, height);
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final thumbColor = ColorTween(
+          begin: sliderTheme.disabledThumbColor,
+          end: sliderTheme.thumbColor,
+        ).evaluate(enableAnimation) ??
+        Colors.transparent;
+    final canvas = context.canvas;
+
+    final thumbRect = Rect.fromCenter(
+      center: center,
+      width: width,
+      height: height,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        thumbRect,
+        Radius.circular(cornerRadius),
+      ),
+      Paint()..color = thumbColor,
+    );
   }
 }

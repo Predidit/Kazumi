@@ -81,22 +81,36 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
 
   Color _accent(ColorScheme colorScheme) {
     return switch (_displayType) {
-      PlayerAdjustmentHudType.brightness => colorScheme.tertiary,
-      PlayerAdjustmentHudType.volume => colorScheme.primary,
-    };
-  }
-
-  Color _container(ColorScheme colorScheme) {
-    return switch (_displayType) {
       PlayerAdjustmentHudType.brightness => colorScheme.tertiaryContainer,
       PlayerAdjustmentHudType.volume => colorScheme.primaryContainer,
     };
   }
 
+  Color _container(ColorScheme colorScheme) {
+    return switch (_displayType) {
+      PlayerAdjustmentHudType.brightness => colorScheme.tertiary,
+      PlayerAdjustmentHudType.volume => colorScheme.primary,
+    };
+  }
+
   Color _onContainer(ColorScheme colorScheme) {
     return switch (_displayType) {
-      PlayerAdjustmentHudType.brightness => colorScheme.onTertiaryContainer,
-      PlayerAdjustmentHudType.volume => colorScheme.onPrimaryContainer,
+      PlayerAdjustmentHudType.brightness => colorScheme.onTertiary,
+      PlayerAdjustmentHudType.volume => colorScheme.onPrimary,
+    };
+  }
+
+  Color _activeTraker(ColorScheme colorScheme) {
+    return switch (_displayType) {
+      PlayerAdjustmentHudType.brightness => colorScheme.tertiary,
+      PlayerAdjustmentHudType.volume => colorScheme.primary,
+    };
+  }
+
+  Color _inactiveTraker(ColorScheme colorScheme) {
+    return switch (_displayType) {
+      PlayerAdjustmentHudType.brightness => colorScheme.tertiaryContainer,
+      PlayerAdjustmentHudType.volume => colorScheme.secondaryContainer,
     };
   }
 
@@ -143,8 +157,8 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 224,
-                  padding: const EdgeInsets.all(8),
+                  width: 200,
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                   decoration: BoxDecoration(
                     color: surface,
                     borderRadius: BorderRadius.circular(30),
@@ -170,8 +184,8 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       AnimatedContainer(
                         duration: duration,
                         curve: Curves.easeOutCubic,
-                        width: 40,
-                        height: 40,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
                           color: container.withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(20),
@@ -193,7 +207,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                             _icon,
                             key: ValueKey(_icon),
                             color: onContainer,
-                            size: 24,
+                            size: 20,
                           ),
                         ),
                       ),
@@ -202,9 +216,9 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                         child: SliderTheme(
                           data: SliderThemeData(
                             trackHeight: 32,
-                            activeTrackColor: colorScheme.primary,
-                            inactiveTrackColor: colorScheme.secondaryContainer,
-                            thumbColor: colorScheme.primary,
+                            activeTrackColor: _activeTraker(colorScheme),
+                            inactiveTrackColor: _inactiveTraker(colorScheme),
+                            thumbColor: _activeTraker(colorScheme),
                             overlayShape: SliderComponentShape.noOverlay,
                             trackShape: const _HudSliderTrackShape(
                               outerRadius: 12,

@@ -126,7 +126,6 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? _adjustmentHudHideTimer;
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
   PlayerPanelHold? _progressBarDragHold;
-  PlayerPanelHold? _horizontalDragHold;
 
   double lastVolume = 0;
 
@@ -819,7 +818,6 @@ class _PlayerItemState extends State<PlayerItem>
     }
     _playerPanelHolds.clear();
     _progressBarDragHold = null;
-    _horizontalDragHold = null;
     playerController.panel.canHidePlayerPanel = true;
     _startHideTimer();
   }
@@ -1938,12 +1936,15 @@ class _PlayerItemState extends State<PlayerItem>
                           ? Container()
                           : GestureDetector(
                               onHorizontalDragStart: (_) {
-                                _horizontalDragHold?.release();
-                                _horizontalDragHold = acquirePlayerPanelHold();
+                                playerController.panel.seekDirection = 0;
                               },
                               onHorizontalDragUpdate:
                                   (DragUpdateDetails details) {
                                 playerController.panel.showSeekTime = true;
+                                if (details.delta.dx != 0) {
+                                  playerController.panel.seekDirection =
+                                      details.delta.dx > 0 ? 1 : -1;
+                                }
                                 playerTimer?.cancel();
                                 playerController.pause(enableSync: false);
                                 final double scale =
@@ -1962,11 +1963,10 @@ class _PlayerItemState extends State<PlayerItem>
                                 playerController.play(enableSync: false);
                                 playerController.seek(
                                     playerController.playback.currentPosition);
-                                _horizontalDragHold?.release();
-                                _horizontalDragHold = null;
                                 playerTimer?.cancel();
                                 playerTimer = getPlayerTimer();
                                 playerController.panel.showSeekTime = false;
+                                playerController.panel.seekDirection = 0;
                               },
                               onVerticalDragUpdate:
                                   (DragUpdateDetails details) async {

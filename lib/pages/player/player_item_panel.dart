@@ -501,63 +501,28 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
           }),
         ),
         Positioned(
-            top: 25,
-            child: Observer(builder: (context) {
-              return playerController.panel.showSeekTime
-                  ? Wrap(
-                      alignment: WrapAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: Text(
-                            playerController.playback.currentPosition.compareTo(
-                                        playerController
-                                            .playback.playerPosition) >
-                                    0
-                                ? '快进 ${playerController.playback.currentPosition.inSeconds - playerController.playback.playerPosition.inSeconds} 秒'
-                                : '快退 ${playerController.playback.playerPosition.inSeconds - playerController.playback.currentPosition.inSeconds} 秒',
-                            style: const TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container();
-            })),
+          top: 25,
+          child: Observer(builder: (context) {
+            return PlayerSeekHud(
+              visible: playerController.panel.showSeekTime,
+              currentPosition: playerController.playback.currentPosition,
+              playerPosition: playerController.playback.playerPosition,
+              duration: playerController.playback.duration,
+              direction: playerController.panel.seekDirection,
+              disableAnimations: widget.disableAnimations,
+            );
+          }),
+        ),
         Positioned(
-            top: 25,
-            child: Observer(builder: (context) {
-              return playerController.panel.showPlaySpeed
-                  ? Wrap(
-                      alignment: WrapAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: const Row(
-                            children: <Widget>[
-                              Icon(Icons.fast_forward, color: Colors.white),
-                              Text(
-                                ' 倍速播放',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container();
-            })),
+          top: 25,
+          child: Observer(builder: (context) {
+            return PlayerSpeedHud(
+              visible: playerController.panel.showPlaySpeed,
+              speed: playerController.playback.playerSpeed,
+              disableAnimations: widget.disableAnimations,
+            );
+          }),
+        ),
         Positioned(
           top: 25,
           child: Observer(builder: (context) {

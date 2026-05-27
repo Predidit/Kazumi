@@ -31,6 +31,14 @@ class InfoPage extends StatefulWidget {
 }
 
 class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
+  static const List<String> _infoTabs = <String>[
+    '概览',
+    '吐槽',
+    '角色',
+    '评论',
+    '制作人员',
+  ];
+  static const int _commentsTabIndex = 1;
   static const Duration _minimumBangumiInfoLoadingDuration =
       Duration(milliseconds: 600);
 
@@ -54,6 +62,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool staffQueryTimeout = false;
   bool staffIsEmpty = false;
   bool _showBangumiInfoSkeleton = false;
+  int _fabTabIndex = 0;
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
 
@@ -208,10 +217,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     }
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
-    infoTabController = TabController(length: 5, vsync: this);
+    infoTabController = TabController(length: _infoTabs.length, vsync: this);
+    _fabTabIndex = infoTabController.index;
     showRating =
         GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
     infoTabController.addListener(onInfoTabChanged);
+    infoTabController.addListener(_syncFabTabIndex);
+    infoTabController.animation?.addListener(_syncFabTabIndex);
   }
 
   void onInfoTabChanged() {
@@ -230,6 +242,25 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         !staffQueryTimeout) {
       loadStaff();
     }
+  }
+
+  void _syncFabTabIndex() {
+    final animation = infoTabController.animation;
+    final targetIndex = infoTabController.indexIsChanging
+        ? infoTabController.index
+        : (animation?.value.round() ?? infoTabController.index);
+    final nextIndex =
+        targetIndex.clamp(0, infoTabController.length - 1).toInt();
+
+    if (_fabTabIndex == nextIndex) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _fabTabIndex = nextIndex;
+    });
   }
 
   Future<void> onCommentsTabSelected() async {
@@ -255,6 +286,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     infoTabController.removeListener(onInfoTabChanged);
+    infoTabController.removeListener(_syncFabTabIndex);
+    infoTabController.animation?.removeListener(_syncFabTabIndex);
     infoController.characterList.clear();
     infoController.clearComments();
     infoController.staffList.clear();
@@ -299,13 +332,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> tabs = <String>['概览', '吐槽', '角色', '评论', '制作人员'];
     final bool showWindowButton = GStorage.setting
         .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
     return PopScope(
       canPop: true,
       child: DefaultTabController(
-        length: tabs.length,
+        length: _infoTabs.length,
         child: Scaffold(
           body: NestedScrollView(
             headerSliverBuilder:
@@ -425,7 +458,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       isScrollable: true,
                       tabAlignment: TabAlignment.center,
                       dividerHeight: 0,
-                      tabs: tabs.map((name) => Tab(text: name)).toList(),
+                      tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
                     ),
                   ),
                 ),
@@ -454,49 +487,43 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
               );
             }),
           ),
-          floatingActionButton: AnimatedBuilder(
-            animation: infoTabController,
-            builder: (context, child) {
-              final showRatingFab = infoTabController.index == 1;
-              return showRatingFab
-                  ? FloatingActionButton.extended(
-                      tooltip: '吐槽',
-                      onPressed: onBangumiRatingTap,
-                      label: const Text('发表吐槽'),
-                      icon: const Icon(Icons.rate_review_rounded),
-                    )
-                  : FloatingActionButton.extended(
-                      tooltip: '开始观看',
-                      onPressed: () async {
-                        showModalBottomSheet(
-                          isScrollControlled: true,
-                          constraints: BoxConstraints(
-                            maxHeight: (MediaQuery.sizeOf(context).height >=
-                                    LayoutBreakpoint.compact['height']!)
-                                ? MediaQuery.of(context).size.height * 3 / 4
-                                : MediaQuery.of(context).size.height,
-                            maxWidth: (MediaQuery.sizeOf(context).width >=
-                                    LayoutBreakpoint.medium['width']!)
-                                ? MediaQuery.of(context).size.width * 9 / 16
-                                : MediaQuery.of(context).size.width,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          backgroundColor:
-                              Theme.of(context).scaffoldBackgroundColor,
-                          showDragHandle: true,
-                          context: context,
-                          builder: (context) {
-                            return SourceSheet(
-                                tabController: sourceTabController,
-                                infoController: infoController);
-                          },
-                        );
+          floatingActionButton: showRatingFab
+              ? FloatingActionButton.extended(
+                  tooltip: '吐槽',
+                  onPressed: onBangumiRatingTap,
+                  label: const Text('发表吐槽'),
+                  icon: const Icon(Icons.rate_review_rounded),
+                )
+              : FloatingActionButton.extended(
+                  tooltip: '开始观看',
+                  onPressed: () async {
+                    showModalBottomSheet(
+                      isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxHeight: (MediaQuery.sizeOf(context).height >=
+                                LayoutBreakpoint.compact['height']!)
+                            ? MediaQuery.of(context).size.height * 3 / 4
+                            : MediaQuery.of(context).size.height,
+                        maxWidth: (MediaQuery.sizeOf(context).width >=
+                                LayoutBreakpoint.medium['width']!)
+                            ? MediaQuery.of(context).size.width * 9 / 16
+                            : MediaQuery.of(context).size.width,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      backgroundColor:
+                          Theme.of(context).scaffoldBackgroundColor,
+                      showDragHandle: true,
+                      context: context,
+                      builder: (context) {
+                        return SourceSheet(
+                            tabController: sourceTabController,
+                            infoController: infoController);
                       },
-                      label: const Text('开始观看'),
-                      icon: const Icon(Icons.play_arrow_rounded),
                     );
-            },
-          ),
+                  },
+                  label: const Text('开始观看'),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                ),
         ),
       ),
     );

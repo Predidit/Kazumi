@@ -1707,7 +1707,6 @@ class _PlayerItemState extends State<PlayerItem>
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
-    _danmakuTextFieldFocus.dispose();
     if (Platform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
@@ -1716,6 +1715,7 @@ class _PlayerItemState extends State<PlayerItem>
     unawaited(_audioController.deactivate());
     _audioController.clearCallbacks();
     super.dispose();
+    _danmakuTextFieldFocus.dispose();
   }
 
   @override

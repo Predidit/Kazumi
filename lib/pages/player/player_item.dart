@@ -96,6 +96,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   // 弹幕
   final _danmuKey = GlobalKey();
+  final FocusNode _danmakuTextFieldFocus = FocusNode();
   late bool _border;
   late double _opacity;
   late double _fontSize;
@@ -264,6 +265,12 @@ class _PlayerItemState extends State<PlayerItem>
       'speed3': () async => setPlaybackSpeed(3.0),
       'speedup': () async => handleSpeedChange('up'),
       'speeddown': () async => handleSpeedChange('down'),
+      'enterdanmaku': () {
+        if (playerController.danmaku.danmakuOn) {
+          displayVideoController();
+          _danmakuTextFieldFocus.requestFocus();
+        }
+      },
       // 开始对应长按功能
       // 如需对应长按功能，例如对功能'func'对应长按，请分别添加'funcRepeat'和'funcUp'。
       'forwardRepeat': () async => handleShortcutForwardRepeat(),
@@ -1700,6 +1707,7 @@ class _PlayerItemState extends State<PlayerItem>
     _panelVisibilityController.dispose();
     _screenshotFeedbackController.dispose();
     _disposePlayerMenu();
+    _danmakuTextFieldFocus.dispose();
     if (Platform.isAndroid) {
       unawaited(_syncAndroidPIPPlayerPageState(false));
       PipUtils.disposePipHandler();
@@ -1898,6 +1906,7 @@ class _PlayerItemState extends State<PlayerItem>
                                 widget.showDanmakuDestinationPickerAndSend,
                             pauseForTimedShutdown: widget.pauseForTimedShutdown,
                             disableAnimations: widget.disableAnimations,
+                            danmakuTextFieldFocus: _danmakuTextFieldFocus,
                             handleScreenShot: handleScreenshot,
                             skipOP: skipOP,
                           )

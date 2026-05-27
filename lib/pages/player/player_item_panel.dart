@@ -108,6 +108,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_onDanmakuTextFieldFocusChange);
     _releaseDanmakuTextFieldPanel();
     textController.dispose();
     if (widget.danmakuTextFieldFocus == null) {
@@ -126,6 +127,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void _releaseDanmakuTextFieldPanel() {
     _danmakuTextFieldHold?.release();
     _danmakuTextFieldHold = null;
+  }
+
+  void _onDanmakuTextFieldFocusChange() {
+    if (textFieldFocus.hasFocus) {
+      _holdDanmakuTextFieldPanel();
+    } else {
+      _releaseDanmakuTextFieldPanel();
+    }
   }
 
   Widget get danmakuTextField {
@@ -304,6 +313,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void initState() {
     super.initState();
     textFieldFocus = widget.danmakuTextFieldFocus ?? FocusNode();
+    textFieldFocus.addListener(_onDanmakuTextFieldFocusChange);
     playerController = widget.playerController;
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),

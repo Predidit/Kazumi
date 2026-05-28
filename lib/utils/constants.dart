@@ -233,6 +233,7 @@ final Map<String, List<String>> defaultShortcuts = const {
   'speed3': ['3'],
   'speedup': ['X'],
   'speeddown': ['Z'],
+  'enterdanmaku': ['Enter'],
 };
 
 // 键位别名
@@ -268,4 +269,5 @@ final Map<String, String> shortcutsChineseName = {
   'speed3': '倍速：3x',
   'speedup': '倍速加',
   'speeddown': '倍速减',
+  'enterdanmaku': '弹幕输入',
 };

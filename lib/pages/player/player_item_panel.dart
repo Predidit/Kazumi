@@ -49,6 +49,7 @@ class PlayerItemPanel extends StatefulWidget {
     required this.showSyncPlayEndPointSwitchDialog,
     required this.showDanmakuDestinationPickerAndSend,
     required this.pauseForTimedShutdown,
+    this.danmakuTextFieldFocus,
     this.disableAnimations = false,
   });
 
@@ -75,6 +76,7 @@ class PlayerItemPanel extends StatefulWidget {
   final void Function() showSyncPlayEndPointSwitchDialog;
   final void Function(String) showDanmakuDestinationPickerAndSend;
   final VoidCallback pauseForTimedShutdown;
+  final FocusNode? danmakuTextFieldFocus;
   final bool disableAnimations;
 
   @override
@@ -93,7 +95,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   final DownloadController downloadController =
       Modular.get<DownloadController>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocus = FocusNode();
+  late final FocusNode textFieldFocus;
   PlayerPanelHold? _danmakuTextFieldHold;
   // SVG Caches
   String? cachedSvgString;
@@ -106,9 +108,12 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
 
   @override
   void dispose() {
+    textFieldFocus.removeListener(_onDanmakuTextFieldFocusChange);
     _releaseDanmakuTextFieldPanel();
     textController.dispose();
-    textFieldFocus.dispose();
+    if (widget.danmakuTextFieldFocus == null) {
+      textFieldFocus.dispose();
+    }
     super.dispose();
   }
 
@@ -122,6 +127,14 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   void _releaseDanmakuTextFieldPanel() {
     _danmakuTextFieldHold?.release();
     _danmakuTextFieldHold = null;
+  }
+
+  void _onDanmakuTextFieldFocusChange() {
+    if (textFieldFocus.hasFocus) {
+      _holdDanmakuTextFieldPanel();
+    } else {
+      _releaseDanmakuTextFieldPanel();
+    }
   }
 
   Widget get danmakuTextField {
@@ -299,6 +312,8 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
   @override
   void initState() {
     super.initState();
+    textFieldFocus = widget.danmakuTextFieldFocus ?? FocusNode();
+    textFieldFocus.addListener(_onDanmakuTextFieldFocusChange);
     playerController = widget.playerController;
     topOffsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.0),

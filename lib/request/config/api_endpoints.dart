@@ -25,6 +25,9 @@ class ApiEndpoints {
   /// Github镜像
   static const String gitMirror = 'https://ghfast.top/';
 
+  /// Bangumi 镜像测试后端
+  static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
+
   /// 弹弹官网
   static const String dandanIndex = 'https://www.dandanplay.com/';
 
@@ -68,6 +71,14 @@ class ApiEndpoints {
 
   /// 番剧趋势
   static const String bangumiTrendsNext = '/p1/trending/subjects';
+
+  /// Kazumi Bangumi 镜像缓存榜单
+  static const String bangumiMirrorPopularSubjects =
+      '/kazumi/v1/popular/subjects';
+
+  /// Kazumi Bangumi 镜像季节时间表
+  static const String bangumiMirrorSeasonCalendar =
+      '/kazumi/v1/calendar/season';
 
   /// 番剧信息
   static const String bangumiInfoByIDNext = '/p1/subjects/{0}';

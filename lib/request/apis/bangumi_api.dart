@@ -16,8 +16,7 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
-  // why the api havn't been replaced by getCalendarBySearch?
-  // Because getCalendarBySearch is not stable, it will miss some bangumi items.
+
   static Future<List<List<BangumiItem>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
@@ -41,9 +40,8 @@ class BangumiApi {
     return bangumiCalendar;
   }
 
-  // Get clander by search API, we need a list of strings (the start of the season and the end of the season) eg: ["2024-07-01", "2024-10-01"]
-  // because the air date is the launch date of the anime, it is usually a few days before the start of the season
-  // So we usually use the start of the season month -1 and the end of the season month -1
+  // Official fallback for season switching. Mirror mode uses the cached
+  // /kazumi/v1/calendar/season endpoint instead of Bangumi search.
   static Future<List<List<BangumiItem>>> getCalendarBySearch(
       List<String> dateRange, int limit, int offset) async {
     List<BangumiItem> bangumiList = [];
@@ -89,6 +87,45 @@ class BangumiApi {
     } catch (e) {
       KazumiLogger()
           .e('Network: fetch bangumi item to calendar failed', error: e);
+    }
+    return bangumiCalendar;
+  }
+
+  static String buildBangumiMirrorSeasonCalendarPath(List<String> dateRange) {
+    return Uri(
+      path: ApiEndpoints.bangumiMirrorSeasonCalendar,
+      queryParameters: {
+        'start': dateRange[0],
+        'end': dateRange[1],
+      },
+    ).toString();
+  }
+
+  static Future<List<List<BangumiItem>>> getBangumiMirrorSeasonCalendar(
+      List<String> dateRange) async {
+    List<List<BangumiItem>> bangumiCalendar = [];
+    try {
+      final jsonData = await _client.get(
+        ApiEndpoints.bangumiMirrorDomain +
+            buildBangumiMirrorSeasonCalendarPath(dateRange),
+      );
+      for (int i = 1; i <= 7; i++) {
+        List<BangumiItem> bangumiList = [];
+        final jsonList = jsonData['$i'] ?? [];
+        for (dynamic jsonItem in jsonList) {
+          try {
+            final subject =
+                jsonItem is Map<String, dynamic> ? jsonItem['subject'] : null;
+            if (subject is Map<String, dynamic>) {
+              bangumiList.add(BangumiItem.fromJson(subject));
+            }
+          } catch (_) {}
+        }
+        bangumiCalendar.add(bangumiList);
+      }
+    } catch (e) {
+      KazumiLogger().e('Network: resolve bangumi mirror season calendar failed',
+          error: e);
     }
     return bangumiCalendar;
   }
@@ -164,6 +201,49 @@ class BangumiApi {
     return bangumiList;
   }
 
+  static String buildBangumiMirrorPopularPath({
+    String tag = '',
+    int limit = 24,
+    int offset = 0,
+  }) {
+    return Uri(
+      path: ApiEndpoints.bangumiMirrorPopularSubjects,
+      queryParameters: {
+        if (tag.isNotEmpty) 'tag': tag,
+        'limit': limit.toString(),
+        'offset': offset.toString(),
+      },
+    ).toString();
+  }
+
+  static Future<List<BangumiItem>> getBangumiMirrorPopularSubjects({
+    String tag = '',
+    int limit = 24,
+    int offset = 0,
+  }) async {
+    List<BangumiItem> bangumiList = [];
+    try {
+      final jsonData = await _client.get(
+        ApiEndpoints.bangumiMirrorDomain +
+            buildBangumiMirrorPopularPath(
+              tag: tag,
+              limit: limit,
+              offset: offset,
+            ),
+      );
+      final jsonList = jsonData is List ? jsonData : jsonData['data'];
+      for (dynamic jsonItem in jsonList) {
+        if (jsonItem is Map<String, dynamic>) {
+          bangumiList.add(BangumiItem.fromJson(jsonItem));
+        }
+      }
+    } catch (e) {
+      KazumiLogger()
+          .e('Network: resolve bangumi mirror popular list failed', error: e);
+    }
+    return bangumiList;
+  }
+
   static Future<List<BangumiItem>> bangumiSearch(String keyword,
       {List<String> tags = const [],
       int offset = 0,
@@ -212,7 +292,9 @@ class BangumiApi {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
-            ApiEndpoints.bangumiAPINextDomain + ApiEndpoints.bangumiInfoByIDNext, [id]),
+            ApiEndpoints.bangumiAPINextDomain +
+                ApiEndpoints.bangumiInfoByIDNext,
+            [id]),
       );
       return BangumiItem.fromJson(jsonData);
     } catch (e) {
@@ -524,7 +606,8 @@ class BangumiApi {
     int? rate,
     List<String>? tags,
   }) async {
-    final bangumiType = CollectType.fromValue(localType).toBangumiCollectionType();
+    final bangumiType =
+        CollectType.fromValue(localType).toBangumiCollectionType();
     if (bangumiType == null) {
       return false;
     }

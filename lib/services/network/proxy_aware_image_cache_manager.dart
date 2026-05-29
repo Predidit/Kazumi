@@ -21,6 +21,21 @@ class ProxyAwareImageCacheManager extends CacheManager with ImageCacheManager {
 }
 
 class ProxyAwareImageFileService extends FileService {
+  static String rewriteBangumiMirrorImageUrl(
+    String url, {
+    required bool enableBangumiProxy,
+  }) {
+    if (!enableBangumiProxy) return url;
+
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host != 'lain.bgm.tv') return url;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return url;
+
+    final sourceUrl =
+        uri.host + uri.path + (uri.hasQuery ? '?${uri.query}' : '');
+    return 'https://wsrv.nl/?url=$sourceUrl';
+  }
+
   @override
   Future<FileServiceResponse> get(
     String url, {
@@ -28,7 +43,12 @@ class ProxyAwareImageFileService extends FileService {
   }) async {
     final client = _createHttpClient();
     try {
-      final request = await client.getUrl(Uri.parse(url));
+      final request = await client.getUrl(Uri.parse(
+        rewriteBangumiMirrorImageUrl(
+          url,
+          enableBangumiProxy: _bangumiMirrorEnabled(),
+        ),
+      ));
       headers?.forEach(request.headers.set);
       final response = await request.close();
       return _ProxyAwareImageFileServiceResponse(response, client);
@@ -36,6 +56,11 @@ class ProxyAwareImageFileService extends FileService {
       client.close(force: true);
       rethrow;
     }
+  }
+
+  bool _bangumiMirrorEnabled() {
+    return GStorage.setting
+        .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
   }
 
   HttpClient _createHttpClient() {

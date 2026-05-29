@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/utils/device.dart';
 
 class TimelinePage extends StatefulWidget {
@@ -872,14 +872,16 @@ class _TimelinePageState extends State<TimelinePage>
             return Center(
               child: SizedBox(
                 height: 400,
-                child: GeneralErrorWidget(errMsg: '什么都没有找到 (´;ω;`)', actions: [
-                  GeneralErrorButton(
-                    onPressed: () {
-                      onSeasonSelected(timelineController.selectedDate);
-                    },
-                    text: '点击重试',
-                  ),
-                ]),
+                child: BangumiMirrorErrorWidget(
+                  onRetry: () {
+                    onSeasonSelected(timelineController.selectedDate);
+                  },
+                  onSettingsReturned: () {
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  },
+                ),
               ),
             );
           }

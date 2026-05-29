@@ -20,6 +20,7 @@ class DioFactory {
           'referer': '',
           'user-agent': getRandomUA(),
         },
+        interceptors: [_BangumiMirrorInterceptor()],
       );
 
   static Dio get githubDio => _githubDio ??= _create(
@@ -85,6 +86,36 @@ class DioFactory {
       dio.interceptors.add(DioLoggerInterceptor());
     }
     return dio;
+  }
+}
+
+class _BangumiMirrorInterceptor extends Interceptor {
+  static const _mirrorableHosts = {
+    'api.bgm.tv',
+    'next.bgm.tv',
+  };
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final enableBangumiProxy = GStorage.setting
+        .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+    if (!enableBangumiProxy) {
+      handler.next(options);
+      return;
+    }
+
+    final uri = options.uri;
+    if (!_mirrorableHosts.contains(uri.host)) {
+      handler.next(options);
+      return;
+    }
+
+    final mirrored = ApiEndpoints.bangumiMirrorDomain +
+        uri.path +
+        (uri.hasQuery ? '?${uri.query}' : '');
+    KazumiLogger().d('Bangumi mirror: $mirrored');
+    options.path = mirrored;
+    handler.next(options);
   }
 }
 

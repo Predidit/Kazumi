@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/bean/widget/custom_dropdown_menu.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
@@ -129,20 +129,19 @@ class _PopularPageState extends State<PopularPage>
                     return SliverToBoxAdapter(
                       child: SizedBox(
                         height: 400,
-                        child: GeneralErrorWidget(
-                          errMsg: '什么都没有找到 (´;ω;`)',
-                          actions: [
-                            GeneralErrorButton(
-                              onPressed: () {
-                                if (popularController.trendList.isEmpty) {
-                                  popularController.queryBangumiByTrend();
-                                } else {
-                                  popularController.queryBangumiByTag();
-                                }
-                              },
-                              text: '点击重试',
-                            ),
-                          ],
+                        child: BangumiMirrorErrorWidget(
+                          onRetry: () {
+                            if (popularController.trendList.isEmpty) {
+                              popularController.queryBangumiByTrend();
+                            } else {
+                              popularController.queryBangumiByTag();
+                            }
+                          },
+                          onSettingsReturned: () {
+                            if (mounted) {
+                              setState(() {});
+                            }
+                          },
                         ),
                       ),
                     );

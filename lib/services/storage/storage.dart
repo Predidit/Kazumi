@@ -373,6 +373,7 @@ class SettingBoxKey {
       oledEnhance = 'oledEnhance',
       displayMode = 'displayMode',
       enableGitProxy = 'enableGitProxy',
+      enableBangumiProxy = 'enableBangumiProxy',
       enableSystemProxy = 'enableSystemProxy',
       defaultStartupPage = 'defaultStartupPage',
 

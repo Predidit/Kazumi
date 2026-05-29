@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -103,7 +103,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 onPressed: () async {
                   try {
                     pluginsController.updatePlugin(Plugin.fromJson(
-                        json.decode(Utils.kazumiBase64ToJson(pluginText))));
+                        json.decode(kazumiBase64ToJson(pluginText))));
                     KazumiDialog.showToast(message: '导入成功');
                   } catch (e) {
                     KazumiDialog.dismiss();
@@ -236,7 +236,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           child: child,
                         );
                       },
-                      onReorder: (int oldIndex, int newIndex) {
+                      onReorderItem: (int oldIndex, int newIndex) {
                         pluginsController.onReorder(oldIndex, newIndex);
                       },
                       itemCount: pluginsController.pluginList.length,
@@ -480,7 +480,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               return AlertDialog(
                 title: const Text('规则链接'),
                 content: SelectableText(
-                  Utils.jsonToKazumiBase64(json
+                  jsonToKazumiBase64(json
                       .encode(pluginsController.pluginList[index].toJson())),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
@@ -497,7 +497,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   TextButton(
                     onPressed: () {
                       Clipboard.setData(ClipboardData(
-                        text: Utils.jsonToKazumiBase64(
+                        text: jsonToKazumiBase64(
                           json.encode(
                             pluginsController.pluginList[index].toJson(),
                           ),

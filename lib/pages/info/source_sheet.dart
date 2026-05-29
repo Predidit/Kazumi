@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:kazumi/request/apis/query_manager.dart';
+import 'package:kazumi/services/plugin/plugin_search_service.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:kazumi/providers/captcha/captcha_provider.dart';
+import 'package:kazumi/services/plugin/captcha_verification_service.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
+import 'package:kazumi/utils/device.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -39,11 +39,11 @@ class _SourceSheetState extends State<SourceSheet>
   final PluginsController pluginsController = Modular.get<PluginsController>();
   late String keyword;
 
-  /// Concurrent query manager
-  QueryManager? queryManager;
+  /// Concurrent plugin search service.
+  PluginSearchService? pluginSearchService;
 
-  /// Captcha solving provider (created on demand)
-  CaptchaProvider? _captchaProvider;
+  /// Captcha verification service (created on demand)
+  CaptchaVerificationService? _captchaVerificationService;
 
   /// Timeout timer waiting for captcha verification result
   Timer? _captchaVerifyTimer;
@@ -53,17 +53,18 @@ class _SourceSheetState extends State<SourceSheet>
     keyword = widget.infoController.bangumiItem.nameCn == ''
         ? widget.infoController.bangumiItem.name
         : widget.infoController.bangumiItem.nameCn;
-    queryManager = QueryManager(infoController: widget.infoController);
-    queryManager?.queryAllSource(keyword);
+    pluginSearchService =
+        PluginSearchService(infoController: widget.infoController);
+    pluginSearchService?.queryAllSource(keyword);
     super.initState();
   }
 
   @override
   void dispose() {
-    queryManager?.cancel();
-    queryManager = null;
-    _captchaProvider?.dispose();
-    _captchaProvider = null;
+    pluginSearchService?.cancel();
+    pluginSearchService = null;
+    _captchaVerificationService?.dispose();
+    _captchaVerificationService = null;
     _captchaVerifyTimer?.cancel();
     _captchaVerifyTimer = null;
     super.dispose();
@@ -87,20 +88,20 @@ class _SourceSheetState extends State<SourceSheet>
     /// flag whether verification has passed, used to distinguish normal dismissal from cancellation in onDismiss
     bool verified = false;
 
-    _captchaProvider?.dispose();
-    _captchaProvider = CaptchaProvider();
+    _captchaVerificationService?.dispose();
+    _captchaVerificationService = CaptchaVerificationService();
 
     final searchUrl = plugin.searchURL
         .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
-    _captchaProvider!.loadForCaptcha(
+    _captchaVerificationService!.loadForCaptcha(
       searchUrl,
       plugin.antiCrawlerConfig.captchaImage,
       inputXpath: plugin.antiCrawlerConfig.captchaInput,
     );
 
     Future<void> submitCaptcha(String captchaCode) async {
-      await _captchaProvider?.submitCaptcha(
+      await _captchaVerificationService?.submitCaptcha(
         captchaCode: captchaCode.trim(),
         inputXpath: plugin.antiCrawlerConfig.captchaInput,
         buttonXpath: plugin.antiCrawlerConfig.captchaButton,
@@ -115,7 +116,8 @@ class _SourceSheetState extends State<SourceSheet>
           KazumiDialog.showTimedSuccessDialog(
             title: '验证成功',
             message: '正在重新检索，请稍候…',
-            onComplete: () => queryManager?.querySource(keyword, plugin.name),
+            onComplete: () =>
+                pluginSearchService?.querySource(keyword, plugin.name),
           );
         },
       );
@@ -136,23 +138,23 @@ class _SourceSheetState extends State<SourceSheet>
       onDismiss: () async {
         _captchaVerifyTimer?.cancel();
         _captchaVerifyTimer = null;
-        // Capture the current provider instance locally NOW, before any await.
-        // Without this, an async gap could allow _captchaProvider to be
+        // Capture the current service instance locally before any await.
+        // Without this, an async gap could allow _captchaVerificationService to be
         // replaced (or nulled by _SourceSheetState.dispose()), causing the
         // closure to dispose the wrong/already-disposed instance.
-        final provider = _captchaProvider;
-        _captchaProvider = null;
+        final captchaService = _captchaVerificationService;
+        _captchaVerificationService = null;
         if (!verified) {
-          await provider?.saveAndUnload(plugin.name);
-          provider?.dispose();
-          queryManager?.querySource(keyword, plugin.name);
+          await captchaService?.saveAndUnload(plugin.name);
+          captchaService?.dispose();
+          pluginSearchService?.querySource(keyword, plugin.name);
         } else {
-          provider?.dispose();
+          captchaService?.dispose();
         }
       },
       builder: (context) => _CaptchaDialog(
         pluginName: plugin.name,
-        captchaImageStream: _captchaProvider!.onCaptchaImageUrl,
+        captchaImageStream: _captchaVerificationService!.onCaptchaImageUrl,
         onSubmit: submitCaptcha,
       ),
     );
@@ -163,8 +165,8 @@ class _SourceSheetState extends State<SourceSheet>
       plugin,
       statusText: '${plugin.name} 正在自动完成验证，请稍候',
       detailText: '已检测到验证按钮并模拟点击，等待验证通过…',
-      startVerification: (provider, searchUrl, onVerified) {
-        return provider.loadForButtonClick(
+      startVerification: (captchaService, searchUrl, onVerified) {
+        return captchaService.loadForButtonClick(
           url: searchUrl,
           buttonXpath: plugin.antiCrawlerConfig.captchaButton,
           pluginName: plugin.name,
@@ -179,8 +181,8 @@ class _SourceSheetState extends State<SourceSheet>
       plugin,
       statusText: '${plugin.name} 正在执行验证脚本，请稍候',
       detailText: '已加载验证页面并执行自定义脚本，等待验证通过…',
-      startVerification: (provider, searchUrl, onVerified) {
-        return provider.loadForCustomScript(
+      startVerification: (captchaService, searchUrl, onVerified) {
+        return captchaService.loadForCustomScript(
           url: searchUrl,
           script: plugin.antiCrawlerConfig.captchaScript,
           pluginName: plugin.name,
@@ -195,17 +197,17 @@ class _SourceSheetState extends State<SourceSheet>
     required String statusText,
     required String detailText,
     required Future<void> Function(
-      CaptchaProvider provider,
+      CaptchaVerificationService captchaService,
       String searchUrl,
       void Function() onVerified,
     ) startVerification,
   }) {
     bool verified = false;
 
-    _captchaProvider?.dispose();
-    _captchaProvider = CaptchaProvider();
+    _captchaVerificationService?.dispose();
+    _captchaVerificationService = CaptchaVerificationService();
 
-    final provider = _captchaProvider!;
+    final captchaService = _captchaVerificationService!;
     final searchUrl = plugin.searchURL
         .replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
 
@@ -216,22 +218,23 @@ class _SourceSheetState extends State<SourceSheet>
       KazumiDialog.showTimedSuccessDialog(
         title: '验证成功',
         message: '正在重新检索，请稍候…',
-        onComplete: () => queryManager?.querySource(keyword, plugin.name),
+        onComplete: () =>
+            pluginSearchService?.querySource(keyword, plugin.name),
       );
     }
 
-    unawaited(startVerification(provider, searchUrl, onVerified));
+    unawaited(startVerification(captchaService, searchUrl, onVerified));
 
     KazumiDialog.show(
       onDismiss: () async {
-        final provider = _captchaProvider;
-        _captchaProvider = null;
+        final captchaService = _captchaVerificationService;
+        _captchaVerificationService = null;
         if (verified) {
-          provider?.dispose();
+          captchaService?.dispose();
         } else {
-          await provider?.saveAndUnload(plugin.name);
-          provider?.dispose();
-          queryManager?.querySource(keyword, plugin.name);
+          await captchaService?.saveAndUnload(plugin.name);
+          captchaService?.dispose();
+          pluginSearchService?.querySource(keyword, plugin.name);
         }
       },
       builder: (context) => Dialog(
@@ -295,7 +298,8 @@ class _SourceSheetState extends State<SourceSheet>
             text: '进行验证',
           ),
           GeneralErrorButton(
-            onPressed: () => queryManager?.querySource(keyword, plugin.name),
+            onPressed: () =>
+                pluginSearchService?.querySource(keyword, plugin.name),
             text: '重试',
           ),
         ],
@@ -321,7 +325,8 @@ class _SourceSheetState extends State<SourceSheet>
         errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
         actions: [
           GeneralErrorButton(
-            onPressed: () => queryManager?.querySource(keyword, plugin.name),
+            onPressed: () =>
+                pluginSearchService?.querySource(keyword, plugin.name),
             text: '重试',
           ),
         ],
@@ -406,7 +411,7 @@ class _SourceSheetState extends State<SourceSheet>
           aliases: widget.infoController.bangumiItem.alias,
           onAliasSelected: (alias) {
             KazumiDialog.dismiss();
-            queryManager?.querySource(alias, pluginName);
+            pluginSearchService?.querySource(alias, pluginName);
           },
           onAliasesChanged: () {
             collectController
@@ -428,7 +433,7 @@ class _SourceSheetState extends State<SourceSheet>
       widget.infoController.bangumiItem.alias.add(alias);
       collectController.updateLocalCollect(widget.infoController.bangumiItem);
       KazumiDialog.dismiss();
-      queryManager?.querySource(alias, pluginName);
+      pluginSearchService?.querySource(alias, pluginName);
     }
 
     KazumiDialog.show(
@@ -563,7 +568,7 @@ class _SourceSheetState extends State<SourceSheet>
                                 onTap: () async {
                                   KazumiDialog.showLoading(
                                     msg: '获取中',
-                                    barrierDismissible: Utils.isDesktop(),
+                                    barrierDismissible: isDesktop(),
                                     onDismiss: () {
                                       videoPageController.cancelQueryRoads();
                                     },
@@ -580,7 +585,7 @@ class _SourceSheetState extends State<SourceSheet>
                                     Modular.to.pushNamed('/video/');
                                   } catch (_) {
                                     KazumiLogger().w(
-                                        "QueryManager: failed to query video playlist");
+                                        "PluginSearchService: failed to query video playlist");
                                     KazumiDialog.dismiss();
                                   }
                                 },

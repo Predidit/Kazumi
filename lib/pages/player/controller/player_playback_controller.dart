@@ -7,15 +7,18 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
-import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/player/player_screenshot_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/services/platform/platform_environment_service.dart';
 
 part 'player_playback_controller.g.dart';
 
@@ -25,17 +28,19 @@ class PlayerPlaybackController = _PlayerPlaybackController
 abstract class _PlayerPlaybackController with Store {
   _PlayerPlaybackController({
     required this.setting,
-    required this.shadersController,
+    required this.shaderAssetService,
     required this.debug,
     required this.videoUrl,
     required this.onExitSyncPlayRoom,
   });
 
   final Box setting;
-  final ShadersController shadersController;
+  final ShaderAssetService shaderAssetService;
   final PlayerDebugController debug;
   final String Function() videoUrl;
   final Future<void> Function() onExitSyncPlayRoom;
+  final PlayerScreenshotService screenshotService =
+      const PlayerScreenshotService();
 
   Player? mediaPlayer;
   VideoController? videoController;
@@ -58,6 +63,9 @@ abstract class _PlayerPlaybackController with Store {
 
   @observable
   double volume = -1;
+
+  /// 手势调节时的精确音量，避免 UI 节流导致累计误差
+  double preciseVolume = -1;
 
   @observable
   bool loading = true;
@@ -197,7 +205,7 @@ abstract class _PlayerPlaybackController with Store {
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
     // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
     // 该设置可以在所有平台上正确启用双重缓存
-    await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
+    await pp.setProperty("demuxer-cache-dir", await getPlayerTempPath());
     if (!isCurrentPlayer(player)) {
       return await _discardIfNotCurrent(player);
     }
@@ -251,7 +259,8 @@ abstract class _PlayerPlaybackController with Store {
         // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
         // GPU-NEXT 需要 Vulkan 1.2 支持
         // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
-        final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+        final int androidSdkVersion =
+            await PlatformEnvironmentService.getAndroidSdkVersion();
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(player);
         }
@@ -341,8 +350,8 @@ abstract class _PlayerPlaybackController with Store {
           'change-list',
           'glsl-shaders',
           'set',
-          Utils.buildShadersAbsolutePath(
-              shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+          buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path, mpvAnime4KShadersLite),
         ]);
         superResolutionType = 2;
         return;
@@ -352,8 +361,8 @@ abstract class _PlayerPlaybackController with Store {
           'change-list',
           'glsl-shaders',
           'set',
-          Utils.buildShadersAbsolutePath(
-              shadersController.shadersDirectory.path, mpvAnime4KShaders),
+          buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path, mpvAnime4KShaders),
         ]);
         superResolutionType = 3;
         return;
@@ -376,13 +385,39 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> setVolume(double value) async {
+    updateVolume(value);
+    await syncVolumeToDevice(preciseVolume >= 0 ? preciseVolume : volume);
+  }
+
+  @action
+  void updateVolume(double value) {
     value = value.clamp(0.0, 100.0);
+    preciseVolume = value;
+    if (volume.toInt() == value.toInt()) {
+      return;
+    }
     volume = value;
+  }
+
+  /// 外部来源（硬件键、系统面板等）变更音量时同步，并清除手势缓存
+  @action
+  void applyExternalVolume(double value) {
+    value = value.clamp(0.0, 100.0);
+    preciseVolume = -1;
+    volume = value;
+  }
+
+  void invalidatePreciseVolume() {
+    preciseVolume = -1;
+  }
+
+  Future<void> syncVolumeToDevice([double? value]) async {
+    final vol = (value ?? volume).clamp(0.0, 100.0);
     try {
-      if (Utils.isDesktop()) {
-        await mediaPlayer!.setVolume(value);
+      if (isDesktop()) {
+        await mediaPlayer!.setVolume(vol);
       } else {
-        await FlutterVolumeController.setVolume(value / 100);
+        await FlutterVolumeController.setVolume(vol / 100);
       }
     } catch (_) {}
   }
@@ -463,5 +498,13 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
     return await mediaPlayer!.screenshot(format: format);
+  }
+
+  Future<Uint8List?> screenshotPng() async {
+    final player = mediaPlayer;
+    if (player == null) {
+      return null;
+    }
+    return await screenshotService.capturePng(player);
   }
 }

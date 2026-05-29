@@ -6,6 +6,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key, required this.characterID});
@@ -128,10 +129,20 @@ class _CharacterPageState extends State<CharacterPage> {
                               SizedBox(
                                 width: constraints.maxWidth * 0.3,
                                 height: constraints.maxHeight,
-                                child: NetworkImgLayer(
-                                  width: constraints.maxWidth,
-                                  height: constraints.maxHeight,
-                                  src: characterFullItem.image,
+                                child: GestureDetector(
+                                  onTap: () => ImageViewer.show(
+                                    context,
+                                    imageUrl: characterFullItem.image,
+                                    heroTag: characterFullItem.image,
+                                  ),
+                                  child: Hero(
+                                    tag: characterFullItem.image,
+                                    child: NetworkImgLayer(
+                                      width: constraints.maxWidth,
+                                      height: constraints.maxHeight,
+                                      src: characterFullItem.image,
+                                    ),
+                                  ),
                                 ),
                               ),
                               Expanded(

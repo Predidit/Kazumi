@@ -7,24 +7,59 @@ import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
+import 'package:kazumi/utils/danmaku.dart';
 
 part 'player_danmaku_controller.g.dart';
 
 class PlayerDanmakuController = _PlayerDanmakuController
     with _$PlayerDanmakuController;
 
+enum DanmakuLoadStatus {
+  success,
+  empty,
+  failed,
+}
+
 class DanmakuLoadResult {
   const DanmakuLoadResult({
     required this.danmakus,
     required this.bangumiID,
+    required this.status,
   });
+
+  factory DanmakuLoadResult.success({
+    required List<DanmakuEntry> danmakus,
+    required int bangumiID,
+  }) {
+    return DanmakuLoadResult(
+      danmakus: danmakus,
+      bangumiID: bangumiID,
+      status: danmakus.isEmpty
+          ? DanmakuLoadStatus.empty
+          : DanmakuLoadStatus.success,
+    );
+  }
+
+  factory DanmakuLoadResult.failed({
+    required int bangumiID,
+  }) {
+    return DanmakuLoadResult(
+      danmakus: const [],
+      bangumiID: bangumiID,
+      status: DanmakuLoadStatus.failed,
+    );
+  }
 
   final List<DanmakuEntry> danmakus;
   final int bangumiID;
+  final DanmakuLoadStatus status;
+
+  bool get hasDanmakus => status == DanmakuLoadStatus.success;
+
+  bool get isFailed => status == DanmakuLoadStatus.failed;
 }
 
 class DanmakuTimeline {
@@ -126,13 +161,28 @@ abstract class _PlayerDanmakuController with Store {
     danmakuLoading = true;
   }
 
-  void applyDanmakuLoad(DanmakuLoadResult result) {
+  void applyDanmakuLoad(
+    DanmakuLoadResult result, {
+    required bool enableDanmaku,
+  }) {
     bangumiID = result.bangumiID;
     addDanmakus(result.danmakus);
+    danmakuOn = enableDanmaku;
     danmakuLoading = false;
   }
 
-  void finishDanmakuLoad() {
+  void applyUnavailableDanmakuLoad(DanmakuLoadResult result) {
+    bangumiID = result.bangumiID;
+    danDanmakus.clear();
+    danmakuOn = false;
+    danmakuLoading = false;
+  }
+
+  void finishDanmakuLoad({bool disableDanmaku = false}) {
+    if (disableDanmaku) {
+      danDanmakus.clear();
+      danmakuOn = false;
+    }
     danmakuLoading = false;
   }
 
@@ -152,7 +202,7 @@ abstract class _PlayerDanmakuController with Store {
       if (cachedDanmakus != null && cachedDanmakus.isNotEmpty) {
         KazumiLogger().i(
             'PlayerController: loaded ${cachedDanmakus.length} cached danmakus');
-        return DanmakuLoadResult(
+        return DanmakuLoadResult.success(
           danmakus: cachedDanmakus,
           bangumiID: nextBangumiID,
         );
@@ -170,7 +220,7 @@ abstract class _PlayerDanmakuController with Store {
               _saveDanmakuToCache(downloadController, bangumiId, pluginName,
                   episode, res, nextBangumiID);
             }
-            return DanmakuLoadResult(
+            return DanmakuLoadResult.success(
               danmakus: res,
               bangumiID: nextBangumiID,
             );
@@ -179,13 +229,18 @@ abstract class _PlayerDanmakuController with Store {
           KazumiLogger().w(
               'PlayerController: failed to fetch danmaku online (may be offline)',
               error: e);
+          return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
         }
       }
     } catch (e) {
       KazumiLogger()
           .w('PlayerController: failed to load cached danmaku', error: e);
+      return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
     }
-    return DanmakuLoadResult(danmakus: const [], bangumiID: nextBangumiID);
+    return DanmakuLoadResult.success(
+      danmakus: const [],
+      bangumiID: nextBangumiID,
+    );
   }
 
   void _saveDanmakuToCache(
@@ -219,25 +274,36 @@ abstract class _PlayerDanmakuController with Store {
     try {
       nextBangumiID =
           await DanmakuApi.getDanDanBangumiIDByBgmBangumiID(bgmBangumiID);
+      if (nextBangumiID == 0) {
+        return DanmakuLoadResult.success(
+          danmakus: const [],
+          bangumiID: nextBangumiID,
+        );
+      }
       var res = await DanmakuApi.getDanDanmaku(nextBangumiID, episode);
-      return DanmakuLoadResult(danmakus: res, bangumiID: nextBangumiID);
+      return DanmakuLoadResult.success(
+        danmakus: res,
+        bangumiID: nextBangumiID,
+      );
     } catch (e) {
       KazumiLogger().w(
           'PlayerController: failed to get danmaku [BgmBangumiID] $bgmBangumiID',
           error: e);
     }
-    return DanmakuLoadResult(danmakus: const [], bangumiID: nextBangumiID);
+    return DanmakuLoadResult.failed(bangumiID: nextBangumiID);
   }
 
-  Future<void> getDanDanmakuByEpisodeID(int episodeID) async {
+  Future<bool> getDanDanmakuByEpisodeID(int episodeID) async {
     KazumiLogger().i('PlayerController: attempting to get danmaku $episodeID');
     danmakuLoading = true;
     try {
       danDanmakus.clear();
       var res = await DanmakuApi.getDanDanmakuByEpisodeID(episodeID);
       addDanmakus(res);
+      return res.isNotEmpty;
     } catch (e) {
       KazumiLogger().w('PlayerController: failed to get danmaku', error: e);
+      rethrow;
     } finally {
       danmakuLoading = false;
     }
@@ -248,7 +314,7 @@ abstract class _PlayerDanmakuController with Store {
         setting.get(SettingBoxKey.danmakuDeduplication, defaultValue: false);
 
     final List<DanmakuEntry> listToAdd = danmakuDeduplicationEnable
-        ? Utils.mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
+        ? mergeDuplicateDanmakus(danmakus, timeWindowSeconds: 5)
         : danmakus;
 
     for (var element in listToAdd) {

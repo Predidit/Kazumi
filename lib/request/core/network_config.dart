@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:dio/io.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class NetworkConfig {
   const NetworkConfig({

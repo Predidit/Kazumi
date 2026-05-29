@@ -6,7 +6,7 @@ import 'package:kazumi/webview/captcha/impl/captcha_webview_windows_impl.dart';
 import 'package:kazumi/webview/captcha/impl/captcha_webview_linux_impl.dart';
 
 abstract class CaptchaWebviewController<T> {
-  /// Webview controller
+  /// WebView controller.
   T? webviewController;
 
   /// For type-1 (captcha image), whether a captcha image has been detected,

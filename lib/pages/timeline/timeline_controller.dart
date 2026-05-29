@@ -4,6 +4,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:kazumi/modules/collect/collect_type.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:mobx/mobx.dart';
 
 part 'timeline_controller.g.dart';
@@ -42,6 +43,9 @@ abstract class _TimelineController with Store {
 
   late DateTime selectedDate;
 
+  bool get _bangumiMirrorEnabled => GStorage.setting
+      .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+
   void init() {
     selectedDate = DateTime.now();
     seasonString = AnimeSeason(selectedDate).toString();
@@ -61,6 +65,23 @@ abstract class _TimelineController with Store {
   }
 
   Future<void> getSchedulesBySeason() async {
+    if (_bangumiMirrorEnabled) {
+      isLoading = true;
+      isTimeOut = false;
+      bangumiCalendar.clear();
+      final resBangumiCalendar =
+          await BangumiApi.getBangumiMirrorSeasonCalendar(
+              AnimeSeason(selectedDate).toSeasonStartAndEnd());
+      bangumiCalendar.clear();
+      bangumiCalendar.addAll(resBangumiCalendar);
+      isLoading = false;
+      isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
+      if (!isTimeOut) {
+        changeSortType(sortType);
+      }
+      return;
+    }
+
     // 4次获取，每次最多20部
     isLoading = true;
     isTimeOut = false;

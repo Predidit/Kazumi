@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/utils/bangumi_sync_service.dart';
-import 'package:kazumi/utils/webdav.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
-import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
-import 'package:kazumi/utils/background_download_service.dart';
-import 'package:kazumi/utils/windows_shortcut.dart';
+import 'package:kazumi/services/download/background_download_service.dart';
+import 'package:kazumi/services/platform/windows_shortcut.dart';
+import 'package:kazumi/services/platform/platform_environment_service.dart';
 
 class InitPage extends StatefulWidget {
   const InitPage({super.key});
@@ -29,7 +29,8 @@ class InitPage extends StatefulWidget {
 class _InitPageState extends State<InitPage> {
   final PluginsController pluginsController = Modular.get<PluginsController>();
   final CollectController collectController = Modular.get<CollectController>();
-  final ShadersController shadersController = Modular.get<ShadersController>();
+  final ShaderAssetService shaderAssetService =
+      Modular.get<ShaderAssetService>();
   final MyController myController = Modular.get<MyController>();
   final DownloadController downloadController =
       Modular.get<DownloadController>();
@@ -130,7 +131,7 @@ class _InitPageState extends State<InitPage> {
   }
 
   Future<void> _loadShaders() async {
-    await shadersController.copyShadersToExternalDirectory();
+    await shaderAssetService.copyShadersToExternalDirectory();
   }
 
   Future<void> _loadDanmakuShield() async {
@@ -193,7 +194,7 @@ class _InitPageState extends State<InitPage> {
     if (!Platform.isLinux) {
       return;
     }
-    bool isRunningOnX11 = await Utils.isRunningOnX11();
+    bool isRunningOnX11 = await PlatformEnvironmentService.isRunningOnX11();
     if (isRunningOnX11) {
       await KazumiDialog.show(
         clickMaskDismiss: false,

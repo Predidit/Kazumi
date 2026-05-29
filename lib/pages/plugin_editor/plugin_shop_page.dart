@@ -6,7 +6,7 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({super.key});
@@ -131,7 +131,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                 color: Theme.of(context).colorScheme.surface),
                           ),
                         ),
-                        if (sortedList[index].antiCrawlerEnabled) ...[  
+                        if (sortedList[index].antiCrawlerEnabled) ...[
                           const SizedBox(width: 5),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -143,9 +143,8 @@ class _PluginShopPageState extends State<PluginShopPage> {
                             child: Text(
                               'captcha',
                               style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onTertiary),
+                                  color:
+                                      Theme.of(context).colorScheme.onTertiary),
                             ),
                           ),
                         ],

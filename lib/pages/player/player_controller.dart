@@ -5,23 +5,24 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:kazumi/pages/player/controller/external_playback_launcher.dart';
+import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/player/controller/player_panel_controller.dart';
 import 'package:kazumi/pages/player/controller/player_playback_controller.dart';
 import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/utils/device.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
 
 class PlayerController {
   final Box setting = GStorage.setting;
-  final ShadersController shadersController = Modular.get<ShadersController>();
+  final ShaderAssetService shaderAssetService =
+      Modular.get<ShaderAssetService>();
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
 
@@ -31,7 +32,7 @@ class PlayerController {
   );
   late final PlayerPlaybackController playback = PlayerPlaybackController(
     setting: setting,
-    shadersController: shadersController,
+    shaderAssetService: shaderAssetService,
     debug: debug,
     videoUrl: () => videoUrl,
     onExitSyncPlayRoom: () => syncplay.exitRoom(),
@@ -63,6 +64,33 @@ class PlayerController {
   String videoUrl = '';
   bool isLocalPlayback = false;
   Timer? hideVolumeUITimer;
+  Timer? _volumeGestureSyncTimer;
+  double? _pendingGestureVolume;
+
+  void setVolumeDuringGesture(double value) {
+    _pendingGestureVolume = value.clamp(0.0, 100.0);
+    playback.updateVolume(_pendingGestureVolume!);
+    _volumeGestureSyncTimer?.cancel();
+    _volumeGestureSyncTimer = Timer(const Duration(milliseconds: 80), () {
+      final vol = _pendingGestureVolume;
+      if (vol == null) {
+        return;
+      }
+      unawaited(playback.syncVolumeToDevice(vol));
+    });
+  }
+
+  Future<void> finishVolumeGesture() async {
+    _volumeGestureSyncTimer?.cancel();
+    _volumeGestureSyncTimer = null;
+    final vol = _pendingGestureVolume;
+    _pendingGestureVolume = null;
+    if (vol != null) {
+      playback.volume = vol;
+    }
+    playback.invalidatePreciseVolume();
+    await playback.syncVolumeToDevice(vol);
+  }
 
   Future<bool> init(PlaybackInitParams params) async {
     videoUrl = params.videoUrl;
@@ -109,7 +137,7 @@ class PlayerController {
       return false;
     }
 
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       playback.volume = playback.volume != -1 ? playback.volume : 100;
       await setVolume(playback.volume);
       if (!playback.isCurrentPlayer(player)) {
@@ -133,7 +161,10 @@ class PlayerController {
         if (player == null || !playback.isCurrentPlayer(player)) {
           return;
         }
-        playback.volume = volume * 100;
+        if (panel.volumeSeeking) {
+          return;
+        }
+        playback.applyExternalVolume(volume * 100);
         if (!Platform.isAndroid && !panel.volumeSeeking) {
           panel.showVolume = true;
           hideVolumeUITimer?.cancel();
@@ -256,6 +287,7 @@ class PlayerController {
     bool disposeSyncPlayController = true,
   }) async {
     hideVolumeUITimer?.cancel();
+    _volumeGestureSyncTimer?.cancel();
     FlutterVolumeController.removeListener();
     await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
@@ -269,6 +301,10 @@ class PlayerController {
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
     return await playback.screenshot(format: format);
+  }
+
+  Future<Uint8List?> screenshotPng() async {
+    return await playback.screenshotPng();
   }
 
   void setButtonForwardTime(int time) {

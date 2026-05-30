@@ -153,7 +153,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                     if (sortedList[index].lastUpdate > 0) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '更新时间: ${DateTime.fromMillisecondsSinceEpoch(sortedList[index].lastUpdate).toString().split('.')[0]}',
+                        'Updated: ${DateTime.fromMillisecondsSinceEpoch(sortedList[index].lastUpdate).toString().split('.')[0]}',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -163,43 +163,43 @@ class _PluginShopPageState extends State<PluginShopPage> {
                   onPressed: () async {
                     if (pluginsController.pluginStatus(sortedList[index]) ==
                         'install') {
-                      KazumiDialog.showToast(message: '导入中');
+                      KazumiDialog.showToast(message: 'Importing');
                       int res = await pluginsController
                           .tryUpdatePluginByName(sortedList[index].name);
                       if (res == 0) {
-                        KazumiDialog.showToast(message: '导入成功');
+                        KazumiDialog.showToast(message: 'Import succeeded');
                         setState(() {});
                       } else if (res == 1) {
                         KazumiDialog.showToast(
-                            message: 'kazumi版本过低, 此规则不兼容当前版本');
+                            message: 'Kazumi version is too low, this rule is not compatible with the current version');
                       } else if (res == 2) {
-                        KazumiDialog.showToast(message: '导入规则失败');
+                        KazumiDialog.showToast(message: 'Failed to import rule');
                       }
                     }
                     if (pluginsController.pluginStatus(sortedList[index]) ==
                         'update') {
-                      KazumiDialog.showToast(message: '更新中');
+                      KazumiDialog.showToast(message: 'Updating');
                       int res = await pluginsController
                           .tryUpdatePluginByName(sortedList[index].name);
                       if (res == 0) {
-                        KazumiDialog.showToast(message: '更新成功');
+                        KazumiDialog.showToast(message: 'Update succeeded');
                         setState(() {});
                       } else if (res == 1) {
                         KazumiDialog.showToast(
-                            message: 'kazumi版本过低, 此规则不兼容当前版本');
+                            message: 'Kazumi version is too low, this rule is not compatible with the current version');
                       } else if (res == 2) {
-                        KazumiDialog.showToast(message: '更新规则失败');
+                        KazumiDialog.showToast(message: 'Failed to update rule');
                       }
                     }
                   },
                   child: Text(pluginsController
                               .pluginStatus(sortedList[index]) ==
                           'install'
-                      ? '安装'
+                      ? 'Install'
                       : (pluginsController.pluginStatus(sortedList[index]) ==
                               'installed')
-                          ? '已安装'
-                          : '更新'),
+                          ? 'Installed'
+                          : 'Update'),
                 )),
           );
         },
@@ -210,19 +210,19 @@ class _PluginShopPageState extends State<PluginShopPage> {
   Widget get timeoutWidget {
     return Center(
       child: GeneralErrorWidget(
-        errMsg: '啊咧（⊙.⊙） 无法访问远程仓库\n${enableGitProxy ? '镜像已启用' : '镜像已禁用'}',
+        errMsg: 'Oh no (⊙.⊙) Cannot access the remote repository\n${enableGitProxy ? 'Mirror enabled' : 'Mirror disabled'}',
         actions: [
           GeneralErrorButton(
             onPressed: () {
               Modular.to.pushNamed('/settings/webdav/');
             },
-            text: enableGitProxy ? '禁用镜像' : '启用镜像',
+            text: enableGitProxy ? 'Disable mirror' : 'Enable mirror',
           ),
           GeneralErrorButton(
             onPressed: () {
               _handleRefresh();
             },
-            text: '刷新',
+            text: 'Refresh',
           ),
         ],
       ),
@@ -242,18 +242,18 @@ class _PluginShopPageState extends State<PluginShopPage> {
       },
       child: Scaffold(
         appBar: SysAppBar(
-          title: const Text('规则仓库'),
+          title: const Text('Rule repository'),
           actions: [
             IconButton(
                 onPressed: _toggleSort,
-                tooltip: sortByName ? '按名称排序' : '按更新时间排序',
+                tooltip: sortByName ? 'Sort by name' : 'Sort by update time',
                 icon:
                     Icon(sortByName ? Icons.sort_by_alpha : Icons.access_time)),
             IconButton(
                 onPressed: () {
                   _handleRefresh();
                 },
-                tooltip: '刷新规则列表',
+                tooltip: 'Refresh rule list',
                 icon: const Icon(Icons.refresh))
           ],
         ),

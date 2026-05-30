@@ -97,39 +97,39 @@ Map<String, String> bangumiHTTPHeader = {
 
 /// 可选硬件解码器
 const Map<String, String> hardwareDecodersList = {
-  'auto': '启用任意可用解码器',
-  'auto-safe': '启用最佳解码器',
-  'auto-copy': '启用带拷贝功能的最佳解码器',
-  'd3d11va': 'DirectX11 (windows8 及以上)',
-  'd3d11va-copy': 'DirectX11 (windows8 及以上) (非直通)',
+  'auto': 'Enable any available decoder',
+  'auto-safe': 'Enable the best decoder',
+  'auto-copy': 'Enable the best decoder with copy support',
+  'd3d11va': 'DirectX11 (Windows 8 and above)',
+  'd3d11va-copy': 'DirectX11 (Windows 8 and above) (non-passthrough)',
   'videotoolbox': 'VideoToolbox (macOS / iOS)',
-  'videotoolbox-copy': 'VideoToolbox (macOS / iOS) (非直通)',
+  'videotoolbox-copy': 'VideoToolbox (macOS / iOS) (non-passthrough)',
   'vaapi': 'VAAPI (Linux)',
-  'vaapi-copy': 'VAAPI (Linux) (非直通)',
-  'nvdec': 'NVDEC (NVIDIA独占)',
-  'nvdec-copy': 'NVDEC (NVIDIA独占) (非直通)',
+  'vaapi-copy': 'VAAPI (Linux) (non-passthrough)',
+  'nvdec': 'NVDEC (NVIDIA only)',
+  'nvdec-copy': 'NVDEC (NVIDIA only) (non-passthrough)',
   'drm': 'DRM (Linux)',
-  'drm-copy': 'DRM (Linux) (非直通)',
-  'vulkan': 'Vulkan (全平台) (实验性)',
-  'vulkan-copy': 'Vulkan (全平台) (实验性) (非直通)',
-  'dxva2': 'DXVA2 (Windows7 及以上)',
-  'dxva2-copy': 'DXVA2 (Windows7 及以上) (非直通)',
+  'drm-copy': 'DRM (Linux) (non-passthrough)',
+  'vulkan': 'Vulkan (all platforms) (experimental)',
+  'vulkan-copy': 'Vulkan (all platforms) (experimental) (non-passthrough)',
+  'dxva2': 'DXVA2 (Windows 7 and above)',
+  'dxva2-copy': 'DXVA2 (Windows 7 and above) (non-passthrough)',
   'vdpau': 'VDPAU (Linux)',
-  'vdpau-copy': 'VDPAU (Linux) (非直通)',
+  'vdpau-copy': 'VDPAU (Linux) (non-passthrough)',
   'mediacodec': 'MediaCodec (Android)',
-  'mediacodec-copy': 'MediaCodec (Android) (非直通)',
-  'cuda': 'CUDA (NVIDIA独占) (过时)',
-  'cuda-copy': 'CUDA (NVIDIA独占) (过时) (非直通)',
-  'crystalhd': 'CrystalHD (全平台) (过时)',
-  'rkmpp': 'Rockchip MPP (仅部分Rockchip芯片)',
+  'mediacodec-copy': 'MediaCodec (Android) (non-passthrough)',
+  'cuda': 'CUDA (NVIDIA only) (deprecated)',
+  'cuda-copy': 'CUDA (NVIDIA only) (deprecated) (non-passthrough)',
+  'crystalhd': 'CrystalHD (all platforms) (deprecated)',
+  'rkmpp': 'Rockchip MPP (only some Rockchip chips)',
 };
 
 /// Android 可选视频渲染器
 const Map<String, String> androidVideoRenderersList = {
-  'auto': '自动选择',
-  'gpu': '基于 OpenGL, 通用和稳健的选项',
-  'gpu-next': '基于 Vulkan, 在新设备上表现最好',
-  'mediacodec_embed': '功耗最低，不支持超分辨率',
+  'auto': 'Auto select',
+  'gpu': 'OpenGL-based, a general and robust option',
+  'gpu-next': 'Vulkan-based, performs best on newer devices',
+  'mediacodec_embed': 'Lowest power usage, does not support super resolution',
 };
 
 /// 超分辨率滤镜
@@ -178,39 +178,39 @@ const String danmakuOnSvg = '''
 
 /// 可选默认视频比例
 const Map<int, String> aspectRatioTypeMap = {
-  1: "自动",
-  2: "裁切填充",
-  3: "拉伸填充",
+  1: "Auto",
+  2: "Crop to fill",
+  3: "Stretch to fill",
 };
 
 /// 可选播放器日志等级
 /// LogLevel 0: 错误 1: 警告 2: 简略 3: 详细 4: 调试（隐藏） 5: 全部（隐藏）
 const Map<int, String> playerLogLevelMap = {
-  0: "错误",
-  1: "警告",
-  2: "简略",
-  3: "详细",
+  0: "Error",
+  1: "Warning",
+  2: "Brief",
+  3: "Verbose",
   // 以下两个级别被MPV官方支持，但是输出内容过于冗长，暂时隐藏
   // 4: "调试",
   // 5: "全部",
 };
 
 final List<String> defaultAnimeTags = const [
-  '日常',
-  '原创',
-  '校园',
-  '搞笑',
-  '奇幻',
-  '百合',
-  '恋爱',
-  '悬疑',
-  '热血',
-  '后宫',
-  '机战',
-  '轻改',
-  '偶像',
-  '治愈',
-  '异世界',
+  'Slice of life',
+  'Original',
+  'School',
+  'Comedy',
+  'Fantasy',
+  'Yuri',
+  'Romance',
+  'Mystery',
+  'Hot-blooded',
+  'Harem',
+  'Mecha',
+  'Light novel adaptation',
+  'Idol',
+  'Healing',
+  'Isekai',
 ];
 
 // 播放器默认快捷键
@@ -237,35 +237,35 @@ final Map<String, List<String>> defaultShortcuts = const {
 
 // 键位别名
 final Map<String, String> keyAliases = {
-  ' ': '空格',
+  ' ': 'Space',
   'Arrow Up': '↑',
   'Arrow Down': '↓',
   'Arrow Left': '←',
   'Arrow Right': '→',
-  'Enter': '回车',
+  'Enter': 'Enter',
   'Tab': 'Tab',
   'Escape': 'Esc',
-  'Backspace': '退格',
+  'Backspace': 'Backspace',
 };
 
 //功能中文名对应
 final Map<String, String> shortcutsChineseName = {
-  'playorpause': '播放 / 暂停',
-  'forward': '快进 / 长按倍速',
-  'rewind': '快退',
-  'next': '下一集',
-  'prev': '上一集',
-  'volumeup': '音量加',
-  'volumedown': '音量减',
-  'togglemute': '静音',
-  'fullscreen': '全屏',
-  'exitfullscreen': '退出全屏',
-  'toggledanmaku': '弹幕开关',
-  'screenshot': '截图',
-  'skip': '跳过',
-  'speed1': '倍速：1x',
-  'speed2': '倍速：2x',
-  'speed3': '倍速：3x',
-  'speedup': '倍速加',
-  'speeddown': '倍速减',
+  'playorpause': 'Play / Pause',
+  'forward': 'Fast forward / long press for speed',
+  'rewind': 'Rewind',
+  'next': 'Next episode',
+  'prev': 'Previous episode',
+  'volumeup': 'Volume up',
+  'volumedown': 'Volume down',
+  'togglemute': 'Mute',
+  'fullscreen': 'Fullscreen',
+  'exitfullscreen': 'Exit fullscreen',
+  'toggledanmaku': 'Toggle danmaku',
+  'screenshot': 'Screenshot',
+  'skip': 'Skip',
+  'speed1': 'Speed: 1x',
+  'speed2': 'Speed: 2x',
+  'speed3': 'Speed: 3x',
+  'speedup': 'Speed up',
+  'speeddown': 'Speed down',
 };

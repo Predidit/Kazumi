@@ -114,8 +114,8 @@ class _SourceSheetState extends State<SourceSheet>
           // show a 3s countdown progress dialog before re-querying,
           // to avoid triggering rate limits immediately after verification.
           KazumiDialog.showTimedSuccessDialog(
-            title: '验证成功',
-            message: '正在重新检索，请稍候…',
+            title: 'Verification succeeded',
+            message: 'Searching again, please wait…',
             onComplete: () =>
                 pluginSearchService?.querySource(keyword, plugin.name),
           );
@@ -163,8 +163,8 @@ class _SourceSheetState extends State<SourceSheet>
   void showButtonClickDialog(Plugin plugin) {
     showAutomatedVerifyDialog(
       plugin,
-      statusText: '${plugin.name} 正在自动完成验证，请稍候',
-      detailText: '已检测到验证按钮并模拟点击，等待验证通过…',
+      statusText: '${plugin.name} is completing verification automatically, please wait',
+      detailText: 'Verification button detected and clicked, waiting for verification to pass…',
       startVerification: (captchaService, searchUrl, onVerified) {
         return captchaService.loadForButtonClick(
           url: searchUrl,
@@ -179,8 +179,8 @@ class _SourceSheetState extends State<SourceSheet>
   void showCustomScriptDialog(Plugin plugin) {
     showAutomatedVerifyDialog(
       plugin,
-      statusText: '${plugin.name} 正在执行验证脚本，请稍候',
-      detailText: '已加载验证页面并执行自定义脚本，等待验证通过…',
+      statusText: '${plugin.name} is running the verification script, please wait',
+      detailText: 'Verification page loaded and custom script executed, waiting for verification to pass…',
       startVerification: (captchaService, searchUrl, onVerified) {
         return captchaService.loadForCustomScript(
           url: searchUrl,
@@ -216,8 +216,8 @@ class _SourceSheetState extends State<SourceSheet>
       verified = true;
       KazumiDialog.dismiss();
       KazumiDialog.showTimedSuccessDialog(
-        title: '验证成功',
-        message: '正在重新检索，请稍候…',
+        title: 'Verification succeeded',
+        message: 'Searching again, please wait…',
         onComplete: () =>
             pluginSearchService?.querySource(keyword, plugin.name),
       );
@@ -248,7 +248,7 @@ class _SourceSheetState extends State<SourceSheet>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  '自动验证中',
+                  'Auto verifying',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 4),
@@ -270,7 +270,7 @@ class _SourceSheetState extends State<SourceSheet>
                   child: TextButton(
                     onPressed: () => KazumiDialog.dismiss(),
                     child: Text(
-                      '取消',
+                      'Cancel',
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.outline),
                     ),
@@ -291,43 +291,43 @@ class _SourceSheetState extends State<SourceSheet>
     }
     if (status == 'captcha') {
       return GeneralErrorWidget(
-        errMsg: '${plugin.name} 需要验证码验证',
+        errMsg: '${plugin.name} requires captcha verification',
         actions: [
           GeneralErrorButton(
             onPressed: () => showAntiCrawlerDialog(plugin),
-            text: '进行验证',
+            text: 'Verify',
           ),
           GeneralErrorButton(
             onPressed: () =>
                 pluginSearchService?.querySource(keyword, plugin.name),
-            text: '重试',
+            text: 'Retry',
           ),
         ],
       );
     }
     if (status == 'noResult') {
       return GeneralErrorWidget(
-        errMsg: '${plugin.name} 无结果 使用别名或左右滑动以切换到其他视频来源',
+        errMsg: '${plugin.name} returned no results. Use an alias or swipe left or right to switch to another video source',
         actions: [
           GeneralErrorButton(
             onPressed: () => showAliasSearchDialog(plugin.name),
-            text: '别名检索',
+            text: 'Search by alias',
           ),
           GeneralErrorButton(
             onPressed: () => showCustomSearchDialog(plugin.name),
-            text: '手动检索',
+            text: 'Manual search',
           ),
         ],
       );
     }
     if (status == 'error') {
       return GeneralErrorWidget(
-        errMsg: '${plugin.name} 检索失败 重试或左右滑动以切换到其他视频来源',
+        errMsg: '${plugin.name} search failed. Retry or swipe left or right to switch to another video source',
         actions: [
           GeneralErrorButton(
             onPressed: () =>
                 pluginSearchService?.querySource(keyword, plugin.name),
-            text: '重试',
+            text: 'Retry',
           ),
         ],
       );
@@ -359,7 +359,7 @@ class _SourceSheetState extends State<SourceSheet>
               runSpacing: 4,
               children: [
                 Text(
-                  '结果不准确？',
+                  'Results inaccurate?',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context)
                             .textTheme
@@ -378,7 +378,7 @@ class _SourceSheetState extends State<SourceSheet>
                     textStyle: Theme.of(context).textTheme.bodySmall,
                   ),
                   onPressed: () => showAliasSearchDialog(pluginName),
-                  child: const Text('别名检索'),
+                  child: const Text('Search by alias'),
                 ),
                 TextButton(
                   style: TextButton.styleFrom(
@@ -390,7 +390,7 @@ class _SourceSheetState extends State<SourceSheet>
                     textStyle: Theme.of(context).textTheme.bodySmall,
                   ),
                   onPressed: () => showCustomSearchDialog(pluginName),
-                  child: const Text('手动检索'),
+                  child: const Text('Manual search'),
                 ),
               ],
             ),
@@ -402,7 +402,7 @@ class _SourceSheetState extends State<SourceSheet>
 
   void showAliasSearchDialog(String pluginName) {
     if (widget.infoController.bangumiItem.alias.isEmpty) {
-      KazumiDialog.showToast(message: '无可用别名，试试手动检索');
+      KazumiDialog.showToast(message: 'No aliases available, try a manual search');
       return;
     }
     KazumiDialog.show(
@@ -439,7 +439,7 @@ class _SourceSheetState extends State<SourceSheet>
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('输入别名'),
+          title: const Text('Enter alias'),
           content: TextField(
             onChanged: (value) => customKeyword = value,
             onSubmitted: (keyword) {
@@ -452,7 +452,7 @@ class _SourceSheetState extends State<SourceSheet>
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '取消',
+                'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -461,7 +461,7 @@ class _SourceSheetState extends State<SourceSheet>
                 submit(customKeyword);
               },
               child: const Text(
-                '确认',
+                'Confirm',
               ),
             ),
           ],
@@ -567,7 +567,7 @@ class _SourceSheetState extends State<SourceSheet>
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () async {
                                   KazumiDialog.showLoading(
-                                    msg: '获取中',
+                                    msg: 'Loading',
                                     barrierDismissible: isDesktop(),
                                     onDismiss: () {
                                       videoPageController.cancelQueryRoads();
@@ -654,7 +654,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
     if (_submittingNotifier.value) return;
     final captchaCode = _captchaCode.trim();
     if (captchaCode.isEmpty) {
-      KazumiDialog.showToast(message: '请输入验证码');
+      KazumiDialog.showToast(message: 'Please enter the captcha');
       return;
     }
     _submittingNotifier.value = true;
@@ -674,12 +674,12 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                '验证码验证',
+                'Captcha verification',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 4),
               Text(
-                '${widget.pluginName} 需要验证码验证',
+                '${widget.pluginName} requires captcha verification',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 20),
@@ -691,7 +691,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                       children: [
                         CircularProgressIndicator(),
                         SizedBox(height: 12),
-                        Text('正在加载验证码图片...'),
+                        Text('Loading captcha image...'),
                       ],
                     );
                   }
@@ -707,7 +707,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                               height: 80,
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, _) =>
-                                  const Text('图片解码失败'),
+                                  const Text('Failed to decode image'),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -716,7 +716,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                             enabled: !isSubmitting,
                             onChanged: (value) => _captchaCode = value,
                             decoration: const InputDecoration(
-                              labelText: '请输入验证码',
+                              labelText: 'Please enter the captcha',
                               border: OutlineInputBorder(),
                             ),
                             onSubmitted: isSubmitting ? null : (_) => _submit(),
@@ -743,7 +743,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                       TextButton(
                         onPressed: () => KazumiDialog.dismiss(),
                         child: Text(
-                          '取消',
+                          'Cancel',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -760,7 +760,7 @@ class _CaptchaDialogState extends State<_CaptchaDialog> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('提交'),
+                            : const Text('Submit'),
                       ),
                     ],
                   );
@@ -820,15 +820,15 @@ class _AliasDialogState extends State<_AliasDialog> {
                       KazumiDialog.show(
                         builder: (context) {
                           return AlertDialog(
-                            title: const Text('删除确认'),
-                            content: const Text('删除后无法恢复，确认要永久删除这个别名吗？'),
+                            title: const Text('Delete confirmation'),
+                            content: const Text('This cannot be undone. Permanently delete this alias?'),
                             actions: [
                               TextButton(
                                 onPressed: () {
                                   KazumiDialog.dismiss();
                                 },
                                 child: Text(
-                                  '取消',
+                                  'Cancel',
                                   style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -846,7 +846,7 @@ class _AliasDialogState extends State<_AliasDialog> {
                                     Navigator.of(this.context).pop();
                                   }
                                 },
-                                child: const Text('确认'),
+                                child: const Text('Confirm'),
                               ),
                             ],
                           );

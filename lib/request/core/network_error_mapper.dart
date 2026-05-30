@@ -10,14 +10,14 @@ class NetworkErrorMapper {
       case DioExceptionType.badCertificate:
         return NetworkException(
           type: NetworkExceptionType.badCertificate,
-          message: '证书有误！',
+          message: 'Certificate error!',
           rawError: error,
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.badResponse:
         return NetworkException(
           type: NetworkExceptionType.badResponse,
-          message: '服务器异常，请稍后重试！',
+          message: 'Server error, please try again later!',
           statusCode: error.response?.statusCode,
           rawError: error,
           stackTrace: error.stackTrace,
@@ -25,35 +25,35 @@ class NetworkErrorMapper {
       case DioExceptionType.cancel:
         return NetworkException(
           type: NetworkExceptionType.cancel,
-          message: '请求已被取消，请重新请求',
+          message: 'Request canceled, please try again',
           rawError: error,
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.connectionError:
         return NetworkException(
           type: NetworkExceptionType.connectionError,
-          message: '连接错误，请检查网络设置',
+          message: 'Connection error, please check your network settings',
           rawError: error,
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.connectionTimeout:
         return NetworkException(
           type: NetworkExceptionType.connectionTimeout,
-          message: '网络连接超时，请检查网络设置',
+          message: 'Network connection timed out, please check your network settings',
           rawError: error,
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.receiveTimeout:
         return NetworkException(
           type: NetworkExceptionType.receiveTimeout,
-          message: '响应超时，请稍后重试！',
+          message: 'Response timed out, please try again later!',
           rawError: error,
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.sendTimeout:
         return NetworkException(
           type: NetworkExceptionType.sendTimeout,
-          message: '发送请求超时，请检查网络设置',
+          message: 'Request send timed out, please check your network settings',
           rawError: error,
           stackTrace: error.stackTrace,
         );
@@ -61,7 +61,7 @@ class NetworkErrorMapper {
         final connection = await _connectionLabel();
         return NetworkException(
           type: NetworkExceptionType.unknown,
-          message: '$connection 网络异常'.trimLeft(),
+          message: '$connection network error'.trimLeft(),
           rawError: error,
           stackTrace: error.stackTrace,
         );
@@ -71,7 +71,7 @@ class NetworkErrorMapper {
   static NetworkException parse(Object error, StackTrace stackTrace) {
     return NetworkException(
       type: NetworkExceptionType.parseError,
-      message: '响应解析失败',
+      message: 'Failed to parse response',
       rawError: error,
       stackTrace: stackTrace,
     );
@@ -80,22 +80,22 @@ class NetworkErrorMapper {
   static Future<String> _connectionLabel() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult.contains(ConnectivityResult.mobile)) {
-      return '正在使用移动流量';
+      return 'Using mobile data';
     }
     if (connectivityResult.contains(ConnectivityResult.wifi)) {
-      return '正在使用wifi';
+      return 'Using Wi-Fi';
     }
     if (connectivityResult.contains(ConnectivityResult.ethernet)) {
-      return '正在使用局域网';
+      return 'Using LAN';
     }
     if (connectivityResult.contains(ConnectivityResult.vpn)) {
-      return '正在使用代理网络';
+      return 'Using proxy network';
     }
     if (connectivityResult.contains(ConnectivityResult.other)) {
-      return '正在使用其他网络';
+      return 'Using another network';
     }
     if (connectivityResult.contains(ConnectivityResult.none)) {
-      return '未连接到任何网络';
+      return 'Not connected to any network';
     }
     return '';
   }

@@ -117,7 +117,7 @@ class _VideoPageState extends State<VideoPage>
       );
       if (mounted) {
         videoPageController.loading = false;
-        videoPageController.errorMessage = '播放器初始化失败';
+        videoPageController.errorMessage = 'Player initialization failed';
       }
       return;
     }
@@ -455,15 +455,15 @@ class _VideoPageState extends State<VideoPage>
     keyboardFocus.requestFocus();
     if (playerController.danmaku.danDanmakus.isEmpty) {
       KazumiDialog.showToast(
-        message: '当前剧集不支持弹幕发送的说',
+        message: 'This episode does not support sending danmaku',
       );
       return;
     }
     if (msg.isEmpty) {
-      KazumiDialog.showToast(message: '弹幕内容为空');
+      KazumiDialog.showToast(message: 'Danmaku content is empty');
       return;
     } else if (msg.length > 100) {
-      KazumiDialog.showToast(message: '弹幕内容过长');
+      KazumiDialog.showToast(message: 'Danmaku content is too long');
       return;
     }
 
@@ -471,12 +471,12 @@ class _VideoPageState extends State<VideoPage>
 
     if (destination == DanmakuDestination.chatRoom) {
       if (playerController.syncplay.syncplayRoom.isEmpty) {
-        KazumiDialog.showToast(message: '你还没有加入一起看，无法发送聊天室弹幕');
+        KazumiDialog.showToast(message: 'You have not joined Watch Together, cannot send chat room danmaku');
         return;
       }
 
       final sender =
-          playerController.syncplay.syncplayController?.username ?? '我';
+          playerController.syncplay.syncplayController?.username ?? 'Me';
       final String displayText = '$sender：$msg';
 
       playerController.danmaku.canvasController.addDanmaku(
@@ -526,7 +526,7 @@ class _VideoPageState extends State<VideoPage>
                         decoration: const InputDecoration(
                           filled: true,
                           floatingLabelBehavior: FloatingLabelBehavior.never,
-                          hintText: '发个友善的弹幕见证当下',
+                          hintText: 'Send a friendly danmaku to mark the moment',
                           hintStyle: TextStyle(fontSize: 14),
                           alignLabelWithHint: true,
                           contentPadding:
@@ -568,7 +568,7 @@ class _VideoPageState extends State<VideoPage>
       return;
     }
     if (msg.trim().isEmpty) {
-      KazumiDialog.showToast(message: '弹幕内容为空');
+      KazumiDialog.showToast(message: 'Danmaku content is empty');
       return;
     }
 
@@ -584,12 +584,12 @@ class _VideoPageState extends State<VideoPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text('发送到聊天室'),
+                title: const Text('Send to chat room'),
                 onTap: () =>
                     Navigator.of(context).pop(DanmakuDestination.chatRoom),
               ),
               ListTile(
-                title: const Text('发送到远程弹幕库'),
+                title: const Text('Send to remote danmaku server'),
                 onTap: () =>
                     Navigator.of(context).pop(DanmakuDestination.remoteDanmaku),
               ),
@@ -781,8 +781,8 @@ class _VideoPageState extends State<VideoPage>
                                 const SizedBox(height: 10),
                                 Text(
                                   videoPageController.loading
-                                      ? '视频资源解析中'
-                                      : '视频资源解析成功, 播放器加载中',
+                                      ? 'Parsing video resource'
+                                      : 'Video resource parsed, loading player',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                               ],
@@ -903,7 +903,7 @@ class _VideoPageState extends State<VideoPage>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(' 合集 '),
+          const Text(' Collection '),
           Expanded(
             child: Text(
               videoPageController.title,
@@ -932,7 +932,7 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   child: Text(
-                    '播放列表${visibleRoad + 1} ',
+                    'Playlist${visibleRoad + 1} ',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -952,7 +952,7 @@ class _VideoPageState extends State<VideoPage>
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '播放列表${i + 1}',
+                      'Playlist${i + 1}',
                       style: TextStyle(
                         color: i == visibleRoad
                             ? Theme.of(context).colorScheme.primary
@@ -1030,7 +1030,7 @@ class _VideoPageState extends State<VideoPage>
       builder: (context) {
         var cardList = <Widget>[];
         for (var road in videoPageController.roadList) {
-          if (road.name == '播放列表${visibleRoad + 1}') {
+          if (road.name == 'Playlist${visibleRoad + 1}') {
             int count = 1;
             for (var urlItem in road.data) {
               int count0 = count;
@@ -1157,8 +1157,8 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   tabs: const [
-                    Tab(text: '选集'),
-                    Tab(text: '评论'),
+                    Tab(text: 'Episodes'),
+                    Tab(text: 'Reviews'),
                   ],
                 ),
                 if (MediaQuery.sizeOf(context).width <=
@@ -1180,15 +1180,15 @@ class _VideoPageState extends State<VideoPage>
                         if (danmakuOn && !videoPageController.loading) {
                           showMobileDanmakuInput();
                         } else if (videoPageController.loading) {
-                          KazumiDialog.showToast(message: '请等待视频加载完成');
+                          KazumiDialog.showToast(message: 'Please wait for the video to finish loading');
                         } else {
-                          KazumiDialog.showToast(message: '请先打开弹幕');
+                          KazumiDialog.showToast(message: 'Please turn on danmaku first');
                         }
                       },
                       child: Row(
                         children: [
                           Text(
-                            danmakuOn ? '  点我发弹幕  ' : '  已关闭弹幕  ',
+                            danmakuOn ? '  Tap to send danmaku  ' : '  Danmaku is off  ',
                             softWrap: false,
                             overflow: TextOverflow.clip,
                             style: TextStyle(

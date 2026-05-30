@@ -39,7 +39,7 @@ class CaptchaWebviewLinuxImpl extends CaptchaWebviewController<Webview> {
     if (parsed == null) return null;
 
     final (host, port) = parsed;
-    KazumiLogger().i('[Captcha WebView] 代理设置成功 $host:$port');
+    KazumiLogger().i('[Captcha WebView] proxy set successfully $host:$port');
     return ProxyConfiguration(host: host, port: port);
   }
 

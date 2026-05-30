@@ -121,7 +121,7 @@ class _ImageViewerState extends State<ImageViewer> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '图片加载失败',
+                        'Failed to load image',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onErrorContainer,
                         ),

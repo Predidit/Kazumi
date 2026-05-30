@@ -91,7 +91,7 @@ abstract class _PlayerSyncPlayController with Store {
     } catch (_) {}
     if (syncPlayEndPointHost == '' || syncPlayEndPointPort == 0) {
       KazumiDialog.showToast(
-        message: 'SyncPlay: 服务器地址不合法 $syncPlayEndPoint',
+        message: 'SyncPlay: invalid server address $syncPlayEndPoint',
       );
       KazumiLogger().e('SyncPlay: invalid server address $syncPlayEndPoint');
       return;
@@ -111,10 +111,10 @@ abstract class _PlayerSyncPlayController with Store {
           if (error is SyncplayConnectionException) {
             exitRoom();
             KazumiDialog.showToast(
-              message: 'SyncPlay: 同步中断 ${error.message}',
+              message: 'SyncPlay: sync interrupted ${error.message}',
               duration: const Duration(seconds: 5),
               showActionButton: true,
-              actionLabel: '重新连接',
+              actionLabel: 'Reconnect',
               onActionPressed: () => createRoom(room, username, changeEpisode),
             );
           }
@@ -125,23 +125,23 @@ abstract class _PlayerSyncPlayController with Store {
           if (message['type'] == 'init') {
             if (message['username'] == '') {
               KazumiDialog.showToast(
-                  message: 'SyncPlay: 您是当前房间中的唯一用户',
+                  message: 'SyncPlay: you are the only user in the current room',
                   duration: const Duration(seconds: 5));
               setPlayingBangumi();
             } else {
               KazumiDialog.showToast(
                   message:
-                      'SyncPlay: 您不是当前房间中的唯一用户, 当前以用户 ${message['username']} 进度为准');
+                      'SyncPlay: you are not the only user in the current room, now following the progress of user ${message['username']}');
             }
           }
           if (message['type'] == 'left') {
             KazumiDialog.showToast(
-                message: 'SyncPlay: ${message['username']} 离开了房间',
+                message: 'SyncPlay: ${message['username']} left the room',
                 duration: const Duration(seconds: 5));
           }
           if (message['type'] == 'joined') {
             KazumiDialog.showToast(
-                message: 'SyncPlay: ${message['username']} 加入了房间',
+                message: 'SyncPlay: ${message['username']} joined the room',
                 duration: const Duration(seconds: 5));
           }
         },
@@ -158,7 +158,7 @@ abstract class _PlayerSyncPlayController with Store {
             if (bangumiID != 0 && episode != 0 && episode != currentEpisode()) {
               KazumiDialog.showToast(
                   message:
-                      'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到第 $episode 话',
+                      'SyncPlay: ${message['setBy'] ?? 'unknown'} switched to episode $episode',
                   duration: const Duration(seconds: 3));
               changeEpisode(episode, currentRoad: currentRoad());
             }
@@ -190,14 +190,14 @@ abstract class _PlayerSyncPlayController with Store {
             if (message['paused']) {
               if (message['position'] != 0) {
                 KazumiDialog.showToast(
-                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 暂停了播放',
+                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} paused playback',
                     duration: const Duration(seconds: 3));
                 pause(enableSync: false);
               }
             } else {
               if (message['position'] != 0) {
                 KazumiDialog.showToast(
-                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 开始了播放',
+                    message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} started playback',
                     duration: const Duration(seconds: 3));
                 play(enableSync: false);
               }

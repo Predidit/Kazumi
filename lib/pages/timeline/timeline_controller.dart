@@ -113,7 +113,7 @@ abstract class _TimelineController with Store {
 
   void tryEnterSeason(DateTime date) {
     selectedDate = date;
-    seasonString = "加载中 ٩(◦`꒳´◦)۶";
+    seasonString = "Loading ٩(◦`꒳´◦)۶";
   }
 
   /// 排序方式

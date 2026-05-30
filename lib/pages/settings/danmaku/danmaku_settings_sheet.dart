@@ -37,10 +37,10 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
 
   String _formatDanmakuTimeOffset(double value) {
     if (value == 0) {
-      return '无偏移';
+      return 'No offset';
     }
-    final direction = value > 0 ? '延后' : '提前';
-    return '$direction ${value.abs().toStringAsFixed(1)} 秒';
+    final direction = value > 0 ? 'Delay' : 'Advance';
+    return '$direction ${value.abs().toStringAsFixed(1)} s';
   }
 
   @override
@@ -75,21 +75,21 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
       child: SettingsList(
         sections: [
           SettingsSection(
-            title: Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Danmaku blocking', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile.navigation(
                 onPressed: (_) {
                   showDanmakuShieldSheet();
                 },
-                title: Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Keyword blocking', style: TextStyle(fontFamily: fontFamily)),
               ),
             ],
           ),
           SettingsSection(
-            title: Text('弹幕样式', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Danmaku style', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('字体大小', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Font size', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.fontSize,
                   min: 10,
@@ -108,7 +108,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 ),
               ),
               SettingsTile(
-                title: Text('弹幕不透明度', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Danmaku opacity', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.opacity,
                   min: 0.1,
@@ -129,10 +129,10 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
             ],
           ),
           SettingsSection(
-            title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Danmaku display', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('时间轴偏移', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Timeline offset', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: _danmakuTimeOffset,
                   min: -60,
@@ -150,7 +150,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 ),
               ),
               SettingsTile(
-                title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Danmaku area', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.area,
                   min: 0,
@@ -169,7 +169,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 ),
               ),
               SettingsTile(
-                title: Text('持续时间', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Duration', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.duration.toDouble(),
                   min: 2,
@@ -188,7 +188,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                 ),
               ),
               SettingsTile(
-                title: Text('行高', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Line height', style: TextStyle(fontFamily: fontFamily)),
                 description: Slider(
                   value: widget.danmakuController.option.lineHeight,
                   min: 0,
@@ -217,7 +217,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                       ));
                   setting.put(SettingBoxKey.danmakuTop, show);
                 },
-                title: Text('顶部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Top danmaku', style: TextStyle(fontFamily: fontFamily)),
                 initialValue: !widget.danmakuController.option.hideTop,
               ),
               SettingsTile.switchTile(
@@ -231,7 +231,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                       ));
                   setting.put(SettingBoxKey.danmakuBottom, show);
                 },
-                title: Text('底部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Bottom danmaku', style: TextStyle(fontFamily: fontFamily)),
                 initialValue: !widget.danmakuController.option.hideBottom,
               ),
               SettingsTile.switchTile(
@@ -245,7 +245,7 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                       ));
                   setting.put(SettingBoxKey.danmakuScroll, show);
                 },
-                title: Text('滚动弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Scrolling danmaku', style: TextStyle(fontFamily: fontFamily)),
                 initialValue: !widget.danmakuController.option.hideScroll,
               ),
               SettingsTile.switchTile(
@@ -257,8 +257,8 @@ class _DanmakuSettingsSheetState extends State<DanmakuSettingsSheet> {
                   widget.onUpdateDanmakuSpeed?.call();
                   setState(() {});
                 },
-                title: Text('跟随视频倍速', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('弹幕速度随视频倍速变化',
+                title: Text('Follow playback speed', style: TextStyle(fontFamily: fontFamily)),
+                description: Text('Danmaku speed changes with playback speed',
                     style: TextStyle(fontFamily: fontFamily)),
                 initialValue: setting.get(SettingBoxKey.danmakuFollowSpeed,
                     defaultValue: true),

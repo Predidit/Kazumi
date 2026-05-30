@@ -51,17 +51,17 @@ class _CollectButtonState extends State<CollectButton> {
   String getTypeStringByInt(int collectType) {
     switch (collectType) {
       case 1:
-        return "在看";
+        return "Watching";
       case 2:
-        return "想看";
+        return "Plan to watch";
       case 3:
-        return "搁置";
+        return "On hold";
       case 4:
-        return "看过";
+        return "Watched";
       case 5:
-        return "抛弃";
+        return "Dropped";
       default:
-        return "未追";
+        return "Not tracked";
     }
   }
 

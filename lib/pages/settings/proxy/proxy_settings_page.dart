@@ -36,7 +36,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
       final proxyConfigured =
           setting.get(SettingBoxKey.proxyConfigured, defaultValue: false);
       if (!proxyConfigured) {
-        KazumiDialog.showToast(message: '请先在代理配置中完成测试');
+        KazumiDialog.showToast(message: 'Please complete the test in proxy configuration first');
         return;
       }
       await setting.put(SettingBoxKey.proxyEnable, true);
@@ -59,19 +59,19 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('代理设置')),
+        appBar: const SysAppBar(title: Text('Proxy settings')),
         body: SettingsList(
           maxWidth: 800,
           sections: [
             SettingsSection(
-              title: Text('代理', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Proxy', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     await updateProxyEnable(value ?? !proxyEnable);
                   },
-                  title: Text('启用代理', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('启用后网络请求将通过代理服务器',
+                  title: Text('Enable proxy', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('When enabled, network requests go through the proxy server',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: proxyEnable,
                 ),
@@ -83,8 +83,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                           defaultValue: false);
                     });
                   },
-                  title: Text('代理配置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('配置代理服务器地址和认证信息',
+                  title: Text('Proxy configuration', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure the proxy server address and credentials',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

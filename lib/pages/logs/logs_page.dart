@@ -137,7 +137,7 @@ class _LogsPageState extends State<LogsPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      KazumiDialog.showToast(message: '清空失败: $e');
+      KazumiDialog.showToast(message: 'Failed to clear: $e');
     }
   }
 
@@ -145,10 +145,10 @@ class _LogsPageState extends State<LogsPage> {
     try {
       await Clipboard.setData(ClipboardData(text: _fullContent));
       if (!mounted) return;
-      KazumiDialog.showToast(message: '已复制到剪贴板');
+      KazumiDialog.showToast(message: 'Copied to clipboard');
     } catch (e) {
       if (!mounted) return;
-      KazumiDialog.showToast(message: '复制失败: $e');
+      KazumiDialog.showToast(message: 'Copy failed: $e');
     }
   }
 
@@ -156,7 +156,7 @@ class _LogsPageState extends State<LogsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const SysAppBar(
-        title: Text('日志'),
+        title: Text('Logs'),
       ),
       body: buildBody,
       floatingActionButton: buildFloatingButtons,
@@ -172,13 +172,13 @@ class _LogsPageState extends State<LogsPage> {
 
     if (_hasError) {
       return const Center(
-        child: Text('加载日志失败'),
+        child: Text('Failed to load logs'),
       );
     }
 
     if (_logLines.isEmpty) {
       return const Center(
-        child: Text('没有数据'),
+        child: Text('No data'),
       );
     }
 
@@ -219,14 +219,14 @@ class _LogsPageState extends State<LogsPage> {
         FloatingActionButton(
           heroTag: null,
           onPressed: _clearLogs,
-          tooltip: '清空日志',
+          tooltip: 'Clear logs',
           child: const Icon(Icons.clear_all),
         ),
         const SizedBox(width: 15),
         FloatingActionButton(
           heroTag: null,
           onPressed: _copyLogs,
-          tooltip: '复制日志',
+          tooltip: 'Copy logs',
           child: const Icon(Icons.copy),
         ),
       ],

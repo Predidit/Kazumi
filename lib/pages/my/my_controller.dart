@@ -43,15 +43,15 @@ abstract class _MyController with Store {
 
   void addShieldList(String item) {
     if (item.isEmpty) {
-      KazumiDialog.showToast(message: '请输入关键词');
+      KazumiDialog.showToast(message: 'Please enter a keyword');
       return;
     }
     if (item.length > 64) {
-      KazumiDialog.showToast(message: '关键词过长');
+      KazumiDialog.showToast(message: 'Keyword too long');
       return;
     }
     if (shieldList.contains(item)) {
-      KazumiDialog.showToast(message: '已存在该关键词');
+      KazumiDialog.showToast(message: 'This keyword already exists');
       return;
     }
     shieldList.add(item);
@@ -79,7 +79,7 @@ abstract class _MyController with Store {
     } catch (err) {
       KazumiLogger().e('Update: check update failed', error: err);
       if (type == 'manual') {
-        KazumiDialog.showToast(message: '检查更新失败，请稍后重试');
+        KazumiDialog.showToast(message: 'Failed to check for updates, please try again later');
       }
       return false;
     }

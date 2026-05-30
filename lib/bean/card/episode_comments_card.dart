@@ -16,7 +16,7 @@ class EpisodeCommentsCard extends StatelessWidget {
     // 对 用户评论 做判空操作，如果为空则显示“用户已删除”
     String userComment = commentItem.comment.comment;
     if (userComment.isEmpty) {
-      userComment = "<用户已删除>";
+      userComment = "<user deleted>";
     }
 
     return Card(

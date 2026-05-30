@@ -26,7 +26,7 @@ class _DanmakuShieldSettingsSheetState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("弹幕屏蔽"),
+        title: const Text("Danmaku blocking"),
       ),
       body: ListView(
         padding: EdgeInsets.all(12),
@@ -35,7 +35,7 @@ class _DanmakuShieldSettingsSheetState
             controller: textEditingController,
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
-              hintText: "输入关键词或正则表达式",
+              hintText: "Enter a keyword or regular expression",
               suffixIcon: TextButton.icon(
                 onPressed: () {
                   myController.addShieldList(
@@ -43,7 +43,7 @@ class _DanmakuShieldSettingsSheetState
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text("添加"),
+                label: const Text("Add"),
               ),
             ),
             onSubmitted: (_) {
@@ -54,11 +54,11 @@ class _DanmakuShieldSettingsSheetState
           ),
           SizedBox(height: 12),
           Text(
-            '以"/"开头和结尾将视作正则表达式, 如"/\\d+/"表示屏蔽所有数字',
+            'Wrapping with "/" treats it as a regular expression, e.g. "/\\d+/" blocks all digits',
           ),
           Observer(builder: (context) {
             return Text(
-              "已添加${myController.shieldList.length}个关键词",
+              "Added ${myController.shieldList.length} keywords",
             );
           }),
           SizedBox(height: 12),

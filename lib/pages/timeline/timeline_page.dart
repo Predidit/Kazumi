@@ -62,13 +62,13 @@ class _TimelinePageState extends State<TimelinePage>
 
   DateTime generateDateTime(int year, String season) {
     switch (season) {
-      case '冬':
+      case 'Winter':
         return DateTime(year, 1, 1);
-      case '春':
+      case 'Spring':
         return DateTime(year, 4, 1);
-      case '夏':
+      case 'Summer':
         return DateTime(year, 7, 1);
-      case '秋':
+      case 'Autumn':
         return DateTime(year, 10, 1);
       default:
         return DateTime.now();
@@ -76,16 +76,16 @@ class _TimelinePageState extends State<TimelinePage>
   }
 
   final List<Tab> tabs = const <Tab>[
-    Tab(text: '一'),
-    Tab(text: '二'),
-    Tab(text: '三'),
-    Tab(text: '四'),
-    Tab(text: '五'),
-    Tab(text: '六'),
-    Tab(text: '日'),
+    Tab(text: 'Mon'),
+    Tab(text: 'Tue'),
+    Tab(text: 'Wed'),
+    Tab(text: 'Thu'),
+    Tab(text: 'Fri'),
+    Tab(text: 'Sat'),
+    Tab(text: 'Sun'),
   ];
 
-  final seasons = ['秋', '夏', '春', '冬'];
+  final seasons = ['Autumn', 'Summer', 'Spring', 'Winter'];
 
   String getStringByDateTime(DateTime d) {
     return d.year.toString() + getSeasonStringByMonth(d.month);
@@ -171,7 +171,7 @@ class _TimelinePageState extends State<TimelinePage>
               const SizedBox(width: 12),
               IconButton.filledTonal(
                 onPressed: KazumiDialog.dismiss,
-                tooltip: '关闭',
+                tooltip: 'Close',
                 icon: const Icon(Icons.close),
               ),
             ],
@@ -293,8 +293,8 @@ class _TimelinePageState extends State<TimelinePage>
 
     return buildTimelineBottomSheetHeaderCard(
       context,
-      title: '时间机器',
-      description: '按季度回到任意放送季，时间线会立即切换。',
+      title: 'Time machine',
+      description: 'Jump back to any broadcast season by quarter, the timeline switches instantly.',
       footer: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -302,7 +302,7 @@ class _TimelinePageState extends State<TimelinePage>
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          '当前查看 ${getStringByDateTime(timelineController.selectedDate)}',
+          'Currently viewing ${getStringByDateTime(timelineController.selectedDate)}',
           style: textTheme.labelLarge?.copyWith(
             color: colorScheme.onSecondaryContainer,
             fontWeight: FontWeight.w600,
@@ -345,7 +345,7 @@ class _TimelinePageState extends State<TimelinePage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$year年',
+            '$year',
             style: textTheme.titleMedium?.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.w700,
@@ -354,7 +354,7 @@ class _TimelinePageState extends State<TimelinePage>
           if (!hasSelectedSeason) ...[
             const SizedBox(height: 4),
             Text(
-              '共 ${availableSeasons.length} 个季度可选',
+              '${availableSeasons.length} seasons available',
               style: textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -433,13 +433,13 @@ class _TimelinePageState extends State<TimelinePage>
   String getSortTypeLabel(int sortType) {
     switch (sortType) {
       case 1:
-        return '时间优先';
+        return 'Time first';
       case 2:
-        return '评分优先';
+        return 'Rating first';
       case 3:
-        return '热度优先';
+        return 'Popularity first';
       default:
-        return '热度优先';
+        return 'Popularity first';
     }
   }
 
@@ -510,8 +510,8 @@ class _TimelinePageState extends State<TimelinePage>
   Widget buildTimelineOptionsSheetHeader(BuildContext context) {
     return buildTimelineBottomSheetHeaderCard(
       context,
-      title: '时间线选项',
-      description: '调整排序和过滤条件，结果会立即应用到当前时间线。',
+      title: 'Timeline options',
+      description: 'Adjust sorting and filters, changes apply to the current timeline instantly.',
       footer: Observer(
         builder: (context) {
           final enabledFilterCount = getEnabledTimelineFilterCount();
@@ -521,14 +521,14 @@ class _TimelinePageState extends State<TimelinePage>
             children: [
               buildTimelineOptionSummaryChip(
                 context,
-                label: '当前排序 ${getSortTypeLabel(timelineController.sortType)}',
+                label: 'Current sort ${getSortTypeLabel(timelineController.sortType)}',
                 highlighted: true,
               ),
               buildTimelineOptionSummaryChip(
                 context,
                 label: enabledFilterCount == 0
-                    ? '未启用过滤条件'
-                    : '已启用 $enabledFilterCount 个过滤条件',
+                    ? 'No filters enabled'
+                    : '$enabledFilterCount filters enabled',
                 onTap: scrollToFilterSection,
               ),
             ],
@@ -712,15 +712,15 @@ class _TimelinePageState extends State<TimelinePage>
     return buildTimelineOptionSection(
       context,
       sectionKey: filterSectionKey,
-      title: '过滤器',
-      description: '按收藏状态收起不需要显示的条目，支持连续调整。',
+      title: 'Filters',
+      description: 'Collapse entries you do not want to see by collection status, supports continuous adjustment.',
       child: Column(
         children: [
           Observer(
             builder: (context) => buildFilterOptionTile(
               context,
-              title: '不显示已抛弃的番剧',
-              description: '隐藏已经标记为抛弃的条目。',
+              title: 'Hide dropped anime',
+              description: 'Hide entries marked as dropped.',
               value: timelineController.notShowAbandonedBangumis,
               onChanged: (value) {
                 timelineController.setNotShowAbandonedBangumis(value);
@@ -732,8 +732,8 @@ class _TimelinePageState extends State<TimelinePage>
           Observer(
             builder: (context) => buildFilterOptionTile(
               context,
-              title: '不显示已看过的番剧',
-              description: '把已经看完的条目从时间线中移除。',
+              title: 'Hide watched anime',
+              description: 'Remove finished entries from the timeline.',
               value: timelineController.notShowWatchedBangumis,
               onChanged: (value) {
                 timelineController.setNotShowWatchedBangumis(value);
@@ -745,8 +745,8 @@ class _TimelinePageState extends State<TimelinePage>
           Observer(
             builder: (context) => buildFilterOptionTile(
               context,
-              title: '只显示在看的番剧',
-              description: '聚焦当前正在追更的条目。',
+              title: 'Show only currently watching anime',
+              description: 'Focus on entries you are currently following.',
               value: timelineController.onlyShowWatchingBangumis,
               onChanged: (value) {
                 timelineController.setOnlyShowWatchingBangumis(value);
@@ -762,31 +762,31 @@ class _TimelinePageState extends State<TimelinePage>
   Widget showSortSwitcher() {
     return buildTimelineOptionSection(
       context,
-      title: '排序方式',
-      description: '选择每一天内番剧卡片的排列方式。',
+      title: 'Sort by',
+      description: 'Choose how anime cards are arranged within each day.',
       child: Column(
         children: [
           buildSortOptionTile(
             context,
             sortType: 3,
-            title: '按热度排序',
-            description: '优先展示讨论度和关注度更高的条目。',
+            title: 'Sort by popularity',
+            description: 'Show entries with higher discussion and attention first.',
             icon: Icons.local_fire_department_rounded,
           ),
           const SizedBox(height: 12),
           buildSortOptionTile(
             context,
             sortType: 2,
-            title: '按评分排序',
-            description: '优先展示评分更高的条目。',
+            title: 'Sort by rating',
+            description: 'Show higher-rated entries first.',
             icon: Icons.star_rounded,
           ),
           const SizedBox(height: 12),
           buildSortOptionTile(
             context,
             sortType: 1,
-            title: '按时间排序',
-            description: '恢复默认时间顺序，方便按播出节奏查看。',
+            title: 'Sort by time',
+            description: 'Restore the default time order to follow the broadcast schedule.',
             icon: Icons.schedule_rounded,
           ),
         ],

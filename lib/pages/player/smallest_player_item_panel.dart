@@ -98,7 +98,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
     KazumiDialog.show(builder: (context) {
       String input = "";
       return AlertDialog(
-        title: const Text('跳过秒数'),
+        title: const Text('Skip seconds'),
         content: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
           return TextField(
@@ -119,7 +119,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
           TextButton(
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
-              '取消',
+              'Cancel',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
@@ -132,7 +132,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                 KazumiDialog.dismiss();
               }
             },
-            child: const Text('确定'),
+            child: const Text('OK'),
           ),
         ],
       );
@@ -219,14 +219,14 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
               widget.handleDanmaku();
             },
       tooltip: playerController.danmaku.danmakuLoading
-          ? '弹幕加载中...'
-          : (playerController.danmaku.danmakuOn ? '关闭弹幕' : '打开弹幕'),
+          ? 'Loading danmaku...'
+          : (playerController.danmaku.danmakuOn ? 'Turn off danmaku' : 'Turn on danmaku'),
     );
   }
 
   Widget forwardIcon() {
     return Tooltip(
-      message: '快进${playerController.playback.buttonSkipTime}秒，长按修改时间',
+      message: 'Skip forward ${playerController.playback.buttonSkipTime}s, long press to change',
       child: GestureDetector(
         onLongPress: () => showForwardChange(),
         child: IconButton(
@@ -424,7 +424,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             icon: Icon(playerController.playback.playing
                 ? Icons.pause_rounded
                 : Icons.play_arrow_rounded),
-            tooltip: playerController.playback.playing ? '暂停' : '播放',
+            tooltip: playerController.playback.playing ? 'Pause' : 'Play',
             onPressed: () {
               playerController.playOrPause();
             },
@@ -467,7 +467,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                   icon: Icon(videoPageController.isFullscreen
                       ? Icons.fullscreen_exit_rounded
                       : Icons.fullscreen_rounded),
-                  tooltip: videoPageController.isFullscreen ? '退出全屏' : '全屏',
+                  tooltip: videoPageController.isFullscreen ? 'Exit fullscreen' : 'Fullscreen',
                   onPressed: () {
                     widget.handleFullscreen();
                   },
@@ -486,7 +486,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
             IconButton(
               color: Colors.white,
               icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: '返回',
+              tooltip: 'Back',
               onPressed: () {
                 widget.onBackPressed(context);
               },
@@ -516,7 +516,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     final bool supported =
                         await PipUtils.isAndroidPIPSupported();
                     if (!supported) {
-                      KazumiDialog.showToast(message: '当前设备不支持画中画');
+                      KazumiDialog.showToast(message: 'This device does not support picture-in-picture');
                       return;
                     }
                     await PipUtils.updateAndroidPIPActions(
@@ -530,10 +530,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       height: playerController.debug.playerHeight,
                     );
                     if (!entered) {
-                      KazumiDialog.showToast(message: '进入画中画失败');
+                      KazumiDialog.showToast(message: 'Failed to enter picture-in-picture');
                     }
                   },
-                  tooltip: '画中画',
+                  tooltip: 'Picture-in-picture',
                   icon: const Icon(Icons.picture_in_picture,
                       color: Colors.white)),
             // 弹幕开关
@@ -556,7 +556,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                       controller.open();
                     }
                   },
-                  tooltip: '更多选项',
+                  tooltip: 'More options',
                   icon: const Icon(
                     Icons.more_vert,
                     color: Colors.white,
@@ -577,10 +577,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             index + 1 == 1
-                                ? '自动'
+                                ? 'Auto'
                                 : index + 1 == 2
-                                    ? '裁切填充'
-                                    : '拉伸填充',
+                                    ? 'Crop to fill'
+                                    : 'Stretch to fill',
                             style: TextStyle(
                                 color: index + 1 ==
                                         playerController.panel.aspectRatioType
@@ -596,7 +596,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("视频比例"),
+                      child: Text("Aspect ratio"),
                     ),
                   ),
                 ),
@@ -631,7 +631,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("倍速"),
+                      child: Text("Speed"),
                     ),
                   ),
                 ),
@@ -648,10 +648,10 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             index + 1 == 1
-                                ? '关闭'
+                                ? 'Close'
                                 : index + 1 == 2
-                                    ? '效率档'
-                                    : '质量档',
+                                    ? 'Performance mode'
+                                    : 'Quality mode',
                             style: TextStyle(
                               color: playerController
                                           .playback.superResolutionType ==
@@ -669,7 +669,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("超分辨率"),
+                      child: Text("Super resolution"),
                     ),
                   ),
                 ),
@@ -682,7 +682,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                              "当前房间: ${playerController.syncplay.syncplayRoom == '' ? '未加入' : playerController.syncplay.syncplayRoom}"),
+                              "Current room: ${playerController.syncplay.syncplayRoom == '' ? 'Not joined' : playerController.syncplay.syncplayRoom}"),
                         ),
                       ),
                     ),
@@ -693,7 +693,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                              "网络延时: ${playerController.syncplay.syncplayClientRtt}ms"),
+                              "Network latency: ${playerController.syncplay.syncplayClientRtt}ms"),
                         ),
                       ),
                     ),
@@ -706,7 +706,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         constraints: BoxConstraints(minWidth: 112),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("加入房间"),
+                          child: Text("Join room"),
                         ),
                       ),
                     ),
@@ -719,7 +719,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         constraints: BoxConstraints(minWidth: 112),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("切换服务器"),
+                          child: Text("Switch server"),
                         ),
                       ),
                     ),
@@ -732,7 +732,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         constraints: BoxConstraints(minWidth: 112),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("断开连接"),
+                          child: Text("Disconnect"),
                         ),
                       ),
                     ),
@@ -742,7 +742,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("一起看"),
+                      child: Text("Watch together"),
                     ),
                   ),
                 ),
@@ -755,7 +755,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("弹幕切换"),
+                      child: Text("Switch danmaku"),
                     ),
                   ),
                 ),
@@ -787,7 +787,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("弹幕设置"),
+                      child: Text("Danmaku settings"),
                     ),
                   ),
                 ),
@@ -800,7 +800,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("视频详情"),
+                      child: Text("Video details"),
                     ),
                   ),
                 ),
@@ -822,7 +822,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("远程投屏"),
+                      child: Text("Remote casting"),
                     ),
                   ),
                 ),
@@ -835,7 +835,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                     constraints: BoxConstraints(minWidth: 112),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("外部播放"),
+                      child: Text("External player"),
                     ),
                   ),
                 ),
@@ -852,7 +852,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            "不开启",
+                            "Off",
                             style: TextStyle(
                               color: !TimedShutdownService().isActive
                                   ? Theme.of(context).colorScheme.primary
@@ -869,7 +869,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                               onExpired: widget.pauseForTimedShutdown);
                           KazumiDialog.showToast(
                               message:
-                                  '已设置 ${TimedShutdownService().formatMinutesToDisplay(minutes)} 后定时关闭');
+                                  'Sleep timer set for ${TimedShutdownService().formatMinutesToDisplay(minutes)}');
                         },
                         child: Container(
                           height: 48,
@@ -877,7 +877,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              "$minutes 分钟",
+                              "$minutes min",
                               style: TextStyle(
                                 color:
                                     TimedShutdownService().setMinutes == minutes
@@ -899,7 +899,7 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         constraints: BoxConstraints(minWidth: 112),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text("自定义"),
+                          child: Text("Custom"),
                         ),
                       ),
                     ),
@@ -915,8 +915,8 @@ class _SmallestPlayerItemPanelState extends State<SmallestPlayerItemPanel> {
                         builder: (context, remainingSeconds, child) {
                           return Text(
                             remainingSeconds > 0
-                                ? "定时关闭 (${TimedShutdownService().formatRemainingTime()})"
-                                : "定时关闭",
+                                ? "Sleep timer (${TimedShutdownService().formatRemainingTime()})"
+                                : "Sleep timer",
                           );
                         },
                       ),

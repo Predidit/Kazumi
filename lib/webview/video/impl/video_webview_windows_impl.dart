@@ -39,9 +39,9 @@ class VideoWebviewWindowsImpl
       await WebviewController.initializeEnvironment(
         additionalArguments: '--proxy-server=$formattedProxy',
       );
-      KazumiLogger().i('WebView: 代理设置成功 $formattedProxy');
+      KazumiLogger().i('WebView: proxy set successfully $formattedProxy');
     } catch (e) {
-      KazumiLogger().e('WebView: 设置代理失败 $e');
+      KazumiLogger().e('WebView: failed to set proxy $e');
     }
   }
 

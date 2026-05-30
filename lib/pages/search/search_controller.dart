@@ -141,10 +141,10 @@ abstract class _SearchPageController with Store {
       if (result.error != null && result.error!.isNotEmpty) {
         imageSearchError = result.error!;
       } else if (imageSearchResults.isEmpty) {
-        imageSearchError = '未找到匹配结果';
+        imageSearchError = 'No matching results found';
       }
     } catch (e) {
-      imageSearchError = '图片搜索失败，请稍后重试';
+      imageSearchError = 'Image search failed, please try again later';
     } finally {
       isImageSearching = false;
     }
@@ -161,10 +161,10 @@ abstract class _SearchPageController with Store {
       if (result.error != null && result.error!.isNotEmpty) {
         imageSearchError = result.error!;
       } else if (imageSearchResults.isEmpty) {
-        imageSearchError = '未找到匹配结果';
+        imageSearchError = 'No matching results found';
       }
     } catch (e) {
-      imageSearchError = '图片搜索失败，请检查图片地址或稍后重试';
+      imageSearchError = 'Image search failed, please check the image URL or try again later';
     } finally {
       isImageSearching = false;
     }

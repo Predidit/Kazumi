@@ -39,17 +39,17 @@ class RatingReviewDialog extends StatefulWidget {
 
 class _RatingReviewDialogState extends State<RatingReviewDialog> {
   static const List<String> scoreLabels = <String>[
-    '未评分',
-    '不忍直视',
-    '很差',
-    '差',
-    '较差',
-    '不过不失',
-    '还行',
-    '推荐',
-    '力荐',
-    '神作',
-    '超神作',
+    'No rating',
+    'Unwatchable',
+    'Very bad',
+    'Bad',
+    'Poor',
+    'Mediocre',
+    'Okay',
+    'Recommended',
+    'Highly recommended',
+    'Masterpiece',
+    'Ultimate masterpiece',
   ];
 
   /// Maximum number of tags that can be submitted.
@@ -117,7 +117,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         return;
       }
       if (selectedTags.length >= _maxSelectedTags) {
-        _tagErrorText = '最多选择 $_maxSelectedTags 个标签';
+        _tagErrorText = 'Select up to $_maxSelectedTags tags';
         return;
       }
       selectedTags.add(tag);
@@ -129,19 +129,19 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
     if (_isSubmitting) return;
     final text = tagInputController.text.trim();
     if (text.isEmpty) {
-      _setTagError('请输入标签内容');
+      _setTagError('Please enter tag content');
       return;
     }
     if (text.length > _maxTagLength) {
-      _setTagError('单个标签不能超过 $_maxTagLength 个字');
+      _setTagError('A single tag cannot exceed $_maxTagLength characters');
       return;
     }
     if (selectedTags.length >= _maxSelectedTags) {
-      _setTagError('最多选择 $_maxSelectedTags 个标签');
+      _setTagError('Select up to $_maxSelectedTags tags');
       return;
     }
     if (selectedTags.contains(text)) {
-      _setTagError('这个标签已经添加过了');
+      _setTagError('This tag has already been added');
       return;
     }
     setState(() {
@@ -358,7 +358,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('发表吐槽', style: theme.textTheme.headlineSmall),
+                Text('Post comment', style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 4),
                 Text(
                   displayName,
@@ -372,7 +372,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
             ),
           ),
           IconButton(
-            tooltip: '关闭',
+            tooltip: 'Close',
             onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close_rounded),
           ),
@@ -418,7 +418,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
       minLines: 5,
       maxLines: 9,
       decoration: InputDecoration(
-        hintText: '写下你对这部番剧的看法',
+        hintText: 'Write your thoughts about this anime',
         filled: true,
         fillColor: colorScheme.surfaceContainer,
         hoverColor: colorScheme.surfaceContainer,
@@ -444,7 +444,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           Row(
             children: [
               Expanded(
-                child: Text('我的评分', style: theme.textTheme.titleMedium),
+                child: Text('My rating', style: theme.textTheme.titleMedium),
               ),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 160),
@@ -509,7 +509,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           Row(
             children: [
               Expanded(
-                child: Text('标签', style: theme.textTheme.titleMedium),
+                child: Text('Tags', style: theme.textTheme.titleMedium),
               ),
               Text(
                 '${selectedTags.length} / $_maxSelectedTags',
@@ -521,14 +521,14 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
               FilledButton.tonalIcon(
                 onPressed: _isSubmitting ? null : _openTagSelection,
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text('编辑'),
+                label: const Text('Edit'),
               ),
             ],
           ),
           const SizedBox(height: 12),
           if (selectedTags.isEmpty)
             Text(
-              '还没有添加标签',
+              'No tags added yet',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -612,7 +612,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('编辑标签', style: theme.textTheme.titleLarge),
+                          Text('Edit tags', style: theme.textTheme.titleLarge),
                           Text(
                             '${selectedTags.length} / $_maxSelectedTags',
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -623,7 +623,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                       ),
                     ),
                     IconButton(
-                      tooltip: '完成',
+                      tooltip: 'Done',
                       onPressed: _isSubmitting ? null : _closeTagSelection,
                       icon: const Icon(Icons.done_rounded),
                     ),
@@ -657,10 +657,10 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                   onSubmitted: (_) => _addCustomTag(),
                   enabled: !_isSubmitting,
                   decoration: InputDecoration(
-                    labelText: '自定义标签',
-                    hintText: '例如：治愈',
+                    labelText: 'Custom tag',
+                    hintText: 'e.g. Healing',
                     helperText: _tagErrorText == null
-                        ? '最多 $_maxSelectedTags 个标签'
+                        ? 'Up to $_maxSelectedTags tags'
                         : null,
                     errorText: _tagErrorText,
                     filled: true,
@@ -678,14 +678,14 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                 child: FilledButton.tonalIcon(
                   onPressed: _isSubmitting ? null : _addCustomTag,
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('添加'),
+                  label: const Text('Add'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            '已选标签',
+            'Selected tags',
             style: theme.textTheme.labelLarge?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -695,7 +695,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
           const SizedBox(height: 18),
           if (popularTags.isNotEmpty) ...[
             Text(
-              '热门标签',
+              'Popular tags',
               style: theme.textTheme.labelLarge?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -730,7 +730,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '还没有添加标签',
+            'No tags added yet',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -767,7 +767,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         children: [
           TextButton(
             onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           const SizedBox(width: 8),
           FilledButton(
@@ -785,7 +785,7 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
                           color: theme.colorScheme.onPrimary,
                         ),
                       )
-                    : const Text('提交'),
+                    : const Text('Submit'),
               ),
             ),
           ),

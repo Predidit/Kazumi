@@ -27,8 +27,8 @@ class _SearchPageState extends State<SearchPage> {
   final ScrollController scrollController = ScrollController();
 
   final List<Tab> tabs = [
-    Tab(text: "排序方式"),
-    Tab(text: "过滤器"),
+    Tab(text: "Sort by"),
+    Tab(text: "Filters"),
   ];
 
   @override
@@ -75,7 +75,7 @@ class _SearchPageState extends State<SearchPage> {
                   !searchPageController.notShowWatchedBangumis);
             },
             child: ListTile(
-              title: const Text('不显示已看过的番剧'),
+              title: const Text('Hide watched anime'),
               trailing: Switch(
                 value: searchPageController.notShowWatchedBangumis,
                 onChanged: (value) {
@@ -92,7 +92,7 @@ class _SearchPageState extends State<SearchPage> {
                   !searchPageController.notShowAbandonedBangumis);
             },
             child: ListTile(
-              title: const Text('不显示已抛弃的番剧'),
+              title: const Text('Hide dropped anime'),
               trailing: Switch(
                 value: searchPageController.notShowAbandonedBangumis,
                 onChanged: (value) {
@@ -113,7 +113,7 @@ class _SearchPageState extends State<SearchPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('按热度排序'),
+              title: const Text('Sort by popularity'),
               onTap: () {
                 Navigator.pop(context);
                 searchController.text = searchPageController.attachSortParams(
@@ -123,7 +123,7 @@ class _SearchPageState extends State<SearchPage> {
               },
             ),
             ListTile(
-              title: const Text('按评分排序'),
+              title: const Text('Sort by rating'),
               onTap: () {
                 Navigator.pop(context);
                 searchController.text = searchPageController.attachSortParams(
@@ -133,7 +133,7 @@ class _SearchPageState extends State<SearchPage> {
               },
             ),
             ListTile(
-              title: const Text('按匹配程度排序'),
+              title: const Text('Sort by relevance'),
               onTap: () {
                 Navigator.pop(context);
                 searchController.text = searchPageController.attachSortParams(
@@ -175,7 +175,7 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       appBar: SysAppBar(
         backgroundColor: Colors.transparent,
-        title: const Text("搜索"),
+        title: const Text("Search"),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -201,7 +201,7 @@ class _SearchPageState extends State<SearchPage> {
           );
         },
         icon: const Icon(Icons.sort),
-        label: const Text("搜索设置"),
+        label: const Text("Search settings"),
       ),
       body: Column(
         children: [
@@ -244,7 +244,7 @@ class _SearchPageState extends State<SearchPage> {
                         return Container(
                           height: 400,
                           alignment: Alignment.center,
-                          child: Text("无可用搜索建议，回车以直接检索"),
+                          child: Text("No search suggestions, press Enter to search directly"),
                         );
                       } else {
                         return Column(
@@ -294,7 +294,7 @@ class _SearchPageState extends State<SearchPage> {
                   child: SizedBox(
                     height: 400,
                     child: GeneralErrorWidget(
-                      errMsg: '什么都没有找到 (´;ω;`)',
+                      errMsg: 'Nothing found (´;ω;`)',
                       actions: [
                         GeneralErrorButton(
                           onPressed: () {
@@ -302,7 +302,7 @@ class _SearchPageState extends State<SearchPage> {
                                 searchController.text,
                                 type: 'init');
                           },
-                          text: '点击重试',
+                          text: 'Tap to retry',
                         ),
                       ],
                     ),

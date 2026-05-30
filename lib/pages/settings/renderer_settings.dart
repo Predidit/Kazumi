@@ -29,13 +29,13 @@ class _RendererSettingsState extends State<RendererSettings> {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: const SysAppBar(
-        title: Text('视频渲染器'),
+        title: Text('Video renderer'),
       ),
       body: SettingsList(
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('选择合适的渲染器以获得最佳播放体验',
+            title: Text('Choose a suitable renderer for the best playback experience',
                 style: TextStyle(fontFamily: fontFamily)),
             tiles: androidVideoRenderersList.entries
                 .map((e) => SettingsTile<String>.radioTile(

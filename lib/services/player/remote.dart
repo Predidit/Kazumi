@@ -13,7 +13,7 @@ class RemotePlay {
     await KazumiDialog.show(builder: (BuildContext context) {
       return StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
-          title: const Text('远程投屏'),
+          title: const Text('Remote casting'),
           content: SingleChildScrollView(
             child: Column(
               children: dlnaDevice,
@@ -26,7 +26,7 @@ class RemotePlay {
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '退出',
+                'Exit',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -34,7 +34,7 @@ class RemotePlay {
                 onPressed: () {
                   setState(() {});
                   KazumiDialog.showToast(
-                    message: '开始搜索',
+                    message: 'Start search',
                   );
                   dlna.devices.stream.listen((deviceList) {
                     dlnaDevice = [];
@@ -51,7 +51,7 @@ class RemotePlay {
                             onTap: () {
                               try {
                                 KazumiDialog.showToast(
-                                  message: '尝试投屏至 ${value.info.friendlyName}',
+                                  message: 'Trying to cast to ${value.info.friendlyName}',
                                 );
                                 DLNADevice(value.info).setUrl(video);
                                 DLNADevice(value.info).play();
@@ -60,7 +60,7 @@ class RemotePlay {
                                     'RemotePlay: failed to cast to device',
                                     error: e);
                                 KazumiDialog.showToast(
-                                  message: 'DLNA 异常: $e \n尝试重新进入 DLNA 投屏或切换设备',
+                                  message: 'DLNA error: $e \nTry re-entering DLNA casting or switching devices',
                                 );
                               }
                             }));
@@ -74,7 +74,7 @@ class RemotePlay {
                   // });
                 },
                 child: Text(
-                  '搜索',
+                  'Search',
                   style:
                       TextStyle(color: Theme.of(context).colorScheme.outline),
                 )),

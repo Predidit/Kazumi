@@ -26,13 +26,13 @@ class _PluginViewPageState extends State<PluginViewPage> {
   final Set<String> selectedNames = {};
 
   Future<void> _handleUpdate() async {
-    KazumiDialog.showLoading(msg: '更新中');
+    KazumiDialog.showLoading(msg: 'Updating');
     int count = await pluginsController.tryUpdateAllPlugin();
     KazumiDialog.dismiss();
     if (count == 0) {
-      KazumiDialog.showToast(message: '所有规则已是最新');
+      KazumiDialog.showToast(message: 'All rules are up to date');
     } else {
-      KazumiDialog.showToast(message: '更新成功 $count 条');
+      KazumiDialog.showToast(message: 'Updated $count rules');
     }
   }
 
@@ -46,7 +46,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
             mainAxisSize: MainAxisSize.min, // 设置为MainAxisSize.min以减小高度
             children: [
               ListTile(
-                title: const Text('新建规则'),
+                title: const Text('New rule'),
                 onTap: () {
                   KazumiDialog.dismiss();
                   Modular.to.pushNamed('/settings/plugin/editor',
@@ -55,7 +55,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               ),
               const SizedBox(height: 10),
               ListTile(
-                title: const Text('从规则仓库导入'),
+                title: const Text('Import from rule repository'),
                 onTap: () {
                   KazumiDialog.dismiss();
                   Modular.to.pushNamed('/settings/plugin/shop',
@@ -64,7 +64,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               ),
               const SizedBox(height: 10),
               ListTile(
-                title: const Text('从剪贴板导入'),
+                title: const Text('Import from clipboard'),
                 onTap: () {
                   KazumiDialog.dismiss();
                   _showInputDialog();
@@ -82,7 +82,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('导入规则'),
+          title: const Text('Import rule'),
           content: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
             return TextField(
@@ -93,7 +93,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
             TextButton(
               onPressed: () => KazumiDialog.dismiss(),
               child: Text(
-                '取消',
+                'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -104,14 +104,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   try {
                     pluginsController.updatePlugin(Plugin.fromJson(
                         json.decode(kazumiBase64ToJson(pluginText))));
-                    KazumiDialog.showToast(message: '导入成功');
+                    KazumiDialog.showToast(message: 'Import succeeded');
                   } catch (e) {
                     KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
+                    KazumiDialog.showToast(message: 'Import failed ${e.toString()}');
                   }
                   KazumiDialog.dismiss();
                 },
-                child: const Text('导入'),
+                child: const Text('Import'),
               );
             })
           ],
@@ -150,8 +150,8 @@ class _PluginViewPageState extends State<PluginViewPage> {
       child: Scaffold(
         appBar: SysAppBar(
           title: isMultiSelectMode
-              ? Text('已选择 ${selectedNames.length} 项')
-              : const Text('规则管理'),
+              ? Text('${selectedNames.length} selected')
+              : const Text('Rule management'),
           leading: isMultiSelectMode
               ? IconButton(
                   icon: const Icon(Icons.close),
@@ -171,14 +171,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
                     : () {
                         KazumiDialog.show(
                           builder: (context) => AlertDialog(
-                            title: const Text('删除规则'),
+                            title: const Text('Delete rule'),
                             content:
-                                Text('确定要删除选中的 ${selectedNames.length} 条规则吗？'),
+                                Text('Delete the ${selectedNames.length} selected rules?'),
                             actions: [
                               TextButton(
                                 onPressed: () => KazumiDialog.dismiss(),
                                 child: Text(
-                                  '取消',
+                                  'Cancel',
                                   style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -195,7 +195,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                   });
                                   KazumiDialog.dismiss();
                                 },
-                                child: const Text('删除'),
+                                child: const Text('Delete'),
                               ),
                             ],
                           ),
@@ -208,14 +208,14 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 onPressed: () {
                   _handleUpdate();
                 },
-                tooltip: '更新全部',
+                tooltip: 'Update all',
                 icon: const Icon(Icons.update),
               ),
               IconButton(
                 onPressed: () {
                   _handleAdd();
                 },
-                tooltip: '添加规则',
+                tooltip: 'Add rule',
                 icon: const Icon(Icons.add),
               )
             ],
@@ -224,7 +224,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
         body: Observer(builder: (context) {
           return pluginsController.pluginList.isEmpty
               ? const Center(
-                  child: Text('啊咧（⊙.⊙） 没有可用规则的说'),
+                  child: Text('Oops (⊙.⊙) no rules available'),
                 )
               : Builder(builder: (context) {
                   return ReorderableListView.builder(
@@ -306,7 +306,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                                 BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '可更新',
+                                            'Update available',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Theme.of(context)
@@ -330,7 +330,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                                                 BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '搜索有效',
+                                            'Search works',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Theme.of(context)
@@ -402,19 +402,19 @@ class _PluginViewPageState extends State<PluginViewPage> {
           onPressed: () async {
             var state = pluginsController.pluginUpdateStatus(plugin);
             if (state == "nonexistent") {
-              KazumiDialog.showToast(message: '规则仓库中没有当前规则');
+              KazumiDialog.showToast(message: 'This rule is not in the rule repository');
             } else if (state == "latest") {
-              KazumiDialog.showToast(message: '规则已是最新');
+              KazumiDialog.showToast(message: 'Rule is up to date');
             } else if (state == "updatable") {
-              KazumiDialog.showLoading(msg: '更新中');
+              KazumiDialog.showLoading(msg: 'Updating');
               int res = await pluginsController.tryUpdatePlugin(plugin);
               KazumiDialog.dismiss();
               if (res == 0) {
-                KazumiDialog.showToast(message: '更新成功');
+                KazumiDialog.showToast(message: 'Update succeeded');
               } else if (res == 1) {
-                KazumiDialog.showToast(message: 'kazumi版本过低, 此规则不兼容当前版本');
+                KazumiDialog.showToast(message: 'Kazumi version is too low, this rule is not compatible with the current version');
               } else if (res == 2) {
-                KazumiDialog.showToast(message: '更新规则失败');
+                KazumiDialog.showToast(message: 'Failed to update rule');
               }
             }
           },
@@ -427,7 +427,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 children: [
                   Icon(Icons.update_rounded),
                   SizedBox(width: 8),
-                  Text('更新'),
+                  Text('Update'),
                 ],
               ),
             ),
@@ -447,7 +447,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 children: [
                   Icon(Icons.edit),
                   SizedBox(width: 8),
-                  Text('编辑'),
+                  Text('Edit'),
                 ],
               ),
             ),
@@ -467,7 +467,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 children: [
                   Icon(Icons.bug_report_outlined),
                   SizedBox(width: 8),
-                  Text('测试'),
+                  Text('Test'),
                 ],
               ),
             ),
@@ -478,7 +478,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
           onPressed: () {
             KazumiDialog.show(builder: (context) {
               return AlertDialog(
-                title: const Text('规则链接'),
+                title: const Text('Rule link'),
                 content: SelectableText(
                   jsonToKazumiBase64(json
                       .encode(pluginsController.pluginList[index].toJson())),
@@ -489,7 +489,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   TextButton(
                     onPressed: () => KazumiDialog.dismiss(),
                     child: Text(
-                      '取消',
+                      'Cancel',
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.outline),
                     ),
@@ -505,7 +505,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                       ));
                       KazumiDialog.dismiss();
                     },
-                    child: const Text('复制到剪贴板'),
+                    child: const Text('Copy to clipboard'),
                   ),
                 ],
               );
@@ -520,7 +520,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 children: [
                   Icon(Icons.share),
                   SizedBox(width: 8),
-                  Text('分享'),
+                  Text('Share'),
                 ],
               ),
             ),
@@ -542,7 +542,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                 children: [
                   Icon(Icons.delete),
                   SizedBox(width: 8),
-                  Text('删除'),
+                  Text('Delete'),
                 ],
               ),
             ),

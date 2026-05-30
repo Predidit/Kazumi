@@ -38,20 +38,20 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
-      appBar: const SysAppBar(title: Text('下载设置')),
+      appBar: const SysAppBar(title: Text('Download settings')),
       body: SettingsList(
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('并发设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Concurrency settings', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('同时下载集数', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Simultaneous episode downloads', style: TextStyle(fontFamily: fontFamily)),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '同时下载 $parallelEpisodes 集',
+                      'Download $parallelEpisodes episodes at once',
                       style: TextStyle(fontFamily: fontFamily),
                     ),
                     Slider(
@@ -72,12 +72,12 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                 ),
               ),
               SettingsTile(
-                title: Text('分片并发数', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Segment concurrency', style: TextStyle(fontFamily: fontFamily)),
                 description: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '每集同时下载 $parallelSegments 个分片',
+                      'Download $parallelSegments segments per episode at once',
                       style: TextStyle(fontFamily: fontFamily),
                     ),
                     Slider(
@@ -100,16 +100,16 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             ],
           ),
           SettingsSection(
-            title: Text('缓存设置', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Cache settings', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile.switchTile(
                 onToggle: (value) {
                   setState(() => downloadDanmaku = value ?? !downloadDanmaku);
                   setting.put(SettingBoxKey.downloadDanmaku, downloadDanmaku);
                 },
-                title: Text('缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Cache danmaku', style: TextStyle(fontFamily: fontFamily)),
                 description: Text(
-                  '下载视频时同时缓存弹幕数据',
+                  'Cache danmaku data when downloading videos',
                   style: TextStyle(fontFamily: fontFamily),
                 ),
                 initialValue: downloadDanmaku,
@@ -117,15 +117,15 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
             ],
           ),
           SettingsSection(
-            title: Text('说明', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Notes', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile(
-                title: Text('关于并发设置', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('About concurrency settings', style: TextStyle(fontFamily: fontFamily)),
                 description: Text(
-                  '• 集数并发：同时下载多少集视频\n'
-                  '• 分片并发：每集内同时下载多少个视频片段\n'
-                  '• 较高的并发可提升速度，但可能被服务器限制\n'
-                  '• 修改后对新开始的下载生效',
+                  '• Episode concurrency: how many episodes to download at once\n'
+                  '• Segment concurrency: how many video segments to download per episode at once\n'
+                  '• Higher concurrency can improve speed but may be throttled by the server\n'
+                  '• Changes apply to newly started downloads',
                   style: TextStyle(fontFamily: fontFamily),
                 ),
               ),

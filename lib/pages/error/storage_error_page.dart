@@ -10,7 +10,7 @@ class StorageErrorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('内部错误'),
+        title: const Text('Internal error'),
       ),
       body: Center(
         child: FutureBuilder<Directory>(
@@ -18,15 +18,15 @@ class StorageErrorPage extends StatelessWidget {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               final supportDir = snapshot.data;
-              final path = supportDir != null ? '$supportDir' : '未知路径';
+              final path = supportDir != null ? '$supportDir' : 'Unknown path';
               return GeneralErrorWidget(
-                errMsg: '存储初始化错误 \n 当前储存位置 $path \n 尝试删除该目录以重置本地存储',
+                errMsg: 'Storage initialization error \n Current storage location $path \n Try deleting this directory to reset local storage',
                 actions: [
                   GeneralErrorButton(
                     onPressed: () {
                       exit(0);
                     },
-                    text: '退出程序',
+                    text: 'Exit app',
                   ),
                 ],
               );

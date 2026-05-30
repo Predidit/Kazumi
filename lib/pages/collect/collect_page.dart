@@ -35,7 +35,7 @@ class _CollectPageState extends State<CollectPage>
   Future<bool> _syncBangumiWithProgress({
     required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
   }) async {
-    progressDialogKey.currentState?.update('准备同步 Bangumi 收藏...', null);
+    progressDialogKey.currentState?.update('Preparing to sync Bangumi collection...', null);
 
     await Future<void>.delayed(const Duration(milliseconds: 80));
 
@@ -67,16 +67,16 @@ class _CollectPageState extends State<CollectPage>
   }) {
     final List<String> states = [];
     if (plan.shouldSyncWebDavCollectibles) {
-      states.add(webDavSynced ? 'WebDav 已同步' : 'WebDav 未完成');
+      states.add(webDavSynced ? 'WebDav synced' : 'WebDav incomplete');
     }
     if (plan.shouldSyncBangumi) {
-      states.add(bangumiSynced ? 'Bangumi 已同步' : 'Bangumi 未完成');
+      states.add(bangumiSynced ? 'Bangumi synced' : 'Bangumi incomplete');
     }
     if (plan.shouldSyncWebDavCollectibles &&
         plan.shouldSyncBangumi &&
         webDavSynced &&
         bangumiSynced) {
-      states.add(webDavUploaded ? 'WebDav 已回传最新数据' : 'WebDav 未回传最新数据');
+      states.add(webDavUploaded ? 'WebDav uploaded latest data' : 'WebDav did not upload latest data');
     }
     return states.join('，');
   }
@@ -98,7 +98,7 @@ class _CollectPageState extends State<CollectPage>
 
     try {
       if (plan.shouldSyncWebDavCollectibles) {
-        progressDialogKey.currentState?.update('正在同步 WebDav 收藏...', null);
+        progressDialogKey.currentState?.update('Syncing WebDav collection...', null);
         webDavSynced =
             await collectController.syncCollectibles(showSuccessToast: false);
       }
@@ -113,7 +113,7 @@ class _CollectPageState extends State<CollectPage>
         webDavSynced: webDavSynced,
         bangumiSynced: bangumiSynced,
       )) {
-        progressDialogKey.currentState?.update('正在回传最新收藏到 WebDav...', null);
+        progressDialogKey.currentState?.update('Uploading latest collection to WebDav...', null);
         webDavUploaded = await collectController.uploadCollectiblesToWebDav(
           showSuccessToast: false,
         );
@@ -162,11 +162,11 @@ class _CollectPageState extends State<CollectPage>
   }
 
   final List<Tab> tabs = const <Tab>[
-    Tab(text: '在看'),
-    Tab(text: '想看'),
-    Tab(text: '搁置'),
-    Tab(text: '看过'),
-    Tab(text: '抛弃'),
+    Tab(text: 'Watching'),
+    Tab(text: 'Plan to watch'),
+    Tab(text: 'On hold'),
+    Tab(text: 'Watched'),
+    Tab(text: 'Dropped'),
   ];
 
   @override
@@ -191,7 +191,7 @@ class _CollectPageState extends State<CollectPage>
             tabs: tabs,
             indicatorColor: Theme.of(context).colorScheme.primary,
           ),
-          title: const Text('追番'),
+          title: const Text('Tracking'),
           actions: [
             IconButton(
                 onPressed: () {
@@ -218,11 +218,11 @@ class _CollectPageState extends State<CollectPage>
               bangumiEnabled: bgmSyncEnable,
             );
             if (!syncPlan.canSync) {
-              KazumiDialog.showToast(message: '同步功能不可用，请至少开启一个同步功能');
+              KazumiDialog.showToast(message: 'Sync is unavailable, please enable at least one sync option');
               return;
             }
             if (showDelete) {
-              KazumiDialog.showToast(message: '编辑模式无法执行同步');
+              KazumiDialog.showToast(message: 'Cannot sync while in edit mode');
               return;
             }
             if (syncCollectiblesing) {
@@ -263,7 +263,7 @@ class _CollectPageState extends State<CollectPage>
       );
     } else {
       return const Center(
-        child: Text('啊嘞, 没有追番的说 (´;ω;`)'),
+        child: Text('Oops, nothing tracked yet (´;ω;`)'),
       );
     }
   }
@@ -364,7 +364,7 @@ class _FullSyncProgressDialog extends StatefulWidget {
 }
 
 class _FullSyncProgressDialogState extends State<_FullSyncProgressDialog> {
-  String _progressText = '准备开始同步收藏...';
+  String _progressText = 'Preparing to start collection sync...';
   double? _progressValue;
 
   void update(String text, double? value) {
@@ -389,7 +389,7 @@ class _FullSyncProgressDialogState extends State<_FullSyncProgressDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '收藏全量同步中',
+                  'Full collection sync in progress',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

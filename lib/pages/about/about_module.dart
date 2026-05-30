@@ -17,7 +17,7 @@ class AboutModule extends Module {
       child: (_) => const LicensePage(
         applicationName: 'Kazumi',
         applicationVersion: ApiEndpoints.version,
-        applicationLegalese: '开源许可证',
+        applicationLegalese: 'Open source licenses',
       ),
     );
   }

@@ -88,7 +88,7 @@ class _PopularPageState extends State<PopularPage>
         DateTime.now().difference(_lastPressedAt!) >
             const Duration(seconds: 2)) {
       _lastPressedAt = DateTime.now();
-      KazumiDialog.showToast(message: "再按一次退出应用", context: context);
+      KazumiDialog.showToast(message: "Press again to exit the app", context: context);
       return;
     }
     SystemNavigator.pop();
@@ -240,7 +240,7 @@ class _PopularPageState extends State<PopularPage>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                isTrend ? '热门番组' : popularController.currentTag,
+                                isTrend ? 'Trending anime' : popularController.currentTag,
                                 style: theme.textTheme.headlineMedium!.copyWith(
                                   fontWeight: fontWeight,
                                   fontSize: fontSize,
@@ -268,14 +268,14 @@ class _PopularPageState extends State<PopularPage>
     final actions = <Widget>[
       if (MediaQuery.of(context).orientation == Orientation.portrait)
         IconButton(
-          tooltip: '搜索',
+          tooltip: 'Search',
           onPressed: () => Modular.to.pushNamed('/search/'),
           icon: const Icon(Icons.search),
         ),
     ];
     actions.add(
       IconButton(
-        tooltip: '历史记录',
+        tooltip: 'History',
         onPressed: () => Modular.to.pushNamed('/settings/history/'),
         icon: const Icon(Icons.history),
       ),
@@ -284,7 +284,7 @@ class _PopularPageState extends State<PopularPage>
       if (!showWindowButton()) {
         actions.add(
           IconButton(
-            tooltip: '退出',
+            tooltip: 'Exit',
             onPressed: () => windowManager.close(),
             icon: const Icon(Icons.close),
           ),
@@ -319,7 +319,7 @@ class _PopularPageState extends State<PopularPage>
               '',
               ...defaultAnimeTags,
             ],
-            itemBuilder: (item) => item.isEmpty ? '热门番组' : item,
+            itemBuilder: (item) => item.isEmpty ? 'Trending anime' : item,
           );
         },
         transitionDuration: const Duration(milliseconds: 200),

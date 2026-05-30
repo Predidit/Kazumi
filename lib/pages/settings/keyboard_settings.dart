@@ -64,7 +64,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
         if (otherFunc == func && i == index) continue;
         if (otherKeys[i] == rawKey) {
           final name = shortcutsChineseName[otherFunc] ?? otherFunc;
-          KazumiDialog.showToast(message: "按键已被【$name】占用，请重新输入");
+          KazumiDialog.showToast(message: "This key is already used by [$name], please enter another");
           return true;
         }
       }
@@ -96,11 +96,11 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: SysAppBar(
-        title: Text('快捷键'),
+        title: Text('Shortcuts'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: '恢复默认',
+            tooltip: 'Restore defaults',
             onPressed: () {
               setState(() {
                 for (final func in shortcuts.keys) {

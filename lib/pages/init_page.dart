@@ -87,23 +87,23 @@ class _InitPageState extends State<InitPage> {
         clickMaskDismiss: false,
         builder: (context) {
           return AlertDialog(
-            title: const Text('需要通知权限'),
+            title: const Text('Notification permission required'),
             content: const Text(
-              '开启通知权限后，可以在后台下载时显示进度，并防止系统终止下载任务。\n\n'
-              '如果拒绝，下载功能仍可使用，但在后台时可能被系统中断。',
+              'Granting notification permission lets downloads show progress in the background and prevents the system from terminating download tasks.\n\n'
+              'If denied, downloads still work but may be interrupted by the system when in the background.',
             ),
             actions: [
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(popWith: false),
                 child: Text(
-                  '稍后再说',
+                  'Maybe later',
                   style:
                       TextStyle(color: Theme.of(context).colorScheme.outline),
                 ),
               ),
               TextButton(
                 onPressed: () => KazumiDialog.dismiss(popWith: true),
-                child: const Text('允许'),
+                child: const Text('Allow'),
               ),
             ],
           );
@@ -184,7 +184,7 @@ class _InitPageState extends State<InitPage> {
           error: e,
         );
         KazumiDialog.showToast(
-          message: '初始化Bangumi失败，已关闭 Bangumi 同步: ${e.toString()}',
+          message: 'Failed to initialize Bangumi, Bangumi sync has been disabled: ${e.toString()}',
         );
       }
     }
@@ -202,16 +202,16 @@ class _InitPageState extends State<InitPage> {
           return PopScope(
             canPop: false,
             child: AlertDialog(
-              title: const Text('X11环境检测'),
+              title: const Text('X11 environment detected'),
               content: const Text(
-                  '检测到您当前运行在X11环境下，Kazumi在X11环境下可能出现性能问题或界面异常，建议切换到Wayland以获得更好的体验。您是否希望在X11下继续使用Kazumi？'),
+                  'You are currently running under X11. Kazumi may have performance issues or display glitches under X11, and switching to Wayland is recommended for a better experience. Do you want to continue using Kazumi under X11?'),
               actions: [
                 TextButton(
                   onPressed: () {
                     exit(0);
                   },
                   child: Text(
-                    '退出',
+                    'Exit',
                     style:
                         TextStyle(color: Theme.of(context).colorScheme.outline),
                   ),
@@ -220,7 +220,7 @@ class _InitPageState extends State<InitPage> {
                   onPressed: () {
                     KazumiDialog.dismiss();
                   },
-                  child: const Text('继续'),
+                  child: const Text('Resume'),
                 ),
               ],
             ),
@@ -239,17 +239,17 @@ class _InitPageState extends State<InitPage> {
     final create = await KazumiDialog.show<bool>(
       clickMaskDismiss: false,
       builder: (context) => AlertDialog(
-        title: const Text('创建桌面快捷方式'),
-        content: const Text('是否在桌面创建 Kazumi 的快捷方式？'),
+        title: const Text('Create desktop shortcut'),
+        content: const Text('Create a Kazumi shortcut on the desktop?'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: false),
-            child: Text('暂不创建',
+            child: Text('Not now',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline)),
           ),
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: true),
-            child: const Text('创建'),
+            child: const Text('Create'),
           ),
         ],
       ),
@@ -258,7 +258,7 @@ class _InitPageState extends State<InitPage> {
     await setting.put(SettingBoxKey.shortcutDialogShown, true);
     if (create ?? false) {
       final success = await WindowsShortcut.createDesktopShortcut();
-      KazumiDialog.showToast(message: success ? '桌面快捷方式已创建' : '桌面快捷方式创建失败');
+      KazumiDialog.showToast(message: success ? 'Desktop shortcut created' : 'Failed to create desktop shortcut');
     }
   }
 
@@ -277,7 +277,7 @@ class _InitPageState extends State<InitPage> {
           return PopScope(
             canPop: false,
             child: AlertDialog(
-              title: const Text('免责声明'),
+              title: const Text('Disclaimer'),
               scrollable: true,
               content: Text(statementsText),
               actions: [
@@ -286,7 +286,7 @@ class _InitPageState extends State<InitPage> {
                     exit(0);
                   },
                   child: Text(
-                    '退出',
+                    'Exit',
                     style:
                         TextStyle(color: Theme.of(context).colorScheme.outline),
                   ),
@@ -302,7 +302,7 @@ class _InitPageState extends State<InitPage> {
                     }
                     await _switchUpdateMirror();
                   },
-                  child: const Text('已阅读并同意'),
+                  child: const Text('I have read and agree'),
                 ),
               ],
             ),
@@ -323,7 +323,7 @@ class _InitPageState extends State<InitPage> {
         return PopScope(
           canPop: false,
           child: AlertDialog(
-            title: const Text('更新镜像'),
+            title: const Text('Update mirror'),
             content: const Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,14 +331,14 @@ class _InitPageState extends State<InitPage> {
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    '您希望从哪里获取应用更新？',
+                    'Where would you like to get app updates from?',
                     textAlign: TextAlign.left,
                   ),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Github镜像为大多数情况下的最佳选择。如果您使用F-Droid应用商店, 请选择F-Droid镜像。',
+                    'The Github mirror is the best choice in most cases. If you use the F-Droid app store, please choose the F-Droid mirror.',
                     textAlign: TextAlign.left,
                   ),
                 ),
@@ -389,7 +389,7 @@ class _InitPageState extends State<InitPage> {
       }
     }
     if (count != 0) {
-      KazumiDialog.showToast(message: '检测到 $count 条规则可以更新');
+      KazumiDialog.showToast(message: '$count rules can be updated');
     }
   }
 

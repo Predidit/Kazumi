@@ -101,13 +101,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             if (commentsQueryTimeout) {
               return SliverFillRemaining(
                 child: GeneralErrorWidget(
-                  errMsg: '评论获取失败',
+                  errMsg: 'Failed to load comments',
                   actions: [
                     GeneralErrorButton(
                       onPressed: () {
                         _refreshIndicatorKey.currentState?.show();
                       },
-                      text: '重试',
+                      text: 'Retry',
                     ),
                   ],
                 ),
@@ -116,7 +116,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             if (commentsIsEmpty) {
               return const SliverFillRemaining(
                 child: Center(
-                  child: Text('什么都没有找到 (´;ω;`)'),
+                  child: Text('Nothing found (´;ω;`)'),
                 ),
               );
             }
@@ -154,7 +154,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(' 本集标题  '),
+          const Text(' Episode title  '),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +188,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                 showEpisodeSelection();
               },
               child: const Text(
-                '手动切换',
+                'Switch manually',
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -203,7 +203,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
               onPressed: toggleSortOrder,
               child: Observer(builder: (context) {
                 return Text(
-                  videoPageController.isCommentsAscending ? '倒序' : '正序',
+                  videoPageController.isCommentsAscending ? 'Descending' : 'Ascending',
                   style: const TextStyle(fontSize: 13),
                 );
               }),
@@ -217,7 +217,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   void showEpisodeSelection() async {
     final int selectedEpisode =
         ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;
-    KazumiDialog.showLoading(msg: '分集列表加载中');
+    KazumiDialog.showLoading(msg: 'Loading episode list');
     final List<EpisodeInfo> episodeList =
         await BangumiApi.getBangumiEpisodesByID(
             videoPageController.bangumiItem.id);
@@ -226,7 +226,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
       return;
     }
     if (episodeList.isEmpty) {
-      KazumiDialog.showToast(message: '未找到分集列表');
+      KazumiDialog.showToast(message: 'Episode list not found');
       return;
     }
     KazumiDialog.show(
@@ -240,7 +240,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
               children: [
                 const Padding(
                   padding: EdgeInsets.fromLTRB(24, 20, 24, 8),
-                  child: Text('分集列表', style: TextStyle(fontSize: 20)),
+                  child: Text('Episode list', style: TextStyle(fontSize: 20)),
                 ),
                 Flexible(
                   child: ListView.builder(
@@ -278,7 +278,7 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
                     child: TextButton(
                       onPressed: () => KazumiDialog.dismiss(),
                       child: Text(
-                        '取消',
+                        'Cancel',
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.outline),
                       ),

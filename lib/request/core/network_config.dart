@@ -83,7 +83,7 @@ class NetworkConfig {
     final proxyUrl = setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
     final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
     if (parsed == null) {
-      KazumiLogger().w('Proxy: 代理地址格式错误或为空');
+      KazumiLogger().w('Proxy: proxy address is malformed or empty');
       return NetworkConfig(
         connectTimeout: connectTimeout,
         receiveTimeout: receiveTimeout,

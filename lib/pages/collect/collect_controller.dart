@@ -132,28 +132,28 @@ abstract class _CollectController with Store {
     return KazumiDialog.show<_BangumiDeleteSyncAction>(
       clickMaskDismiss: true,
       builder: (context) => AlertDialog(
-        title: const Text('Bangumi 不支持删除收藏'),
+        title: const Text('Bangumi does not support deleting collections'),
         content: const Text(
-          '因为安全考虑，Bangumi 未提供删除接口，您可以选择把本地和远端标记为“抛弃”，或者选择仅删除本地收藏并打开网页后手动删除 Bangumi 数据。',
+          'For security reasons, Bangumi does not provide a delete interface. You can mark both local and remote as “Dropped”, or delete only the local collection and remove the Bangumi data manually after opening the web page.',
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.cancel);
             },
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.openWeb);
             },
-            child: const Text('打开网页'),
+            child: const Text('Open web page'),
           ),
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop(_BangumiDeleteSyncAction.markAbandoned);
             },
-            child: const Text('标记为抛弃'),
+            child: const Text('Mark as dropped'),
           ),
         ],
       ),
@@ -166,7 +166,7 @@ abstract class _CollectController with Store {
       await launchUrl(url, mode: LaunchMode.externalApplication);
       return;
     }
-    KazumiDialog.showToast(message: '无法打开 Bangumi 网页');
+    KazumiDialog.showToast(message: 'Cannot open the Bangumi web page');
   }
 
   Future<bool> _syncBangumiCollectIfEnabled(
@@ -184,7 +184,7 @@ abstract class _CollectController with Store {
 
     final bangumi = BangumiSyncService();
     if (!bangumi.initialized) {
-      KazumiDialog.showToast(message: 'Bangumi 未初始化，同步失败，已取消本次状态修改');
+      KazumiDialog.showToast(message: 'Bangumi is not initialized, sync failed, this status change has been canceled');
       KazumiLogger().w(
         'Bangumi: immediate collect sync skipped because Bangumi is not initialized. '
         'bangumiId=$bangumiId, type=$localType',
@@ -193,15 +193,15 @@ abstract class _CollectController with Store {
     }
     try {
       if (showImmediateSyncToast) {
-        KazumiDialog.showToast(message: '正在同步到 Bangumi...');
+        KazumiDialog.showToast(message: 'Syncing to Bangumi...');
       }
       final bool synced =
           await bangumi.syncCollectibleWhenIdle(bangumiId, localType);
       if (synced && showImmediateSyncToast) {
-        KazumiDialog.showToast(message: '已同步到 Bangumi');
+        KazumiDialog.showToast(message: 'Synced to Bangumi');
         return true;
       } else if (!synced) {
-        KazumiDialog.showToast(message: '同步到 Bangumi 失败，已取消本次状态修改');
+        KazumiDialog.showToast(message: 'Failed to sync to Bangumi, this status change has been canceled');
         KazumiLogger().w(
           'Bangumi: immediate collect sync did not complete. bangumiId=$bangumiId, type=$localType',
         );
@@ -209,7 +209,7 @@ abstract class _CollectController with Store {
       }
       return true;
     } catch (e, stackTrace) {
-      KazumiDialog.showToast(message: '同步到 Bangumi 失败，已取消本次状态修改: $e');
+      KazumiDialog.showToast(message: 'Failed to sync to Bangumi, this status change has been canceled: $e');
       KazumiLogger().e(
         'Bangumi: immediate collect sync failed. bangumiId=$bangumiId, type=$localType',
         error: e,
@@ -228,11 +228,11 @@ abstract class _CollectController with Store {
     final bool webDavCollectEnable =
         setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     if (!webDavCollectEnable) {
-      KazumiDialog.showToast(message: '未开启WebDav收藏同步');
+      KazumiDialog.showToast(message: 'WebDav collection sync is not enabled');
       return false;
     }
     if (!WebDav().initialized) {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
+      KazumiDialog.showToast(message: 'WebDav sync is not enabled or the configuration is invalid');
       return false;
     }
     bool flag = true;
@@ -240,7 +240,7 @@ abstract class _CollectController with Store {
       await WebDav().ping();
     } catch (e) {
       KazumiLogger().e('WebDav: WebDav connection failed', error: e);
-      KazumiDialog.showToast(message: 'WebDav连接失败: $e');
+      KazumiDialog.showToast(message: 'WebDav connection failed: $e');
       flag = false;
     }
     if (!flag) {
@@ -249,10 +249,10 @@ abstract class _CollectController with Store {
     try {
       await WebDav().syncCollectibles();
       if (showSuccessToast) {
-        KazumiDialog.showToast(message: 'WebDav同步完成');
+        KazumiDialog.showToast(message: 'WebDav sync complete');
       }
     } catch (e) {
-      KazumiDialog.showToast(message: 'WebDav同步失败 $e');
+      KazumiDialog.showToast(message: 'WebDav sync failed $e');
       return false;
     }
     loadCollectibles();
@@ -266,11 +266,11 @@ abstract class _CollectController with Store {
     final bool webDavCollectEnable =
         setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
     if (!webDavCollectEnable) {
-      KazumiDialog.showToast(message: '未开启WebDav收藏同步');
+      KazumiDialog.showToast(message: 'WebDav collection sync is not enabled');
       return false;
     }
     if (!WebDav().initialized) {
-      KazumiDialog.showToast(message: '未开启WebDav同步或配置无效');
+      KazumiDialog.showToast(message: 'WebDav sync is not enabled or the configuration is invalid');
       return false;
     }
     bool flag = true;
@@ -278,7 +278,7 @@ abstract class _CollectController with Store {
       await WebDav().ping();
     } catch (e) {
       KazumiLogger().e('WebDav: WebDav connection failed', error: e);
-      KazumiDialog.showToast(message: 'WebDav连接失败: $e');
+      KazumiDialog.showToast(message: 'WebDav connection failed: $e');
       flag = false;
     }
     if (!flag) {
@@ -287,10 +287,10 @@ abstract class _CollectController with Store {
     try {
       await WebDav().updateCollectibles();
       if (showSuccessToast) {
-        KazumiDialog.showToast(message: 'WebDav上传完成');
+        KazumiDialog.showToast(message: 'WebDav upload complete');
       }
     } catch (e) {
-      KazumiDialog.showToast(message: 'WebDav上传失败 $e');
+      KazumiDialog.showToast(message: 'WebDav upload failed $e');
       return false;
     }
     return true;
@@ -346,12 +346,12 @@ abstract class _CollectController with Store {
     final bool syncEnable =
         setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
     if (!syncEnable) {
-      KazumiDialog.showToast(message: '未开启Bangumi同步，请先在设置中启用');
+      KazumiDialog.showToast(message: 'Bangumi sync is not enabled, please enable it in settings first');
       return false;
     }
 
     if (!BangumiSyncService().initialized) {
-      KazumiDialog.showToast(message: 'Bangumi同步已开启但未初始化，请检查Token后重试');
+      KazumiDialog.showToast(message: 'Bangumi sync is enabled but not initialized, please check the Token and retry');
       return false;
     }
     try {
@@ -361,16 +361,16 @@ abstract class _CollectController with Store {
             await BangumiSyncService().syncCollectibles(onProgress: onProgress);
         if (showSuccessToast) {
           KazumiDialog.showToast(
-            message: hasChanges ? 'Bangumi同步完成' : '未发现状态差异，无需同步',
+            message: hasChanges ? 'Bangumi sync complete' : 'No status differences found, no sync needed',
           );
         }
       } catch (e) {
-        KazumiDialog.showToast(message: 'Bangumi同步失败 $e');
+        KazumiDialog.showToast(message: 'Bangumi sync failed $e');
         return false;
       }
     } catch (e) {
       KazumiLogger().e('Bangumi: Bangumi connection failed', error: e);
-      KazumiDialog.showToast(message: 'Bangumi访问失败: $e');
+      KazumiDialog.showToast(message: 'Bangumi access failed: $e');
       return false;
     }
     loadCollectibles();

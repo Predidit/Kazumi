@@ -152,12 +152,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('外观设置')),
+        appBar: const SysAppBar(title: Text('Appearance settings')),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('外观', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Appearance', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -167,15 +167,15 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       menuController.open();
                     }
                   },
-                  title: Text('深色模式', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Dark mode', style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: menuController,
                     builder: (_, __, ___) {
                       return Text(
                         defaultThemeMode == 'light'
-                            ? '浅色'
-                            : (defaultThemeMode == 'dark' ? '深色' : '跟随系统'),
+                            ? 'Light'
+                            : (defaultThemeMode == 'dark' ? 'Dark' : 'Follow system'),
                         style: TextStyle(fontFamily: fontFamily),
                       );
                     },
@@ -198,7 +198,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '跟随系统',
+                                  'Follow system',
                                   style: TextStyle(
                                     color: defaultThemeMode == 'system'
                                         ? Theme.of(context).colorScheme.primary
@@ -229,7 +229,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '浅色',
+                                  'Light',
                                   style: TextStyle(
                                       color: defaultThemeMode == 'light'
                                           ? Theme.of(context)
@@ -261,7 +261,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                                 ),
                                 SizedBox(width: 8),
                                 Text(
-                                  '深色',
+                                  'Dark',
                                   style: TextStyle(
                                     color: defaultThemeMode == 'dark'
                                         ? Theme.of(context).colorScheme.primary
@@ -282,7 +282,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   onPressed: (_) async {
                     KazumiDialog.show(builder: (context) {
                       return AlertDialog(
-                        title: Text('配色方案',
+                        title: Text('Color scheme',
                             style: TextStyle(fontFamily: fontFamily)),
                         content: StatefulBuilder(builder:
                             (BuildContext context, StateSetter setState) {
@@ -326,7 +326,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       );
                     });
                   },
-                  title: Text('配色方案', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Color scheme', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.switchTile(
                   enabled: !Platform.isIOS,
@@ -337,7 +337,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     themeProvider.setDynamic(useDynamicColor);
                     setState(() {});
                   },
-                  title: Text('动态配色', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Dynamic color', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useDynamicColor,
                 ),
                 SettingsTile.switchTile(
@@ -356,13 +356,13 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setState(() {});
                   },
                   title:
-                      Text('使用系统字体', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('关闭后使用 MI Sans 字体',
+                      Text('Use system font', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('When off, use the MI Sans font',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: useSystemFont,
                 ),
               ],
-              bottomInfo: Text('动态配色仅支持安卓12及以上和桌面平台',
+              bottomInfo: Text('Dynamic color is only supported on Android 12 and above and on desktop platforms',
                   style: TextStyle(fontFamily: fontFamily)),
             ),
             SettingsSection(
@@ -375,8 +375,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     setState(() {});
                   },
                   title:
-                      Text('OLED优化', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('深色模式下使用纯黑背景',
+                      Text('OLED optimization', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Use a pure black background in dark mode',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: oledEnhance,
                 ),
@@ -392,9 +392,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           SettingBoxKey.showWindowButton, showWindowButton);
                       setState(() {});
                     },
-                    title: Text('使用系统标题栏',
+                    title: Text('Use system title bar',
                         style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('重启应用生效',
+                    description: Text('Takes effect after restarting the app',
                         style: TextStyle(fontFamily: fontFamily)),
                     initialValue: showWindowButton,
                   ),
@@ -408,7 +408,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                       Modular.to.pushNamed('/settings/theme/display');
                     },
                     title:
-                        Text('屏幕帧率', style: TextStyle(fontFamily: fontFamily)),
+                        Text('Screen refresh rate', style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],
               ),

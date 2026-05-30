@@ -239,7 +239,7 @@ abstract class _PlayerPlaybackController with Store {
         if (!isCurrentPlayer(player)) {
           return await _discardIfNotCurrent(player);
         }
-        KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
+        KazumiLogger().i('Player: HTTP proxy set successfully $formattedProxy');
       }
     }
 
@@ -303,10 +303,10 @@ abstract class _PlayerPlaybackController with Store {
         }
         if (event.toString().contains('Failed to open') && playerBuffering) {
           KazumiDialog.showToast(
-              message: '加载失败, 请尝试更换其他视频来源', showActionButton: true);
+              message: 'Loading failed, please try a different video source', showActionButton: true);
         } else {
           KazumiDialog.showToast(
-              message: '播放器内部错误 ${event.toString()} ${videoUrl()}',
+              message: 'Player internal error ${event.toString()} ${videoUrl()}',
               duration: const Duration(seconds: 5),
               showActionButton: true);
         }

@@ -3,24 +3,24 @@ String formatTimestampToRelativeTime(int timeStamp) {
       .difference(DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000));
 
   if (difference.inDays > 365) {
-    return '${difference.inDays ~/ 365}年前';
+    return '${difference.inDays ~/ 365}y ago';
   } else if (difference.inDays > 30) {
-    return '${difference.inDays ~/ 30}个月前';
+    return '${difference.inDays ~/ 30}mo ago';
   } else if (difference.inDays > 0) {
-    return '${difference.inDays}天前';
+    return '${difference.inDays}d ago';
   } else if (difference.inHours > 0) {
-    return '${difference.inHours}小时前';
+    return '${difference.inHours}h ago';
   } else if (difference.inMinutes > 0) {
-    return '${difference.inMinutes}分钟前';
+    return '${difference.inMinutes}m ago';
   }
-  return '刚刚';
+  return 'Just now';
 }
 
 String dateFormat(int timeStamp, {String formatType = 'list'}) {
   final time = (DateTime.now().millisecondsSinceEpoch / 1000).round();
   final distance = time - timeStamp;
-  var currentYearStr = 'MM月DD日 hh:mm';
-  var lastYearStr = 'YY年MM月DD日 hh:mm';
+  var currentYearStr = 'MM-DD hh:mm';
+  var lastYearStr = 'YY-MM-DD hh:mm';
   if (formatType == 'detail') {
     currentYearStr = 'MM-DD hh:mm';
     lastYearStr = 'YY-MM-DD hh:mm';
@@ -32,11 +32,11 @@ String dateFormat(int timeStamp, {String formatType = 'list'}) {
     );
   }
   if (distance <= 60) {
-    return '刚刚';
+    return 'Just now';
   } else if (distance <= 3600) {
-    return '${(distance / 60).floor()}分钟前';
+    return '${(distance / 60).floor()}m ago';
   } else if (distance <= 43200) {
-    return '${(distance / 60 / 60).floor()}小时前';
+    return '${(distance / 60 / 60).floor()}h ago';
   } else if (DateTime.fromMillisecondsSinceEpoch(time * 1000).year ==
       DateTime.fromMillisecondsSinceEpoch(timeStamp * 1000).year) {
     return _customTimestampString(
@@ -94,7 +94,7 @@ String _customTimestampString({
   if (int.parse(yy) == DateTime.now().year &&
       int.parse(mm) == DateTime.now().month &&
       int.parse(dd) == DateTime.now().day) {
-    return '今天';
+    return 'Today';
   }
   return formatted;
 }

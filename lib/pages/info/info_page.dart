@@ -32,11 +32,11 @@ class InfoPage extends StatefulWidget {
 
 class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   static const List<String> _infoTabs = <String>[
-    '概览',
-    '吐槽',
-    '角色',
-    '评论',
-    '制作人员',
+    'Overview',
+    'Comments',
+    'Characters',
+    'Reviews',
+    'Staff',
   ];
   static const int _commentsTabIndex = 1;
   static const Duration _minimumBangumiInfoLoadingDuration =
@@ -172,13 +172,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         .toString()
         .trim();
     if (token.isEmpty) {
-      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
+      KazumiDialog.showToast(message: 'Please bind your Bangumi configuration in sync settings before posting a comment');
       return;
     }
     final localType = infoController.collectController
         .getCollectType(infoController.bangumiItem);
     if (localType == 0) {
-      KazumiDialog.showToast(message: '请先追番后再发表评价');
+      KazumiDialog.showToast(message: 'Please track the anime before posting a review');
       return;
     }
     KazumiDialog.show(
@@ -489,13 +489,13 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
           ),
           floatingActionButton: showRatingFab
               ? FloatingActionButton.extended(
-                  tooltip: '吐槽',
+                  tooltip: 'Comments',
                   onPressed: onBangumiRatingTap,
-                  label: const Text('发表吐槽'),
+                  label: const Text('Post comment'),
                   icon: const Icon(Icons.rate_review_rounded),
                 )
               : FloatingActionButton.extended(
-                  tooltip: '开始观看',
+                  tooltip: 'Start watching',
                   onPressed: () async {
                     showModalBottomSheet(
                       isScrollControlled: true,
@@ -521,7 +521,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       },
                     );
                   },
-                  label: const Text('开始观看'),
+                  label: const Text('Start watching'),
                   icon: const Icon(Icons.play_arrow_rounded),
                 ),
         ),

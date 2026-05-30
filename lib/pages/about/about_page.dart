@@ -22,7 +22,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  final exitBehaviorTitles = <String>['退出 Kazumi', '最小化至托盘', '每次都询问'];
+  final exitBehaviorTitles = <String>['Exit Kazumi', 'Minimize to tray', 'Always ask'];
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -101,15 +101,15 @@ class _AboutPageState extends State<AboutPage> {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('缓存管理'),
-          content: const Text('缓存为番剧封面, 清除后加载时需要重新下载,确认要清除缓存吗?'),
+          title: const Text('Cache management'),
+          content: const Text('The cache stores anime cover images. After clearing, they will be downloaded again when loading. Clear the cache?'),
           actions: [
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '取消',
+                'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -120,7 +120,7 @@ class _AboutPageState extends State<AboutPage> {
                 } catch (_) {}
                 KazumiDialog.dismiss();
               },
-              child: const Text('确认'),
+              child: const Text('Confirm'),
             ),
           ],
         );
@@ -137,7 +137,7 @@ class _AboutPageState extends State<AboutPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('关于')),
+        appBar: const SysAppBar(title: Text('About')),
         // backgroundColor: Colors.transparent,
         body: SettingsList(
           maxWidth: 1000,
@@ -149,28 +149,28 @@ class _AboutPageState extends State<AboutPage> {
                     Modular.to.pushNamed('/settings/about/license');
                   },
                   title:
-                      Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看所有开源许可证',
+                      Text('Open source licenses', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('View all open source licenses',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('External links', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Project homepage', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Code repository', style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Github', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -179,7 +179,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Icon design', style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -188,7 +188,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Anime index', style: TextStyle(fontFamily: fontFamily)),
                   value:
                       Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -197,7 +197,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse('https://trace.moe'),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Search anime by image', style: TextStyle(fontFamily: fontFamily)),
                   value: Text('trace.moe',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
@@ -206,7 +206,7 @@ class _AboutPageState extends State<AboutPage> {
                     launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },
-                  title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Danmaku source', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('ID: ${dandanCredentials['id']}',
                       style: TextStyle(fontFamily: fontFamily)),
                   value: Text('DanDanPlay',
@@ -215,7 +215,7 @@ class _AboutPageState extends State<AboutPage> {
               ],
             ),
             SettingsSection(
-              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Community', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
@@ -224,15 +224,15 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('Telegram',
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('Kazumi 官方 Telegram 群组',
+                  description: Text('Kazumi official Telegram group',
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('Tap to join', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
-                title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('Default behavior', style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
                   SettingsTile.navigation(
                     onPressed: (_) {
@@ -243,7 +243,7 @@ class _AboutPageState extends State<AboutPage> {
                       }
                     },
                     title:
-                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                        Text('On close', style: TextStyle(fontFamily: fontFamily)),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
                       controller: menuController,
@@ -286,7 +286,7 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/logs');
                   },
-                  title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Error logs', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -296,16 +296,16 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     _showCacheDialog();
                   },
-                  title: Text('清除缓存', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Clear cache', style: TextStyle(fontFamily: fontFamily)),
                   value: _cacheSizeMB == -1
-                      ? Text('统计中...', style: TextStyle(fontFamily: fontFamily))
+                      ? Text('Calculating...', style: TextStyle(fontFamily: fontFamily))
                       : Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
                           style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('应用更新', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('App updates', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -313,15 +313,15 @@ class _AboutPageState extends State<AboutPage> {
                     await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Auto update', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
-                  title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('当前版本 ${ApiEndpoints.version}',
+                  title: Text('Check for updates', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('Current version ${ApiEndpoints.version}',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

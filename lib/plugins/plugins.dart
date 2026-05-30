@@ -279,7 +279,7 @@ class Plugin {
           });
           if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
             Road road = Road(
-                name: '播放列表$count',
+                name: 'Playlist$count',
                 data: chapterUrlList,
                 identifier: chapterNameList);
             roadList.add(road);

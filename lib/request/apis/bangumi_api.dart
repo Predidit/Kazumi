@@ -441,7 +441,7 @@ class BangumiApi {
     } on NetworkException catch (e) {
       if (e.statusCode == 401) {
         KazumiLogger().e('Bangumi token unauthorized, please check your token');
-        throw StateError('Bangumi token 未授权，请检查您的 token');
+        throw StateError('Bangumi token unauthorized, please check your token');
       }
       rethrow;
     } catch (e) {
@@ -518,7 +518,7 @@ class BangumiApi {
                 bangumiCollection.add(BangumiCollection.fromJson(jsonItem));
                 progressCurrent++;
                 onProgress?.call(
-                  '正在拉取${collectionType.label}收藏',
+                  'Fetching ${collectionType.label} collection',
                   progressCurrent,
                   progressTotal,
                 );
@@ -568,13 +568,13 @@ class BangumiApi {
       String str;
       switch (e.statusCode) {
         case 400:
-          str = 'Validation Error 验证错误';
+          str = 'Validation Error';
           break;
         case 401:
-          str = 'Unauthorized 未经授权';
+          str = 'Unauthorized';
           break;
         case 404:
-          str = 'User not found 用户不存在';
+          str = 'User not found';
           break;
         default:
           str = 'Error $e';

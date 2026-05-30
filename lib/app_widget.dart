@@ -215,12 +215,12 @@ class _AppWidgetState extends State<AppWidget>
           bool saveExitBehavior = false; // 下次不再询问？
 
           return AlertDialog(
-            title: const Text('退出确认'),
+            title: const Text('Exit confirmation'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('您想要退出 Kazumi 吗？'),
+                const Text('Do you want to exit Kazumi?'),
                 const SizedBox(height: 24),
                 StatefulBuilder(builder: (context, setState) {
                   onChanged(value) {
@@ -233,7 +233,7 @@ class _AppWidgetState extends State<AppWidget>
                     spacing: 8,
                     children: [
                       Checkbox(value: saveExitBehavior, onChanged: onChanged),
-                      const Text('下次不再询问'),
+                      const Text('Do not ask again'),
                     ],
                   );
                 }),
@@ -247,7 +247,7 @@ class _AppWidgetState extends State<AppWidget>
                     }
                     exit(0);
                   },
-                  child: const Text('退出 Kazumi')),
+                  child: const Text('Exit Kazumi')),
               TextButton(
                   onPressed: () async {
                     if (saveExitBehavior) {
@@ -256,9 +256,9 @@ class _AppWidgetState extends State<AppWidget>
                     KazumiDialog.dismiss();
                     windowManager.hide();
                   },
-                  child: const Text('最小化至托盘')),
+                  child: const Text('Minimize to tray')),
               const TextButton(
-                  onPressed: KazumiDialog.dismiss, child: Text('取消')),
+                  onPressed: KazumiDialog.dismiss, child: Text('Cancel')),
             ],
           );
         });
@@ -308,9 +308,9 @@ class _AppWidgetState extends State<AppWidget>
     }
 
     Menu trayMenu = Menu(items: [
-      MenuItem(key: 'show_window', label: '显示窗口'),
+      MenuItem(key: 'show_window', label: 'Show window'),
       MenuItem.separator(),
-      MenuItem(key: 'exit', label: '退出 Kazumi')
+      MenuItem(key: 'exit', label: 'Exit Kazumi')
     ]);
     await trayManager.setContextMenu(trayMenu);
   }
@@ -346,12 +346,8 @@ class _AppWidgetState extends State<AppWidget>
         return MaterialApp.router(
           title: "Kazumi",
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          supportedLocales: const [
-            Locale.fromSubtags(
-                languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-          ],
-          locale: const Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+          supportedLocales: const [Locale('en')],
+          locale: const Locale('en'),
           theme: lightTheme,
           darkTheme: effectiveDarkTheme,
           themeMode: themeProvider.themeMode,

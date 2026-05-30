@@ -117,17 +117,17 @@ class TimedShutdownService {
       },
       builder: (context) {
         return AlertDialog(
-          title: const Text('定时关闭'),
-          content: const Text('定时时间已到，视频已暂停'),
+          title: const Text('Sleep timer'),
+          content: const Text('The sleep timer has ended, the video has been paused'),
           actions: [
             TextButton(
               onPressed: () {
                 _isDialogShowing = false;
                 KazumiDialog.dismiss();
                 repeat();
-                KazumiDialog.showToast(message: '已重新开始 $_lastSetMinutes 分钟定时');
+                KazumiDialog.showToast(message: 'Restarted the $_lastSetMinutes minute timer');
               },
-              child: const Text('重复'),
+              child: const Text('Repeat'),
             ),
             TextButton(
               onPressed: () {
@@ -135,7 +135,7 @@ class TimedShutdownService {
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '关闭',
+                'Close',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -159,11 +159,11 @@ class TimedShutdownService {
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
     if (hours > 0 && minutes > 0) {
-      return '$hours 小时 $minutes 分钟';
+      return '$hours h $minutes min';
     } else if (hours > 0) {
-      return '$hours 小时';
+      return '$hours h';
     } else {
-      return '$minutes 分钟';
+      return '$minutes min';
     }
   }
 
@@ -171,7 +171,7 @@ class TimedShutdownService {
   /// Uses KazumiDialog to avoid context-related resource leaks
   /// [onExpired] callback is invoked when timer expires (before showing dialog)
   static void showCustomTimerDialog({
-    String title = '自定义定时',
+    String title = 'Custom timer',
     bool autoStart = true,
     VoidCallback? onExpired,
     void Function(int)? onResult,
@@ -228,7 +228,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
   void _confirm() {
     final totalMinutes = _selectedHours * 60 + _selectedMinutes;
     if (totalMinutes <= 0) {
-      KazumiDialog.showToast(message: '请选择有效的时间');
+      KazumiDialog.showToast(message: 'Please select a valid time');
       return;
     }
     KazumiDialog.dismiss();
@@ -236,7 +236,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
       TimedShutdownService().start(totalMinutes, onExpired: widget.onExpired);
       KazumiDialog.showToast(
         message:
-            '已设置 ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)} 后定时关闭',
+            'Sleep timer set for ${TimedShutdownService().formatMinutesToDisplay(totalMinutes)}',
       );
     }
     widget.onResult?.call(totalMinutes);
@@ -253,7 +253,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
             Expanded(
               child: Column(
                 children: [
-                  const Text('时', style: TextStyle(fontSize: 14)),
+                  const Text('h', style: TextStyle(fontSize: 14)),
                   const SizedBox(height: 8),
                   Expanded(
                     child: CupertinoPicker(
@@ -283,7 +283,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
             Expanded(
               child: Column(
                 children: [
-                  const Text('分', style: TextStyle(fontSize: 14)),
+                  const Text('min', style: TextStyle(fontSize: 14)),
                   const SizedBox(height: 8),
                   Expanded(
                     child: CupertinoPicker(
@@ -313,13 +313,13 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
         TextButton(
           onPressed: () => KazumiDialog.dismiss(),
           child: Text(
-            '取消',
+            'Cancel',
             style: TextStyle(color: Theme.of(context).colorScheme.outline),
           ),
         ),
         TextButton(
           onPressed: _confirm,
-          child: const Text('确定'),
+          child: const Text('OK'),
         ),
       ],
     );

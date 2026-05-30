@@ -33,7 +33,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '  评分透视:',
+            '  Rating breakdown:',
           ),
           SizedBox(height: 16),
           AspectRatio(
@@ -66,7 +66,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                               widget.bangumiItem.votes *
                               100;
                       return BarTooltipItem(
-                        '${percentage.toStringAsFixed(2)}% (${widget.bangumiItem.votesCount[groupIndex]}人)',
+                        '${percentage.toStringAsFixed(2)}% (${widget.bangumiItem.votesCount[groupIndex]} votes)',
                         TextStyle(
                             color:
                                 Theme.of(context).colorScheme.onInverseSurface),
@@ -171,7 +171,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '放送开始:',
+                              'Air date:',
                             ),
                             Text(
                               widget.bangumiItem.airDate == ''
@@ -186,8 +186,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                             SizedBox(height: 8),
                             Text(
                               widget.showRating
-                                  ? '${widget.bangumiItem.votes} 人评分:'
-                                  : '*** 人评分:',
+                                  ? '${widget.bangumiItem.votes} ratings:'
+                                  : '*** ratings:',
                             ),
                             if (widget.isLoading)
                               // Skeleton Loader 占位符

@@ -24,7 +24,7 @@ class _InsufficientStorageException implements Exception {
   final int requiredBytes;
   _InsufficientStorageException(this.availableBytes, this.requiredBytes);
   @override
-  String toString() => '存储空间不足';
+  String toString() => 'Insufficient storage space';
 }
 
 class DownloadTask {
@@ -167,17 +167,17 @@ class DownloadManager implements IDownloadManager {
   String _getStorageErrorMessage(FileSystemException e) {
     // POSIX error code 28 = ENOSPC (No space left on device)
     if (e.osError?.errorCode == 28) {
-      return '存储空间不足，请清理后重试';
+      return 'Insufficient storage space, please free up space and retry';
     }
     // POSIX error code 13 = EACCES (Permission denied)
     if (e.osError?.errorCode == 13) {
-      return '存储权限被拒绝';
+      return 'Storage permission denied';
     }
     // POSIX error code 30 = EROFS (Read-only file system)
     if (e.osError?.errorCode == 30) {
-      return '存储为只读，无法写入';
+      return 'Storage is read-only, cannot write';
     }
-    return '存储错误: ${e.message}';
+    return 'Storage error: ${e.message}';
   }
 
   @override
@@ -399,14 +399,14 @@ class DownloadManager implements IDownloadManager {
 
       if (!resolvedPlaylist.isVod) {
         episode.status = DownloadStatus.failed;
-        episode.errorMessage = '不支持下载直播流 (无有效分片)';
+        episode.errorMessage = 'Live streams cannot be downloaded (no valid segments)';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
         return;
       }
 
       if (resolvedPlaylist.segments.isEmpty) {
         episode.status = DownloadStatus.failed;
-        episode.errorMessage = 'M3U8 中未找到可下载的分片';
+        episode.errorMessage = 'No downloadable segments found in the M3U8';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
         return;
       }
@@ -532,7 +532,7 @@ class DownloadManager implements IDownloadManager {
 
       if (failedCount > 0) {
         episode.status = DownloadStatus.failed;
-        episode.errorMessage = '$failedCount 个分片下载失败';
+        episode.errorMessage = '$failedCount segments failed to download';
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
         return;
       }
@@ -561,7 +561,7 @@ class DownloadManager implements IDownloadManager {
     } on _InsufficientStorageException catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage =
-          '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
+          'Insufficient storage space (available: ${fmt.formatBytes(e.availableBytes)})';
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {
@@ -710,7 +710,7 @@ class DownloadManager implements IDownloadManager {
     } on _InsufficientStorageException catch (e) {
       episode.status = DownloadStatus.failed;
       episode.errorMessage =
-          '存储空间不足 (可用: ${fmt.formatBytes(e.availableBytes)})';
+          'Insufficient storage space (available: ${fmt.formatBytes(e.availableBytes)})';
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().w('DownloadManager: insufficient storage space', error: e);
     } on FileSystemException catch (e) {
@@ -758,7 +758,7 @@ class DownloadManager implements IDownloadManager {
     if (cancelToken.isCancelled) {
       throw NetworkException(
         type: NetworkExceptionType.cancel,
-        message: '请求已被取消，请重新请求',
+        message: 'Request canceled, please try again',
       );
     }
 
@@ -781,14 +781,14 @@ class DownloadManager implements IDownloadManager {
 
       final trimmed = content.trimLeft();
       if (!trimmed.startsWith('#EXTM3U')) {
-        throw _NotM3u8Exception('URL 不是 M3U8 播放列表');
+        throw _NotM3u8Exception('URL is not an M3U8 playlist');
       }
 
       return content;
     } on NetworkException catch (e) {
       if (cancelToken.isCancelled) rethrow;
       if (e.type == NetworkExceptionType.cancel) {
-        throw _NotM3u8Exception('响应过大，非 M3U8 播放列表');
+        throw _NotM3u8Exception('Response too large, not an M3U8 playlist');
       }
       rethrow;
     }

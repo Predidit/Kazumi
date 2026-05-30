@@ -98,22 +98,22 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                   NavigationDestination(
                     selectedIcon: Icon(Icons.home),
                     icon: Icon(Icons.home_outlined),
-                    label: '推荐',
+                    label: 'Recommended',
                   ),
                   NavigationDestination(
                     selectedIcon: Icon(Icons.timeline),
                     icon: Icon(Icons.timeline_outlined),
-                    label: '时间表',
+                    label: 'Schedule',
                   ),
                   NavigationDestination(
                     selectedIcon: Icon(Icons.favorite),
                     icon: Icon(Icons.favorite_outlined),
-                    label: '追番',
+                    label: 'Tracking',
                   ),
                   NavigationDestination(
                     selectedIcon: Icon(Icons.settings),
                     icon: Icon(Icons.settings),
-                    label: '我的',
+                    label: 'Me',
                   ),
                 ],
                 selectedIndex: state.selectedIndex,
@@ -148,22 +148,22 @@ class _ScaffoldMenu extends State<ScaffoldMenu> {
                   NavigationRailDestination(
                     selectedIcon: Icon(Icons.home),
                     icon: Icon(Icons.home_outlined),
-                    label: Text('推荐'),
+                    label: Text('Recommended'),
                   ),
                   NavigationRailDestination(
                     selectedIcon: Icon(Icons.timeline),
                     icon: Icon(Icons.timeline_outlined),
-                    label: Text('时间表'),
+                    label: Text('Schedule'),
                   ),
                   NavigationRailDestination(
                     selectedIcon: Icon(Icons.favorite),
                     icon: Icon(Icons.favorite_border),
-                    label: Text('追番'),
+                    label: Text('Tracking'),
                   ),
                   NavigationRailDestination(
                     selectedIcon: Icon(Icons.settings),
                     icon: Icon(Icons.settings_outlined),
-                    label: Text('我的'),
+                    label: Text('Me'),
                   ),
                 ],
                 selectedIndex: state.selectedIndex,

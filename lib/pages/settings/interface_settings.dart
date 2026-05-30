@@ -20,10 +20,10 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   final MenuController defaultPageMenuController = MenuController();
 
   static const Map<String, String> defaultPageMap = {
-    '/tab/popular/': '推荐',
-    '/tab/timeline/': '时间表',
-    '/tab/collect/': '追番',
-    '/tab/my/': '我的',
+    '/tab/popular/': 'Recommended',
+    '/tab/timeline/': 'Schedule',
+    '/tab/collect/': 'Tracking',
+    '/tab/my/': 'Me',
   };
 
   @override
@@ -47,7 +47,7 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
 
     return Scaffold(
       appBar: SysAppBar(
-        title: Text('界面设置'),
+        title: Text('Interface settings'),
       ),
       body: SettingsList(
         sections: [
@@ -60,15 +60,15 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                   defaultPageMenuController.open();
                 }
               },
-              title: Text('启动界面设置', style: TextStyle(fontFamily: fontFamily)),
-              description: Text('设置应用开启时的默认页面',
+              title: Text('Startup screen settings', style: TextStyle(fontFamily: fontFamily)),
+              description: Text('Set the default page when the app opens',
                   style: TextStyle(fontFamily: fontFamily)),
               value: MenuAnchor(
                 consumeOutsideTap: true,
                 controller: defaultPageMenuController,
                 builder: (_, __, ___) {
                   return Text(
-                    defaultPageMap[defaultPage] ?? '推荐',
+                    defaultPageMap[defaultPage] ?? 'Recommended',
                     style: TextStyle(fontFamily: fontFamily),
                   );
                 },
@@ -105,8 +105,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
                 await setting.put(SettingBoxKey.showRating, showRating);
                 setState(() {});
               },
-              title: Text('显示评分', style: TextStyle(fontFamily: fontFamily)),
-              description: Text('关闭后将在概览中隐藏评分信息',
+              title: Text('Show ratings', style: TextStyle(fontFamily: fontFamily)),
+              description: Text('When off, rating info is hidden in the overview',
                   style: TextStyle(fontFamily: fontFamily)),
               initialValue: showRating,
             ),

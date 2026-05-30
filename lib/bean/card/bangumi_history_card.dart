@@ -40,11 +40,11 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
-      KazumiDialog.showToast(message: '编辑模式');
+      KazumiDialog.showToast(message: 'Edit mode');
       return;
     }
     KazumiDialog.showLoading(
-      msg: '获取中',
+      msg: 'Loading',
       barrierDismissible: isDesktop(),
       onDismiss: () {
         videoPageController.cancelQueryRoads();
@@ -60,7 +60,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     }
     if (!flag) {
       KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '未找到关联番剧源');
+      KazumiDialog.showToast(message: 'No associated anime source found');
       return;
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
@@ -89,7 +89,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         ? widget.historyItem.bangumiItem.name
         : widget.historyItem.bangumiItem.nameCn;
     final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
-        ? '第${widget.historyItem.lastWatchEpisode}话'
+        ? 'Ep ${widget.historyItem.lastWatchEpisode}'
         : widget.historyItem.lastWatchEpisodeName;
 
     return Dismissible(
@@ -237,7 +237,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                           size: 20,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        tooltip: '番剧详情',
+                        tooltip: 'Anime details',
                         onPressed: () {
                           Modular.to.pushNamed(
                             '/info/',
@@ -252,7 +252,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                           Icons.delete_outline,
                           color: colorScheme.error,
                         ),
-                        tooltip: '删除记录',
+                        tooltip: 'Delete record',
                         onPressed: () {
                           widget.onDeleted?.call();
                         },

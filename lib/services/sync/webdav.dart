@@ -43,7 +43,7 @@ class WebDav {
         setting.get(SettingBoxKey.webDavPassword, defaultValue: '');
     if (webDavURL.isEmpty) {
       //KazumiLogger().log(Level.warning, 'WebDAV URL is not set');
-      throw Exception('请先填写WebDAV URL');
+      throw Exception('Please fill in the WebDAV URL first');
     }
     client = webdav.newClient(
       webDavURL,

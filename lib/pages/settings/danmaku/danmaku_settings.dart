@@ -141,12 +141,12 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('弹幕设置')),
+        appBar: const SysAppBar(title: Text('Danmaku settings')),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Danmaku source', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -184,22 +184,22 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
               ],
             ),
             SettingsSection(
-              title: Text('弹幕屏蔽', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Danmaku blocking', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/danmaku/shield');
                   },
                   title:
-                      Text('关键词屏蔽', style: TextStyle(fontFamily: fontFamily)),
+                      Text('Keyword blocking', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('弹幕显示', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Danmaku display', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile(
-                  title: Text('弹幕区域', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Danmaku area', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuArea,
                     min: 0,
@@ -213,7 +213,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕持续时间', style: TextStyle(fontFamily: fontFamily)),
+                      Text('Danmaku duration', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuDuration,
                     min: 2,
@@ -226,7 +226,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title: Text('弹幕行高', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Danmaku line height', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuLineHeight,
                     min: 0,
@@ -246,9 +246,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingBoxKey.danmakuFollowSpeed, danmakuFollowSpeed);
                     setState(() {});
                   },
-                  title: Text('弹幕跟随视频倍速',
+                  title: Text('Danmaku follows playback speed',
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('开启后弹幕速度会随视频倍速而改变',
+                  description: Text('When enabled, danmaku speed changes with playback speed',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuFollowSpeed,
                 ),
@@ -258,7 +258,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     await setting.put(SettingBoxKey.danmakuTop, danmakuTop);
                     setState(() {});
                   },
-                  title: Text('顶部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Top danmaku', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuTop,
                 ),
                 SettingsTile.switchTile(
@@ -268,7 +268,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingBoxKey.danmakuBottom, danmakuBottom);
                     setState(() {});
                   },
-                  title: Text('底部弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Bottom danmaku', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuBottom,
                 ),
                 SettingsTile.switchTile(
@@ -278,7 +278,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingBoxKey.danmakuScroll, danmakuScroll);
                     setState(() {});
                   },
-                  title: Text('滚动弹幕', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Scrolling danmaku', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuScroll,
                 ),
                 SettingsTile.switchTile(
@@ -288,8 +288,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingBoxKey.danmakuMassive, danmakuMassive);
                     setState(() {});
                   },
-                  title: Text('海量弹幕', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('弹幕过多时进行叠加绘制',
+                  title: Text('Massive danmaku', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Overlap danmaku when there are too many',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuMassive,
                 ),
@@ -300,15 +300,15 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         danmakuDeduplication);
                     setState(() {});
                   },
-                  title: Text('弹幕去重', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('相同内容弹幕过多时合并为一条弹幕',
+                  title: Text('Danmaku deduplication', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Merge identical danmaku into one when there are too many',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDeduplication,
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('弹幕样式', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Danmaku style', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -317,12 +317,12 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                         SettingBoxKey.danmakuBorder, danmakuBorder);
                     setState(() {});
                   },
-                  title: Text('弹幕描边', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Danmaku outline', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuBorder,
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕描边粗细', style: TextStyle(fontFamily: fontFamily)),
+                      Text('Danmaku outline thickness', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultdanmakuBorderSize,
                     min: 0.1,
@@ -341,11 +341,11 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     await setting.put(SettingBoxKey.danmakuColor, danmakuColor);
                     setState(() {});
                   },
-                  title: Text('弹幕颜色', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Danmaku color', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuColor,
                 ),
                 SettingsTile(
-                  title: Text('字体大小', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Font size', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuFontSize,
                     min: 10,
@@ -357,7 +357,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title: Text('字体字重', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Font weight', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuFontWeight.toDouble(),
                     min: 1,
@@ -371,7 +371,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 ),
                 SettingsTile(
                   title:
-                      Text('弹幕不透明度', style: TextStyle(fontFamily: fontFamily)),
+                      Text('Danmaku opacity', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultDanmakuOpacity,
                     min: 0.1,

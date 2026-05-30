@@ -50,14 +50,10 @@ void main() async {
       });
     }
     runApp(MaterialApp(
-        title: '初始化失败',
+        title: 'Initialization failed',
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [
-          Locale.fromSubtags(
-              languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN")
-        ],
-        locale: const Locale.fromSubtags(
-            languageCode: 'zh', scriptCode: 'Hans', countryCode: "CN"),
+        supportedLocales: const [Locale('en')],
+        locale: const Locale('en'),
         builder: (context, child) {
           return const StorageErrorPage();
         }));

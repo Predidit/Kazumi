@@ -212,11 +212,11 @@ abstract class _VideoPageController with Store {
     roadList.clear();
     episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
     roadList.add(Road(
-      name: '播放列表1',
+      name: 'Playlist1',
       data: episodes.map((e) => e.episodeNumber.toString()).toList(),
       identifier: episodes
           .map((e) =>
-              e.episodeName.isNotEmpty ? e.episodeName : '第${e.episodeNumber}集')
+              e.episodeName.isNotEmpty ? e.episodeName : 'Ep ${e.episodeNumber}')
           .toList(),
     ));
   }
@@ -329,7 +329,7 @@ abstract class _VideoPageController with Store {
     if (actualEpisodeNumber == null) {
       KazumiLogger().e(
           'VideoPageController: failed to parse episode number from roadList data: ${roadList[selection.road].data[selection.episode - 1]}');
-      KazumiDialog.showToast(message: '集数解析失败');
+      KazumiDialog.showToast(message: 'Failed to parse episode');
       return;
     }
 
@@ -339,7 +339,7 @@ abstract class _VideoPageController with Store {
       actualEpisodeNumber,
     );
     if (localPath == null) {
-      KazumiDialog.showToast(message: '该集数未下载');
+      KazumiDialog.showToast(message: 'This episode is not downloaded');
       return;
     }
     if (session.isStale) {
@@ -417,14 +417,14 @@ abstract class _VideoPageController with Store {
         } else {
           playerController.danmaku.applyUnavailableDanmakuLoad(result);
           if (result.isFailed) {
-            KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+            KazumiDialog.showToast(message: 'Failed to load danmaku, you can search manually');
           }
         }
       }
     } catch (e) {
       if (session.isActive && danmakuSession.isActive) {
         playerController.danmaku.finishDanmakuLoad(disableDanmaku: true);
-        KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+        KazumiDialog.showToast(message: 'Failed to load danmaku, you can search manually');
       }
       KazumiLogger().w('VideoPageController: failed to load danmaku', error: e);
     }
@@ -511,7 +511,7 @@ abstract class _VideoPageController with Store {
         return;
       }
       loading = false;
-      errorMessage = '视频解析超时，请重试';
+      errorMessage = 'Video parsing timed out, please retry';
     } on VideoSourceCancelledException {
       KazumiLogger().i('VideoPageController: video URL resolution cancelled');
     } catch (e) {
@@ -519,7 +519,7 @@ abstract class _VideoPageController with Store {
         return;
       }
       loading = false;
-      errorMessage = '视频解析失败：${e.toString()}';
+      errorMessage = 'Video parsing failed: ${e.toString()}';
     }
   }
 

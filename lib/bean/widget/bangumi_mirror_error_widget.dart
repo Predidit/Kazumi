@@ -20,18 +20,18 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
 
     return GeneralErrorWidget(
       errMsg:
-          '啊咧（⊙.⊙） 无法加载数据\nBangumi 镜像${mirrorEnabled ? '已启用' : '已禁用'}',
+          'Oh no (⊙.⊙) Failed to load data\nBangumi mirror ${mirrorEnabled ? 'enabled' : 'disabled'}',
       actions: [
         GeneralErrorButton(
           onPressed: () async {
             await Modular.to.pushNamed('/settings/webdav/');
             onSettingsReturned?.call();
           },
-          text: '镜像开关',
+          text: 'Mirror toggle',
         ),
         GeneralErrorButton(
           onPressed: onRetry,
-          text: '点击重试',
+          text: 'Tap to retry',
         ),
       ],
     );

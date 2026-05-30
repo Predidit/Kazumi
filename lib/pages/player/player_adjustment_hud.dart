@@ -927,7 +927,7 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              '倍速播放',
+                              'Playback speed',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context)

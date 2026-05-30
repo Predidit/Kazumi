@@ -29,7 +29,7 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const SysAppBar(title: Text('下载管理')),
+      appBar: const SysAppBar(title: Text('Download manager')),
       body: Observer(builder: (context) {
         final recordKeys = downloadController.recordKeys.toList();
         if (recordKeys.isEmpty) {
@@ -47,7 +47,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '暂无离线下载',
+                  'No offline downloads yet',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.outline,
                       ),
@@ -107,7 +107,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
-                '来源: ${record.pluginName} · $completedCount/${episodes.length} 已完成',
+                'Source: ${record.pluginName} · $completedCount/${episodes.length} completed',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.outline,
@@ -122,17 +122,17 @@ class _DownloadPageState extends State<DownloadPage> {
                       record.bangumiId,
                       record.pluginName,
                     );
-                    KazumiDialog.showToast(message: '已开始恢复下载');
+                    KazumiDialog.showToast(message: 'Resuming downloads');
                   }
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'resume_all',
-                    child: Text('开始全部'),
+                    child: Text('Start all'),
                   ),
                   const PopupMenuItem(
                     value: 'delete',
-                    child: Text('删除全部'),
+                    child: Text('Delete all'),
                   ),
                 ],
               ),
@@ -161,7 +161,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 Text(
                   episode.episodeName.isNotEmpty
                       ? episode.episodeName
-                      : '第${episode.episodeNumber}集',
+                      : 'Ep ${episode.episodeNumber}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 14),
@@ -232,7 +232,7 @@ class _DownloadPageState extends State<DownloadPage> {
   String _getStatusText(DownloadRecord record, DownloadEpisode episode) {
     switch (episode.status) {
       case DownloadStatus.completed:
-        return '已完成  ${formatBytes(episode.totalBytes)}';
+        return 'Completed  ${formatBytes(episode.totalBytes)}';
       case DownloadStatus.downloading:
         final speed = downloadController.getSpeed(
           record.bangumiId,
@@ -243,13 +243,13 @@ class _DownloadPageState extends State<DownloadPage> {
         return '${(episode.progressPercent * 100).toStringAsFixed(0)}%  '
             '${episode.downloadedSegments}/${episode.totalSegments}$speedText';
       case DownloadStatus.failed:
-        return episode.errorMessage.isNotEmpty ? episode.errorMessage : '下载失败';
+        return episode.errorMessage.isNotEmpty ? episode.errorMessage : 'Download failed';
       case DownloadStatus.paused:
-        return '已暂停  ${(episode.progressPercent * 100).toStringAsFixed(0)}%';
+        return 'Paused  ${(episode.progressPercent * 100).toStringAsFixed(0)}%';
       case DownloadStatus.pending:
-        return '等待中';
+        return 'Waiting';
       case DownloadStatus.resolving:
-        return '解析视频源中';
+        return 'Parsing video source';
       default:
         return '';
     }
@@ -265,7 +265,7 @@ class _DownloadPageState extends State<DownloadPage> {
           icon: Icon(Icons.play_circle_outline,
               size: 20, color: Theme.of(context).colorScheme.primary),
           onPressed: () => _playEpisode(record, episode),
-          tooltip: '播放',
+          tooltip: 'Play',
           visualDensity: VisualDensity.compact,
         ));
         break;
@@ -277,7 +277,7 @@ class _DownloadPageState extends State<DownloadPage> {
             record.pluginName,
             episode.episodeNumber,
           ),
-          tooltip: '暂停',
+          tooltip: 'Pause',
           visualDensity: VisualDensity.compact,
         ));
         break;
@@ -289,7 +289,7 @@ class _DownloadPageState extends State<DownloadPage> {
             pluginName: record.pluginName,
             episodeNumber: episode.episodeNumber,
           ),
-          tooltip: '继续',
+          tooltip: 'Resume',
           visualDensity: VisualDensity.compact,
         ));
         break;
@@ -301,7 +301,7 @@ class _DownloadPageState extends State<DownloadPage> {
             pluginName: record.pluginName,
             episodeNumber: episode.episodeNumber,
           ),
-          tooltip: '重试',
+          tooltip: 'Retry',
           visualDensity: VisualDensity.compact,
         ));
         break;
@@ -315,9 +315,9 @@ class _DownloadPageState extends State<DownloadPage> {
               pluginName: record.pluginName,
               episodeNumber: episode.episodeNumber,
             );
-            KazumiDialog.showToast(message: '已插队优先下载');
+            KazumiDialog.showToast(message: 'Moved to the front of the download queue');
           },
-          tooltip: '优先下载',
+          tooltip: 'Prioritize download',
           visualDensity: VisualDensity.compact,
         ));
         break;
@@ -328,7 +328,7 @@ class _DownloadPageState extends State<DownloadPage> {
     buttons.add(IconButton(
       icon: const Icon(Icons.delete_outline, size: 20),
       onPressed: () => _confirmDeleteEpisode(record, episode),
-      tooltip: '删除',
+      tooltip: 'Delete',
       visualDensity: VisualDensity.compact,
     ));
 
@@ -342,7 +342,7 @@ class _DownloadPageState extends State<DownloadPage> {
       episode.episodeNumber,
     );
     if (localPath == null) {
-      KazumiDialog.showToast(message: '本地文件不存在');
+      KazumiDialog.showToast(message: 'Local file does not exist');
       return;
     }
 
@@ -384,14 +384,14 @@ class _DownloadPageState extends State<DownloadPage> {
   void _confirmDeleteEpisode(DownloadRecord record, DownloadEpisode episode) {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
-        title: const Text('删除下载'),
+        title: const Text('Delete download'),
         content: Text(
-            '确定要删除「${episode.episodeName.isNotEmpty ? episode.episodeName : '第${episode.episodeNumber}集'}」的下载文件吗？'),
+            'Delete the download file for “${episode.episodeName.isNotEmpty ? episode.episodeName : 'Ep ${episode.episodeNumber}'}”?'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
-              '取消',
+              'Cancel',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
@@ -404,7 +404,7 @@ class _DownloadPageState extends State<DownloadPage> {
               );
               KazumiDialog.dismiss();
             },
-            child: const Text('删除'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -414,13 +414,13 @@ class _DownloadPageState extends State<DownloadPage> {
   void _confirmDeleteRecord(DownloadRecord record) {
     KazumiDialog.show(
       builder: (context) => AlertDialog(
-        title: const Text('删除全部下载'),
-        content: Text('确定要删除「${record.bangumiName}」的所有下载文件吗？'),
+        title: const Text('Delete all downloads'),
+        content: Text('Delete all downloaded files for “${record.bangumiName}”?'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(),
             child: Text(
-              '取消',
+              'Cancel',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),
@@ -432,7 +432,7 @@ class _DownloadPageState extends State<DownloadPage> {
               );
               KazumiDialog.dismiss();
             },
-            child: const Text('删除'),
+            child: const Text('Delete'),
           ),
         ],
       ),

@@ -83,7 +83,7 @@ class ProxyAwareImageFileService extends FileService {
         setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
     final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
     if (parsed == null) {
-      KazumiLogger().w('Proxy: 图片缓存代理地址格式错误或为空');
+      KazumiLogger().w('Proxy: image cache proxy address is malformed or empty');
     }
     return parsed;
   }

@@ -34,8 +34,8 @@ class BackgroundDownloadService {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'kazumi_download_channel',
-        channelName: '下载服务',
-        channelDescription: '视频下载后台服务',
+        channelName: 'Download service',
+        channelDescription: 'Video download background service',
         channelImportance: NotificationChannelImportance.LOW,
         priority: NotificationPriority.LOW,
         onlyAlertOnce: true,
@@ -105,10 +105,10 @@ class BackgroundDownloadService {
 
     try {
       final result = await FlutterForegroundTask.startService(
-        notificationTitle: '正在下载',
-        notificationText: '准备中...',
+        notificationTitle: 'Downloading',
+        notificationText: 'Preparing...',
         notificationButtons: [
-          const NotificationButton(id: 'pause_all', text: '暂停全部'),
+          const NotificationButton(id: 'pause_all', text: 'Pause all'),
         ],
         callback: _backgroundCallback,
       );
@@ -170,11 +170,11 @@ class BackgroundDownloadService {
     String text;
 
     if (activeCount == 0) {
-      title = '下载已暂停';
-      text = '共 $totalCount 个任务';
+      title = 'Downloads paused';
+      text = '$totalCount tasks total';
     } else {
       final percent = (overallProgress * 100).toInt();
-      title = '正在下载 ($activeCount/$totalCount)';
+      title = 'Downloading ($activeCount/$totalCount)';
       text = '$percent% · $speedText';
     }
 

@@ -29,13 +29,13 @@ class _DecoderSettingsState extends State<DecoderSettings> {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: const SysAppBar(
-        title: Text('硬件解码器'),
+        title: Text('Hardware decoder'),
       ),
       body: SettingsList(
         maxWidth: 1000,
         sections: [
           SettingsSection(
-            title: Text('选择不受支持的解码器将回退到软件解码',
+            title: Text('Selecting an unsupported decoder falls back to software decoding',
                 style: TextStyle(fontFamily: fontFamily)),
             tiles: hardwareDecodersList.entries
                 .map((e) => SettingsTile<String>.radioTile(

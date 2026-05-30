@@ -60,11 +60,11 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    '选择要下载的集数',
+                    'Select episodes to download',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '已选 ${_selectedEpisodes.length} 集',
+                    '${_selectedEpisodes.length} selected',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).colorScheme.primary,
@@ -90,7 +90,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                         }
                       });
                     },
-                    child: const Text('全选'),
+                    child: const Text('Select all'),
                   ),
                   TextButton(
                     onPressed: () {
@@ -98,7 +98,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                         _selectedEpisodes.clear();
                       });
                     },
-                    child: const Text('取消全选'),
+                    child: const Text('Deselect all'),
                   ),
                 ],
               ),
@@ -202,7 +202,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('取消'),
+                      child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 12),
                     SizedBox(
@@ -211,7 +211,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                         onPressed: _selectedEpisodes.isEmpty
                             ? null
                             : () => _startBatchDownload(context),
-                        child: Text('开始下载(${_selectedEpisodes.length})'),
+                        child: Text('Start download (${_selectedEpisodes.length})'),
                       ),
                     ),
                   ],
@@ -251,7 +251,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
     }
 
     KazumiDialog.showToast(
-      message: '已添加 ${sortedEpisodes.length} 集到下载队列，可在下载管理中查看',
+      message: 'Added ${sortedEpisodes.length} episodes to the download queue, view them in Download Manager',
     );
   }
 }

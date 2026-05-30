@@ -43,7 +43,7 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
 
     final url = urlController.text.trim();
     if (url.isEmpty) {
-      KazumiDialog.showToast(message: '请输入代理地址');
+      KazumiDialog.showToast(message: 'Please enter the proxy address');
       return;
     }
 
@@ -82,18 +82,18 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
           )
           .timeout(const Duration(seconds: 15));
       await setting.put(SettingBoxKey.proxyConfigured, true);
-      KazumiDialog.showToast(message: '测试成功');
+      KazumiDialog.showToast(message: 'Test succeeded');
     } catch (e) {
       await setting.put(SettingBoxKey.proxyEnable, false);
       ProxyManager.clearProxy();
-      KazumiDialog.showToast(message: '代理连接失败');
+      KazumiDialog.showToast(message: 'Proxy connection failed');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const SysAppBar(title: Text('代理配置')),
+      appBar: const SysAppBar(title: Text('Proxy configuration')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Center(
@@ -106,16 +106,16 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
                   TextFormField(
                     controller: urlController,
                     decoration: const InputDecoration(
-                      labelText: '代理地址',
+                      labelText: 'Proxy address',
                       hintText: 'http://127.0.0.1:7890',
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return '请输入代理地址';
+                        return 'Please enter the proxy address';
                       }
                       if (!ProxyUtils.isValidProxyUrl(value)) {
-                        return '格式错误，请使用 http://host:port 格式';
+                        return 'Invalid format, please use http://host:port';
                       }
                       return null;
                     },
@@ -124,7 +124,7 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
                   TextFormField(
                     controller: testUrlController,
                     decoration: const InputDecoration(
-                      labelText: '测试地址',
+                      labelText: 'Test address',
                       hintText: 'https://www.google.com',
                       border: OutlineInputBorder(),
                     ),
@@ -138,7 +138,7 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: saveAndTest,
         icon: const Icon(Icons.save),
-        label: const Text('保存并测试'),
+        label: const Text('Save and test'),
       ),
     );
   }

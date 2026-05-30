@@ -94,7 +94,7 @@ class _InfoTabViewState extends State<InfoTabView>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('简介', style: TextStyle(fontSize: 18)),
+              Text('Introduction', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
               // only show expand button when line > 7
@@ -130,7 +130,7 @@ class _InfoTabViewState extends State<InfoTabView>
                             fullIntro = !fullIntro;
                           });
                         },
-                        child: Text(fullIntro ? '加载更少' : '加载更多'),
+                        child: Text(fullIntro ? 'Show less' : 'Show more'),
                       ),
                     ],
                   );
@@ -144,7 +144,7 @@ class _InfoTabViewState extends State<InfoTabView>
                 }
               }),
               const SizedBox(height: 16),
-              Text('标签', style: TextStyle(fontSize: 18)),
+              Text('Tags', style: TextStyle(fontSize: 18)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
@@ -157,7 +157,7 @@ class _InfoTabViewState extends State<InfoTabView>
                     // make tag expandable
                     return ActionChip(
                       label: Text(
-                        '更多 +',
+                        'More +',
                         style: TextStyle(
                             color: Theme.of(context).colorScheme.primary),
                       ),
@@ -244,7 +244,7 @@ class _InfoTabViewState extends State<InfoTabView>
             scrollBehavior: const ScrollBehavior().copyWith(
               scrollbars: false,
             ),
-            key: PageStorageKey<String>('吐槽'),
+            key: PageStorageKey<String>('Comments'),
             slivers: <Widget>[
               SliverOverlapInjector(
                 handle:
@@ -321,14 +321,14 @@ class _InfoTabViewState extends State<InfoTabView>
                 if (widget.commentsQueryTimeout) {
                   return SliverFillRemaining(
                     child: GeneralErrorWidget(
-                      errMsg: '获取失败，请重试',
+                      errMsg: 'Failed to load, please retry',
                       actions: [
                         GeneralErrorButton(
                           onPressed: () {
                             widget.loadMoreComments(
                                 loadMore: widget.commentsList.isNotEmpty);
                           },
-                          text: '重试',
+                          text: 'Retry',
                         ),
                       ],
                     ),
@@ -337,7 +337,7 @@ class _InfoTabViewState extends State<InfoTabView>
                 if (widget.commentsIsEmpty) {
                   return const SliverFillRemaining(
                     child: Center(
-                      child: Text('什么都没有找到 (´;ω;`)'),
+                      child: Text('Nothing found (´;ω;`)'),
                     ),
                   );
                 }
@@ -376,7 +376,7 @@ class _InfoTabViewState extends State<InfoTabView>
           scrollBehavior: const ScrollBehavior().copyWith(
             scrollbars: false,
           ),
-          key: PageStorageKey<String>('制作人员'),
+          key: PageStorageKey<String>('Staff'),
           slivers: <Widget>[
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -405,13 +405,13 @@ class _InfoTabViewState extends State<InfoTabView>
               if (widget.staffQueryTimeout) {
                 return SliverFillRemaining(
                   child: GeneralErrorWidget(
-                    errMsg: '获取失败，请重试',
+                    errMsg: 'Failed to load, please retry',
                     actions: [
                       GeneralErrorButton(
                         onPressed: () {
                           widget.loadStaff();
                         },
-                        text: '重试',
+                        text: 'Retry',
                       ),
                     ],
                   ),
@@ -420,7 +420,7 @@ class _InfoTabViewState extends State<InfoTabView>
               if (widget.staffIsEmpty) {
                 return const SliverFillRemaining(
                   child: Center(
-                    child: Text('什么都没有找到 (´;ω;`)'),
+                    child: Text('Nothing found (´;ω;`)'),
                   ),
                 );
               }
@@ -458,7 +458,7 @@ class _InfoTabViewState extends State<InfoTabView>
           scrollBehavior: const ScrollBehavior().copyWith(
             scrollbars: false,
           ),
-          key: PageStorageKey<String>('角色'),
+          key: PageStorageKey<String>('Characters'),
           slivers: <Widget>[
             SliverOverlapInjector(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -487,13 +487,13 @@ class _InfoTabViewState extends State<InfoTabView>
               if (widget.charactersQueryTimeout) {
                 return SliverFillRemaining(
                   child: GeneralErrorWidget(
-                    errMsg: '获取失败，请重试',
+                    errMsg: 'Failed to load, please retry',
                     actions: [
                       GeneralErrorButton(
                         onPressed: () {
                           widget.loadCharacters();
                         },
-                        text: '重试',
+                        text: 'Retry',
                       ),
                     ],
                   ),
@@ -502,7 +502,7 @@ class _InfoTabViewState extends State<InfoTabView>
               if (widget.charactersIsEmpty) {
                 return const SliverFillRemaining(
                   child: Center(
-                    child: Text('什么都没有找到 (´;ω;`)'),
+                    child: Text('Nothing found (´;ω;`)'),
                   ),
                 );
               }
@@ -551,7 +551,7 @@ class _InfoTabViewState extends State<InfoTabView>
               // The PageStorageKey should be unique to this ScrollView;
               // it allows the list to remember its scroll position when
               // the tab view is not on the screen.
-              key: PageStorageKey<String>('概览'),
+              key: PageStorageKey<String>('Overview'),
               slivers: <Widget>[
                 SliverOverlapInjector(
                   handle:
@@ -576,7 +576,7 @@ class _InfoTabViewState extends State<InfoTabView>
               scrollBehavior: const ScrollBehavior().copyWith(
                 scrollbars: false,
               ),
-              key: PageStorageKey<String>('评论'),
+              key: PageStorageKey<String>('Reviews'),
               slivers: <Widget>[
                 SliverOverlapInjector(
                   handle:
@@ -584,7 +584,7 @@ class _InfoTabViewState extends State<InfoTabView>
                 ),
                 // TODO: 评论区
                 SliverFillRemaining(
-                  child: Center(child: Text('施工中')),
+                  child: Center(child: Text('Under construction')),
                 ),
               ],
             );

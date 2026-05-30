@@ -328,17 +328,17 @@ class _PlayerItemState extends State<PlayerItem>
     }
 
     if (targetEpisode > episodes.length) {
-      KazumiDialog.showToast(message: '已经是最新一集');
+      KazumiDialog.showToast(message: 'Already the latest episode');
       return;
     }
     if (targetEpisode <= 0) {
-      KazumiDialog.showToast(message: '已经是第一集');
+      KazumiDialog.showToast(message: 'Already the first episode');
       return;
     }
 
     final identifier =
         videoPageController.roadList[currentRoad].identifier[targetEpisode - 1];
-    KazumiDialog.showToast(message: '正在加载$identifier');
+    KazumiDialog.showToast(message: 'Loading $identifier');
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
@@ -630,12 +630,12 @@ class _PlayerItemState extends State<PlayerItem>
       Uint8List? screenshot = await playerController.screenshotPng();
 
       if (screenshot == null) {
-        KazumiDialog.showToast(message: '截图失败：未获取到图像');
+        KazumiDialog.showToast(message: 'Screenshot failed: no image captured');
         return;
       }
 
       if (isDesktop()) {
-        KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
+        KazumiDialog.showToast(message: 'Saving screenshots is not yet supported on desktop');
         return;
       }
       final result = await SaverGallery.saveImage(
@@ -644,10 +644,10 @@ class _PlayerItemState extends State<PlayerItem>
         skipIfExists: false,
       );
       if (!result.isSuccess) {
-        KazumiDialog.showToast(message: '截图保存失败：${result.errorMessage}');
+        KazumiDialog.showToast(message: 'Failed to save screenshot: ${result.errorMessage}');
       }
     } catch (e) {
-      KazumiDialog.showToast(message: '截图失败：$e');
+      KazumiDialog.showToast(message: 'Screenshot failed: $e');
     }
   }
 
@@ -670,15 +670,15 @@ class _PlayerItemState extends State<PlayerItem>
       if (androidVideoRenderer == 'mediacodec_embed') {
         await KazumiDialog.show(builder: (context) {
           return AlertDialog(
-            title: const Text('兼容性提示'),
-            content: const Text('MediaCodec 渲染器不支持超分辨率功能。\n\n'
-                '如需使用超分辨率，请在播放设置中将视频渲染器切换为 gpu 或 gpu-next。'),
+            title: const Text('Compatibility notice'),
+            content: const Text('The MediaCodec renderer does not support super resolution.\n\n'
+                'To use super resolution, switch the video renderer to gpu or gpu-next in playback settings.'),
             actions: [
               TextButton(
                 onPressed: () {
                   KazumiDialog.dismiss();
                 },
-                child: const Text('确定'),
+                child: const Text('OK'),
               ),
             ],
           );
@@ -699,12 +699,12 @@ class _PlayerItemState extends State<PlayerItem>
 
         return StatefulBuilder(builder: (context, setState) {
           return AlertDialog(
-            title: const Text('性能提示'),
+            title: const Text('Performance notice'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('启用超分辨率（质量档）可能会造成设备卡顿，是否继续？'),
+                const Text('Enabling super resolution (quality mode) may cause stuttering on your device. Continue?'),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -714,7 +714,7 @@ class _PlayerItemState extends State<PlayerItem>
                       onChanged: (value) =>
                           setState(() => dontAskAgain = value ?? false),
                     ),
-                    const Text('下次不再询问'),
+                    const Text('Do not ask again'),
                   ],
                 ),
               ],
@@ -727,7 +727,7 @@ class _PlayerItemState extends State<PlayerItem>
                   }
                   KazumiDialog.dismiss();
                 },
-                child: const Text('取消'),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () async {
@@ -737,7 +737,7 @@ class _PlayerItemState extends State<PlayerItem>
                   }
                   KazumiDialog.dismiss();
                 },
-                child: const Text('确认'),
+                child: const Text('Confirm'),
               ),
             ],
           );
@@ -835,14 +835,14 @@ class _PlayerItemState extends State<PlayerItem>
           index++;
           setPlaybackSpeed(defaultPlaySpeedList[index]);
         } else {
-          KazumiDialog.showToast(message: '已达倍速上限');
+          KazumiDialog.showToast(message: 'Maximum playback speed reached');
         }
       } else if (type == "down") {
         if (index > 0) {
           index--;
           setPlaybackSpeed(defaultPlaySpeedList[index]);
         } else {
-          KazumiDialog.showToast(message: '已达倍速下限');
+          KazumiDialog.showToast(message: 'Minimum playback speed reached');
         }
       }
     } catch (e) {
@@ -1024,7 +1024,7 @@ class _PlayerItemState extends State<PlayerItem>
           autoPlayNext) {
         KazumiDialog.showToast(
             message:
-                '正在加载${videoPageController.roadList[playingSelection.road].identifier[playingSelection.episode]}');
+                'Loading ${videoPageController.roadList[playingSelection.road].identifier[playingSelection.episode]}');
         try {
           playerTimer!.cancel();
         } catch (_) {}
@@ -1038,7 +1038,7 @@ class _PlayerItemState extends State<PlayerItem>
 
   void showDanmakuSearchDialog(String keyword) async {
     KazumiDialog.dismiss();
-    KazumiDialog.showLoading(msg: '弹幕检索中');
+    KazumiDialog.showLoading(msg: 'Searching danmaku');
     DanmakuSearchResponse danmakuSearchResponse;
     DanmakuEpisodeResponse danmakuEpisodeResponse;
     try {
@@ -1046,12 +1046,12 @@ class _PlayerItemState extends State<PlayerItem>
           await DanmakuApi.getDanmakuSearchResponse(keyword);
     } catch (e) {
       KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '弹幕检索错误: ${e.toString()}');
+      KazumiDialog.showToast(message: 'Danmaku search error: ${e.toString()}');
       return;
     }
     KazumiDialog.dismiss();
     if (danmakuSearchResponse.animes.isEmpty) {
-      KazumiDialog.showToast(message: '未找到匹配结果');
+      KazumiDialog.showToast(message: 'No matching results found');
       return;
     }
     await KazumiDialog.show(builder: (context) {
@@ -1065,19 +1065,19 @@ class _PlayerItemState extends State<PlayerItem>
                 title: Text(danmakuInfo.animeTitle),
                 onTap: () async {
                   KazumiDialog.dismiss();
-                  KazumiDialog.showLoading(msg: '弹幕检索中');
+                  KazumiDialog.showLoading(msg: 'Searching danmaku');
                   try {
                     danmakuEpisodeResponse =
                         await DanmakuApi.getDanDanEpisodesByDanDanBangumiID(
                             danmakuInfo.animeId);
                   } catch (e) {
                     KazumiDialog.dismiss();
-                    KazumiDialog.showToast(message: '弹幕检索错误: ${e.toString()}');
+                    KazumiDialog.showToast(message: 'Danmaku search error: ${e.toString()}');
                     return;
                   }
                   KazumiDialog.dismiss();
                   if (danmakuEpisodeResponse.episodes.isEmpty) {
-                    KazumiDialog.showToast(message: '未找到匹配结果');
+                    KazumiDialog.showToast(message: 'No matching results found');
                     return;
                   }
                   KazumiDialog.show(builder: (context) {
@@ -1104,13 +1104,13 @@ class _PlayerItemState extends State<PlayerItem>
                                   }
                                   if (hasDanmakus) {
                                     playerController.danmaku.danmakuOn = true;
-                                    KazumiDialog.showToast(message: '弹幕切换成功');
+                                    KazumiDialog.showToast(message: 'Danmaku switched successfully');
                                   } else {
                                     playerController.danmaku.danmakuOn = false;
-                                    KazumiDialog.showToast(message: '未找到弹幕内容');
+                                    KazumiDialog.showToast(message: 'No danmaku content found');
                                   }
                                 } catch (e) {
-                                  KazumiDialog.showToast(message: '弹幕切换失败');
+                                  KazumiDialog.showToast(message: 'Failed to switch danmaku');
                                 }
                               },
                             );
@@ -1134,11 +1134,11 @@ class _PlayerItemState extends State<PlayerItem>
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('弹幕检索'),
+          title: const Text('Danmaku search'),
           content: TextFormField(
             initialValue: searchKeyword,
             decoration: const InputDecoration(
-              hintText: '番剧名',
+              hintText: 'Anime name',
             ),
             onChanged: (value) => searchKeyword = value,
             onFieldSubmitted: (keyword) {
@@ -1152,7 +1152,7 @@ class _PlayerItemState extends State<PlayerItem>
                 widget.keyboardFocus.requestFocus();
               },
               child: Text(
-                '取消',
+                'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -1161,7 +1161,7 @@ class _PlayerItemState extends State<PlayerItem>
                 showDanmakuSearchDialog(searchKeyword);
               },
               child: const Text(
-                '提交',
+                'Submit',
               ),
             ),
           ],
@@ -1178,7 +1178,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("Source"),
             subtitle: Text(playerController.videoUrl),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(text: playerController.videoUrl),
               );
@@ -1189,7 +1189,7 @@ class _PlayerItemState extends State<PlayerItem>
             subtitle: Text(
                 '${playerController.debug.playerWidth}x${playerController.debug.playerHeight}'),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1202,7 +1202,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("VideoParams"),
             subtitle: Text(playerController.debug.playerVideoParams.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1215,7 +1215,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("AudioParams"),
             subtitle: Text(playerController.debug.playerAudioParams.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1228,7 +1228,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("Media"),
             subtitle: Text(playerController.debug.playerPlaylist.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1241,7 +1241,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("AudioTrack"),
             subtitle: Text(playerController.debug.playerAudioTracks.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1254,7 +1254,7 @@ class _PlayerItemState extends State<PlayerItem>
             title: const Text("VideoTrack"),
             subtitle: Text(playerController.debug.playerVideoTracks.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1268,7 +1268,7 @@ class _PlayerItemState extends State<PlayerItem>
             subtitle:
                 Text(playerController.debug.playerAudioBitrate.toString()),
             onTap: () {
-              KazumiDialog.showToast(message: '已复制到剪贴板');
+              KazumiDialog.showToast(message: 'Copied to clipboard');
               Clipboard.setData(
                 ClipboardData(
                   text:
@@ -1326,8 +1326,8 @@ class _PlayerItemState extends State<PlayerItem>
                     child: Material(
                       child: TabBar(
                         tabs: [
-                          Tab(text: '状态'),
-                          Tab(text: '日志'),
+                          Tab(text: 'Status'),
+                          Tab(text: 'Logs'),
                         ],
                       ),
                     ),
@@ -1349,11 +1349,11 @@ class _PlayerItemState extends State<PlayerItem>
 
   void showSyncPlayEndPointSwitchDialog() {
     if (playerController.syncplay.syncplayController != null) {
-      KazumiDialog.showToast(message: 'SyncPlay: 请先退出当前房间再切换服务器');
+      KazumiDialog.showToast(message: 'SyncPlay: please leave the current room before switching servers');
       return;
     }
 
-    final String defaultCustomSyncPlayEndPoint = '自定义服务器';
+    final String defaultCustomSyncPlayEndPoint = 'Custom server';
     String customSyncPlayEndPoint = defaultCustomSyncPlayEndPoint;
     String selectedSyncPlayEndPoint = setting.get(
         SettingBoxKey.syncPlayEndPoint,
@@ -1369,7 +1369,7 @@ class _PlayerItemState extends State<PlayerItem>
             syncPlayEndPoints.add(selectedSyncPlayEndPoint);
           }
           return AlertDialog(
-            title: const Text('选择服务器'),
+            title: const Text('Select server'),
             content: SingleChildScrollView(
               child: ListBody(
                 children: <Widget>[
@@ -1404,22 +1404,22 @@ class _PlayerItemState extends State<PlayerItem>
                           KazumiDialog.show(
                             builder: (context) {
                               return AlertDialog(
-                                title: const Text('自定义服务器'),
+                                title: const Text('Custom server'),
                                 content: TextField(
                                   decoration: const InputDecoration(
-                                    hintText: '请输入服务器地址',
+                                    hintText: 'Please enter the server address',
                                   ),
                                   onChanged: (value) => serverText = value,
                                 ),
                                 actions: <Widget>[
                                   TextButton(
-                                    child: const Text('取消'),
+                                    child: const Text('Cancel'),
                                     onPressed: () {
                                       KazumiDialog.dismiss();
                                     },
                                   ),
                                   TextButton(
-                                    child: const Text('确认'),
+                                    child: const Text('Confirm'),
                                     onPressed: () {
                                       if (serverText.isNotEmpty &&
                                           !syncPlayEndPoints
@@ -1431,7 +1431,7 @@ class _PlayerItemState extends State<PlayerItem>
                                         });
                                       } else {
                                         KazumiDialog.showToast(
-                                            message: '服务器地址不能重复或为空');
+                                            message: 'Server address cannot be duplicate or empty');
                                       }
                                     },
                                   ),
@@ -1452,13 +1452,13 @@ class _PlayerItemState extends State<PlayerItem>
             ),
             actions: <Widget>[
               TextButton(
-                child: const Text('取消'),
+                child: const Text('Cancel'),
                 onPressed: () {
                   KazumiDialog.dismiss();
                 },
               ),
               TextButton(
-                child: const Text('确认'),
+                child: const Text('Confirm'),
                 onPressed: () {
                   setting.put(
                     SettingBoxKey.syncPlayEndPoint,
@@ -1480,7 +1480,7 @@ class _PlayerItemState extends State<PlayerItem>
     String username = '';
     KazumiDialog.show(builder: (BuildContext context) {
       return AlertDialog(
-        title: const Text('加入房间'),
+        title: const Text('Join room'),
         content: Form(
           key: formKey,
           child: Column(
@@ -1489,16 +1489,16 @@ class _PlayerItemState extends State<PlayerItem>
               TextFormField(
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: '房间号',
+                  labelText: 'Room number',
                 ),
                 onChanged: (value) => room = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入房间号';
+                    return 'Please enter a room number';
                   }
                   final regex = RegExp(r'^[0-9]{6,10}$');
                   if (!regex.hasMatch(value)) {
-                    return '房间号需要6到10位数字';
+                    return 'Room number must be 6 to 10 digits';
                   }
                   return null;
                 },
@@ -1506,16 +1506,16 @@ class _PlayerItemState extends State<PlayerItem>
               const SizedBox(height: 16),
               TextFormField(
                 decoration: const InputDecoration(
-                  labelText: '用户名',
+                  labelText: 'Username',
                 ),
                 onChanged: (value) => username = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return '请输入用户名';
+                    return 'Please enter a username';
                   }
                   final regex = RegExp(r'^[a-zA-Z]{4,12}$');
                   if (!regex.hasMatch(value)) {
-                    return '用户名必须为4到12位英文字符';
+                    return 'Username must be 4 to 12 English characters';
                   }
                   return null;
                 },
@@ -1528,7 +1528,7 @@ class _PlayerItemState extends State<PlayerItem>
             onPressed: () {
               KazumiDialog.dismiss();
             },
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -1538,7 +1538,7 @@ class _PlayerItemState extends State<PlayerItem>
                     room, username, widget.changeEpisode);
               }
             },
-            child: const Text('确定'),
+            child: const Text('OK'),
           ),
         ],
       );

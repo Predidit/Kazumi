@@ -44,20 +44,20 @@ class _MyPageState extends State<MyPage> {
         onBackPressed(context);
       },
       child: Scaffold(
-        appBar: const SysAppBar(title: Text('我的'), needTopOffset: false),
+        appBar: const SysAppBar(title: Text('Me'), needTopOffset: false),
         body: SettingsList(
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('播放历史与视频源', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Watch history and video sources', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/history/');
                   },
                   leading: const Icon(Icons.history_rounded),
-                  title: Text('历史记录', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看播放历史记录',
+                  title: Text('History', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('View watch history',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -65,8 +65,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/download/');
                   },
                   leading: const Icon(Icons.download_rounded),
-                  title: Text('下载管理', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看和管理离线下载',
+                  title: Text('Download manager', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('View and manage offline downloads',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -74,8 +74,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/download-settings');
                   },
                   leading: const Icon(Icons.settings_rounded),
-                  title: Text('下载设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('配置下载并发数等参数',
+                  title: Text('Download settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure download concurrency and other parameters',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -83,22 +83,22 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/plugin/');
                   },
                   leading: const Icon(Icons.extension),
-                  title: Text('规则管理', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('管理番剧资源规则',
+                  title: Text('Rule management', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Manage anime source rules',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('播放器设置', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Player settings', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/player');
                   },
                   leading: const Icon(Icons.display_settings_rounded),
-                  title: Text('播放设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置播放器相关参数',
+                  title: Text('Playback settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure player-related parameters',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -106,8 +106,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/danmaku/');
                   },
                   leading: const Icon(Icons.subtitles_rounded),
-                  title: Text('弹幕设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置弹幕相关参数',
+                  title: Text('Danmaku settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure danmaku-related parameters',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -115,8 +115,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/keyboard');
                   },
                   leading: const Icon(Icons.keyboard_rounded),
-                  title: Text('操作设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置播放器按键映射',
+                  title: Text('Control settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure player key bindings',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -124,22 +124,22 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/proxy');
                   },
                   leading: const Icon(Icons.vpn_key_rounded),
-                  title: Text('代理设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('配置HTTP代理',
+                  title: Text('Proxy settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure HTTP proxy',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('应用与外观', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('App and appearance', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/theme');
                   },
                   leading: const Icon(Icons.palette_rounded),
-                  title: Text('外观设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置应用主题和刷新率',
+                  title: Text('Appearance settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure app theme and refresh rate',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -147,8 +147,8 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/interface');
                   },
                   leading: const Icon(Icons.pages_rounded),
-                  title: Text('界面设置', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('设置应用界面样式',
+                  title: Text('Interface settings', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('Configure app interface style',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
@@ -156,21 +156,21 @@ class _MyPageState extends State<MyPage> {
                     Modular.to.pushNamed('/settings/webdav/');
                   },
                   leading: const Icon(Icons.cloud),
-                  title: Text('同步设置', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('Sync settings', style: TextStyle(fontFamily: fontFamily)),
                   description:
-                      Text('设置同步参数', style: TextStyle(fontFamily: fontFamily)),
+                      Text('Configure sync parameters', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
             SettingsSection(
-              title: Text('其他', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('Other', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/');
                   },
                   leading: const Icon(Icons.info_outline_rounded),
-                  title: Text('关于', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('About', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

@@ -39,18 +39,18 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
       appBar: const SysAppBar(
-        title: Text('超分辨率'),
+        title: Text('Super resolution'),
       ),
       body: SettingsList(
         maxWidth: 1000,
         sections: [
           SettingsSection(
-              title: Text('超分辨率需要启用硬件解码, 若启用硬件解码后仍然不生效, 尝试切换视频渲染器为 gpu',
+              title: Text('Super resolution requires hardware decoding. If it still does not work after enabling hardware decoding, try switching the video renderer to gpu',
                   style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile<String>.radioTile(
                   title: Text("OFF", style: TextStyle(fontFamily: fontFamily)),
-                  description: Text("默认禁用超分辨率",
+                  description: Text("Super resolution disabled by default",
                       style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "1",
                   groupValue: superResolutionType.value,
@@ -67,7 +67,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 SettingsTile<String>.radioTile(
                   title: Text("Efficiency",
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text("默认启用基于Anime4K的超分辨率 (效率优先)",
+                  description: Text("Anime4K-based super resolution enabled by default (performance first)",
                       style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "2",
                   groupValue: superResolutionType.value,
@@ -84,7 +84,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 SettingsTile<String>.radioTile(
                   title:
                       Text("Quality", style: TextStyle(fontFamily: fontFamily)),
-                  description: Text("默认启用基于Anime4K的超分辨率 (质量优先)",
+                  description: Text("Anime4K-based super resolution enabled by default (quality first)",
                       style: TextStyle(fontFamily: fontFamily)),
                   radioValue: "3",
                   groupValue: superResolutionType.value,
@@ -100,11 +100,11 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 )
               ]),
           SettingsSection(
-            title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+            title: Text('Default behavior', style: TextStyle(fontFamily: fontFamily)),
             tiles: [
               SettingsTile.switchTile(
-                title: Text('关闭提示', style: TextStyle(fontFamily: fontFamily)),
-                description: Text('关闭每次启用超分辨率时的提示',
+                title: Text('Disable prompt', style: TextStyle(fontFamily: fontFamily)),
+                description: Text('Disable the prompt shown each time super resolution is enabled',
                     style: TextStyle(fontFamily: fontFamily)),
                 initialValue: promptOnEnable,
                 onToggle: (value) async {

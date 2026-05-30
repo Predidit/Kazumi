@@ -52,15 +52,15 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final MenuController captchaDetectTypeMenuController = MenuController();
 
   static const Map<int, String> _captchaTypeMap = {
-    CaptchaType.imageCaptcha: '图片验证码',
-    CaptchaType.autoClickButton: '自动点击按钮',
-    CaptchaType.customJavaScript: '自定义 JS 验证',
+    CaptchaType.imageCaptcha: 'Image captcha',
+    CaptchaType.autoClickButton: 'Auto-click button',
+    CaptchaType.customJavaScript: 'Custom JS verification',
   };
 
   static const Map<int, String> _captchaDetectTypeMap = {
     CaptchaDetectType.xpath: 'XPath',
-    CaptchaDetectType.text: '文本',
-    CaptchaDetectType.regex: '正则',
+    CaptchaDetectType.text: 'Text',
+    CaptchaDetectType.regex: 'Regex',
   };
 
   @override
@@ -127,7 +127,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
 
     return Scaffold(
       appBar: const SysAppBar(
-        title: Text('规则编辑器'),
+        title: Text('Rule editor'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -191,18 +191,18 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 ),
                 const SizedBox(height: 20),
                 ExpansionTile(
-                  title: const Text('高级选项'),
+                  title: const Text('Advanced options'),
                   shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.zero),
                   children: [
                     SettingsSection(
-                      title: Text('行为设置',
+                      title: Text('Behavior settings',
                           style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         SettingsTile.switchTile(
-                          title: Text('简易解析',
+                          title: Text('Simple parsing',
                               style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用简易解析器而不是现代解析器',
+                          description: Text('Use the simple parser instead of the modern parser',
                               style: TextStyle(fontFamily: fontFamily)),
                           initialValue: useLegacyParser,
                           onToggle: (v) => setState(
@@ -211,25 +211,25 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                         SettingsTile.switchTile(
                           title: Text('POST',
                               style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用 POST 而不是 GET 进行检索',
+                          description: Text('Use POST instead of GET for searching',
                               style: TextStyle(fontFamily: fontFamily)),
                           initialValue: usePost,
                           onToggle: (v) =>
                               setState(() => usePost = v ?? !usePost),
                         ),
                         SettingsTile.switchTile(
-                          title: Text('内置播放器',
+                          title: Text('Built-in player',
                               style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('使用内置播放器播放视频',
+                          description: Text('Play videos with the built-in player',
                               style: TextStyle(fontFamily: fontFamily)),
                           initialValue: useNativePlayer,
                           onToggle: (v) => setState(
                               () => useNativePlayer = v ?? !useNativePlayer),
                         ),
                         SettingsTile.switchTile(
-                          title: Text('广告过滤',
+                          title: Text('Ad filtering',
                               style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('启用 HLS 广告过滤',
+                          description: Text('Enable HLS ad filtering',
                               style: TextStyle(fontFamily: fontFamily)),
                           initialValue: adBlocker,
                           onToggle: (v) =>
@@ -238,7 +238,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                       ],
                     ),
                     SettingsSection(
-                      title: Text('网络设置',
+                      title: Text('Network settings',
                           style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         CustomSettingsTile(
@@ -260,13 +260,13 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                       ],
                     ),
                     SettingsSection(
-                      title: Text('反反爬虫配置',
+                      title: Text('Anti-anti-crawler configuration',
                           style: TextStyle(fontFamily: fontFamily)),
                       tiles: [
                         SettingsTile.switchTile(
-                          title: Text('启用反反爬虫',
+                          title: Text('Enable anti-anti-crawler',
                               style: TextStyle(fontFamily: fontFamily)),
-                          description: Text('检索失败时显示验证码验证按钮而非重试',
+                          description: Text('Show a captcha verification button instead of retry when search fails',
                               style: TextStyle(fontFamily: fontFamily)),
                           initialValue: antiCrawlerEnabled,
                           onToggle: (v) => setState(() =>
@@ -281,17 +281,17 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 captchaTypeMenuController.open();
                               }
                             },
-                            title: Text('验证类型',
+                            title: Text('Verification type',
                                 style: TextStyle(fontFamily: fontFamily)),
                             description: Text(
                               switch (captchaType) {
                                 CaptchaType.imageCaptcha =>
-                                  '图片验证码（展示验证码图片，用户手动输入）',
+                                  'Image captcha (shows a captcha image for manual input)',
                                 CaptchaType.autoClickButton =>
-                                  '自动点击验证按钮（检测到按钮后自动模拟点击）',
+                                  'Auto-click verification button (clicks automatically when the button is detected)',
                                 CaptchaType.customJavaScript =>
-                                  '自定义 JS 验证（加载页面后执行规则脚本）',
-                                _ => '未知验证类型',
+                                  'Custom JS verification (runs the rule script after the page loads)',
+                                _ => 'Unknown verification type',
                               },
                               style: TextStyle(fontFamily: fontFamily),
                             ),
@@ -299,7 +299,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                               consumeOutsideTap: true,
                               controller: captchaTypeMenuController,
                               builder: (_, __, ___) => Text(
-                                _captchaTypeMap[captchaType] ?? '未知',
+                                _captchaTypeMap[captchaType] ?? 'Unknown',
                                 style: TextStyle(fontFamily: fontFamily),
                               ),
                               menuChildren: [
@@ -339,16 +339,16 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 captchaDetectTypeMenuController.open();
                               }
                             },
-                            title: Text('验证页检测方式',
+                            title: Text('Verification page detection method',
                                 style: TextStyle(fontFamily: fontFamily)),
-                            description: Text('优先使用该标记判断搜索响应是否为验证页',
+                            description: Text('Prefer this marker to determine whether the search response is a verification page',
                                 style: TextStyle(fontFamily: fontFamily)),
                             value: MenuAnchor(
                               consumeOutsideTap: true,
                               controller: captchaDetectTypeMenuController,
                               builder: (_, __, ___) => Text(
                                 _captchaDetectTypeMap[captchaDetectType] ??
-                                    '未知',
+                                    'Unknown',
                                 style: TextStyle(fontFamily: fontFamily),
                               ),
                               menuChildren: [
@@ -389,11 +389,11 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                               controller: captchaDetectValueController,
                               label: 'CaptchaDetectValue',
                               hint: captchaDetectType == CaptchaDetectType.text
-                                  ? '身份验证'
+                                  ? 'Authentication'
                                   : captchaDetectType == CaptchaDetectType.regex
-                                      ? '身份验证|smart_verify'
+                                      ? 'Authentication|smart_verify'
                                       : '//button[@id="verify"]',
-                              helper: '留空时回退到旧的图片/按钮 XPath 检测',
+                              helper: 'When left empty, fall back to the old image or button XPath detection',
                             ),
                           ),
                           if (captchaType == CaptchaType.imageCaptcha) ...[
@@ -404,7 +404,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 controller: captchaImageController,
                                 label: 'CaptchaImage (XPath)',
                                 hint: '//img[@class="captcha"]',
-                                helper: '验证码图片元素的 XPath',
+                                helper: 'XPath of the captcha image element',
                               ),
                             ),
                             CustomSettingsTile(
@@ -414,7 +414,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 controller: captchaInputController,
                                 label: 'CaptchaInput (XPath)',
                                 hint: '//input[@name="captcha"]',
-                                helper: '验证码输入框元素的 XPath',
+                                helper: 'XPath of the captcha input element',
                               ),
                             ),
                           ],
@@ -429,8 +429,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                     : 'VerifyButton (XPath)',
                                 hint: '//button[@type="submit"]',
                                 helper: captchaType == CaptchaType.imageCaptcha
-                                    ? '验证提交按钮元素的 XPath'
-                                    : '验证按钮元素的 XPath，检测到后自动点击',
+                                    ? 'XPath of the verification submit button element'
+                                    : 'XPath of the verification button element, clicked automatically when detected',
                               ),
                             ),
                           if (captchaType == CaptchaType.customJavaScript)
@@ -443,7 +443,7 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                                 hint:
                                     'KazumiCaptcha.log("ready"); KazumiCaptcha.done();',
                                 helper:
-                                    '可调用 KazumiCaptcha.log/clicked/done/fail',
+                                    'You can call KazumiCaptcha.log/clicked/done/fail',
                                 maxLines: 8,
                               ),
                             ),

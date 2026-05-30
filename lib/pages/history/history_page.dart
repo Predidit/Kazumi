@@ -36,15 +36,15 @@ class _HistoryPageState extends State<HistoryPage> {
     KazumiDialog.show(
       builder: (context) {
         return AlertDialog(
-          title: const Text('记录管理'),
-          content: const Text('确认要清除所有历史记录吗?'),
+          title: const Text('Record management'),
+          content: const Text('Clear all history records?'),
           actions: [
             TextButton(
               onPressed: () {
                 KazumiDialog.dismiss();
               },
               child: Text(
-                '取消',
+                'Cancel',
                 style: TextStyle(color: Theme.of(context).colorScheme.outline),
               ),
             ),
@@ -55,7 +55,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   historyController.clearAll();
                 } catch (_) {}
               },
-              child: const Text('确认'),
+              child: const Text('Confirm'),
             ),
           ],
         );
@@ -73,7 +73,7 @@ class _HistoryPageState extends State<HistoryPage> {
         },
         child: Scaffold(
           appBar: SysAppBar(
-            title: const Text('历史记录'),
+            title: const Text('History'),
             actions: [
               if (historyController.histories.isNotEmpty) ...[
                 IconButton(
@@ -85,14 +85,14 @@ class _HistoryPageState extends State<HistoryPage> {
                   icon: showDelete
                       ? const Icon(Icons.edit_off_outlined)
                       : const Icon(Icons.edit_outlined),
-                  tooltip: showDelete ? '退出编辑' : '编辑',
+                  tooltip: showDelete ? 'Exit editing' : 'Edit',
                 ),
                 IconButton(
                   onPressed: () {
                     showHistoryClearDialog();
                   },
                   icon: const Icon(Icons.delete_sweep_outlined),
-                  tooltip: '清除全部',
+                  tooltip: 'Clear all',
                 ),
               ],
             ],
@@ -119,7 +119,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '没有找到历史记录',
+              'No history records found',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context).colorScheme.outline,
                   ),

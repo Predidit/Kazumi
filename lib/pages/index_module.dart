@@ -61,7 +61,7 @@ class IndexModule extends Module {
             "/error",
             child: (_) => Scaffold(
               appBar: AppBar(title: const Text("Kazumi")),
-              body: const Center(child: Text("初始化失败")),
+              body: const Center(child: Text("Initialization failed")),
             ),
           ),
         ],

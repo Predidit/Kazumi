@@ -510,7 +510,7 @@ abstract class _DownloadController with Store {
     final plugin = _findPlugin(request.pluginName);
     if (plugin == null) {
       _failEpisode(request.recordKey, request.episodeNumber,
-          '找不到插件 ${request.pluginName}');
+          'Plugin not found ${request.pluginName}');
       return;
     }
 
@@ -547,7 +547,7 @@ abstract class _DownloadController with Store {
     }
 
     if (m3u8Url == null || m3u8Url.isEmpty) {
-      _failEpisode(request.recordKey, request.episodeNumber, '解析视频源超时');
+      _failEpisode(request.recordKey, request.episodeNumber, 'Video source parsing timed out');
       return;
     }
 
@@ -726,7 +726,7 @@ abstract class _DownloadController with Store {
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
-      _failEpisode(recordKey, episodeNumber, '找不到插件 $pluginName');
+      _failEpisode(recordKey, episodeNumber, 'Plugin not found $pluginName');
       return;
     }
 
@@ -830,7 +830,7 @@ abstract class _DownloadController with Store {
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
-      _failEpisode(recordKey, episodeNumber, '找不到插件 $pluginName');
+      _failEpisode(recordKey, episodeNumber, 'Plugin not found $pluginName');
       return;
     }
 

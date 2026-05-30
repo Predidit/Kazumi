@@ -71,14 +71,14 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
     return Scaffold(
-      appBar: AppBar(title: const Text('屏幕帧率设置')),
+      appBar: AppBar(title: const Text('Screen refresh rate settings')),
       body: (modes.isEmpty)
           ? const CircularProgressIndicator()
           : SettingsList(
               maxWidth: 1000,
               sections: [
                 SettingsSection(
-                  title: Text('没有生效? 重启app试试',
+                  title: Text('Not working? Try restarting the app',
                       style: TextStyle(fontFamily: fontFamily)),
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
@@ -93,9 +93,9 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
                               await fetchAll();
                             },
                             title: e == DisplayMode.auto
-                                ? Text('自动',
+                                ? Text('Auto',
                                     style: TextStyle(fontFamily: fontFamily))
-                                : Text('$e${e == active ? "  [系统]" : ""}',
+                                : Text('$e${e == active ? "  [System]" : ""}',
                                     style: TextStyle(fontFamily: fontFamily)),
                           ))
                       .toList(),

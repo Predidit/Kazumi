@@ -29,7 +29,7 @@ class BangumiCardV extends StatelessWidget {
           onTap: () {
             if (!canTap) {
               KazumiDialog.showToast(
-                message: '编辑模式',
+                message: 'Edit mode',
               );
               return;
             }

@@ -21,11 +21,11 @@ class ExternalPlaybackLauncher {
           currentVideoUrl, 'video/mp4')) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(
-          message: '尝试唤起外部播放器',
+          message: 'Trying to launch external player',
         );
       } else {
         KazumiDialog.showToast(
-          message: '唤起外部播放器失败',
+          message: 'Failed to launch external player',
         );
       }
     } else if (Platform.isMacOS || Platform.isIOS) {
@@ -33,11 +33,11 @@ class ExternalPlaybackLauncher {
           currentVideoUrl, currentReferer)) {
         KazumiDialog.dismiss();
         KazumiDialog.showToast(
-          message: '尝试唤起外部播放器',
+          message: 'Trying to launch external player',
         );
       } else {
         KazumiDialog.showToast(
-          message: '唤起外部播放器失败',
+          message: 'Failed to launch external player',
         );
       }
     } else if (Platform.isLinux && currentReferer.isEmpty) {
@@ -45,21 +45,21 @@ class ExternalPlaybackLauncher {
       if (await canLaunchUrlString(currentVideoUrl)) {
         launchUrlString(currentVideoUrl);
         KazumiDialog.showToast(
-          message: '尝试唤起外部播放器',
+          message: 'Trying to launch external player',
         );
       } else {
         KazumiDialog.showToast(
-          message: '无法使用外部播放器',
+          message: 'Cannot use external player',
         );
       }
     } else {
       if (currentReferer.isEmpty) {
         KazumiDialog.showToast(
-          message: '暂不支持该设备',
+          message: 'This device is not supported yet',
         );
       } else {
         KazumiDialog.showToast(
-          message: '暂不支持该规则',
+          message: 'This rule is not supported yet',
         );
       }
     }

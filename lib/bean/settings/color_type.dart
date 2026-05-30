@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 final List<Map<String, dynamic>> colorThemeTypes = [
-  {'color': Colors.green, 'label': '默认'},
-  {'color': Colors.teal, 'label': '青色'},
-  {'color': Colors.blue, 'label': '蓝色'},
-  {'color': Colors.indigo, 'label': '靛蓝色'},
-  {'color': const Color(0xff6750a4), 'label': '紫罗兰色'},
-  {'color': Colors.pink, 'label': '粉红色'},
-  {'color': Colors.yellow, 'label': '黄色'},
-  {'color': Colors.orange, 'label': '橙色'},
-  {'color': Colors.deepOrange, 'label': '深橙色'},
+  {'color': Colors.green, 'label': 'Default'},
+  {'color': Colors.teal, 'label': 'Teal'},
+  {'color': Colors.blue, 'label': 'Blue'},
+  {'color': Colors.indigo, 'label': 'Indigo'},
+  {'color': const Color(0xff6750a4), 'label': 'Violet'},
+  {'color': Colors.pink, 'label': 'Pink'},
+  {'color': Colors.yellow, 'label': 'Yellow'},
+  {'color': Colors.orange, 'label': 'Orange'},
+  {'color': Colors.deepOrange, 'label': 'Deep Orange'},
 ];

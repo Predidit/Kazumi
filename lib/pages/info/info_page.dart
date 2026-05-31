@@ -5,6 +5,7 @@ import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/bean/widget/translated_text.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -353,7 +354,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                         child: Container(
                           width: double.infinity,
                           alignment: Alignment.centerLeft,
-                          child: Text(
+                          child: TranslatedText(
                             infoController.bangumiItem.nameCn == ''
                                 ? infoController.bangumiItem.name
                                 : infoController.bangumiItem.nameCn,

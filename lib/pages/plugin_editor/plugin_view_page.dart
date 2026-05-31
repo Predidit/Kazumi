@@ -412,7 +412,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               if (res == 0) {
                 KazumiDialog.showToast(message: 'Update succeeded');
               } else if (res == 1) {
-                KazumiDialog.showToast(message: 'Kazumi version is too low, this rule is not compatible with the current version');
+                KazumiDialog.showToast(message: 'Akiora version is too low, this rule is not compatible with the current version');
               } else if (res == 2) {
                 KazumiDialog.showToast(message: 'Failed to update rule');
               }

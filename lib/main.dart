@@ -73,7 +73,7 @@ void main() async {
           ? TitleBarStyle.hidden
           : TitleBarStyle.normal,
       windowButtonVisibility: showWindowButton,
-      title: 'Kazumi',
+      title: 'Akiora',
     );
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       // window_manager controls desktop visibility to avoid startup flicker.

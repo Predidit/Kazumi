@@ -204,7 +204,7 @@ class _InitPageState extends State<InitPage> {
             child: AlertDialog(
               title: const Text('X11 environment detected'),
               content: const Text(
-                  'You are currently running under X11. Kazumi may have performance issues or display glitches under X11, and switching to Wayland is recommended for a better experience. Do you want to continue using Kazumi under X11?'),
+                  'You are currently running under X11. Akiora may have performance issues or display glitches under X11, and switching to Wayland is recommended for a better experience. Do you want to continue using Akiora under X11?'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -240,7 +240,7 @@ class _InitPageState extends State<InitPage> {
       clickMaskDismiss: false,
       builder: (context) => AlertDialog(
         title: const Text('Create desktop shortcut'),
-        content: const Text('Create a Kazumi shortcut on the desktop?'),
+        content: const Text('Create an Akiora shortcut on the desktop?'),
         actions: [
           TextButton(
             onPressed: () => KazumiDialog.dismiss(popWith: false),

@@ -171,7 +171,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                         setState(() {});
                       } else if (res == 1) {
                         KazumiDialog.showToast(
-                            message: 'Kazumi version is too low, this rule is not compatible with the current version');
+                            message: 'Akiora version is too low, this rule is not compatible with the current version');
                       } else if (res == 2) {
                         KazumiDialog.showToast(message: 'Failed to import rule');
                       }
@@ -186,7 +186,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
                         setState(() {});
                       } else if (res == 1) {
                         KazumiDialog.showToast(
-                            message: 'Kazumi version is too low, this rule is not compatible with the current version');
+                            message: 'Akiora version is too low, this rule is not compatible with the current version');
                       } else if (res == 2) {
                         KazumiDialog.showToast(message: 'Failed to update rule');
                       }

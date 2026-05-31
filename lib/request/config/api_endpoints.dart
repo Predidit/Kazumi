@@ -120,6 +120,10 @@ class ApiEndpoints {
   /// 图片识别番剧
   static const String traceApi = 'https://api.trace.moe/search';
 
+  /// 翻译 API (Google 免密钥端点) - 将内容强制翻译为英文
+  static const String translateApi =
+      'https://translate.googleapis.com/translate_a/single';
+
   static String formatUrl(String url, List<dynamic> params) {
     for (int i = 0; i < params.length; i++) {
       url = url.replaceAll('{$i}', params[i].toString());

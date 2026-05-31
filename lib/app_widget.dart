@@ -220,7 +220,7 @@ class _AppWidgetState extends State<AppWidget>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Do you want to exit Kazumi?'),
+                const Text('Do you want to exit Akiora?'),
                 const SizedBox(height: 24),
                 StatefulBuilder(builder: (context, setState) {
                   onChanged(value) {
@@ -247,7 +247,7 @@ class _AppWidgetState extends State<AppWidget>
                     }
                     exit(0);
                   },
-                  child: const Text('Exit Kazumi')),
+                  child: const Text('Exit Akiora')),
               TextButton(
                   onPressed: () async {
                     if (saveExitBehavior) {
@@ -304,13 +304,13 @@ class _AppWidgetState extends State<AppWidget>
     }
 
     if (!Platform.isLinux) {
-      await trayManager.setToolTip('Kazumi');
+      await trayManager.setToolTip('Akiora');
     }
 
     Menu trayMenu = Menu(items: [
       MenuItem(key: 'show_window', label: 'Show window'),
       MenuItem.separator(),
-      MenuItem(key: 'exit', label: 'Exit Kazumi')
+      MenuItem(key: 'exit', label: 'Exit Akiora')
     ]);
     await trayManager.setContextMenu(trayMenu);
   }
@@ -344,7 +344,7 @@ class _AppWidgetState extends State<AppWidget>
             : dynamicDarkTheme;
 
         return MaterialApp.router(
-          title: "Kazumi",
+          title: "Akiora",
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           supportedLocales: const [Locale('en')],
           locale: const Locale('en'),

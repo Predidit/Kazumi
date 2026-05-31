@@ -37,7 +37,7 @@ class AudioController {
     if (Platform.isLinux) {
       AudioServiceMpris.init(
         dBusName: 'io.github.Predidit.Kazumi.channel.audio',
-        identity: 'Kazumi Playback',
+        identity: 'Akiora Playback',
         canControl: true,
         canPlay: true,
         canPause: true,
@@ -52,7 +52,7 @@ class AudioController {
       },
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'io.github.Predidit.Kazumi.channel.audio',
-        androidNotificationChannelName: 'Kazumi Playback',
+        androidNotificationChannelName: 'Akiora Playback',
         androidNotificationOngoing: true,
       ),
     );

@@ -631,10 +631,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_volume_controller
-      sha256: "27b95004d8abd7c6b24a63e555d721ef5f958fbe54551246567b72321494c6c8"
+      sha256: "78297fd48ce6330d39a11a4c1ae219a3256249f99dec34cfbe9323d2cbb5ebb9"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.0.1"
   flutter_web_plugins:
     dependency: transitive
     description: flutter

@@ -57,7 +57,7 @@ dependencies:
   # fvp: ^0.28.0
   # video_player: ^2.9.1
 
-  flutter_volume_controller: ^2.0.0
+  flutter_volume_controller: ^2.0.1
   audio_video_progress_bar: ^2.0.2
   audio_service: ^0.18.15
   audio_service_mpris:

@@ -626,6 +626,12 @@ class _PlayerItemState extends State<PlayerItem>
   //截图
   Future<void> handleScreenshot() async {
     _playScreenshotFeedback();
+
+    if (isDesktop()) {
+      KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
+      return;
+    }
+
     try {
       Uint8List? screenshot = await playerController.screenshotPng();
 
@@ -634,10 +640,6 @@ class _PlayerItemState extends State<PlayerItem>
         return;
       }
 
-      if (isDesktop()) {
-        KazumiDialog.showToast(message: '桌面端暂未支持保存截图');
-        return;
-      }
       final result = await SaverGallery.saveImage(
         screenshot,
         fileName: DateTime.timestamp().millisecondsSinceEpoch.toString(),

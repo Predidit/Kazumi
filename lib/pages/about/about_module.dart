@@ -15,7 +15,7 @@ class AboutModule extends Module {
     r.child(
       "/license",
       child: (_) => const LicensePage(
-        applicationName: 'Kazumi',
+        applicationName: 'Akiora',
         applicationVersion: ApiEndpoints.version,
         applicationLegalese: 'Open source licenses',
       ),

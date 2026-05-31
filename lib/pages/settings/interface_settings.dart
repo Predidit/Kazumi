@@ -16,6 +16,7 @@ class InterfaceSettingsPage extends StatefulWidget {
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   Box setting = GStorage.setting;
   late bool showRating;
+  late bool forceEnglish;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -30,6 +31,8 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   void initState() {
     super.initState();
     showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
+    forceEnglish =
+        setting.get(SettingBoxKey.forceEnglishTranslation, defaultValue: true);
     defaultPage = setting.get(SettingBoxKey.defaultStartupPage,
         defaultValue: '/tab/popular/');
   }
@@ -109,6 +112,22 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
               description: Text('When off, rating info is hidden in the overview',
                   style: TextStyle(fontFamily: fontFamily)),
               initialValue: showRating,
+            ),
+          ]),
+          SettingsSection(tiles: [
+            SettingsTile.switchTile(
+              onToggle: (value) async {
+                forceEnglish = value ?? !forceEnglish;
+                await setting.put(
+                    SettingBoxKey.forceEnglishTranslation, forceEnglish);
+                setState(() {});
+              },
+              title: Text('Force English',
+                  style: TextStyle(fontFamily: fontFamily)),
+              description: Text(
+                  'Translate anime titles and summaries to English when the source is not English',
+                  style: TextStyle(fontFamily: fontFamily)),
+              initialValue: forceEnglish,
             ),
           ]),
         ],

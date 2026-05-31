@@ -11,6 +11,7 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/services/translation/translation_service.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
@@ -61,6 +62,24 @@ class _InfoTabViewState extends State<InfoTabView>
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
+  final Set<String> _translatingSummaries = {};
+
+  /// Returns the summary, force-translated to English when enabled. Shows the
+  /// original first and rebuilds once the (cached) translation is ready.
+  String _resolvedSummary() {
+    final raw = widget.bangumiItem.summary;
+    final service = TranslationService.instance;
+    if (!service.enabled || !service.needsTranslation(raw)) return raw;
+    final cached = service.cached(raw);
+    if (cached != null) return cached;
+    if (!_translatingSummaries.contains(raw)) {
+      _translatingSummaries.add(raw);
+      service.translateToEnglish(raw).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
+    return raw;
+  }
 
   @override
   void initState() {
@@ -99,7 +118,8 @@ class _InfoTabViewState extends State<InfoTabView>
               // https://stackoverflow.com/questions/54091055/flutter-how-to-get-the-number-of-text-lines
               // only show expand button when line > 7
               LayoutBuilder(builder: (context, constraints) {
-                final span = TextSpan(text: widget.bangumiItem.summary);
+                final summary = _resolvedSummary();
+                final span = TextSpan(text: summary);
                 final tp =
                     TextPainter(text: span, textDirection: TextDirection.ltr);
                 tp.layout(maxWidth: constraints.maxWidth);
@@ -115,7 +135,7 @@ class _InfoTabViewState extends State<InfoTabView>
                             ? maxWidth
                             : MediaQuery.sizeOf(context).width - 32,
                         child: SelectableText(
-                          widget.bangumiItem.summary,
+                          summary,
                           textAlign: TextAlign.start,
                           scrollBehavior: const ScrollBehavior().copyWith(
                             scrollbars: false,
@@ -136,7 +156,7 @@ class _InfoTabViewState extends State<InfoTabView>
                   );
                 } else {
                   return SelectableText(
-                    widget.bangumiItem.summary,
+                    summary,
                     textAlign: TextAlign.start,
                     scrollPhysics: NeverScrollableScrollPhysics(),
                     selectionHeightStyle: ui.BoxHeightStyle.max,

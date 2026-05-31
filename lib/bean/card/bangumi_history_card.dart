@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/translated_text.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
@@ -141,7 +142,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        TranslatedText(
                           title,
                           style: theme.textTheme.titleSmall?.copyWith(
                             color: colorScheme.onSurface,

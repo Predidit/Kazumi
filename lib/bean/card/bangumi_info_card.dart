@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/translated_text.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -124,7 +125,7 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          TranslatedText(
             widget.bangumiItem.nameCn == ''
                 ? widget.bangumiItem.name
                 : (widget.bangumiItem.nameCn),

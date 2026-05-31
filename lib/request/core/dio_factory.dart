@@ -13,6 +13,7 @@ class DioFactory {
   static Dio? _githubDio;
   static Dio? _pluginDio;
   static Dio? _downloadDio;
+  static Dio? _translateDio;
 
   static Dio get apiDio => _apiDio ??= _create(
         NetworkConfig.fromSettings(),
@@ -54,11 +55,23 @@ class DioFactory {
     return _create(config);
   }
 
+  /// Dedicated client for the translation endpoint (no mirror interceptors).
+  static Dio get translateDio => _translateDio ??= _create(
+        NetworkConfig.fromSettings(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+        ),
+        defaultHeaders: {
+          'user-agent': getRandomUA(),
+        },
+      );
+
   static void reset() {
     _apiDio = null;
     _githubDio = null;
     _pluginDio = null;
     _downloadDio = null;
+    _translateDio = null;
   }
 
   static Dio _create(

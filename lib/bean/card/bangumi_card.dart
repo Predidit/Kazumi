@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kazumi/bean/widget/translated_text.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -90,7 +91,7 @@ class BangumiContent extends StatelessWidget {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
-        child: Text(
+        child: TranslatedText(
           bangumiItem.nameCn,
           textAlign: TextAlign.start,
           style: const TextStyle(

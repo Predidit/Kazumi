@@ -23,6 +23,9 @@ class GStorage {
   static late Box<SearchHistory> searchHistory;
   static late Box<DownloadRecord> downloads;
 
+  /// Cache of source-text -> English translation (force English feature).
+  static late Box<String> translationCache;
+
   /// Hive directory path, initialized during init()
   static String? _hivePath;
 
@@ -162,6 +165,7 @@ class GStorage {
     shieldList = await _openBoxSafe<String>('shieldList');
     searchHistory = await _openBoxSafe<SearchHistory>('searchHistory');
     downloads = await _openBoxSafe<DownloadRecord>('downloads');
+    translationCache = await _openBoxSafe<String>('translationCache');
   }
 
   /// Open a Hive box with automatic recovery on corruption.
@@ -422,5 +426,6 @@ class SettingBoxKey {
       brightnessVolumeGesture = 'brightnessVolumeGesture',
       historySyncDeviceId = 'historySyncDeviceId',
       historySyncSequence = 'historySyncSequence',
-      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized';
+      historySyncSnapshotInitialized = 'historySyncSnapshotInitialized',
+      forceEnglishTranslation = 'forceEnglishTranslation';
 }

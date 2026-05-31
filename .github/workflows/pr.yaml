@@ -50,6 +50,12 @@
             required: false
             default: false
             type: boolean
+
+    env:
+      DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
+      DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+      KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
+      KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
     
     jobs:
       flutter-test:
@@ -126,22 +132,13 @@
           - name: Print Flutter version
             run: flutter doctor -v
             shell: bash
-          - name: Inject Bangumi mirror credentials
-            env:
-              KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
-              KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
-            run: |
-              perl -0pi -e 's/KAZUMI_APPID/$ENV{KAZUMI_APPID}/g; s/KAZUMI_KEY/$ENV{KAZUMI_KEY}/g' lib/utils/bangumi_mirror_credentials.dart
-            shell: bash
-          - name: Inject DanDan API credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              perl -0pi -e 's/kvpx7qkqjh/$ENV{DANDANAPI_APPID}/g; s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/$ENV{DANDANAPI_KEY}/g' lib/utils/dandan_credentials.dart
-            shell: bash
           - name: Build Flutter for Android
-            run: flutter build apk --split-per-abi
+            run: >-
+              flutter build apk --split-per-abi
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
           - name: Package android build output
             run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_canary.apk
@@ -177,23 +174,12 @@
               distribution: 'temurin'
               java-version: '18'
           - run: flutter pub get
-          - name: Inject Bangumi mirror credentials
-            env:
-              KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
-              KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
-            run: |
-              $content = Get-Content -Raw -Path 'lib/utils/bangumi_mirror_credentials.dart'
-              $content = $content.Replace('KAZUMI_APPID', $env:KAZUMI_APPID).Replace('KAZUMI_KEY', $env:KAZUMI_KEY)
-              Set-Content -Path 'lib/utils/bangumi_mirror_credentials.dart' -Value $content
-          - name: Inject DanDan API credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              $content = Get-Content -Raw -Path 'lib/utils/dandan_credentials.dart'
-              $content = $content.Replace('kvpx7qkqjh', $env:DANDANAPI_APPID).Replace('rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax', $env:DANDANAPI_KEY)
-              Set-Content -Path 'lib/utils/dandan_credentials.dart' -Value $content
-          - run: flutter build windows  
+          - run: >-
+              flutter build windows
+              --dart-define=DANDANAPI_APPID=$env:DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
             id: unsigned-windows-packet-artifacts
@@ -251,21 +237,13 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject Bangumi mirror credentials
-            env:
-              KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
-              KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
-            run: |
-              perl -0pi -e 's/KAZUMI_APPID/$ENV{KAZUMI_APPID}/g; s/KAZUMI_KEY/$ENV{KAZUMI_KEY}/g' lib/utils/bangumi_mirror_credentials.dart
-          - name: Inject DanDan API credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              perl -0pi -e 's/kvpx7qkqjh/$ENV{DANDANAPI_APPID}/g; s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/$ENV{DANDANAPI_KEY}/g' lib/utils/dandan_credentials.dart
           - name: Build IPA
-            run: |
+            run: >-
               flutter build ios --release --no-codesign
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
           - name: Create IPA
             run: |
               mkdir Payload
@@ -294,19 +272,12 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject Bangumi mirror credentials
-            env:
-              KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
-              KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
-            run: |
-              perl -0pi -e 's/KAZUMI_APPID/$ENV{KAZUMI_APPID}/g; s/KAZUMI_KEY/$ENV{KAZUMI_KEY}/g' lib/utils/bangumi_mirror_credentials.dart
-          - name: Inject DanDan API credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              perl -0pi -e 's/kvpx7qkqjh/$ENV{DANDANAPI_APPID}/g; s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/$ENV{DANDANAPI_KEY}/g' lib/utils/dandan_credentials.dart
-          - run: flutter build macos --release
+          - run: >-
+              flutter build macos --release
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
           - name: Create DMG
             run: |
               npm install --global create-dmg
@@ -355,22 +326,13 @@
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
-          - name: Inject Bangumi mirror credentials
-            env:
-              KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
-              KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
-            run: |
-              perl -0pi -e 's/KAZUMI_APPID/$ENV{KAZUMI_APPID}/g; s/KAZUMI_KEY/$ENV{KAZUMI_KEY}/g' lib/utils/bangumi_mirror_credentials.dart
-            shell: bash
-          - name: Inject DanDan API credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              perl -0pi -e 's/kvpx7qkqjh/$ENV{DANDANAPI_APPID}/g; s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/$ENV{DANDANAPI_KEY}/g' lib/utils/dandan_credentials.dart
-            shell: bash
           - name: Build Flutter for Linux
-            run: flutter build linux
+            run: >-
+              flutter build linux
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
           # - name: Download FFmpeg Assets
           #   uses: dsaltares/fetch-gh-release-asset@master

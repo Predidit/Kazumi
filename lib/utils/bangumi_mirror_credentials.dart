@@ -1,6 +1,6 @@
-// Public Bangumi mirror API credentials used by the search signature flow.
-// CI should replace these values for release builds.
+// Bangumi mirror API credentials for the search signature flow.
+// Release/PR CI injects them via --dart-define=KAZUMI_APPID / KAZUMI_KEY.
 const Map<String, String> bangumiMirrorCredentials = {
-  'id': 'KAZUMI_APPID',
-  'value': 'KAZUMI_KEY',
+  'id': String.fromEnvironment('KAZUMI_APPID'),
+  'value': String.fromEnvironment('KAZUMI_KEY'),
 };

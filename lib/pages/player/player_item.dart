@@ -477,18 +477,25 @@ class _PlayerItemState extends State<PlayerItem>
     });
   }
 
-  void _finishAdjustmentGesture() {
+  Future<void> _finishAdjustmentGesture() async {
     if (!brightnessVolumeGesture) {
       return;
     }
     if (playerController.panel.volumeSeeking) {
-      playerController.panel.volumeSeeking = false;
-      unawaited(playerController.finishVolumeGesture());
+      try {
+        await playerController.finishVolumeGesture();
+      } finally {
+        if (mounted) {
+          playerController.panel.volumeSeeking = false;
+        }
+      }
     }
     if (playerController.panel.brightnessSeeking) {
       playerController.panel.brightnessSeeking = false;
     }
-    _scheduleAdjustmentHudHide();
+    if (mounted) {
+      _scheduleAdjustmentHudHide();
+    }
   }
 
   // 跳过指定秒数
@@ -2018,10 +2025,10 @@ class _PlayerItemState extends State<PlayerItem>
                                 }
                               },
                               onVerticalDragEnd: (_) {
-                                _finishAdjustmentGesture();
+                                unawaited(_finishAdjustmentGesture());
                               },
                               onVerticalDragCancel: () {
-                                _finishAdjustmentGesture();
+                                unawaited(_finishAdjustmentGesture());
                               },
                             ),
                     ),

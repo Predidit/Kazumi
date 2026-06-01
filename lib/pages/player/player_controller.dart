@@ -15,6 +15,7 @@ import 'package:kazumi/pages/player/controller/player_syncplay_controller.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
+import 'package:kazumi/services/player/volume_gesture_sync_controller.dart';
 import 'package:kazumi/utils/device.dart';
 
 export 'package:kazumi/pages/player/controller/player_models.dart';
@@ -64,32 +65,20 @@ class PlayerController {
   String videoUrl = '';
   bool isLocalPlayback = false;
   Timer? hideVolumeUITimer;
-  Timer? _volumeGestureSyncTimer;
-  double? _pendingGestureVolume;
+  late final VolumeGestureSyncController _volumeGestureSyncController =
+      VolumeGestureSyncController(
+    updateVolume: playback.updateVolume,
+    setSettledVolume: (value) => playback.volume = value,
+    invalidatePreciseVolume: playback.invalidatePreciseVolume,
+    syncVolumeToDevice: playback.syncVolumeToDevice,
+  );
 
   void setVolumeDuringGesture(double value) {
-    _pendingGestureVolume = value.clamp(0.0, 100.0);
-    playback.updateVolume(_pendingGestureVolume!);
-    _volumeGestureSyncTimer?.cancel();
-    _volumeGestureSyncTimer = Timer(const Duration(milliseconds: 80), () {
-      final vol = _pendingGestureVolume;
-      if (vol == null) {
-        return;
-      }
-      unawaited(playback.syncVolumeToDevice(vol));
-    });
+    _volumeGestureSyncController.updateDuringGesture(value);
   }
 
   Future<void> finishVolumeGesture() async {
-    _volumeGestureSyncTimer?.cancel();
-    _volumeGestureSyncTimer = null;
-    final vol = _pendingGestureVolume;
-    _pendingGestureVolume = null;
-    if (vol != null) {
-      playback.volume = vol;
-    }
-    playback.invalidatePreciseVolume();
-    await playback.syncVolumeToDevice(vol);
+    await _volumeGestureSyncController.finishGesture();
   }
 
   Future<bool> init(PlaybackInitParams params) async {
@@ -287,7 +276,7 @@ class PlayerController {
     bool disposeSyncPlayController = true,
   }) async {
     hideVolumeUITimer?.cancel();
-    _volumeGestureSyncTimer?.cancel();
+    await _volumeGestureSyncController.cancel();
     FlutterVolumeController.removeListener();
     await FlutterVolumeController.updateShowSystemUI(true);
     await playback.dispose(
@@ -296,6 +285,7 @@ class PlayerController {
   }
 
   Future<void> stop() async {
+    await _volumeGestureSyncController.cancel();
     await playback.stop();
   }
 

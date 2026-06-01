@@ -385,8 +385,9 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> setVolume(double value) async {
+    value = value.clamp(0.0, 100.0);
     updateVolume(value);
-    await syncVolumeToDevice(preciseVolume >= 0 ? preciseVolume : volume);
+    await syncVolumeToDevice(value);
   }
 
   @action

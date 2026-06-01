@@ -11,8 +11,8 @@ class SearchResultRankService {
 
   final List<_WeightedTerm> _weightedTerms;
 
-  double get _maxPossibleScore =>
-      _weightedTerms.isEmpty ? 100 : _weightedTerms.first.weight;
+  static const _searchTermWeight = 100.0;
+  static const _aliasWeight = 100.0;
 
   /// 按相关度降序排列 [items]，相关度相同时保持原顺序。
   List<T> sort<T>(
@@ -39,9 +39,28 @@ class SearchResultRankService {
     return indexed.map((entry) => entry.value).toList();
   }
 
-  /// 返回 0~1 的匹配度。
+  /// 返回 0~1 的匹配度
   double computeMatchRatio(String itemName) {
-    return (computeScore(itemName) / _maxPossibleScore).clamp(0.0, 1.0);
+    if (_weightedTerms.isEmpty || itemName.isEmpty) {
+      return 0;
+    }
+
+    final normalizedItem = _normalize(itemName);
+    final itemProfile = _TitleSeasonProfile.parse(itemName);
+    var maxRatio = 0.0;
+
+    for (final term in _weightedTerms) {
+      final score = _pairScore(
+        normalizedItem,
+        term.normalized,
+        term.weight,
+        itemProfile: itemProfile,
+        termProfile: term.profile,
+      );
+      maxRatio = max(maxRatio, score / term.weight);
+    }
+
+    return maxRatio.clamp(0.0, 1.0);
   }
 
   /// 计算单条结果与所有词条的最高匹配得分。
@@ -159,9 +178,9 @@ class SearchResultRankService {
       terms.add(_WeightedTerm(text: text, weight: weight));
     }
 
-    addTerm(searchTerm, 100);
+    addTerm(searchTerm, _searchTermWeight);
     for (final alias in aliases) {
-      addTerm(alias, 75);
+      addTerm(alias, _aliasWeight);
     }
 
     return terms;

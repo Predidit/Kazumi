@@ -187,8 +187,8 @@ class SearchResultRankService {
   }
 
   static String _normalize(String text) {
-    final s = text.toLowerCase().replaceAll(RegExp(r'\s+'), '');
-    return s.replaceAll(RegExp(r'[^0-9a-z\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]+'), '');
+    return text.toLowerCase().replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[^0-9a-z\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]+'), '');
   }
 }
 

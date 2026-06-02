@@ -209,7 +209,7 @@ class _AboutPageState extends State<AboutPage> {
                   title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('ID: ${dandanCredentials['id']}',
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('DanDanPlay',
+                  value: Text('弹弹play开放平台',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],

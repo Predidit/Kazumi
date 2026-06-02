@@ -178,7 +178,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     setState(() {});
                   },
                   title:
-                      Text('DanDan', style: TextStyle(fontFamily: fontFamily)),
+                      Text('弹弹play', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: danmakuDanDanSource,
                 ),
               ],

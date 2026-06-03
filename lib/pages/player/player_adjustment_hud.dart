@@ -838,14 +838,13 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final accent = colorScheme.inversePrimary;
     final container = colorScheme.inverseSurface;
     final onContainer = colorScheme.onInverseSurface;
-    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.74);
-    final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
+    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.56);
+    final border = colorScheme.outlineVariant.withValues(alpha: 0.22);
     final duration = widget.disableAnimations
         ? Duration.zero
-        : const Duration(milliseconds: 200);
+        : const Duration(milliseconds: 160);
 
     return IgnorePointer(
       child: AnimatedOpacity(
@@ -853,39 +852,32 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
         duration: duration,
         curve: Curves.easeOutCubic,
         child: AnimatedSlide(
-          offset: widget.visible ? Offset.zero : const Offset(0, -0.18),
+          offset: widget.visible ? Offset.zero : const Offset(0, -0.12),
           duration: duration,
           curve: Curves.easeOutCubic,
           child: AnimatedScale(
-            scale: widget.visible ? 1 : 0.92,
+            scale: widget.visible ? 1 : 0.96,
             duration: duration,
-            curve: Curves.easeOutBack,
+            curve: Curves.easeOutCubic,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(18),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 164,
+                  width: 94,
                   padding:
-                      const EdgeInsets.symmetric(vertical: 7, horizontal: 9),
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                   decoration: BoxDecoration(
                     color: surface,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: border),
                     boxShadow: [
                       BoxShadow(
-                        color: accent.withValues(
-                          alpha: widget.visible ? 0.24 : 0,
-                        ),
-                        blurRadius: 32,
-                        spreadRadius: 1,
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.28),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
+                        color: Colors.black.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
@@ -895,49 +887,29 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                       AnimatedContainer(
                         duration: duration,
                         curve: Curves.easeOutCubic,
-                        width: 32,
-                        height: 32,
+                        width: 22,
+                        height: 22,
                         decoration: BoxDecoration(
-                          color: container.withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(20),
+                          color: container.withValues(alpha: 0.72),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           Icons.speed_rounded,
                           color: onContainer,
-                          size: 20,
+                          size: 15,
                         ),
                       ),
-                      const SizedBox(width: 9),
+                      const SizedBox(width: 6),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _speedText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
-                                  ?.copyWith(
+                        child: Text(
+                          _speedText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.labelMedium?.copyWith(
                                     color: colorScheme.onSurface,
                                     fontWeight: FontWeight.w700,
                                   ),
-                            ),
-                            const SizedBox(height: 1),
-                            Text(
-                              '倍速播放',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ],
                         ),
                       ),
                     ],

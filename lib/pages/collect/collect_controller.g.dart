@@ -36,9 +36,18 @@ mixin _$CollectController on _CollectController, Store {
 
   @override
   set bangumiIdsWithUpdate(ObservableSet<int> value) {
-    _$bangumiIdsWithUpdateAtom.reportWrite(value, super.bangumiIdsWithUpdate, () {
+    _$bangumiIdsWithUpdateAtom.reportWrite(value, super.bangumiIdsWithUpdate,
+        () {
       super.bangumiIdsWithUpdate = value;
     });
+  }
+
+  late final _$checkForUpdatesAsyncAction =
+      AsyncAction('_CollectController.checkForUpdates', context: context);
+
+  @override
+  Future<void> checkForUpdates() {
+    return _$checkForUpdatesAsyncAction.run(() => super.checkForUpdates());
   }
 
   late final _$addCollectAsyncAction =
@@ -59,18 +68,10 @@ mixin _$CollectController on _CollectController, Store {
         .run(() => super.deleteCollect(bangumiItem));
   }
 
-  late final _$checkForUpdatesAsyncAction =
-      AsyncAction('_CollectController.checkForUpdates', context: context);
-
-  @override
-  Future<void> checkForUpdates() {
-    return _$checkForUpdatesAsyncAction.run(() => super.checkForUpdates());
-  }
-
   @override
   String toString() {
     return '''
-collectibles: ${collectibles}
+collectibles: ${collectibles},
 bangumiIdsWithUpdate: ${bangumiIdsWithUpdate}
     ''';
   }

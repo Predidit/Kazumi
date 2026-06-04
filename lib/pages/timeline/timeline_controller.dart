@@ -85,8 +85,12 @@ abstract class _TimelineController with Store {
     for (final id in ids) {
       try {
         final episodes = await BangumiApi.getBangumiEpisodesByID(id);
-        final eps = episodes.where((e) => e.type == 0).length;
-        episodeCounts[id] = eps;
+        final airedEpisodes = episodes.where((e) => e.type == 0 && e.isAired);
+        if (airedEpisodes.isNotEmpty) {
+          final latest = airedEpisodes.map((e) => e.episode).reduce(
+              (a, b) => a > b ? a : b);
+          episodeCounts[id] = latest.toInt();
+        }
       } catch (_) {
         // skip failed fetches
       }

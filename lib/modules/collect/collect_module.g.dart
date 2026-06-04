@@ -20,19 +20,22 @@ class CollectedBangumiAdapter extends TypeAdapter<CollectedBangumi> {
       fields[0] as BangumiItem,
       fields[1] as DateTime,
       (fields[2] as num).toInt(),
+      eps: fields[3] == null ? 0 : (fields[3] as num).toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, CollectedBangumi obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.bangumiItem)
       ..writeByte(1)
       ..write(obj.time)
       ..writeByte(2)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(3)
+      ..write(obj.eps);
   }
 
   @override

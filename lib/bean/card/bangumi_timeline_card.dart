@@ -183,17 +183,23 @@ class BangumiTimelineCard extends StatelessWidget {
 
     final weekdayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     final hasEpisodeCount = episodeCount != null && episodeCount! > 0;
+    final hasAirTime = bangumiItem.airTime.isNotEmpty;
+    final airTimeLabel = hasAirTime
+        ? '${weekdayNames[bangumiItem.airWeekday]} ${bangumiItem.airTime}'
+        : (bangumiItem.airWeekday >= 1 && bangumiItem.airWeekday <= 7
+            ? weekdayNames[bangumiItem.airWeekday]
+            : null);
 
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
-        if (bangumiItem.airWeekday >= 1 && bangumiItem.airWeekday <= 7)
+        if (airTimeLabel != null)
           buildMetric(
             context,
             icon: Icons.calendar_today_rounded,
             iconColor: colorScheme.tertiary,
-            label: weekdayNames[bangumiItem.airWeekday],
+            label: airTimeLabel,
             textStyle: metricStyle,
           ),
         if (hasEpisodeCount)

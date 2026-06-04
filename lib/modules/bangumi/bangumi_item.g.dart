@@ -32,13 +32,14 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       votes: fields[12] == null ? 0 : (fields[12] as num).toInt(),
       votesCount: fields[13] == null ? [] : (fields[13] as List).cast<int>(),
       info: fields[14] == null ? '' : fields[14] as String,
+      airTime: fields[15] == null ? '' : fields[15] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, BangumiItem obj) {
     writer
-      ..writeByte(15)
+      ..writeByte(16)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -68,7 +69,9 @@ class BangumiItemAdapter extends TypeAdapter<BangumiItem> {
       ..writeByte(13)
       ..write(obj.votesCount)
       ..writeByte(14)
-      ..write(obj.info);
+      ..write(obj.info)
+      ..writeByte(15)
+      ..write(obj.airTime);
   }
 
   @override

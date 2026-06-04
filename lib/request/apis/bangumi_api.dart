@@ -29,6 +29,7 @@ class BangumiApi {
         for (dynamic jsonItem in jsonList) {
           try {
             BangumiItem bangumiItem = BangumiItem.fromJson(jsonItem['subject']);
+            bangumiItem.airWeekday = i;
             bangumiList.add(bangumiItem);
           } catch (_) {}
         }
@@ -117,7 +118,9 @@ class BangumiApi {
             final subject =
                 jsonItem is Map<String, dynamic> ? jsonItem['subject'] : null;
             if (subject is Map<String, dynamic>) {
-              bangumiList.add(BangumiItem.fromJson(subject));
+              final item = BangumiItem.fromJson(subject);
+              item.airWeekday = i;
+              bangumiList.add(item);
             }
           } catch (_) {}
         }

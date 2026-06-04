@@ -12,11 +12,15 @@ class BangumiCardV extends StatelessWidget {
     required this.bangumiItem,
     this.canTap = true,
     this.enableHero = true,
+    this.onLongPress,
+    this.onSecondaryTap,
   });
 
   final BangumiItem bangumiItem;
   final bool canTap;
   final bool enableHero;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onSecondaryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +29,8 @@ class BangumiCardV extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
       child: GestureDetector(
+        onLongPress: onLongPress,
+        onSecondaryTap: onSecondaryTap,
         child: InkWell(
           onTap: () {
             if (!canTap) {

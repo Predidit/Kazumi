@@ -8,6 +8,7 @@ import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
+import 'package:kazumi/utils/update_check_service.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
 import 'package:hive_ce/hive.dart';
@@ -37,17 +38,32 @@ abstract class _CollectController with Store {
   ObservableList<CollectedBangumi> collectibles =
       ObservableList<CollectedBangumi>();
 
+  @observable
+  ObservableSet<int> bangumiIdsWithUpdate = ObservableSet<int>();
+
+  final UpdateCheckService _updateCheckService = UpdateCheckService();
+
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());
+    Future.delayed(Duration.zero, () => checkForUpdates());
+  }
+
+  @action
+  Future<void> checkForUpdates() async {
+    try {
+      final ids = await _updateCheckService
+          .checkUpdates(collectibles.toList())
+          .timeout(const Duration(seconds: 20));
+      bangumiIdsWithUpdate.clear();
+      bangumiIdsWithUpdate.addAll(ids);
+    } catch (e) {
+      KazumiLogger().w('UpdateCheck: failed ($e)');
+    }
   }
 
   int getCollectType(BangumiItem bangumiItem) {
     return _collectCrudRepository.getCollectType(bangumiItem.id);
-  }
-
-  BangumiItem? getCollectibleBangumiItem(int id) {
-    return _collectCrudRepository.getCollectible(id)?.bangumiItem;
   }
 
   @action

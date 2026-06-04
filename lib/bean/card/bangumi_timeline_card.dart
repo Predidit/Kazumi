@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/bean/card/network_img_layer.dart';
 
 /// 时间线番剧卡片
 class BangumiTimelineCard extends StatelessWidget {
@@ -11,6 +11,8 @@ class BangumiTimelineCard extends StatelessWidget {
     required this.bangumiItem,
     required this.showRating,
     this.onTap,
+    this.onLongPress,
+    this.onSecondaryTap,
     this.cardHeight = 120,
     this.cardWidth,
     this.enableHero = true,
@@ -19,14 +21,16 @@ class BangumiTimelineCard extends StatelessWidget {
   final BangumiItem bangumiItem;
   final bool showRating;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onSecondaryTap;
   final bool enableHero;
   final double cardHeight;
   final double? cardWidth;
 
   @override
   Widget build(BuildContext context) {
-    final desktopLayout = isDesktop();
-    final tabletLayout = isTablet();
+    final desktop = isDesktop();
+    final tablet = isTablet();
     final theme = Theme.of(context);
     final textScaler = MediaQuery.textScalerOf(context);
     final colorScheme = theme.colorScheme;
@@ -46,9 +50,12 @@ class BangumiTimelineCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       color: colorScheme.surfaceContainerLow,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(borderRadius),
-        onTap: onTap ??
+      child: GestureDetector(
+        onLongPress: onLongPress,
+        onSecondaryTap: onSecondaryTap,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(borderRadius),
+          onTap: onTap ??
             () {
               Modular.to.pushNamed('/info/', arguments: bangumiItem);
             },
@@ -71,13 +78,13 @@ class BangumiTimelineCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: buildInfo(
-                      context, textScaler, desktopLayout, tabletLayout),
+                  child: buildInfo(context, textScaler, desktop, tablet),
                 ),
               ],
             ),
           ),
         ),
+      ),
       ),
     );
   }

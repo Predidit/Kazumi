@@ -333,17 +333,21 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
   }
 
   Widget _buildMainPane(ThemeData theme, {required bool scrollContent}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildMainHeader(theme),
-        if (scrollContent)
-          Flexible(child: _buildMainScrollContent(theme))
-        else
-          _buildMainScrollContent(theme, shrinkWrap: true),
-        _buildActions(theme),
-      ],
+    return SizedBox.expand(
+      child: Column(
+        children: [
+          _buildMainHeader(theme),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: _buildMainContent(theme),
+            ),
+          ),
+
+          _buildActions(theme),
+        ],
+      ),
     );
   }
 
@@ -379,22 +383,6 @@ class _RatingReviewDialogState extends State<RatingReviewDialog> {
         ],
       ),
     );
-  }
-
-  Widget _buildMainScrollContent(
-    ThemeData theme, {
-    bool shrinkWrap = false,
-  }) {
-    final content = Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-      child: _buildMainContent(theme),
-    );
-
-    if (shrinkWrap) {
-      return content;
-    }
-
-    return SingleChildScrollView(child: content);
   }
 
   Widget _buildMainContent(ThemeData theme) {

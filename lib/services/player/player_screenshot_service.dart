@@ -8,7 +8,7 @@ class PlayerScreenshotService {
   const PlayerScreenshotService();
 
   Future<Uint8List?> capturePng(Player player) async {
-    final raw = await player.screenshot(format: null);
+    final raw = await player.safeScreenshot(format: null);
     if (raw == null || raw.isEmpty) {
       return null;
     }

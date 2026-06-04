@@ -73,6 +73,38 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$episodeCountsAtom =
+      Atom(name: '_TimelineController.episodeCounts', context: context);
+
+  @override
+  ObservableMap<int, int> get episodeCounts {
+    _$episodeCountsAtom.reportRead();
+    return super.episodeCounts;
+  }
+
+  @override
+  set episodeCounts(ObservableMap<int, int> value) {
+    _$episodeCountsAtom.reportWrite(value, super.episodeCounts, () {
+      super.episodeCounts = value;
+    });
+  }
+
+  late final _$isLoadingEpisodesAtom =
+      Atom(name: '_TimelineController.isLoadingEpisodes', context: context);
+
+  @override
+  bool get isLoadingEpisodes {
+    _$isLoadingEpisodesAtom.reportRead();
+    return super.isLoadingEpisodes;
+  }
+
+  @override
+  set isLoadingEpisodes(bool value) {
+    _$isLoadingEpisodesAtom.reportWrite(value, super.isLoadingEpisodes, () {
+      super.isLoadingEpisodes = value;
+    });
+  }
+
   late final _$notShowAbandonedBangumisAtom = Atom(
       name: '_TimelineController.notShowAbandonedBangumis', context: context);
 
@@ -142,6 +174,15 @@ mixin _$TimelineController on _TimelineController, Store {
     });
   }
 
+  late final _$fetchEpisodeCountsAsyncAction =
+      AsyncAction('_TimelineController.fetchEpisodeCounts', context: context);
+
+  @override
+  Future<void> fetchEpisodeCounts() {
+    return _$fetchEpisodeCountsAsyncAction
+        .run(() => super.fetchEpisodeCounts());
+  }
+
   late final _$setNotShowAbandonedBangumisAsyncAction = AsyncAction(
       '_TimelineController.setNotShowAbandonedBangumis',
       context: context);
@@ -179,6 +220,8 @@ bangumiCalendar: ${bangumiCalendar},
 seasonString: ${seasonString},
 isLoading: ${isLoading},
 isTimeOut: ${isTimeOut},
+episodeCounts: ${episodeCounts},
+isLoadingEpisodes: ${isLoadingEpisodes},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 notShowWatchedBangumis: ${notShowWatchedBangumis},
 onlyShowWatchingBangumis: ${onlyShowWatchingBangumis}

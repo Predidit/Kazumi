@@ -28,6 +28,12 @@ abstract class _TimelineController with Store {
   bool isTimeOut = false;
 
   @observable
+  ObservableMap<int, int> episodeCounts = ObservableMap<int, int>();
+
+  @observable
+  bool isLoadingEpisodes = false;
+
+  @observable
   late bool notShowAbandonedBangumis =
       _collectRepository.getTimelineNotShowAbandonedBangumis();
 
@@ -62,6 +68,30 @@ abstract class _TimelineController with Store {
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
+    fetchEpisodeCounts();
+  }
+
+  @action
+  Future<void> fetchEpisodeCounts() async {
+    isLoadingEpisodes = true;
+    final ids = <int>{};
+    for (final dayList in bangumiCalendar) {
+      for (final item in dayList) {
+        if (!episodeCounts.containsKey(item.id)) {
+          ids.add(item.id);
+        }
+      }
+    }
+    for (final id in ids) {
+      try {
+        final episodes = await BangumiApi.getBangumiEpisodesByID(id);
+        final eps = episodes.where((e) => e.type == 0).length;
+        episodeCounts[id] = eps;
+      } catch (_) {
+        // skip failed fetches
+      }
+    }
+    isLoadingEpisodes = false;
   }
 
   Future<void> getSchedulesBySeason() async {
@@ -78,6 +108,9 @@ abstract class _TimelineController with Store {
       isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
       if (!isTimeOut) {
         changeSortType(sortType);
+      }
+      if (!isTimeOut) {
+        fetchEpisodeCounts();
       }
       return;
     }
@@ -109,6 +142,9 @@ abstract class _TimelineController with Store {
     if (!isTimeOut) {
       changeSortType(sortType);
     }
+    if (!isTimeOut) {
+      fetchEpisodeCounts();
+    }
   }
 
   void tryEnterSeason(DateTime date) {
@@ -120,8 +156,9 @@ abstract class _TimelineController with Store {
   /// 1. default
   /// 2. score
   /// 3. heat
+  /// 4. air date
   void changeSortType(int type) {
-    if (type < 1 || type > 3) {
+    if (type < 1 || type > 4) {
       return;
     }
     sortType = type;
@@ -136,6 +173,9 @@ abstract class _TimelineController with Store {
           break;
         case 3:
           dayList.sort((a, b) => (b.votes).compareTo(a.votes));
+          break;
+        case 4:
+          dayList.sort((a, b) => a.airDate.compareTo(b.airDate));
           break;
         default:
       }

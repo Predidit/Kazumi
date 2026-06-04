@@ -16,6 +16,7 @@ class BangumiTimelineCard extends StatelessWidget {
     this.cardHeight = 120,
     this.cardWidth,
     this.enableHero = true,
+    this.episodeCount,
   });
 
   final BangumiItem bangumiItem;
@@ -26,6 +27,7 @@ class BangumiTimelineCard extends StatelessWidget {
   final bool enableHero;
   final double cardHeight;
   final double? cardWidth;
+  final int? episodeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -179,10 +181,29 @@ class BangumiTimelineCard extends StatelessWidget {
     final rankText = showRating ? '#${bangumiItem.rank}' : '#***';
     final votesText = showRating ? bangumiItem.votes.toString() : '***';
 
+    final weekdayNames = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    final hasEpisodeCount = episodeCount != null && episodeCount! > 0;
+
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
+        if (bangumiItem.airWeekday >= 1 && bangumiItem.airWeekday <= 7)
+          buildMetric(
+            context,
+            icon: Icons.calendar_today_rounded,
+            iconColor: colorScheme.tertiary,
+            label: weekdayNames[bangumiItem.airWeekday],
+            textStyle: metricStyle,
+          ),
+        if (hasEpisodeCount)
+          buildMetric(
+            context,
+            icon: Icons.play_circle_outline_rounded,
+            iconColor: colorScheme.tertiary,
+            label: '更新至第$episodeCount话',
+            textStyle: metricStyle,
+          ),
         if (showScore)
           buildMetric(
             context,

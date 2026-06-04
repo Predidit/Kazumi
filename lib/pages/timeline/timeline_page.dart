@@ -952,7 +952,9 @@ class _TimelinePageState extends State<TimelinePage>
                         child: BangumiTimelineCard(
                             bangumiItem: item,
                             cardHeight: cardHeight,
-                            showRating: showRating));
+                            showRating: showRating,
+                            episodeCount:
+                                timelineController.episodeCounts[item.id]));
                   },
                   childCount:
                       filteredList.isNotEmpty ? filteredList.length : 10,

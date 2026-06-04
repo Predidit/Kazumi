@@ -37,7 +37,7 @@ class _CollectableCardWrapperState extends State<CollectableCardWrapper> {
         ),
         Positioned(
           right: 4,
-          bottom: 4,
+          bottom: 8,
           child: Container(
             width: 32,
             height: 32,

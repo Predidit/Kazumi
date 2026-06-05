@@ -158,9 +158,9 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 200,
+                  width: 142,
                   padding:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
                   decoration: BoxDecoration(
                     color: surface,
                     borderRadius: BorderRadius.circular(30),
@@ -186,8 +186,8 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       AnimatedContainer(
                         duration: duration,
                         curve: Curves.easeOutCubic,
-                        width: 32,
-                        height: 32,
+                        width: 24,
+                        height: 24,
                         decoration: BoxDecoration(
                           color: container.withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(20),
@@ -209,28 +209,28 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                             _icon,
                             key: ValueKey(_icon),
                             color: onContainer,
-                            size: 20,
+                            size: 16,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: SliderTheme(
                           data: SliderThemeData(
-                            trackHeight: 32,
+                            trackHeight: 24,
                             activeTrackColor: _activeTraker(colorScheme),
                             inactiveTrackColor: _inactiveTraker(colorScheme),
                             thumbColor: _activeTraker(colorScheme),
                             overlayShape: SliderComponentShape.noOverlay,
                             trackShape: const _HudSliderTrackShape(
-                              outerRadius: 12,
+                              outerRadius: 9,
                               innerRadius: 2,
                               thumbGap: 12,
                               edgeInset: 6,
                             ),
                             thumbShape: const _HudSliderThumbShape(
                               width: 4,
-                              height: 40,
+                              height: 32,
                               cornerRadius: 2,
                             ),
                             tickMarkShape: SliderTickMarkShape.noTickMark,
@@ -652,7 +652,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 248,
+                  // width: 248,
                   decoration: BoxDecoration(
                     color: surface,
                     borderRadius: BorderRadius.circular(30),
@@ -691,16 +691,16 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 10,
+                          vertical: 4,
+                          horizontal: 8,
                         ),
                         child: Row(
                           children: [
                             AnimatedContainer(
                               duration: duration,
                               curve: Curves.easeOutCubic,
-                              width: 36,
-                              height: 36,
+                              width: 24,
+                              height: 24,
                               decoration: BoxDecoration(
                                 color: container.withValues(alpha: 0.92),
                                 borderRadius: BorderRadius.circular(20),
@@ -722,42 +722,40 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                                   icon,
                                   key: ValueKey(icon),
                                   color: onContainer,
-                                  size: 22,
+                                  size: 16,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _offsetText,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          color: colorScheme.onSurface,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    '${durationToString(_displayCurrentPosition)} / ${durationToString(_displayDuration)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ],
-                              ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _offsetText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  '${durationToString(_displayCurrentPosition)} / ${durationToString(_displayDuration)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -866,9 +864,7 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                 child: AnimatedContainer(
                   duration: duration,
                   curve: Curves.easeOutCubic,
-                  width: 94,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  padding: const EdgeInsets.fromLTRB(4, 4, 6, 4),
                   decoration: BoxDecoration(
                     color: surface,
                     borderRadius: BorderRadius.circular(18),
@@ -899,18 +895,16 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                           size: 15,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _speedText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: colorScheme.onSurface,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                        ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _speedText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
                     ],
                   ),

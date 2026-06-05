@@ -465,7 +465,7 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void _scheduleAdjustmentHudHide({
-    Duration delay = const Duration(milliseconds: 650),
+    Duration delay = const Duration(milliseconds: 300),
   }) {
     _cancelAdjustmentHudHideTimer();
     _adjustmentHudHideTimer = Timer(delay, () {

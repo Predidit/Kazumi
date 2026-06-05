@@ -182,20 +182,11 @@ class BangumiTimelineCard extends StatelessWidget {
     final votesText = showRating ? bangumiItem.votes.toString() : '***';
 
     final hasEpisodeCount = episodeCount != null && episodeCount! > 0;
-    final hasAirTime = bangumiItem.airTime.isNotEmpty;
 
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
-        if (hasAirTime)
-          buildMetric(
-            context,
-            icon: Icons.calendar_today_rounded,
-            iconColor: colorScheme.tertiary,
-            label: bangumiItem.airTime,
-            textStyle: metricStyle,
-          ),
         if (hasEpisodeCount)
           buildMetric(
             context,

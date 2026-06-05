@@ -82,19 +82,30 @@ abstract class _TimelineController with Store {
         }
       }
     }
-    for (final id in ids) {
-      try {
-        final episodes = await BangumiApi.getBangumiEpisodesByID(id);
-        final airedEpisodes = episodes.where((e) => e.type == 0 && e.isAired);
-        if (airedEpisodes.isNotEmpty) {
-          final latest = airedEpisodes.map((e) => e.episode).reduce(
-              (a, b) => a > b ? a : b);
-          episodeCounts[id] = latest.toInt();
+    
+    // 并行加载，每10个一组以避免过多并发请求
+    const batchSize = 10;
+    final idList = ids.toList();
+    
+    for (var i = 0; i < idList.length; i += batchSize) {
+      final end = (i + batchSize < idList.length) ? i + batchSize : idList.length;
+      final batch = idList.sublist(i, end);
+      
+      await Future.wait(batch.map((id) async {
+        try {
+          final episodes = await BangumiApi.getBangumiEpisodesByID(id);
+          final airedEpisodes = episodes.where((e) => e.type == 0 && e.isAired);
+          if (airedEpisodes.isNotEmpty) {
+            final latest = airedEpisodes.map((e) => e.episode).reduce(
+                (a, b) => a > b ? a : b);
+            episodeCounts[id] = latest.toInt();
+          }
+        } catch (_) {
+          // skip failed fetches
         }
-      } catch (_) {
-        // skip failed fetches
-      }
+      }));
     }
+    
     isLoadingEpisodes = false;
   }
 

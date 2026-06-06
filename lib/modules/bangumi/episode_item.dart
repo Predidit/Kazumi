@@ -4,6 +4,8 @@ class EpisodeInfo {
   int type;
   String name;
   String nameCn;
+  String airdate;
+  String status;
 
   EpisodeInfo({
     required this.id,
@@ -11,7 +13,21 @@ class EpisodeInfo {
     required this.type,
     required this.name,
     required this.nameCn,
+    this.airdate = '',
+    this.status = '',
   });
+
+  bool get isAired {
+    if (status == 'Air') return true;
+    if (airdate.isEmpty) return false;
+    try {
+      return DateTime.parse(airdate).isBefore(DateTime.now()) ||
+          DateTime.parse(airdate).isAtSameMomentAs(
+              DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+    } catch (_) {
+      return false;
+    }
+  }
 
   factory EpisodeInfo.fromJson(Map<String, dynamic> json) {
     return EpisodeInfo(
@@ -19,7 +35,9 @@ class EpisodeInfo {
         episode: json['sort'] ?? 0,
         type: json['type'] ?? 0,
         name: json['name'] ?? '',
-        nameCn: json['name_cn'] ?? '');
+        nameCn: json['name_cn'] ?? '',
+        airdate: (json['airdate'] as String?) ?? '',
+        status: (json['status'] as String?) ?? '');
   }
 
   factory EpisodeInfo.fromTemplate() {
@@ -32,6 +50,8 @@ class EpisodeInfo {
     type = 0;
     name = '';
     nameCn = '';
+    airdate = '';
+    status = '';
   }
 
   String readType() {

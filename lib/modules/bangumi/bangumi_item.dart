@@ -37,6 +37,8 @@ class BangumiItem {
   List<int> votesCount;
   @HiveField(14, defaultValue: '')
   String info;
+  @HiveField(15, defaultValue: '')
+  String airTime;
   BangumiInterest? interest;
 
   BangumiItem({
@@ -55,6 +57,7 @@ class BangumiItem {
     required this.votes,
     required this.votesCount,
     required this.info,
+    this.airTime = '',
     this.interest,
   });
 
@@ -122,7 +125,17 @@ class BangumiItem {
       return '';
     }
 
+    String resolveAirTimeString(Map<String, dynamic> jsonData) {
+      final airtime = jsonData['airtime'];
+      if (airtime is Map && airtime['time'] != null) {
+        final s = airtime['time'].toString().trim();
+        return s.isNotEmpty ? s : '';
+      }
+      return '';
+    }
+
     final String airDateStr = resolveAirDateString(json);
+    final String airTimeStr = resolveAirTimeString(json);
 
     List list = json['tags'] ?? [];
     List<String> bangumiAlias = parseBangumiAliases(json);
@@ -163,6 +176,7 @@ class BangumiItem {
       votes: json['rating']['total'] ?? 0,
       votesCount: voteList,
       info: json['info'] ?? '',
+      airTime: airTimeStr,
       interest: interest,
     );
   }

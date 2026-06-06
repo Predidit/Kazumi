@@ -13,6 +13,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -305,41 +306,16 @@ class _CollectPageState extends State<CollectPage>
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    return collectedBangumiRenderItem.isNotEmpty
-                        ? Stack(
-                            children: [
-                              BangumiCardV(
-                                bangumiItem: collectedBangumiRenderItem[index]
-                                    .bangumiItem,
-                                canTap: !showDelete,
-                              ),
-                              Positioned(
-                                right: 5,
-                                bottom: 5,
-                                child: showDelete
-                                    ? Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .secondaryContainer,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: CollectButton(
-                                          bangumiItem:
-                                              collectedBangumiRenderItem[index]
-                                                  .bangumiItem,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSecondaryContainer,
-                                        ),
-                                      )
-                                    : Container(),
-                              ),
-                            ],
-                          )
-                        : null;
+                    if (collectedBangumiRenderItem.isEmpty) return null;
+                    final item =
+                        collectedBangumiRenderItem[index].bangumiItem;
+                    return _CollectableBangumiCard(
+                      bangumiItem: item,
+                      showDelete: showDelete,
+                      hasUpdate:
+                          collectController.bangumiIdsWithUpdate
+                              .contains(item.id),
+                    );
                   },
                   childCount: collectedBangumiRenderItem.isNotEmpty
                       ? collectedBangumiRenderItem.length
@@ -352,6 +328,93 @@ class _CollectPageState extends State<CollectPage>
       );
     }
     return gridViewList;
+  }
+}
+
+class _CollectableBangumiCard extends StatefulWidget {
+  const _CollectableBangumiCard({
+    required this.bangumiItem,
+    required this.showDelete,
+    required this.hasUpdate,
+  });
+
+  final BangumiItem bangumiItem;
+  final bool showDelete;
+  final bool hasUpdate;
+
+  @override
+  State<_CollectableBangumiCard> createState() =>
+      _CollectableBangumiCardState();
+}
+
+class _CollectableBangumiCardState extends State<_CollectableBangumiCard> {
+  final MenuController menuController = MenuController();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Stack(
+      children: [
+        BangumiCardV(
+          bangumiItem: widget.bangumiItem,
+          canTap: !widget.showDelete,
+          onLongPress: () {
+            if (!menuController.isOpen) {
+              menuController.open();
+            }
+          },
+          onSecondaryTap: () {
+            if (!menuController.isOpen) {
+              menuController.open();
+            }
+          },
+        ),
+        if (widget.hasUpdate)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: colorScheme.error,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        Positioned(
+          right: 5,
+          bottom: 5,
+          child: widget.showDelete
+              ? Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CollectButton(
+                    bangumiItem: widget.bangumiItem,
+                    color: colorScheme.onSecondaryContainer,
+                    menuController: menuController,
+                  ),
+                )
+              : Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHigh.withAlpha(180),
+                    shape: BoxShape.circle,
+                  ),
+                  child: CollectButton(
+                    bangumiItem: widget.bangumiItem,
+                    color: colorScheme.onSurface.withAlpha(180),
+                    menuController: menuController,
+                  ),
+                ),
+        ),
+      ],
+    );
   }
 }
 

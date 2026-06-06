@@ -21,9 +21,13 @@ class CollectedBangumi {
   @HiveField(2)
   int type;
 
+  /// Total episode count from Bangumi API, 0 = unknown
+  @HiveField(3)
+  int eps;
+
   String get key => bangumiItem.id.toString();
 
-  CollectedBangumi(this.bangumiItem, this.time, this.type);
+  CollectedBangumi(this.bangumiItem, this.time, this.type, {this.eps = 0});
 
   static String getKey(BangumiItem bangumiItem) => bangumiItem.id.toString();
 

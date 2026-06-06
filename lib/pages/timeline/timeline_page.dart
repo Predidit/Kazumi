@@ -13,6 +13,7 @@ import 'package:kazumi/utils/anime_season.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/bangumi_mirror_error_widget.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/bean/widget/collectable_card_wrapper.dart';
 
 class TimelinePage extends StatefulWidget {
   const TimelinePage({super.key});
@@ -946,10 +947,14 @@ class _TimelinePageState extends State<TimelinePage>
                   (BuildContext context, int index) {
                     if (filteredList.isEmpty) return null;
                     final item = filteredList[index];
-                    return BangumiTimelineCard(
+                    return CollectableCardWrapper(
                         bangumiItem: item,
-                        cardHeight: cardHeight,
-                        showRating: showRating);
+                        child: BangumiTimelineCard(
+                            bangumiItem: item,
+                            cardHeight: cardHeight,
+                            showRating: showRating,
+                            episodeCount:
+                                timelineController.episodeCounts[item.id]));
                   },
                   childCount:
                       filteredList.isNotEmpty ? filteredList.length : 10,

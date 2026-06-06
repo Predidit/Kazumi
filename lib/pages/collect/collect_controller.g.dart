@@ -25,6 +25,31 @@ mixin _$CollectController on _CollectController, Store {
     });
   }
 
+  late final _$bangumiIdsWithUpdateAtom =
+      Atom(name: '_CollectController.bangumiIdsWithUpdate', context: context);
+
+  @override
+  ObservableSet<int> get bangumiIdsWithUpdate {
+    _$bangumiIdsWithUpdateAtom.reportRead();
+    return super.bangumiIdsWithUpdate;
+  }
+
+  @override
+  set bangumiIdsWithUpdate(ObservableSet<int> value) {
+    _$bangumiIdsWithUpdateAtom.reportWrite(value, super.bangumiIdsWithUpdate,
+        () {
+      super.bangumiIdsWithUpdate = value;
+    });
+  }
+
+  late final _$checkForUpdatesAsyncAction =
+      AsyncAction('_CollectController.checkForUpdates', context: context);
+
+  @override
+  Future<void> checkForUpdates() {
+    return _$checkForUpdatesAsyncAction.run(() => super.checkForUpdates());
+  }
+
   late final _$addCollectAsyncAction =
       AsyncAction('_CollectController.addCollect', context: context);
 
@@ -46,7 +71,8 @@ mixin _$CollectController on _CollectController, Store {
   @override
   String toString() {
     return '''
-collectibles: ${collectibles}
+collectibles: ${collectibles},
+bangumiIdsWithUpdate: ${bangumiIdsWithUpdate}
     ''';
   }
 }

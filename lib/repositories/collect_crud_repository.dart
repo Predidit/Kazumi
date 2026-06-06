@@ -23,6 +23,9 @@ abstract class ICollectCrudRepository {
   /// 返回收藏类型值，未收藏返回0
   int getCollectType(int id);
 
+  /// 更新收藏的剧集数
+  Future<void> updateCollectibleEps(int id, int eps);
+
   /// 添加或更新收藏
   ///
   /// [bangumiItem] 番剧信息
@@ -95,6 +98,22 @@ class CollectCrudRepository implements ICollectCrudRepository {
         error: e,
       );
       return 0;
+    }
+  }
+
+  @override
+  Future<void> updateCollectibleEps(int id, int eps) async {
+    try {
+      final collectible = _collectiblesBox.get(id);
+      if (collectible == null) return;
+      collectible.eps = eps;
+      await _collectiblesBox.put(id, collectible);
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: update collectible eps failed. id=$id, eps=$eps',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 

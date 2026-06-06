@@ -15,6 +15,7 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/bean/widget/collectable_card_wrapper.dart';
 
 class PopularPage extends StatefulWidget {
   const PopularPage({super.key});
@@ -189,7 +190,10 @@ class _PopularPageState extends State<PopularPage>
         delegate: SliverChildBuilderDelegate(
           (BuildContext context, int index) {
             return bangumiList!.isNotEmpty
-                ? BangumiCardV(bangumiItem: bangumiList[index])
+                ? CollectableCardWrapper(
+                    bangumiItem: bangumiList[index],
+                    child: BangumiCardV(bangumiItem: bangumiList[index]),
+                  )
                 : null;
           },
           childCount: bangumiList!.isNotEmpty ? bangumiList!.length : 10,

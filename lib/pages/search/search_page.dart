@@ -8,6 +8,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/widget/collectable_card_wrapper.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key, this.inputTag = ''});
@@ -356,9 +357,12 @@ class _SearchPageState extends State<SearchPage> {
                 itemCount: filteredList.isNotEmpty ? filteredList.length : 10,
                 itemBuilder: (context, index) {
                   return filteredList.isNotEmpty
-                      ? BangumiCardV(
-                          enableHero: false,
+                      ? CollectableCardWrapper(
                           bangumiItem: filteredList[index],
+                          child: BangumiCardV(
+                            enableHero: false,
+                            bangumiItem: filteredList[index],
+                          ),
                         )
                       : Container();
                 },

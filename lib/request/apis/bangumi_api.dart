@@ -565,6 +565,9 @@ class BangumiApi {
       KazumiLogger().d('Update to Bangumi: Id: $id');
       return true;
     } on NetworkException catch (e) {
+      if (e.type == NetworkExceptionType.unsupportedMirroredEndpoint) {
+        rethrow;
+      }
       String str;
       switch (e.statusCode) {
         case 400:

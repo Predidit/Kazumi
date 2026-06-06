@@ -19,7 +19,6 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/http_headers.dart';
@@ -162,7 +161,6 @@ abstract class _VideoPageController with Store {
   final IDownloadRepository downloadRepository =
       Modular.get<IDownloadRepository>();
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
-  final Box setting = GStorage.setting;
 
   WebViewVideoSourceService? _videoSourceService;
 
@@ -406,10 +404,8 @@ abstract class _VideoPageController with Store {
       );
       if (session.isActive && danmakuSession.isActive) {
         if (result.hasDanmakus) {
-          final bool enableDanmaku = setting.get(
-            SettingBoxKey.danmakuEnabledByDefault,
-            defaultValue: false,
-          );
+          final bool enableDanmaku =
+              GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault);
           playerController.danmaku.applyDanmakuLoad(
             result,
             enableDanmaku: enableDanmaku,
@@ -472,7 +468,7 @@ abstract class _VideoPageController with Store {
           .i('VideoPageController: resolved video URL: ${source.url}');
 
       final bool forceAdBlocker =
-          setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+          GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
       final params = PlaybackInitParams(
         videoUrl: source.url,

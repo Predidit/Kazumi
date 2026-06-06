@@ -15,7 +15,6 @@ import 'package:kazumi/services/player/remote.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
 import 'package:kazumi/pages/settings/danmaku/danmaku_settings_sheet.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
@@ -82,7 +81,6 @@ class PlayerItemPanel extends StatefulWidget {
 }
 
 class _PlayerItemPanelState extends State<PlayerItemPanel> {
-  Box setting = GStorage.setting;
   late bool haEnable;
   late Animation<Offset> topOffsetAnimation;
   late Animation<Offset> bottomOffsetAnimation;
@@ -321,7 +319,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
       parent: widget.panelVisibilityController,
       curve: Curves.easeInOut,
     ));
-    haEnable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+    haEnable = GStorage.getSetting(SettingsKeys.hAenable);
     cacheSvgIcons();
   }
 

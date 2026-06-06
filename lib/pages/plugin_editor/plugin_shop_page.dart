@@ -5,7 +5,6 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
@@ -16,7 +15,6 @@ class PluginShopPage extends StatefulWidget {
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  Box setting = GStorage.setting;
   bool timeout = false;
   bool loading = false;
   late bool enableGitProxy;
@@ -35,8 +33,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   void initState() {
     super.initState();
-    enableGitProxy =
-        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
   }
 
   // 刷新规则列表
@@ -46,8 +43,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         loading = true;
         timeout = false;
       });
-      enableGitProxy =
-          setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+      enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
       pluginsController.queryPluginHTTPList().then((_) {
         setState(() {
           loading = false;

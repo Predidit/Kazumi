@@ -24,8 +24,7 @@ class NavigationBarState extends ChangeNotifier {
   bool get isBottom => _isBottom;
 
   int getDefaultSelectedIndex() {
-    final defaultPage = GStorage.setting
-        .get(SettingBoxKey.defaultStartupPage, defaultValue: "/tab/popular/");
+    final defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
 
     switch (defaultPage) {
       case "/tab/popular/":

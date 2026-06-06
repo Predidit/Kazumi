@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/player/external_playback_launcher.dart';
 import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
@@ -20,25 +19,21 @@ import 'package:kazumi/utils/device.dart';
 export 'package:kazumi/pages/player/controller/player_models.dart';
 
 class PlayerController {
-  final Box setting = GStorage.setting;
   final ShaderAssetService shaderAssetService =
       Modular.get<ShaderAssetService>();
   final PlayerPanelController panel = PlayerPanelController();
   final PlayerDebugController debug = PlayerDebugController();
 
   late final PlayerDanmakuController danmaku = PlayerDanmakuController(
-    setting: setting,
     isLocalPlayback: () => isLocalPlayback,
   );
   late final PlayerPlaybackController playback = PlayerPlaybackController(
-    setting: setting,
     shaderAssetService: shaderAssetService,
     debug: debug,
     videoUrl: () => videoUrl,
     onExitSyncPlayRoom: () => syncplay.exitRoom(),
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
-    setting: setting,
     bangumiId: () => bangumiId,
     currentEpisode: () => currentEpisode,
     currentRoad: () => currentRoad,
@@ -104,17 +99,14 @@ class PlayerController {
         'PlayerController: ${params.isLocalPlayback ? "local" : "online"} playback, url: ${params.videoUrl}');
 
     playback.resetForInit();
-    debug.playerLogLevel =
-        setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
-    playback.playerSpeed =
-        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
+    debug.playerLogLevel = GStorage.getSetting(SettingsKeys.playerLogLevel);
+    playback.playerSpeed = GStorage.getSetting(SettingsKeys.defaultPlaySpeed);
     panel.aspectRatioType =
-        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
+        GStorage.getSetting(SettingsKeys.defaultAspectRatioType);
 
-    playback.buttonSkipTime =
-        setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
+    playback.buttonSkipTime = GStorage.getSetting(SettingsKeys.buttonSkipTime);
     playback.arrowKeySkipTime =
-        setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
+        GStorage.getSetting(SettingsKeys.arrowKeySkipTime);
     try {
       await dispose(
         disposeSyncPlayController: false,
@@ -309,12 +301,12 @@ class PlayerController {
 
   void setButtonForwardTime(int time) {
     playback.buttonSkipTime = time;
-    setting.put(SettingBoxKey.buttonSkipTime, time);
+    GStorage.putSetting(SettingsKeys.buttonSkipTime, time);
   }
 
   void setArrowKeyForwardTime(int time) {
     playback.arrowKeySkipTime = time;
-    setting.put(SettingBoxKey.arrowKeySkipTime, time);
+    GStorage.putSetting(SettingsKeys.arrowKeySkipTime, time);
   }
 
   Future<void> launchExternalPlayer() async {

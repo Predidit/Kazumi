@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
 import 'package:kazumi/request/clients/github_client.dart';
@@ -68,8 +67,6 @@ class AutoUpdater {
 
   final GithubClient _githubClient = GithubClient.instance;
   final DownloadHttpClient _downloadClient = DownloadHttpClient.instance;
-
-  Box get setting => GStorage.setting;
 
   /// 检测所有可能的安装类型
   Future<List<InstallationType>> _detectAvailableInstallationTypes() async {
@@ -143,8 +140,7 @@ class AutoUpdater {
 
   /// 自动检查更新（仅在启用自动更新时）
   Future<void> autoCheckForUpdates() async {
-    final autoUpdate =
-        setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    final autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     if (!autoUpdate) return;
 
     try {
@@ -274,7 +270,7 @@ class AutoUpdater {
             if (isAutoCheck)
               TextButton(
                 onPressed: () {
-                  setting.put(SettingBoxKey.autoUpdate, false);
+                  GStorage.putSetting(SettingsKeys.autoUpdate, false);
                   KazumiDialog.dismiss();
                   KazumiDialog.showToast(message: '已关闭自动更新');
                 },

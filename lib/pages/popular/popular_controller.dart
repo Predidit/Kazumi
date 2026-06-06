@@ -29,8 +29,8 @@ abstract class _PopularController with Store {
   @observable
   bool isTimeOut = false;
 
-  bool get _bangumiMirrorEnabled => GStorage.setting
-      .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+  bool get _bangumiMirrorEnabled =>
+      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
   void setCurrentTag(String s) {
     currentTag = s;

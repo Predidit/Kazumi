@@ -15,12 +15,10 @@ class BangumiMirrorErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mirrorEnabled = GStorage.setting
-        .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+    final mirrorEnabled = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
     return GeneralErrorWidget(
-      errMsg:
-          '啊咧（⊙.⊙） 无法加载数据\nBangumi 镜像${mirrorEnabled ? '已启用' : '已禁用'}',
+      errMsg: '啊咧（⊙.⊙） 无法加载数据\nBangumi 镜像${mirrorEnabled ? '已启用' : '已禁用'}',
       actions: [
         GeneralErrorButton(
           onPressed: () async {

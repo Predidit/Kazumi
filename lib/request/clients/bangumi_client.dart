@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -13,8 +12,6 @@ class BangumiClient {
   BangumiClient._();
 
   static final BangumiClient instance = BangumiClient._();
-
-  Box get _setting => GStorage.setting;
 
   Future<dynamic> get(
     String url, {
@@ -77,11 +74,8 @@ class BangumiClient {
   }) {
     final headers = <String, dynamic>{...bangumiHTTPHeader};
     final bangumiSyncEnable =
-        _setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-    final token = _setting
-        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
-        .toString()
-        .trim();
+        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final token = GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
     if ((requiresAuth || bangumiSyncEnable) && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -105,7 +99,7 @@ class BangumiClient {
       return false;
     }
     final enableBangumiProxy =
-        _setting.get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+        GStorage.getSetting(SettingsKeys.enableBangumiProxy);
     if (!enableBangumiProxy) {
       return false;
     }

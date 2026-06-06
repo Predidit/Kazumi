@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -59,8 +58,7 @@ class ProxyAwareImageFileService extends FileService {
   }
 
   bool _bangumiMirrorEnabled() {
-    return GStorage.setting
-        .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.enableBangumiProxy);
   }
 
   HttpClient _createHttpClient() {
@@ -74,13 +72,10 @@ class ProxyAwareImageFileService extends FileService {
   }
 
   (String, int)? _currentProxy() {
-    final Box setting = GStorage.setting;
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (!proxyEnable) return null;
 
-    final String proxyUrl =
-        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
     final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
     if (parsed == null) {
       KazumiLogger().w('Proxy: 图片缓存代理地址格式错误或为空');

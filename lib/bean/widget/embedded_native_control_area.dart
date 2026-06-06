@@ -20,8 +20,7 @@ class EmbeddedNativeControlArea extends StatefulWidget {
 }
 
 class _EmbeddedNativeControlAreaState extends State<EmbeddedNativeControlArea> {
-  bool showWindowButton =
-      GStorage.setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
+  bool showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
 
   EdgeInsets get getInsets {
     if (!showWindowButton) {

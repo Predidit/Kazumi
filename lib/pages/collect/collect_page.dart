@@ -12,7 +12,6 @@ import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
 import 'package:kazumi/services/storage/storage.dart';
 
@@ -30,7 +29,6 @@ class _CollectPageState extends State<CollectPage>
   TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
-  Box setting = GStorage.setting;
 
   Future<bool> _syncBangumiWithProgress({
     required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
@@ -206,12 +204,12 @@ class _CollectPageState extends State<CollectPage>
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            bool webDavenable = await setting.get(SettingBoxKey.webDavEnable,
-                defaultValue: false);
-            bool webDavCollectEnable = await setting
-                .get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
-            bool bgmSyncEnable = await setting
-                .get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+            bool webDavenable =
+                await GStorage.getSetting(SettingsKeys.webDavEnable);
+            bool webDavCollectEnable =
+                GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+            bool bgmSyncEnable =
+                GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
             final syncPlan = CollectSyncPlan(
               webDavEnabled: webDavenable,
               webDavCollectiblesEnabled: webDavCollectEnable,

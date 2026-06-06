@@ -5,7 +5,6 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/sync_priority.dart';
 import 'package:kazumi/services/sync/bangumi_sync_service.dart';
 import 'package:kazumi/services/storage/storage.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BangumiEditorPage extends StatefulWidget {
@@ -17,7 +16,6 @@ class BangumiEditorPage extends StatefulWidget {
 
 class _BangumiEditorPageState extends State<BangumiEditorPage> {
   final TextEditingController bangumiTokenController = TextEditingController();
-  Box setting = GStorage.setting;
   bool passwordVisible = false;
   bool isVerifying = false;
   late bool bangumiImmediateSyncToastEnable;
@@ -29,13 +27,10 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   void initState() {
     super.initState();
     bangumiTokenController.text =
-        setting.get(SettingBoxKey.bangumiAccessToken, defaultValue: '');
-    bangumiImmediateSyncToastEnable = setting.get(
-      SettingBoxKey.bangumiImmediateSyncToastEnable,
-      defaultValue: true,
-    );
-    syncPriority =
-        setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0);
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken);
+    bangumiImmediateSyncToastEnable =
+        GStorage.getSetting(SettingsKeys.bangumiImmediateSyncToastEnable);
+    syncPriority = GStorage.getSetting(SettingsKeys.bangumiSyncPriority);
   }
 
   @override
@@ -45,7 +40,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   }
 
   Future<void> updateSyncPriority(int value) async {
-    await setting.put(SettingBoxKey.bangumiSyncPriority, value);
+    await GStorage.putSetting(SettingsKeys.bangumiSyncPriority, value);
     if (!mounted) return;
     setState(() {
       syncPriority = value;
@@ -53,8 +48,7 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
   }
 
   Future<void> syncWithProgress() async {
-    final syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    final syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
       KazumiDialog.showToast(message: '请先开启 Bangumi 同步');
       return;
@@ -137,8 +131,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                         onToggle: (value) async {
                           bangumiImmediateSyncToastEnable =
                               value ?? !bangumiImmediateSyncToastEnable;
-                          await setting.put(
-                            SettingBoxKey.bangumiImmediateSyncToastEnable,
+                          await GStorage.putSetting(
+                            SettingsKeys.bangumiImmediateSyncToastEnable,
                             bangumiImmediateSyncToastEnable,
                           );
                           if (mounted) {
@@ -247,9 +241,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
               ? null
               : () async {
                   final token = bangumiTokenController.text.trim();
-                  final bool bangumiSyncEnable = setting.get(
-                      SettingBoxKey.bangumiSyncEnable,
-                      defaultValue: false);
+                  final bool bangumiSyncEnable =
+                      GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
 
                   if (token.isEmpty && bangumiSyncEnable) {
                     KazumiDialog.showToast(message: 'Access Token 不能为空');
@@ -258,7 +251,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                   setState(() {
                     isVerifying = true;
                   });
-                  await setting.put(SettingBoxKey.bangumiAccessToken, token);
+                  await GStorage.putSetting(
+                      SettingsKeys.bangumiAccessToken, token);
                   final bangumi = BangumiSyncService();
 
                   if (token.isEmpty) {
@@ -276,7 +270,8 @@ class _BangumiEditorPageState extends State<BangumiEditorPage> {
                     await bangumi.init();
                   } catch (e) {
                     KazumiDialog.showToast(message: '验证失败：${e.toString()}');
-                    await setting.put(SettingBoxKey.bangumiSyncEnable, false);
+                    await GStorage.putSetting(
+                        SettingsKeys.bangumiSyncEnable, false);
                     if (!mounted) return;
                     setState(() {
                       isVerifying = false;

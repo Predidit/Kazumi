@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/network/proxy_utils.dart';
@@ -16,7 +15,6 @@ class ProxyEditorPage extends StatefulWidget {
 }
 
 class _ProxyEditorPageState extends State<ProxyEditorPage> {
-  Box setting = GStorage.setting;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController urlController = TextEditingController();
   final TextEditingController testUrlController = TextEditingController();
@@ -24,9 +22,8 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
   @override
   void initState() {
     super.initState();
-    urlController.text = setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
-    testUrlController.text = setting.get(SettingBoxKey.proxyTestUrl,
-        defaultValue: 'https://www.google.com');
+    urlController.text = GStorage.getSetting(SettingsKeys.proxyUrl);
+    testUrlController.text = GStorage.getSetting(SettingsKeys.proxyTestUrl);
   }
 
   @override
@@ -51,13 +48,13 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
         ? 'https://www.google.com'
         : testUrlController.text.trim();
 
-    await setting.put(SettingBoxKey.proxyUrl, url);
-    await setting.put(SettingBoxKey.proxyTestUrl, testUrl);
+    await GStorage.putSetting(SettingsKeys.proxyUrl, url);
+    await GStorage.putSetting(SettingsKeys.proxyTestUrl, testUrl);
     // 重置配置状态，等待测试结果
-    await setting.put(SettingBoxKey.proxyConfigured, false);
+    await GStorage.putSetting(SettingsKeys.proxyConfigured, false);
 
     // 临时启用代理进行测试
-    await setting.put(SettingBoxKey.proxyEnable, true);
+    await GStorage.putSetting(SettingsKeys.proxyEnable, true);
     ProxyManager.applyProxy();
 
     try {
@@ -81,10 +78,10 @@ class _ProxyEditorPageState extends State<ProxyEditorPage> {
             testUrl,
           )
           .timeout(const Duration(seconds: 15));
-      await setting.put(SettingBoxKey.proxyConfigured, true);
+      await GStorage.putSetting(SettingsKeys.proxyConfigured, true);
       KazumiDialog.showToast(message: '测试成功');
     } catch (e) {
-      await setting.put(SettingBoxKey.proxyEnable, false);
+      await GStorage.putSetting(SettingsKeys.proxyEnable, false);
       ProxyManager.clearProxy();
       KazumiDialog.showToast(message: '代理连接失败');
     }

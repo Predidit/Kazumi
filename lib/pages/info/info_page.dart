@@ -167,10 +167,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   }
 
   void onBangumiRatingTap() {
-    final token = GStorage.setting
-        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
-        .toString()
-        .trim();
+    final token =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
     if (token.isEmpty) {
       KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
       return;
@@ -219,8 +217,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
         TabController(length: pluginsController.pluginList.length, vsync: this);
     infoTabController = TabController(length: _infoTabs.length, vsync: this);
     _fabTabIndex = infoTabController.index;
-    showRating =
-        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    showRating = GStorage.getSetting(SettingsKeys.showRating);
     infoTabController.addListener(onInfoTabChanged);
     infoTabController.addListener(_syncFabTabIndex);
     infoTabController.animation?.addListener(_syncFabTabIndex);
@@ -265,10 +262,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   Future<void> onCommentsTabSelected() async {
     final interest = infoController.bangumiItem.interest;
-    final token = GStorage.setting
-        .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
-        .toString()
-        .trim();
+    final token =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
     if (interest != null && token.isNotEmpty) {
       final updated = await infoController.fillInterestUserProfileIfNeeded();
       if (updated && mounted) {
@@ -332,8 +327,8 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final bool showWindowButton = GStorage.setting
-        .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    final bool showWindowButton =
+        GStorage.getSetting(SettingsKeys.showWindowButton);
     final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
     return PopScope(
       canPop: true,

@@ -180,8 +180,7 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   bool getForceAdBlocker() {
-    return GStorage.setting
-        .get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.forceAdBlocker);
   }
 
   @override

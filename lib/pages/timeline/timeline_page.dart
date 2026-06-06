@@ -38,8 +38,7 @@ class _TimelinePageState extends State<TimelinePage>
         TabController(vsync: this, length: tabs.length, initialIndex: weekday);
     navigationBarState =
         Provider.of<NavigationBarState>(context, listen: false);
-    showRating =
-        GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
+    showRating = GStorage.getSetting(SettingsKeys.showRating);
     if (timelineController.bangumiCalendar.isEmpty) {
       timelineController.init();
     }

@@ -75,8 +75,7 @@ class _PopularPageState extends State<PopularPage>
   }
 
   bool showWindowButton() {
-    return GStorage.setting
-        .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.showWindowButton);
   }
 
   void onBackPressed(BuildContext context) {

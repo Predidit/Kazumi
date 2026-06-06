@@ -1,4 +1,3 @@
-import 'package:hive_ce/hive.dart';
 import 'dart:async';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/collect/collect_sync_merger.dart';
@@ -15,9 +14,6 @@ class BangumiSyncService {
   /// Init status, set after ping() in init()
   bool initialized = false;
 
-  /// Hive
-  Box setting = GStorage.setting;
-
   /// Number of queued Bangumi operations waiting
   int _queuedOperationCount = 0;
 
@@ -30,10 +26,8 @@ class BangumiSyncService {
   /// Whether any Bangumi operation is active or already queued.
   bool get isUsing => _queuedOperationCount > 0 || _activeOperationCount > 0;
 
-  String get _configuredToken => setting
-      .get(SettingBoxKey.bangumiAccessToken, defaultValue: '')
-      .toString()
-      .trim();
+  String get _configuredToken =>
+      GStorage.getSetting(SettingsKeys.bangumiAccessToken).trim();
 
   BangumiSyncService._internal();
   static final BangumiSyncService _instance = BangumiSyncService._internal();
@@ -132,8 +126,7 @@ class BangumiSyncService {
   Future<bool> syncCollectibles({
     void Function(String message, int current, int total)? onProgress,
   }) async {
-    final syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    final syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
       KazumiDialog.showToast(message: '同步已关闭');
       KazumiLogger().i('Bangumi: sync disabled');
@@ -148,7 +141,7 @@ class BangumiSyncService {
         onProgress?.call('开始同步 Bangumi 状态', 0, 0);
 
         final priority = BangumiSyncPriority.fromValue(
-          setting.get(SettingBoxKey.bangumiSyncPriority, defaultValue: 0),
+          GStorage.getSetting(SettingsKeys.bangumiSyncPriority),
         );
 
         // 1. 全量拉取远程收藏

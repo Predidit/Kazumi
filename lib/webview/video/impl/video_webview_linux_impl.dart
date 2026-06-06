@@ -37,15 +37,12 @@ class VideoWebviewLinuxImpl extends VideoWebviewController<Webview> {
   }
 
   ProxyConfiguration? _getProxyConfiguration() {
-    final setting = GStorage.setting;
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (!proxyEnable) {
       return null;
     }
 
-    final String proxyUrl =
-        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
     final parsed = ProxyUtils.parseProxyUrl(proxyUrl);
     if (parsed == null) {
       return null;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -13,9 +12,8 @@ class DecoderSettings extends StatefulWidget {
 }
 
 class _DecoderSettingsState extends State<DecoderSettings> {
-  late final Box setting = GStorage.setting;
   late final ValueNotifier<String> decoder = ValueNotifier<String>(
-    setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe'),
+    GStorage.getSetting<String>(SettingsKeys.hardwareDecoder),
   );
 
   @override
@@ -47,7 +45,8 @@ class _DecoderSettingsState extends State<DecoderSettings> {
                       groupValue: decoder.value,
                       onChanged: (String? value) {
                         if (value != null) {
-                          setting.put(SettingBoxKey.hardwareDecoder, value);
+                          GStorage.putSetting<String>(
+                              SettingsKeys.hardwareDecoder, value);
                           setState(() {
                             decoder.value = value;
                           });

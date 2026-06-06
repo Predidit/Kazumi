@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
@@ -17,7 +16,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   List<DisplayMode> modes = <DisplayMode>[];
   DisplayMode? active;
   DisplayMode? preferred;
-  Box setting = GStorage.setting;
 
   final ValueNotifier<int> page = ValueNotifier<int>(0);
   late final PageController controller = PageController()
@@ -37,7 +35,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   Future<void> fetchAll() async {
     preferred = await FlutterDisplayMode.preferred;
     active = await FlutterDisplayMode.active;
-    await setting.put(SettingBoxKey.displayMode, preferred.toString());
+    await GStorage.putSetting(SettingsKeys.displayMode, preferred.toString());
     setState(() {});
   }
 
@@ -52,7 +50,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   }
 
   Future<DisplayMode> getDisplayModeType(modes) async {
-    var value = setting.get(SettingBoxKey.displayMode);
+    var value = GStorage.getSetting(SettingsKeys.displayMode);
     DisplayMode f = DisplayMode.auto;
     if (value != null) {
       f = modes.firstWhere((e) => e.toString() == value);

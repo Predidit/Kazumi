@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -13,11 +12,9 @@ class SuperResolutionSettings extends StatefulWidget {
 }
 
 class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
-  late final Box setting = GStorage.setting;
   late bool promptOnEnable;
   late final ValueNotifier<String> superResolutionType = ValueNotifier<String>(
-    setting
-        .get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1)
+    GStorage.getSetting<int>(SettingsKeys.defaultSuperResolutionType)
         .toString(),
   );
 
@@ -25,7 +22,7 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
   void initState() {
     super.initState();
     promptOnEnable =
-        setting.get(SettingBoxKey.superResolutionWarn, defaultValue: false);
+        GStorage.getSetting<bool>(SettingsKeys.superResolutionWarn);
   }
 
   @override
@@ -56,7 +53,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
                     if (value != null) {
-                      setting.put(SettingBoxKey.defaultSuperResolutionType,
+                      GStorage.putSetting<int>(
+                          SettingsKeys.defaultSuperResolutionType,
                           int.tryParse(value) ?? 1);
                       setState(() {
                         superResolutionType.value = value;
@@ -73,7 +71,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
                     if (value != null) {
-                      setting.put(SettingBoxKey.defaultSuperResolutionType,
+                      GStorage.putSetting<int>(
+                          SettingsKeys.defaultSuperResolutionType,
                           int.tryParse(value) ?? 1);
                       setState(() {
                         superResolutionType.value = value;
@@ -90,7 +89,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                   groupValue: superResolutionType.value,
                   onChanged: (String? value) {
                     if (value != null) {
-                      setting.put(SettingBoxKey.defaultSuperResolutionType,
+                      GStorage.putSetting<int>(
+                          SettingsKeys.defaultSuperResolutionType,
                           int.tryParse(value) ?? 1);
                       setState(() {
                         superResolutionType.value = value;
@@ -109,8 +109,8 @@ class _SuperResolutionSettingsState extends State<SuperResolutionSettings> {
                 initialValue: promptOnEnable,
                 onToggle: (value) async {
                   promptOnEnable = value ?? !promptOnEnable;
-                  await setting.put(
-                      SettingBoxKey.superResolutionWarn, promptOnEnable);
+                  await GStorage.putSetting<bool>(
+                      SettingsKeys.superResolutionWarn, promptOnEnable);
                   if (mounted) setState(() {});
                 },
               ),

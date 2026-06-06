@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
 import 'package:kazumi/services/shaders/shader_asset_service.dart';
@@ -27,14 +26,12 @@ class PlayerPlaybackController = _PlayerPlaybackController
 
 abstract class _PlayerPlaybackController with Store {
   _PlayerPlaybackController({
-    required this.setting,
     required this.shaderAssetService,
     required this.debug,
     required this.videoUrl,
     required this.onExitSyncPlayRoom,
   });
 
-  final Box setting;
   final ShaderAssetService shaderAssetService;
   final PlayerDebugController debug;
   final String Function() videoUrl;
@@ -169,17 +166,14 @@ abstract class _PlayerPlaybackController with Store {
       Map<String, String> httpHeaders, bool adBlockerEnabled,
       {int offset = 0}) async {
     superResolutionType =
-        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
-    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+        GStorage.getSetting(SettingsKeys.defaultSuperResolutionType);
+    hAenable = GStorage.getSetting(SettingsKeys.hAenable);
     androidEnableOpenSLES =
-        setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
-    hardwareDecoder =
-        setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
-    autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
-    lowMemoryMode =
-        setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    playerDebugMode =
-        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+        GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
+    hardwareDecoder = GStorage.getSetting(SettingsKeys.hardwareDecoder);
+    autoPlay = GStorage.getSetting(SettingsKeys.autoPlay);
+    lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
+    playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
     final Player player = Player(
       configuration: PlayerConfiguration(
@@ -228,11 +222,9 @@ abstract class _PlayerPlaybackController with Store {
       }
     }
 
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (proxyEnable) {
-      final String proxyUrl =
-          setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+      final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
       final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
       if (formattedProxy != null) {
         await pp.setProperty("http-proxy", formattedProxy);
@@ -253,7 +245,7 @@ abstract class _PlayerPlaybackController with Store {
     String? videoRenderer;
     if (Platform.isAndroid) {
       final String androidVideoRenderer =
-          setting.get(SettingBoxKey.androidVideoRenderer, defaultValue: 'auto');
+          GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
       if (androidVideoRenderer == 'auto') {
         // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
@@ -294,8 +286,7 @@ abstract class _PlayerPlaybackController with Store {
       return await _discardIfNotCurrent(player);
     }
 
-    bool showPlayerError =
-        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
+    bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
     player.stream.error.listen((event) {
       if (showPlayerError) {
         if (!isCurrentPlayer(player)) {

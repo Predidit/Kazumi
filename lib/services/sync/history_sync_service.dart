@@ -16,15 +16,12 @@ class HistorySyncService {
   factory HistorySyncService() => _instance;
 
   Future<String> getDeviceId() async {
-    final setting = GStorage.setting;
-    final existing = setting
-        .get(SettingBoxKey.historySyncDeviceId, defaultValue: '')
-        .toString();
+    final existing = GStorage.getSetting(SettingsKeys.historySyncDeviceId);
     if (existing.isNotEmpty) {
       return existing;
     }
     final deviceId = HistorySyncDevice.generateDeviceId();
-    await setting.put(SettingBoxKey.historySyncDeviceId, deviceId);
+    await GStorage.putSetting(SettingsKeys.historySyncDeviceId, deviceId);
     return deviceId;
   }
 
@@ -129,23 +126,16 @@ class HistorySyncService {
   }
 
   Future<int> _nextSeq() async {
-    final setting = GStorage.setting;
-    final value = setting.get(
-      SettingBoxKey.historySyncSequence,
-      defaultValue: 0,
-    );
-    final next = value is int ? value + 1 : 1;
-    await setting.put(SettingBoxKey.historySyncSequence, next);
+    final value = GStorage.getSetting(SettingsKeys.historySyncSequence);
+    final next = value + 1;
+    await GStorage.putSetting(SettingsKeys.historySyncSequence, next);
     return next;
   }
 
   Future<void> appendSafely(Future<void> Function() append) async {
-    final webDavEnable =
-        GStorage.setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    final historySyncEnable = GStorage.setting.get(
-      SettingBoxKey.webDavEnableHistory,
-      defaultValue: false,
-    );
+    final webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
+    final historySyncEnable =
+        GStorage.getSetting(SettingsKeys.webDavEnableHistory);
     if (webDavEnable != true || historySyncEnable != true) {
       return;
     }

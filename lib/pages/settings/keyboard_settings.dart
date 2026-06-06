@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
@@ -14,8 +13,6 @@ class KeyboardSettingsPage extends StatefulWidget {
 }
 
 class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
-  Box setting = GStorage.setting;
-
   String? listeningFunction;
   int? listeningIndex;
   late Map<String, List<String>> shortcuts;
@@ -28,11 +25,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     // 根据默认快捷键生成可用快捷键列表，并读取已设置值
     shortcuts = {
       for (var key in defaultShortcuts.keys)
-        key: (setting
-                .get('shortcut_$key',
-                    defaultValue: defaultShortcuts[key]?.toList() ?? <String>[])
-                ?.cast<String>() ??
-            [])
+        key: GStorage.getStringListSettingByName(
+          'shortcut_$key',
+          defaultValue: defaultShortcuts[key]?.toList() ?? <String>[],
+        )
     };
   }
 
@@ -43,7 +39,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       final func = entry.key;
       final keys = entry.value;
       keys.removeWhere((key) => key.isEmpty || key == '...');
-      setting.put('shortcut_$func', keys);
+      GStorage.putStringListSettingByName('shortcut_$func', keys);
     }
     focusNode.dispose();
     super.dispose();
@@ -74,7 +70,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       listeningFunction = null;
       listeningIndex = null;
     });
-    setting.put('shortcut_$func', shortcuts[func]);
+    GStorage.putStringListSettingByName('shortcut_$func', shortcuts[func]!);
 
     return true;
   }
@@ -105,7 +101,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
               setState(() {
                 for (final func in shortcuts.keys) {
                   shortcuts[func] = defaultShortcuts[func]?.toList() ?? [];
-                  setting.put('shortcut_$func', shortcuts[func]);
+                  GStorage.putStringListSettingByName(
+                    'shortcut_$func',
+                    shortcuts[func]!,
+                  );
                 }
               });
             },
@@ -155,7 +154,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                               keys.removeWhere(
                                   (key) => key.isEmpty || key == '...');
                               setState(() => keys.add(''));
-                              setting.put('shortcut_$func', keys);
+                              GStorage.putStringListSettingByName(
+                                  'shortcut_$func', keys);
                               startListening(func, keys.length - 1);
                             },
                             padding: EdgeInsets.zero,
@@ -185,7 +185,8 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                                           keys.removeWhere((key) =>
                                               key.isEmpty || key == '...');
                                         }
-                                        setting.put('shortcut_$func', keys);
+                                        GStorage.putStringListSettingByName(
+                                            'shortcut_$func', keys);
                                       });
                                     }
                                   : () => startListening(func, 0),

@@ -63,8 +63,8 @@ void main() async {
         }));
     return;
   }
-  bool showWindowButton = await GStorage.setting
-      .get(SettingBoxKey.showWindowButton, defaultValue: false);
+  bool showWindowButton =
+      await GStorage.getSetting(SettingsKeys.showWindowButton);
   if (isDesktop()) {
     await windowManager.ensureInitialized();
     final lowResolution = await isLowResolution();

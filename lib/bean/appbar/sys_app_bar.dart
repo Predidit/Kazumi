@@ -41,8 +41,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       this.needTopOffset = true});
 
   bool showWindowButton() {
-    return GStorage.setting
-        .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.showWindowButton);
   }
 
   @override

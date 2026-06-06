@@ -10,7 +10,6 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/sync/webdav.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/collect_repository.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:mobx/mobx.dart';
 import 'package:kazumi/services/logging/logger.dart';
 
@@ -30,7 +29,6 @@ abstract class _CollectController with Store {
   final _collectCrudRepository = Modular.get<ICollectCrudRepository>();
   final _collectRepository = Modular.get<ICollectRepository>();
 
-  Box setting = GStorage.setting;
   List<BangumiItem> get favorites => _collectCrudRepository.getFavorites();
 
   @observable
@@ -118,8 +116,7 @@ abstract class _CollectController with Store {
 
   Future<_BangumiDeleteSyncAction?> _resolveBangumiDeleteSyncAction(
       BangumiItem bangumiItem) async {
-    final bool syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    final bool syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
       return _BangumiDeleteSyncAction.deleteLocalOnly;
     }
@@ -171,12 +168,9 @@ abstract class _CollectController with Store {
 
   Future<bool> _syncBangumiCollectIfEnabled(
       int bangumiId, int localType) async {
-    final bool syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
-    final bool showImmediateSyncToast = setting.get(
-      SettingBoxKey.bangumiImmediateSyncToastEnable,
-      defaultValue: true,
-    );
+    final bool syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
+    final bool showImmediateSyncToast =
+        GStorage.getSetting(SettingsKeys.bangumiImmediateSyncToastEnable);
 
     if (!syncEnable) {
       return true;
@@ -226,7 +220,7 @@ abstract class _CollectController with Store {
 
   Future<bool> syncCollectibles({bool showSuccessToast = true}) async {
     final bool webDavCollectEnable =
-        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+        GStorage.getSetting(SettingsKeys.webDavEnableCollect);
     if (!webDavCollectEnable) {
       KazumiDialog.showToast(message: '未开启WebDav收藏同步');
       return false;
@@ -264,7 +258,7 @@ abstract class _CollectController with Store {
   Future<bool> uploadCollectiblesToWebDav(
       {bool showSuccessToast = true}) async {
     final bool webDavCollectEnable =
-        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
+        GStorage.getSetting(SettingsKeys.webDavEnableCollect);
     if (!webDavCollectEnable) {
       KazumiDialog.showToast(message: '未开启WebDav收藏同步');
       return false;
@@ -343,8 +337,7 @@ abstract class _CollectController with Store {
   Future<bool> syncCollectiblesBangumi(
       {void Function(String message, int current, int total)? onProgress,
       bool showSuccessToast = true}) async {
-    final bool syncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    final bool syncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
     if (!syncEnable) {
       KazumiDialog.showToast(message: '未开启Bangumi同步，请先在设置中启用');
       return false;

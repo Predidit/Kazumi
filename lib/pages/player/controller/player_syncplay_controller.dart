@@ -2,10 +2,8 @@
 
 import 'dart:async';
 
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
-import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/services/player/syncplay_client.dart';
@@ -19,7 +17,6 @@ class PlayerSyncPlayController = _PlayerSyncPlayController
 
 abstract class _PlayerSyncPlayController with Store {
   _PlayerSyncPlayController({
-    required this.setting,
     required this.bangumiId,
     required this.currentEpisode,
     required this.currentRoad,
@@ -32,7 +29,6 @@ abstract class _PlayerSyncPlayController with Store {
     required this.seek,
   });
 
-  final Box setting;
   final int Function() bangumiId;
   final int Function() currentEpisode;
   final int Function() currentRoad;
@@ -77,8 +73,8 @@ abstract class _PlayerSyncPlayController with Store {
           changeEpisode,
       {bool enableTLS = true}) async {
     await syncplayController?.disconnect();
-    final String syncPlayEndPoint = setting.get(SettingBoxKey.syncPlayEndPoint,
-        defaultValue: defaultSyncPlayEndPoint);
+    final String syncPlayEndPoint =
+        GStorage.getSetting(SettingsKeys.syncPlayEndPoint);
     String syncPlayEndPointHost = '';
     int syncPlayEndPointPort = 0;
     KazumiLogger().i('SyncPlay: connecting to $syncPlayEndPoint');

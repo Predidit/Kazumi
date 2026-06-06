@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -13,9 +12,8 @@ class RendererSettings extends StatefulWidget {
 }
 
 class _RendererSettingsState extends State<RendererSettings> {
-  late final Box setting = GStorage.setting;
   late final ValueNotifier<String> renderer = ValueNotifier<String>(
-    setting.get(SettingBoxKey.androidVideoRenderer, defaultValue: 'auto'),
+    GStorage.getSetting<String>(SettingsKeys.androidVideoRenderer),
   );
 
   @override
@@ -47,8 +45,8 @@ class _RendererSettingsState extends State<RendererSettings> {
                       groupValue: renderer.value,
                       onChanged: (String? value) {
                         if (value != null) {
-                          setting.put(
-                              SettingBoxKey.androidVideoRenderer, value);
+                          GStorage.putSetting<String>(
+                              SettingsKeys.androidVideoRenderer, value);
                           setState(() {
                             renderer.value = value;
                           });

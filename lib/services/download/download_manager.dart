@@ -126,15 +126,10 @@ class DownloadManager implements IDownloadManager {
   static const _storageChannel = MethodChannel('com.predidit.kazumi/storage');
 
   void _loadSettings() {
-    final setting = GStorage.setting;
-    maxParallelEpisodes = setting.get(
-      SettingBoxKey.downloadParallelEpisodes,
-      defaultValue: 2,
-    );
-    maxParallelSegments = setting.get(
-      SettingBoxKey.downloadParallelSegments,
-      defaultValue: 3,
-    );
+    maxParallelEpisodes =
+        GStorage.getSetting(SettingsKeys.downloadParallelEpisodes);
+    maxParallelSegments =
+        GStorage.getSetting(SettingsKeys.downloadParallelSegments);
   }
 
   /// Returns available bytes, or -1 if unable to determine

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -15,13 +14,12 @@ class ProxySettingsPage extends StatefulWidget {
 }
 
 class _ProxySettingsPageState extends State<ProxySettingsPage> {
-  Box setting = GStorage.setting;
   late bool proxyEnable;
 
   @override
   void initState() {
     super.initState();
-    proxyEnable = setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
   }
 
   void onBackPressed(BuildContext context) {
@@ -33,16 +31,15 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   Future<void> updateProxyEnable(bool value) async {
     if (value) {
-      final proxyConfigured =
-          setting.get(SettingBoxKey.proxyConfigured, defaultValue: false);
+      final proxyConfigured = GStorage.getSetting(SettingsKeys.proxyConfigured);
       if (!proxyConfigured) {
         KazumiDialog.showToast(message: '请先在代理配置中完成测试');
         return;
       }
-      await setting.put(SettingBoxKey.proxyEnable, true);
+      await GStorage.putSetting(SettingsKeys.proxyEnable, true);
       ProxyManager.applyProxy();
     } else {
-      await setting.put(SettingBoxKey.proxyEnable, false);
+      await GStorage.putSetting(SettingsKeys.proxyEnable, false);
       ProxyManager.clearProxy();
     }
     setState(() {
@@ -79,8 +76,8 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   onPressed: (_) async {
                     await Modular.to.pushNamed('/settings/proxy/editor');
                     setState(() {
-                      proxyEnable = setting.get(SettingBoxKey.proxyEnable,
-                          defaultValue: false);
+                      proxyEnable =
+                          GStorage.getSetting(SettingsKeys.proxyEnable);
                     });
                   },
                   title: Text('代理配置', style: TextStyle(fontFamily: fontFamily)),

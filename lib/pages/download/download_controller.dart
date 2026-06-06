@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/danmaku/danmaku_module.dart';
 import 'package:kazumi/plugins/plugins.dart';
@@ -584,9 +583,8 @@ abstract class _DownloadController with Store {
       episode: freshEpisode,
     ));
 
-    final Box setting = GStorage.setting;
     final bool downloadDanmaku =
-        setting.get(SettingBoxKey.downloadDanmaku, defaultValue: true);
+        GStorage.getSetting(SettingsKeys.downloadDanmaku);
     if (downloadDanmaku) {
       _fetchAndCacheDanmakuAsync(
         request.recordKey,

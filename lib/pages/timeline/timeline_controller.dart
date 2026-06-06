@@ -43,8 +43,8 @@ abstract class _TimelineController with Store {
 
   late DateTime selectedDate;
 
-  bool get _bangumiMirrorEnabled => GStorage.setting
-      .get(SettingBoxKey.enableBangumiProxy, defaultValue: false);
+  bool get _bangumiMirrorEnabled =>
+      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
 
   void init() {
     selectedDate = DateTime.now();

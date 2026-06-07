@@ -221,8 +221,6 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('Telegram',
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('Kazumi 官方 Telegram 群组',
-                      style: TextStyle(fontFamily: fontFamily)),
                   value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
@@ -285,10 +283,6 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     _showCacheDialog();

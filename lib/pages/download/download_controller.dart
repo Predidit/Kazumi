@@ -23,6 +23,7 @@ abstract class _DownloadController with Store {
   final _repository = Modular.get<IDownloadRepository>();
   final _downloadManager = Modular.get<IDownloadManager>();
   final _backgroundService = BackgroundDownloadService();
+  WebViewVideoSourceService? _videoSourceService;
 
   @observable
   ObservableList<DownloadRecord> records = ObservableList<DownloadRecord>();
@@ -526,7 +527,8 @@ abstract class _DownloadController with Store {
         'DownloadController: resolving video URL for episode ${request.episodeNumber} from $fullUrl');
 
     String? m3u8Url;
-    final videoSourceService = WebViewVideoSourceService();
+    final videoSourceService =
+        _videoSourceService ??= WebViewVideoSourceService();
     try {
       final source = await videoSourceService.resolve(
         fullUrl,
@@ -541,8 +543,6 @@ abstract class _DownloadController with Store {
     } catch (e) {
       KazumiLogger()
           .e('DownloadController: WebView resolution failed', error: e);
-    } finally {
-      videoSourceService.dispose();
     }
 
     if (m3u8Url == null || m3u8Url.isEmpty) {

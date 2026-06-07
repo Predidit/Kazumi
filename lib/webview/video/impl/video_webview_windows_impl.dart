@@ -82,24 +82,24 @@ class VideoWebviewWindowsImpl
 
   @override
   Future<void> unloadPage() async {
-    subscriptions.forEach((s) {
+    for (final s in subscriptions) {
       try {
         s.cancel();
       } catch (_) {}
-    });
+    }
     subscriptions.clear();
     await redirect2Blank();
   }
 
   @override
-  void dispose() {
-    subscriptions.forEach((s) {
+  Future<void> dispose() async {
+    for (final s in subscriptions) {
       try {
         s.cancel();
       } catch (_) {}
-    });
+    }
     subscriptions.clear();
-    headlessWebview?.dispose();
+    await headlessWebview?.dispose();
     headlessWebview = null;
     disposeEventControllers();
   }

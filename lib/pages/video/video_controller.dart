@@ -527,8 +527,11 @@ abstract class _VideoPageController with Store {
     if (!_logStreamController.isClosed) {
       _logStreamController.close();
     }
-    _videoSourceService?.dispose();
+    final videoSourceService = _videoSourceService;
     _videoSourceService = null;
+    if (videoSourceService != null) {
+      unawaited(videoSourceService.dispose());
+    }
   }
 
   void resetEpisodeComments() {

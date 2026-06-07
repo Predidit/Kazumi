@@ -93,12 +93,14 @@ class WebViewVideoSourceService implements IVideoSourceService {
   }
 
   @override
-  void dispose() {
+  Future<void> dispose() async {
     cancel();
-    _logSubscription?.cancel();
+    await _logSubscription?.cancel();
     _logSubscription = null;
-    _logController.close();
-    _webview?.dispose();
+    if (!_logController.isClosed) {
+      await _logController.close();
+    }
+    await _webview?.dispose();
     _webview = null;
   }
 }

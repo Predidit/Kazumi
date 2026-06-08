@@ -44,6 +44,29 @@ class DownloadTask {
 typedef ProgressCallback = void Function(
     String recordKey, int episodeNumber, DownloadEpisode episode, double speed);
 
+final _m3u8SegmentFileNamePattern = RegExp(r'^seg_\d+\.ts$');
+
+Future<int> calculateM3u8VideoBytes(String episodeDir) async {
+  final dir = Directory(episodeDir);
+  if (!await dir.exists()) return 0;
+
+  var totalBytes = 0;
+  await for (final entity in dir.list(followLinks: false)) {
+    if (entity is! File) continue;
+    final name = entity.uri.pathSegments.isNotEmpty
+        ? Uri.decodeComponent(entity.uri.pathSegments.last)
+        : entity.path.split(Platform.pathSeparator).last;
+    if (!_m3u8SegmentFileNamePattern.hasMatch(name)) continue;
+
+    try {
+      totalBytes += await entity.length();
+    } on FileSystemException {
+      // Ignore transient filesystem failures while reporting display size.
+    }
+  }
+  return totalBytes;
+}
+
 class DownloadRequest {
   final String recordKey;
   final int bangumiId;
@@ -448,14 +471,23 @@ class DownloadManager implements IDownloadManager {
       }
 
       final existingSegments = <int>{};
+      var existingBytes = 0;
       for (int i = 0; i < segments.length; i++) {
         final segFile =
             File('$episodeDir/seg_${i.toString().padLeft(5, '0')}.ts');
-        if (await segFile.exists() && await segFile.length() > 0) {
+        if (await segFile.exists()) {
+          final segmentBytes = await segFile.length();
+          if (segmentBytes <= 0) continue;
           existingSegments.add(i);
           episode.downloadedSegments++;
+          existingBytes += segmentBytes;
         }
       }
+      episode.totalBytes = existingBytes;
+      episode.progressPercent = episode.totalSegments > 0
+          ? episode.downloadedSegments / episode.totalSegments
+          : 0.0;
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
 
       final pendingIndices = <int>[];
       for (int i = 0; i < segments.length; i++) {
@@ -464,7 +496,7 @@ class DownloadManager implements IDownloadManager {
         }
       }
 
-      int totalBytes = 0;
+      var sessionBytes = 0;
       final completer = Completer<void>();
       int completedCount = 0;
       int failedCount = 0;
@@ -489,12 +521,12 @@ class DownloadManager implements IDownloadManager {
             httpHeaders,
             task.cancelToken,
           ).then((bytes) {
-            totalBytes += bytes;
+            sessionBytes += bytes;
             episode.downloadedSegments++;
-            episode.totalBytes = totalBytes;
+            episode.totalBytes = existingBytes + sessionBytes;
             episode.progressPercent =
                 episode.downloadedSegments / episode.totalSegments;
-            _speedTrackers[key]?.update(totalBytes);
+            _speedTrackers[key]?.update(sessionBytes);
             _notifyProgress(task.recordKey, task.episodeNumber, episode);
             completedCount++;
             semaphore.release();
@@ -542,16 +574,19 @@ class DownloadManager implements IDownloadManager {
       );
       final m3u8Path = '$episodeDir/playlist.m3u8';
       await File(m3u8Path).writeAsString(localM3u8);
+      final finalVideoBytes = await calculateM3u8VideoBytes(episodeDir);
 
       episode.status = DownloadStatus.completed;
       episode.localM3u8Path = m3u8Path;
       episode.progressPercent = 1.0;
       episode.completedAt = DateTime.now();
+      episode.totalBytes =
+          finalVideoBytes > 0 ? finalVideoBytes : existingBytes + sessionBytes;
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
 
       KazumiLogger().i(
         'DownloadManager: episode ${task.episodeNumber} completed. '
-        '${segments.length} segments, ${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB',
+        '${segments.length} segments, ${(episode.totalBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
     } on _InsufficientStorageException catch (e) {
       episode.status = DownloadStatus.failed;

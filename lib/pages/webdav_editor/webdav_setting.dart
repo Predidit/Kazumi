@@ -80,7 +80,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('Github', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('规则仓库', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
@@ -89,9 +89,9 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                         SettingsKeys.enableGitProxy, enableGitProxy);
                     setState(() {});
                   },
-                  title: Text('Github镜像',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用镜像访问规则托管仓库',
+                  title:
+                      Text('规则仓库镜像', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('使用镜像访问规则更新和管理仓库',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: enableGitProxy,
                 ),

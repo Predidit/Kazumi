@@ -1,9 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/request/clients/download_http_client.dart';
-import 'package:kazumi/request/clients/github_client.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -58,6 +58,58 @@ class UpdateInfo {
   }
 }
 
+Map<String, dynamic>? getUpdateAssetForType(
+    List<dynamic> assets, InstallationType type) {
+  final patterns = getUpdateFilePatterns(type).map((p) => p.toLowerCase());
+
+  try {
+    final asset = assets.cast<Map<String, dynamic>>().firstWhere((asset) {
+      final name = (asset['name'] as String?)?.toLowerCase() ?? '';
+      return patterns.every((pattern) => name.contains(pattern));
+    });
+    return asset;
+  } catch (_) {
+    return null;
+  }
+}
+
+String getUpdateDownloadUrlFromAsset(Map<String, dynamic>? asset) {
+  if (asset == null) {
+    return '';
+  }
+  final mirrorUrl = asset['mirror_download_url'] as String? ?? '';
+  if (mirrorUrl.isNotEmpty) {
+    return mirrorUrl;
+  }
+  return asset['browser_download_url'] as String? ?? '';
+}
+
+String getUpdateFileHashFromAsset(Map<String, dynamic> asset) {
+  final digest = asset['digest'] as String? ?? '';
+  if (digest.isNotEmpty && digest.startsWith('sha256:')) {
+    return digest.substring(7);
+  }
+  return '';
+}
+
+List<String> getUpdateFilePatterns(InstallationType installationType) {
+  switch (installationType) {
+    case InstallationType.windowsMsix:
+      return ['windows', '.msix'];
+    case InstallationType.windowsPortable:
+      return ['windows', '.zip'];
+    case InstallationType.macosDmg:
+      return ['macos', '.dmg'];
+    case InstallationType.androidApk:
+      return ['android', '.apk'];
+    case InstallationType.linuxDeb:
+    case InstallationType.linuxTar:
+    case InstallationType.ios:
+    case InstallationType.unknown:
+      return [];
+  }
+}
+
 class AutoUpdater {
   static final AutoUpdater _instance = AutoUpdater._internal();
 
@@ -65,7 +117,6 @@ class AutoUpdater {
 
   AutoUpdater._internal();
 
-  final GithubClient _githubClient = GithubClient.instance;
   final DownloadHttpClient _downloadClient = DownloadHttpClient.instance;
 
   /// 检测所有可能的安装类型
@@ -105,7 +156,7 @@ class AutoUpdater {
   /// 检查是否有新版本可用
   Future<UpdateInfo?> checkForUpdates() async {
     try {
-      final data = await _githubClient.latestRelease();
+      final data = await _latestRelease();
 
       if (!data.containsKey('tag_name')) {
         throw Exception('无效的响应数据');
@@ -136,6 +187,15 @@ class AutoUpdater {
       KazumiLogger().e('Update: check for updates failed', error: e);
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> _latestRelease() async {
+    final raw = await _downloadClient.getPlain(ApiEndpoints.latestAppMirror);
+    final data = json.decode(raw);
+    if (data is! Map) {
+      throw Exception('Invalid update response');
+    }
+    return Map<String, dynamic>.from(data);
   }
 
   /// 自动检查更新（仅在启用自动更新时）
@@ -350,18 +410,16 @@ class AutoUpdater {
         return;
       }
 
-      final downloadUrl =
-          await _getDownloadUrlForType(updateInfo.assets, selectedType);
-      if (downloadUrl.isEmpty) {
+      final asset = getUpdateAssetForType(updateInfo.assets, selectedType);
+      final downloadUrl = getUpdateDownloadUrlFromAsset(asset);
+      if (asset == null || downloadUrl.isEmpty) {
         KazumiDialog.showToast(
             message:
                 '没有找到 ${_getInstallationTypeDescription(selectedType)} 的下载链接');
         return;
       }
 
-      // 获取文件的 SHA256 哈希值用于验证
-      final expectedHash =
-          _getFileHashFromAssets(updateInfo.assets, downloadUrl);
+      final expectedHash = getUpdateFileHashFromAsset(asset);
 
       // 创建一个临时的 UpdateInfo 对象用于下载
       final downloadInfo = UpdateInfo(
@@ -735,46 +793,6 @@ class AutoUpdater {
     }
   }
 
-  /// 根据安装类型获取下载链接
-  Future<String> _getDownloadUrlForType(
-      List<dynamic> assets, InstallationType type) async {
-    final patterns =
-        _getFilePatterns(type).map((p) => p.toLowerCase()).toList();
-
-    try {
-      final asset = assets.cast<Map<String, dynamic>>().firstWhere((asset) {
-        final name = (asset['name'] as String?)?.toLowerCase() ?? '';
-        final downloadUrl = (asset['browser_download_url'] as String?) ?? '';
-        return downloadUrl.isNotEmpty &&
-            patterns.every((pattern) => name.contains(pattern));
-      });
-      return (asset['browser_download_url'] as String?) ?? '';
-    } catch (e) {
-      return '';
-    }
-  }
-
-  /// 获取合适的下载链接
-  /// 根据安装类型获取文件名模式
-  List<String> _getFilePatterns(InstallationType installationType) {
-    switch (installationType) {
-      case InstallationType.windowsMsix:
-        return ['windows', '.msix'];
-      case InstallationType.windowsPortable:
-        return ['windows', '.zip'];
-      case InstallationType.macosDmg:
-        return ['macos', '.dmg'];
-      case InstallationType.androidApk:
-        return ['android', '.apk'];
-      // 以下类型直接跳转到 GitHub Release 页面，不需要下载文件
-      case InstallationType.linuxDeb:
-      case InstallationType.linuxTar:
-      case InstallationType.ios:
-      case InstallationType.unknown:
-        return [];
-    }
-  }
-
   /// 从URL获取文件名
   String _getFileNameFromUrl(String url, String version) {
     final uri = Uri.parse(url);
@@ -796,19 +814,5 @@ class AutoUpdater {
       extension = '.apk';
     }
     return 'Kazumi-$version$extension';
-  }
-
-  /// 从 assets 中获取文件的哈希值
-  String _getFileHashFromAssets(List<dynamic> assets, String downloadUrl) {
-    for (final asset in assets) {
-      final assetDownloadUrl = asset['browser_download_url'] as String? ?? '';
-      if (assetDownloadUrl == downloadUrl) {
-        final digest = asset['digest'] as String? ?? '';
-        if (digest.isNotEmpty && digest.startsWith('sha256:')) {
-          return digest.substring(7); // 移除 "sha256:" 前缀
-        }
-      }
-    }
-    return '';
   }
 }

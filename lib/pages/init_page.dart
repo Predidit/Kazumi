@@ -315,7 +315,7 @@ class _InitPageState extends State<InitPage> {
         return PopScope(
           canPop: false,
           child: AlertDialog(
-            title: const Text('更新镜像'),
+            title: const Text('更新来源'),
             content: const Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +330,7 @@ class _InitPageState extends State<InitPage> {
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Github镜像为大多数情况下的最佳选择。如果您使用F-Droid应用商店, 请选择F-Droid镜像。',
+                    'Github 检查更新为大多数情况下的最佳选择。如果您使用 F-Droid 应用商店，请选择 F-Droid。',
                     textAlign: TextAlign.left,
                   ),
                 ),

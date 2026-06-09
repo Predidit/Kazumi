@@ -206,13 +206,14 @@ class _PluginShopPageState extends State<PluginShopPage> {
   Widget get timeoutWidget {
     return Center(
       child: GeneralErrorWidget(
-        errMsg: '啊咧（⊙.⊙） 无法访问远程仓库\n${enableGitProxy ? '镜像已启用' : '镜像已禁用'}',
+        errMsg:
+            '啊咧（⊙.⊙） 无法访问规则仓库\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
         actions: [
           GeneralErrorButton(
             onPressed: () {
               Modular.to.pushNamed('/settings/webdav/');
             },
-            text: enableGitProxy ? '禁用镜像' : '启用镜像',
+            text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
           ),
           GeneralErrorButton(
             onPressed: () {

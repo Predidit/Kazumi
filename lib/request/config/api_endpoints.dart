@@ -28,6 +28,10 @@ class ApiEndpoints {
   /// Bangumi 镜像测试后端
   static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
 
+  /// Kazumi 镜像后端应用更新
+  static const String latestAppMirror =
+      '$bangumiMirrorDomain/kazumi/v1/app/latest';
+
   /// 弹弹官网
   static const String dandanIndex = 'https://www.dandanplay.com/';
 

@@ -107,6 +107,9 @@ class KazumiLogOutput extends LogOutput {
   static final Lock _logLock = Lock();
   static String? _logFilePath;
 
+  static const int _maxLogSizeBytes = 5 * 1024 * 1024; // 5 MB
+  static const int _maxLogFiles = 3;
+
   static Future<String> _getLogFilePath() async {
     if (_logFilePath != null) return _logFilePath!;
 
@@ -139,6 +142,14 @@ class KazumiLogOutput extends LogOutput {
         final filePath = await _getLogFilePath();
         final file = File(filePath);
 
+        // Rotate if the current log exceeds the size limit.
+        if (await file.exists()) {
+          final size = await file.length();
+          if (size >= _maxLogSizeBytes) {
+            await _rotateLogFiles(filePath);
+          }
+        }
+
         final timestamp = DateTime.now().toString();
 
         final buffer = StringBuffer();
@@ -157,6 +168,23 @@ class KazumiLogOutput extends LogOutput {
         print('Failed to write log to file: $e');
       }
     });
+  }
+
+  /// Rotate logs when the active file exceeds [_maxLogSizeBytes].
+  /// Keeps at most [_maxLogFiles] rotated copies by shifting
+  /// existing files and renaming the active log to .1.
+  Future<void> _rotateLogFiles(String activePath) async {
+    final oldestFile = File('$activePath.$_maxLogFiles');
+    if (await oldestFile.exists()) {
+      await oldestFile.delete();
+    }
+    for (int i = _maxLogFiles - 1; i >= 1; i--) {
+      final oldFile = File('$activePath.$i');
+      if (await oldFile.exists()) {
+        await oldFile.rename('$activePath.${i + 1}');
+      }
+    }
+    await File(activePath).rename('$activePath.1');
   }
 
   /// Remove ANSI escape codes from string to ensure clean log files
@@ -254,13 +282,24 @@ Future<File> getLogsPath() async {
 
 Future<bool> clearLogs() async {
   try {
-    final file = await getLogsPath();
+    final filePath = await KazumiLogOutput._getLogFilePath();
     await KazumiLogOutput._logLock.synchronized(() async {
-      await file.writeAsString('');
+      // Clear active log
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.writeAsString('');
+      }
+      // Clear rotated log files
+      for (int i = 1; i <= KazumiLogOutput._maxLogFiles; i++) {
+        final rotated = File('$filePath.$i');
+        if (await rotated.exists()) {
+          await rotated.delete();
+        }
+      }
     });
     return true;
   } catch (e) {
-    print('Error clearing file: $e');
+    print('Error clearing logs: $e');
     return false;
   }
 }

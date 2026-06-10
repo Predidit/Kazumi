@@ -4,6 +4,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:kazumi/services/logging/logger.dart';
+
 const double PING_MOVING_AVERAGE_WEIGHT = 0.85;
 
 class SyncplayException implements Exception {
@@ -273,9 +275,9 @@ class SyncplayClient {
     try {
       await _socket?.close();
       _socket = null;
-      print('SyncPlay: connecting to Syncplay server: $_host:$_port');
+      KazumiLogger().i('SyncPlay: connecting to Syncplay server: $_host:$_port');
       _socket = await Socket.connect(_host, _port);
-      print('SyncPlay: connected to Syncplay server: $_host:$_port');
+      KazumiLogger().i('SyncPlay: connected to Syncplay server: $_host:$_port');
       _setupSocketHandlers();
       if (enableTLS) {
         requestTLS();
@@ -289,12 +291,12 @@ class SyncplayClient {
   }
 
   Future<void> requestTLS() async {
-    print('SyncPlay: requesting TLS connection upgrade');
+    KazumiLogger().i('SyncPlay: requesting TLS connection upgrade');
     await _sendMessage(TLSMessage(message: 'send'));
   }
 
   Future<void> joinRoom(String room, String username) async {
-    print('SyncPlay: joining room: $room as $username');
+    KazumiLogger().i('SyncPlay: joining room: $room as $username');
     await _sendMessage(HelloMessage(
       username: username,
       version: '1.7.0',
@@ -342,7 +344,7 @@ class SyncplayClient {
   }
 
   Future<void> disconnect() async {
-    print('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
+    KazumiLogger().i('SyncPlay: disconnecting from Syncplay server: $_host:$_port');
     await _generalMessageController?.close();
     _generalMessageController = null;
     await _roomMessageController?.close();
@@ -441,12 +443,12 @@ class SyncplayClient {
             _socket = await SecureSocket.secure(plainSocket!);
             _setupSocketHandlers();
             _isTLS = true;
-            print('SyncPlay: TLS connection established');
+            KazumiLogger().i('SyncPlay: TLS connection established');
             try {
               plainSocket.close();
             } catch (_) {}
           } catch (e) {
-            print('SyncPlay: TLS connection upgrade failed: $e');
+            KazumiLogger().e('SyncPlay: TLS connection upgrade failed', error: e);
             _socket = plainSocket;
             _isTLS = false;
           }
@@ -459,7 +461,7 @@ class SyncplayClient {
           json['Hello']['room'].containsKey('name')) {
         _username = json['Hello']['username'];
         _currentRoom = json['Hello']['room']['name'];
-        print(
+        KazumiLogger().i(
             'SyncPlay: joined room: $_currentRoom as $_username, version: ${json['Hello']['version']}');
         _setReady();
       }

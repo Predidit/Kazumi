@@ -15,11 +15,13 @@ class ProxySettingsPage extends StatefulWidget {
 
 class _ProxySettingsPageState extends State<ProxySettingsPage> {
   late bool proxyEnable;
+  late bool allowBadCertificates;
 
   @override
   void initState() {
     super.initState();
     proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
+    allowBadCertificates = GStorage.getSetting(SettingsKeys.allowBadCertificates);
   }
 
   void onBackPressed(BuildContext context) {
@@ -47,6 +49,13 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
     });
   }
 
+  Future<void> updateAllowBadCertificates(bool value) async {
+    await GStorage.putSetting(SettingsKeys.allowBadCertificates, value);
+    setState(() {
+      allowBadCertificates = value;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
@@ -71,6 +80,17 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   description: Text('启用后网络请求将通过代理服务器',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: proxyEnable,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
+                    await updateAllowBadCertificates(
+                        value ?? !allowBadCertificates);
+                  },
+                  title: Text('允许不安全证书',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('启用后代理服务器的 TLS 证书将不被验证（仅当代理使用自签名证书时需要）',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: allowBadCertificates,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {

@@ -515,7 +515,8 @@ abstract class _VideoPageController with Store {
         return;
       }
       loading = false;
-      errorMessage = '视频解析失败：${e.toString()}';
+      KazumiLogger().e('视频解析失败', error: e);
+      errorMessage = '视频解析失败，请检查网络或重试';
     }
   }
 
@@ -540,13 +541,14 @@ abstract class _VideoPageController with Store {
   Future<bool> queryBangumiEpisodeCommentsByID(int id, int episode) async {
     final session = _commentSessions.begin();
     final EpisodeInfo latestEpisodeInfo;
-    try {
-      latestEpisodeInfo = await BangumiApi.getBangumiEpisodeByID(id, episode);
-    } catch (_) {
-      if (session.isStale) {
-        return false;
-      }
-      rethrow;
+    switch (await BangumiApi.getBangumiEpisodeByID(id, episode)) {
+      case Success(:final value):
+        latestEpisodeInfo = value;
+      case Failure(:final error):
+        if (session.isStale) {
+          return false;
+        }
+        throw error;
     }
     if (session.isStale) {
       return false;

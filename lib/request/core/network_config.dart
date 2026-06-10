@@ -94,7 +94,8 @@ class NetworkConfig {
       sendTimeout: sendTimeout,
       proxyHost: parsed.$1,
       proxyPort: parsed.$2,
-      allowBadCertificates: true,
+      allowBadCertificates:
+          GStorage.getSetting(SettingsKeys.allowBadCertificates),
     );
   }
 }

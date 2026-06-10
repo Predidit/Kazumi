@@ -17,7 +17,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:screen_brightness_platform_interface/screen_brightness_platform_interface.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -26,8 +25,7 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
 import 'package:kazumi/modules/danmaku/danmaku_search_response.dart';
 import 'package:kazumi/modules/danmaku/danmaku_episode_response.dart';
-import 'package:kazumi/modules/danmaku/danmaku_module.dart';
-import 'package:kazumi/pages/player/controller/player_danmaku_controller.dart';
+import 'package:kazumi/pages/player/handler/player_danmaku_handler.dart';
 import 'package:kazumi/pages/player/player_item_surface.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:kazumi/pages/my/my_controller.dart';
@@ -92,25 +90,8 @@ class _PlayerItemState extends State<PlayerItem>
   late bool webDavEnable;
   late bool webDavEnableHistory;
 
-  // 弹幕
-  final _danmuKey = GlobalKey();
-  late bool _border;
-  late double _opacity;
-  late double _fontSize;
-  late double _danmakuArea;
-  late bool _hideTop;
-  late bool _hideBottom;
-  late bool _hideScroll;
-  late bool _massiveMode;
-  late bool _danmakuColor;
-  late bool _danmakuBiliBiliSource;
-  late bool _danmakuGamerSource;
-  late bool _danmakuDanDanSource;
-  late double _danmakuDuration;
-  late double _danmakuLineHeight;
-  late int _danmakuFontWeight;
-  late bool _danmakuUseSystemFont;
-  late double _danmakuBorderSize;
+  // 弹幕（逻辑提取至 PlayerDanmakuHandler）
+  late final PlayerDanmakuHandler _danmakuHandler;
 
   // 硬件解码
   late bool haEnable;
@@ -495,20 +476,10 @@ class _PlayerItemState extends State<PlayerItem>
   }
 
   void handleDanmaku() {
-    playerController.danmaku.canvasController.clear();
-    if (playerController.danmaku.danmakuOn) {
-      playerController.danmaku.danmakuOn = false;
-      GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
-      unawaited(_updateAndroidPIPActions(force: true));
-      return;
-    }
-    if (playerController.danmaku.danDanmakus.isEmpty) {
+    final result = _danmakuHandler.toggle();
+    if (result == DanmakuToggleResult.needsSource) {
       showDanmakuSwitch();
-      unawaited(_updateAndroidPIPActions(force: true));
-      return;
     }
-    playerController.danmaku.danmakuOn = true;
-    GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, true);
     unawaited(_updateAndroidPIPActions(force: true));
   }
 
@@ -905,82 +876,13 @@ class _PlayerItemState extends State<PlayerItem>
     hideTimer = null;
   }
 
-  bool _isDanmakuSourceEnabled(DanmakuEntry danmaku) {
-    if (!_danmakuBiliBiliSource && danmaku.source.contains('BiliBili')) {
-      return false;
-    }
-    if (!_danmakuGamerSource && danmaku.source.contains('Gamer')) {
-      return false;
-    }
-    if (!_danmakuDanDanSource &&
-        !(danmaku.source.contains('BiliBili') ||
-            danmaku.source.contains('Gamer'))) {
-      return false;
-    }
-    return true;
-  }
-
-  DanmakuItemType _danmakuItemType(DanmakuEntry danmaku) {
-    if (danmaku.type == 4) {
-      return DanmakuItemType.bottom;
-    }
-    if (danmaku.type == 5) {
-      return DanmakuItemType.top;
-    }
-    return DanmakuItemType.scroll;
-  }
-
-  void _emitDanmakusForCurrentPosition() {
-    if (playerController.playback.currentPosition.inMicroseconds == 0 ||
-        playerController.playback.playerPlaying != true ||
-        playerController.danmaku.danmakuOn != true) {
-      return;
-    }
-
-    final danmakus = playerController.danmaku
-        .danmakusForPlaybackPosition(playerController.playback.currentPosition);
-    final danmakuCount = danmakus.length;
-    for (final entry in danmakus.asMap().entries) {
-      final idx = entry.key;
-      final danmaku = entry.value;
-      if (!_isDanmakuSourceEnabled(danmaku)) {
-        continue;
-      }
-
-      final color = _danmakuColor ? danmaku.color : Colors.white;
-      final delay = DanmakuTimeline.staggerDelayMilliseconds(
-        index: idx,
-        total: danmakuCount,
-      );
-      final scheduledDanmakuGeneration =
-          playerController.danmaku.scheduledDanmakuGeneration;
-      Future.delayed(Duration(milliseconds: delay), () {
-        if (!mounted ||
-            !playerController.playback.playerPlaying ||
-            playerController.playback.playerBuffering ||
-            !playerController.danmaku.danmakuOn ||
-            playerController.danmaku.scheduledDanmakuGeneration !=
-                scheduledDanmakuGeneration ||
-            myController.isDanmakuBlocked(danmaku.message)) {
-          return;
-        }
-        playerController.danmaku.canvasController.addDanmaku(
-          DanmakuContentItem(
-            danmaku.message,
-            color: color,
-            type: _danmakuItemType(danmaku),
-          ),
-        );
-      });
-    }
-  }
 
   Timer getPlayerTimer() {
     return Timer.periodic(const Duration(seconds: 1), (timer) {
       playerController.syncPlaybackState();
       unawaited(_updateAndroidPIPActions());
       _syncAudioServiceState();
-      _emitDanmakusForCurrentPosition();
+      _danmakuHandler.emitDanmakusForCurrentPosition();
       // 音量相关
       if (!playerController.panel.volumeSeeking) {
         if (isDesktop()) {
@@ -1642,30 +1544,14 @@ class _PlayerItemState extends State<PlayerItem>
     );
     webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     webDavEnableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
-    playerController.danmaku.danmakuOn =
-        GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault);
-    _border = GStorage.getSetting(SettingsKeys.danmakuBorder);
-    _opacity = GStorage.getSetting(SettingsKeys.danmakuOpacity);
-    _fontSize = GStorage.getSetting(
-      SettingsKeys.danmakuFontSize,
-      context: SettingContext(compactLayout: isCompact()),
+    _danmakuHandler = PlayerDanmakuHandler(
+      playerController: playerController,
+      videoPageController: videoPageController,
+      myController: myController,
+      isCompact: isCompact,
+      mounted: () => mounted,
     );
-    _danmakuArea = GStorage.getSetting(SettingsKeys.danmakuArea);
-    _hideTop = !GStorage.getSetting(SettingsKeys.danmakuTop);
-    _hideBottom = !GStorage.getSetting(SettingsKeys.danmakuBottom);
-    _hideScroll = !GStorage.getSetting(SettingsKeys.danmakuScroll);
-    _massiveMode = GStorage.getSetting(SettingsKeys.danmakuMassive);
-    _danmakuColor = GStorage.getSetting(SettingsKeys.danmakuColor);
-    _danmakuDuration = GStorage.getSetting(SettingsKeys.danmakuDuration);
-    _danmakuLineHeight = GStorage.getSetting(SettingsKeys.danmakuLineHeight);
-    _danmakuBiliBiliSource =
-        GStorage.getSetting(SettingsKeys.danmakuBiliBiliSource);
-    _danmakuGamerSource = GStorage.getSetting(SettingsKeys.danmakuGamerSource);
-    _danmakuDanDanSource =
-        GStorage.getSetting(SettingsKeys.danmakuDanDanSource);
-    _danmakuFontWeight = GStorage.getSetting(SettingsKeys.danmakuFontWeight);
-    _danmakuUseSystemFont = GStorage.getSetting(SettingsKeys.useSystemFont);
-    _danmakuBorderSize = GStorage.getSetting(SettingsKeys.danmakuBorderSize);
+    _danmakuHandler.loadSettings();
     haEnable = GStorage.getSetting(SettingsKeys.hAenable);
     autoPlayNext = GStorage.getSetting(SettingsKeys.autoPlayNext);
     backgroundPlayback = GStorage.getSetting(SettingsKeys.backgroundPlayback);
@@ -1819,41 +1705,7 @@ class _PlayerItemState extends State<PlayerItem>
                       ),
                     ),
                     // 弹幕面板
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: videoPageController.isFullscreen ||
-                              videoPageController.isPip
-                          ? MediaQuery.sizeOf(context).height
-                          : (MediaQuery.sizeOf(context).width * 9 / 16),
-                      child: DanmakuScreen(
-                        key: _danmuKey,
-                        createdController: (DanmakuController e) {
-                          playerController.danmaku.canvasController = e;
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            playerController.updateDanmakuSpeed();
-                          });
-                        },
-                        option: DanmakuOption(
-                          hideTop: _hideTop,
-                          hideScroll: _hideScroll,
-                          hideBottom: _hideBottom,
-                          area: _danmakuArea,
-                          opacity: _opacity,
-                          fontSize: _fontSize,
-                          duration: _danmakuDuration /
-                              playerController.playback.playerSpeed,
-                          lineHeight: _danmakuLineHeight,
-                          strokeWidth: _border ? _danmakuBorderSize : 0.0,
-                          fontWeight: _danmakuFontWeight,
-                          massiveMode: _massiveMode,
-                          fontFamily: _danmakuUseSystemFont
-                              ? null
-                              : customAppFontFamily,
-                        ),
-                      ),
-                    ),
+                    _danmakuHandler.buildDanmakuScreen(context),
                     Positioned.fill(
                       child: PlayerScreenshotFeedbackOverlay(
                         animation: _screenshotFeedbackAnimation,

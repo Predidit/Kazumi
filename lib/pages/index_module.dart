@@ -23,6 +23,8 @@ import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/services/download/download_manager.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/bean/widget/image_preview.dart';
+import 'package:kazumi/services/storage/gstorage_settings_repository.dart';
+import 'package:kazumi/services/storage/interfaces/settings_repository.dart';
 
 class IndexModule extends Module {
   @override
@@ -40,6 +42,7 @@ class IndexModule extends Module {
     // Service layer
     i.addSingleton<IDownloadManager>(DownloadManager.new);
     i.addSingleton(ShaderAssetService.new);
+    i.addSingleton<ISettingsRepository>(GStorageSettingsRepository.new);
 
     // Controller layer
     i.addSingleton(PopularController.new);

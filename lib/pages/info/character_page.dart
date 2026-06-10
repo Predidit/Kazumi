@@ -28,10 +28,11 @@ class _CharacterPageState extends State<CharacterPage> {
     setState(() {
       loadingCharacter = true;
     });
-    await BangumiApi.getCharacterByCharacterID(widget.characterID)
-        .then((character) {
-      characterFullItem = character;
-    });
+    final result = await BangumiApi.getCharacterByCharacterID(widget.characterID);
+    characterFullItem = switch (result) {
+      Success(:final value) => value,
+      Failure() => CharacterFullItem.fromTemplate(),
+    };
     if (mounted) {
       setState(() {
         loadingCharacter = false;

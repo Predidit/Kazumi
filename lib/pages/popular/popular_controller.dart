@@ -45,11 +45,13 @@ abstract class _PopularController with Store {
       trendList.clear();
     }
     isLoadingMore = true;
-    var result = _bangumiMirrorEnabled
+    final result = _bangumiMirrorEnabled
         ? await BangumiApi.getBangumiMirrorPopularSubjects(
             offset: trendList.length)
         : await BangumiApi.getBangumiTrendsList(offset: trendList.length);
-    trendList.addAll(result);
+    if (result case Success(:final value)) {
+      trendList.addAll(value);
+    }
     isLoadingMore = false;
     isTimeOut = trendList.isEmpty;
   }
@@ -60,7 +62,7 @@ abstract class _PopularController with Store {
     }
     isLoadingMore = true;
     var tag = currentTag;
-    var result = _bangumiMirrorEnabled
+    final result = _bangumiMirrorEnabled
         ? await BangumiApi.getBangumiMirrorPopularSubjects(
             tag: tag,
             offset: bangumiList.length,
@@ -69,7 +71,9 @@ abstract class _PopularController with Store {
             rank: Random().nextInt(8000) + 1,
             tag: tag,
           );
-    bangumiList.addAll(result);
+    if (result case Success(:final value)) {
+      bangumiList.addAll(value);
+    }
     isLoadingMore = false;
     isTimeOut = bangumiList.isEmpty;
   }

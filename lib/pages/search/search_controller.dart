@@ -95,18 +95,20 @@ abstract class _SearchPageController with Store {
     if (idString != null) {
       final id = int.tryParse(idString);
       if (id != null) {
-        final BangumiItem? item = await BangumiApi.getBangumiInfoByID(id);
-        if (item != null) {
-          bangumiList.add(item);
+        final infoResult = await BangumiApi.getBangumiInfoByID(id);
+        if (infoResult case Success(:final value)) {
+          bangumiList.add(value);
         }
         return;
       }
     }
-    var result = await BangumiApi.bangumiSearch(keywords,
+    final searchResult = await BangumiApi.bangumiSearch(keywords,
         tags: [if (tag != null) tag],
         offset: bangumiList.length,
         sort: sort ?? 'heat');
-    bangumiList.addAll(result);
+    if (searchResult case Success(:final value)) {
+      bangumiList.addAll(value);
+    }
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
   }

@@ -218,9 +218,12 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     final int selectedEpisode =
         ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;
     KazumiDialog.showLoading(msg: '分集列表加载中');
-    final List<EpisodeInfo> episodeList =
-        await BangumiApi.getBangumiEpisodesByID(
-            videoPageController.bangumiItem.id);
+    final result = await BangumiApi.getBangumiEpisodesByID(
+        videoPageController.bangumiItem.id);
+    final List<EpisodeInfo> episodeList = switch (result) {
+      Success(:final value) => value,
+      Failure() => <EpisodeInfo>[],
+    };
     KazumiDialog.dismiss();
     if (!mounted) {
       return;

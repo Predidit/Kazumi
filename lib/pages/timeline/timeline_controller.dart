@@ -56,9 +56,11 @@ abstract class _TimelineController with Store {
     isLoading = true;
     isTimeOut = false;
     bangumiCalendar.clear();
-    final resBangumiCalendar = await BangumiApi.getCalendar();
+    final result = await BangumiApi.getCalendar();
     bangumiCalendar.clear();
-    bangumiCalendar.addAll(resBangumiCalendar);
+    if (result case Success(:final value)) {
+      bangumiCalendar.addAll(value);
+    }
     changeSortType(sortType);
     isLoading = false;
     isTimeOut = bangumiCalendar.isEmpty;
@@ -69,11 +71,13 @@ abstract class _TimelineController with Store {
       isLoading = true;
       isTimeOut = false;
       bangumiCalendar.clear();
-      final resBangumiCalendar =
+      final result =
           await BangumiApi.getBangumiMirrorSeasonCalendar(
               AnimeSeason(selectedDate).toSeasonStartAndEnd());
       bangumiCalendar.clear();
-      bangumiCalendar.addAll(resBangumiCalendar);
+      if (result case Success(:final value)) {
+        bangumiCalendar.addAll(value);
+      }
       isLoading = false;
       isTimeOut = bangumiCalendar.every((innerList) => innerList.isEmpty);
       if (!isTimeOut) {
@@ -92,10 +96,12 @@ abstract class _TimelineController with Store {
     var resBangumiCalendar = List.generate(7, (_) => <BangumiItem>[]);
     for (time = 0; time < maxTime; time++) {
       final offset = time * limit;
-      var newList = await BangumiApi.getCalendarBySearch(
+      final searchResult = await BangumiApi.getCalendarBySearch(
           AnimeSeason(selectedDate).toSeasonStartAndEnd(), limit, offset);
-      for (int i = 0; i < resBangumiCalendar.length; ++i) {
-        resBangumiCalendar[i].addAll(newList[i]);
+      if (searchResult case Success(:final value)) {
+        for (int i = 0; i < resBangumiCalendar.length; ++i) {
+          resBangumiCalendar[i].addAll(value[i]);
+        }
       }
       bangumiCalendar.clear();
       bangumiCalendar.addAll(resBangumiCalendar);

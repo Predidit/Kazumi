@@ -95,34 +95,34 @@ abstract class _InfoController with Store {
   }
 
   Future<void> _updateBangumiInfoByID(int id, {required String type}) async {
-    final value = await BangumiApi.getBangumiInfoByID(id);
-    if (value == null) {
-      return;
-    }
-    if (type == "init") {
-      bangumiItem = value;
-    } else {
-      bangumiItem.summary = value.summary;
-      bangumiItem.tags = value.tags;
-      bangumiItem.rank = value.rank;
-      bangumiItem.airDate = value.airDate;
-      bangumiItem.airWeekday = value.airWeekday;
-      bangumiItem.alias = value.alias;
-      bangumiItem.ratingScore = value.ratingScore;
-      bangumiItem.votes = value.votes;
-      bangumiItem.votesCount = value.votesCount;
-      final incomingInterest = value.interest;
-      final previousInterest = bangumiItem.interest;
-      if (incomingInterest == null) {
-        bangumiItem.interest = null;
-      } else if (previousInterest == null || !previousInterest.hasUserProfile) {
-        bangumiItem.interest = incomingInterest;
+    final result = await BangumiApi.getBangumiInfoByID(id);
+    if (result case Success(:final value)) {
+      if (type == "init") {
+        bangumiItem = value;
       } else {
-        bangumiItem.interest =
-            incomingInterest.copyWithUser(user: previousInterest.user);
+        bangumiItem.summary = value.summary;
+        bangumiItem.tags = value.tags;
+        bangumiItem.rank = value.rank;
+        bangumiItem.airDate = value.airDate;
+        bangumiItem.airWeekday = value.airWeekday;
+        bangumiItem.alias = value.alias;
+        bangumiItem.ratingScore = value.ratingScore;
+        bangumiItem.votes = value.votes;
+        bangumiItem.votesCount = value.votesCount;
+        final incomingInterest = value.interest;
+        final previousInterest = bangumiItem.interest;
+        if (incomingInterest == null) {
+          bangumiItem.interest = null;
+        } else if (previousInterest == null ||
+            !previousInterest.hasUserProfile) {
+          bangumiItem.interest = incomingInterest;
+        } else {
+          bangumiItem.interest =
+              incomingInterest.copyWithUser(user: previousInterest.user);
+        }
       }
+      await collectController.updateLocalCollect(bangumiItem);
     }
-    await collectController.updateLocalCollect(bangumiItem);
   }
 
   Future<void> queryBangumiCommentsByID(int id, {bool refresh = true}) async {

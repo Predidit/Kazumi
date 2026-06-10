@@ -2,6 +2,8 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/bangumi_client.dart';
 import 'package:kazumi/request/core/network_exception.dart';
+import 'package:kazumi/request/apis/bangumi_result.dart';
+export 'package:kazumi/request/apis/bangumi_result.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_response.dart';
 import 'package:kazumi/modules/characters/characters_response.dart';
@@ -17,7 +19,7 @@ import 'package:kazumi/modules/comments/comment_item.dart';
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
 
-  static Future<List<List<BangumiItem>>> getCalendar() async {
+  static Future<Result<List<List<BangumiItem>>>> getCalendar() async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
       final jsonData = await _client.get(
@@ -34,15 +36,16 @@ class BangumiApi {
         }
         bangumiCalendar.add(bangumiList);
       }
+      return Success(bangumiCalendar);
     } catch (e) {
       KazumiLogger().e('Resolve calendar failed', error: e);
+      return Failure(e);
     }
-    return bangumiCalendar;
   }
 
   // Official fallback for season switching. Mirror mode uses the cached
   // /kazumi/v1/calendar/season endpoint instead of Bangumi search.
-  static Future<List<List<BangumiItem>>> getCalendarBySearch(
+  static Future<Result<List<List<BangumiItem>>>> getCalendarBySearch(
       List<String> dateRange, int limit, int offset) async {
     List<BangumiItem> bangumiList = [];
     List<List<BangumiItem>> bangumiCalendar = [];
@@ -71,10 +74,6 @@ class BangumiApi {
           bangumiList.add(BangumiItem.fromJson(jsonItem));
         }
       }
-    } catch (e) {
-      KazumiLogger().e('Resolve bangumi list failed', error: e);
-    }
-    try {
       for (int weekday = 1; weekday <= 7; weekday++) {
         List<BangumiItem> bangumiDayList = [];
         for (BangumiItem bangumiItem in bangumiList) {
@@ -84,11 +83,11 @@ class BangumiApi {
         }
         bangumiCalendar.add(bangumiDayList);
       }
+      return Success(bangumiCalendar);
     } catch (e) {
-      KazumiLogger()
-          .e('Network: fetch bangumi item to calendar failed', error: e);
+      KazumiLogger().e('Resolve bangumi list failed', error: e);
+      return Failure(e);
     }
-    return bangumiCalendar;
   }
 
   static String buildBangumiMirrorSeasonCalendarPath(List<String> dateRange) {
@@ -101,7 +100,7 @@ class BangumiApi {
     ).toString();
   }
 
-  static Future<List<List<BangumiItem>>> getBangumiMirrorSeasonCalendar(
+  static Future<Result<List<List<BangumiItem>>>> getBangumiMirrorSeasonCalendar(
       List<String> dateRange) async {
     List<List<BangumiItem>> bangumiCalendar = [];
     try {
@@ -123,14 +122,15 @@ class BangumiApi {
         }
         bangumiCalendar.add(bangumiList);
       }
+      return Success(bangumiCalendar);
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi mirror season calendar failed',
           error: e);
+      return Failure(e);
     }
-    return bangumiCalendar;
   }
 
-  static Future<List<BangumiItem>> getBangumiList(
+  static Future<Result<List<BangumiItem>>> getBangumiList(
       {int rank = 2, String tag = ''}) async {
     List<BangumiItem> bangumiList = [];
     late Map<String, dynamic> params;
@@ -170,13 +170,14 @@ class BangumiApi {
           bangumiList.add(BangumiItem.fromJson(jsonItem));
         }
       }
+      return Success(bangumiList);
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi list failed', error: e);
+      return Failure(e);
     }
-    return bangumiList;
   }
 
-  static Future<List<BangumiItem>> getBangumiTrendsList(
+  static Future<Result<List<BangumiItem>>> getBangumiTrendsList(
       {int type = 2, int limit = 24, int offset = 0}) async {
     List<BangumiItem> bangumiList = [];
     var params = <String, dynamic>{
@@ -195,10 +196,11 @@ class BangumiApi {
           bangumiList.add(BangumiItem.fromJson(jsonItem['subject']));
         }
       }
+      return Success(bangumiList);
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi trends list failed', error: e);
+      return Failure(e);
     }
-    return bangumiList;
   }
 
   static String buildBangumiMirrorPopularPath({
@@ -216,7 +218,7 @@ class BangumiApi {
     ).toString();
   }
 
-  static Future<List<BangumiItem>> getBangumiMirrorPopularSubjects({
+  static Future<Result<List<BangumiItem>>> getBangumiMirrorPopularSubjects({
     String tag = '',
     int limit = 24,
     int offset = 0,
@@ -237,14 +239,15 @@ class BangumiApi {
           bangumiList.add(BangumiItem.fromJson(jsonItem));
         }
       }
+      return Success(bangumiList);
     } catch (e) {
       KazumiLogger()
           .e('Network: resolve bangumi mirror popular list failed', error: e);
+      return Failure(e);
     }
-    return bangumiList;
   }
 
-  static Future<List<BangumiItem>> bangumiSearch(String keyword,
+  static Future<Result<List<BangumiItem>>> bangumiSearch(String keyword,
       {List<String> tags = const [],
       int offset = 0,
       String sort = 'heat'}) async {
@@ -282,13 +285,14 @@ class BangumiApi {
           }
         }
       }
+      return Success(bangumiList);
     } catch (e) {
       KazumiLogger().e('Network: unknown search problem', error: e);
+      return Failure(e);
     }
-    return bangumiList;
   }
 
-  static Future<BangumiItem?> getBangumiInfoByID(int id) async {
+  static Future<Result<BangumiItem>> getBangumiInfoByID(int id) async {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -296,15 +300,14 @@ class BangumiApi {
                 ApiEndpoints.bangumiInfoByIDNext,
             [id]),
       );
-      return BangumiItem.fromJson(jsonData);
+      return Success(BangumiItem.fromJson(jsonData));
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi item failed', error: e);
-      return null;
+      return Failure(e);
     }
   }
 
-  static Future<EpisodeInfo> getBangumiEpisodeByID(int id, int episode) async {
-    EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
+  static Future<Result<EpisodeInfo>> getBangumiEpisodeByID(int id, int episode) async {
     var params = <String, dynamic>{
       'subject_id': id,
       'offset': episode - 1,
@@ -315,14 +318,14 @@ class BangumiApi {
         ApiEndpoints.bangumiAPIDomain + ApiEndpoints.bangumiEpisodeByID,
         queryParameters: params,
       );
-      episodeInfo = EpisodeInfo.fromJson(jsonData['data'][0]);
+      return Success(EpisodeInfo.fromJson(jsonData['data'][0]));
     } catch (e) {
       KazumiLogger().e('Network: resolve bangumi episode failed', error: e);
+      return Failure(e);
     }
-    return episodeInfo;
   }
 
-  static Future<List<EpisodeInfo>> getBangumiEpisodesByID(int id) async {
+  static Future<Result<List<EpisodeInfo>>> getBangumiEpisodesByID(int id) async {
     final List<EpisodeInfo> episodeList = [];
     const int limit = 100;
     int offset = 0;
@@ -348,11 +351,12 @@ class BangumiApi {
             .map((jsonItem) => EpisodeInfo.fromJson(jsonItem)));
         offset += data.length;
       } while (total == null || offset < total);
+      return Success(episodeList);
     } catch (e) {
       KazumiLogger()
           .e('Network: resolve bangumi episode list failed', error: e);
+      return Failure(e);
     }
-    return episodeList;
   }
 
   static Future<CommentResponse> getBangumiCommentsByID(int id,
@@ -406,8 +410,7 @@ class BangumiApi {
     return CharactersResponse.fromJson(jsonData);
   }
 
-  static Future<CharacterFullItem> getCharacterByCharacterID(int id) async {
-    CharacterFullItem characterFullItem = CharacterFullItem.fromTemplate();
+  static Future<Result<CharacterFullItem>> getCharacterByCharacterID(int id) async {
     try {
       final jsonData = await _client.get(
         ApiEndpoints.formatUrl(
@@ -415,11 +418,11 @@ class BangumiApi {
                 ApiEndpoints.bangumiCharacterInfoByCharacterIDNext,
             [id]),
       );
-      characterFullItem = CharacterFullItem.fromJson(jsonData);
+      return Success(CharacterFullItem.fromJson(jsonData));
     } catch (e) {
       KazumiLogger().e('Network: resolve character info failed', error: e);
+      return Failure(e);
     }
-    return characterFullItem;
   }
 
   static Future<String?> getUsername() async {

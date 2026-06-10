@@ -210,7 +210,7 @@ abstract class _VideoPageController with Store {
     roadList.clear();
     episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
     roadList.add(Road(
-      name: '播放列表1',
+      name: '播放线路1',
       data: episodes.map((e) => e.episodeNumber.toString()).toList(),
       identifier: episodes
           .map((e) =>

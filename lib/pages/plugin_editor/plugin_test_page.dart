@@ -451,7 +451,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (!_hasSearchData) return '无有效搜索结果';
     if (!_needChapterParse) return '无需解析章节';
     if (chapters == null) return '未获取章节数据';
-    return '获取到 ${chapters?.length ?? 0} 个播放列表';
+    return '获取到 ${chapters?.length ?? 0} 个播放线路';
   }
 
   Widget _buildChapterContent(ThemeData theme) {
@@ -482,7 +482,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '播放列表 ${i + 1}：${road.name}',
+                  '播放线路 ${i + 1}：${road.name}',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w500),
                 ),

@@ -91,5 +91,5 @@ abstract class IVideoSourceService {
   void cancel();
 
   /// 释放资源
-  void dispose();
+  Future<void> dispose();
 }

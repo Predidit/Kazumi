@@ -281,8 +281,8 @@ class VideoWebviewAndroidImpl
   }
 
   @override
-  void dispose() {
-    headlessWebView?.dispose();
+  Future<void> dispose() async {
+    await headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
     disposeEventControllers();

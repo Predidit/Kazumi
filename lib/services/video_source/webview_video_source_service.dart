@@ -11,6 +11,7 @@ import 'package:kazumi/services/video_source/video_source_service.dart';
 class WebViewVideoSourceService implements IVideoSourceService {
   VideoWebviewController? _webview;
   StreamSubscription? _logSubscription;
+  Completer<void>? _cancelCompleter;
 
   /// 单个服务实例不能实现并发解析，单个服务实例只能持有一个 WebView。
   /// 服务可以在正在进行的解析未完成时，取消该解析并开始新的解析。
@@ -28,8 +29,15 @@ class WebViewVideoSourceService implements IVideoSourceService {
     int offset = 0,
     Duration timeout = const Duration(seconds: 15),
   }) async {
+    final previousCancelCompleter = _cancelCompleter;
+    if (previousCancelCompleter != null &&
+        !previousCancelCompleter.isCompleted) {
+      previousCancelCompleter.complete();
+    }
     _resolveId++;
     final currentResolveId = _resolveId;
+    final cancelCompleter = Completer<void>();
+    _cancelCompleter = cancelCompleter;
 
     if (_webview == null) {
       _webview = VideoWebviewControllerFactory.getController();
@@ -53,7 +61,7 @@ class WebViewVideoSourceService implements IVideoSourceService {
         throw const VideoSourceCancelledException();
       }
 
-      final event = await _webview!.onVideoURLParser.first.timeout(
+      final parserFuture = _webview!.onVideoURLParser.first.timeout(
         timeout,
         onTimeout: () {
           if (currentResolveId != _resolveId) {
@@ -62,6 +70,10 @@ class WebViewVideoSourceService implements IVideoSourceService {
           throw VideoSourceTimeoutException(timeout);
         },
       );
+      final cancelFuture = cancelCompleter.future.then<(String, int)>((_) {
+        throw const VideoSourceCancelledException();
+      });
+      final event = await Future.any([parserFuture, cancelFuture]);
 
       if (currentResolveId != _resolveId) {
         throw const VideoSourceCancelledException();
@@ -81,8 +93,12 @@ class WebViewVideoSourceService implements IVideoSourceService {
       }
       rethrow;
     } finally {
-      if (currentResolveId == _resolveId) {
+      if (currentResolveId == _resolveId ||
+          identical(_cancelCompleter, cancelCompleter)) {
         await _webview?.unloadPage();
+      }
+      if (identical(_cancelCompleter, cancelCompleter)) {
+        _cancelCompleter = null;
       }
     }
   }
@@ -90,15 +106,21 @@ class WebViewVideoSourceService implements IVideoSourceService {
   @override
   void cancel() {
     _resolveId++;
+    final cancelCompleter = _cancelCompleter;
+    if (cancelCompleter != null && !cancelCompleter.isCompleted) {
+      cancelCompleter.complete();
+    }
   }
 
   @override
-  void dispose() {
+  Future<void> dispose() async {
     cancel();
-    _logSubscription?.cancel();
+    await _logSubscription?.cancel();
     _logSubscription = null;
-    _logController.close();
-    _webview?.dispose();
+    if (!_logController.isClosed) {
+      await _logController.close();
+    }
+    await _webview?.dispose();
     _webview = null;
   }
 }

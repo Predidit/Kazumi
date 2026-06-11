@@ -330,11 +330,25 @@ class WebDav {
             episode: progress.episode,
             road: progress.road,
             progressMs: progress.progress.inMilliseconds,
-            lastSrc: history.lastSrc,
-            lastWatchEpisodeName: history.lastWatchEpisodeName,
           ),
         );
       }
+      events.add(
+        HistorySyncEvent(
+          eventId: 'local-state:${history.key}:watch-state',
+          deviceId: 'local-state',
+          seq: 0,
+          op: HistorySyncOp.upsertWatchState,
+          updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
+          entityKey: history.key,
+          bangumiItem: history.bangumiItem,
+          adapterName: history.adapterName,
+          episode: history.lastWatchEpisode,
+          lastSrc: history.lastSrc,
+          lastWatchEpisodeName: history.lastWatchEpisodeName,
+          carriesWatchState: true,
+        ),
+      );
     }
     return events;
   }

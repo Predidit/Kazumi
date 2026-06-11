@@ -32,16 +32,44 @@ class HistorySyncService {
     required int progressMs,
     int? updatedAt,
   }) async {
-    final event = HistorySyncEvent.upsertProgress(
-      deviceId: await getDeviceId(),
-      seq: await _nextSeq(),
-      history: history,
-      episode: episode,
-      road: road,
-      progressMs: progressMs,
-      updatedAt: updatedAt ?? history.lastWatchTime.millisecondsSinceEpoch,
+    final deviceId = await getDeviceId();
+    final effectiveUpdatedAt =
+        updatedAt ?? history.lastWatchTime.millisecondsSinceEpoch;
+    final progressSeq = await _nextSeq();
+    final watchStateSeq = await _nextSeq();
+    final events = [
+      HistorySyncEvent.upsertProgress(
+        deviceId: deviceId,
+        seq: progressSeq,
+        history: history,
+        episode: episode,
+        road: road,
+        progressMs: progressMs,
+        updatedAt: effectiveUpdatedAt,
+      ),
+      HistorySyncEvent.upsertWatchState(
+        deviceId: deviceId,
+        seq: watchStateSeq,
+        history: history,
+        episode: episode,
+        updatedAt: effectiveUpdatedAt,
+      ),
+    ];
+    await appendEvents(events);
+  }
+
+  Future<void> appendEvent(HistorySyncEvent event) async {
+    await appendEvents([event]);
+  }
+
+  Future<void> appendEvents(Iterable<HistorySyncEvent> events) async {
+    final file = await localChangeLogFile();
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      HistorySyncCodec.eventsToJsonLines(events),
+      mode: FileMode.append,
+      flush: true,
     );
-    await appendEvent(event);
   }
 
   Future<void> appendDeleteHistory(History history) async {
@@ -61,16 +89,6 @@ class HistorySyncService {
       updatedAt: DateTime.now().millisecondsSinceEpoch,
     );
     await appendEvent(event);
-  }
-
-  Future<void> appendEvent(HistorySyncEvent event) async {
-    final file = await localChangeLogFile();
-    await file.parent.create(recursive: true);
-    await file.writeAsString(
-      HistorySyncCodec.eventsToJsonLines([event]),
-      mode: FileMode.append,
-      flush: true,
-    );
   }
 
   Future<List<HistorySyncEvent>> readLocalEvents() async {

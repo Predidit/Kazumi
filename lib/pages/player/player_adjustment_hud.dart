@@ -119,7 +119,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
     final accent = _accent(colorScheme);
     final container = _container(colorScheme);
     final onContainer = _onContainer(colorScheme);
-    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.74);
+    final surface = colorScheme.surfaceContainerHighest;
     final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
     final duration = widget.disableAnimations
         ? Duration.zero
@@ -187,7 +187,7 @@ class _PlayerAdjustmentHudState extends State<PlayerAdjustmentHud> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: container.withValues(alpha: 0.92),
+                        color: container,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: AnimatedSwitcher(
@@ -608,8 +608,8 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
     final accent = colorScheme.secondaryContainer;
     final container = colorScheme.secondary;
     final onContainer = colorScheme.onSecondary;
-    final progressFill = colorScheme.secondaryContainer.withValues(alpha: 0.46);
-    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.74);
+    final progressFill = colorScheme.secondaryContainer;
+    final surface = colorScheme.surfaceContainerHighest;
     final border = colorScheme.outlineVariant.withValues(alpha: 0.34);
     final duration = widget.disableAnimations
         ? Duration.zero
@@ -700,7 +700,7 @@ class _PlayerSeekHudState extends State<PlayerSeekHud> {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: container.withValues(alpha: 0.92),
+                              color: container,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: AnimatedSwitcher(
@@ -837,7 +837,7 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
     final colorScheme = Theme.of(context).colorScheme;
     final container = colorScheme.inverseSurface;
     final onContainer = colorScheme.onInverseSurface;
-    final surface = colorScheme.surfaceContainerHighest.withValues(alpha: 0.56);
+    final surface = colorScheme.surfaceContainerHighest;
     final border = colorScheme.outlineVariant.withValues(alpha: 0.22);
     final duration = widget.disableAnimations
         ? Duration.zero
@@ -887,7 +887,7 @@ class _PlayerSpeedHudState extends State<PlayerSpeedHud> {
                       width: 22,
                       height: 22,
                       decoration: BoxDecoration(
-                        color: container.withValues(alpha: 0.72),
+                        color: container,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(

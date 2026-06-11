@@ -9,7 +9,7 @@ import 'package:kazumi/services/logging/logger.dart';
 /// 下载逻辑仍在主 Isolate 运行，此服务仅负责：
 /// 1. 显示通知栏进度
 /// 2. 保持进程存活
-/// 3. 提供通知栏交互（暂停/取消）
+/// 3. 提供通知栏交互（暂停全部）
 class BackgroundDownloadService {
   static final BackgroundDownloadService _instance =
       BackgroundDownloadService._internal();
@@ -20,7 +20,6 @@ class BackgroundDownloadService {
   bool _isRunning = false;
 
   void Function()? onPauseAll;
-  void Function()? onCancelAll;
   void Function()? onNavigateToDownloadRequested;
 
   /// 返回 true 表示用户同意请求权限，false 表示用户拒绝
@@ -181,22 +180,9 @@ class BackgroundDownloadService {
     await updateNotification(title: title, text: text);
   }
 
-  Future<void> showCompletedNotification({
-    required int completedCount,
-  }) async {
-    if (!isSupported) return;
-    await stopService();
-    // TODO: 显示普通通知告知用户下载完成（需要额外的通知插件）
-  }
-
   void handleNotificationAction(String buttonId) {
-    switch (buttonId) {
-      case 'pause_all':
-        onPauseAll?.call();
-        break;
-      case 'cancel_all':
-        onCancelAll?.call();
-        break;
+    if (buttonId == 'pause_all') {
+      onPauseAll?.call();
     }
   }
 

@@ -125,6 +125,7 @@ abstract class _DownloadController with Store {
   }
 
   final Map<String, double> _speeds = {};
+  final _backgroundNotificationUpdater = _LatestAsyncRunner();
   DateTime _lastUiUpdateTime = DateTime.now();
   static const _uiUpdateInterval = Duration(milliseconds: 500);
 
@@ -137,33 +138,50 @@ abstract class _DownloadController with Store {
     _repository.updateEpisode(recordKey, episodeNumber, episode);
 
     final key = '${recordKey}_$episodeNumber';
-    _speeds[key] = speed;
 
     final isFinalState = episode.status == DownloadStatus.completed ||
         episode.status == DownloadStatus.failed ||
         episode.status == DownloadStatus.paused;
+    if (isFinalState) {
+      _speeds.remove(key);
+    } else {
+      _speeds[key] = speed;
+    }
 
     final now = DateTime.now();
     if (isFinalState ||
         now.difference(_lastUiUpdateTime) >= _uiUpdateInterval) {
       _lastUiUpdateTime = now;
       _refreshRecord(recordKey);
-      _updateBackgroundNotification();
+      _queueBackgroundNotificationUpdate();
     }
+  }
+
+  void _queueBackgroundNotificationUpdate() {
+    _backgroundNotificationUpdater.schedule(() async {
+      try {
+        await _updateBackgroundNotification();
+      } catch (e) {
+        KazumiLogger().w(
+          'DownloadController: background notification update failed',
+          error: e,
+        );
+      }
+    });
   }
 
   Future<void> _updateBackgroundNotification() async {
     if (!_backgroundService.isRunning) return;
 
     final stats = _getDownloadStats();
-    if (stats.activeCount == 0 && stats.pendingCount == 0) {
+    if (!stats.hasWork) {
       await _backgroundService.stopService();
       return;
     }
 
-    double totalSpeed = 0;
-    for (final entry in _speeds.entries) {
-      totalSpeed += entry.value;
+    var totalSpeed = 0.0;
+    for (final key in stats.activeKeys) {
+      totalSpeed += _speeds[key] ?? 0;
     }
 
     await _backgroundService.updateProgress(
@@ -183,19 +201,21 @@ abstract class _DownloadController with Store {
     }
   }
 
-  ({int activeCount, int pendingCount, int totalCount, double overallProgress})
-      _getDownloadStats() {
-    int activeCount = 0;
-    int pendingCount = 0;
-    int totalCount = 0;
-    double totalProgress = 0;
+  _DownloadStats _getDownloadStats() {
+    var activeCount = 0;
+    var pendingCount = 0;
+    var totalCount = 0;
+    var totalProgress = 0.0;
+    final activeKeys = <String>{};
 
-    for (final record in recordByKey.values) {
-      for (final episode in record.episodes.values) {
+    for (final record in _repository.getAllRecords()) {
+      for (final entry in record.episodes.entries) {
+        final episode = entry.value;
         if (episode.status == DownloadStatus.downloading) {
           activeCount++;
           totalCount++;
           totalProgress += episode.progressPercent;
+          activeKeys.add('${record.key}_${entry.key}');
         } else if (episode.status == DownloadStatus.resolving ||
             episode.status == DownloadStatus.pending) {
           pendingCount++;
@@ -204,12 +224,12 @@ abstract class _DownloadController with Store {
       }
     }
 
-    final overallProgress = totalCount > 0 ? totalProgress / totalCount : 0.0;
-    return (
+    return _DownloadStats(
       activeCount: activeCount,
       pendingCount: pendingCount,
       totalCount: totalCount,
-      overallProgress: overallProgress,
+      overallProgress: totalCount > 0 ? totalProgress / totalCount : 0.0,
+      activeKeys: activeKeys,
     );
   }
 
@@ -588,7 +608,6 @@ abstract class _DownloadController with Store {
       KazumiLogger().i(
           'DownloadController: resolved M3U8 URL for episode ${request.episodeNumber}: $m3u8Url');
 
-      // Update episode with resolved URL
       final freshRecord = _repository.getRecord(request.recordKey);
       if (freshRecord == null) return;
       final freshEpisode = freshRecord.episodes[request.episodeNumber];
@@ -761,7 +780,7 @@ abstract class _DownloadController with Store {
         episode.status = DownloadStatus.paused;
         await _repository.updateEpisode(recordKey, episodeNumber, episode);
         _refreshRecord(recordKey);
-        _updateBackgroundNotification();
+        _queueBackgroundNotificationUpdate();
       }
     }
   }
@@ -807,7 +826,6 @@ abstract class _DownloadController with Store {
       return;
     }
 
-    // If we already have a resolved M3U8 URL, go directly to download
     if (episode.networkM3u8Url.isNotEmpty) {
       episode.status = DownloadStatus.downloading;
       episode.errorMessage = '';
@@ -861,7 +879,7 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
-    _updateBackgroundNotification();
+    _queueBackgroundNotificationUpdate();
   }
 
   Future<void> deleteRecord(int bangumiId, String pluginName) async {
@@ -877,7 +895,7 @@ abstract class _DownloadController with Store {
     await _downloadManager.deleteRecordFiles(bangumiId, pluginName);
     await _repository.deleteRecord(recordKey);
     _refreshRecord(recordKey);
-    _updateBackgroundNotification();
+    _queueBackgroundNotificationUpdate();
   }
 
   Future<void> deleteEpisode(
@@ -890,7 +908,7 @@ abstract class _DownloadController with Store {
         bangumiId, pluginName, episodeNumber);
     await _repository.deleteEpisode(recordKey, episodeNumber);
     _refreshRecord(recordKey);
-    _updateBackgroundNotification();
+    _queueBackgroundNotificationUpdate();
   }
 
   Future<void> priorityDownload({
@@ -1002,4 +1020,47 @@ class _ResolveRequest {
     required this.episodeNumber,
     required this.episodePageUrl,
   });
+}
+
+class _DownloadStats {
+  final int activeCount;
+  final int pendingCount;
+  final int totalCount;
+  final double overallProgress;
+  final Set<String> activeKeys;
+
+  const _DownloadStats({
+    required this.activeCount,
+    required this.pendingCount,
+    required this.totalCount,
+    required this.overallProgress,
+    required this.activeKeys,
+  });
+
+  bool get hasWork => activeCount > 0 || pendingCount > 0;
+}
+
+class _LatestAsyncRunner {
+  bool _isRunning = false;
+  bool _needsRun = false;
+
+  void schedule(Future<void> Function() task) {
+    if (_isRunning) {
+      _needsRun = true;
+      return;
+    }
+    unawaited(_run(task));
+  }
+
+  Future<void> _run(Future<void> Function() task) async {
+    _isRunning = true;
+    try {
+      do {
+        _needsRun = false;
+        await task();
+      } while (_needsRun);
+    } finally {
+      _isRunning = false;
+    }
+  }
 }

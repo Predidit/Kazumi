@@ -89,7 +89,7 @@ abstract class _SearchPageController with Store {
     isTimeOut = false;
     SearchParser parser = SearchParser(input);
     String? idString = parser.parseId();
-    String? tag = parser.parseTag();
+    List<String> tags = parser.parseTags();
     String? sort = parser.parseSort();
     String keywords = parser.parseKeywords();
     if (idString != null) {
@@ -103,7 +103,7 @@ abstract class _SearchPageController with Store {
       }
     }
     var result = await BangumiApi.bangumiSearch(keywords,
-        tags: [if (tag != null) tag],
+        tags: tags,
         offset: bangumiList.length,
         sort: sort ?? 'heat');
     bangumiList.addAll(result);

@@ -1,7 +1,7 @@
 class SearchParser {
   final String query;
   final RegExp _idRegExp = RegExp(r'id:(\d+)', caseSensitive: false);
-  final RegExp _tagRegExp = RegExp(r'tag:(\S+)', caseSensitive: false);
+  final RegExp _tagRegExp = RegExp(r'tag:(.+)', caseSensitive: false);
   final RegExp _sortRegExp = RegExp(r'sort:([\w\-]+)', caseSensitive: false);
 
   SearchParser(this.query);
@@ -11,9 +11,14 @@ class SearchParser {
     return match != null ? match.group(1) : null;
   }
 
-  String? parseTag() {
+  List<String> parseTags() {
     final match = _tagRegExp.firstMatch(query);
-    return match != null ? match.group(1) : null;
+    if (match == null) return [];
+    final tagString = (match.group(1) ?? '').trim();
+    return tagString
+        .split(RegExp(r'\s+'))
+        .where((e) => e.isNotEmpty)
+        .toList();
   }
 
   String? parseSort() {

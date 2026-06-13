@@ -64,6 +64,7 @@ void main() async {
         }));
     return;
   }
+  await DesktopTitleBar.migrateLegacySettingsIfNeeded();
   if (isDesktop()) {
     await windowManager.ensureInitialized();
     final lowResolution = await isLowResolution();

@@ -60,5 +60,20 @@ void main() {
 
       expect(parser.updateSort('rank'), 'tag:日本 sort:rank');
     });
+
+    test('parses multiple tags', () {
+      final parser = SearchParser('tag:新海诚 tag:剧场版 tag:恋爱');
+
+      expect(parser.parseTags(), ['新海诚', '剧场版', '恋爱']);
+      expect(parser.parseKeywords(), isEmpty);
+    });
+
+    test('parses multiple tags with sort syntax together', () {
+      final parser = SearchParser('tag:新海诚 tag:剧场版 tag:恋爱 sort:rank');
+
+      expect(parser.parseTags(), ['新海诚', '剧场版', '恋爱']);
+      expect(parser.parseSort(), 'rank');
+      expect(parser.parseKeywords(), isEmpty);
+    });
   });
 }

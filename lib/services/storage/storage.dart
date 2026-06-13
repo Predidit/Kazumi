@@ -4,7 +4,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
+import 'package:kazumi/hive_registrar.g.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/collect/collect_module.dart';
 import 'package:kazumi/modules/collect/collect_change_module.dart';
@@ -146,15 +146,7 @@ class GStorage {
   static Future init() async {
     _hivePath = '${(await getApplicationSupportDirectory()).path}/hive';
 
-    Hive.registerAdapter(BangumiItemAdapter());
-    Hive.registerAdapter(BangumiTagAdapter());
-    Hive.registerAdapter(CollectedBangumiAdapter());
-    Hive.registerAdapter(ProgressAdapter());
-    Hive.registerAdapter(HistoryAdapter());
-    Hive.registerAdapter(CollectedBangumiChangeAdapter());
-    Hive.registerAdapter(SearchHistoryAdapter());
-    Hive.registerAdapter(DownloadRecordAdapter());
-    Hive.registerAdapter(DownloadEpisodeAdapter());
+    Hive.registerAdapters();
 
     // Open each box with automatic recovery on corruption
     favorites = await _openBoxSafe<BangumiItem>('favorites');

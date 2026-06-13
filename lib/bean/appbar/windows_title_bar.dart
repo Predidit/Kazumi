@@ -140,11 +140,19 @@ class _WindowsTitleBarState extends State<WindowsTitleBar> with WindowListener {
     }
 
     final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        if (_showTitleBar) _buildTitleBar(context, colorScheme),
-        Expanded(child: content),
+    return DragToResizeArea(
+      resizeEdgeSize: 6.0,
+      enableResizeEdges: const [
+        ResizeEdge.topLeft,
+        ResizeEdge.top,
+        ResizeEdge.topRight,
       ],
+      child: Column(
+        children: [
+          if (_showTitleBar) _buildTitleBar(context, colorScheme),
+          Expanded(child: content),
+        ],
+      ),
     );
   }
 

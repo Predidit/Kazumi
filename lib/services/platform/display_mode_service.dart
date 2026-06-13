@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:kazumi/bean/appbar/windows_title_bar.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/platform/platform_environment_service.dart';
 import 'package:kazumi/utils/device.dart';
@@ -14,7 +15,17 @@ class DisplayModeService {
 
   static Future<void> enterFullScreen({bool lockOrientation = true}) async {
     if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      if (Platform.isWindows) {
+        // Pre-hide title bar to avoid flicker; onWindowEnterFullScreen
+        // also sets forceHidden when fullscreen actually engages.
+        WindowsTitleBarVisibility.setForceHidden(true);
+      }
       await windowManager.setFullScreen(true);
+      if (Platform.isWindows) {
+        // Safety net: some Windows transitions don't reliably fire
+        // onWindowEnterFullScreen, so explicitly re-sync from window state.
+        WindowsTitleBarVisibility.requestSync();
+      }
       return;
     }
     if (Platform.isAndroid) {
@@ -34,7 +45,17 @@ class DisplayModeService {
 
   static Future<void> exitFullScreen({bool lockOrientation = true}) async {
     if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      if (Platform.isWindows) {
+        // Clear pre-hide before transition; onWindowLeaveFullScreen also
+        // clears forceHidden as a safety net.
+        WindowsTitleBarVisibility.setForceHidden(false);
+      }
       await windowManager.setFullScreen(false);
+      if (Platform.isWindows) {
+        // Safety net: maximized → fullscreen → maximized sometimes drops
+        // onWindowLeaveFullScreen, leaving the title bar permanently hidden.
+        WindowsTitleBarVisibility.requestSync();
+      }
     }
     try {
       if (Platform.isAndroid || Platform.isIOS) {

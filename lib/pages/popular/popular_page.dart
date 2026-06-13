@@ -12,8 +12,8 @@ import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/menu/menu.dart';
-import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/utils/desktop_title_bar.dart';
 import 'package:kazumi/utils/device.dart';
 
 class PopularPage extends StatefulWidget {
@@ -72,10 +72,6 @@ class _PopularPageState extends State<PopularPage>
         popularController.queryBangumiByTrend();
       }
     }
-  }
-
-  bool showWindowButton() {
-    return GStorage.getSetting(SettingsKeys.showWindowButton);
   }
 
   void onBackPressed(BuildContext context) {
@@ -279,16 +275,14 @@ class _PopularPageState extends State<PopularPage>
         icon: const Icon(Icons.history),
       ),
     );
-    if (isDesktop()) {
-      if (!showWindowButton()) {
-        actions.add(
-          IconButton(
-            tooltip: '退出',
-            onPressed: () => windowManager.close(),
-            icon: const Icon(Icons.close),
-          ),
-        );
-      }
+    if (isDesktop() && DesktopTitleBar.shouldShowCloseButton()) {
+      actions.add(
+        IconButton(
+          tooltip: '退出',
+          onPressed: () => windowManager.close(),
+          icon: const Icon(Icons.close),
+        ),
+      );
     }
     return actions;
   }

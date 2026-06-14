@@ -497,7 +497,7 @@ class _PlayerItemState extends State<PlayerItem>
   void handleDanmaku() {
     playerController.danmaku.canvasController.clear();
     if (playerController.danmaku.danmakuOn) {
-      playerController.danmaku.danmakuOn = false;
+      playerController.danmaku.setDanmakuEnabled(false);
       GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, false);
       unawaited(_updateAndroidPIPActions(force: true));
       return;
@@ -507,7 +507,7 @@ class _PlayerItemState extends State<PlayerItem>
       unawaited(_updateAndroidPIPActions(force: true));
       return;
     }
-    playerController.danmaku.danmakuOn = true;
+    playerController.danmaku.setDanmakuEnabled(true);
     GStorage.putSetting(SettingsKeys.danmakuEnabledByDefault, true);
     unawaited(_updateAndroidPIPActions(force: true));
   }
@@ -1104,10 +1104,12 @@ class _PlayerItemState extends State<PlayerItem>
                                     return;
                                   }
                                   if (hasDanmakus) {
-                                    playerController.danmaku.danmakuOn = true;
+                                    playerController.danmaku
+                                        .setDanmakuEnabled(true);
                                     KazumiDialog.showToast(message: '弹幕切换成功');
                                   } else {
-                                    playerController.danmaku.danmakuOn = false;
+                                    playerController.danmaku
+                                        .setDanmakuEnabled(false);
                                     KazumiDialog.showToast(message: '未找到弹幕内容');
                                   }
                                 } catch (e) {
@@ -1656,8 +1658,9 @@ class _PlayerItemState extends State<PlayerItem>
     );
     webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     webDavEnableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
-    playerController.danmaku.danmakuOn =
-        GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault);
+    playerController.danmaku.setDanmakuEnabled(
+      GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault),
+    );
     _border = GStorage.getSetting(SettingsKeys.danmakuBorder);
     _opacity = GStorage.getSetting(SettingsKeys.danmakuOpacity);
     _fontSize = GStorage.getSetting(

@@ -1265,6 +1265,20 @@ class _PlayerItemState extends State<PlayerItem>
             },
           ),
           ListTile(
+            title: const Text("VideoBitrate"),
+            subtitle:
+                Text(playerController.debug.playerVideoBitrate.toString()),
+            onTap: () {
+              KazumiDialog.showToast(message: '已复制到剪贴板');
+              Clipboard.setData(
+                ClipboardData(
+                  text:
+                      "VideoBitrate\n${playerController.debug.playerVideoBitrate.toString()}",
+                ),
+              );
+            },
+          ),
+          ListTile(
             title: const Text("AudioBitrate"),
             subtitle:
                 Text(playerController.debug.playerAudioBitrate.toString()),

@@ -1,0 +1,105 @@
+name: 'Setup Flutter for ARM64 Linux'
+description: 'Install Flutter SDK on ARM64 Linux runners (no snap, no prebuilt binary)'
+author: 'hare'
+
+branding:
+  icon: 'layers'
+  color: 'blue'
+
+inputs:
+  channel:
+    description: 'Flutter channel (stable, beta, main)'
+    required: false
+    default: 'stable'
+  flutter-version:
+    description: 'Specific Flutter version (git ref). Overrides channel if set.'
+    required: false
+    default: ''
+  cache:
+    description: 'Cache the Flutter SDK'
+    required: false
+    default: 'true'
+  cache-key:
+    description: 'Additional cache key suffix'
+    required: false
+    default: ''
+  install-linux-deps:
+    description: 'Install Linux desktop build dependencies (clang, gtk3, etc.)'
+    required: false
+    default: 'true'
+
+outputs:
+  flutter-path:
+    description: 'Path to the Flutter SDK'
+    value: ${{ steps.setup.outputs.flutter-path }}
+  flutter-version:
+    description: 'Installed Flutter version'
+    value: ${{ steps.setup.outputs.flutter-version }}
+  dart-version:
+    description: 'Bundled Dart version'
+    value: ${{ steps.setup.outputs.dart-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Linux desktop dependencies
+      if: inputs.install-linux-deps == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y --no-install-recommends \
+          clang \
+          libgtk-3-dev \
+          mesa-utils \
+          ninja-build \
+          pkg-config \
+          liblzma-dev \
+          libstdc++-12-dev
+
+    - name: Cache Flutter SDK
+      if: inputs.cache == 'true'
+      id: cache-flutter
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/flutter
+        key: flutter-arm64-${{ inputs.channel }}-${{ inputs.flutter-version }}-${{ runner.os }}-${{ inputs.cache-key }}
+
+    - name: Clone Flutter SDK
+      id: setup
+      shell: bash
+      run: |
+        FLUTTER_PATH="${{ runner.temp }}/flutter"
+
+        if [ -f "$FLUTTER_PATH/bin/flutter" ]; then
+          echo "Using cached Flutter SDK"
+        else
+          REF="${{ inputs.flutter-version }}"
+          if [ -z "$REF" ]; then
+            REF="${{ inputs.channel }}"
+          fi
+          git clone https://github.com/flutter/flutter.git \
+            -b "$REF" \
+            --depth 1 \
+            "$FLUTTER_PATH"
+        fi
+
+        # Add to PATH
+        echo "$FLUTTER_PATH/bin" >> "$GITHUB_PATH"
+
+        # Trigger Dart SDK download (auto-detects ARM64) and verify
+        FLUTTER_VERSION=$("$FLUTTER_PATH/bin/flutter" --version 2>&1)
+        echo "$FLUTTER_VERSION"
+
+        # Extract versions
+        FV=$(echo "$FLUTTER_VERSION" | head -1 | grep -oP 'Flutter \K[\d.]+')
+        DV=$(echo "$FLUTTER_VERSION" | grep -oP 'Dart \K[\d.]+')
+
+        echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
+        echo "flutter-version=$FV" >> "$GITHUB_OUTPUT"
+        echo "dart-version=$DV" >> "$GITHUB_OUTPUT"
+
+    - name: Precache Flutter artifacts
+      shell: bash
+      run: |
+        flutter precache --linux
+        flutter doctor -v || true

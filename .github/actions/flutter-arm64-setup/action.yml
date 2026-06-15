@@ -101,5 +101,5 @@ runs:
     - name: Precache Flutter artifacts
       shell: bash
       run: |
-        flutter precache --linux
+        flutter precache --linux || true
         flutter doctor -v || true

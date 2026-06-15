@@ -90,13 +90,13 @@ runs:
         FLUTTER_VERSION=$("$FLUTTER_PATH/bin/flutter" --version 2>&1)
         echo "$FLUTTER_VERSION"
 
-        # Extract versions
-        FV=$(echo "$FLUTTER_VERSION" | head -1 | grep -oP 'Flutter \K[\d.]+')
-        DV=$(echo "$FLUTTER_VERSION" | grep -oP 'Dart \K[\d.]+')
+        # Extract versions (use sed, no PCRE dependency)
+        FV=$(echo "$FLUTTER_VERSION" | head -1 | sed -n 's/.*Flutter \([0-9.]*\).*/\1/p')
+        DV=$(echo "$FLUTTER_VERSION" | sed -n 's/.*Dart \([0-9.]*\).*/\1/p')
 
         echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
-        echo "flutter-version=$FV" >> "$GITHUB_OUTPUT"
-        echo "dart-version=$DV" >> "$GITHUB_OUTPUT"
+        echo "flutter-version=${FV:-unknown}" >> "$GITHUB_OUTPUT"
+        echo "dart-version=${DV:-unknown}" >> "$GITHUB_OUTPUT"
 
     - name: Precache Flutter artifacts
       shell: bash

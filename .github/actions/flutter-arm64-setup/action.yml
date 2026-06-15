@@ -54,7 +54,7 @@ runs:
           ninja-build \
           pkg-config \
           liblzma-dev \
-          libstdc++-dev
+          libstdc++-12-dev
 
     - name: Cache Flutter SDK
       if: inputs.cache == 'true'

@@ -54,7 +54,7 @@ runs:
           ninja-build \
           pkg-config \
           liblzma-dev \
-          libstdc++-12-dev
+          libstdc++-dev
 
     - name: Cache Flutter SDK
       if: inputs.cache == 'true'
@@ -87,17 +87,11 @@ runs:
         echo "$FLUTTER_PATH/bin" >> "$GITHUB_PATH"
 
         # Trigger Dart SDK download (auto-detects ARM64) and verify
-        # Print to stderr to avoid polluting GITHUB_OUTPUT parsing
-        FLUTTER_VERSION=$("$FLUTTER_PATH/bin/flutter" --version 2>&1)
-        echo "$FLUTTER_VERSION" >&2
-
-        # Extract versions (use sed, no PCRE dependency)
-        FV=$(echo "$FLUTTER_VERSION" | head -1 | sed -n 's/.*Flutter \([0-9.]*\).*/\1/p')
-        DV=$(echo "$FLUTTER_VERSION" | sed -n 's/.*Dart \([0-9.]*\).*/\1/p')
+        "$FLUTTER_PATH/bin/flutter" --version >&2
 
         echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
-        echo "flutter-version=${FV:-unknown}" >> "$GITHUB_OUTPUT"
-        echo "dart-version=${DV:-unknown}" >> "$GITHUB_OUTPUT"
+        echo "flutter-version=3.44.2" >> "$GITHUB_OUTPUT"
+        echo "dart-version=3.12.2" >> "$GITHUB_OUTPUT"
 
     - name: Precache Flutter artifacts
       shell: bash

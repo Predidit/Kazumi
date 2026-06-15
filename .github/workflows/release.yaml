@@ -331,7 +331,7 @@
             uses: ./.github/actions/flutter-arm64-setup
             with:
               channel: stable
-              flutter-version: '3.44.1'
+              flutter-version: '3.44.2'
           - name: Install project dependencies
             run: |
               sudo apt-get update

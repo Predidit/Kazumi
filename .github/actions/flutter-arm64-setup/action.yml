@@ -109,14 +109,19 @@ runs:
         echo "$FLUTTER_PATH/bin" >> "$GITHUB_PATH"
 
         # Trigger Dart SDK download (auto-detects ARM64) and verify
-        VERSION_JSON="$("$FLUTTER_PATH/bin/flutter" --version --machine)"
-        printf '%s\n' "$VERSION_JSON" >&2
-        FLUTTER_VERSION="$(printf '%s' "$VERSION_JSON" | python3 -c 'import json, sys; print(json.load(sys.stdin)["frameworkVersion"])')"
-        DART_VERSION="$(printf '%s' "$VERSION_JSON" | python3 -c 'import json, sys; print(json.load(sys.stdin)["dartSdkVersion"].split()[0])')"
+        VERSION_OUTPUT="$("$FLUTTER_PATH/bin/flutter" --version --machine)"
+        printf '%s\n' "$VERSION_OUTPUT" >&2
 
         echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
-        echo "flutter-version=$FLUTTER_VERSION" >> "$GITHUB_OUTPUT"
-        echo "dart-version=$DART_VERSION" >> "$GITHUB_OUTPUT"
+        printf '%s' "$VERSION_OUTPUT" | python3 -c 'import json, sys
+        s = sys.stdin.read()
+        start = s.find("{")
+        end = s.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            raise SystemExit("Flutter version output did not contain JSON")
+        data = json.loads(s[start:end + 1])
+        print("flutter-version=" + data["frameworkVersion"])
+        print("dart-version=" + data["dartSdkVersion"].split()[0])' >> "$GITHUB_OUTPUT"
 
     - name: Precache Flutter artifacts
       shell: bash

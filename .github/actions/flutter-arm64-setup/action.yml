@@ -12,9 +12,13 @@ inputs:
     required: false
     default: 'stable'
   flutter-version:
-    description: 'Specific Flutter version (git ref). Overrides channel if set.'
+    description: 'Specific Flutter version (git ref). Overrides flutter-version-file and channel if set.'
     required: false
     default: ''
+  flutter-version-file:
+    description: 'Path to pubspec.yaml containing environment.flutter.'
+    required: false
+    default: 'pubspec.yaml'
   cache:
     description: 'Cache the Flutter SDK'
     required: false
@@ -56,13 +60,34 @@ runs:
           liblzma-dev \
           libstdc++-12-dev
 
+    - name: Resolve Flutter version
+      id: resolve
+      shell: bash
+      run: |
+        REF="${{ inputs.flutter-version }}"
+        VERSION_FILE="${{ inputs.flutter-version-file }}"
+
+        if [ -z "$REF" ] && [ -n "$VERSION_FILE" ] && [ -f "$VERSION_FILE" ]; then
+          REF="$(awk '
+            /^[^[:space:]]/ { in_environment = ($1 == "environment:") }
+            in_environment && /^[[:space:]]+flutter:[[:space:]]*/ { print $2; exit }
+          ' "$VERSION_FILE")"
+          REF="$(printf '%s' "$REF" | tr -d "\"'")"
+        fi
+
+        if [ -z "$REF" ]; then
+          REF="${{ inputs.channel }}"
+        fi
+
+        echo "flutter-ref=$REF" >> "$GITHUB_OUTPUT"
+
     - name: Cache Flutter SDK
       if: inputs.cache == 'true'
       id: cache-flutter
       uses: actions/cache@v4
       with:
         path: ${{ runner.temp }}/flutter
-        key: flutter-arm64-${{ inputs.channel }}-${{ inputs.flutter-version }}-${{ runner.os }}-${{ inputs.cache-key }}
+        key: flutter-arm64-${{ steps.resolve.outputs.flutter-ref }}-${{ runner.os }}-${{ inputs.cache-key }}
 
     - name: Clone Flutter SDK
       id: setup
@@ -73,10 +98,7 @@ runs:
         if [ -f "$FLUTTER_PATH/bin/flutter" ]; then
           echo "Using cached Flutter SDK"
         else
-          REF="${{ inputs.flutter-version }}"
-          if [ -z "$REF" ]; then
-            REF="${{ inputs.channel }}"
-          fi
+          REF="${{ steps.resolve.outputs.flutter-ref }}"
           git clone https://github.com/flutter/flutter.git \
             -b "$REF" \
             --depth 1 \
@@ -87,11 +109,14 @@ runs:
         echo "$FLUTTER_PATH/bin" >> "$GITHUB_PATH"
 
         # Trigger Dart SDK download (auto-detects ARM64) and verify
-        "$FLUTTER_PATH/bin/flutter" --version >&2
+        VERSION_JSON="$("$FLUTTER_PATH/bin/flutter" --version --machine)"
+        printf '%s\n' "$VERSION_JSON" >&2
+        FLUTTER_VERSION="$(printf '%s' "$VERSION_JSON" | python3 -c 'import json, sys; print(json.load(sys.stdin)["frameworkVersion"])')"
+        DART_VERSION="$(printf '%s' "$VERSION_JSON" | python3 -c 'import json, sys; print(json.load(sys.stdin)["dartSdkVersion"].split()[0])')"
 
         echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
-        echo "flutter-version=3.44.2" >> "$GITHUB_OUTPUT"
-        echo "dart-version=3.12.2" >> "$GITHUB_OUTPUT"
+        echo "flutter-version=$FLUTTER_VERSION" >> "$GITHUB_OUTPUT"
+        echo "dart-version=$DART_VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Precache Flutter artifacts
       shell: bash

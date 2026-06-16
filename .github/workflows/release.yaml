@@ -113,7 +113,7 @@
       flutter-build-windows:
         name: "Release for windows"
         runs-on: "windows-latest"
-        needs: [flutter-build-android, flutter-build-ios, flutter-build-linux, flutter-build-linux-arm64, flutter-build-macos]
+        needs: [flutter-build-android, flutter-build-ios, flutter-build-linux-amd64, flutter-build-linux-arm64, flutter-build-macos]
         permissions: write-all
     
         steps:
@@ -209,8 +209,8 @@
               name: windows_msix_signed_outputs
               path: build/windows/msix_signed_output/*.msix
 
-      flutter-build-linux:
-        name: "Release for Linux"
+      flutter-build-linux-amd64:
+        name: "Release for Linux amd64"
         needs: [flutter-test, flutter-analyze]
         runs-on: "ubuntu-latest" 
         permissions: write-all
@@ -221,7 +221,7 @@
             run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             shell: bash
           - name: Echo build progress
-            run: echo "Kazumi_linux_${{ env.tag }}.tar.gz build progress"
+            run: echo "Kazumi_linux_${{ env.tag }}_amd64.tar.gz build progress"
             shell: bash
           - name: Install dependencies
             run: |
@@ -266,7 +266,7 @@
           #     token: ${{ secrets.GITHUB_TOKEN }}
           # - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
           # - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
-          - name: Package linux build output
+          - name: Package linux amd64 build output
             run: |
               # Tarball package
               tar -zcvf Kazumi_linux_${{ env.tag }}_amd64.tar.gz -C build/linux/x64/release/bundle .
@@ -305,10 +305,10 @@
               dpkg-deb --build --root-owner-group Kazumi_linux_${{ env.tag }}_amd64
             shell: bash
 
-          - name: Upload linux outputs
+          - name: Upload linux amd64 outputs
             uses: actions/upload-artifact@v4
             with:
-              name: linux_outputs
+              name: linux_amd64_outputs
               path: |
                 Kazumi_linux_*.tar.gz
                 Kazumi_linux_*.deb
@@ -316,7 +316,7 @@
       flutter-build-linux-arm64:
         name: "Release for Linux arm64"
         needs: [flutter-test, flutter-analyze]
-        runs-on: "ubuntu-24.04-arm"
+        runs-on: ${{ vars.LINUX_ARM64_RUNNER || 'ubuntu-24.04-arm' }}
         permissions: write-all
         steps:
           - name: Clone repository
@@ -547,15 +547,15 @@
           - name: Copy macos build file to root
             run: cp macos_outputs/* Kazumi_macos_${{ env.tag }}.dmg   
             
-          - name: Download linux build file
+          - name: Download linux amd64 build file
             uses: actions/download-artifact@v4
             with:
-              name: linux_outputs
-              path: linux_outputs
-          - name: List files in linux_outputs directory
-            run: ls -l linux_outputs
-          - name: Copy linux build file to root
-            run: cp linux_outputs/* .
+              name: linux_amd64_outputs
+              path: linux_amd64_outputs
+          - name: List files in linux_amd64_outputs directory
+            run: ls -l linux_amd64_outputs
+          - name: Copy linux amd64 build file to root
+            run: cp linux_amd64_outputs/* .
 
           - name: Download linux arm64 build file
             uses: actions/download-artifact@v4

@@ -37,6 +37,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
+  late int playerControllerLayerDisappearTime;
   final MenuController playerAspectRatioMenuController = MenuController();
   final MenuController playerLogLevelMenuController = MenuController();
 
@@ -78,6 +79,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<int>(SettingsKeys.buttonSkipTime);
     playerArrowKeySkipTime =
         GStorage.getSetting<int>(SettingsKeys.arrowKeySkipTime);
+
+    playerControllerLayerDisappearTime = GStorage.getSetting<int>(SettingsKeys.playerControllerLayerDisappearTime);
   }
 
   Future<void> resetPlayerSettings() async {
@@ -202,6 +205,62 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 return;
               }
               // 以新设置的值弹出
+              KazumiDialog.dismiss(popWith: newValue);
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      );
+    });
+  }
+
+  Future<void> updateButtonPlayerControllerLayerDisappearTime() async {
+    final int? newDisappearTime = await _showPlayerControllerLayerDisappearTimeChangeDialog(
+      title: '控制层消失时间', initialValue: playerControllerLayerDisappearTime.toString()
+    );
+
+    if (newDisappearTime != null && newDisappearTime != playerControllerLayerDisappearTime) {
+      GStorage.putSetting<int>(SettingsKeys.playerControllerLayerDisappearTime, newDisappearTime);
+      setState(() {
+        playerControllerLayerDisappearTime = newDisappearTime;
+      });
+    }
+  }
+
+  Future<int?> _showPlayerControllerLayerDisappearTimeChangeDialog({required String title, required String initialValue}) async {
+    return KazumiDialog.show<int>(builder: (context) {
+      String input = "";
+      return AlertDialog(
+        title: Text(title),
+        content: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return TextField(
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
+              ],
+              decoration: InputDecoration(
+                floatingLabelBehavior: FloatingLabelBehavior.never, // 控制label的显示方式
+                labelText: initialValue,
+              ),
+              onChanged: (value) => input = value,
+            );
+          }
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async {
+              final int? newValue = int.tryParse(input);
+
+              if (newValue == null) {
+                KazumiDialog.showToast(message: '请输入数字');
+                return;
+              }
+
+              if (newValue <= 0) {
+                KazumiDialog.showToast(message: '请输入大于0的数字');
+                return;
+              }
+
               KazumiDialog.dismiss(popWith: newValue);
             },
             child: const Text('确定'),
@@ -535,6 +594,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   description: Text('顶栏跳过按钮的秒数',
                       style: TextStyle(fontFamily: fontFamily)),
                   value: Text('$playerButtonSkipTime 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) async {
+                    await updateButtonPlayerControllerLayerDisappearTime();
+                  },
+                  title: Text('播放控制器消失时间',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('播放器控制器在没有交互后自动消失的时间 (毫秒)',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('$playerControllerLayerDisappearTime 毫秒',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(

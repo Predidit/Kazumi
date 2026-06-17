@@ -32,6 +32,8 @@ class ImageViewer extends StatefulWidget {
     this.heroTag,
   }) : imageUrls = List.unmodifiable(imageUrls);
 
+  static Object heroTagFor(String imageUrl, int index) => '$imageUrl-$index';
+
   /// 显示图片预览
   static Future<void> show(
     BuildContext context, {
@@ -42,7 +44,10 @@ class ImageViewer extends StatefulWidget {
     if (imageUrls.isEmpty) return;
 
     final index = initialIndex.clamp(0, imageUrls.length - 1);
-    final effectiveHeroTag = heroTag ?? imageUrls[index];
+    final effectiveHeroTag = heroTag ??
+        (imageUrls.length > 1
+            ? ImageViewer.heroTagFor(imageUrls[index], index)
+            : imageUrls[index]);
     await Modular.to.pushNamed(
       routePath,
       arguments: ImageViewerRouteArgs(
@@ -148,7 +153,7 @@ class _ImageViewerState extends State<ImageViewer> {
     if (index == widget.initialIndex && widget.heroTag != null) {
       return widget.heroTag!;
     }
-    return '${widget.imageUrls[index]}#$index';
+    return ImageViewer.heroTagFor(widget.imageUrls[index], index);
   }
 
   void _goToPreviousImage() {

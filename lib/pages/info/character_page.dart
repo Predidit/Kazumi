@@ -133,10 +133,16 @@ class _CharacterPageState extends State<CharacterPage> {
                                   onTap: () => ImageViewer.show(
                                     context,
                                     imageUrls: [characterFullItem.image],
-                                    heroTag: characterFullItem.image,
+                                    heroTag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
                                   ),
                                   child: Hero(
-                                    tag: characterFullItem.image,
+                                    tag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
                                     child: NetworkImgLayer(
                                       width: constraints.maxWidth,
                                       height: constraints.maxHeight,

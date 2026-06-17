@@ -127,7 +127,7 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                 );
               } else if (e is BBCodeImg) {
                 final currentIndex = imageIndex++;
-                final heroTag = '${e.imageUrl}#$currentIndex';
+                final heroTag = ImageViewer.heroTagFor(e.imageUrl, currentIndex);
                 return WidgetSpan(
                   child: GestureDetector(
                     onTap: () => ImageViewer.show(

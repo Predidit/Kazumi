@@ -81,7 +81,8 @@ class IndexModule extends Module {
       child: (_) {
         final args = Modular.args.data as ImageViewerRouteArgs;
         return ImageViewer(
-          imageUrl: args.imageUrl,
+          imageUrls: args.imageUrls,
+          initialIndex: args.initialIndex,
           heroTag: args.heroTag,
         );
       },

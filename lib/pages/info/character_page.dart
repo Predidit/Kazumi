@@ -132,7 +132,7 @@ class _CharacterPageState extends State<CharacterPage> {
                                 child: GestureDetector(
                                   onTap: () => ImageViewer.show(
                                     context,
-                                    imageUrl: characterFullItem.image,
+                                    imageUrls: [characterFullItem.image],
                                     heroTag: characterFullItem.image,
                                   ),
                                   child: Hero(

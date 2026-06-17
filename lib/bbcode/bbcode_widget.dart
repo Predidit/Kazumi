@@ -70,6 +70,12 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
     ParseTreeWalker.DEFAULT.walk(bbcodeBaseListener, tree);
     bbCodeTag.clear();
 
+    final imageUrls = bbcodeBaseListener.bbcode
+        .whereType<BBCodeImg>()
+        .map((e) => e.imageUrl)
+        .toList();
+    var imageIndex = 0;
+
     return Wrap(
       children: [
         RichText(
@@ -120,12 +126,18 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   ),
                 );
               } else if (e is BBCodeImg) {
+                final currentIndex = imageIndex++;
+                final heroTag = '${e.imageUrl}#$currentIndex';
                 return WidgetSpan(
                   child: GestureDetector(
-                    onTap: () => ImageViewer.show(context,
-                        imageUrl: e.imageUrl, heroTag: e.imageUrl),
+                    onTap: () => ImageViewer.show(
+                      context,
+                      imageUrls: imageUrls,
+                      initialIndex: currentIndex,
+                      heroTag: heroTag,
+                    ),
                     child: Hero(
-                      tag: e.imageUrl,
+                      tag: heroTag,
                       child: CachedNetworkImage(
                         imageUrl: e.imageUrl,
                         placeholder: (context, url) =>

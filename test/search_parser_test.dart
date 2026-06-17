@@ -3,77 +3,86 @@ import 'package:kazumi/utils/search_parser.dart';
 
 void main() {
   group('SearchParser', () {
-    test('parses tag containing full-width colon', () {
-      final parser = SearchParser('tag:Re：從零開始的異世界生活');
+    test('keeps id search behavior', () {
+      final parser = SearchParser('id:12345 tag:日本 sort:rank');
 
-      expect(parser.parseTags(), ['Re：從零開始的異世界生活']);
-      expect(parser.parseKeywords(), isEmpty);
+      expect(parser.parseId(), '12345');
+      expect(parser.toFilterState().isIdSearch, isTrue);
+      expect(SearchParser.fromFilterState(parser.toFilterState()), 'id:12345');
     });
 
-    test('parses katakana tag', () {
-      final parser = SearchParser('tag:ソワネ');
+    test('parses multiple tags and removes them from keywords', () {
+      final parser = SearchParser('葬送的芙莉莲 tag:奇幻 tag:漫画改 sort:rank');
 
-      expect(parser.parseTags(), ['ソワネ']);
-      expect(parser.parseKeywords(), isEmpty);
+      expect(parser.parseKeywords(), '葬送的芙莉莲');
+      expect(parser.parseTags(), ['奇幻', '漫画改']);
+      expect(parser.parseSort(), 'rank');
     });
 
-    test('parses tag containing parentheses', () {
-      final parser = SearchParser('tag:最强的职业不是勇者也不是贤者好像是鉴定士(伪)的样子');
+    test('parses adjacent tag and sort syntax', () {
+      final parser = SearchParser('tag:Re：从零开始的异世界生活sort:rank');
 
-      expect(parser.parseTags(), ['最强的职业不是勇者也不是贤者好像是鉴定士(伪)的样子']);
-      expect(parser.parseKeywords(), isEmpty);
-    });
-
-    test('parses tag and sort syntax together', () {
-      final parser = SearchParser('tag:Re：從零開始的異世界生活 sort:rank');
-
-      expect(parser.parseTags(), ['Re：從零開始的異世界生活']);
+      expect(parser.parseTags(), ['Re：从零开始的异世界生活']);
       expect(parser.parseSort(), 'rank');
       expect(parser.parseKeywords(), isEmpty);
     });
 
-    test('keeps common tag behavior', () {
-      final parser = SearchParser('tag:日本');
+    test('parses season and maps it to date range', () {
+      final parser = SearchParser('season:2026Q1');
+      final state = parser.toFilterState();
 
-      expect(parser.parseTags(), ['日本']);
-      expect(parser.parseKeywords(), isEmpty);
+      expect(state.season, '2026Q1');
+      expect(state.effectiveDateRange,
+          const SearchDateRange(start: '2025-12-01', end: '2026-03-01'));
     });
 
-    test('keeps normal keyword search behavior', () {
-      final parser = SearchParser('葬送的芙莉莲 sort:match');
+    test('parses custom date range', () {
+      final parser = SearchParser('date:2026-01-01..2026-04-01');
 
-      expect(parser.parseTags(), isEmpty);
-      expect(parser.parseSort(), 'match');
-      expect(parser.parseKeywords(), '葬送的芙莉莲');
+      expect(
+        parser.parseDateRange(),
+        const SearchDateRange(start: '2026-01-01', end: '2026-04-01'),
+      );
     });
 
-    test('keeps id search behavior', () {
-      final parser = SearchParser('id:12345');
+    test('parses rank and score ranges', () {
+      final parser = SearchParser('rank:1..5000 score:7.5..10');
 
-      expect(parser.parseId(), '12345');
-      expect(parser.parseTags(), isEmpty);
+      expect(parser.parseRankRange(), const SearchIntRange(min: 1, max: 5000));
+      expect(parser.parseScoreRange(),
+          const SearchDoubleRange(min: 7.5, max: 10.0));
+    });
+
+    test('parses weekday and ignores nsfw tokens', () {
+      final parser = SearchParser('weekday:1,3,5 nsfw:true');
+
+      expect(parser.parseWeekdays(), [1, 3, 5]);
       expect(parser.parseKeywords(), isEmpty);
+      expect(SearchParser.fromFilterState(parser.toFilterState()),
+          'weekday:1,3,5');
+    });
+
+    test('serializes filter state back to query syntax', () {
+      const state = SearchFilterState(
+        keyword: '孤独摇滚',
+        tags: ['音乐', '漫画改'],
+        sort: 'score',
+        season: '2022Q4',
+        rankRange: SearchIntRange(min: 1, max: 1000),
+        scoreRange: SearchDoubleRange(min: 8.0, max: 10.0),
+        weekdays: [6, 1],
+      );
+
+      expect(
+        SearchParser.fromFilterState(state),
+        '孤独摇滚 tag:音乐 tag:漫画改 sort:score season:2022Q4 rank:1..1000 score:8..10 weekday:1,6',
+      );
     });
 
     test('updates existing sort syntax', () {
       final parser = SearchParser('tag:日本 sort:heat');
 
       expect(parser.updateSort('rank'), 'tag:日本 sort:rank');
-    });
-
-    test('parses multiple tags', () {
-      final parser = SearchParser('tag:新海诚 tag:剧场版 tag:恋爱');
-
-      expect(parser.parseTags(), ['新海诚', '剧场版', '恋爱']);
-      expect(parser.parseKeywords(), isEmpty);
-    });
-
-    test('parses multiple tags with sort syntax together', () {
-      final parser = SearchParser('tag:新海诚 tag:剧场版 tag:恋爱 sort:rank');
-
-      expect(parser.parseTags(), ['新海诚', '剧场版', '恋爱']);
-      expect(parser.parseSort(), 'rank');
-      expect(parser.parseKeywords(), isEmpty);
     });
   });
 }

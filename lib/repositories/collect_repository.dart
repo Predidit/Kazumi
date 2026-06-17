@@ -21,16 +21,12 @@ abstract class ICollectRepository {
   // ========== 搜索页过滤器设置 ==========
 
   /// 获取搜索页"不显示已看过番剧"设置
-  bool getSearchNotShowWatchedBangumis();
 
   /// 更新搜索页"不显示已看过番剧"设置
-  Future<void> updateSearchNotShowWatchedBangumis(bool value);
 
   /// 获取搜索页"不显示已抛弃番剧"设置
-  bool getSearchNotShowAbandonedBangumis();
 
   /// 更新搜索页"不显示已抛弃番剧"设置
-  Future<void> updateSearchNotShowAbandonedBangumis(bool value);
 
   // ========== 时间表页过滤器设置 ==========
 
@@ -98,65 +94,6 @@ class CollectRepository implements ICollectRepository {
   }
 
   // ========== 搜索页过滤器设置实现 ==========
-
-  @override
-  bool getSearchNotShowWatchedBangumis() {
-    try {
-      final value =
-          GStorage.getSetting(SettingsKeys.searchNotShowWatchedBangumis);
-      return value;
-    } catch (e) {
-      KazumiLogger().w(
-        'GStorage: get search not show watched bangumis setting failed, using default false',
-        error: e,
-      );
-      return false;
-    }
-  }
-
-  @override
-  Future<void> updateSearchNotShowWatchedBangumis(bool value) async {
-    try {
-      await GStorage.putSetting(
-          SettingsKeys.searchNotShowWatchedBangumis, value);
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: update search not show watched bangumis setting failed. value=$value',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  @override
-  bool getSearchNotShowAbandonedBangumis() {
-    try {
-      final value =
-          GStorage.getSetting(SettingsKeys.searchNotShowAbandonedBangumis);
-      return value;
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: get search not show abandoned bangumis setting failed, using default false',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      return false;
-    }
-  }
-
-  @override
-  Future<void> updateSearchNotShowAbandonedBangumis(bool value) async {
-    try {
-      await GStorage.putSetting(
-          SettingsKeys.searchNotShowAbandonedBangumis, value);
-    } catch (e, stackTrace) {
-      KazumiLogger().e(
-        'GStorage: update search not show abandoned bangumis setting failed. value=$value',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
 
   // ========== 时间表页过滤器设置实现 ==========
 

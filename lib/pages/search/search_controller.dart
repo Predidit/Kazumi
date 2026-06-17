@@ -27,12 +27,10 @@ abstract class _SearchPageController with Store {
   bool isTimeOut = false;
 
   @observable
-  late bool notShowWatchedBangumis =
-      _collectRepository.getSearchNotShowWatchedBangumis();
+  bool notShowWatchedBangumis = false;
 
   @observable
-  late bool notShowAbandonedBangumis =
-      _collectRepository.getSearchNotShowAbandonedBangumis();
+  bool notShowAbandonedBangumis = false;
 
   @observable
   ObservableList<BangumiItem> bangumiList = ObservableList.of([]);
@@ -56,17 +54,6 @@ abstract class _SearchPageController with Store {
     searchHistories.addAll(histories);
   }
 
-  /// Avaliable sort parameters:
-  /// 1. heat
-  /// 2. match
-  /// 3. rank
-  /// 4. score
-  String attachSortParams(String input, String sort) {
-    SearchParser parser = SearchParser(input);
-    String newInput = parser.updateSort(sort);
-    return newInput;
-  }
-
   @action
   Future<void> searchBangumi(String input, {String type = 'add'}) async {
     if (type != 'add') {
@@ -88,10 +75,8 @@ abstract class _SearchPageController with Store {
     isLoading = true;
     isTimeOut = false;
     SearchParser parser = SearchParser(input);
-    String? idString = parser.parseId();
-    List<String> tags = parser.parseTags();
-    String? sort = parser.parseSort();
-    String keywords = parser.parseKeywords();
+    final filterState = parser.toFilterState();
+    String? idString = filterState.id.isEmpty ? null : filterState.id;
     if (idString != null) {
       final id = int.tryParse(idString);
       if (id != null) {
@@ -99,13 +84,19 @@ abstract class _SearchPageController with Store {
         if (item != null) {
           bangumiList.add(item);
         }
+        isLoading = false;
+        isTimeOut = bangumiList.isEmpty;
         return;
       }
     }
-    var result = await BangumiApi.bangumiSearch(keywords,
-        tags: tags,
+    final result = await BangumiApi.bangumiSearch(filterState.keyword,
+        tags: filterState.tags,
         offset: bangumiList.length,
-        sort: sort ?? 'heat');
+        sort: filterState.sort,
+        dateRange: filterState.effectiveDateRange,
+        rankRange: filterState.rankRange,
+        scoreRange: filterState.scoreRange,
+        weekdays: filterState.weekdays);
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;
@@ -173,13 +164,11 @@ abstract class _SearchPageController with Store {
   @action
   Future<void> setNotShowWatchedBangumis(bool value) async {
     notShowWatchedBangumis = value;
-    await _collectRepository.updateSearchNotShowWatchedBangumis(value);
   }
 
   @action
   Future<void> setNotShowAbandonedBangumis(bool value) async {
     notShowAbandonedBangumis = value;
-    await _collectRepository.updateSearchNotShowAbandonedBangumis(value);
   }
 
   Set<int> loadWatchedBangumiIds() {

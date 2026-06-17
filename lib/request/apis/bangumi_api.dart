@@ -13,6 +13,7 @@ import 'package:kazumi/modules/collect/collect_type.dart';
 import 'package:kazumi/modules/collect/collect_type_mapper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_collection_type.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
+import 'package:kazumi/utils/search_parser.dart';
 
 class BangumiApi {
   static final BangumiClient _client = BangumiClient.instance;
@@ -244,22 +245,72 @@ class BangumiApi {
     return bangumiList;
   }
 
+  static List<String> _buildNumberFilter<T extends num>(T? min, T? max) {
+    return [
+      if (min != null) '>=$min',
+      if (max != null) '<=$max',
+    ];
+  }
+
+  static Map<String, dynamic> buildBangumiSearchParams(
+    String keyword, {
+    List<String> tags = const [],
+    String sort = 'heat',
+    SearchDateRange? dateRange,
+    SearchIntRange? rankRange,
+    SearchDoubleRange? scoreRange,
+    List<int> weekdays = const [],
+  }) {
+    final rankFilter = rankRange?.isValid == true
+        ? _buildNumberFilter<int>(rankRange!.min, rankRange.max)
+        : (sort == 'rank')
+            ? [">0", "<=99999"]
+            : [">=0", "<=99999"];
+
+    final filter = <String, dynamic>{
+      "type": [2],
+      "tag": tags,
+      "rank": rankFilter,
+      "nsfw": false
+    };
+
+    if (dateRange?.isValid == true) {
+      filter["air_date"] = [">=${dateRange!.start}", "<${dateRange.end}"];
+    }
+    if (scoreRange?.isValid == true) {
+      filter["rating"] =
+          _buildNumberFilter<double>(scoreRange!.min, scoreRange.max);
+    }
+    if (weekdays.isNotEmpty) {
+      filter["air_weekday"] = weekdays.toSet().toList()..sort();
+    }
+
+    return <String, dynamic>{
+      'keyword': keyword,
+      'sort': sort,
+      "filter": filter,
+    };
+  }
+
   static Future<List<BangumiItem>> bangumiSearch(String keyword,
       {List<String> tags = const [],
       int offset = 0,
-      String sort = 'heat'}) async {
+      String sort = 'heat',
+      SearchDateRange? dateRange,
+      SearchIntRange? rankRange,
+      SearchDoubleRange? scoreRange,
+      List<int> weekdays = const []}) async {
     List<BangumiItem> bangumiList = [];
 
-    var params = <String, dynamic>{
-      'keyword': keyword,
-      'sort': sort,
-      "filter": {
-        "type": [2],
-        "tag": tags,
-        "rank": (sort == 'rank') ? [">0", "<=99999"] : [">=0", "<=99999"],
-        "nsfw": false
-      },
-    };
+    final params = buildBangumiSearchParams(
+      keyword,
+      tags: tags,
+      sort: sort,
+      dateRange: dateRange,
+      rankRange: rankRange,
+      scoreRange: scoreRange,
+      weekdays: weekdays,
+    );
 
     try {
       final jsonData = await _client.post(

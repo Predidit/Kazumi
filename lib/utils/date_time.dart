@@ -110,8 +110,14 @@ int dateStringToWeekday(String dateString) {
 String formatDate(String dateString) {
   try {
     final date = DateTime.parse(dateString);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return formatDateTime(date);
   } catch (_) {
     return dateString;
   }
+}
+
+String formatDateTime(DateTime date) {
+  return '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
 }

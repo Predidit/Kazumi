@@ -132,11 +132,17 @@ class _CharacterPageState extends State<CharacterPage> {
                                 child: GestureDetector(
                                   onTap: () => ImageViewer.show(
                                     context,
-                                    imageUrl: characterFullItem.image,
-                                    heroTag: characterFullItem.image,
+                                    imageUrls: [characterFullItem.image],
+                                    heroTag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
                                   ),
                                   child: Hero(
-                                    tag: characterFullItem.image,
+                                    tag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
                                     child: NetworkImgLayer(
                                       width: constraints.maxWidth,
                                       height: constraints.maxHeight,

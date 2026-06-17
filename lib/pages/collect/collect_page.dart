@@ -25,10 +25,12 @@ class CollectPage extends StatefulWidget {
 class _CollectPageState extends State<CollectPage>
     with SingleTickerProviderStateMixin {
   final CollectController collectController = Modular.get<CollectController>();
+  final TextEditingController searchController = TextEditingController();
   late NavigationBarState navigationBarState;
   TabController? tabController;
   bool showDelete = false;
   bool syncCollectiblesing = false;
+  bool searchBarHovering = false;
 
   Future<bool> _syncBangumiWithProgress({
     required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
@@ -133,6 +135,7 @@ class _CollectPageState extends State<CollectPage>
   }
 
   void onBackPressed(BuildContext context) {
+    collectController.searchText = '';
     if (syncCollectiblesing) {
       return;
     }
@@ -147,6 +150,7 @@ class _CollectPageState extends State<CollectPage>
   @override
   void initState() {
     super.initState();
+    searchController.text = collectController.searchText;
     collectController.loadCollectibles();
     tabController = TabController(vsync: this, length: tabs.length);
     navigationBarState =
@@ -156,6 +160,7 @@ class _CollectPageState extends State<CollectPage>
   @override
   void dispose() {
     tabController?.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -246,9 +251,58 @@ class _CollectPageState extends State<CollectPage>
                   width: 32, height: 32, child: CircularProgressIndicator())
               : const Icon(Icons.sync_rounded),
         ),
-        body: Observer(builder: (context) {
-          return renderBody;
-        }),
+        body: Stack(
+          children: [
+            Observer(builder: (context) {
+              return renderBody;
+            }),
+            Positioned(
+              left: 0,
+              right:0,
+              bottom: 16,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 0.5,
+                  child: MouseRegion(
+                    onHover: (_) => setState(() => searchBarHovering = true),
+                    onExit: (_) => setState(() => searchBarHovering = false),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: searchBarHovering ? 1.0 : 0.5,
+                      child: Material(
+                        elevation: 8,
+                        borderRadius: BorderRadius.circular(24),
+                        child: SearchBar(
+                          controller: searchController,
+                          hintText: '搜索番剧',
+                          leading: ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: searchController,
+                            builder: (context, value, child) {
+                              if (value.text.isEmpty) {
+                                return const Icon(Icons.search);
+                              }
+                              return IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  searchController.clear();
+                                  collectController.searchText = '';
+                                },
+                              );
+                            },
+                          ),
+                          onChanged: (text) {
+                            collectController.searchText = text;
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -274,6 +328,12 @@ class _CollectPageState extends State<CollectPage>
       collectedBangumiRenderItemList[element.type - 1].add(element);
     }
     for (List<CollectedBangumi> list in collectedBangumiRenderItemList) {
+      if (collectController.searchText.isNotEmpty) {
+        list.removeWhere((item) {
+          return !item.bangumiItem.nameCn.contains(collectController.searchText) &&
+                !item.bangumiItem.name.contains(collectController.searchText);
+        });
+      }
       list.sort((a, b) => b.time.millisecondsSinceEpoch
           .compareTo(a.time.millisecondsSinceEpoch));
     }

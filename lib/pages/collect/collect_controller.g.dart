@@ -25,6 +25,22 @@ mixin _$CollectController on _CollectController, Store {
     });
   }
 
+  late final _$searchTextAtom =
+      Atom(name: '_CollectController.searchText', context: context);
+
+  @override
+  String get searchText {
+    _$searchTextAtom.reportRead();
+    return super.searchText;
+  }
+
+  @override
+  set searchText(String value) {
+    _$searchTextAtom.reportWrite(value, super.searchText, () {
+      super.searchText = value;
+    });
+  }
+
   late final _$addCollectAsyncAction =
       AsyncAction('_CollectController.addCollect', context: context);
 
@@ -46,7 +62,8 @@ mixin _$CollectController on _CollectController, Store {
   @override
   String toString() {
     return '''
-collectibles: ${collectibles}
+collectibles: ${collectibles},
+searchText: ${searchText}
     ''';
   }
 }

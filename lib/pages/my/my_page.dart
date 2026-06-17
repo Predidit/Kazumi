@@ -5,7 +5,7 @@ import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/menu/menu.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/device.dart';
 
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
@@ -163,7 +163,7 @@ class _MyPageState extends State<MyPage> {
                 ),
               ],
             ),
-            if (Utils.isDesktop())
+            if (isDesktop())
               SettingsSection(
                 title: Text('实验性功能',
                     style: TextStyle(fontFamily: fontFamily)),

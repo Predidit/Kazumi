@@ -172,6 +172,7 @@ A: 本项目编译需要良好的网络环境, 除了由 Google 托管的 Flutte
 ## 赞助 (Sponsors)
 | ![signpath](https://signpath.org/assets/favicon-50x50.png) | Free code signing on Windows provided by [SignPath.io](https://about.signpath.io/), certficate by [SignPath Foundation](https://signpath.org/) |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| ![kilocode](https://kilo.ai/favicon/apple-touch-icon.png) | Automatic PR review provided by [Kilo Code](https://kilo.ai/) through the Kilo OSS Sponsorship Program (Premier tier) |
 
 ## 致谢
 

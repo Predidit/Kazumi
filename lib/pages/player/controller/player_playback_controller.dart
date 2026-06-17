@@ -4,18 +4,20 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/player/controller/player_debug_controller.dart';
-import 'package:kazumi/shaders/shaders_controller.dart';
+import 'package:kazumi/services/shaders/shader_asset_service.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/player/player_screenshot_service.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:mobx/mobx.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/services/platform/platform_environment_service.dart';
 
 part 'player_playback_controller.g.dart';
 
@@ -24,22 +26,21 @@ class PlayerPlaybackController = _PlayerPlaybackController
 
 abstract class _PlayerPlaybackController with Store {
   _PlayerPlaybackController({
-    required this.setting,
-    required this.shadersController,
+    required this.shaderAssetService,
     required this.debug,
     required this.videoUrl,
     required this.onExitSyncPlayRoom,
   });
 
-  final Box setting;
-  final ShadersController shadersController;
+  final ShaderAssetService shaderAssetService;
   final PlayerDebugController debug;
   final String Function() videoUrl;
   final Future<void> Function() onExitSyncPlayRoom;
+  final PlayerScreenshotService screenshotService =
+      const PlayerScreenshotService();
 
   Player? mediaPlayer;
   VideoController? videoController;
-  int lifecycleId = 0;
 
   bool hAenable = true;
   late String hardwareDecoder;
@@ -57,9 +58,11 @@ abstract class _PlayerPlaybackController with Store {
   @observable
   int superResolutionType = 1;
 
-  // 视频音量
   @observable
   double volume = -1;
+
+  /// 手势调节时的精确音量，避免 UI 节流导致累计误差
+  double preciseVolume = -1;
 
   @observable
   bool loading = true;
@@ -78,14 +81,18 @@ abstract class _PlayerPlaybackController with Store {
   @observable
   double playerSpeed = 1.0;
 
-  int beginInit() => ++lifecycleId;
-
-  void cancelActiveInit() {
-    lifecycleId++;
+  bool isCurrentPlayer(Player player) {
+    return identical(mediaPlayer, player);
   }
 
-  bool isCurrentPlayer(int expectedLifecycleId, Player player) {
-    return lifecycleId == expectedLifecycleId && identical(mediaPlayer, player);
+  Future<Player?> _discardIfNotCurrent(Player player) async {
+    if (isCurrentPlayer(player)) {
+      return player;
+    }
+    try {
+      await player.dispose();
+    } catch (_) {}
+    return null;
   }
 
   @action
@@ -157,19 +164,16 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<Player?> createVideoController(
       Map<String, String> httpHeaders, bool adBlockerEnabled,
-      {int offset = 0, required int lifecycleId}) async {
+      {int offset = 0}) async {
     superResolutionType =
-        setting.get(SettingBoxKey.defaultSuperResolutionType, defaultValue: 1);
-    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+        GStorage.getSetting(SettingsKeys.defaultSuperResolutionType);
+    hAenable = GStorage.getSetting(SettingsKeys.hAenable);
     androidEnableOpenSLES =
-        setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
-    hardwareDecoder =
-        setting.get(SettingBoxKey.hardwareDecoder, defaultValue: 'auto-safe');
-    autoPlay = setting.get(SettingBoxKey.autoPlay, defaultValue: true);
-    lowMemoryMode =
-        setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    playerDebugMode =
-        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
+        GStorage.getSetting(SettingsKeys.androidEnableOpenSLES);
+    hardwareDecoder = GStorage.getSetting(SettingsKeys.hardwareDecoder);
+    autoPlay = GStorage.getSetting(SettingsKeys.autoPlay);
+    lowMemoryMode = GStorage.getSetting(SettingsKeys.lowMemoryMode);
+    playerDebugMode = GStorage.getSetting(SettingsKeys.playerDebugMode);
 
     final Player player = Player(
       configuration: PlayerConfiguration(
@@ -184,41 +188,49 @@ abstract class _PlayerPlaybackController with Store {
     debug.playerLog.clear();
     await debug.setup(
       player,
-      lifecycleId: lifecycleId,
       isCurrentPlayer: isCurrentPlayer,
       playerDebugMode: playerDebugMode,
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     var pp = player.platform as NativePlayer;
     // media-kit 默认启用硬盘作为双重缓存，这可以维持大缓存的前提下减轻内存压力
     // media-kit 内部硬盘缓存目录按照 Linux 配置，这导致该功能在其他平台上被损坏
     // 该设置可以在所有平台上正确启用双重缓存
-    await pp.setProperty("demuxer-cache-dir", await Utils.getPlayerTempPath());
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    await pp.setProperty("demuxer-cache-dir", await getPlayerTempPath());
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
     await pp.setProperty("af", "scaletempo2=max-speed=8");
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
       if (androidEnableOpenSLES) {
         await pp.setProperty("ao", "opensles");
       } else {
         await pp.setProperty("ao", "audiotrack");
       }
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
     }
 
-    // 设置 HTTP 代理
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (proxyEnable) {
-      final String proxyUrl =
-          setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+      final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
       final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
       if (formattedProxy != null) {
         await pp.setProperty("http-proxy", formattedProxy);
-        if (!isCurrentPlayer(lifecycleId, player)) return null;
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(player);
+        }
         KazumiLogger().i('Player: HTTP 代理设置成功 $formattedProxy');
       }
     }
@@ -226,18 +238,24 @@ abstract class _PlayerPlaybackController with Store {
     await player.setAudioTrack(
       AudioTrack.auto(),
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     String? videoRenderer;
     if (Platform.isAndroid) {
       final String androidVideoRenderer =
-          setting.get(SettingBoxKey.androidVideoRenderer, defaultValue: 'auto');
+          GStorage.getSetting(SettingsKeys.androidVideoRenderer);
 
       if (androidVideoRenderer == 'auto') {
         // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
         // GPU-NEXT 需要 Vulkan 1.2 支持
         // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
-        final int androidSdkVersion = await Utils.getAndroidSdkVersion();
+        final int androidSdkVersion =
+            await PlatformEnvironmentService.getAndroidSdkVersion();
+        if (!isCurrentPlayer(player)) {
+          return await _discardIfNotCurrent(player);
+        }
         if (androidSdkVersion >= 34) {
           videoRenderer = 'gpu-next';
         } else {
@@ -264,14 +282,14 @@ abstract class _PlayerPlaybackController with Store {
       ),
     );
     player.setPlaylistMode(PlaylistMode.none);
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
-    // error handle
-    bool showPlayerError =
-        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
+    bool showPlayerError = GStorage.getSetting(SettingsKeys.showPlayerError);
     player.stream.error.listen((event) {
       if (showPlayerError) {
-        if (!isCurrentPlayer(lifecycleId, player)) {
+        if (!isCurrentPlayer(player)) {
           return;
         }
         if (event.toString().contains('Failed to open') && playerBuffering) {
@@ -290,7 +308,9 @@ abstract class _PlayerPlaybackController with Store {
 
     if (superResolutionType != 1) {
       await setShader(superResolutionType, player: player);
-      if (!isCurrentPlayer(lifecycleId, player)) return null;
+      if (!isCurrentPlayer(player)) {
+        return await _discardIfNotCurrent(player);
+      }
     }
 
     await player.open(
@@ -298,7 +318,9 @@ abstract class _PlayerPlaybackController with Store {
           start: Duration(seconds: offset), httpHeaders: httpHeaders),
       play: autoPlay,
     );
-    if (!isCurrentPlayer(lifecycleId, player)) return null;
+    if (!isCurrentPlayer(player)) {
+      return await _discardIfNotCurrent(player);
+    }
 
     return player;
   }
@@ -319,8 +341,8 @@ abstract class _PlayerPlaybackController with Store {
           'change-list',
           'glsl-shaders',
           'set',
-          Utils.buildShadersAbsolutePath(
-              shadersController.shadersDirectory.path, mpvAnime4KShadersLite),
+          buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path, mpvAnime4KShadersLite),
         ]);
         superResolutionType = 2;
         return;
@@ -330,8 +352,8 @@ abstract class _PlayerPlaybackController with Store {
           'change-list',
           'glsl-shaders',
           'set',
-          Utils.buildShadersAbsolutePath(
-              shadersController.shadersDirectory.path, mpvAnime4KShaders),
+          buildShadersAbsolutePath(
+              shaderAssetService.shadersDirectory.path, mpvAnime4KShaders),
         ]);
         superResolutionType = 3;
         return;
@@ -354,14 +376,39 @@ abstract class _PlayerPlaybackController with Store {
   }
 
   Future<void> setVolume(double value) async {
+    updateVolume(value);
+    await syncVolumeToDevice(preciseVolume >= 0 ? preciseVolume : volume);
+  }
+
+  @action
+  void updateVolume(double value) {
     value = value.clamp(0.0, 100.0);
+    preciseVolume = value;
+    if (volume.toInt() == value.toInt()) {
+      return;
+    }
     volume = value;
+  }
+
+  /// 外部来源（硬件键、系统面板等）变更音量时同步，并清除手势缓存
+  @action
+  void applyExternalVolume(double value) {
+    value = value.clamp(0.0, 100.0);
+    preciseVolume = -1;
+    volume = value;
+  }
+
+  void invalidatePreciseVolume() {
+    preciseVolume = -1;
+  }
+
+  Future<void> syncVolumeToDevice([double? value]) async {
+    final vol = (value ?? volume).clamp(0.0, 100.0);
     try {
-      if (Utils.isDesktop()) {
-        await mediaPlayer!.setVolume(value);
+      if (isDesktop()) {
+        await mediaPlayer!.setVolume(vol);
       } else {
-        await FlutterVolumeController.updateShowSystemUI(false);
-        await FlutterVolumeController.setVolume(value / 100);
+        await FlutterVolumeController.setVolume(vol / 100);
       }
     } catch (_) {}
   }
@@ -410,12 +457,7 @@ abstract class _PlayerPlaybackController with Store {
 
   Future<void> dispose({
     bool disposeSyncPlayController = true,
-    bool cancelActiveInit = true,
   }) async {
-    // Bump the generation first so late init continuations cannot touch it.
-    if (cancelActiveInit) {
-      this.cancelActiveInit();
-    }
     final player = mediaPlayer;
     mediaPlayer = null;
     videoController = null;
@@ -436,12 +478,24 @@ abstract class _PlayerPlaybackController with Store {
   Future<void> stop() async {
     try {
       final player = mediaPlayer;
+      mediaPlayer = null;
+      videoController = null;
+      await debug.cancel();
       await player?.stop();
+      await player?.dispose();
       loading = true;
     } catch (_) {}
   }
 
   Future<Uint8List?> screenshot({String format = 'image/jpeg'}) async {
     return await mediaPlayer!.screenshot(format: format);
+  }
+
+  Future<Uint8List?> screenshotPng() async {
+    final player = mediaPlayer;
+    if (player == null) {
+      return null;
+    }
+    return await screenshotService.capturePng(player);
   }
 }

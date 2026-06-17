@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/pip_utils.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/player/pip_utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/device.dart';
 
 class PlayerSettingsPage extends StatefulWidget {
   const PlayerSettingsPage({super.key});
@@ -19,7 +18,6 @@ class PlayerSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
-  Box setting = GStorage.setting;
   late double defaultPlaySpeed;
   late double defaultShortcutForwardPlaySpeed;
   late int defaultAspectRatioType;
@@ -45,41 +43,70 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   @override
   void initState() {
     super.initState();
+    _loadSettingsFromStorage();
+  }
+
+  void _loadSettingsFromStorage() {
     defaultPlaySpeed =
-        setting.get(SettingBoxKey.defaultPlaySpeed, defaultValue: 1.0);
-    defaultShortcutForwardPlaySpeed = 
-        setting.get(SettingBoxKey.defaultShortcutForwardPlaySpeed, defaultValue: 2.0);
+        GStorage.getSetting<double>(SettingsKeys.defaultPlaySpeed);
+    defaultShortcutForwardPlaySpeed = GStorage.getSetting<double>(
+        SettingsKeys.defaultShortcutForwardPlaySpeed);
     defaultAspectRatioType =
-        setting.get(SettingBoxKey.defaultAspectRatioType, defaultValue: 1);
-    hAenable = setting.get(SettingBoxKey.hAenable, defaultValue: true);
+        GStorage.getSetting<int>(SettingsKeys.defaultAspectRatioType);
+    hAenable = GStorage.getSetting<bool>(SettingsKeys.hAenable);
     androidEnableOpenSLES =
-        setting.get(SettingBoxKey.androidEnableOpenSLES, defaultValue: true);
+        GStorage.getSetting<bool>(SettingsKeys.androidEnableOpenSLES);
     androidAutoEnterPIP =
-        setting.get(SettingBoxKey.androidAutoEnterPIP, defaultValue: false);
-    lowMemoryMode =
-        setting.get(SettingBoxKey.lowMemoryMode, defaultValue: false);
-    playResume = setting.get(SettingBoxKey.playResume, defaultValue: true);
-    privateMode = setting.get(SettingBoxKey.privateMode, defaultValue: false);
-    showPlayerError =
-        setting.get(SettingBoxKey.showPlayerError, defaultValue: true);
-    playerDebugMode =
-        setting.get(SettingBoxKey.playerDebugMode, defaultValue: false);
-    autoPlayNext = setting.get(SettingBoxKey.autoPlayNext, defaultValue: true);
+        GStorage.getSetting<bool>(SettingsKeys.androidAutoEnterPIP);
+    lowMemoryMode = GStorage.getSetting<bool>(SettingsKeys.lowMemoryMode);
+    playResume = GStorage.getSetting<bool>(SettingsKeys.playResume);
+    privateMode = GStorage.getSetting<bool>(SettingsKeys.privateMode);
+    showPlayerError = GStorage.getSetting<bool>(SettingsKeys.showPlayerError);
+    playerDebugMode = GStorage.getSetting<bool>(SettingsKeys.playerDebugMode);
+    autoPlayNext = GStorage.getSetting<bool>(SettingsKeys.autoPlayNext);
     backgroundPlayback =
-        setting.get(SettingBoxKey.backgroundPlayback, defaultValue: false);
+        GStorage.getSetting<bool>(SettingsKeys.backgroundPlayback);
     playerDisableAnimations =
-        setting.get(SettingBoxKey.playerDisableAnimations, defaultValue: false);
-    forceAdBlocker =
-        setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
-    playerLogLevel = setting.get(SettingBoxKey.playerLogLevel, defaultValue: 2);
+        GStorage.getSetting<bool>(SettingsKeys.playerDisableAnimations);
+    forceAdBlocker = GStorage.getSetting<bool>(SettingsKeys.forceAdBlocker);
+    playerLogLevel = GStorage.getSetting<int>(SettingsKeys.playerLogLevel);
 
     brightnessVolumeGesture =
-        setting.get(SettingBoxKey.brightnessVolumeGesture, defaultValue: true);
+        GStorage.getSetting<bool>(SettingsKeys.brightnessVolumeGesture);
 
     playerButtonSkipTime =
-        setting.get(SettingBoxKey.buttonSkipTime, defaultValue: 80);
+        GStorage.getSetting<int>(SettingsKeys.buttonSkipTime);
     playerArrowKeySkipTime =
-        setting.get(SettingBoxKey.arrowKeySkipTime, defaultValue: 10);
+        GStorage.getSetting<int>(SettingsKeys.arrowKeySkipTime);
+  }
+
+  Future<void> resetPlayerSettings() async {
+    final bool shouldReset = await KazumiDialog.show<bool>(
+          builder: (context) => AlertDialog(
+            title: const Text('恢复默认播放设置'),
+            content: const Text('播放设置、硬件解码器、视频渲染器和超分辨率设置将恢复为默认值。'),
+            actions: [
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: false),
+                child: Text('取消'),
+              ),
+              TextButton(
+                onPressed: () => KazumiDialog.dismiss(popWith: true),
+                child: Text('恢复默认'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!shouldReset) return;
+
+    await GStorage.resetPlayerSettings();
+    if (Platform.isAndroid) {
+      await PipUtils.setAndroidAutoEnterPIPEnabled(false);
+    }
+    if (!mounted) return;
+    setState(_loadSettingsFromStorage);
+    KazumiDialog.showToast(message: '已恢复默认播放设置');
   }
 
   void onBackPressed(BuildContext context) {
@@ -90,28 +117,29 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   }
 
   void updateDefaultPlaySpeed(double speed) {
-    setting.put(SettingBoxKey.defaultPlaySpeed, speed);
+    GStorage.putSetting<double>(SettingsKeys.defaultPlaySpeed, speed);
     setState(() {
       defaultPlaySpeed = speed;
     });
   }
 
   void updateDefaultShortcutForwardPlaySpeed(double speed) {
-    setting.put(SettingBoxKey.defaultShortcutForwardPlaySpeed, speed);
+    GStorage.putSetting<double>(
+        SettingsKeys.defaultShortcutForwardPlaySpeed, speed);
     setState(() {
       defaultShortcutForwardPlaySpeed = speed;
     });
   }
 
   void updatePlayerLogLevel(int level) {
-    setting.put(SettingBoxKey.playerLogLevel, level);
+    GStorage.putSetting<int>(SettingsKeys.playerLogLevel, level);
     setState(() {
       playerLogLevel = level;
     });
   }
 
   void updateDefaultAspectRatioType(int type) {
-    setting.put(SettingBoxKey.defaultAspectRatioType, type);
+    GStorage.putSetting<int>(SettingsKeys.defaultAspectRatioType, type);
     setState(() {
       defaultAspectRatioType = type;
     });
@@ -120,11 +148,10 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   Future<void> updateButtonSkipTime() async {
     final int? newButtonSkipTime = await _showSkipTimeChangeDialog(
         title: '顶部按钮快进时长', initialValue: playerButtonSkipTime.toString());
-    print('新设置的顶部按钮快进时长: $newButtonSkipTime');
 
     if (newButtonSkipTime != null &&
         newButtonSkipTime != playerButtonSkipTime) {
-      setting.put(SettingBoxKey.buttonSkipTime, newButtonSkipTime);
+      GStorage.putSetting<int>(SettingsKeys.buttonSkipTime, newButtonSkipTime);
       setState(() {
         playerButtonSkipTime = newButtonSkipTime;
       });
@@ -202,7 +229,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     hAenable = value ?? !hAenable;
-                    await setting.put(SettingBoxKey.hAenable, hAenable);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.hAenable, hAenable);
                     setState(() {});
                   },
                   title: Text('硬件解码', style: TextStyle(fontFamily: fontFamily)),
@@ -212,39 +240,48 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   onPressed: (_) async {
                     await Modular.to.pushNamed('/settings/player/decoder');
                   },
-                  title: Text('硬件解码器', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('仅在硬件解码启用时生效', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('硬件解码器', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('仅在硬件解码启用时生效',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 if (Platform.isAndroid) ...[
                   SettingsTile.navigation(
                     onPressed: (_) async {
                       await Modular.to.pushNamed('/settings/player/renderer');
                     },
-                    title: Text('视频渲染器', style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('选择视频输出方式', style: TextStyle(fontFamily: fontFamily)),
+                    title:
+                        Text('视频渲染器', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('选择视频输出方式',
+                        style: TextStyle(fontFamily: fontFamily)),
                   ),
                 ],
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     lowMemoryMode = value ?? !lowMemoryMode;
-                    await setting.put(
-                        SettingBoxKey.lowMemoryMode, lowMemoryMode);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.lowMemoryMode, lowMemoryMode);
                     setState(() {});
                   },
-                  title: Text('低内存模式', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('禁用高级缓存以减少内存占用', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('低内存模式', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('禁用高级缓存以减少内存占用',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: lowMemoryMode,
                 ),
                 if (Platform.isAndroid) ...[
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       androidEnableOpenSLES = value ?? !androidEnableOpenSLES;
-                      await setting.put(SettingBoxKey.androidEnableOpenSLES,
+                      await GStorage.putSetting<bool>(
+                          SettingsKeys.androidEnableOpenSLES,
                           androidEnableOpenSLES);
                       setState(() {});
                     },
-                    title: Text('低延迟音频', style: TextStyle(fontFamily: fontFamily)),
-                    description: Text('启用OpenSLES音频输出以降低延时', style: TextStyle(fontFamily: fontFamily)),
+                    title:
+                        Text('低延迟音频', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('启用OpenSLES音频输出以降低延时',
+                        style: TextStyle(fontFamily: fontFamily)),
                     initialValue: androidEnableOpenSLES,
                   ),
                 ],
@@ -261,39 +298,45 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     backgroundPlayback = value ?? !backgroundPlayback;
-                    await setting.put(
-                        SettingBoxKey.backgroundPlayback, backgroundPlayback);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.backgroundPlayback, backgroundPlayback);
                     setState(() {});
                   },
                   title: Text('后台播放', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('应用退到后台或熄屏时继续播放音频', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('应用退到后台或熄屏时继续播放音频',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: backgroundPlayback,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     playResume = value ?? !playResume;
-                    await setting.put(SettingBoxKey.playResume, playResume);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.playResume, playResume);
                     setState(() {});
                   },
                   title: Text('自动跳转', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('跳转到上次播放位置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('跳转到上次播放位置',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playResume,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     autoPlayNext = value ?? !autoPlayNext;
-                    await setting.put(SettingBoxKey.autoPlayNext, autoPlayNext);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.autoPlayNext, autoPlayNext);
                     setState(() {});
                   },
                   title: Text('自动连播', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('当前视频播放完毕后自动播放下一集', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('当前视频播放完毕后自动播放下一集',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoPlayNext,
                 ),
                 if (Platform.isAndroid)
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       androidAutoEnterPIP = value ?? !androidAutoEnterPIP;
-                      await setting.put(SettingBoxKey.androidAutoEnterPIP,
+                      await GStorage.putSetting<bool>(
+                          SettingsKeys.androidAutoEnterPIP,
                           androidAutoEnterPIP);
                       await PipUtils.setAndroidAutoEnterPIPEnabled(
                           androidAutoEnterPIP);
@@ -308,30 +351,35 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     forceAdBlocker = value ?? !forceAdBlocker;
-                    await setting.put(SettingBoxKey.forceAdBlocker, forceAdBlocker);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.forceAdBlocker, forceAdBlocker);
                     setState(() {});
                   },
                   title: Text('广告过滤', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('强制启用HLS广告过滤，忽略规则设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('强制启用HLS广告过滤，忽略规则设置',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: forceAdBlocker,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     playerDisableAnimations = value ?? !playerDisableAnimations;
-                    await setting.put(SettingBoxKey.playerDisableAnimations,
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.playerDisableAnimations,
                         playerDisableAnimations);
                     setState(() {});
                   },
                   title: Text('禁用动画', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('禁用播放器内的过渡动画', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('禁用播放器内的过渡动画',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playerDisableAnimations,
                 ),
-                if (!Utils.isDesktop())
+                if (!isDesktop())
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       brightnessVolumeGesture =
                           value ?? !brightnessVolumeGesture;
-                      await setting.put(SettingBoxKey.brightnessVolumeGesture,
+                      await GStorage.putSetting<bool>(
+                          SettingsKeys.brightnessVolumeGesture,
                           brightnessVolumeGesture);
                       setState(() {});
                     },
@@ -344,11 +392,13 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     privateMode = value ?? !privateMode;
-                    await setting.put(SettingBoxKey.privateMode, privateMode);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.privateMode, privateMode);
                     setState(() {});
                   },
                   title: Text('隐身模式', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('不保留观看记录', style: TextStyle(fontFamily: fontFamily)),
+                  description:
+                      Text('不保留观看记录', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: privateMode,
                 ),
               ],
@@ -358,23 +408,25 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     showPlayerError = value ?? !showPlayerError;
-                    await setting.put(
-                        SettingBoxKey.showPlayerError, showPlayerError);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.showPlayerError, showPlayerError);
                     setState(() {});
                   },
                   title: Text('错误提示', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('显示播放器内部错误提示', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('显示播放器内部错误提示',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: showPlayerError,
                 ),
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     playerDebugMode = value ?? !playerDebugMode;
-                    await setting.put(
-                        SettingBoxKey.playerDebugMode, playerDebugMode);
+                    await GStorage.putSetting<bool>(
+                        SettingsKeys.playerDebugMode, playerDebugMode);
                     setState(() {});
                   },
                   title: Text('调试模式', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('记录播放器内部日志', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('记录播放器内部日志',
+                      style: TextStyle(fontFamily: fontFamily)),
                   initialValue: playerDebugMode,
                 ),
                 SettingsTile.navigation(
@@ -386,7 +438,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     }
                   },
                   title: Text('日志等级', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('播放器内部日志等级', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('播放器内部日志等级',
+                      style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: playerLogLevelMenuController,
@@ -438,7 +491,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   ),
                 ),
                 SettingsTile(
-                  title: Text('默认方向键倍速', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('默认方向键倍速', style: TextStyle(fontFamily: fontFamily)),
                   description: Slider(
                     value: defaultShortcutForwardPlaySpeed,
                     min: 1.25,
@@ -460,26 +514,28 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                     label: '$playerArrowKeySkipTime秒',
                     onChanged: (value) {
                       final newArrowKeySkipTime = value.toInt();
-                      print('新设置的方向键快进/快退时长: $newArrowKeySkipTime');
 
                       if (value != playerArrowKeySkipTime) {
-                        setting.put(SettingBoxKey.arrowKeySkipTime,
-                            newArrowKeySkipTime);
+                        GStorage.putSetting<int>(
+                            SettingsKeys.arrowKeySkipTime, newArrowKeySkipTime);
                         setState(() {
                           playerArrowKeySkipTime = newArrowKeySkipTime;
                         });
                       }
                     },
                   ),
-                  title: Text('左右方向键的快进/快退秒数', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('左右方向键的快进/快退秒数',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
                     await updateButtonSkipTime();
                   },
                   title: Text('跳过时长', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('顶栏跳过按钮的秒数', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('$playerButtonSkipTime 秒', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('顶栏跳过按钮的秒数',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('$playerButtonSkipTime 秒',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {
@@ -489,7 +545,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       playerAspectRatioMenuController.open();
                     }
                   },
-                  title: Text('默认视频比例', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('默认视频比例', style: TextStyle(fontFamily: fontFamily)),
                   value: MenuAnchor(
                     consumeOutsideTap: true,
                     controller: playerAspectRatioMenuController,
@@ -524,6 +581,17 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                         ),
                     ],
                   ),
+                ),
+              ],
+            ),
+            SettingsSection(
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) => resetPlayerSettings(),
+                  title:
+                      Text('恢复默认设置', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('将播放相关设置恢复为默认值',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

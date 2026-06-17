@@ -81,7 +81,8 @@ class M3u8Parser {
   }
 
   static String resolveUrl(String baseUrl, String relativeUrl) {
-    if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
+    if (relativeUrl.startsWith('http://') ||
+        relativeUrl.startsWith('https://')) {
       return relativeUrl;
     }
     final baseUri = Uri.parse(baseUrl);
@@ -92,7 +93,8 @@ class M3u8Parser {
     return '$basePath$relativeUrl';
   }
 
-  static M3u8MasterPlaylist parseMasterPlaylist(String content, String baseUrl) {
+  static M3u8MasterPlaylist parseMasterPlaylist(
+      String content, String baseUrl) {
     final lines = content.split('\n').map((l) => l.trim()).toList();
     final variants = <M3u8Variant>[];
 
@@ -108,14 +110,16 @@ class M3u8Parser {
           bandwidth = int.parse(bandwidthMatch.group(1)!);
         }
 
-        final resolutionMatch = RegExp(r'RESOLUTION=([^\s,]+)').firstMatch(attrs);
+        final resolutionMatch =
+            RegExp(r'RESOLUTION=([^\s,]+)').firstMatch(attrs);
         if (resolutionMatch != null) {
           resolution = resolutionMatch.group(1);
         }
 
         if (i + 1 < lines.length && !lines[i + 1].startsWith('#')) {
           final uri = resolveUrl(baseUrl, lines[i + 1]);
-          variants.add(M3u8Variant(bandwidth: bandwidth, resolution: resolution, uri: uri));
+          variants.add(M3u8Variant(
+              bandwidth: bandwidth, resolution: resolution, uri: uri));
         }
       }
     }
@@ -138,7 +142,8 @@ class M3u8Parser {
       final line = lines[i];
 
       if (line.startsWith('#EXT-X-TARGETDURATION:')) {
-        targetDuration = double.parse(line.substring('#EXT-X-TARGETDURATION:'.length));
+        targetDuration =
+            double.parse(line.substring('#EXT-X-TARGETDURATION:'.length));
       } else if (line == '#EXT-X-ENDLIST') {
         hasEndList = true;
       } else if (line == '#EXT-X-PLAYLIST-TYPE:VOD') {
@@ -169,7 +174,8 @@ class M3u8Parser {
     // 2. Has #EXT-X-PLAYLIST-TYPE:VOD, or
     // 3. Has finite segments and is not explicitly a live EVENT stream.
     // Many third-party video sources omit #EXT-X-ENDLIST for VOD content.
-    final bool isVod = hasEndList || isExplicitVod || (!isLiveEvent && segments.isNotEmpty);
+    final bool isVod =
+        hasEndList || isExplicitVod || (!isLiveEvent && segments.isNotEmpty);
 
     return M3u8MediaPlaylist(
       segments: segments,
@@ -234,7 +240,8 @@ class M3u8Parser {
           sb.writeln('#EXT-X-KEY:METHOD=NONE');
         } else {
           final localUri = keyUriToLocal[seg.key!.uri] ?? seg.key!.uri;
-          final keySb = StringBuffer('#EXT-X-KEY:METHOD=${seg.key!.method},URI="$localUri"');
+          final keySb = StringBuffer(
+              '#EXT-X-KEY:METHOD=${seg.key!.method},URI="$localUri"');
           if (seg.key!.iv != null) {
             keySb.write(',IV=${seg.key!.iv}');
           }
@@ -286,7 +293,9 @@ class M3u8Parser {
         final content = await fetcher(seg.uri);
         final nested = parseMediaPlaylist(content, seg.uri);
         final resolved = await resolveNestedSegments(
-          nested.segments, fetcher, maxDepth: maxDepth - 1,
+          nested.segments,
+          fetcher,
+          maxDepth: maxDepth - 1,
         );
 
         if (resolved.isEmpty) continue;

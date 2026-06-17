@@ -6,8 +6,8 @@ import 'package:mobx/mobx.dart';
 import 'package:kazumi/lan/lan_mdns_broadcaster.dart';
 import 'package:kazumi/lan/lan_server.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 part 'lan_server_controller.g.dart';
 
@@ -62,13 +62,13 @@ abstract class _LanServerController with Store {
       port = _server.port;
       isRunning = true;
       if (port != null && port! > 0) {
-        await GStorage.setting.put(SettingBoxKey.lanServerPort, port!);
+        await GStorage.putSetting(SettingsKeys.lanServerPort, port!);
       }
       hostname = _resolveHostname();
       await refreshAddresses();
       await _tryStartMdns();
       if (persistPreference) {
-        await GStorage.setting.put(SettingBoxKey.lanServerEnable, true);
+        await GStorage.putSetting(SettingsKeys.lanServerEnable, true);
       }
     } catch (e, st) {
       KazumiLogger()
@@ -80,15 +80,15 @@ abstract class _LanServerController with Store {
   }
 
   int _readPreferredPort() {
-    final raw = GStorage.setting.get(SettingBoxKey.lanServerPort, defaultValue: 0);
-    if (raw is int && raw >= 1024 && raw <= 65535) return raw;
+    final raw = GStorage.getSetting(SettingsKeys.lanServerPort);
+    if (raw >= 1024 && raw <= 65535) return raw;
     return 0;
   }
 
   /// 用户在设置页给出的"想要的端口"。null 表示从未持久化（首次状态）。
   int? get preferredPort {
-    final raw = GStorage.setting.get(SettingBoxKey.lanServerPort, defaultValue: 0);
-    if (raw is int && raw >= 1024 && raw <= 65535) return raw;
+    final raw = GStorage.getSetting(SettingsKeys.lanServerPort);
+    if (raw >= 1024 && raw <= 65535) return raw;
     return null;
   }
 
@@ -98,7 +98,7 @@ abstract class _LanServerController with Store {
     if (newPort < 1024 || newPort > 65535) {
       return '端口需在 1024–65535 之间';
     }
-    await GStorage.setting.put(SettingBoxKey.lanServerPort, newPort);
+    await GStorage.putSetting(SettingsKeys.lanServerPort, newPort);
     return null;
   }
 
@@ -112,7 +112,7 @@ abstract class _LanServerController with Store {
     hostname = null;
     lanAddresses.clear();
     if (persistPreference) {
-      await GStorage.setting.put(SettingBoxKey.lanServerEnable, false);
+      await GStorage.putSetting(SettingsKeys.lanServerEnable, false);
     }
   }
 

@@ -2,7 +2,7 @@
 
 import 'dart:async';
 
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:mobx/mobx.dart';
 
@@ -33,6 +33,8 @@ abstract class _PlayerDebugController with Store {
   String playerVideoTracks = '';
   @observable
   String playerAudioBitrate = '';
+  @observable
+  String playerVideoBitrate = '';
 
   StreamSubscription<PlayerLog>? playerLogSubscription;
   StreamSubscription<int?>? playerWidthSubscription;
@@ -42,15 +44,15 @@ abstract class _PlayerDebugController with Store {
   StreamSubscription<Playlist>? playerPlaylistSubscription;
   StreamSubscription<Track>? playerTracksSubscription;
   StreamSubscription<double?>? playerAudioBitrateSubscription;
+  StreamSubscription<double?>? playerVideoBitrateSubscription;
 
   Future<void> setup(
     Player player, {
-    required int lifecycleId,
-    required bool Function(int lifecycleId, Player player) isCurrentPlayer,
+    required bool Function(Player player) isCurrentPlayer,
     required bool playerDebugMode,
   }) async {
     await playerLogSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerLogSubscription = player.stream.log.listen((event) {
       playerLog.add(event.toString());
       if (playerDebugMode) {
@@ -58,40 +60,45 @@ abstract class _PlayerDebugController with Store {
       }
     });
     await playerWidthSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerWidthSubscription = player.stream.width.listen((event) {
       playerWidth = event ?? 0;
     });
     await playerHeightSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerHeightSubscription = player.stream.height.listen((event) {
       playerHeight = event ?? 0;
     });
     await playerVideoParamsSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerVideoParamsSubscription = player.stream.videoParams.listen((event) {
       playerVideoParams = event.toString();
     });
     await playerAudioParamsSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerAudioParamsSubscription = player.stream.audioParams.listen((event) {
       playerAudioParams = event.toString();
     });
     await playerPlaylistSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerPlaylistSubscription = player.stream.playlist.listen((event) {
       playerPlaylist = event.toString();
     });
     await playerTracksSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerTracksSubscription = player.stream.track.listen((event) {
       playerAudioTracks = event.audio.toString();
       playerVideoTracks = event.video.toString();
     });
     await playerAudioBitrateSubscription?.cancel();
-    if (!isCurrentPlayer(lifecycleId, player)) return;
+    if (!isCurrentPlayer(player)) return;
     playerAudioBitrateSubscription = player.stream.audioBitrate.listen((event) {
       playerAudioBitrate = event.toString();
+    });
+    await playerVideoBitrateSubscription?.cancel();
+    if (!isCurrentPlayer(player)) return;
+    playerVideoBitrateSubscription = player.stream.videoBitrate.listen((event) {
+      playerVideoBitrate = event.toString();
     });
   }
 
@@ -105,6 +112,7 @@ abstract class _PlayerDebugController with Store {
     final playlistSubscription = playerPlaylistSubscription;
     final tracksSubscription = playerTracksSubscription;
     final audioBitrateSubscription = playerAudioBitrateSubscription;
+    final videoBitrateSubscription = playerVideoBitrateSubscription;
 
     playerLogSubscription = null;
     playerWidthSubscription = null;
@@ -114,6 +122,7 @@ abstract class _PlayerDebugController with Store {
     playerPlaylistSubscription = null;
     playerTracksSubscription = null;
     playerAudioBitrateSubscription = null;
+    playerVideoBitrateSubscription = null;
 
     await logSubscription?.cancel();
     await widthSubscription?.cancel();
@@ -123,5 +132,6 @@ abstract class _PlayerDebugController with Store {
     await playlistSubscription?.cancel();
     await tracksSubscription?.cancel();
     await audioBitrateSubscription?.cancel();
+    await videoBitrateSubscription?.cancel();
   }
 }

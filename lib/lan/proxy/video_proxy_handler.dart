@@ -7,7 +7,7 @@ import 'package:shelf/shelf.dart';
 
 import 'package:kazumi/lan/proxy/m3u8_rewriter.dart';
 import 'package:kazumi/lan/proxy/proxy_session_store.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/m3u8_ad_filter.dart';
 import 'package:kazumi/utils/m3u8_parser.dart';
 

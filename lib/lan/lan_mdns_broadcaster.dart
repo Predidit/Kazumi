@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:bonsoir/bonsoir.dart';
 
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 /// 通过 mDNS / DNS-SD 广播 Kazumi 的 HTTP 服务。
 ///

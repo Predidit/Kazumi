@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
-import 'package:kazumi/utils/mortis.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/dandan_credentials.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/utils/device.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -26,9 +25,7 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
-  Box setting = GStorage.setting;
-  late int exitBehavior =
-      setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+  late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
   double _cacheSizeMB = -1;
   final MyController myController = Modular.get<MyController>();
@@ -37,7 +34,7 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void initState() {
     super.initState();
-    autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     _getCacheSize();
   }
 
@@ -207,14 +204,28 @@ class _AboutPageState extends State<AboutPage> {
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('ID: ${mortis['id']}',
+                  description: Text('ID: ${dandanCredentials['id']}',
                       style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('DanDanPlay',
+                  value: Text('弹弹play开放平台',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
-            if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+            SettingsSection(
+              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('Telegram',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
                 title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
@@ -240,7 +251,7 @@ class _AboutPageState extends State<AboutPage> {
                             requestFocusOnHover: false,
                             onPressed: () {
                               exitBehavior = i;
-                              setting.put(SettingBoxKey.exitBehavior, i);
+                              GStorage.putSetting(SettingsKeys.exitBehavior, i);
                               setState(() {});
                             },
                             child: Container(
@@ -272,10 +283,6 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     _showCacheDialog();
@@ -294,7 +301,8 @@ class _AboutPageState extends State<AboutPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     autoUpdate = value ?? !autoUpdate;
-                    await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
+                    await GStorage.putSetting(
+                        SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
                   title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),

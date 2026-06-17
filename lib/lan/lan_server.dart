@@ -25,14 +25,14 @@ import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/providers/video/video_source_provider.dart';
 import 'package:kazumi/repositories/collect_crud_repository.dart';
 import 'package:kazumi/repositories/history_repository.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/request/apis/danmaku_api.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/video_source/video_source_service.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 /// 用回调形式拿 [PluginsController] 而非构造时持有引用，
 /// 避免在 Modular DI 初始化阶段就触发依赖链。
@@ -177,15 +177,10 @@ class LanServer {
   /// 已经决定的"实际生效"ColorScheme）；若 Notifier 还没就绪（启动早期）
   /// 回退到 `ColorScheme.fromSeed(seed)` 自行生成。
   Map<String, dynamic> _buildThemePayload() {
-    final box = GStorage.setting;
-    final themeMode =
-        box.get(SettingBoxKey.themeMode, defaultValue: 'system') as String;
-    final rawColor =
-        box.get(SettingBoxKey.themeColor, defaultValue: 'default') as String;
-    final oledEnhance =
-        box.get(SettingBoxKey.oledEnhance, defaultValue: false) as bool;
-    final useDynamicColor =
-        box.get(SettingBoxKey.useDynamicColor, defaultValue: false) as bool;
+    final themeMode = GStorage.getSetting(SettingsKeys.themeMode);
+    final rawColor = GStorage.getSetting(SettingsKeys.themeColor);
+    final oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
+    final useDynamicColor = GStorage.getSetting(SettingsKeys.useDynamicColor);
 
     final seedColor = _parseSeedColor(rawColor);
     final primaryHex = _colorToHex(seedColor);
@@ -395,7 +390,7 @@ class LanServer {
         originalUrl: source.url,
         referer: plugin.referer,
         userAgent: plugin.userAgent.isEmpty
-            ? Utils.getRandomUA()
+            ? getRandomUA()
             : plugin.userAgent,
         pluginName: plugin.name,
         createdAt: DateTime.now(),
@@ -970,7 +965,7 @@ class LanServer {
     return BangumiApi.getBangumiInfoByID(bangumiId);
   }
 
-  static Map<String, dynamic> _danmakuToJson(Danmaku d) {
+  static Map<String, dynamic> _danmakuToJson(DanmakuEntry d) {
     final colorValue = ((d.color.r * 255).toInt() << 16) |
         ((d.color.g * 255).toInt() << 8) |
         (d.color.b * 255).toInt();

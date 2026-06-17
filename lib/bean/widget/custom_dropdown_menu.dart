@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// A custom dropdown menu widget that provides smooth animations without flickering.
-/// 
+///
 /// This widget was created to solve the visual flickering issue in Flutter's built-in
 /// [PopupMenuButton] where menu items are rendered before the animation completes,
 /// causing an uncoordinated visual effect.
@@ -12,9 +12,11 @@ class CustomDropdownMenu extends StatelessWidget {
   final List<String> items;
   final String Function(String) itemBuilder;
   final double? maxHeight;
+
   /// Minimum width constraint for the menu. Defaults to 140.
   /// Note: If [maxWidth] is less than [minWidth], [minWidth] will be used as both min and max.
   final double? minWidth;
+
   /// Maximum width constraint for the menu. Defaults to 200.
   /// Note: If this value is less than [minWidth], it will be adjusted to equal [minWidth].
   final double? maxWidth;
@@ -41,8 +43,8 @@ class CustomDropdownMenu extends StatelessWidget {
     final computedMinWidth = minWidth ?? 140;
     final computedMaxWidth = maxWidth ?? 200;
     final normalizedMinWidth = computedMinWidth;
-    final normalizedMaxWidth = computedMaxWidth < computedMinWidth 
-        ? computedMinWidth 
+    final normalizedMaxWidth = computedMaxWidth < computedMinWidth
+        ? computedMinWidth
         : computedMaxWidth;
 
     return GestureDetector(

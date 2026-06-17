@@ -9,7 +9,9 @@ class WebDavModule extends Module {
   @override
   void routes(r) {
     r.child("/", child: (_) => const WebDavSettingsPage());
-    r.child("/editor",
-        child: (_) => const WebDavEditorPage(),);
+    r.child(
+      "/editor",
+      child: (_) => const WebDavEditorPage(),
+    );
   }
 }

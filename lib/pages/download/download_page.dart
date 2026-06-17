@@ -7,7 +7,7 @@ import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/utils/format_utils.dart';
+import 'package:kazumi/utils/format.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -374,9 +374,7 @@ class _DownloadPageState extends State<DownloadPage> {
       bangumiItem: bangumiItem,
       pluginName: record.pluginName,
       episodeNumber: episode.episodeNumber,
-      episodeName: episode.episodeName,
       road: episode.road,
-      videoPath: localPath,
       downloadedEpisodes: downloadedEpisodes,
     );
 

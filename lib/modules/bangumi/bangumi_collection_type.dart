@@ -20,7 +20,7 @@ enum BangumiCollectionType {
 
   static BangumiCollectionType fromValue(int value) {
     return BangumiCollectionType.values.firstWhere(
-          (type) => type.value == value,
+      (type) => type.value == value,
       orElse: () => BangumiCollectionType.unknown,
     );
   }

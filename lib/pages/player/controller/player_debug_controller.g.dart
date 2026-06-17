@@ -153,6 +153,22 @@ mixin _$PlayerDebugController on _PlayerDebugController, Store {
     });
   }
 
+  late final _$playerVideoBitrateAtom =
+      Atom(name: '_PlayerDebugController.playerVideoBitrate', context: context);
+
+  @override
+  String get playerVideoBitrate {
+    _$playerVideoBitrateAtom.reportRead();
+    return super.playerVideoBitrate;
+  }
+
+  @override
+  set playerVideoBitrate(String value) {
+    _$playerVideoBitrateAtom.reportWrite(value, super.playerVideoBitrate, () {
+      super.playerVideoBitrate = value;
+    });
+  }
+
   @override
   String toString() {
     return '''
@@ -164,7 +180,8 @@ playerAudioParams: ${playerAudioParams},
 playerPlaylist: ${playerPlaylist},
 playerAudioTracks: ${playerAudioTracks},
 playerVideoTracks: ${playerVideoTracks},
-playerAudioBitrate: ${playerAudioBitrate}
+playerAudioBitrate: ${playerAudioBitrate},
+playerVideoBitrate: ${playerVideoBitrate}
     ''';
   }
 }

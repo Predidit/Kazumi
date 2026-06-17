@@ -4,17 +4,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/effective_color_scheme_notifier.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/utils/constants.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/theme.dart';
 
 class AppWidget extends StatefulWidget {
   const AppWidget({super.key});
@@ -25,8 +25,6 @@ class AppWidget extends StatefulWidget {
 
 class _AppWidgetState extends State<AppWidget>
     with TrayListener, WidgetsBindingObserver, WindowListener {
-  Box setting = GStorage.setting;
-
   final TrayManager trayManager = TrayManager.instance;
   bool showingExitDialog = false;
   bool _didApplyStoredThemeSettings = false;
@@ -43,7 +41,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Future<void> _initializePlatformIntegrations() async {
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       await windowManager.setPreventClose(true);
       await _handleTray();
     }
@@ -55,7 +53,7 @@ class _AppWidgetState extends State<AppWidget>
 
     try {
       final modes = await FlutterDisplayMode.supported;
-      final storageDisplay = setting.get(SettingBoxKey.displayMode);
+      final storageDisplay = GStorage.getSetting(SettingsKeys.displayMode);
       DisplayMode selectedMode = DisplayMode.auto;
       if (storageDisplay != null) {
         selectedMode = modes.firstWhere(
@@ -95,17 +93,16 @@ class _AppWidgetState extends State<AppWidget>
 
     themeProvider.setThemeMode(_storedThemeMode(), notify: false);
     themeProvider.setDynamic(
-      setting.get(SettingBoxKey.useDynamicColor, defaultValue: false),
+      GStorage.getSetting(SettingsKeys.useDynamicColor),
       notify: false,
     );
     themeProvider.setFontFamily(
-      setting.get(SettingBoxKey.useSystemFont, defaultValue: false),
+      GStorage.getSetting(SettingsKeys.useSystemFont),
       notify: false,
     );
 
     final color = _storedThemeColor();
-    final oledEnhance =
-        setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    final oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     final defaultDarkTheme = _buildAppTheme(
       brightness: Brightness.dark,
       color: color,
@@ -117,14 +114,13 @@ class _AppWidgetState extends State<AppWidget>
         color: color,
         fontFamily: themeProvider.currentFontFamily,
       ),
-      oledEnhance ? Utils.oledDarkTheme(defaultDarkTheme) : defaultDarkTheme,
+      oledEnhance ? oledDarkTheme(defaultDarkTheme) : defaultDarkTheme,
       notify: false,
     );
   }
 
   ThemeMode _storedThemeMode() {
-    return switch (
-        setting.get(SettingBoxKey.themeMode, defaultValue: 'system')) {
+    return switch (GStorage.getSetting(SettingsKeys.themeMode)) {
       'dark' => ThemeMode.dark,
       'light' => ThemeMode.light,
       _ => ThemeMode.system,
@@ -132,8 +128,7 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Color _storedThemeColor() {
-    final defaultThemeColor =
-        setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
+    final defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
     if (defaultThemeColor == 'default') {
       return Colors.green;
     }
@@ -195,9 +190,7 @@ class _AppWidgetState extends State<AppWidget>
   /// 需要使用 `windowManager.close()` 来触发，`exit(0)` 会直接退出程序
   @override
   void onWindowClose() {
-    final setting = GStorage.setting;
-    final exitBehavior =
-        setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+    final exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
 
     switch (exitBehavior) {
       case 0:
@@ -243,7 +236,7 @@ class _AppWidgetState extends State<AppWidget>
               TextButton(
                   onPressed: () async {
                     if (saveExitBehavior) {
-                      await setting.put(SettingBoxKey.exitBehavior, 0);
+                      await GStorage.putSetting(SettingsKeys.exitBehavior, 0);
                     }
                     exit(0);
                   },
@@ -251,7 +244,7 @@ class _AppWidgetState extends State<AppWidget>
               TextButton(
                   onPressed: () async {
                     if (saveExitBehavior) {
-                      await setting.put(SettingBoxKey.exitBehavior, 1);
+                      await GStorage.putSetting(SettingsKeys.exitBehavior, 1);
                     }
                     KazumiDialog.dismiss();
                     windowManager.hide();
@@ -318,8 +311,7 @@ class _AppWidgetState extends State<AppWidget>
   @override
   Widget build(BuildContext context) {
     final ThemeProvider themeProvider = Provider.of<ThemeProvider>(context);
-    bool oledEnhance =
-        setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    bool oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
 
     var app = DynamicColorBuilder(
       builder: (theme, darkTheme) {
@@ -340,7 +332,7 @@ class _AppWidgetState extends State<AppWidget>
               )
             : themeProvider.dark;
         final effectiveDarkTheme = useDynamicColor && oledEnhance
-            ? Utils.oledDarkTheme(dynamicDarkTheme)
+            ? oledDarkTheme(dynamicDarkTheme)
             : dynamicDarkTheme;
 
         // 把当前生效的 ColorScheme 同步给 LanServer / SSE 订阅者。

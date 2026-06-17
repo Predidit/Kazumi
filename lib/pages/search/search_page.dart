@@ -523,6 +523,64 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
     });
   }
 
+  Widget _buildScoreRangeSlider(SearchDoubleRange range) {
+    final values = _safeRangeValues(
+      range.min ?? 0,
+      range.max ?? 10,
+      0,
+      10,
+    );
+    return RangeSlider(
+      values: values,
+      min: 0,
+      max: 10,
+      divisions: 20,
+      labels: RangeLabels(
+        values.start.toStringAsFixed(1),
+        values.end.toStringAsFixed(1),
+      ),
+      onChanged: (value) {
+        setState(() {
+          draft = draft.copyWith(
+            scoreRange: SearchDoubleRange(
+              min: value.start,
+              max: value.end,
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _buildRankRangeSlider(SearchIntRange range) {
+    final values = _safeRangeValues(
+      (range.min ?? 1).toDouble(),
+      (range.max ?? 10000).toDouble(),
+      1,
+      10000,
+    );
+    return RangeSlider(
+      values: values,
+      min: 1,
+      max: 10000,
+      divisions: 100,
+      labels: RangeLabels(
+        '${values.start.round()}',
+        '${values.end.round()}',
+      ),
+      onChanged: (value) {
+        setState(() {
+          draft = draft.copyWith(
+            rankRange: SearchIntRange(
+              min: value.start.round(),
+              max: value.end.round(),
+            ),
+          );
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -770,29 +828,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                         },
                       ),
                       if (draft.scoreRange?.isValid == true)
-                        RangeSlider(
-                          values: RangeValues(
-                            draft.scoreRange!.min ?? 0,
-                            draft.scoreRange!.max ?? 10,
-                          ),
-                          min: 0,
-                          max: 10,
-                          divisions: 20,
-                          labels: RangeLabels(
-                            (draft.scoreRange!.min ?? 0).toStringAsFixed(1),
-                            (draft.scoreRange!.max ?? 10).toStringAsFixed(1),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              draft = draft.copyWith(
-                                scoreRange: SearchDoubleRange(
-                                  min: value.start,
-                                  max: value.end,
-                                ),
-                              );
-                            });
-                          },
-                        ),
+                        _buildScoreRangeSlider(draft.scoreRange!),
                       _SearchSwitchTile(
                         title: '启用排名范围',
                         value: draft.rankRange?.isValid == true,
@@ -807,29 +843,7 @@ class _SearchWorkbenchSheetState extends State<_SearchWorkbenchSheet> {
                         },
                       ),
                       if (draft.rankRange?.isValid == true)
-                        RangeSlider(
-                          values: RangeValues(
-                            (draft.rankRange!.min ?? 1).toDouble(),
-                            (draft.rankRange!.max ?? 10000).toDouble(),
-                          ),
-                          min: 1,
-                          max: 10000,
-                          divisions: 100,
-                          labels: RangeLabels(
-                            '${draft.rankRange!.min ?? 1}',
-                            '${draft.rankRange!.max ?? 10000}',
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              draft = draft.copyWith(
-                                rankRange: SearchIntRange(
-                                  min: value.start.round(),
-                                  max: value.end.round(),
-                                ),
-                              );
-                            });
-                          },
-                        ),
+                        _buildRankRangeSlider(draft.rankRange!),
                     ],
                   ),
                 ),
@@ -1030,6 +1044,20 @@ class _SeasonOption {
 
   final String value;
   final String label;
+}
+
+RangeValues _safeRangeValues(
+  double start,
+  double end,
+  double min,
+  double max,
+) {
+  final safeStart = start.clamp(min, max).toDouble();
+  final safeEnd = end.clamp(min, max).toDouble();
+  if (safeStart <= safeEnd) {
+    return RangeValues(safeStart, safeEnd);
+  }
+  return RangeValues(safeEnd, safeStart);
 }
 
 String _sortLabel(String sort) {

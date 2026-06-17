@@ -89,7 +89,7 @@ abstract class _SearchPageController with Store {
         return;
       }
     }
-    var result = await BangumiApi.bangumiSearch(filterState.keyword,
+    final result = await BangumiApi.bangumiSearch(filterState.keyword,
         tags: filterState.tags,
         offset: bangumiList.length,
         sort: filterState.sort,
@@ -97,11 +97,6 @@ abstract class _SearchPageController with Store {
         rankRange: filterState.rankRange,
         scoreRange: filterState.scoreRange,
         weekdays: filterState.weekdays);
-    if (filterState.weekdays.isNotEmpty) {
-      final weekdays = filterState.weekdays.toSet();
-      result =
-          result.where((item) => weekdays.contains(item.airWeekday)).toList();
-    }
     bangumiList.addAll(result);
     isLoading = false;
     isTimeOut = bangumiList.isEmpty;

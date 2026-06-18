@@ -31,6 +31,7 @@ class _CollectPageState extends State<CollectPage>
   bool showDelete = false;
   bool syncCollectiblesing = false;
   bool searchBarHovering = false;
+  late final FocusNode _searchEntryFocusNode = FocusNode();
 
   Future<bool> _syncBangumiWithProgress({
     required GlobalKey<_FullSyncProgressDialogState> progressDialogKey,
@@ -196,6 +197,16 @@ class _CollectPageState extends State<CollectPage>
           ),
           title: const Text('追番'),
           actions: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Observer(builder: (context) => Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: searchEntry
+              )),
+            ),
             IconButton(
                 onPressed: () {
                   setState(() {
@@ -251,58 +262,9 @@ class _CollectPageState extends State<CollectPage>
                   width: 32, height: 32, child: CircularProgressIndicator())
               : const Icon(Icons.sync_rounded),
         ),
-        body: Stack(
-          children: [
-            Observer(builder: (context) {
+        body: Observer(builder: (context) {
               return renderBody;
             }),
-            Positioned(
-              left: 0,
-              right:0,
-              bottom: 16,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: FractionallySizedBox(
-                  widthFactor: 0.5,
-                  child: MouseRegion(
-                    onHover: (_) => setState(() => searchBarHovering = true),
-                    onExit: (_) => setState(() => searchBarHovering = false),
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: searchBarHovering ? 1.0 : 0.5,
-                      child: Material(
-                        elevation: 8,
-                        borderRadius: BorderRadius.circular(24),
-                        child: SearchBar(
-                          controller: searchController,
-                          hintText: '搜索番剧',
-                          leading: ValueListenableBuilder<TextEditingValue>(
-                            valueListenable: searchController,
-                            builder: (context, value, child) {
-                              if (value.text.isEmpty) {
-                                return const Icon(Icons.search);
-                              }
-                              return IconButton(
-                                icon: const Icon(Icons.close),
-                                onPressed: () {
-                                  searchController.clear();
-                                  collectController.searchText = '';
-                                },
-                              );
-                            },
-                          ),
-                          onChanged: (text) {
-                            collectController.searchText = text;
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -410,6 +372,102 @@ class _CollectPageState extends State<CollectPage>
       );
     }
     return gridViewList;
+  }
+
+  Widget get searchEntry {
+    if (collectController.isSearching) {
+      return TapRegion(
+        groupId: 'searchEntryTapRegion',
+        child: Observer(builder:(context) {
+          return SizedBox(
+            height: 48,
+            width: MediaQuery.sizeOf(context).width * 0.6,
+            child: SearchBar(
+              autoFocus: true,
+              focusNode: _searchEntryFocusNode,
+              controller: searchController,
+              hintText: '在收藏中搜索番剧喵~',
+              hintStyle: WidgetStateProperty.all(
+                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              elevation: WidgetStateProperty.all(2.0),
+              shadowColor: WidgetStateProperty.all(
+                Theme.of(context).colorScheme.shadow,
+              ),
+              surfaceTintColor: WidgetStateProperty.all(
+                Theme.of(context).colorScheme.surfaceTint,
+              ),
+              padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 4.0),
+              ),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28.0),
+                ),
+              ),
+              leading: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.search_rounded),
+              ),
+              trailing: [
+                Observer(builder: (context) => searchEntryActionButton),
+              ],
+              onChanged: (value) {
+                collectController.searchText = value;
+              },
+            ));
+        }),
+        onTapOutside: (_) {
+          collectController.isSearching = false;
+        },
+      );
+    } else {
+      IconButton searchButton = IconButton(
+        onPressed: () {
+          collectController.isSearching = true;
+        },
+        icon: const Icon(Icons.search_rounded),
+      );
+
+      if (collectController.searchText.isNotEmpty) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: Row(
+            children: [
+              Text(
+                '搜索： ${collectController.searchText}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              searchButton,
+            ],
+          ),
+        );
+      } else {
+        return searchButton;
+      }
+    }
+  }
+
+  Widget get searchEntryActionButton {
+    if (collectController.searchText.isNotEmpty) {
+      return IconButton(
+        padding: const EdgeInsets.all(0),
+        alignment: Alignment.centerRight,
+        style: ButtonStyle(
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+        ),
+        onPressed: () {
+          searchController.clear();
+          collectController.searchText = '';
+          _searchEntryFocusNode.requestFocus();
+        },
+        icon: const Icon(Icons.close_rounded),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 }
 

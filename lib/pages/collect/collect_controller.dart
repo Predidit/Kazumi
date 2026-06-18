@@ -38,6 +38,9 @@ abstract class _CollectController with Store {
   @observable
   String searchText = '';
 
+  @observable
+  bool isSearching = false;
+
   void loadCollectibles() {
     collectibles.clear();
     collectibles.addAll(_collectCrudRepository.getAllCollectibles());

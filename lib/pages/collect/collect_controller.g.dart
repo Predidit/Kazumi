@@ -41,6 +41,22 @@ mixin _$CollectController on _CollectController, Store {
     });
   }
 
+  late final _$isSearchingAtom =
+      Atom(name: '_CollectController.isSearching', context: context);
+
+  @override
+  bool get isSearching {
+    _$isSearchingAtom.reportRead();
+    return super.isSearching;
+  }
+
+  @override
+  set isSearching(bool value) {
+    _$isSearchingAtom.reportWrite(value, super.isSearching, () {
+      super.isSearching = value;
+    });
+  }
+
   late final _$addCollectAsyncAction =
       AsyncAction('_CollectController.addCollect', context: context);
 
@@ -63,7 +79,8 @@ mixin _$CollectController on _CollectController, Store {
   String toString() {
     return '''
 collectibles: ${collectibles},
-searchText: ${searchText}
+searchText: ${searchText},
+isSearching: ${isSearching}
     ''';
   }
 }

@@ -476,6 +476,11 @@ class SettingsKeys {
     false,
     group: SettingGroup.sync,
   );
+  static const playerControllerLayerDisappearTime = SettingKey<int>(
+    'playerControllerLayerDisappearTime',
+    4000,
+    group: SettingGroup.player,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
@@ -565,6 +570,7 @@ class SettingsKeys {
     historySyncDeviceId,
     historySyncSequence,
     historySyncSnapshotInitialized,
+    playerControllerLayerDisappearTime,
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {

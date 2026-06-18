@@ -18,6 +18,10 @@ class PlayerSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
+  static const double _minPlayerControllerLayerDisappearSeconds = 1;
+  static const double _maxPlayerControllerLayerDisappearSeconds = 10;
+  static const int _playerControllerLayerDisappearDivisions = 18;
+
   late double defaultPlaySpeed;
   late double defaultShortcutForwardPlaySpeed;
   late int defaultAspectRatioType;
@@ -37,6 +41,7 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
   late int playerButtonSkipTime;
   late int playerArrowKeySkipTime;
   late int playerLogLevel;
+  late int playerControllerLayerDisappearTime;
   final MenuController playerAspectRatioMenuController = MenuController();
   final MenuController playerLogLevelMenuController = MenuController();
 
@@ -78,6 +83,9 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
         GStorage.getSetting<int>(SettingsKeys.buttonSkipTime);
     playerArrowKeySkipTime =
         GStorage.getSetting<int>(SettingsKeys.arrowKeySkipTime);
+
+    playerControllerLayerDisappearTime = GStorage.getSetting<int>(
+        SettingsKeys.playerControllerLayerDisappearTime);
   }
 
   Future<void> resetPlayerSettings() async {
@@ -208,6 +216,32 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
           ),
         ],
       );
+    });
+  }
+
+  double get playerControllerLayerDisappearSeconds =>
+      (playerControllerLayerDisappearTime / Duration.millisecondsPerSecond)
+          .clamp(_minPlayerControllerLayerDisappearSeconds,
+              _maxPlayerControllerLayerDisappearSeconds)
+          .toDouble();
+
+  String formatPlayerControllerLayerDisappearSeconds(double seconds) {
+    if (seconds == seconds.roundToDouble()) {
+      return '${seconds.toInt()} 秒';
+    }
+    return '${seconds.toStringAsFixed(1)} 秒';
+  }
+
+  void updatePlayerControllerLayerDisappearSeconds(double seconds) {
+    final int newDisappearTime =
+        (seconds * Duration.millisecondsPerSecond).round();
+    if (newDisappearTime == playerControllerLayerDisappearTime) {
+      return;
+    }
+    GStorage.putSetting<int>(
+        SettingsKeys.playerControllerLayerDisappearTime, newDisappearTime);
+    setState(() {
+      playerControllerLayerDisappearTime = newDisappearTime;
     });
   }
 
@@ -536,6 +570,20 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                       style: TextStyle(fontFamily: fontFamily)),
                   value: Text('$playerButtonSkipTime 秒',
                       style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile(
+                  title: Text(
+                      '播放控制器消失时间：${formatPlayerControllerLayerDisappearSeconds(playerControllerLayerDisappearSeconds)}',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Slider(
+                    value: playerControllerLayerDisappearSeconds,
+                    min: _minPlayerControllerLayerDisappearSeconds,
+                    max: _maxPlayerControllerLayerDisappearSeconds,
+                    divisions: _playerControllerLayerDisappearDivisions,
+                    label: formatPlayerControllerLayerDisappearSeconds(
+                        playerControllerLayerDisappearSeconds),
+                    onChanged: updatePlayerControllerLayerDisappearSeconds,
+                  ),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {

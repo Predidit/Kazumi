@@ -118,6 +118,9 @@ class _PlayerItemState extends State<PlayerItem>
   late bool backgroundPlayback;
   late bool brightnessVolumeGesture;
 
+  // 播放器控制面板无交互后自动隐藏所需时间 （单位：毫秒）
+  late int playerControllerLayerDisappearTime;
+
   Timer? hideTimer;
   Timer? playerTimer;
   Timer? mouseScrollerTimer;
@@ -892,7 +895,8 @@ class _PlayerItemState extends State<PlayerItem>
     if (!_canHidePlayerPanel) {
       return;
     }
-    hideTimer = Timer(const Duration(seconds: 4), () {
+    hideTimer =
+        Timer(Duration(milliseconds: playerControllerLayerDisappearTime), () {
       if (mounted) {
         hideVideoController();
       }
@@ -1688,6 +1692,8 @@ class _PlayerItemState extends State<PlayerItem>
     backgroundPlayback = GStorage.getSetting(SettingsKeys.backgroundPlayback);
     brightnessVolumeGesture =
         GStorage.getSetting(SettingsKeys.brightnessVolumeGesture);
+    playerControllerLayerDisappearTime =
+        GStorage.getSetting(SettingsKeys.playerControllerLayerDisappearTime);
     unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);

@@ -2,19 +2,44 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Kazumi (debug)",
-      "request": "launch",
-      "type": "dart",
-      "program": "lib/main.dart",
-      "flutterMode": "debug"
-    },
-    {
-      "name": "Kazumi (debug, local defines)",
+      "name": "Kazumi (debug, Skia)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "flutterMode": "debug",
       "toolArgs": [
+        "--no-enable-impeller"
+      ]
+    },
+    {
+      "name": "Kazumi (debug, Skia, local defines)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--no-enable-impeller",
+        "--dart-define-from-file=.kazumi_build_defines.env"
+      ]
+    },
+    {
+      "name": "Kazumi (debug, Impeller)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--enable-impeller"
+      ]
+    },
+    {
+      "name": "Kazumi (debug, Impeller, local defines)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--enable-impeller",
         "--dart-define-from-file=.kazumi_build_defines.env"
       ]
     }

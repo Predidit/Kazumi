@@ -277,6 +277,7 @@ abstract class _PlayerPlaybackController with Store {
       configuration: VideoControllerConfiguration(
         vo: videoRenderer,
         enableHardwareAcceleration: hAenable,
+        enableAndroidSurfaceProducer: false,
         hwdec: hAenable ? hardwareDecoder : 'no',
         androidAttachSurfaceAfterVideoParameters: false,
       ),

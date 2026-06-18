@@ -18,6 +18,10 @@ class PlayerSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
+  static const double _minPlayerControllerLayerDisappearSeconds = 1;
+  static const double _maxPlayerControllerLayerDisappearSeconds = 10;
+  static const int _playerControllerLayerDisappearDivisions = 18;
+
   late double defaultPlaySpeed;
   late double defaultShortcutForwardPlaySpeed;
   late int defaultAspectRatioType;
@@ -80,7 +84,8 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     playerArrowKeySkipTime =
         GStorage.getSetting<int>(SettingsKeys.arrowKeySkipTime);
 
-    playerControllerLayerDisappearTime = GStorage.getSetting<int>(SettingsKeys.playerControllerLayerDisappearTime);
+    playerControllerLayerDisappearTime = GStorage.getSetting<int>(
+        SettingsKeys.playerControllerLayerDisappearTime);
   }
 
   Future<void> resetPlayerSettings() async {
@@ -214,59 +219,29 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
     });
   }
 
-  Future<void> updateButtonPlayerControllerLayerDisappearTime() async {
-    final int? newDisappearTime = await _showPlayerControllerLayerDisappearTimeChangeDialog(
-      title: '控制层消失时间', initialValue: playerControllerLayerDisappearTime.toString()
-    );
+  double get playerControllerLayerDisappearSeconds =>
+      (playerControllerLayerDisappearTime / Duration.millisecondsPerSecond)
+          .clamp(_minPlayerControllerLayerDisappearSeconds,
+              _maxPlayerControllerLayerDisappearSeconds)
+          .toDouble();
 
-    if (newDisappearTime != null && newDisappearTime != playerControllerLayerDisappearTime) {
-      GStorage.putSetting<int>(SettingsKeys.playerControllerLayerDisappearTime, newDisappearTime);
-      setState(() {
-        playerControllerLayerDisappearTime = newDisappearTime;
-      });
+  String formatPlayerControllerLayerDisappearSeconds(double seconds) {
+    if (seconds == seconds.roundToDouble()) {
+      return '${seconds.toInt()} 秒';
     }
+    return '${seconds.toStringAsFixed(1)} 秒';
   }
 
-  Future<int?> _showPlayerControllerLayerDisappearTimeChangeDialog({required String title, required String initialValue}) async {
-    return KazumiDialog.show<int>(builder: (context) {
-      String input = "";
-      return AlertDialog(
-        title: Text(title),
-        content: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return TextField(
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, // 只允许输入数字
-              ],
-              decoration: InputDecoration(
-                floatingLabelBehavior: FloatingLabelBehavior.never, // 控制label的显示方式
-                labelText: initialValue,
-              ),
-              onChanged: (value) => input = value,
-            );
-          }
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () async {
-              final int? newValue = int.tryParse(input);
-
-              if (newValue == null) {
-                KazumiDialog.showToast(message: '请输入数字');
-                return;
-              }
-
-              if (newValue <= 0) {
-                KazumiDialog.showToast(message: '请输入大于0的数字');
-                return;
-              }
-
-              KazumiDialog.dismiss(popWith: newValue);
-            },
-            child: const Text('确定'),
-          ),
-        ],
-      );
+  void updatePlayerControllerLayerDisappearSeconds(double seconds) {
+    final int newDisappearTime =
+        (seconds * Duration.millisecondsPerSecond).round();
+    if (newDisappearTime == playerControllerLayerDisappearTime) {
+      return;
+    }
+    GStorage.putSetting<int>(
+        SettingsKeys.playerControllerLayerDisappearTime, newDisappearTime);
+    setState(() {
+      playerControllerLayerDisappearTime = newDisappearTime;
     });
   }
 
@@ -596,16 +571,19 @@ class _PlayerSettingsPageState extends State<PlayerSettingsPage> {
                   value: Text('$playerButtonSkipTime 秒',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),
-                SettingsTile.navigation(
-                  onPressed: (_) async {
-                    await updateButtonPlayerControllerLayerDisappearTime();
-                  },
-                  title: Text('播放控制器消失时间',
+                SettingsTile(
+                  title: Text(
+                      '播放控制器消失时间：${formatPlayerControllerLayerDisappearSeconds(playerControllerLayerDisappearSeconds)}',
                       style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('播放器控制器在没有交互后自动消失的时间 (毫秒)',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('$playerControllerLayerDisappearTime 毫秒',
-                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Slider(
+                    value: playerControllerLayerDisappearSeconds,
+                    min: _minPlayerControllerLayerDisappearSeconds,
+                    max: _maxPlayerControllerLayerDisappearSeconds,
+                    divisions: _playerControllerLayerDisappearDivisions,
+                    label: formatPlayerControllerLayerDisappearSeconds(
+                        playerControllerLayerDisappearSeconds),
+                    onChanged: updatePlayerControllerLayerDisappearSeconds,
+                  ),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) async {

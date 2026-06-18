@@ -895,8 +895,8 @@ class _PlayerItemState extends State<PlayerItem>
     if (!_canHidePlayerPanel) {
       return;
     }
-    
-    hideTimer = Timer(Duration(milliseconds: playerControllerLayerDisappearTime), () {
+    hideTimer =
+        Timer(Duration(milliseconds: playerControllerLayerDisappearTime), () {
       if (mounted) {
         hideVideoController();
       }
@@ -1692,7 +1692,8 @@ class _PlayerItemState extends State<PlayerItem>
     backgroundPlayback = GStorage.getSetting(SettingsKeys.backgroundPlayback);
     brightnessVolumeGesture =
         GStorage.getSetting(SettingsKeys.brightnessVolumeGesture);
-    playerControllerLayerDisappearTime = GStorage.getSetting(SettingsKeys.playerControllerLayerDisappearTime);
+    playerControllerLayerDisappearTime =
+        GStorage.getSetting(SettingsKeys.playerControllerLayerDisappearTime);
     unawaited(_bindAudioService());
     playerTimer = getPlayerTimer();
     windowManager.addListener(this);

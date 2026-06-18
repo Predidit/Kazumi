@@ -488,7 +488,7 @@ class SettingsKeys {
   );
   static const playerControllerLayerDisappearTime = SettingKey<int>(
     'playerControllerLayerDisappearTime',
-    3000,
+    4000,
     group: SettingGroup.player,
   );
 
@@ -594,6 +594,7 @@ class SettingsKeys {
 
   SettingsKeys._();
 }
+
 // Historical Hive key names used by settings created before the typed registry.
 // Keep these strings stable so existing users keep their saved settings.
 // New settings do not need to be added here unless they intentionally reuse an

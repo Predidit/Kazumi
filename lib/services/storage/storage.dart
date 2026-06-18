@@ -12,7 +12,6 @@ import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 
-
 import 'package:kazumi/services/storage/settings_keys.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
 
@@ -355,6 +354,22 @@ class GStorage {
     List<String> value,
   ) async {
     await _setting.put(key, value);
+  }
+
+  static String? getStringSettingByName(String key) {
+    final storedValue = _setting.get(key);
+    if (storedValue is String) {
+      return storedValue;
+    }
+    return null;
+  }
+
+  static Future<void> putStringSettingByName(String key, String value) async {
+    await _setting.put(key, value);
+  }
+
+  static Future<void> deleteSettingByName(String key) async {
+    await _setting.delete(key);
   }
 
   static Future<void> resetSettings(Iterable<SettingKey<Object?>> keys) async {

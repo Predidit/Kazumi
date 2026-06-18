@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:kazumi/pages/player/player_item_panel.dart';
 import 'package:kazumi/pages/player/player_panel_hold.dart';
+import 'package:kazumi/pages/player/player_pointer_interaction.dart';
 import 'package:kazumi/pages/player/player_screenshot_feedback_overlay.dart';
 import 'package:kazumi/pages/player/smallest_player_item_panel.dart';
 import 'package:kazumi/utils/constants.dart';
@@ -124,6 +125,8 @@ class _PlayerItemState extends State<PlayerItem>
   Timer? _adjustmentHudHideTimer;
   final Set<PlayerPanelHold> _playerPanelHolds = <PlayerPanelHold>{};
   PlayerPanelHold? _progressBarDragHold;
+  PointerDeviceKind? _lastTapPointerKind;
+  PointerDeviceKind? _lastDoubleTapPointerKind;
 
   double lastVolume = 0;
 
@@ -413,24 +416,35 @@ class _PlayerItemState extends State<PlayerItem>
     }
   }
 
-  void _handleTap() {
-    if (isDesktop()) {
-      playerController.playOrPause();
+  void _toggleVideoController() {
+    if (playerController.panel.showVideoController) {
+      hideVideoController();
     } else {
-      if (playerController.panel.showVideoController) {
-        hideVideoController();
-      } else {
-        displayVideoController();
-      }
+      displayVideoController();
     }
   }
 
-  void _handleDoubleTap() {
-    if (isDesktop() && !videoPageController.isPip) {
-      handleFullscreen();
-    } else {
-      playerController.playOrPause();
+  void _handleTap(PointerDeviceKind? pointerKind) {
+    if (shouldToggleControllerOnPrimaryTap(
+      isDesktop: isDesktop(),
+      pointerKind: pointerKind,
+    )) {
+      _toggleVideoController();
+      return;
     }
+    playerController.playOrPause();
+  }
+
+  void _handleDoubleTap(PointerDeviceKind? pointerKind) {
+    if (shouldToggleFullscreenOnDoubleTap(
+      isDesktop: isDesktop(),
+      isPip: videoPageController.isPip,
+      pointerKind: pointerKind,
+    )) {
+      handleFullscreen();
+      return;
+    }
+    playerController.playOrPause();
   }
 
   void _handleMouseScroller() {
@@ -1802,13 +1816,30 @@ class _PlayerItemState extends State<PlayerItem>
                           )
                         : Container(),
                     GestureDetector(
-                      onTap: () {
-                        _handleTap();
+                      onTapDown: (details) {
+                        _lastTapPointerKind = details.kind;
                       },
+                      onTap: () {
+                        _handleTap(_lastTapPointerKind);
+                        _lastTapPointerKind = null;
+                      },
+                      onTapCancel: () {
+                        _lastTapPointerKind = null;
+                      },
+                      onDoubleTapDown: (playerController.panel.lockPanel)
+                          ? null
+                          : (details) {
+                              _lastDoubleTapPointerKind = details.kind;
+                            },
                       onDoubleTap: (playerController.panel.lockPanel)
                           ? null
                           : () {
-                              _handleDoubleTap();
+                              _handleDoubleTap(
+                                _lastDoubleTapPointerKind ??
+                                    _lastTapPointerKind,
+                              );
+                              _lastDoubleTapPointerKind = null;
+                              _lastTapPointerKind = null;
                             },
                       onLongPressStart: (_) {
                         if (playerController.panel.lockPanel) {

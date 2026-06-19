@@ -5,8 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class PluginShopPage extends StatefulWidget {
   const PluginShopPage({super.key});
@@ -16,7 +15,6 @@ class PluginShopPage extends StatefulWidget {
 }
 
 class _PluginShopPageState extends State<PluginShopPage> {
-  Box setting = GStorage.setting;
   bool timeout = false;
   bool loading = false;
   late bool enableGitProxy;
@@ -35,8 +33,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
   @override
   void initState() {
     super.initState();
-    enableGitProxy =
-        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
   }
 
   // 刷新规则列表
@@ -46,8 +43,7 @@ class _PluginShopPageState extends State<PluginShopPage> {
         loading = true;
         timeout = false;
       });
-      enableGitProxy =
-          setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+      enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
       pluginsController.queryPluginHTTPList().then((_) {
         setState(() {
           loading = false;
@@ -131,6 +127,23 @@ class _PluginShopPageState extends State<PluginShopPage> {
                                 color: Theme.of(context).colorScheme.surface),
                           ),
                         ),
+                        if (sortedList[index].antiCrawlerEnabled) ...[
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 1.0),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.tertiary,
+                              borderRadius: BorderRadius.circular(16.0),
+                            ),
+                            child: Text(
+                              'captcha',
+                              style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onTertiary),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     if (sortedList[index].lastUpdate > 0) ...[
@@ -193,13 +206,14 @@ class _PluginShopPageState extends State<PluginShopPage> {
   Widget get timeoutWidget {
     return Center(
       child: GeneralErrorWidget(
-        errMsg: '啊咧（⊙.⊙） 无法访问远程仓库\n${enableGitProxy ? '镜像已启用' : '镜像已禁用'}',
+        errMsg:
+            '啊咧（⊙.⊙） 无法访问规则仓库\n${enableGitProxy ? '规则仓库镜像已启用' : '规则仓库镜像已禁用'}',
         actions: [
           GeneralErrorButton(
             onPressed: () {
               Modular.to.pushNamed('/settings/webdav/');
             },
-            text: enableGitProxy ? '禁用镜像' : '启用镜像',
+            text: enableGitProxy ? '禁用规则镜像' : '启用规则镜像',
           ),
           GeneralErrorButton(
             onPressed: () {

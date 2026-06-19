@@ -65,7 +65,8 @@ class DanmakuSearchResponse {
 
   factory DanmakuSearchResponse.fromJson(Map<String, dynamic> json) {
     var list = json['animes'] as List;
-    List<DanmakuAnime> animeList = list.map((i) => DanmakuAnime.fromJson(i)).toList();
+    List<DanmakuAnime> animeList =
+        list.map((i) => DanmakuAnime.fromJson(i)).toList();
 
     return DanmakuSearchResponse(
       animes: animeList,

@@ -1,20 +1,58 @@
 import 'package:dio/dio.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
-import 'package:kazumi/request/request.dart';
+import 'package:kazumi/request/clients/plugin_site_client.dart';
+import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart';
-import 'package:kazumi/request/api.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
+import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/utils/http_headers.dart';
+
+/// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
+/// (i.e. the [AntiCrawlerConfig.captchaImage] XPath selector matches something
+/// in the returned HTML).
+class CaptchaRequiredException implements Exception {
+  final String pluginName;
+  const CaptchaRequiredException(this.pluginName);
+  @override
+  String toString() =>
+      'CaptchaRequiredException: $pluginName requires captcha verification';
+}
+
+/// Thrown by [Plugin.queryBangumi] when the search request succeeds but the
+/// XPath selectors return no results.
+class NoResultException implements Exception {
+  final String pluginName;
+  const NoResultException(this.pluginName);
+  @override
+  String toString() =>
+      'NoResultException: $pluginName returned no search results';
+}
+
+/// Thrown by [Plugin.queryBangumi] when the HTTP request or HTML parsing
+/// fails for reasons other than a captcha challenge.
+class SearchErrorException implements Exception {
+  final String pluginName;
+  final Object? cause;
+  const SearchErrorException(this.pluginName, {this.cause});
+  @override
+  String toString() =>
+      'SearchErrorException: $pluginName search failed${cause != null ? ' ($cause)' : ''}';
+}
 
 class Plugin {
+  static final PluginSiteClient _siteClient = PluginSiteClient.instance;
+
   String api;
   String type;
   String name;
   String version;
   bool muliSources;
   bool useWebview;
+
   /// Deprecated (always true)
   bool useNativePlayer;
   bool usePost;
@@ -29,6 +67,7 @@ class Plugin {
   String chapterRoads;
   String chapterResult;
   String referer;
+  AntiCrawlerConfig antiCrawlerConfig;
 
   Plugin({
     required this.api,
@@ -50,7 +89,8 @@ class Plugin {
     required this.chapterRoads,
     required this.chapterResult,
     required this.referer,
-  });
+    AntiCrawlerConfig? antiCrawlerConfig,
+  }) : antiCrawlerConfig = antiCrawlerConfig ?? AntiCrawlerConfig.empty();
 
   factory Plugin.fromJson(Map<String, dynamic> json) {
     return Plugin(
@@ -72,12 +112,16 @@ class Plugin {
         searchResult: json['searchResult'],
         chapterRoads: json['chapterRoads'],
         chapterResult: json['chapterResult'],
-        referer: json['referer'] ?? '');
+        referer: json['referer'] ?? '',
+        antiCrawlerConfig: json['antiCrawlerConfig'] != null
+            ? AntiCrawlerConfig.fromJson(
+                Map<String, dynamic>.from(json['antiCrawlerConfig']))
+            : AntiCrawlerConfig.empty());
   }
 
   factory Plugin.fromTemplate() {
     return Plugin(
-        api: Api.apiLevel.toString(),
+        api: ApiEndpoints.apiLevel.toString(),
         type: 'anime',
         name: '',
         version: '',
@@ -95,7 +139,8 @@ class Plugin {
         searchResult: '',
         chapterRoads: '',
         chapterResult: '',
-        referer: '');
+        referer: '',
+        antiCrawlerConfig: AntiCrawlerConfig.empty());
   }
 
   Map<String, dynamic> toJson() {
@@ -119,67 +164,87 @@ class Plugin {
     data['chapterRoads'] = chapterRoads;
     data['chapterResult'] = chapterResult;
     data['referer'] = referer;
+    data['antiCrawlerConfig'] = antiCrawlerConfig.toJson();
     return data;
   }
 
   Future<PluginSearchResponse> queryBangumi(String keyword,
       {bool shouldRethrow = false}) async {
-    String queryURL = searchURL.replaceAll('@keyword', keyword);
-    dynamic resp;
-    List<SearchItem> searchItems = [];
-    if (usePost) {
-      Uri uri = Uri.parse(queryURL);
-      Map<String, String> queryParams = uri.queryParameters;
-      Uri postUri = Uri(
-        scheme: uri.scheme,
-        host: uri.host,
-        path: uri.path,
-      );
-      var httpHeaders = {
-        'referer': '$baseUrl/',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      resp = await Request().post(postUri.toString(),
-          options: Options(headers: httpHeaders),
-          extra: {'customError': ''},
-          data: queryParams,
-          shouldRethrow: shouldRethrow);
-    } else {
-      var httpHeaders = {
-        'referer': '$baseUrl/',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
-        'Connection': 'keep-alive',
-      };
-      resp = await Request().get(queryURL,
-          options: Options(headers: httpHeaders),
-          shouldRethrow: shouldRethrow,
-          extra: {'customError': ''});
-    }
-
-    var htmlString = resp.data.toString();
-    var htmlElement = parse(htmlString).documentElement!;
-
-    htmlElement.queryXPath(searchList).nodes.forEach((element) {
-      try {
-        SearchItem searchItem = SearchItem(
-          name: element.queryXPath(searchName).node!.text?.trim() ?? '',
-          src: element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+    try {
+      String queryURL =
+          searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+      String htmlString;
+      List<SearchItem> searchItems = [];
+      final String cookieHeader = await _cookieHeaderFor(queryURL);
+      if (usePost) {
+        Uri uri = Uri.parse(queryURL);
+        Map<String, String> queryParams = uri.queryParameters;
+        Uri postUri = Uri(
+          scheme: uri.scheme,
+          host: uri.host,
+          path: uri.path,
         );
-        searchItems.add(searchItem);
-        KazumiLogger().i(
-            'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
-      } catch (_) {}
-    });
-    PluginSearchResponse pluginSearchResponse =
-    PluginSearchResponse(pluginName: name, data: searchItems);
-    return pluginSearchResponse;
+        var httpHeaders = {
+          'referer': '$baseUrl/',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept-Language': getRandomAcceptedLanguage(),
+          'Connection': 'keep-alive',
+          if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
+        };
+        htmlString = await _siteClient.postFormText(
+          postUri.toString(),
+          headers: httpHeaders,
+          data: queryParams,
+        );
+      } else {
+        var httpHeaders = {
+          'referer': '$baseUrl/',
+          'Accept-Language': getRandomAcceptedLanguage(),
+          'Connection': 'keep-alive',
+          if (cookieHeader.isNotEmpty) 'Cookie': cookieHeader,
+        };
+        htmlString = await _siteClient.getText(
+          queryURL,
+          headers: httpHeaders,
+        );
+      }
+
+      var htmlElement = parse(htmlString).documentElement!;
+
+      if (detectsCaptchaChallenge(htmlString, htmlElement: htmlElement)) {
+        KazumiLogger()
+            .w('Plugin: $name detected captcha challenge in search response');
+        throw CaptchaRequiredException(name);
+      }
+
+      htmlElement.queryXPath(searchList).nodes.forEach((element) {
+        try {
+          SearchItem searchItem = SearchItem(
+            name: element.queryXPath(searchName).node!.text?.trim() ?? '',
+            src:
+                element.queryXPath(searchResult).node!.attributes['href'] ?? '',
+          );
+          searchItems.add(searchItem);
+          KazumiLogger().i(
+              'Plugin: $name ${element.queryXPath(searchName).node!.text ?? ''} $baseUrl${element.queryXPath(searchResult).node!.attributes['href'] ?? ''}');
+        } catch (_) {}
+      });
+      if (searchItems.isEmpty) throw NoResultException(name);
+      return PluginSearchResponse(pluginName: name, data: searchItems);
+    } on CaptchaRequiredException {
+      rethrow;
+    } on NoResultException {
+      rethrow;
+    } catch (e, st) {
+      KazumiLogger().w('Plugin: $name search failed', error: e, stackTrace: st);
+      if (shouldRethrow) throw SearchErrorException(name, cause: e);
+      return PluginSearchResponse(pluginName: name, data: []);
+    }
   }
 
-  Future<List<Road>> querychapterRoads(String url, {CancelToken? cancelToken}) async {
+  Future<List<Road>> querychapterRoads(String url,
+      {CancelToken? cancelToken}) async {
     List<Road> roadList = [];
-    // 预处理
     if (!url.contains('https')) {
       url = url.replaceAll('http', 'https');
     }
@@ -191,13 +256,15 @@ class Plugin {
     }
     var httpHeaders = {
       'referer': '$baseUrl/',
-      'Accept-Language': Utils.getRandomAcceptedLanguage(),
+      'Accept-Language': getRandomAcceptedLanguage(),
       'Connection': 'keep-alive',
     };
     try {
-      var resp =
-      await Request().get(queryURL, options: Options(headers: httpHeaders), cancelToken: cancelToken);
-      var htmlString = resp.data.toString();
+      final htmlString = await _siteClient.getText(
+        queryURL,
+        headers: httpHeaders,
+        cancelToken: cancelToken,
+      );
       var htmlElement = parse(htmlString).documentElement!;
       int count = 1;
       htmlElement.queryXPath(chapterRoads).nodes.forEach((element) {
@@ -212,7 +279,7 @@ class Plugin {
           });
           if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {
             Road road = Road(
-                name: '播放列表$count',
+                name: '播放线路$count',
                 data: chapterUrlList,
                 identifier: chapterNameList);
             roadList.add(road);
@@ -225,9 +292,10 @@ class Plugin {
   }
 
   Future<String> testSearchRequest(String keyword,
-      {bool shouldRethrow = false,CancelToken? cancelToken}) async {
-    String queryURL = searchURL.replaceAll('@keyword', keyword);
-    dynamic resp;
+      {bool shouldRethrow = false, CancelToken? cancelToken}) async {
+    String queryURL =
+        searchURL.replaceAll('@keyword', Uri.encodeQueryComponent(keyword));
+    String htmlString;
     if (usePost) {
       Uri uri = Uri.parse(queryURL);
       Map<String, String> queryParams = uri.queryParameters;
@@ -239,29 +307,76 @@ class Plugin {
       var httpHeaders = {
         'referer': '$baseUrl/',
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
-      resp = await Request().post(postUri.toString(),
-          options: Options(headers: httpHeaders),
-          extra: {'customError': ''},
-          data: queryParams,
-          shouldRethrow: shouldRethrow,
-          cancelToken: cancelToken);
+      htmlString = await _siteClient.postFormText(
+        postUri.toString(),
+        headers: httpHeaders,
+        data: queryParams,
+        cancelToken: cancelToken,
+      );
     } else {
       var httpHeaders = {
         'referer': '$baseUrl/',
-        'Accept-Language': Utils.getRandomAcceptedLanguage(),
+        'Accept-Language': getRandomAcceptedLanguage(),
         'Connection': 'keep-alive',
       };
-      resp = await Request().get(queryURL,
-          options: Options(headers: httpHeaders,),
-          shouldRethrow: shouldRethrow,
-          extra: {'customError': ''},
-          cancelToken: cancelToken);
+      htmlString = await _siteClient.getText(
+        queryURL,
+        headers: httpHeaders,
+        cancelToken: cancelToken,
+      );
     }
 
-    return resp.data.toString();
+    return htmlString;
+  }
+
+  Future<String> _cookieHeaderFor(String url) async {
+    if (!PluginCookieManager.instance.hasCookies(name)) return '';
+    final uri = Uri.tryParse(url);
+    if (uri == null) return '';
+    try {
+      final cookies =
+          await PluginCookieManager.instance.getJar(name).loadForRequest(uri);
+      if (cookies.isEmpty) return '';
+      return cookies.map((c) => '${c.name}=${c.value}').join('; ');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  bool detectsCaptchaChallenge(String htmlString, {Element? htmlElement}) {
+    if (!antiCrawlerConfig.enabled) return false;
+
+    final detectValue = antiCrawlerConfig.captchaDetectValue.trim();
+    if (detectValue.isNotEmpty) {
+      switch (antiCrawlerConfig.captchaDetectType) {
+        case CaptchaDetectType.text:
+          return htmlString.contains(detectValue);
+        case CaptchaDetectType.regex:
+          try {
+            return RegExp(detectValue, caseSensitive: false, dotAll: true)
+                .hasMatch(htmlString);
+          } catch (e) {
+            KazumiLogger()
+                .w('Plugin: $name invalid captcha detect regex: $detectValue');
+            return false;
+          }
+        case CaptchaDetectType.xpath:
+        default:
+          final element = htmlElement ?? parse(htmlString).documentElement!;
+          return element.queryXPath(detectValue).node != null;
+      }
+    }
+
+    final element = htmlElement ?? parse(htmlString).documentElement!;
+    final List<String> detectionXpaths = [
+      antiCrawlerConfig.captchaImage,
+      antiCrawlerConfig.captchaButton,
+    ].where((x) => x.isNotEmpty).toList();
+    return detectionXpaths
+        .any((xpath) => element.queryXPath(xpath).node != null);
   }
 
   String buildFullUrl(String urlItem) {
@@ -274,7 +389,7 @@ class Plugin {
 
   Map<String, String> buildHttpHeaders() {
     return {
-      'user-agent': userAgent.isEmpty ? Utils.getRandomUA() : userAgent,
+      'user-agent': userAgent.isEmpty ? getRandomUA() : userAgent,
       if (referer.isNotEmpty) 'referer': referer,
     };
   }
@@ -294,7 +409,7 @@ class Plugin {
       } catch (_) {}
     });
     PluginSearchResponse pluginSearchResponse =
-    PluginSearchResponse(pluginName: name, data: searchItems);
+        PluginSearchResponse(pluginName: name, data: searchItems);
     return pluginSearchResponse;
   }
 }

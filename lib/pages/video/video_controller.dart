@@ -8,23 +8,81 @@ import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/repositories/download_repository.dart';
-import 'package:kazumi/utils/download_manager.dart';
-import 'package:kazumi/providers/providers.dart';
+import 'package:kazumi/services/download/download_manager.dart';
+import 'package:kazumi/services/video_source/services.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:kazumi/modules/bangumi/episode_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/modules/comments/comment_response.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/http_headers.dart';
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/services/platform/display_mode_service.dart';
 
 part 'video_controller.g.dart';
 
 class VideoPageController = _VideoPageController with _$VideoPageController;
+
+// Controller-local ownership token for async work. Keep it private so playback
+// and comment freshness checks stay inside VideoPageController instead of
+// leaking through player, danmaku, or widget APIs.
+class _AsyncSessionOwner {
+  int _version = 0;
+
+  _AsyncSession begin() {
+    return _AsyncSession(this, ++_version);
+  }
+
+  void cancel() {
+    _version++;
+  }
+
+  bool owns(_AsyncSession session) {
+    return identical(session.owner, this) && session.version == _version;
+  }
+}
+
+class _AsyncSession {
+  const _AsyncSession(this.owner, this.version);
+
+  final _AsyncSessionOwner owner;
+  final int version;
+
+  bool get isActive => owner.owns(this);
+
+  bool get isStale => !isActive;
+}
+
+class VideoEpisodeSelection {
+  const VideoEpisodeSelection({
+    required this.episode,
+    required this.road,
+  });
+
+  final int episode;
+  final int road;
+
+  @override
+  bool operator ==(Object other) {
+    return other is VideoEpisodeSelection &&
+        other.episode == episode &&
+        other.road == road;
+  }
+
+  @override
+  int get hashCode => Object.hash(episode, road);
+
+  @override
+  String toString() {
+    return 'VideoEpisodeSelection(episode: $episode, road: $road)';
+  }
+}
 
 abstract class _VideoPageController with Store {
   late BangumiItem bangumiItem;
@@ -40,37 +98,49 @@ abstract class _VideoPageController with Store {
   String? errorMessage;
 
   @observable
-  int currentEpisode = 1;
+  VideoEpisodeSelection selectedEpisode =
+      const VideoEpisodeSelection(episode: 1, road: 0);
 
   @observable
-  int currentRoad = 0;
+  VideoEpisodeSelection? playingEpisode;
 
-  /// 全屏状态
+  @observable
+  int commentsEpisode = 1;
+
+  void resetEpisodeState({int episode = 1, int road = 0}) {
+    final selection = VideoEpisodeSelection(episode: episode, road: road);
+    selectedEpisode = selection;
+    playingEpisode = null;
+    commentsEpisode = commentEpisodeForSelection(selection);
+  }
+
+  VideoEpisodeSelection get playbackEpisode =>
+      playingEpisode ?? selectedEpisode;
+
   @observable
   bool isFullscreen = false;
 
-  /// 评论正序或倒序
   @observable
   bool isCommentsAscending = false;
 
-  /// 画中画状态
+  // Playback, automatic danmaku loading, and comment loading have separate
+  // owners. Manual danmaku selection can cancel auto danmaku without touching
+  // playback; comment refreshes never cancel playback.
+  final _AsyncSessionOwner _playbackSessions = _AsyncSessionOwner();
+  final _AsyncSessionOwner _danmakuSessions = _AsyncSessionOwner();
+  final _AsyncSessionOwner _commentSessions = _AsyncSessionOwner();
+
   @observable
   bool isPip = false;
 
-  /// 播放列表显示状态
   @observable
   bool showTabBody = true;
 
-  /// 上次观看位置
   @observable
   int historyOffset = 0;
 
-  /// 离线播放模式
   @observable
   bool isOfflineMode = false;
-
-  /// 离线视频本地路径
-  String? _offlineVideoPath;
 
   /// 和 bangumiItem 中的标题不同，此标题来自于视频源
   String title = '';
@@ -82,10 +152,8 @@ abstract class _VideoPageController with Store {
 
   late Plugin currentPlugin;
 
-  /// 离线模式下的虚拟插件名
   String _offlinePluginName = '';
 
-  /// 用于取消正在进行的 queryRoads 操作
   CancelToken? _queryRoadsCancelToken;
 
   final PluginsController pluginsController = Modular.get<PluginsController>();
@@ -93,12 +161,9 @@ abstract class _VideoPageController with Store {
   final IDownloadRepository downloadRepository =
       Modular.get<IDownloadRepository>();
   final IDownloadManager downloadManager = Modular.get<IDownloadManager>();
-  final Box setting = GStorage.setting;
 
-  /// 长生命周期的视频源提供者（页面生命周期内复用，WebView 实例在 Provider 内复用）
-  WebViewVideoSourceProvider? _videoSourceProvider;
+  WebViewVideoSourceService? _videoSourceService;
 
-  /// 视频提供者日志流控制器
   final StreamController<String> _logStreamController =
       StreamController<String>.broadcast();
 
@@ -106,50 +171,46 @@ abstract class _VideoPageController with Store {
 
   StreamSubscription<String>? _logSubscription;
 
-  /// 初始化离线播放模式
   void initForOfflinePlayback({
     required BangumiItem bangumiItem,
     required String pluginName,
     required int episodeNumber,
-    required String episodeName,
     required int road,
-    required String videoPath,
     required List<DownloadEpisode> downloadedEpisodes,
   }) {
     this.bangumiItem = bangumiItem;
     _offlinePluginName = pluginName;
-    currentRoad = road;
+    var selectedRoad = road;
     title =
         bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name;
     isOfflineMode = true;
-    _offlineVideoPath = videoPath;
-    // 离线模式不需要解析视频源，直接设置 loading 为 false
     loading = false;
 
-    // 构建仅包含已下载集数的 roadList
     _buildOfflineRoadList(downloadedEpisodes);
 
-    // 离线模式下 roadList 长度为 1 , currentRoad 可能访问越界，需要校正
-    if (currentRoad < 0 || currentRoad >= roadList.length) {
-      currentRoad = 0;
+    if (selectedRoad < 0 || selectedRoad >= roadList.length) {
+      selectedRoad = 0;
     }
 
-    // currentEpisode 是列表中的 1-based 位置，而非实际集数编号
-    // 在 roadList.data 中查找 episodeNumber 对应的位置
-    final index = roadList[currentRoad].data.indexOf(episodeNumber.toString());
-    currentEpisode = index >= 0 ? index + 1 : 1;
+    // Offline road data stores the real episode number, while selection uses
+    // the 1-based position shown in the playlist.
+    final index = roadList[selectedRoad].data.indexOf(episodeNumber.toString());
+    final selected = VideoEpisodeSelection(
+      episode: index >= 0 ? index + 1 : 1,
+      road: selectedRoad,
+    );
+    selectedEpisode = selected;
+    playingEpisode = null;
+    commentsEpisode = commentEpisodeForSelection(selected);
     KazumiLogger().i(
-        'VideoPageController: initialized for offline playback, episode $episodeNumber (position: $currentEpisode)');
+        'VideoPageController: initialized for offline playback, episode $episodeNumber (position: ${selected.episode})');
   }
 
-  /// 构建离线模式的 roadList
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     roadList.clear();
     episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-    // 使用 '播放列表1' 作为名称，与 UI 代码兼容
     roadList.add(Road(
-      name: '播放列表1',
-      // data 存储实际的 episodeNumber（字符串形式），用于离线播放时查找本地文件
+      name: '播放线路1',
       data: episodes.map((e) => e.episodeNumber.toString()).toList(),
       identifier: episodes
           .map((e) =>
@@ -160,61 +221,112 @@ abstract class _VideoPageController with Store {
 
   void resetOfflineMode() {
     isOfflineMode = false;
-    _offlineVideoPath = null;
     _offlinePluginName = '';
   }
 
-  String? get offlineVideoPath => _offlineVideoPath;
-
   String get offlinePluginName => _offlinePluginName;
 
-  /// 获取当前实际的集数编号
-  /// 在线模式下直接返回 currentEpisode
-  /// 离线模式下从 roadList.data 中获取实际的 episodeNumber
-  int get actualEpisodeNumber {
+  int get playingActualEpisodeNumber =>
+      actualEpisodeNumberForSelection(playbackEpisode);
+
+  int actualEpisodeNumberForSelection(VideoEpisodeSelection selection) {
     if (isOfflineMode && roadList.isNotEmpty) {
       try {
-        return int.parse(roadList[currentRoad].data[currentEpisode - 1]);
+        return int.parse(roadList[selection.road].data[selection.episode - 1]);
       } catch (_) {
-        return currentEpisode;
+        return selection.episode;
       }
     }
-    return currentEpisode;
+    return selection.episode;
   }
 
-  Future<void> changeEpisode(int episode,
-      {int currentRoad = 0, int offset = 0}) async {
-    currentEpisode = episode;
-    this.currentRoad = currentRoad;
+  int commentEpisodeForSelection(VideoEpisodeSelection selection) {
+    if (roadList.isEmpty ||
+        selection.road < 0 ||
+        selection.road >= roadList.length) {
+      return selection.episode;
+    }
+    final road = roadList[selection.road];
+    final index = selection.episode - 1;
+    if (index < 0 || index >= road.identifier.length) {
+      return selection.episode;
+    }
+
+    final extractedEpisode = extractEpisodeNumber(road.identifier[index]);
+    if (extractedEpisode == 0 ||
+        (!isOfflineMode && extractedEpisode > road.identifier.length)) {
+      return isOfflineMode
+          ? actualEpisodeNumberForSelection(selection)
+          : selection.episode;
+    }
+    return extractedEpisode;
+  }
+
+  Future<void> changeEpisode(
+    int episode, {
+    int currentRoad = 0,
+    int offset = 0,
+    required PlayerController playerController,
+  }) async {
+    final session = _playbackSessions.begin();
+    final selection = VideoEpisodeSelection(
+      episode: episode,
+      road: currentRoad,
+    );
+    selectedEpisode = selection;
+    playingEpisode = null;
+    commentsEpisode = commentEpisodeForSelection(selection);
+    resetEpisodeComments();
+    _danmakuSessions.cancel();
+    playerController.danmaku.finishDanmakuLoad();
+    _videoSourceService?.cancel();
+    loading = true;
     errorMessage = null;
 
-    if (isOfflineMode) {
-      await _changeOfflineEpisode(episode, offset);
+    await playerController.stop();
+    if (session.isStale) {
       return;
     }
 
-    String chapterName = roadList[currentRoad].identifier[episode - 1];
+    if (isOfflineMode) {
+      await _changeOfflineEpisode(
+        selection,
+        offset,
+        session: session,
+        playerController: playerController,
+      );
+      return;
+    }
+
+    String chapterName =
+        roadList[selection.road].identifier[selection.episode - 1];
     KazumiLogger().i('VideoPageController: changed to $chapterName');
-    String urlItem = roadList[currentRoad].data[episode - 1];
-    if (urlItem.contains(currentPlugin.baseUrl) ||
-        urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
-      urlItem = urlItem;
-    } else {
+    String urlItem = roadList[selection.road].data[selection.episode - 1];
+    if (!urlItem.contains(currentPlugin.baseUrl) &&
+        !urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
 
-    await _resolveWithProvider(urlItem, offset);
+    await _resolveWithVideoSourceService(
+      urlItem,
+      offset,
+      selection: selection,
+      session: session,
+      playerController: playerController,
+    );
   }
 
-  /// 离线模式下切换集数
-  /// [episode] 是列表中的位置（从 1 开始），需要从 roadList.data 中获取实际的 episodeNumber
-  Future<void> _changeOfflineEpisode(int episode, int offset) async {
-    // 从 roadList.data 中获取实际的 episodeNumber
+  Future<void> _changeOfflineEpisode(
+    VideoEpisodeSelection selection,
+    int offset, {
+    required _AsyncSession session,
+    required PlayerController playerController,
+  }) async {
     final actualEpisodeNumber =
-        int.tryParse(roadList[currentRoad].data[episode - 1]);
+        int.tryParse(roadList[selection.road].data[selection.episode - 1]);
     if (actualEpisodeNumber == null) {
       KazumiLogger().e(
-          'VideoPageController: failed to parse episode number from roadList data: ${roadList[currentRoad].data[episode - 1]}');
+          'VideoPageController: failed to parse episode number from roadList data: ${roadList[selection.road].data[selection.episode - 1]}');
       KazumiDialog.showToast(message: '集数解析失败');
       return;
     }
@@ -228,11 +340,13 @@ abstract class _VideoPageController with Store {
       KazumiDialog.showToast(message: '该集数未下载');
       return;
     }
-    _offlineVideoPath = localPath;
+    if (session.isStale) {
+      return;
+    }
     loading = false;
 
     KazumiLogger().i(
-        'VideoPageController: offline episode changed to $actualEpisodeNumber (index: $episode), path: $localPath');
+        'VideoPageController: offline episode changed to $actualEpisodeNumber (index: ${selection.episode}), path: $localPath');
 
     final params = PlaybackInitParams(
       videoUrl: localPath,
@@ -243,16 +357,79 @@ abstract class _VideoPageController with Store {
       episode: actualEpisodeNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
-      episodeTitle: roadList[currentRoad].identifier[episode - 1],
+      episodeTitle: roadList[selection.road].identifier[selection.episode - 1],
       referer: '',
-      currentRoad: currentRoad,
+      currentRoad: selection.road,
+      coverUrl: bangumiItem.images['large'],
+      bangumiName:
+          bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
     );
 
-    final playerController = Modular.get<PlayerController>();
-    await playerController.init(params);
+    final initialized = await playerController.init(params);
+    if (session.isActive && initialized) {
+      playingEpisode = selection;
+      unawaited(_loadPlaybackDanmaku(playerController, params, session));
+    } else if (session.isActive) {
+      _playbackSessions.cancel();
+    }
   }
 
-  /// 获取本地视频路径
+  int _danmakuEpisodeForPlayback(PlaybackInitParams params) {
+    try {
+      final episodeFromTitle = extractEpisodeNumber(params.episodeTitle);
+      if (episodeFromTitle != 0) {
+        return episodeFromTitle;
+      }
+    } catch (e) {
+      KazumiLogger().e(
+        'VideoPageController: failed to extract episode number from title',
+        error: e,
+      );
+    }
+    return params.episode;
+  }
+
+  Future<void> _loadPlaybackDanmaku(
+    PlayerController playerController,
+    PlaybackInitParams params,
+    _AsyncSession session,
+  ) async {
+    final danmakuSession = _danmakuSessions.begin();
+    playerController.danmaku.beginDanmakuLoad();
+    try {
+      final result = await playerController.danmaku.fetchDanmaku(
+        params.bangumiId,
+        params.pluginName,
+        _danmakuEpisodeForPlayback(params),
+      );
+      if (session.isActive && danmakuSession.isActive) {
+        if (result.hasDanmakus) {
+          final bool enableDanmaku =
+              GStorage.getSetting(SettingsKeys.danmakuEnabledByDefault);
+          playerController.danmaku.applyDanmakuLoad(
+            result,
+            enableDanmaku: enableDanmaku,
+          );
+        } else {
+          playerController.danmaku.applyUnavailableDanmakuLoad(result);
+          if (result.isFailed) {
+            KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+          }
+        }
+      }
+    } catch (e) {
+      if (session.isActive && danmakuSession.isActive) {
+        playerController.danmaku.finishDanmakuLoad(disableDanmaku: true);
+        KazumiDialog.showToast(message: '弹幕加载失败，可手动检索');
+      }
+      KazumiLogger().w('VideoPageController: failed to load danmaku', error: e);
+    }
+  }
+
+  void cancelAutomaticDanmakuLoad() {
+    _danmakuSessions.cancel();
+  }
+
   String? _getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode =
@@ -260,33 +437,38 @@ abstract class _VideoPageController with Store {
     return downloadManager.getLocalVideoPath(episode);
   }
 
-  /// 使用 VideoSourceProvider 解析视频源
-  Future<void> _resolveWithProvider(String url, int offset) async {
-    _videoSourceProvider?.cancel();
-
-    loading = true;
-    _videoSourceProvider ??= WebViewVideoSourceProvider();
+  Future<void> _resolveWithVideoSourceService(
+    String url,
+    int offset, {
+    required VideoEpisodeSelection selection,
+    required _AsyncSession session,
+    required PlayerController playerController,
+  }) async {
+    _videoSourceService ??= WebViewVideoSourceService();
 
     await _logSubscription?.cancel();
-    _logSubscription = _videoSourceProvider!.onLog.listen((log) {
+    _logSubscription = _videoSourceService!.onLog.listen((log) {
       if (!_logStreamController.isClosed) {
         _logStreamController.add(log);
       }
     });
 
     try {
-      final source = await _videoSourceProvider!.resolve(
+      final source = await _videoSourceService!.resolve(
         url,
         useLegacyParser: currentPlugin.useLegacyParser,
         offset: offset,
       );
 
+      if (session.isStale) {
+        return;
+      }
       loading = false;
       KazumiLogger()
           .i('VideoPageController: resolved video URL: ${source.url}');
 
       final bool forceAdBlocker =
-          setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+          GStorage.getSetting(SettingsKeys.forceAdBlocker);
 
       final params = PlaybackInitParams(
         videoUrl: source.url,
@@ -294,61 +476,111 @@ abstract class _VideoPageController with Store {
         isLocalPlayback: false,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
-        episode: currentEpisode,
+        episode: selection.episode,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty
-              ? Utils.getRandomUA()
+              ? getRandomUA()
               : currentPlugin.userAgent,
           if (currentPlugin.referer.isNotEmpty)
             'referer': currentPlugin.referer,
         },
         adBlockerEnabled: forceAdBlocker || currentPlugin.adBlocker,
-        episodeTitle: roadList[currentRoad].identifier[currentEpisode - 1],
+        episodeTitle:
+            roadList[selection.road].identifier[selection.episode - 1],
         referer: currentPlugin.referer,
-        currentRoad: currentRoad,
+        currentRoad: selection.road,
+        coverUrl: bangumiItem.images['large'],
+        bangumiName: bangumiItem.nameCn.isNotEmpty
+            ? bangumiItem.nameCn
+            : bangumiItem.name,
       );
 
-      final playerController = Modular.get<PlayerController>();
-      await playerController.init(params);
+      final initialized = await playerController.init(params);
+      if (session.isActive && initialized) {
+        playingEpisode = selection;
+        unawaited(_loadPlaybackDanmaku(playerController, params, session));
+      } else if (session.isActive) {
+        _playbackSessions.cancel();
+      }
     } on VideoSourceTimeoutException {
+      if (session.isStale) {
+        return;
+      }
       loading = false;
       errorMessage = '视频解析超时，请重试';
     } on VideoSourceCancelledException {
       KazumiLogger().i('VideoPageController: video URL resolution cancelled');
-      // 不设置 loading = false，因为可能是切换到新的集数
     } catch (e) {
+      if (session.isStale) {
+        return;
+      }
       loading = false;
       errorMessage = '视频解析失败：${e.toString()}';
     }
   }
 
-  /// 取消当前视频源解析并销毁 Provider（页面退出时调用）
   void cancelVideoSourceResolution() {
+    _playbackSessions.cancel();
+    _danmakuSessions.cancel();
     _logSubscription?.cancel();
     _logSubscription = null;
     if (!_logStreamController.isClosed) {
       _logStreamController.close();
     }
-    _videoSourceProvider?.dispose();
-    _videoSourceProvider = null;
+    final videoSourceService = _videoSourceService;
+    _videoSourceService = null;
+    if (videoSourceService != null) {
+      unawaited(videoSourceService.dispose());
+    }
   }
 
-  Future<void> queryBangumiEpisodeCommentsByID(int id, int episode) async {
+  void resetEpisodeComments() {
+    _commentSessions.cancel();
+    episodeInfo.reset();
     episodeCommentsList.clear();
-    episodeInfo = await BangumiHTTP.getBangumiEpisodeByID(id, episode);
-    await BangumiHTTP.getBangumiCommentsByEpisodeID(episodeInfo.id)
-        .then((value) {
-      episodeCommentsList.addAll(value.commentList);
-    });
+  }
+
+  Future<bool> queryBangumiEpisodeCommentsByID(int id, int episode) async {
+    final session = _commentSessions.begin();
+    final EpisodeInfo latestEpisodeInfo;
+    try {
+      latestEpisodeInfo = await BangumiApi.getBangumiEpisodeByID(id, episode);
+    } catch (_) {
+      if (session.isStale) {
+        return false;
+      }
+      rethrow;
+    }
+    if (session.isStale) {
+      return false;
+    }
+    final EpisodeCommentResponse value;
+    try {
+      value =
+          await BangumiApi.getBangumiCommentsByEpisodeID(latestEpisodeInfo.id);
+    } catch (_) {
+      if (session.isStale) {
+        return false;
+      }
+      rethrow;
+    }
+    if (session.isStale) {
+      return false;
+    }
+    commentsEpisode = episode;
+    episodeInfo = latestEpisodeInfo;
+    final commentsList = value.commentList;
     if (!isCommentsAscending) {
-      episodeCommentsList
+      commentsList
           .sort((a, b) => b.comment.createdAt.compareTo(a.comment.createdAt));
     } else {
-      episodeCommentsList
+      commentsList
           .sort((a, b) => a.comment.createdAt.compareTo(b.comment.createdAt));
     }
+    episodeCommentsList = ObservableList.of(commentsList);
     KazumiLogger().i(
         'VideoPageController: loaded comments list length ${episodeCommentsList.length}');
+    return true;
   }
 
   Future<void> queryRoads(String url, String pluginName,
@@ -396,24 +628,22 @@ abstract class _VideoPageController with Store {
 
   void enterFullScreen() {
     isFullscreen = true;
-    showTabBody = false;
-    Utils.enterFullScreen(lockOrientation: false);
+    DisplayModeService.enterFullScreen(lockOrientation: false);
   }
 
   void exitFullScreen() {
     isFullscreen = false;
-    Utils.exitFullScreen();
+    DisplayModeService.exitFullScreen();
   }
 
   void isDesktopFullscreen() async {
-    if (Utils.isDesktop()) {
+    if (isDesktop()) {
       isFullscreen = await windowManager.isFullScreen();
     }
   }
 
   void handleOnEnterFullScreen() async {
     isFullscreen = true;
-    showTabBody = false;
   }
 
   void handleOnExitFullScreen() async {

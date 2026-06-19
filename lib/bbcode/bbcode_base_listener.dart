@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/bbcode/bbcode_elements.dart';
 
 import 'generated/BBCodeListener.dart';
@@ -61,8 +61,8 @@ class BBCodeBaseListener implements BBCodeListener {
         bbCodeTag.color = bbcode.length;
         break;
       default:
-        KazumiLogger()
-            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
+        KazumiLogger().e(
+            'BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }
@@ -170,8 +170,8 @@ class BBCodeBaseListener implements BBCodeListener {
         }
         break;
       default:
-        KazumiLogger()
-            .e('BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
+        KazumiLogger().e(
+            'BBCode: unrecognized Tag: ${ctx.text}, please submit an issue with logs, bangumi, and episode information');
         break;
     }
   }
@@ -214,6 +214,15 @@ class BBCodeBaseListener implements BBCodeListener {
 
   @override
   void exitBgm(BgmContext ctx) {}
+
+  @override
+  void enterMusume(MusumeContext ctx) {
+    /// 处理 (musume_07) 类型的表情
+    bbcode.add(BBCodeMusume(id: int.tryParse(ctx.id!.text!) ?? 0));
+  }
+
+  @override
+  void exitMusume(MusumeContext ctx) {}
 
   @override
   void enterSticker(StickerContext ctx) {

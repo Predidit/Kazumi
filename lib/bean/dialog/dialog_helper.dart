@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
 
@@ -62,6 +63,7 @@ class KazumiDialog {
                   ? 600
                   : null,
               duration: duration,
+              persist: false,
               action: showActionButton
                   ? SnackBarAction(
                       label: actionLabel ?? 'Dismiss',
@@ -193,6 +195,117 @@ class KazumiDialog {
     } else {
       debugPrint('Kazumi Dialog Debug: No active KazumiDialog to dismiss');
     }
+  }
+
+  /// Shows a non-dismissible timed success dialog with a linear progress
+  /// countdown, then auto-dismisses when the countdown completes.
+  ///
+  /// The caller is responsible for dismissing any currently-open dialog
+  /// BEFORE calling this method.
+  ///
+  /// [onComplete] is invoked after the dialog route finishes.
+  static void showTimedSuccessDialog({
+    required String title,
+    required String message,
+    required VoidCallback onComplete,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    KazumiDialog.show<bool>(
+      clickMaskDismiss: false,
+      builder: (context) => _TimedSuccessDialog(
+        title: title,
+        message: message,
+        duration: duration,
+      ),
+    ).then((completed) {
+      if (completed == true) {
+        onComplete();
+      }
+    });
+  }
+}
+
+class _TimedSuccessDialog extends StatefulWidget {
+  const _TimedSuccessDialog({
+    required this.title,
+    required this.message,
+    required this.duration,
+  });
+
+  final String title;
+  final String message;
+  final Duration duration;
+
+  @override
+  State<_TimedSuccessDialog> createState() => _TimedSuccessDialogState();
+}
+
+class _TimedSuccessDialogState extends State<_TimedSuccessDialog> {
+  Timer? _countdownTimer;
+  late final Stopwatch _stopwatch = Stopwatch()..start();
+  double _progress = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdownTimer = Timer.periodic(const Duration(milliseconds: 16), (_) {
+      final totalMs = widget.duration.inMilliseconds.clamp(1, 1 << 31);
+      final elapsed = _stopwatch.elapsedMilliseconds;
+      final nextProgress = (elapsed / totalMs).clamp(0.0, 1.0).toDouble();
+      if (!mounted) return;
+      setState(() {
+        _progress = nextProgress;
+      });
+      if (elapsed >= totalMs) {
+        _countdownTimer?.cancel();
+        _countdownTimer = null;
+        KazumiDialog.dismiss(popWith: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+        child: SizedBox(
+          width: 320,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle_rounded,
+                size: 52,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.message,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+              LinearProgressIndicator(
+                value: _progress,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -2,10 +2,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/character/character_full_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/request/bangumi.dart';
+import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/card/character_comments_card.dart';
 import 'package:kazumi/bean/widget/error_widget.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key, required this.characterID});
@@ -21,12 +22,13 @@ class _CharacterPageState extends State<CharacterPage> {
   bool loadingCharacter = true;
   List<CharacterCommentItem> commentsList = [];
   bool loadingComments = true;
+  bool commentsError = false;
 
   Future<void> loadCharacter() async {
     setState(() {
       loadingCharacter = true;
     });
-    await BangumiHTTP.getCharacterByCharacterID(widget.characterID)
+    await BangumiApi.getCharacterByCharacterID(widget.characterID)
         .then((character) {
       characterFullItem = character;
     });
@@ -40,11 +42,19 @@ class _CharacterPageState extends State<CharacterPage> {
   Future<void> loadComments() async {
     setState(() {
       loadingComments = true;
+      commentsError = false;
     });
-    await BangumiHTTP.getCharacterCommentsByCharacterID(widget.characterID)
-        .then((value) {
+    try {
+      final value = await BangumiApi.getCharacterCommentsByCharacterID(
+          widget.characterID);
       commentsList = value.commentList;
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          commentsError = true;
+        });
+      }
+    }
     if (mounted) {
       setState(() {
         loadingComments = false;
@@ -119,10 +129,26 @@ class _CharacterPageState extends State<CharacterPage> {
                               SizedBox(
                                 width: constraints.maxWidth * 0.3,
                                 height: constraints.maxHeight,
-                                child: NetworkImgLayer(
-                                  width: constraints.maxWidth,
-                                  height: constraints.maxHeight,
-                                  src: characterFullItem.image,
+                                child: GestureDetector(
+                                  onTap: () => ImageViewer.show(
+                                    context,
+                                    imageUrls: [characterFullItem.image],
+                                    heroTag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
+                                  ),
+                                  child: Hero(
+                                    tag: ImageViewer.heroTagFor(
+                                      characterFullItem.image,
+                                      0,
+                                    ),
+                                    child: NetworkImgLayer(
+                                      width: constraints.maxWidth,
+                                      height: constraints.maxHeight,
+                                      src: characterFullItem.image,
+                                    ),
+                                  ),
                                 ),
                               ),
                               Expanded(
@@ -239,7 +265,7 @@ class _CharacterPageState extends State<CharacterPage> {
                 ),
               );
             }
-            if (commentsList.isEmpty) {
+            if (commentsError) {
               return SliverFillRemaining(
                 child: GeneralErrorWidget(
                   errMsg: '什么都没有找到 (´;ω;`)',
@@ -254,6 +280,13 @@ class _CharacterPageState extends State<CharacterPage> {
                 ),
               );
             }
+            if (commentsList.isEmpty) {
+              return const SliverFillRemaining(
+                child: Center(
+                  child: Text('什么都没有找到 (´;ω;`)'),
+                ),
+              );
+            }
             return SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -263,10 +296,8 @@ class _CharacterPageState extends State<CharacterPage> {
                     keepAlive: true,
                     child: IndexedSemantics(
                       index: index,
-                      child: SelectionArea(
-                        child: CharacterCommentsCard(
-                          commentItem: commentsList[index],
-                        ),
+                      child: CharacterCommentsCard(
+                        commentItem: commentsList[index],
                       ),
                     ),
                   );

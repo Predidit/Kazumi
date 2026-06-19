@@ -1,25 +1,27 @@
 import 'dart:io';
 import 'dart:ui';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/bean/dialog/dialog_helper.dart';
+import 'package:kazumi/pages/info/rating_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/bean/widget/embedded_native_control_area.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/pages/info/info_controller.dart';
 import 'package:kazumi/bean/card/bangumi_info_card.dart';
 import 'package:kazumi/pages/info/source_sheet.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/pages/info/info_tabview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/bean/appbar/drag_to_move_bar.dart' as dtb;
+import 'package:kazumi/utils/device.dart';
 
 class InfoPage extends StatefulWidget {
   const InfoPage({super.key});
@@ -29,6 +31,17 @@ class InfoPage extends StatefulWidget {
 }
 
 class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
+  static const List<String> _infoTabs = <String>[
+    '概览',
+    '吐槽',
+    '角色',
+    '评论',
+    '制作人员',
+  ];
+  static const int _commentsTabIndex = 1;
+  static const Duration _minimumBangumiInfoLoadingDuration =
+      Duration(milliseconds: 600);
+
   /// Don't use modular singleton here. We may have multiple info pages.
   /// Use a new instance of InfoController for each info page.
   final InfoController infoController = InfoController();
@@ -42,33 +55,54 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
   bool commentsIsLoading = false;
   bool charactersIsLoading = false;
   bool commentsQueryTimeout = false;
+  bool commentsIsEmpty = false;
   bool charactersQueryTimeout = false;
+  bool charactersIsEmpty = false;
   bool staffIsLoading = false;
   bool staffQueryTimeout = false;
+  bool staffIsEmpty = false;
+  bool _showBangumiInfoSkeleton = false;
+  int _fabTabIndex = 0;
 
   final inputBangumiIten = Modular.args.data as BangumiItem;
+
+  bool get _isShowingBangumiInfoSkeleton =>
+      infoController.isLoading || _showBangumiInfoSkeleton;
+
+  bool _needsBangumiInfoRefresh(BangumiItem bangumiItem) {
+    final votesCount = bangumiItem.votesCount;
+    final missingVoteDistribution =
+        votesCount.isEmpty || bangumiItem.votes <= 0 || votesCount.length < 10;
+    return bangumiItem.summary == '' || missingVoteDistribution;
+  }
 
   Future<void> loadCharacters() async {
     if (charactersIsLoading) return;
     setState(() {
       charactersIsLoading = true;
       charactersQueryTimeout = false;
+      charactersIsEmpty = false;
     });
-    infoController
-        .queryBangumiCharactersByID(infoController.bangumiItem.id)
-        .then((_) {
-      if (infoController.characterList.isEmpty && mounted) {
+    try {
+      await infoController
+          .queryBangumiCharactersByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          charactersIsLoading = false;
+          if (infoController.characterList.isEmpty) {
+            charactersIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load characters', error: e);
+      if (mounted) {
         setState(() {
           charactersIsLoading = false;
           charactersQueryTimeout = true;
         });
       }
-      if (infoController.characterList.isNotEmpty && mounted) {
-        setState(() {
-          charactersIsLoading = false;
-        });
-      }
-    });
+    }
   }
 
   Future<void> loadStaff() async {
@@ -76,45 +110,88 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     setState(() {
       staffIsLoading = true;
       staffQueryTimeout = false;
+      staffIsEmpty = false;
     });
-    infoController
-        .queryBangumiStaffsByID(infoController.bangumiItem.id)
-        .then((_) {
-      if (infoController.staffList.isEmpty && mounted) {
+    try {
+      await infoController
+          .queryBangumiStaffsByID(infoController.bangumiItem.id);
+      if (mounted) {
+        setState(() {
+          staffIsLoading = false;
+          if (infoController.staffList.isEmpty) {
+            staffIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load staff', error: e);
+      if (mounted) {
         setState(() {
           staffIsLoading = false;
           staffQueryTimeout = true;
         });
       }
-      if (infoController.staffList.isNotEmpty && mounted) {
-        setState(() {
-          staffIsLoading = false;
-        });
-      }
-    });
+    }
   }
 
-  Future<void> loadMoreComments({int offset = 0}) async {
+  Future<void> loadMoreComments({bool loadMore = false}) async {
     if (commentsIsLoading) return;
     setState(() {
       commentsIsLoading = true;
       commentsQueryTimeout = false;
+      commentsIsEmpty = false;
     });
-    infoController
-        .queryBangumiCommentsByID(infoController.bangumiItem.id, offset: offset)
-        .then((_) {
-      if (infoController.commentsList.isEmpty && mounted) {
+    try {
+      await infoController.queryBangumiCommentsByID(
+          infoController.bangumiItem.id,
+          refresh: !loadMore);
+      if (mounted) {
+        setState(() {
+          commentsIsLoading = false;
+          if (infoController.commentsList.isEmpty &&
+              !(infoController.bangumiItem.interest?.hasReviewContent ??
+                  false)) {
+            commentsIsEmpty = true;
+          }
+        });
+      }
+    } catch (e) {
+      KazumiLogger().e('InfoPage: failed to load comments', error: e);
+      if (mounted) {
         setState(() {
           commentsIsLoading = false;
           commentsQueryTimeout = true;
         });
       }
-      if (infoController.commentsList.isNotEmpty && mounted) {
-        setState(() {
-          commentsIsLoading = false;
-        });
-      }
-    });
+    }
+  }
+
+  void onBangumiRatingTap() {
+    final token =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
+    if (token.isEmpty) {
+      KazumiDialog.showToast(message: '请先在同步设置中绑定你的 Bangumi 配置以发表吐槽');
+      return;
+    }
+    final localType = infoController.collectController
+        .getCollectType(infoController.bangumiItem);
+    if (localType == 0) {
+      KazumiDialog.showToast(message: '请先追番后再发表评价');
+      return;
+    }
+    KazumiDialog.show(
+      builder: (context) => RatingReviewDialog(
+        bangumiItem: infoController.bangumiItem,
+        onSubmit: (data) async {
+          final updated =
+              await infoController.rateBangumi(data, localType: localType);
+          if (updated && mounted) {
+            setState(() {});
+          }
+          return updated;
+        },
+      ),
+    );
   }
 
   @override
@@ -122,69 +199,141 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
     super.initState();
     infoController.bangumiItem = inputBangumiIten;
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
-    videoPageController.currentEpisode = 1;
-    // Because the gap between different bangumi API response is too large, sometimes we need to query the bangumi info again
-    // We need the type parameter to determine whether to attach the new data to the old data
-    // We can't generally replace the old data with the new data, because the old data contains images url, update them will cause the image to reload and flicker
-    if (infoController.bangumiItem.summary == '' ||
-        infoController.bangumiItem.votesCount.isEmpty) {
-      queryBangumiInfoByID(infoController.bangumiItem.id, type: 'attach');
+    videoPageController.resetEpisodeState();
+    // Search results can miss rating distribution or summaries, so fill those
+    // fields without replacing image URLs that are already rendered.
+    if (_needsBangumiInfoRefresh(infoController.bangumiItem)) {
+      _showBangumiInfoSkeleton = true;
+      queryBangumiInfoByID(
+        infoController.bangumiItem.id,
+        type: 'attach',
+        enforceMinimumLoadingDuration: true,
+      );
     }
     sourceTabController =
         TabController(length: pluginsController.pluginList.length, vsync: this);
-    infoTabController = TabController(length: 5, vsync: this);
-    showRating = GStorage.setting.get(SettingBoxKey.showRating, defaultValue: true);
-    infoTabController.addListener(() {
-      int index = infoTabController.index;
-      if (index == 1 &&
-          infoController.commentsList.isEmpty &&
-          !commentsIsLoading) {
-        loadMoreComments();
-      }
-      if (index == 2 &&
-          infoController.characterList.isEmpty &&
-          !charactersIsLoading) {
-        loadCharacters();
-      }
-      if (index == 4 && infoController.staffList.isEmpty && !staffIsLoading) {
-        loadStaff();
-      }
+    infoTabController = TabController(length: _infoTabs.length, vsync: this);
+    _fabTabIndex = infoTabController.index;
+    showRating = GStorage.getSetting(SettingsKeys.showRating);
+    infoTabController.addListener(onInfoTabChanged);
+    infoTabController.addListener(_syncFabTabIndex);
+    infoTabController.animation?.addListener(_syncFabTabIndex);
+  }
+
+  void onInfoTabChanged() {
+    final index = infoTabController.index;
+    if (index == 2 &&
+        infoController.characterList.isEmpty &&
+        !charactersIsLoading &&
+        !charactersIsEmpty &&
+        !charactersQueryTimeout) {
+      loadCharacters();
+    }
+    if (index == 4 &&
+        infoController.staffList.isEmpty &&
+        !staffIsLoading &&
+        !staffIsEmpty &&
+        !staffQueryTimeout) {
+      loadStaff();
+    }
+  }
+
+  void _syncFabTabIndex() {
+    final animation = infoTabController.animation;
+    final targetIndex = infoTabController.indexIsChanging
+        ? infoTabController.index
+        : (animation?.value.round() ?? infoTabController.index);
+    final nextIndex =
+        targetIndex.clamp(0, infoTabController.length - 1).toInt();
+
+    if (_fabTabIndex == nextIndex) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _fabTabIndex = nextIndex;
     });
+  }
+
+  Future<void> onCommentsTabSelected() async {
+    final interest = infoController.bangumiItem.interest;
+    final token =
+        GStorage.getSetting(SettingsKeys.bangumiAccessToken).toString().trim();
+    if (interest != null && token.isNotEmpty) {
+      final updated = await infoController.fillInterestUserProfileIfNeeded();
+      if (updated && mounted) {
+        setState(() {});
+      }
+    }
+    if (infoController.commentsList.isEmpty &&
+        !commentsIsLoading &&
+        !commentsIsEmpty &&
+        !commentsQueryTimeout) {
+      loadMoreComments();
+    }
   }
 
   @override
   void dispose() {
+    infoTabController.removeListener(onInfoTabChanged);
+    infoTabController.removeListener(_syncFabTabIndex);
+    infoTabController.animation?.removeListener(_syncFabTabIndex);
     infoController.characterList.clear();
-    infoController.commentsList.clear();
+    infoController.clearComments();
     infoController.staffList.clear();
     infoController.pluginSearchResponseList.clear();
-    videoPageController.currentEpisode = 1;
+    videoPageController.resetEpisodeState();
     sourceTabController.dispose();
     infoTabController.dispose();
     super.dispose();
   }
 
-  Future<void> queryBangumiInfoByID(int id, {String type = "init"}) async {
+  Future<void> queryBangumiInfoByID(
+    int id, {
+    String type = "init",
+    bool enforceMinimumLoadingDuration = false,
+  }) async {
+    final loadingStartedAt = DateTime.now();
     try {
       await infoController.queryBangumiInfoByID(id, type: type);
-      setState(() {});
     } catch (e) {
-      KazumiLogger().e('InfoController: failed to query bangumi info by ID', error: e);
+      KazumiLogger()
+          .e('InfoPage: failed to query bangumi info by ID', error: e);
+    } finally {
+      if (enforceMinimumLoadingDuration && mounted) {
+        await _waitForMinimumBangumiInfoLoadingDuration(loadingStartedAt);
+      }
+      if (mounted) {
+        setState(() {
+          _showBangumiInfoSkeleton = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _waitForMinimumBangumiInfoLoadingDuration(
+      DateTime loadingStartedAt) async {
+    final elapsed = DateTime.now().difference(loadingStartedAt);
+    final remaining = _minimumBangumiInfoLoadingDuration - elapsed;
+    if (remaining > Duration.zero) {
+      await Future.delayed(remaining);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<String> tabs = <String>['概览', '吐槽', '角色', '评论', '制作人员'];
-    final bool showWindowButton = GStorage.setting
-        .get(SettingBoxKey.showWindowButton, defaultValue: false);
+    final bool showWindowButton =
+        GStorage.getSetting(SettingsKeys.showWindowButton);
+    final bool showRatingFab = _fabTabIndex == _commentsTabIndex;
     return PopScope(
       canPop: true,
       child: DefaultTabController(
-        length: tabs.length,
+        length: _infoTabs.length,
         child: Scaffold(
           body: NestedScrollView(
             headerSliverBuilder:
@@ -238,7 +387,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                           icon: const Icon(Icons.open_in_browser_rounded),
                         ),
                       ),
-                      if (!showWindowButton && Utils.isDesktop())
+                      if (!showWindowButton && isDesktop())
                         CloseButton(onPressed: () => windowManager.close()),
                       SizedBox(width: 8),
                     ],
@@ -261,47 +410,19 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
                       background: Observer(builder: (context) {
+                        final showBangumiInfoSkeleton =
+                            _isShowingBangumiInfoSkeleton;
                         return Stack(
                           children: [
                             // No background image when loading to make loading looks better
-                            if (!infoController.isLoading)
+                            if (!showBangumiInfoSkeleton)
                               Positioned.fill(
                                 bottom: kTextTabBarHeight,
                                 child: IgnorePointer(
-                                  child: Opacity(
-                                    opacity: 0.4,
-                                    child: LayoutBuilder(
-                                      builder: (context, boxConstraints) {
-                                        return ImageFiltered(
-                                          imageFilter: ImageFilter.blur(
-                                              sigmaX: 15.0, sigmaY: 15.0),
-                                          child: ShaderMask(
-                                            shaderCallback: (Rect bounds) {
-                                              return const LinearGradient(
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                colors: [
-                                                  Colors.white,
-                                                  Colors.transparent,
-                                                ],
-                                                stops: [0.8, 1],
-                                              ).createShader(bounds);
-                                            },
-                                            child: NetworkImgLayer(
-                                              src: infoController.bangumiItem
-                                                      .images['large'] ??
-                                                  '',
-                                              width: boxConstraints.maxWidth,
-                                              height: boxConstraints.maxHeight,
-                                              fadeInDuration: const Duration(
-                                                  milliseconds: 0),
-                                              fadeOutDuration: const Duration(
-                                                  milliseconds: 0),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                  child: _InfoHeaderBackground(
+                                    imageUrl: infoController
+                                            .bangumiItem.images['large'] ??
+                                        '',
                                   ),
                                 ),
                               ),
@@ -315,7 +436,7 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                                         16, kToolbarHeight, 16, 0),
                                     child: BangumiInfoCardV(
                                       bangumiItem: infoController.bangumiItem,
-                                      isLoading: infoController.isLoading,
+                                      isLoading: showBangumiInfoSkeleton,
                                       showRating: showRating,
                                     ),
                                   ),
@@ -332,57 +453,181 @@ class _InfoPageState extends State<InfoPage> with TickerProviderStateMixin {
                       isScrollable: true,
                       tabAlignment: TabAlignment.center,
                       dividerHeight: 0,
-                      tabs: tabs.map((name) => Tab(text: name)).toList(),
+                      tabs: _infoTabs.map((name) => Tab(text: name)).toList(),
                     ),
                   ),
                 ),
               ];
             },
             body: Observer(builder: (context) {
+              final showBangumiInfoSkeleton = _isShowingBangumiInfoSkeleton;
               return InfoTabView(
                 tabController: infoTabController,
                 bangumiItem: infoController.bangumiItem,
                 commentsQueryTimeout: commentsQueryTimeout,
+                commentsIsEmpty: commentsIsEmpty,
                 charactersQueryTimeout: charactersQueryTimeout,
+                charactersIsEmpty: charactersIsEmpty,
                 staffQueryTimeout: staffQueryTimeout,
+                staffIsEmpty: staffIsEmpty,
                 loadMoreComments: loadMoreComments,
                 loadCharacters: loadCharacters,
                 loadStaff: loadStaff,
                 commentsList: infoController.commentsList,
+                commentsIsLoading: commentsIsLoading,
+                onCommentsTabSelected: onCommentsTabSelected,
                 characterList: infoController.characterList,
                 staffList: infoController.staffList,
-                isLoading: infoController.isLoading,
+                isLoading: showBangumiInfoSkeleton,
               );
             }),
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text('开始观看'),
-            onPressed: () async {
-              showModalBottomSheet(
-                isScrollControlled: true,
-                constraints: BoxConstraints(
-                  maxHeight: (MediaQuery.sizeOf(context).height >=
-                          LayoutBreakpoint.compact['height']!)
-                      ? MediaQuery.of(context).size.height * 3 / 4
-                      : MediaQuery.of(context).size.height,
-                  maxWidth: (MediaQuery.sizeOf(context).width >=
-                          LayoutBreakpoint.medium['width']!)
-                      ? MediaQuery.of(context).size.width * 9 / 16
-                      : MediaQuery.of(context).size.width,
+          floatingActionButton: showRatingFab
+              ? FloatingActionButton.extended(
+                  tooltip: '吐槽',
+                  onPressed: onBangumiRatingTap,
+                  label: const Text('发表吐槽'),
+                  icon: const Icon(Icons.rate_review_rounded),
+                )
+              : FloatingActionButton.extended(
+                  tooltip: '开始观看',
+                  onPressed: () async {
+                    showModalBottomSheet(
+                      isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxHeight: (MediaQuery.sizeOf(context).height >=
+                                LayoutBreakpoint.compact['height']!)
+                            ? MediaQuery.of(context).size.height * 3 / 4
+                            : MediaQuery.of(context).size.height,
+                        maxWidth: (MediaQuery.sizeOf(context).width >=
+                                LayoutBreakpoint.medium['width']!)
+                            ? MediaQuery.of(context).size.width * 9 / 16
+                            : MediaQuery.of(context).size.width,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      backgroundColor:
+                          Theme.of(context).scaffoldBackgroundColor,
+                      showDragHandle: true,
+                      context: context,
+                      builder: (context) {
+                        return SourceSheet(
+                            tabController: sourceTabController,
+                            infoController: infoController);
+                      },
+                    );
+                  },
+                  label: const Text('开始观看'),
+                  icon: const Icon(Icons.play_arrow_rounded),
                 ),
-                clipBehavior: Clip.antiAlias,
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                showDragHandle: true,
-                context: context,
-                builder: (context) {
-                  return SourceSheet(tabController: sourceTabController, infoController: infoController);
-                },
-              );
-            },
-          ),
         ),
       ),
+    );
+  }
+}
+
+class _InfoHeaderBackground extends StatelessWidget {
+  const _InfoHeaderBackground({
+    required this.imageUrl,
+  });
+
+  static const double _downsample = 0.5;
+  static const double _blurSigma = 15.0;
+  static const double _opacity = 0.4;
+  static const double _edgeBleed = 32.0;
+  static const double _bottomFeatherHeight = 48.0;
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (imageUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        if (width <= 0 || height <= 0) {
+          return const SizedBox.shrink();
+        }
+
+        final rasterWidth = width * _downsample;
+        final rasterHeight = (height + _edgeBleed) * _downsample;
+
+        final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+
+        return ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ShaderMask(
+                shaderCallback: (bounds) {
+                  return const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white,
+                      Colors.transparent,
+                    ],
+                    stops: [0.8, 1],
+                  ).createShader(bounds);
+                },
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: RepaintBoundary(
+                    child: Transform.scale(
+                      scale: 1 / _downsample,
+                      alignment: Alignment.topCenter,
+                      filterQuality: FilterQuality.low,
+                      child: SizedBox(
+                        width: rasterWidth,
+                        height: rasterHeight,
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                            sigmaX: _blurSigma * _downsample,
+                            sigmaY: _blurSigma * _downsample,
+                          ),
+                          child: NetworkImgLayer(
+                            src: imageUrl,
+                            width: rasterWidth,
+                            height: rasterHeight,
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
+                            filterQuality: FilterQuality.low,
+                            color: Colors.white.withValues(alpha: _opacity),
+                            colorBlendMode: BlendMode.modulate,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: _bottomFeatherHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        backgroundColor.withValues(alpha: 0),
+                        backgroundColor.withValues(alpha: 0.55),
+                        backgroundColor,
+                      ],
+                      stops: const [0, 0.72, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,8 +1,8 @@
-import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:antlr4/antlr4.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:kazumi/bean/widget/image_preview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'bbcode_base_listener.dart';
@@ -70,10 +70,17 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
     ParseTreeWalker.DEFAULT.walk(bbcodeBaseListener, tree);
     bbCodeTag.clear();
 
+    final imageUrls = bbcodeBaseListener.bbcode
+        .whereType<BBCodeImg>()
+        .map((e) => e.imageUrl)
+        .toList();
+    var imageIndex = 0;
+
     return Wrap(
       children: [
-        SelectableText.rich(
-          TextSpan(
+        RichText(
+          text: TextSpan(
+            style: DefaultTextStyle.of(context).style,
             children: bbcodeBaseListener.bbcode.map((e) {
               if (e is BBCodeText) {
                 Color? textColor = (!_isVisible && e.masked)
@@ -119,14 +126,27 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                   ),
                 );
               } else if (e is BBCodeImg) {
+                final currentIndex = imageIndex++;
+                final heroTag = ImageViewer.heroTagFor(e.imageUrl, currentIndex);
                 return WidgetSpan(
-                  child: CachedNetworkImage(
-                    imageUrl: e.imageUrl,
-                    placeholder: (context, url) =>
-                        const SizedBox(width: 1, height: 1),
-                    errorWidget: (context, error, stackTrace) {
-                      return const Text('.');
-                    },
+                  child: GestureDetector(
+                    onTap: () => ImageViewer.show(
+                      context,
+                      imageUrls: imageUrls,
+                      initialIndex: currentIndex,
+                      heroTag: heroTag,
+                    ),
+                    child: Hero(
+                      tag: heroTag,
+                      child: CachedNetworkImage(
+                        imageUrl: e.imageUrl,
+                        placeholder: (context, url) =>
+                            const SizedBox(width: 1, height: 1),
+                        errorWidget: (context, error, stackTrace) {
+                          return const Text('.');
+                        },
+                      ),
+                    ),
                   ),
                 );
               } else if (e is BBCodeBgm) {
@@ -149,6 +169,20 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
                     errorWidget: (context, error, stackTrace) {
                       return const Text('.');
                     },
+                  ),
+                );
+              } else if (e is BBCodeMusume) {
+                return WidgetSpan(
+                  child: CachedNetworkImage(
+                    imageUrl:
+                        'https://lain.bgm.tv/img/smiles/musume/musume_${e.id}.gif',
+                    placeholder: (context, url) =>
+                        const SizedBox(width: 1, height: 1),
+                    errorWidget: (context, error, stackTrace) {
+                      return const Text('.');
+                    },
+                    width: 50,
+                    height: 50,
                   ),
                 );
               } else if (e is BBCodeSticker) {
@@ -174,7 +208,6 @@ class _BBCodeWidgetState extends State<BBCodeWidget> {
               }
             }).toList(),
           ),
-          selectionHeightStyle: ui.BoxHeightStyle.max,
         ),
       ],
     );

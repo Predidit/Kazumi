@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
 class DanmakuShieldSettings extends StatefulWidget {
   const DanmakuShieldSettings({super.key});
@@ -14,6 +14,12 @@ class DanmakuShieldSettings extends StatefulWidget {
 class _DanmakuShieldSettingsState extends State<DanmakuShieldSettings> {
   final MyController myController = Modular.get<MyController>();
   final TextEditingController textEditingController = TextEditingController();
+
+  @override
+  void dispose() {
+    textEditingController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

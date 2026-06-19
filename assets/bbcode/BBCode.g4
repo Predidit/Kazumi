@@ -10,6 +10,7 @@ element
     : tag
     | plain
     | bgm
+    | musume
     | sticker
     ;
 
@@ -26,6 +27,10 @@ plain
 
 bgm
     : ('(bgm' | '(BGM') id=STRING ')'
+    ;
+
+musume
+    : '(musume_' id=STRING ')'
     ;
 
 sticker

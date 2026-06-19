@@ -1,9 +1,17 @@
 {
     "cmake.ignoreCMakeListsMissing": true,
     "search.exclude": {
-        "**/fastlane": true
+        "**/.cache": true,
+        "**/.dart_tool": true,
+        "**/build": true,
+        "**/fastlane": true,
+        "**/lib/bbcode/generated": true
     },
     "dart.analysisExcludedFolders": [
+        "**/.cache/**",
+        "**/.dart_tool/**",
+        "**/build/**",
+        "**/lib/bbcode/generated/**",
         "**/fastlane/**"
     ],
     "files.associations": {

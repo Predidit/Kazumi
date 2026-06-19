@@ -112,6 +112,7 @@ class _CollectButtonState extends State<CollectButton> {
                 controller.open();
               }
             },
+            tooltip: getTypeStringByInt(collectType),
             icon: Icon(
               getIconByInt(collectType),
               color: widget.color,
@@ -122,9 +123,14 @@ class _CollectButtonState extends State<CollectButton> {
       menuChildren: List<MenuItemButton>.generate(
         6,
         (int index) => MenuItemButton(
-          onPressed: () {
+          onPressed: () async {
             if (index != collectType && mounted) {
-              collectController.addCollect(widget.bangumiItem, type: index);
+              await collectController.addCollect(widget.bangumiItem,
+                  type: index);
+              // 防止状态错误刷新
+              if (!mounted) {
+                return;
+              }
               setState(() {});
             }
           },

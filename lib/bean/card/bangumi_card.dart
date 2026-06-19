@@ -3,7 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/device.dart';
 
 // 视频卡片 - 垂直布局
 class BangumiCardV extends StatelessWidget {
@@ -46,6 +46,8 @@ class BangumiCardV extends StatelessWidget {
                   return enableHero
                       ? Hero(
                           transitionOnUserGestures: true,
+                          flightShuttleBuilder:
+                              NetworkImgLayer.heroFlightShuttleBuilder,
                           tag: bangumiItem.id,
                           child: NetworkImgLayer(
                             src: bangumiItem.images['large'] ?? '',
@@ -78,15 +80,16 @@ class BangumiContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ts = MediaQuery.textScalerOf(context);
 
-    final int maxTextLines = Utils.isDesktop() ? 3 
-      : (Utils.isTablet() && MediaQuery.of(context).orientation == Orientation.landscape) ? 3 : 2;
+    final int maxTextLines = isDesktop()
+        ? 3
+        : (isTablet() &&
+                MediaQuery.of(context).orientation == Orientation.landscape)
+            ? 3
+            : 2;
 
     return Expanded(
       child: Padding(
-        // 多列
         padding: const EdgeInsets.fromLTRB(5, 3, 5, 1),
-        // 单列
-        // padding: const EdgeInsets.fromLTRB(14, 10, 4, 8),
         child: Text(
           bangumiItem.nameCn,
           textAlign: TextAlign.start,

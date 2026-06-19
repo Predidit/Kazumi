@@ -1,0 +1,130 @@
+name: 'Setup Flutter for ARM64 Linux'
+description: 'Install Flutter SDK on ARM64 Linux runners (no snap, no prebuilt binary)'
+author: 'hare'
+
+branding:
+  icon: 'layers'
+  color: 'blue'
+
+inputs:
+  channel:
+    description: 'Flutter channel (stable, beta, main)'
+    required: false
+    default: 'stable'
+  flutter-version:
+    description: 'Specific Flutter version (git ref). Overrides flutter-version-file and channel if set.'
+    required: false
+    default: ''
+  flutter-version-file:
+    description: 'Path to pubspec.yaml containing environment.flutter.'
+    required: false
+    default: 'pubspec.yaml'
+  cache:
+    description: 'Cache the Flutter SDK'
+    required: false
+    default: 'true'
+  cache-key:
+    description: 'Additional cache key suffix'
+    required: false
+    default: ''
+  install-linux-deps:
+    description: 'Install Linux desktop build dependencies (clang, gtk3, etc.)'
+    required: false
+    default: 'true'
+
+outputs:
+  flutter-path:
+    description: 'Path to the Flutter SDK'
+    value: ${{ steps.setup.outputs.flutter-path }}
+  flutter-version:
+    description: 'Installed Flutter version'
+    value: ${{ steps.setup.outputs.flutter-version }}
+  dart-version:
+    description: 'Bundled Dart version'
+    value: ${{ steps.setup.outputs.dart-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Linux desktop dependencies
+      if: inputs.install-linux-deps == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y --no-install-recommends \
+          clang \
+          libgtk-3-dev \
+          mesa-utils \
+          ninja-build \
+          pkg-config \
+          liblzma-dev \
+          libstdc++-12-dev
+
+    - name: Resolve Flutter version
+      id: resolve
+      shell: bash
+      run: |
+        REF="${{ inputs.flutter-version }}"
+        VERSION_FILE="${{ inputs.flutter-version-file }}"
+
+        if [ -z "$REF" ] && [ -n "$VERSION_FILE" ] && [ -f "$VERSION_FILE" ]; then
+          REF="$(awk '
+            /^[^[:space:]]/ { in_environment = ($1 == "environment:") }
+            in_environment && /^[[:space:]]+flutter:[[:space:]]*/ { print $2; exit }
+          ' "$VERSION_FILE")"
+          REF="$(printf '%s' "$REF" | tr -d "\"'")"
+        fi
+
+        if [ -z "$REF" ]; then
+          REF="${{ inputs.channel }}"
+        fi
+
+        echo "flutter-ref=$REF" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Flutter SDK
+      if: inputs.cache == 'true'
+      id: cache-flutter
+      uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/flutter
+        key: flutter-arm64-${{ steps.resolve.outputs.flutter-ref }}-${{ runner.os }}-${{ inputs.cache-key }}
+
+    - name: Clone Flutter SDK
+      id: setup
+      shell: bash
+      run: |
+        FLUTTER_PATH="${{ runner.temp }}/flutter"
+
+        if [ -f "$FLUTTER_PATH/bin/flutter" ]; then
+          echo "Using cached Flutter SDK"
+        else
+          REF="${{ steps.resolve.outputs.flutter-ref }}"
+          git clone https://github.com/flutter/flutter.git \
+            -b "$REF" \
+            --depth 1 \
+            "$FLUTTER_PATH"
+        fi
+
+        # Add to PATH
+        echo "$FLUTTER_PATH/bin" >> "$GITHUB_PATH"
+
+        # Trigger Dart SDK download (auto-detects ARM64) and verify
+        VERSION_OUTPUT="$("$FLUTTER_PATH/bin/flutter" --version --machine)"
+        printf '%s\n' "$VERSION_OUTPUT" >&2
+
+        echo "flutter-path=$FLUTTER_PATH" >> "$GITHUB_OUTPUT"
+        printf '%s' "$VERSION_OUTPUT" | python3 -c 'import json, sys
+        s = sys.stdin.read()
+        start = s.find("{")
+        end = s.rfind("}")
+        if start == -1 or end == -1 or end < start:
+            raise SystemExit("Flutter version output did not contain JSON")
+        data = json.loads(s[start:end + 1])
+        print("flutter-version=" + data["frameworkVersion"])
+        print("dart-version=" + data["dartSdkVersion"].split()[0])' >> "$GITHUB_OUTPUT"
+
+    - name: Precache Flutter artifacts
+      shell: bash
+      run: |
+        flutter precache --linux || true
+        flutter doctor -v || true

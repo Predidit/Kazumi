@@ -1,13 +1,14 @@
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 abstract class IDownloadRepository {
   List<DownloadRecord> getAllRecords();
   DownloadRecord? getRecord(String key);
   Future<void> putRecord(DownloadRecord record);
   Future<void> deleteRecord(String key);
-  Future<void> updateEpisode(String recordKey, int episodeNumber, DownloadEpisode episode);
+  Future<void> updateEpisode(
+      String recordKey, int episodeNumber, DownloadEpisode episode);
   Future<void> deleteEpisode(String recordKey, int episodeNumber);
   bool getForceAdBlocker();
 
@@ -22,7 +23,8 @@ abstract class IDownloadRepository {
   /// [bangumiId] 番剧 ID
   /// [pluginName] 插件名称
   /// [episodeNumber] 集数编号
-  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber);
+  DownloadEpisode? getEpisode(
+      int bangumiId, String pluginName, int episodeNumber);
 
   /// 获取已完成下载的集数列表
   ///
@@ -37,7 +39,8 @@ abstract class IDownloadRepository {
   /// [pluginName] 插件名称
   /// [episodePageUrl] 集数页面 URL
   /// 当 URL 为空时返回 null（兼容旧数据）
-  DownloadEpisode? getEpisodeByUrl(int bangumiId, String pluginName, String episodePageUrl);
+  DownloadEpisode? getEpisodeByUrl(
+      int bangumiId, String pluginName, String episodePageUrl);
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -62,7 +65,9 @@ class DownloadRepository implements IDownloadRepository {
           }
         } catch (e) {
           // 单条记录读取失败，跳过该记录并记录日志
-          KazumiLogger().w('DownloadRepository: failed to read record key=$key, skipping', error: e);
+          KazumiLogger().w(
+              'DownloadRepository: failed to read record key=$key, skipping',
+              error: e);
         }
       }
     } catch (e) {
@@ -86,7 +91,8 @@ class DownloadRepository implements IDownloadRepository {
       }
       return record;
     } catch (e) {
-      KazumiLogger().w('DownloadRepository: get record failed. key=$key', error: e);
+      KazumiLogger()
+          .w('DownloadRepository: get record failed. key=$key', error: e);
       return null;
     }
   }
@@ -130,7 +136,8 @@ class DownloadRepository implements IDownloadRepository {
   final Map<String, Map<int, DownloadEpisode>> _progressCache = {};
 
   @override
-  Future<void> updateEpisode(String recordKey, int episodeNumber, DownloadEpisode episode) async {
+  Future<void> updateEpisode(
+      String recordKey, int episodeNumber, DownloadEpisode episode) async {
     try {
       // Update in-memory cache
       _progressCache.putIfAbsent(recordKey, () => {});
@@ -173,7 +180,7 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   bool getForceAdBlocker() {
-    return GStorage.setting.get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.forceAdBlocker);
   }
 
   @override
@@ -185,7 +192,8 @@ class DownloadRepository implements IDownloadRepository {
       if (record.episodes.isEmpty) {
         await _downloadsBox.delete(recordKey);
         _progressCache.remove(recordKey);
-        _lastPersistedStatus.removeWhere((k, v) => k.startsWith('${recordKey}_'));
+        _lastPersistedStatus
+            .removeWhere((k, v) => k.startsWith('${recordKey}_'));
       } else {
         await _downloadsBox.put(recordKey, record);
         _progressCache[recordKey]?.remove(episodeNumber);
@@ -209,7 +217,8 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  DownloadEpisode? getEpisode(int bangumiId, String pluginName, int episodeNumber) {
+  DownloadEpisode? getEpisode(
+      int bangumiId, String pluginName, int episodeNumber) {
     final record = getRecordByBangumiId(bangumiId, pluginName);
     return record?.episodes[episodeNumber];
   }
@@ -226,7 +235,8 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  DownloadEpisode? getEpisodeByUrl(int bangumiId, String pluginName, String episodePageUrl) {
+  DownloadEpisode? getEpisodeByUrl(
+      int bangumiId, String pluginName, String episodePageUrl) {
     if (episodePageUrl.isEmpty) return null;
     final record = getRecordByBangumiId(bangumiId, pluginName);
     if (record == null) return null;

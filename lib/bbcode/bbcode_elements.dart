@@ -63,6 +63,12 @@ class BBCodeBgm {
   BBCodeBgm({required this.id});
 }
 
+class BBCodeMusume {
+  int id;
+
+  BBCodeMusume({required this.id});
+}
+
 class BBCodeSticker {
   int id;
 

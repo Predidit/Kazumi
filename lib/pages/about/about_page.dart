@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/pages/my/my_controller.dart';
-import 'package:kazumi/request/api.dart';
-import 'package:kazumi/utils/mortis.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/request/config/api_endpoints.dart';
+import 'package:kazumi/utils/dandan_credentials.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:kazumi/utils/device.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -26,9 +25,7 @@ class _AboutPageState extends State<AboutPage> {
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
-  Box setting = GStorage.setting;
-  late int exitBehavior =
-      setting.get(SettingBoxKey.exitBehavior, defaultValue: 2);
+  late int exitBehavior = GStorage.getSetting(SettingsKeys.exitBehavior);
   late bool autoUpdate;
   double _cacheSizeMB = -1;
   final MyController myController = Modular.get<MyController>();
@@ -37,7 +34,7 @@ class _AboutPageState extends State<AboutPage> {
   @override
   void initState() {
     super.initState();
-    autoUpdate = setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
+    autoUpdate = GStorage.getSetting(SettingsKeys.autoUpdate);
     _getCacheSize();
   }
 
@@ -148,8 +145,10 @@ class _AboutPageState extends State<AboutPage> {
                   onPressed: (_) {
                     Modular.to.pushNamed('/settings/about/license');
                   },
-                  title: Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('查看所有开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('开源许可证', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('查看所有开源许可证',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -158,47 +157,75 @@ class _AboutPageState extends State<AboutPage> {
               tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.projectUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.projectUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.sourceUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Github', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Github', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.iconUrl),
+                    launchUrl(Uri.parse(ApiEndpoints.iconUrl),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('图标创作', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Pixiv', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.bangumiIndex),
+                    launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
+                  value:
+                      Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
-                    launchUrl(Uri.parse(Api.dandanIndex),
+                    launchUrl(Uri.parse('https://trace.moe'),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('trace.moe',
+                      style: TextStyle(fontFamily: fontFamily)),
+                ),
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
                         mode: LaunchMode.externalApplication);
                   },
                   title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('ID: ${mortis['id']}', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('DanDanPlay', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('ID: ${dandanCredentials['id']}',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('弹弹play开放平台',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
-            if (Utils.isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+            SettingsSection(
+              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+              tiles: [
+                SettingsTile.navigation(
+                  onPressed: (_) {
+                    launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
+                        mode: LaunchMode.externalApplication);
+                  },
+                  title: Text('Telegram',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                ),
+              ],
+            ),
+            if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
               SettingsSection(
                 title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
@@ -210,7 +237,8 @@ class _AboutPageState extends State<AboutPage> {
                         menuController.open();
                       }
                     },
-                    title: Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                    title:
+                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
                     value: MenuAnchor(
                       consumeOutsideTap: true,
                       controller: menuController,
@@ -223,7 +251,7 @@ class _AboutPageState extends State<AboutPage> {
                             requestFocusOnHover: false,
                             onPressed: () {
                               exitBehavior = i;
-                              setting.put(SettingBoxKey.exitBehavior, i);
+                              GStorage.putSetting(SettingsKeys.exitBehavior, i);
                               setState(() {});
                             },
                             child: Container(
@@ -255,10 +283,6 @@ class _AboutPageState extends State<AboutPage> {
                   },
                   title: Text('错误日志', style: TextStyle(fontFamily: fontFamily)),
                 ),
-              ],
-            ),
-            SettingsSection(
-              tiles: [
                 SettingsTile.navigation(
                   onPressed: (_) {
                     _showCacheDialog();
@@ -266,7 +290,8 @@ class _AboutPageState extends State<AboutPage> {
                   title: Text('清除缓存', style: TextStyle(fontFamily: fontFamily)),
                   value: _cacheSizeMB == -1
                       ? Text('统计中...', style: TextStyle(fontFamily: fontFamily))
-                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB', style: TextStyle(fontFamily: fontFamily)),
+                      : Text('${_cacheSizeMB.toStringAsFixed(2)}MB',
+                          style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),
@@ -276,7 +301,8 @@ class _AboutPageState extends State<AboutPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     autoUpdate = value ?? !autoUpdate;
-                    await setting.put(SettingBoxKey.autoUpdate, autoUpdate);
+                    await GStorage.putSetting(
+                        SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
                   title: Text('自动更新', style: TextStyle(fontFamily: fontFamily)),
@@ -287,7 +313,8 @@ class _AboutPageState extends State<AboutPage> {
                     myController.checkUpdate();
                   },
                   title: Text('检查更新', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('当前版本 ${Api.version}', style: TextStyle(fontFamily: fontFamily)),
+                  value: Text('当前版本 ${ApiEndpoints.version}',
+                      style: TextStyle(fontFamily: fontFamily)),
                 ),
               ],
             ),

@@ -145,6 +145,8 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                       final double maxHeight = boxConstraints.maxHeight;
                       return Hero(
                         transitionOnUserGestures: true,
+                        flightShuttleBuilder:
+                            NetworkImgLayer.heroFlightShuttleBuilder,
                         tag: widget.bangumiItem.id,
                         child: NetworkImgLayer(
                           src: widget.bangumiItem.images['large'] ?? '',
@@ -198,36 +200,36 @@ class _BangumiInfoCardVState extends State<BangumiInfoCardV> {
                                 ),
                               ),
                             if (!widget.isLoading)
-                              Row(
-                                children: [
-                                  Text(
-                                    widget.showRating
-                                        ? '${widget.bangumiItem.ratingScore}'
-                                        : '***',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                               Row(
+                                  children: [
+                                    Text(
+                                      widget.showRating
+                                          ? '${widget.bangumiItem.ratingScore}'
+                                          : '***',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                        Theme.of(context).colorScheme.primary,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  RatingBarIndicator(
-                                    itemCount: 5,
-                                    rating: widget.showRating
-                                        ? widget.bangumiItem.ratingScore
-                                                .toDouble() /
-                                            2
-                                        : 0,
-                                    itemBuilder: (context, index) => Icon(
-                                      Icons.star_rounded,
-                                      color:
-                                          Theme.of(context).colorScheme.primary,
+                                    const SizedBox(width: 8),
+                                    RatingBarIndicator(
+                                      itemCount: 5,
+                                      rating: widget.showRating
+                                          ? widget.bangumiItem.ratingScore
+                                          .toDouble() /
+                                          2
+                                          : 0,
+                                      itemBuilder: (context, index) => Icon(
+                                        Icons.star_rounded,
+                                        color:
+                                        Theme.of(context).colorScheme.primary,
+                                      ),
+                                      itemSize: 20.0,
                                     ),
-                                    itemSize: 20.0,
-                                  ),
-                                ],
-                              ),
+                                  ],
+                               ),
                             SizedBox(height: 8),
                             Text(
                               'Bangumi Ranked:',

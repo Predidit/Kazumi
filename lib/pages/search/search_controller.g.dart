@@ -50,17 +50,11 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return super.notShowWatchedBangumis;
   }
 
-  bool _notShowWatchedBangumisIsInitialized = false;
-
   @override
   set notShowWatchedBangumis(bool value) {
-    _$notShowWatchedBangumisAtom.reportWrite(
-        value,
-        _notShowWatchedBangumisIsInitialized
-            ? super.notShowWatchedBangumis
-            : null, () {
+    _$notShowWatchedBangumisAtom
+        .reportWrite(value, super.notShowWatchedBangumis, () {
       super.notShowWatchedBangumis = value;
-      _notShowWatchedBangumisIsInitialized = true;
     });
   }
 
@@ -73,17 +67,11 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return super.notShowAbandonedBangumis;
   }
 
-  bool _notShowAbandonedBangumisIsInitialized = false;
-
   @override
   set notShowAbandonedBangumis(bool value) {
-    _$notShowAbandonedBangumisAtom.reportWrite(
-        value,
-        _notShowAbandonedBangumisIsInitialized
-            ? super.notShowAbandonedBangumis
-            : null, () {
+    _$notShowAbandonedBangumisAtom
+        .reportWrite(value, super.notShowAbandonedBangumis, () {
       super.notShowAbandonedBangumis = value;
-      _notShowAbandonedBangumisIsInitialized = true;
     });
   }
 
@@ -119,6 +107,54 @@ mixin _$SearchPageController on _SearchPageController, Store {
     });
   }
 
+  late final _$isImageSearchingAtom =
+      Atom(name: '_SearchPageController.isImageSearching', context: context);
+
+  @override
+  bool get isImageSearching {
+    _$isImageSearchingAtom.reportRead();
+    return super.isImageSearching;
+  }
+
+  @override
+  set isImageSearching(bool value) {
+    _$isImageSearchingAtom.reportWrite(value, super.isImageSearching, () {
+      super.isImageSearching = value;
+    });
+  }
+
+  late final _$imageSearchErrorAtom =
+      Atom(name: '_SearchPageController.imageSearchError', context: context);
+
+  @override
+  String get imageSearchError {
+    _$imageSearchErrorAtom.reportRead();
+    return super.imageSearchError;
+  }
+
+  @override
+  set imageSearchError(String value) {
+    _$imageSearchErrorAtom.reportWrite(value, super.imageSearchError, () {
+      super.imageSearchError = value;
+    });
+  }
+
+  late final _$imageSearchResultsAtom =
+      Atom(name: '_SearchPageController.imageSearchResults', context: context);
+
+  @override
+  ObservableList<ResultItem> get imageSearchResults {
+    _$imageSearchResultsAtom.reportRead();
+    return super.imageSearchResults;
+  }
+
+  @override
+  set imageSearchResults(ObservableList<ResultItem> value) {
+    _$imageSearchResultsAtom.reportWrite(value, super.imageSearchResults, () {
+      super.imageSearchResults = value;
+    });
+  }
+
   late final _$searchBangumiAsyncAction =
       AsyncAction('_SearchPageController.searchBangumi', context: context);
 
@@ -145,6 +181,24 @@ mixin _$SearchPageController on _SearchPageController, Store {
   Future<void> clearSearchHistory() {
     return _$clearSearchHistoryAsyncAction
         .run(() => super.clearSearchHistory());
+  }
+
+  late final _$searchImageByFileAsyncAction =
+      AsyncAction('_SearchPageController.searchImageByFile', context: context);
+
+  @override
+  Future<void> searchImageByFile(File imageFile) {
+    return _$searchImageByFileAsyncAction
+        .run(() => super.searchImageByFile(imageFile));
+  }
+
+  late final _$searchImageByUrlAsyncAction =
+      AsyncAction('_SearchPageController.searchImageByUrl', context: context);
+
+  @override
+  Future<void> searchImageByUrl(String imageUrl) {
+    return _$searchImageByUrlAsyncAction
+        .run(() => super.searchImageByUrl(imageUrl));
   }
 
   late final _$setNotShowWatchedBangumisAsyncAction = AsyncAction(
@@ -182,6 +236,17 @@ mixin _$SearchPageController on _SearchPageController, Store {
   }
 
   @override
+  void clearImageSearchState() {
+    final _$actionInfo = _$_SearchPageControllerActionController.startAction(
+        name: '_SearchPageController.clearImageSearchState');
+    try {
+      return super.clearImageSearchState();
+    } finally {
+      _$_SearchPageControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
@@ -189,7 +254,10 @@ isTimeOut: ${isTimeOut},
 notShowWatchedBangumis: ${notShowWatchedBangumis},
 notShowAbandonedBangumis: ${notShowAbandonedBangumis},
 bangumiList: ${bangumiList},
-searchHistories: ${searchHistories}
+searchHistories: ${searchHistories},
+isImageSearching: ${isImageSearching},
+imageSearchError: ${imageSearchError},
+imageSearchResults: ${imageSearchResults}
     ''';
   }
 }

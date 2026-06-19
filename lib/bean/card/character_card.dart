@@ -1,7 +1,7 @@
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/pages/info/character_page.dart';
+import 'package:kazumi/utils/device.dart';
 
 class CharacterCard extends StatelessWidget {
   const CharacterCard({
@@ -33,7 +33,7 @@ class CharacterCard extends StatelessWidget {
             isScrollControlled: true,
             constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 3 / 4,
-                maxWidth: (Utils.isDesktop() || Utils.isTablet())
+                maxWidth: (isDesktop() || isTablet())
                     ? MediaQuery.of(context).size.width * 9 / 16
                     : MediaQuery.of(context).size.width),
             clipBehavior: Clip.antiAlias,

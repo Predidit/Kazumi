@@ -26,3 +26,13 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+analyzer:
+  exclude:
+    - .cache/**
+    - .dart_tool/**
+    - build/**
+    - fastlane/**
+    - lib/bbcode/generated/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"

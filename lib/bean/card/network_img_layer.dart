@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/extension.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/utils/image_extension.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 class NetworkImgLayer extends StatelessWidget {
   const NetworkImgLayer({
@@ -15,6 +15,9 @@ class NetworkImgLayer extends StatelessWidget {
     this.fadeInDuration,
     this.quality,
     this.origAspectRatio,
+    this.filterQuality = FilterQuality.high,
+    this.color,
+    this.colorBlendMode,
   });
 
   final String? src;
@@ -25,6 +28,33 @@ class NetworkImgLayer extends StatelessWidget {
   final Duration? fadeInDuration;
   final int? quality;
   final double? origAspectRatio;
+  final FilterQuality filterQuality;
+  final Color? color;
+  final BlendMode? colorBlendMode;
+
+  static Widget heroFlightShuttleBuilder(
+    BuildContext flightContext,
+    Animation<double> animation,
+    HeroFlightDirection flightDirection,
+    BuildContext fromHeroContext,
+    BuildContext toHeroContext,
+  ) {
+    final fromHero = fromHeroContext.widget as Hero;
+    final toHero = toHeroContext.widget as Hero;
+    final heroContext = flightDirection == HeroFlightDirection.push
+        ? fromHeroContext
+        : toHeroContext;
+    final hero =
+        flightDirection == HeroFlightDirection.push ? fromHero : toHero;
+
+    return InheritedTheme.captureAll(
+      heroContext,
+      Material(
+        type: MaterialType.transparency,
+        child: hero.child,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +108,12 @@ class NetworkImgLayer extends StatelessWidget {
                   fadeOutDuration ?? const Duration(milliseconds: 120),
               fadeInDuration:
                   fadeInDuration ?? const Duration(milliseconds: 120),
-              filterQuality: FilterQuality.high,
+              filterQuality: filterQuality,
+              color: color,
+              colorBlendMode: colorBlendMode,
               errorListener: (e) {
-                KazumiLogger().w("NetworkImage: network image load error", error: e);
+                KazumiLogger()
+                    .w("NetworkImage: network image load error", error: e);
               },
               errorWidget: (BuildContext context, String url, Object error) =>
                   placeholder(context),
@@ -96,7 +129,10 @@ class NetworkImgLayer extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onInverseSurface.withValues(alpha: 0.4),
+        color: Theme.of(context)
+            .colorScheme
+            .onInverseSurface
+            .withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(type == 'avatar'
             ? 50
             : type == 'emote'

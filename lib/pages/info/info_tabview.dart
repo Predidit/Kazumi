@@ -5,35 +5,45 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'package:kazumi/bean/card/comments_card.dart';
 import 'package:kazumi/bean/card/character_card.dart';
 import 'package:kazumi/bean/card/staff_card.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/characters/character_item.dart';
 import 'package:kazumi/modules/staff/staff_item.dart';
+import 'package:kazumi/utils/device.dart';
 
 class InfoTabView extends StatefulWidget {
   const InfoTabView({
     super.key,
     required this.commentsQueryTimeout,
+    required this.commentsIsEmpty,
     required this.charactersQueryTimeout,
+    required this.charactersIsEmpty,
     required this.staffQueryTimeout,
+    required this.staffIsEmpty,
     required this.tabController,
     required this.loadMoreComments,
     required this.loadCharacters,
     required this.loadStaff,
     required this.bangumiItem,
     required this.commentsList,
+    required this.commentsIsLoading,
+    this.onCommentsTabSelected,
     required this.characterList,
     required this.staffList,
     required this.isLoading,
   });
 
   final bool commentsQueryTimeout;
+  final bool commentsIsEmpty;
+  final bool commentsIsLoading;
+  final VoidCallback? onCommentsTabSelected;
   final bool charactersQueryTimeout;
+  final bool charactersIsEmpty;
   final bool staffQueryTimeout;
+  final bool staffIsEmpty;
   final TabController tabController;
-  final Future<void> Function({int offset}) loadMoreComments;
+  final Future<void> Function({bool loadMore}) loadMoreComments;
   final Future<void> Function() loadCharacters;
   final Future<void> Function() loadStaff;
   final BangumiItem bangumiItem;
@@ -51,6 +61,27 @@ class _InfoTabViewState extends State<InfoTabView>
   final maxWidth = 950.0;
   bool fullIntro = false;
   bool fullTag = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.tabController.addListener(_onTabChanged);
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.tabController.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (widget.tabController.index == 1) {
+      widget.onCommentsTabSelected?.call();
+    }
+  }
 
   Widget get infoBody {
     return Center(
@@ -117,7 +148,7 @@ class _InfoTabViewState extends State<InfoTabView>
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8.0,
-                runSpacing: Utils.isDesktop() ? 8 : 0,
+                runSpacing: isDesktop() ? 8 : 0,
                 children: List<Widget>.generate(
                     fullTag || widget.bangumiItem.tags.length < 13
                         ? widget.bangumiItem.tags.length
@@ -150,8 +181,9 @@ class _InfoTabViewState extends State<InfoTabView>
                       ],
                     ),
                     onPressed: () {
-                      Modular.to.pushNamed(
-                          '/search/${widget.bangumiItem.tags[index].name}');
+                      final tagName = Uri.encodeComponent(
+                          widget.bangumiItem.tags[index].name);
+                      Modular.to.pushNamed('/search/$tagName');
                     },
                   );
                 }).toList(),
@@ -204,7 +236,7 @@ class _InfoTabViewState extends State<InfoTabView>
           onNotification: (scrollEnd) {
             final metrics = scrollEnd.metrics;
             if (metrics.pixels >= metrics.maxScrollExtent - 200) {
-              widget.loadMoreComments(offset: widget.commentsList.length);
+              widget.loadMoreComments(loadMore: widget.commentsList.isNotEmpty);
             }
             return true;
           },
@@ -219,11 +251,35 @@ class _InfoTabViewState extends State<InfoTabView>
                     NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverLayoutBuilder(builder: (context, _) {
-                if (widget.commentsList.isNotEmpty) {
+                final myInterest = widget.bangumiItem.interest;
+                final showMyReview = !widget.commentsIsLoading &&
+                    myInterest != null &&
+                    myInterest.hasUserProfile &&
+                    myInterest.hasReviewContent;
+                final listItemCount =
+                    widget.commentsList.length + (showMyReview ? 1 : 0);
+
+                if (listItemCount > 0) {
                   return SliverList.separated(
                     addAutomaticKeepAlives: false,
-                    itemCount: widget.commentsList.length,
+                    itemCount: listItemCount,
                     itemBuilder: (context, index) {
+                      final commentIndex = showMyReview ? index - 1 : index;
+                      final myUser = myInterest?.user;
+                      final card = showMyReview && index == 0 && myUser != null
+                          ? CommentsCard.own(
+                              commentItem: CommentItem(
+                                user: myUser,
+                                comment: Comment(
+                                  rate: myInterest.rate,
+                                  comment: myInterest.comment,
+                                  updatedAt: myInterest.updatedAt,
+                                ),
+                              ),
+                            )
+                          : CommentsCard(
+                              commentItem: widget.commentsList[commentIndex],
+                            );
                       return SafeArea(
                         top: false,
                         bottom: false,
@@ -235,9 +291,7 @@ class _InfoTabViewState extends State<InfoTabView>
                               width: MediaQuery.sizeOf(context).width > maxWidth
                                   ? maxWidth
                                   : MediaQuery.sizeOf(context).width - 32,
-                              child: CommentsCard(
-                                commentItem: widget.commentsList[index],
-                              ),
+                              child: card,
                             ),
                           ),
                         ),
@@ -272,11 +326,18 @@ class _InfoTabViewState extends State<InfoTabView>
                         GeneralErrorButton(
                           onPressed: () {
                             widget.loadMoreComments(
-                                offset: widget.commentsList.length);
+                                loadMore: widget.commentsList.isNotEmpty);
                           },
                           text: '重试',
                         ),
                       ],
+                    ),
+                  );
+                }
+                if (widget.commentsIsEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(
+                      child: Text('什么都没有找到 (´;ω;`)'),
                     ),
                   );
                 }
@@ -356,6 +417,13 @@ class _InfoTabViewState extends State<InfoTabView>
                   ),
                 );
               }
+              if (widget.staffIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
+                  ),
+                );
+              }
               return SliverList.builder(
                 itemCount: 8,
                 itemBuilder: (context, _) {
@@ -428,6 +496,13 @@ class _InfoTabViewState extends State<InfoTabView>
                         text: '重试',
                       ),
                     ],
+                  ),
+                );
+              }
+              if (widget.charactersIsEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text('什么都没有找到 (´;ω;`)'),
                   ),
                 );
               }

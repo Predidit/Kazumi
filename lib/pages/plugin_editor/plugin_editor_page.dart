@@ -1,6 +1,9 @@
+import 'package:card_settings_ui/card_settings_ui.dart';
+import 'package:card_settings_ui/tile/settings_tile_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/plugins/plugins.dart';
+import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 
@@ -35,6 +38,31 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   bool useLegacyParser = false;
   bool adBlocker = false;
 
+  // AntiCrawler fields
+  final TextEditingController captchaImageController = TextEditingController();
+  final TextEditingController captchaInputController = TextEditingController();
+  final TextEditingController captchaButtonController = TextEditingController();
+  final TextEditingController captchaDetectValueController =
+      TextEditingController();
+  final TextEditingController captchaScriptController = TextEditingController();
+  bool antiCrawlerEnabled = false;
+  int captchaType = CaptchaType.imageCaptcha;
+  int captchaDetectType = CaptchaDetectType.xpath;
+  final MenuController captchaTypeMenuController = MenuController();
+  final MenuController captchaDetectTypeMenuController = MenuController();
+
+  static const Map<int, String> _captchaTypeMap = {
+    CaptchaType.imageCaptcha: '图片验证码',
+    CaptchaType.autoClickButton: '自动点击按钮',
+    CaptchaType.customJavaScript: '自定义 JS 验证',
+  };
+
+  static const Map<int, String> _captchaDetectTypeMap = {
+    CaptchaDetectType.xpath: 'XPath',
+    CaptchaDetectType.text: '文本',
+    CaptchaDetectType.regex: '正则',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -58,11 +86,44 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     usePost = plugin.usePost;
     useLegacyParser = plugin.useLegacyParser;
     adBlocker = plugin.adBlocker;
+    antiCrawlerEnabled = plugin.antiCrawlerConfig.enabled;
+    captchaType = plugin.antiCrawlerConfig.captchaType;
+    captchaImageController.text = plugin.antiCrawlerConfig.captchaImage;
+    captchaInputController.text = plugin.antiCrawlerConfig.captchaInput;
+    captchaButtonController.text = plugin.antiCrawlerConfig.captchaButton;
+    captchaDetectType = plugin.antiCrawlerConfig.captchaDetectType;
+    captchaDetectValueController.text =
+        plugin.antiCrawlerConfig.captchaDetectValue;
+    captchaScriptController.text = plugin.antiCrawlerConfig.captchaScript;
+  }
+
+  @override
+  void dispose() {
+    apiController.dispose();
+    typeController.dispose();
+    nameController.dispose();
+    versionController.dispose();
+    userAgentController.dispose();
+    baseURLController.dispose();
+    searchURLController.dispose();
+    searchListController.dispose();
+    searchNameController.dispose();
+    searchResultController.dispose();
+    chapterRoadsController.dispose();
+    chapterResultController.dispose();
+    refererController.dispose();
+    captchaImageController.dispose();
+    captchaInputController.dispose();
+    captchaButtonController.dispose();
+    captchaDetectValueController.dispose();
+    captchaScriptController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final Plugin plugin = Modular.args.data as Plugin;
+    final fontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
 
     return Scaffold(
       appBar: const SysAppBar(
@@ -131,59 +192,263 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                 const SizedBox(height: 20),
                 ExpansionTile(
                   title: const Text('高级选项'),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero),
                   children: [
-                    SwitchListTile(
-                      title: const Text('简易解析'),
-                      subtitle: const Text('使用简易解析器而不是现代解析器'),
-                      value: useLegacyParser,
-                      onChanged: (bool value) {
-                        setState(() {
-                          useLegacyParser = value;
-                        });
-                      },
+                    SettingsSection(
+                      title: Text('行为设置',
+                          style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        SettingsTile.switchTile(
+                          title: Text('简易解析',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用简易解析器而不是现代解析器',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: useLegacyParser,
+                          onToggle: (v) => setState(
+                              () => useLegacyParser = v ?? !useLegacyParser),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('POST',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用 POST 而不是 GET 进行检索',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: usePost,
+                          onToggle: (v) =>
+                              setState(() => usePost = v ?? !usePost),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('内置播放器',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('使用内置播放器播放视频',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: useNativePlayer,
+                          onToggle: (v) => setState(
+                              () => useNativePlayer = v ?? !useNativePlayer),
+                        ),
+                        SettingsTile.switchTile(
+                          title: Text('广告过滤',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('启用 HLS 广告过滤',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: adBlocker,
+                          onToggle: (v) =>
+                              setState(() => adBlocker = v ?? !adBlocker),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      title: const Text('POST'),
-                      subtitle: const Text('使用POST而不是GET进行检索'),
-                      value: usePost,
-                      onChanged: (bool value) {
-                        setState(() {
-                          usePost = value;
-                        });
-                      },
+                    SettingsSection(
+                      title: Text('网络设置',
+                          style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        CustomSettingsTile(
+                          child: (info) => _buildTextFieldTile(
+                            context,
+                            info,
+                            controller: userAgentController,
+                            label: 'UserAgent',
+                          ),
+                        ),
+                        CustomSettingsTile(
+                          child: (info) => _buildTextFieldTile(
+                            context,
+                            info,
+                            controller: refererController,
+                            label: 'Referer',
+                          ),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      title: const Text('内置播放器'),
-                      subtitle: const Text('使用内置播放器播放视频'),
-                      value: useNativePlayer,
-                      onChanged: (bool value) {
-                        setState(() {
-                          useNativePlayer = value;
-                        });
-                      },
-                    ),
-                    SwitchListTile(
-                      title: const Text('广告过滤'),
-                      subtitle: const Text('启用HLS广告过滤'),
-                      value: adBlocker,
-                      onChanged: (bool value) {
-                        setState(() {
-                          adBlocker = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: userAgentController,
-                      decoration: const InputDecoration(
-                          labelText: 'UserAgent', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: refererController,
-                      decoration: const InputDecoration(
-                          labelText: 'Referer', border: OutlineInputBorder()),
+                    SettingsSection(
+                      title: Text('反反爬虫配置',
+                          style: TextStyle(fontFamily: fontFamily)),
+                      tiles: [
+                        SettingsTile.switchTile(
+                          title: Text('启用反反爬虫',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          description: Text('检索失败时显示验证码验证按钮而非重试',
+                              style: TextStyle(fontFamily: fontFamily)),
+                          initialValue: antiCrawlerEnabled,
+                          onToggle: (v) => setState(() =>
+                              antiCrawlerEnabled = v ?? !antiCrawlerEnabled),
+                        ),
+                        if (antiCrawlerEnabled) ...[
+                          SettingsTile.navigation(
+                            onPressed: (_) {
+                              if (captchaTypeMenuController.isOpen) {
+                                captchaTypeMenuController.close();
+                              } else {
+                                captchaTypeMenuController.open();
+                              }
+                            },
+                            title: Text('验证类型',
+                                style: TextStyle(fontFamily: fontFamily)),
+                            description: Text(
+                              switch (captchaType) {
+                                CaptchaType.imageCaptcha =>
+                                  '图片验证码（展示验证码图片，用户手动输入）',
+                                CaptchaType.autoClickButton =>
+                                  '自动点击验证按钮（检测到按钮后自动模拟点击）',
+                                CaptchaType.customJavaScript =>
+                                  '自定义 JS 验证（加载页面后执行规则脚本）',
+                                _ => '未知验证类型',
+                              },
+                              style: TextStyle(fontFamily: fontFamily),
+                            ),
+                            value: MenuAnchor(
+                              consumeOutsideTap: true,
+                              controller: captchaTypeMenuController,
+                              builder: (_, __, ___) => Text(
+                                _captchaTypeMap[captchaType] ?? '未知',
+                                style: TextStyle(fontFamily: fontFamily),
+                              ),
+                              menuChildren: [
+                                for (final entry in _captchaTypeMap.entries)
+                                  MenuItemButton(
+                                    requestFocusOnHover: false,
+                                    onPressed: () =>
+                                        setState(() => captchaType = entry.key),
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          const BoxConstraints(minWidth: 160),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          entry.value,
+                                          style: TextStyle(
+                                            color: entry.key == captchaType
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : null,
+                                            fontFamily: fontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          SettingsTile.navigation(
+                            onPressed: (_) {
+                              if (captchaDetectTypeMenuController.isOpen) {
+                                captchaDetectTypeMenuController.close();
+                              } else {
+                                captchaDetectTypeMenuController.open();
+                              }
+                            },
+                            title: Text('验证页检测方式',
+                                style: TextStyle(fontFamily: fontFamily)),
+                            description: Text('优先使用该标记判断搜索响应是否为验证页',
+                                style: TextStyle(fontFamily: fontFamily)),
+                            value: MenuAnchor(
+                              consumeOutsideTap: true,
+                              controller: captchaDetectTypeMenuController,
+                              builder: (_, __, ___) => Text(
+                                _captchaDetectTypeMap[captchaDetectType] ??
+                                    '未知',
+                                style: TextStyle(fontFamily: fontFamily),
+                              ),
+                              menuChildren: [
+                                for (final entry
+                                    in _captchaDetectTypeMap.entries)
+                                  MenuItemButton(
+                                    requestFocusOnHover: false,
+                                    onPressed: () => setState(
+                                        () => captchaDetectType = entry.key),
+                                    child: Container(
+                                      height: 48,
+                                      constraints:
+                                          const BoxConstraints(minWidth: 160),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          entry.value,
+                                          style: TextStyle(
+                                            color:
+                                                entry.key == captchaDetectType
+                                                    ? Theme.of(context)
+                                                        .colorScheme
+                                                        .primary
+                                                    : null,
+                                            fontFamily: fontFamily,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          CustomSettingsTile(
+                            child: (info) => _buildTextFieldTile(
+                              context,
+                              info,
+                              controller: captchaDetectValueController,
+                              label: 'CaptchaDetectValue',
+                              hint: captchaDetectType == CaptchaDetectType.text
+                                  ? '身份验证'
+                                  : captchaDetectType == CaptchaDetectType.regex
+                                      ? '身份验证|smart_verify'
+                                      : '//button[@id="verify"]',
+                              helper: '留空时回退到旧的图片/按钮 XPath 检测',
+                            ),
+                          ),
+                          if (captchaType == CaptchaType.imageCaptcha) ...[
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context,
+                                info,
+                                controller: captchaImageController,
+                                label: 'CaptchaImage (XPath)',
+                                hint: '//img[@class="captcha"]',
+                                helper: '验证码图片元素的 XPath',
+                              ),
+                            ),
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context,
+                                info,
+                                controller: captchaInputController,
+                                label: 'CaptchaInput (XPath)',
+                                hint: '//input[@name="captcha"]',
+                                helper: '验证码输入框元素的 XPath',
+                              ),
+                            ),
+                          ],
+                          if (captchaType != CaptchaType.customJavaScript)
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context,
+                                info,
+                                controller: captchaButtonController,
+                                label: captchaType == CaptchaType.imageCaptcha
+                                    ? 'CaptchaButton (XPath)'
+                                    : 'VerifyButton (XPath)',
+                                hint: '//button[@type="submit"]',
+                                helper: captchaType == CaptchaType.imageCaptcha
+                                    ? '验证提交按钮元素的 XPath'
+                                    : '验证按钮元素的 XPath，检测到后自动点击',
+                              ),
+                            ),
+                          if (captchaType == CaptchaType.customJavaScript)
+                            CustomSettingsTile(
+                              child: (info) => _buildTextFieldTile(
+                                context,
+                                info,
+                                controller: captchaScriptController,
+                                label: 'CaptchaScript (JavaScript)',
+                                hint:
+                                    'KazumiCaptcha.log("ready"); KazumiCaptcha.done();',
+                                helper:
+                                    '可调用 KazumiCaptcha.log/clicked/done/fail',
+                                maxLines: 8,
+                              ),
+                            ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -218,8 +483,19 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   searchResult: searchResultController.text,
                   chapterRoads: chapterRoadsController.text,
                   chapterResult: chapterResultController.text,
-                  referer: refererController.text);
-              Modular.to.pushNamed('/settings/plugin/test', arguments: pluginText);
+                  referer: refererController.text,
+                  antiCrawlerConfig: AntiCrawlerConfig(
+                    enabled: antiCrawlerEnabled,
+                    captchaType: captchaType,
+                    captchaImage: captchaImageController.text,
+                    captchaInput: captchaInputController.text,
+                    captchaButton: captchaButtonController.text,
+                    captchaDetectType: captchaDetectType,
+                    captchaDetectValue: captchaDetectValueController.text,
+                    captchaScript: captchaScriptController.text,
+                  ));
+              Modular.to
+                  .pushNamed('/settings/plugin/test', arguments: pluginText);
             },
           ),
           SizedBox(width: 15),
@@ -246,12 +522,63 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               plugin.useLegacyParser = useLegacyParser;
               plugin.adBlocker = adBlocker;
               plugin.referer = refererController.text;
+              plugin.antiCrawlerConfig = AntiCrawlerConfig(
+                enabled: antiCrawlerEnabled,
+                captchaType: captchaType,
+                captchaImage: captchaImageController.text,
+                captchaInput: captchaInputController.text,
+                captchaButton: captchaButtonController.text,
+                captchaDetectType: captchaDetectType,
+                captchaDetectValue: captchaDetectValueController.text,
+                captchaScript: captchaScriptController.text,
+              );
               pluginsController.updatePlugin(plugin);
               Navigator.of(context).pop();
             },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextFieldTile(
+    BuildContext context,
+    SettingsTileInfo info, {
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    String? helper,
+    int maxLines = 1,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(info.isTopTile ? 20 : 3),
+            bottom: Radius.circular(info.isBottomTile ? 20 : 3),
+          ),
+          child: Material(
+            color: Theme.of(context).brightness == Brightness.light
+                ? Theme.of(context).colorScheme.surfaceContainerLowest
+                : Theme.of(context).colorScheme.surfaceContainerHigh,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: TextField(
+                controller: controller,
+                maxLines: maxLines,
+                decoration: InputDecoration(
+                  labelText: label,
+                  hintText: hint,
+                  helperText: helper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (info.needDivider) const SizedBox(height: 2),
+      ],
     );
   }
 }

@@ -267,6 +267,8 @@ class _CollectPageState extends State<CollectPage>
   }
 
   List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
+    final bool showAnimeCounter =
+        GStorage.getSetting(SettingsKeys.showAnimeCounter);
     List<Widget> gridViewList = [];
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
         List.generate(tabs.length, (_) => <CollectedBangumi>[]);
@@ -345,6 +347,25 @@ class _CollectPageState extends State<CollectPage>
                 ),
               ),
             ),
+            if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 12),
+                      child: Text(
+                        '总计：${collectedBangumiRenderItem.length}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );

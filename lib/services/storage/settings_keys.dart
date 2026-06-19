@@ -416,6 +416,11 @@ class SettingsKeys {
     true,
     group: SettingGroup.interface,
   );
+  static const showAnimeCounter = SettingKey<bool>(
+    _SettingBoxKey.showAnimeCounter,
+    false,
+    group: SettingGroup.interface,
+  );
   static const downloadParallelEpisodes = SettingKey<int>(
     _SettingBoxKey.downloadParallelEpisodes,
     2,
@@ -558,6 +563,7 @@ class SettingsKeys {
     proxyUrl,
     proxyTestUrl,
     showRating,
+    showAnimeCounter,
     downloadParallelEpisodes,
     downloadParallelSegments,
     downloadDanmaku,
@@ -665,6 +671,7 @@ class _SettingBoxKey {
       proxyUrl = 'proxyUrl',
       proxyTestUrl = 'proxyTestUrl',
       showRating = 'showRating',
+      showAnimeCounter = 'showAnimeCounter',
       downloadParallelEpisodes = 'downloadParallelEpisodes',
       downloadParallelSegments = 'downloadParallelSegments',
       downloadDanmaku = 'downloadDanmaku',

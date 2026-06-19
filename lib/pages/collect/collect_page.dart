@@ -267,6 +267,8 @@ class _CollectPageState extends State<CollectPage>
   }
 
   List<Widget> contentGrid(List<CollectedBangumi> collectedBangumiList) {
+    final bool showAnimeCounter =
+        GStorage.getSetting(SettingsKeys.showAnimeCounter);
     List<Widget> gridViewList = [];
     List<List<CollectedBangumi>> collectedBangumiRenderItemList =
         List.generate(tabs.length, (_) => <CollectedBangumi>[]);
@@ -345,7 +347,7 @@ class _CollectPageState extends State<CollectPage>
                 ),
               ),
             ),
-            if (showDelete && collectedBangumiRenderItem.isNotEmpty)
+            if (collectedBangumiRenderItem.isNotEmpty && showAnimeCounter)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Column(

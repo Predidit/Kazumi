@@ -10,7 +10,6 @@ import 'package:kazumi/pages/menu/menu.dart';
 import 'package:kazumi/bean/card/bangumi_card.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:provider/provider.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
 import 'package:kazumi/modules/collect/collect_sync_plan.dart';
@@ -160,53 +159,13 @@ class _CollectPageState extends State<CollectPage>
     super.dispose();
   }
 
-  List<Tab> get tabs {
-    final counts = List<int>.filled(5, 0);
-
-    for (final element in collectController.collectibles) {
-      final t = element.type;
-      if (t >= 1 && t <= 5) {
-        counts[t - 1] += 1;
-      }
-    }
-
-    final bool isMobileCompact = Utils.isCompact();
-
-    Tab _buildTab(String title, int count) {
-      if (isMobileCompact) {
-        return Tab(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 15),
-              ),
-              if (count > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2.0),
-                  child: Text(
-                    '（$count）',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-            ],
-          ),
-        );
-      } else {
-        final String text = count > 0 ? '$title（$count）' : title;
-        return Tab(text: text);
-      }
-    }
-
-    return <Tab>[
-      _buildTab('在看', counts[0]),
-      _buildTab('想看', counts[1]),
-      _buildTab('搁置', counts[2]),
-      _buildTab('看过', counts[3]),
-      _buildTab('抛弃', counts[4]),
-    ];
-  }
+  final List<Tab> tabs = const <Tab>[
+    Tab(text: '在看'),
+    Tab(text: '想看'),
+    Tab(text: '搁置'),
+    Tab(text: '看过'),
+    Tab(text: '抛弃'),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -386,6 +345,25 @@ class _CollectPageState extends State<CollectPage>
                 ),
               ),
             ),
+            if (showDelete && collectedBangumiRenderItem.isNotEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 12),
+                      child: Text(
+                        '总计：${collectedBangumiRenderItem.length}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );

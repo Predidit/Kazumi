@@ -150,10 +150,10 @@
               name: android_outputs
               path: Kazumi_android_*.apk
 
-      flutter-build-windows:
+      flutter-build-windows-amd64:
         needs: [flutter-test, flutter-analyze]
         if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_windows || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
-        name: "Release for windows"
+        name: "Release for Windows amd64"
         runs-on: "windows-latest"
         permissions: write-all
     
@@ -180,14 +180,14 @@
               --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
               --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
-          - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
+          - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary_amd64.zip
           - name: Upload windows outputs
-            id: unsigned-windows-packet-artifacts
+            id: unsigned-windows-amd64-packet-artifacts
             uses: actions/upload-artifact@v4
             with:
-              name: windows_outputs
+              name: windows_amd64_outputs
               path: |
-                Kazumi_windows_*.zip
+                Kazumi_windows_*_amd64.zip
           # - name: Build unsigned msix
           #   run: dart run msix:create
           # - name: Upload windows msix ouputs
@@ -219,6 +219,52 @@
           #   with:
           #     name: windows_msix_signed_outputs
           #     path: build/windows/msix_signed_output/*.msix
+
+
+      flutter-build-windows-arm64:
+        needs: [flutter-test, flutter-analyze]
+        if: ${{ (github.event_name == 'pull_request' && ! github.event.pull_request.draft) || (github.event_name == 'workflow_dispatch' && (inputs.run_windows || (! inputs.run_android && ! inputs.run_windows && ! inputs.run_ios && ! inputs.run_macos && ! inputs.run_linux))) }}
+        name: "Release for Windows arm64"
+        runs-on: "windows-11-arm"
+        permissions: write-all
+
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - name: Enable Git longpaths
+            run: git config --system core.longpaths true
+          # Keep ARM64 setup self-contained: subosito/flutter-action resolves
+          # SDK archives by runner architecture, while the pubspec-pinned
+          # Windows Flutter release currently only publishes an x64 archive.
+          # Cloning Flutter also avoids depending on jq/yq on windows-11-arm.
+          - name: Set up Flutter for ARM64
+            shell: pwsh
+            run: |
+              $flutterVersion = Select-String -Path pubspec.yaml -Pattern '^\s*flutter:\s*(.+)$' |
+                ForEach-Object { $_.Matches[0].Groups[1].Value.Trim().Trim('"').Trim("'") } |
+                Select-Object -First 1
+              if (-not $flutterVersion) {
+                $flutterVersion = "stable"
+              }
+
+              $flutterPath = Join-Path $env:RUNNER_TEMP "flutter"
+              git clone https://github.com/flutter/flutter.git -b $flutterVersion --depth 1 $flutterPath
+              Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $flutterPath "bin")
+              & (Join-Path $flutterPath "bin\flutter.bat") --version
+          - run: flutter pub get
+          - run: >-
+              flutter build windows
+              --dart-define=DANDANAPI_APPID=$env:DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
+          - run: Compress-Archive build/windows/arm64/runner/Release/* Kazumi_windows_canary_arm64.zip
+          - name: Upload windows arm64 outputs
+            uses: actions/upload-artifact@v4
+            with:
+              name: windows_arm64_outputs
+              path: |
+                Kazumi_windows_*_arm64.zip
 
 
       flutter-build-ios:

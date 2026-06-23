@@ -78,6 +78,8 @@ abstract class _VideoPageController with Store {
   PlaybackHistoryIdentity? _playbackHistoryIdentity;
   ResolvedEpisode? _currentResolvedEpisode;
   final Map<int, DownloadEpisode> _offlineEpisodesByNumber = {};
+  final Map<int, int> _offlineDisplayRoadToOriginalRoad = {};
+  final Map<int, int> _offlineOriginalRoadToDisplayRoad = {};
 
   /// 和 bangumiItem 中的标题不同，此标题来自于视频源
   String title = '';
@@ -136,15 +138,12 @@ abstract class _VideoPageController with Store {
     // 构建仅包含已下载集数的 roadList
     _buildOfflineRoadList(downloadedEpisodes);
 
-    // 离线模式下 roadList 长度为 1 , currentRoad 可能访问越界，需要校正
-    if (currentRoad < 0 || currentRoad >= roadList.length) {
-      currentRoad = 0;
-    }
-
-    // currentEpisode 是列表中的 1-based 位置，而非实际集数编号
-    // 在 roadList.data 中查找 episodeNumber 对应的位置
-    final index = roadList[currentRoad].data.indexOf(episodeNumber.toString());
-    currentEpisode = index >= 0 ? index + 1 : 1;
+    final target = _findOfflineEpisodeByNumber(
+      episodeNumber,
+      preferredOriginalRoad: road,
+    );
+    currentRoad = target?.roadIndex ?? 0;
+    currentEpisode = target?.listIndex ?? 1;
     final resolvedEpisode = _resolveOfflineEpisode(currentEpisode);
     if (resolvedEpisode != null) {
       _currentResolvedEpisode = resolvedEpisode;
@@ -159,22 +158,17 @@ abstract class _VideoPageController with Store {
 
   /// 构建离线模式的 roadList
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
+    final snapshot = buildOfflineRoadListSnapshot(episodes);
     roadList.clear();
+    roadList.addAll(snapshot.roads);
     _offlineEpisodesByNumber.clear();
-    episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-    for (final episode in episodes) {
-      _offlineEpisodesByNumber[episode.episodeNumber] = episode;
-    }
-    // 使用 '播放列表1' 作为名称，与 UI 代码兼容
-    roadList.add(Road(
-      name: '播放列表1',
-      // data 存储实际的 episodeNumber（字符串形式），用于离线播放时查找本地文件
-      data: episodes.map((e) => e.episodeNumber.toString()).toList(),
-      identifier: episodes
-          .map((e) =>
-              e.episodeName.isNotEmpty ? e.episodeName : '第${e.episodeNumber}集')
-          .toList(),
-    ));
+    _offlineEpisodesByNumber.addAll(snapshot.episodesByNumber);
+    _offlineDisplayRoadToOriginalRoad.clear();
+    _offlineDisplayRoadToOriginalRoad
+        .addAll(snapshot.displayRoadToOriginalRoad);
+    _offlineOriginalRoadToDisplayRoad.clear();
+    _offlineOriginalRoadToDisplayRoad
+        .addAll(snapshot.originalRoadToDisplayRoad);
   }
 
   void resetOfflineMode() {
@@ -182,6 +176,8 @@ abstract class _VideoPageController with Store {
     _offlineVideoPath = null;
     _offlinePluginName = '';
     _offlineEpisodesByNumber.clear();
+    _offlineDisplayRoadToOriginalRoad.clear();
+    _offlineOriginalRoadToDisplayRoad.clear();
     _currentResolvedEpisode = null;
     _playbackHistoryIdentity = null;
   }
@@ -237,15 +233,59 @@ abstract class _VideoPageController with Store {
       return _resolveSyncPlayListFallback(identity);
     }
 
-    final matchedByEpisodeNumber = _findSyncPlayEpisodeByNumber(
-      identity.episodeNumber,
-      preferredRoadIndex: identity.roadIndex,
-    );
+    final matchedByEpisodeNumber = isOfflineMode
+        ? _findOfflineEpisodeByNumber(
+            identity.episodeNumber,
+            preferredOriginalRoad: identity.roadIndex,
+          )
+        : _findSyncPlayEpisodeByNumber(
+            identity.episodeNumber,
+            preferredRoadIndex: identity.roadIndex,
+          );
     if (matchedByEpisodeNumber != null) {
       return matchedByEpisodeNumber;
     }
 
-    return _resolveSyncPlayListFallback(identity);
+    return isOfflineMode
+        ? _resolveOfflineSyncPlayListFallback(identity)
+        : _resolveSyncPlayListFallback(identity);
+  }
+
+  ({int listIndex, int roadIndex})? _findOfflineEpisodeByNumber(
+    int episodeNumber, {
+    required int preferredOriginalRoad,
+  }) {
+    if (episodeNumber <= 0 || roadList.isEmpty) {
+      return null;
+    }
+    final preferredDisplayRoad =
+        _offlineOriginalRoadToDisplayRoad[preferredOriginalRoad];
+    final roadIndices = <int>[
+      if (preferredDisplayRoad != null) preferredDisplayRoad,
+      for (var i = 0; i < roadList.length; i++)
+        if (i != preferredDisplayRoad) i,
+    ];
+    for (final roadIndex in roadIndices) {
+      final match = _findOfflineEpisodeInDisplayRoad(episodeNumber, roadIndex);
+      if (match != null) {
+        return match;
+      }
+    }
+    return null;
+  }
+
+  ({int listIndex, int roadIndex})? _findOfflineEpisodeInDisplayRoad(
+    int episodeNumber,
+    int roadIndex,
+  ) {
+    if (roadIndex < 0 || roadIndex >= roadList.length) {
+      return null;
+    }
+    final index = roadList[roadIndex].data.indexOf(episodeNumber.toString());
+    if (index < 0) {
+      return null;
+    }
+    return (listIndex: index + 1, roadIndex: roadIndex);
   }
 
   ({int listIndex, int roadIndex})? _findSyncPlayEpisodeByNumber(
@@ -288,6 +328,17 @@ abstract class _VideoPageController with Store {
       }
     }
     return null;
+  }
+
+  ({int listIndex, int roadIndex})? _resolveOfflineSyncPlayListFallback(
+    SyncPlayEpisodeIdentity identity,
+  ) {
+    final displayRoad = _offlineOriginalRoadToDisplayRoad[identity.roadIndex];
+    if (displayRoad != null &&
+        _isValidSyncPlayListTarget(identity.listIndex, displayRoad)) {
+      return (listIndex: identity.listIndex, roadIndex: displayRoad);
+    }
+    return _resolveSyncPlayListFallback(identity);
   }
 
   bool _isValidSyncPlayListTarget(int listIndex, int roadIndex) {
@@ -385,7 +436,9 @@ abstract class _VideoPageController with Store {
       displayTitle: episodeTitle,
       episodePageUrl: downloadEpisode?.episodePageUrl ?? '',
       episodeNumber: episodeNumber,
-      originalRoadIndex: downloadEpisode?.road ?? targetRoad,
+      originalRoadIndex: downloadEpisode?.road ??
+          _offlineDisplayRoadToOriginalRoad[targetRoad] ??
+          targetRoad,
     );
   }
 
@@ -684,6 +737,86 @@ abstract class _VideoPageController with Store {
   void handleOnExitFullScreen() async {
     isFullscreen = false;
   }
+}
+
+class OfflineRoadListSnapshot {
+  const OfflineRoadListSnapshot({
+    required this.roads,
+    required this.episodesByNumber,
+    required this.displayRoadToOriginalRoad,
+    required this.originalRoadToDisplayRoad,
+  });
+
+  final List<Road> roads;
+  final Map<int, DownloadEpisode> episodesByNumber;
+  final Map<int, int> displayRoadToOriginalRoad;
+  final Map<int, int> originalRoadToDisplayRoad;
+
+  ({int listIndex, int roadIndex})? findEpisodeByNumber(
+    int episodeNumber, {
+    int? preferredOriginalRoad,
+  }) {
+    if (episodeNumber <= 0 || roads.isEmpty) {
+      return null;
+    }
+    final preferredDisplayRoad = preferredOriginalRoad == null
+        ? null
+        : originalRoadToDisplayRoad[preferredOriginalRoad];
+    final roadIndices = <int>[
+      if (preferredDisplayRoad != null) preferredDisplayRoad,
+      for (var i = 0; i < roads.length; i++)
+        if (i != preferredDisplayRoad) i,
+    ];
+    for (final roadIndex in roadIndices) {
+      final index = roads[roadIndex].data.indexOf(episodeNumber.toString());
+      if (index >= 0) {
+        return (listIndex: index + 1, roadIndex: roadIndex);
+      }
+    }
+    return null;
+  }
+}
+
+OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
+  List<DownloadEpisode> episodes,
+) {
+  final groupedEpisodes = <int, List<DownloadEpisode>>{};
+  final episodesByNumber = <int, DownloadEpisode>{};
+
+  for (final episode in episodes) {
+    episodesByNumber[episode.episodeNumber] = episode;
+    groupedEpisodes.putIfAbsent(episode.road, () => []).add(episode);
+  }
+
+  final originalRoads = groupedEpisodes.keys.toList()..sort();
+  final roads = <Road>[];
+  final displayRoadToOriginalRoad = <int, int>{};
+  final originalRoadToDisplayRoad = <int, int>{};
+
+  for (final originalRoad in originalRoads) {
+    final roadEpisodes = groupedEpisodes[originalRoad]!
+      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    final displayRoad = roads.length;
+    displayRoadToOriginalRoad[displayRoad] = originalRoad;
+    originalRoadToDisplayRoad[originalRoad] = displayRoad;
+    roads.add(Road(
+      name: originalRoad >= 0
+          ? '播放列表${originalRoad + 1}'
+          : '播放列表${displayRoad + 1}',
+      data: roadEpisodes.map((e) => e.episodeNumber.toString()).toList(),
+      identifier: roadEpisodes
+          .map((e) =>
+              e.episodeName.isNotEmpty ? e.episodeName : '第${e.episodeNumber}集')
+          .toList(),
+    ));
+  }
+
+  return OfflineRoadListSnapshot(
+    roads: roads,
+    episodesByNumber: episodesByNumber,
+    displayRoadToOriginalRoad: displayRoadToOriginalRoad,
+    originalRoadToDisplayRoad: originalRoadToDisplayRoad,
+  );
 }
 
 class ResolvedEpisode {

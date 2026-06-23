@@ -916,7 +916,10 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   child: Text(
-                    '播放列表${currentRoad + 1} ',
+                    currentRoad >= 0 &&
+                            currentRoad < videoPageController.roadList.length
+                        ? '${videoPageController.roadList[currentRoad].name} '
+                        : '播放列表${currentRoad + 1} ',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -936,7 +939,7 @@ class _VideoPageState extends State<VideoPage>
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '播放列表${i + 1}',
+                      videoPageController.roadList[i].name,
                       style: TextStyle(
                         color: i == currentRoad
                             ? Theme.of(context).colorScheme.primary
@@ -1015,82 +1018,85 @@ class _VideoPageState extends State<VideoPage>
     return Observer(
       builder: (context) {
         var cardList = <Widget>[];
-        for (var road in videoPageController.roadList) {
-          if (road.name == '播放列表${currentRoad + 1}') {
-            int count = 1;
-            for (var urlItem in road.data) {
-              int count0 = count;
-              cardList.add(Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                child: Material(
-                  color: Theme.of(context).colorScheme.onInverseSurface,
-                  borderRadius: BorderRadius.circular(6),
-                  clipBehavior: Clip.hardEdge,
-                  child: InkWell(
-                    onTap: () async {
-                      if (count0 == videoPageController.currentEpisode &&
-                          videoPageController.currentRoad == currentRoad) {
-                        return;
-                      }
-                      KazumiLogger()
-                          .i('VideoPageController: video URL is $urlItem');
-                      closeTabBodyAnimated();
-                      changeEpisode(count0, currentRoad: currentRoad);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8, horizontal: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            children: [
-                              if (count0 ==
-                                      (videoPageController.currentEpisode) &&
-                                  currentRoad ==
-                                      videoPageController
-                                          .currentRoad) ...<Widget>[
-                                Image.asset(
-                                  'assets/images/playing.gif',
-                                  color: Theme.of(context).colorScheme.primary,
-                                  height: 12,
-                                ),
-                                const SizedBox(width: 6)
-                              ],
-                              Expanded(
-                                  child: Text(
-                                road.identifier[count0 - 1],
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: (count0 ==
-                                                videoPageController
-                                                    .currentEpisode &&
-                                            currentRoad ==
-                                                videoPageController.currentRoad)
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface),
-                              )),
-                              _buildDownloadStatusIcon(
-                                count0,
-                                urlItem,
-                                road.identifier[count0 - 1],
+        if (currentRoad >= 0 &&
+            currentRoad < videoPageController.roadList.length) {
+          final road = videoPageController.roadList[currentRoad];
+          int count = 1;
+          for (var urlItem in road.data) {
+            final count0 = count;
+            final episodeName = count0 - 1 < road.identifier.length
+                ? road.identifier[count0 - 1]
+                : '第$count0集';
+            cardList.add(Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              child: Material(
+                color: Theme.of(context).colorScheme.onInverseSurface,
+                borderRadius: BorderRadius.circular(6),
+                clipBehavior: Clip.hardEdge,
+                child: InkWell(
+                  onTap: () async {
+                    if (count0 == videoPageController.currentEpisode &&
+                        videoPageController.currentRoad == currentRoad) {
+                      return;
+                    }
+                    KazumiLogger()
+                        .i('VideoPageController: video URL is $urlItem');
+                    closeTabBodyAnimated();
+                    changeEpisode(count0, currentRoad: currentRoad);
+                  },
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Row(
+                          children: [
+                            if (count0 ==
+                                    (videoPageController.currentEpisode) &&
+                                currentRoad ==
+                                    videoPageController
+                                        .currentRoad) ...<Widget>[
+                              Image.asset(
+                                'assets/images/playing.gif',
+                                color: Theme.of(context).colorScheme.primary,
+                                height: 12,
                               ),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: 6)
                             ],
-                          ),
-                          const SizedBox(height: 3),
-                        ],
-                      ),
+                            Expanded(
+                                child: Text(
+                              episodeName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: (count0 ==
+                                              videoPageController
+                                                  .currentEpisode &&
+                                          currentRoad ==
+                                              videoPageController.currentRoad)
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurface),
+                            )),
+                            _buildDownloadStatusIcon(
+                              count0,
+                              urlItem,
+                              episodeName,
+                            ),
+                            const SizedBox(width: 2),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                      ],
                     ),
                   ),
                 ),
-              ));
-              count++;
-            }
+              ),
+            ));
+            count++;
           }
         }
         return Expanded(

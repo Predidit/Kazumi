@@ -398,7 +398,12 @@ class HistorySyncState {
     final entryKind =
         HistoryEntryKind.normalize(event.entryKind ?? HistoryEntryKind.online);
     final entityKey = History.scopedKey(adapterName, bangumiItem, entryKind);
-    final deletedVersion = deletedVersions[entityKey];
+    final legacyEntityKey = History.legacyKey(adapterName, bangumiItem);
+    final deletedVersion = _deletedVersionForUpsert(
+      entityKey,
+      legacyEntityKey: legacyEntityKey,
+      entryKind: entryKind,
+    );
     if (deletedVersion != null &&
         HistorySyncVersion.compare(event.version, deletedVersion) <= 0) {
       return;
@@ -451,6 +456,9 @@ class HistorySyncState {
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
+    if (entryKind == HistoryEntryKind.online) {
+      deletedVersions.remove(legacyEntityKey);
+    }
   }
 
   void _applyDelete(HistorySyncEvent event) {
@@ -502,6 +510,28 @@ class HistorySyncState {
       }
     }
     return key;
+  }
+
+  String? _deletedVersionForUpsert(
+    String entityKey, {
+    required String legacyEntityKey,
+    required String entryKind,
+  }) {
+    final scopedVersion = deletedVersions[entityKey];
+    if (entryKind != HistoryEntryKind.online) {
+      return scopedVersion;
+    }
+    return _newerVersion(scopedVersion, deletedVersions[legacyEntityKey]);
+  }
+
+  String? _newerVersion(String? a, String? b) {
+    if (a == null) {
+      return b;
+    }
+    if (b == null) {
+      return a;
+    }
+    return HistorySyncVersion.compare(a, b) >= 0 ? a : b;
   }
 
   static Map<String, String> _canonicalizeVersionMap(

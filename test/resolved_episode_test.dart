@@ -17,6 +17,9 @@ void main() {
       expect(episode.danmakuEpisodeNumber, 13);
       expect(episode.originalRoadIndex, 0);
       expect(episode.episodePageUrl, '/episode/13');
+      final syncPlayIdentity = episode.toSyncPlayEpisodeIdentity(1);
+      expect(syncPlayIdentity.listIndex, 1);
+      expect(syncPlayIdentity.episodeNumber, 13);
     });
 
     test('online falls back to list index when title has no episode number',
@@ -31,6 +34,9 @@ void main() {
       expect(episode.historyEpisodeNumber, 2);
       expect(episode.danmakuEpisodeNumber, 2);
       expect(episode.originalRoadIndex, 1);
+      final syncPlayIdentity = episode.toSyncPlayEpisodeIdentity(1);
+      expect(syncPlayIdentity.listIndex, 2);
+      expect(syncPlayIdentity.episodeNumber, 2);
     });
 
     test('offline uses downloaded episode number for history and danmaku', () {
@@ -47,6 +53,10 @@ void main() {
       expect(episode.danmakuEpisodeNumber, 13);
       expect(episode.originalRoadIndex, 2);
       expect(episode.listIndex, 1);
+      final syncPlayIdentity = episode.toSyncPlayEpisodeIdentity(1);
+      expect(syncPlayIdentity.roadIndex, 2);
+      expect(syncPlayIdentity.listIndex, 1);
+      expect(syncPlayIdentity.episodeNumber, 13);
     });
   });
 
@@ -64,9 +74,16 @@ void main() {
       episodeTitle: '第13话',
       referer: '',
       currentRoad: 0,
+      syncPlayEpisodeIdentity: SyncPlayEpisodeIdentity(
+        bangumiId: 1,
+        roadIndex: 0,
+        listIndex: 1,
+        episodeNumber: 13,
+      ),
     );
 
     expect(params.episode, 1);
     expect(params.danmakuEpisodeNumber, 13);
+    expect(params.syncPlayEpisodeIdentity.episodeNumber, 13);
   });
 }

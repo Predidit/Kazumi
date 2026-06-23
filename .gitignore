@@ -57,5 +57,5 @@ android/build/reports/problems/
 
 # Agents - Cache
 .cursor/plans/*
-todo.md
+docs/*
 AGENTS.md

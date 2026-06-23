@@ -21,8 +21,8 @@ abstract class _PlayerSyncPlayController with Store {
   _PlayerSyncPlayController({
     required this.setting,
     required this.bangumiId,
-    required this.currentEpisode,
     required this.currentRoad,
+    required this.currentEpisodeIdentity,
     required this.playing,
     required this.currentPosition,
     required this.playerPosition,
@@ -34,8 +34,8 @@ abstract class _PlayerSyncPlayController with Store {
 
   final Box setting;
   final int Function() bangumiId;
-  final int Function() currentEpisode;
   final int Function() currentRoad;
+  final SyncPlayEpisodeIdentity Function() currentEpisodeIdentity;
   final bool Function() playing;
   final Duration Function() currentPosition;
   final Duration Function() playerPosition;
@@ -73,7 +73,7 @@ abstract class _PlayerSyncPlayController with Store {
   Future<void> createRoom(
       String room,
       String username,
-      Future<void> Function(int episode, {int currentRoad, int offset})
+      Future<void> Function(SyncPlayEpisodeIdentity identity, {int offset})
           changeEpisode,
       {bool enableTLS = true}) async {
     await syncplayController?.disconnect();
@@ -148,19 +148,22 @@ abstract class _PlayerSyncPlayController with Store {
       );
       syncplayController!.onFileChangedMessage.listen(
         (message) {
-          KazumiLogger().i(
-              'SyncPlay: file changed by ${message['setBy']}: ${message['name']}');
-          RegExp regExp = RegExp(r'(\d+)\[(\d+)\]');
-          Match? match = regExp.firstMatch(message['name']);
-          if (match != null) {
-            int bangumiID = int.tryParse(match.group(1) ?? '0') ?? 0;
-            int episode = int.tryParse(match.group(2) ?? '0') ?? 0;
-            if (bangumiID != 0 && episode != 0 && episode != currentEpisode()) {
+          final fileName = (message['name'] ?? '').toString();
+          KazumiLogger()
+              .i('SyncPlay: file changed by ${message['setBy']}: $fileName');
+          final identity = SyncPlayEpisodeCodec.decode(
+            fileName,
+            fallbackRoadIndex: currentRoad(),
+          );
+          if (identity != null) {
+            final currentIdentity = currentEpisodeIdentity();
+            if (identity.bangumiId == bangumiId() &&
+                !identity.isSameSyncPlayTarget(currentIdentity)) {
               KazumiDialog.showToast(
                   message:
-                      'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到第 $episode 话',
+                      'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到第 ${identity.episodeNumber} 话',
                   duration: const Duration(seconds: 3));
-              changeEpisode(episode, currentRoad: currentRoad());
+              changeEpisode(identity);
             }
           }
         },
@@ -243,7 +246,9 @@ abstract class _PlayerSyncPlayController with Store {
   Future<void> setPlayingBangumi(
       {bool? forceSyncPlaying, double? forceSyncPosition}) async {
     await syncplayController!.setSyncPlayPlaying(
-        "${bangumiId()}[${currentEpisode()}]", 10800, 220514438);
+        SyncPlayEpisodeCodec.encode(currentEpisodeIdentity()),
+        10800,
+        220514438);
     setCurrentPosition(
         forceSyncPlaying: forceSyncPlaying,
         forceSyncPosition: forceSyncPosition);

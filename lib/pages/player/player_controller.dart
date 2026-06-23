@@ -37,8 +37,8 @@ class PlayerController {
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     setting: setting,
     bangumiId: () => bangumiId,
-    currentEpisode: () => currentEpisode,
     currentRoad: () => currentRoad,
+    currentEpisodeIdentity: () => syncPlayEpisodeIdentity,
     playing: () => playback.playing,
     currentPosition: () => playback.currentPosition,
     playerPosition: () => playback.playerPosition,
@@ -56,6 +56,7 @@ class PlayerController {
   late int bangumiId;
   late int currentEpisode;
   late int currentRoad;
+  late SyncPlayEpisodeIdentity syncPlayEpisodeIdentity;
   late String referer;
   String? coverUrl;
   String videoUrl = '';
@@ -68,6 +69,7 @@ class PlayerController {
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
     currentRoad = params.currentRoad;
+    syncPlayEpisodeIdentity = params.syncPlayEpisodeIdentity;
     referer = params.referer;
 
     KazumiLogger().i(
@@ -145,7 +147,7 @@ class PlayerController {
 
     if (syncplay.syncplayController?.isConnected ?? false) {
       if (syncplay.syncplayController!.currentFileName !=
-          "$bangumiId[$currentEpisode]") {
+          SyncPlayEpisodeCodec.encode(syncPlayEpisodeIdentity)) {
         setSyncPlayPlayingBangumi(
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }
@@ -279,7 +281,7 @@ class PlayerController {
   Future<void> createSyncPlayRoom(
       String room,
       String username,
-      Future<void> Function(int episode, {int currentRoad, int offset})
+      Future<void> Function(SyncPlayEpisodeIdentity identity, {int offset})
           changeEpisode,
       {bool enableTLS = true}) async {
     await syncplay.createRoom(

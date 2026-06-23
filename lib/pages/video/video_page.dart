@@ -179,7 +179,11 @@ class _VideoPageState extends State<VideoPage>
       }
 
       final identity = videoPageController.currentHistoryIdentity;
-      if (videoPageController.offlineVideoPath != null && identity != null) {
+      final syncPlayIdentity =
+          videoPageController.currentSyncPlayEpisodeIdentity;
+      if (videoPageController.offlineVideoPath != null &&
+          identity != null &&
+          syncPlayIdentity != null) {
         final params = PlaybackInitParams(
           videoUrl: videoPageController.offlineVideoPath!,
           offset: videoPageController.historyOffset,
@@ -193,6 +197,7 @@ class _VideoPageState extends State<VideoPage>
           episodeTitle: identity.episodeTitle,
           referer: '',
           currentRoad: videoPageController.currentRoad,
+          syncPlayEpisodeIdentity: syncPlayIdentity,
           coverUrl: videoPageController.bangumiItem.images['large'],
           bangumiName: videoPageController.bangumiItem.nameCn.isNotEmpty
               ? videoPageController.bangumiItem.nameCn

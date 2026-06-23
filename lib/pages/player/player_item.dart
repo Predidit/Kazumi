@@ -1355,6 +1355,28 @@ class _PlayerItemState extends State<PlayerItem>
     );
   }
 
+  Future<void> changeEpisodeBySyncPlayIdentity(
+    SyncPlayEpisodeIdentity identity, {
+    int offset = 0,
+  }) async {
+    final target = videoPageController.resolveSyncPlayEpisodeIdentity(identity);
+    if (target == null) {
+      KazumiLogger().w(
+          'SyncPlay: failed to resolve episode identity ${SyncPlayEpisodeCodec.encode(identity)}');
+      KazumiDialog.showToast(message: 'SyncPlay: 集数匹配失败');
+      return;
+    }
+    if (target.listIndex == videoPageController.currentEpisode &&
+        target.roadIndex == videoPageController.currentRoad) {
+      return;
+    }
+    await widget.changeEpisode(
+      target.listIndex,
+      currentRoad: target.roadIndex,
+      offset: offset,
+    );
+  }
+
   void showSyncPlayRoomCreateDialog() {
     final formKey = GlobalKey<FormState>();
     final TextEditingController roomController = TextEditingController();
@@ -1416,7 +1438,7 @@ class _PlayerItemState extends State<PlayerItem>
               if (formKey.currentState!.validate()) {
                 KazumiDialog.dismiss();
                 playerController.createSyncPlayRoom(roomController.text,
-                    usernameController.text, widget.changeEpisode);
+                    usernameController.text, changeEpisodeBySyncPlayIdentity);
               }
             },
             child: const Text('确定'),

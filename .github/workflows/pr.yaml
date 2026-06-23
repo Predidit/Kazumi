@@ -180,14 +180,14 @@
               --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
               --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
               --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
-          - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary_amd64.zip
+          - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_canary.zip
           - name: Upload windows outputs
-            id: unsigned-windows-amd64-packet-artifacts
+            id: unsigned-windows-packet-artifacts
             uses: actions/upload-artifact@v4
             with:
-              name: windows_amd64_outputs
+              name: windows_outputs
               path: |
-                Kazumi_windows_*_amd64.zip
+                Kazumi_windows_*.zip
           # - name: Build unsigned msix
           #   run: dart run msix:create
           # - name: Upload windows msix ouputs

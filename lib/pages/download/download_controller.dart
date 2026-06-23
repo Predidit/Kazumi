@@ -393,27 +393,6 @@ abstract class _DownloadController with Store {
     return _repository.getEpisode(bangumiId, pluginName, episodeNumber);
   }
 
-  DownloadEpisode? getEpisodeByUrl(
-      int bangumiId, String pluginName, String episodePageUrl) {
-    return _repository.getEpisodeByUrl(bangumiId, pluginName, episodePageUrl);
-  }
-
-  DownloadEpisodeMatch? findEpisode(
-    int bangumiId,
-    String pluginName, {
-    required int episodeNumber,
-    required String episodePageUrl,
-    required String episodeName,
-  }) {
-    return _repository.findEpisode(
-      bangumiId,
-      pluginName,
-      episodeNumber: episodeNumber,
-      episodePageUrl: episodePageUrl,
-      episodeName: episodeName,
-    );
-  }
-
   DownloadEpisodeMatch? findEpisodeInRecord(
     DownloadRecord record, {
     required int episodeNumber,

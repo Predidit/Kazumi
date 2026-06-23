@@ -36,6 +36,9 @@ void main() {
       final repository = HistoryRepository(
         historiesBox: historiesBox,
         privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
       );
       final item = _item(1);
 
@@ -99,6 +102,9 @@ void main() {
       final repository = HistoryRepository(
         historiesBox: historiesBox,
         privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
       );
       final item = _item(2);
 
@@ -147,6 +153,9 @@ void main() {
       final repository = HistoryRepository(
         historiesBox: historiesBox,
         privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
       );
       final item = _item(3);
 
@@ -168,6 +177,18 @@ void main() {
     });
   });
 }
+
+Future<void> _noopHistorySync({
+  required History history,
+  required int episode,
+  required int road,
+  required int progressMs,
+  required int updatedAt,
+}) async {}
+
+Future<void> _noopDeleteSync(History history) async {}
+
+Future<void> _noopClearSync() async {}
 
 void _registerAdapters() {
   if (!Hive.isAdapterRegistered(1)) {

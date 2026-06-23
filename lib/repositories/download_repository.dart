@@ -26,33 +26,12 @@ abstract class IDownloadRepository {
   DownloadEpisode? getEpisode(
       int bangumiId, String pluginName, int episodeNumber);
 
-  /// 兼容查找指定集数的下载信息。
-  ///
-  /// 优先使用 [episodePageUrl] 精确匹配；旧数据缺 URL 时，回退到
-  /// [episodeNumber]；如果集数编号也不可靠，则只在 [episodeName] 唯一命中时返回。
-  DownloadEpisodeMatch? findEpisode(
-    int bangumiId,
-    String pluginName, {
-    required int episodeNumber,
-    required String episodePageUrl,
-    required String episodeName,
-  });
-
   /// 获取已完成下载的集数列表
   ///
   /// [bangumiId] 番剧 ID
   /// [pluginName] 插件名称
   /// 返回所有已完成下载的集数
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName);
-
-  /// 通过集数页面 URL 查找下载记录
-  ///
-  /// [bangumiId] 番剧 ID
-  /// [pluginName] 插件名称
-  /// [episodePageUrl] 集数页面 URL
-  /// 当 URL 为空时返回 null（兼容旧数据）
-  DownloadEpisode? getEpisodeByUrl(
-      int bangumiId, String pluginName, String episodePageUrl);
 }
 
 enum DownloadEpisodeMatchSource {
@@ -312,24 +291,6 @@ class DownloadRepository implements IDownloadRepository {
   }
 
   @override
-  DownloadEpisodeMatch? findEpisode(
-    int bangumiId,
-    String pluginName, {
-    required int episodeNumber,
-    required String episodePageUrl,
-    required String episodeName,
-  }) {
-    final record = getRecordByBangumiId(bangumiId, pluginName);
-    if (record == null) return null;
-    return DownloadEpisodeMatcher.find(
-      record,
-      episodeNumber: episodeNumber,
-      episodePageUrl: episodePageUrl,
-      episodeName: episodeName,
-    );
-  }
-
-  @override
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName) {
     final record = getRecordByBangumiId(bangumiId, pluginName);
     if (record == null) return [];
@@ -338,19 +299,5 @@ class DownloadRepository implements IDownloadRepository {
         .where((e) => e.status == DownloadStatus.completed)
         .toList()
       ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-  }
-
-  @override
-  DownloadEpisode? getEpisodeByUrl(
-      int bangumiId, String pluginName, String episodePageUrl) {
-    if (episodePageUrl.isEmpty) return null;
-    final record = getRecordByBangumiId(bangumiId, pluginName);
-    if (record == null) return null;
-    for (final episode in record.episodes.values) {
-      if (episode.episodePageUrl == episodePageUrl) {
-        return episode;
-      }
-    }
-    return null;
   }
 }

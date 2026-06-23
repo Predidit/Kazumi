@@ -4,7 +4,6 @@ class PlaybackInitParams {
   final bool isLocalPlayback;
   final int bangumiId;
   final String pluginName;
-  final int episode;
   final int danmakuEpisodeNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
@@ -20,7 +19,6 @@ class PlaybackInitParams {
     required this.isLocalPlayback,
     required this.bangumiId,
     required this.pluginName,
-    required this.episode,
     required this.danmakuEpisodeNumber,
     required this.httpHeaders,
     required this.adBlockerEnabled,

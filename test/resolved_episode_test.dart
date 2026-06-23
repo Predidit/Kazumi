@@ -58,7 +58,6 @@ void main() {
       isLocalPlayback: true,
       bangumiId: 1,
       pluginName: 'plugin',
-      episode: 1,
       danmakuEpisodeNumber: 13,
       httpHeaders: {},
       adBlockerEnabled: false,
@@ -67,7 +66,6 @@ void main() {
       currentRoad: 0,
     );
 
-    expect(params.episode, 1);
     expect(params.danmakuEpisodeNumber, 13);
   });
 
@@ -88,28 +86,6 @@ void main() {
       expect(snapshot.roads[1].data, ['2', '4']);
       expect(snapshot.displayRoadToOriginalRoad, {0: 0, 1: 2});
       expect(snapshot.originalRoadToDisplayRoad, {0: 0, 2: 1});
-    });
-
-    test('finds episode by preferred original road before number fallback', () {
-      final snapshot = buildOfflineRoadListSnapshot([
-        _episode(1, '线路1 第1话', 0),
-        _episode(2, '线路1 第2话', 0),
-        _episode(3, '线路3 第3话', 2),
-      ]);
-
-      final preferred = snapshot.findEpisodeByNumber(
-        3,
-        preferredOriginalRoad: 2,
-      );
-      expect(preferred?.roadIndex, 1);
-      expect(preferred?.listIndex, 1);
-
-      final fallback = snapshot.findEpisodeByNumber(
-        2,
-        preferredOriginalRoad: 2,
-      );
-      expect(fallback?.roadIndex, 0);
-      expect(fallback?.listIndex, 2);
     });
   });
 }

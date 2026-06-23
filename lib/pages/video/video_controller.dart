@@ -161,11 +161,7 @@ abstract class _VideoPageController with Store {
   @observable
   bool isOfflineMode = false;
 
-  /// 离线视频本地路径
-  String? _offlineVideoPath;
-
   PlaybackHistoryIdentity? _playbackHistoryIdentity;
-  ResolvedEpisode? _currentResolvedEpisode;
   final Map<int, DownloadEpisode> _offlineEpisodesByNumber = {};
   final Map<int, int> _offlineDisplayRoadToOriginalRoad = {};
   final Map<int, int> _offlineOriginalRoadToDisplayRoad = {};
@@ -231,10 +227,8 @@ abstract class _VideoPageController with Store {
       road: selected.road,
     );
     if (resolvedEpisode != null) {
-      _currentResolvedEpisode = resolvedEpisode;
       _setOfflineHistoryIdentity(resolvedEpisode);
     } else {
-      _currentResolvedEpisode = null;
       _playbackHistoryIdentity = null;
     }
     KazumiLogger().i(
@@ -261,33 +255,13 @@ abstract class _VideoPageController with Store {
     _offlineEpisodesByNumber.clear();
     _offlineDisplayRoadToOriginalRoad.clear();
     _offlineOriginalRoadToDisplayRoad.clear();
-    _currentResolvedEpisode = null;
     _playbackHistoryIdentity = null;
   }
 
   String get offlinePluginName => _offlinePluginName;
 
-  String? get offlineVideoPath => _offlineVideoPath;
-
   PlaybackHistoryIdentity? get currentHistoryIdentity =>
       _playbackHistoryIdentity;
-
-  /// 获取当前实际的集数编号
-  int get actualEpisodeNumber {
-    return _resolveCurrentEpisode()?.historyEpisodeNumber ?? currentEpisode;
-  }
-
-  ResolvedEpisode? _resolveCurrentEpisode() {
-    final resolvedEpisode = _currentResolvedEpisode;
-    if (resolvedEpisode != null &&
-        resolvedEpisode.listIndex == currentEpisode &&
-        resolvedEpisode.roadIndex == currentRoad) {
-      return resolvedEpisode;
-    }
-    return isOfflineMode
-        ? _resolveOfflineEpisode(currentEpisode)
-        : _resolveOnlineEpisode(currentEpisode);
-  }
 
   ({int listIndex, int roadIndex})? _findOfflineEpisodeByNumber(
     int episodeNumber, {
@@ -419,9 +393,6 @@ abstract class _VideoPageController with Store {
     );
   }
 
-  int get playingActualEpisodeNumber =>
-      actualEpisodeNumberForSelection(playbackEpisode);
-
   int actualEpisodeNumberForSelection(VideoEpisodeSelection selection) {
     final resolvedEpisode = isOfflineMode
         ? _resolveOfflineEpisode(selection.episode, road: selection.road)
@@ -486,7 +457,6 @@ abstract class _VideoPageController with Store {
       road: resolvedEpisode.roadIndex,
     );
     commentsEpisode = commentEpisodeForSelection(selectedEpisode);
-    _currentResolvedEpisode = resolvedEpisode;
     _setOnlineHistoryIdentity(resolvedEpisode);
 
     KazumiLogger()
@@ -539,8 +509,6 @@ abstract class _VideoPageController with Store {
       road: resolvedEpisode.roadIndex,
     );
     commentsEpisode = commentEpisodeForSelection(selectedEpisode);
-    _currentResolvedEpisode = resolvedEpisode;
-    _offlineVideoPath = localPath;
     _setOfflineHistoryIdentity(resolvedEpisode);
     if (session.isStale) {
       return;
@@ -558,7 +526,6 @@ abstract class _VideoPageController with Store {
       isLocalPlayback: true,
       bangumiId: bangumiItem.id,
       pluginName: _offlinePluginName,
-      episode: resolvedEpisode.historyEpisodeNumber,
       danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
@@ -670,7 +637,6 @@ abstract class _VideoPageController with Store {
         isLocalPlayback: false,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
-        episode: resolvedEpisode.historyEpisodeNumber,
         danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty
@@ -860,30 +826,6 @@ class OfflineRoadListSnapshot {
   final Map<int, DownloadEpisode> episodesByNumber;
   final Map<int, int> displayRoadToOriginalRoad;
   final Map<int, int> originalRoadToDisplayRoad;
-
-  ({int listIndex, int roadIndex})? findEpisodeByNumber(
-    int episodeNumber, {
-    int? preferredOriginalRoad,
-  }) {
-    if (episodeNumber <= 0 || roads.isEmpty) {
-      return null;
-    }
-    final preferredDisplayRoad = preferredOriginalRoad == null
-        ? null
-        : originalRoadToDisplayRoad[preferredOriginalRoad];
-    final roadIndices = <int>[
-      if (preferredDisplayRoad != null) preferredDisplayRoad,
-      for (var i = 0; i < roads.length; i++)
-        if (i != preferredDisplayRoad) i,
-    ];
-    for (final roadIndex in roadIndices) {
-      final index = roads[roadIndex].data.indexOf(episodeNumber.toString());
-      if (index >= 0) {
-        return (listIndex: index + 1, roadIndex: roadIndex);
-      }
-    }
-    return null;
-  }
 }
 
 OfflineRoadListSnapshot buildOfflineRoadListSnapshot(

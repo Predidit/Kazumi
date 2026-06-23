@@ -40,23 +40,44 @@ abstract class _DownloadController with Store {
 
     // Reset any incomplete states to 'paused' on startup
     // This includes 'pending' because the in-memory queue is lost on restart
-    var resetIncompleteRecords = false;
+    var reconciledRecords = false;
     for (final record in records) {
       bool changed = false;
-      for (final entry in record.episodes.entries) {
-        if (entry.value.status == DownloadStatus.downloading ||
-            entry.value.status == DownloadStatus.resolving ||
-            entry.value.status == DownloadStatus.pending) {
-          entry.value.status = DownloadStatus.paused;
+      for (final episodeNumber in record.episodes.keys.toList()) {
+        final episode = record.episodes[episodeNumber];
+        if (episode == null) continue;
+
+        if (episode.status == DownloadStatus.downloading ||
+            episode.status == DownloadStatus.resolving ||
+            episode.status == DownloadStatus.pending) {
+          episode.status = DownloadStatus.paused;
           changed = true;
+        }
+
+        if (episode.status != DownloadStatus.completed) {
+          try {
+            record.episodes[episodeNumber] =
+                await _downloadManager.reconcileEpisodeWithLocalFiles(
+              bangumiId: record.bangumiId,
+              pluginName: record.pluginName,
+              episodeNumber: episodeNumber,
+              episode: episode,
+            );
+            changed = true;
+          } catch (e) {
+            KazumiLogger().w(
+              'DownloadController: failed to reconcile local files for ${record.key}/$episodeNumber',
+              error: e,
+            );
+          }
         }
       }
       if (changed) {
-        resetIncompleteRecords = true;
+        reconciledRecords = true;
         await _repository.putRecord(record);
       }
     }
-    if (resetIncompleteRecords) {
+    if (reconciledRecords) {
       _replaceRecords(_repository.getAllRecords());
     }
 
@@ -264,6 +285,35 @@ abstract class _DownloadController with Store {
         records[recordIndex] = _cloneRecord(record);
       }
     });
+  }
+
+  Future<DownloadEpisode?> _reconcileEpisodeBeforeResume(
+    DownloadRecord record,
+    int episodeNumber,
+  ) async {
+    final episode = record.episodes[episodeNumber];
+    if (episode == null || episode.status == DownloadStatus.completed) {
+      return episode;
+    }
+
+    try {
+      final reconciled = await _downloadManager.reconcileEpisodeWithLocalFiles(
+        bangumiId: record.bangumiId,
+        pluginName: record.pluginName,
+        episodeNumber: episodeNumber,
+        episode: episode,
+      );
+      record.episodes[episodeNumber] = reconciled;
+      await _repository.putRecord(record);
+      _refreshRecord(record.key);
+      return reconciled;
+    } catch (e) {
+      KazumiLogger().w(
+        'DownloadController: failed to reconcile local files before resume for ${record.key}/$episodeNumber',
+        error: e,
+      );
+      return episode;
+    }
   }
 
   DownloadRecord? getRecordSnapshot(String recordKey) => recordByKey[recordKey];
@@ -743,6 +793,7 @@ abstract class _DownloadController with Store {
       final episode = record.episodes[episodeNumber];
       if (episode != null) {
         episode.status = DownloadStatus.paused;
+        episode.errorMessage = '';
         await _repository.updateEpisode(recordKey, episodeNumber, episode);
         _refreshRecord(recordKey);
         _updateBackgroundNotification();
@@ -764,6 +815,7 @@ abstract class _DownloadController with Store {
           final recordKey = '${record.pluginName}_${record.bangumiId}';
           _downloadManager.pause(recordKey, entry.key);
           episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
           await _repository.updateEpisode(recordKey, entry.key, episode);
         }
       }
@@ -782,8 +834,9 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
     if (record == null) return;
-    final episode = record.episodes[episodeNumber];
+    final episode = await _reconcileEpisodeBeforeResume(record, episodeNumber);
     if (episode == null) return;
+    if (episode.status == DownloadStatus.completed) return;
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {
@@ -795,8 +848,6 @@ abstract class _DownloadController with Store {
     if (episode.networkM3u8Url.isNotEmpty) {
       episode.status = DownloadStatus.downloading;
       episode.errorMessage = '';
-      episode.progressPercent = 0.0;
-      episode.downloadedSegments = 0;
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       _refreshRecord(recordKey);
 
@@ -819,8 +870,6 @@ abstract class _DownloadController with Store {
     } else {
       episode.status = DownloadStatus.resolving;
       episode.errorMessage = '';
-      episode.progressPercent = 0.0;
-      episode.downloadedSegments = 0;
       await _repository.updateEpisode(recordKey, episodeNumber, episode);
       _refreshRecord(recordKey);
 
@@ -886,8 +935,9 @@ abstract class _DownloadController with Store {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
     if (record == null) return;
-    final episode = record.episodes[episodeNumber];
+    final episode = await _reconcileEpisodeBeforeResume(record, episodeNumber);
     if (episode == null) return;
+    if (episode.status == DownloadStatus.completed) return;
 
     final plugin = _findPlugin(pluginName);
     if (plugin == null) {

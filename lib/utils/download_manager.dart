@@ -44,6 +44,16 @@ class DownloadTask {
 typedef ProgressCallback = void Function(
     String recordKey, int episodeNumber, DownloadEpisode episode, double speed);
 
+bool isDownloadCancellation(Object error) {
+  if (error is NetworkException) {
+    return error.type == NetworkExceptionType.cancel;
+  }
+  if (error is DioException) {
+    return error.type == DioExceptionType.cancel;
+  }
+  return false;
+}
+
 class DownloadRequest {
   final String recordKey;
   final int bangumiId;
@@ -70,6 +80,12 @@ abstract class IDownloadManager {
   ProgressCallback? onProgress;
 
   bool isDownloading(String recordKey, int episodeNumber);
+  Future<DownloadEpisode> reconcileEpisodeWithLocalFiles({
+    required int bangumiId,
+    required String pluginName,
+    required int episodeNumber,
+    required DownloadEpisode episode,
+  });
   Future<void> enqueue(DownloadRequest request);
   Future<void> enqueuePriority(DownloadRequest request);
   void pause(String recordKey, int episodeNumber);
@@ -106,11 +122,18 @@ class _SpeedTracker {
 }
 
 class DownloadManager implements IDownloadManager {
-  DownloadManager() {
-    _loadSettings();
+  DownloadManager({
+    Future<String> Function()? downloadBaseDirProvider,
+    bool loadSettings = true,
+  }) : _downloadBaseDirProvider =
+            downloadBaseDirProvider ?? _defaultDownloadBaseDir {
+    if (loadSettings) {
+      _loadSettings();
+    }
   }
 
   final DownloadHttpClient _http = DownloadHttpClient.instance;
+  final Future<String> Function() _downloadBaseDirProvider;
 
   final Map<String, DownloadTask> _activeTasks = {};
   final List<DownloadRequest> _queue = [];
@@ -193,14 +216,120 @@ class DownloadManager implements IDownloadManager {
   bool isDownloading(String recordKey, int episodeNumber) =>
       _activeTasks.containsKey(_taskKey(recordKey, episodeNumber));
 
-  Future<String> get _downloadBaseDir async {
+  static Future<String> _defaultDownloadBaseDir() async {
     final appSupport = await getApplicationSupportDirectory();
     return '${appSupport.path}/downloads';
   }
 
+  Future<String> get _downloadBaseDir => _downloadBaseDirProvider();
+
   String getEpisodeDir(String downloadBase, int bangumiId, String pluginName,
       int episodeNumber) {
     return '$downloadBase/${bangumiId}_$pluginName/$episodeNumber';
+  }
+
+  @override
+  Future<DownloadEpisode> reconcileEpisodeWithLocalFiles({
+    required int bangumiId,
+    required String pluginName,
+    required int episodeNumber,
+    required DownloadEpisode episode,
+  }) async {
+    final base = await _downloadBaseDir;
+    final episodeDir = episode.downloadDirectory.isNotEmpty
+        ? episode.downloadDirectory
+        : getEpisodeDir(base, bangumiId, pluginName, episodeNumber);
+    episode.downloadDirectory = episodeDir;
+
+    final dir = Directory(episodeDir);
+    if (!await dir.exists()) {
+      _resetIncompleteLocalProgress(episode);
+      return episode;
+    }
+
+    final directFile = File('$episodeDir/video.mp4');
+    if (await directFile.exists()) {
+      episode.totalSegments = 1;
+      episode.downloadedSegments = 1;
+      episode.totalBytes = await directFile.length();
+      episode.progressPercent = 1.0;
+      episode.localM3u8Path = directFile.path;
+      episode.status = DownloadStatus.completed;
+      episode.completedAt ??= DateTime.now();
+      return episode;
+    }
+
+    final directTmpFile = File('$episodeDir/video.mp4.tmp');
+    if (await directTmpFile.exists()) {
+      episode.totalSegments = 1;
+      episode.downloadedSegments = 0;
+      episode.totalBytes = await directTmpFile.length();
+      episode.progressPercent = _clampProgress(episode.progressPercent);
+      if (episode.status != DownloadStatus.completed) {
+        episode.status = DownloadStatus.paused;
+      }
+      return episode;
+    }
+
+    final segmentStats = await _readLocalSegmentStats(dir);
+    final playlist = File('$episodeDir/playlist.m3u8');
+    if (await playlist.exists()) {
+      episode.localM3u8Path = playlist.path;
+      episode.downloadedSegments = segmentStats.count;
+      if (episode.totalSegments < segmentStats.count) {
+        episode.totalSegments = segmentStats.count;
+      }
+      episode.totalBytes = segmentStats.totalBytes;
+      episode.progressPercent = 1.0;
+      episode.status = DownloadStatus.completed;
+      episode.completedAt ??= DateTime.now();
+      return episode;
+    }
+
+    if (segmentStats.count > 0 || episode.totalSegments > 0) {
+      episode.downloadedSegments = segmentStats.count;
+      episode.totalBytes = segmentStats.totalBytes;
+      episode.progressPercent = episode.totalSegments > 0
+          ? _clampProgress(segmentStats.count / episode.totalSegments)
+          : _clampProgress(episode.progressPercent);
+      if (episode.status != DownloadStatus.completed) {
+        episode.status = DownloadStatus.paused;
+      }
+      return episode;
+    }
+
+    _resetIncompleteLocalProgress(episode);
+    return episode;
+  }
+
+  void _resetIncompleteLocalProgress(DownloadEpisode episode) {
+    if (episode.status == DownloadStatus.completed) return;
+    episode.downloadedSegments = 0;
+    episode.progressPercent = 0.0;
+    episode.totalBytes = 0;
+  }
+
+  Future<({int count, int totalBytes})> _readLocalSegmentStats(
+      Directory episodeDir) async {
+    final segmentPattern = RegExp(r'seg_\d{5}\.ts$');
+    var count = 0;
+    var totalBytes = 0;
+    await for (final entity in episodeDir.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final name = entity.uri.pathSegments.last;
+      if (!segmentPattern.hasMatch(name)) continue;
+      final length = await entity.length();
+      if (length <= 0) continue;
+      count++;
+      totalBytes += length;
+    }
+    return (count: count, totalBytes: totalBytes);
+  }
+
+  double _clampProgress(double value) {
+    if (value.isNaN || value.isInfinite || value < 0) return 0.0;
+    if (value > 1) return 1.0;
+    return value;
   }
 
   @override
@@ -453,14 +582,21 @@ class DownloadManager implements IDownloadManager {
       }
 
       final existingSegments = <int>{};
+      int totalBytes = 0;
       for (int i = 0; i < segments.length; i++) {
         final segFile =
             File('$episodeDir/seg_${i.toString().padLeft(5, '0')}.ts');
         if (await segFile.exists() && await segFile.length() > 0) {
           existingSegments.add(i);
           episode.downloadedSegments++;
+          totalBytes += await segFile.length();
         }
       }
+      episode.totalBytes = totalBytes;
+      episode.progressPercent = episode.totalSegments > 0
+          ? episode.downloadedSegments / episode.totalSegments
+          : 0.0;
+      _notifyProgress(task.recordKey, task.episodeNumber, episode);
 
       final pendingIndices = <int>[];
       for (int i = 0; i < segments.length; i++) {
@@ -469,13 +605,21 @@ class DownloadManager implements IDownloadManager {
         }
       }
 
-      int totalBytes = 0;
       final completer = Completer<void>();
       int completedCount = 0;
       int failedCount = 0;
+      int cancelledCount = 0;
       final semaphore = _Semaphore(maxParallelSegments);
 
       _speedTrackers[key] = _SpeedTracker();
+
+      void completeSegmentIfDone() {
+        if (completedCount + failedCount + cancelledCount ==
+                pendingIndices.length &&
+            !completer.isCompleted) {
+          completer.complete();
+        }
+      }
 
       if (pendingIndices.isEmpty) {
       } else {
@@ -503,15 +647,17 @@ class DownloadManager implements IDownloadManager {
             _notifyProgress(task.recordKey, task.episodeNumber, episode);
             completedCount++;
             semaphore.release();
-            if (completedCount + failedCount == pendingIndices.length) {
-              completer.complete();
-            }
+            completeSegmentIfDone();
           }).catchError((e) {
-            failedCount++;
-            semaphore.release();
-            if (completedCount + failedCount == pendingIndices.length) {
-              completer.complete();
+            if (task.isPaused ||
+                task.cancelToken.isCancelled ||
+                isDownloadCancellation(e)) {
+              cancelledCount++;
+            } else {
+              failedCount++;
             }
+            semaphore.release();
+            completeSegmentIfDone();
           });
         }
 
@@ -525,8 +671,13 @@ class DownloadManager implements IDownloadManager {
       if (task.isPaused || task.cancelToken.isCancelled) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
         }
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        return;
+      }
+
+      if (cancelledCount > 0 && failedCount == 0) {
         return;
       }
 
@@ -570,9 +721,10 @@ class DownloadManager implements IDownloadManager {
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().e('DownloadManager: file system error', error: e);
     } on NetworkException catch (e) {
-      if (e.type == NetworkExceptionType.cancel) {
+      if (isDownloadCancellation(e)) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
         }
       } else {
         episode.status = DownloadStatus.failed;
@@ -580,10 +732,18 @@ class DownloadManager implements IDownloadManager {
       }
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
     } catch (e) {
-      episode.status = DownloadStatus.failed;
-      episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
-      KazumiLogger().e('DownloadManager: episode download failed', error: e);
+      if (isDownloadCancellation(e) || task.cancelToken.isCancelled) {
+        if (task.isPaused) {
+          episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
+          _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        }
+      } else {
+        episode.status = DownloadStatus.failed;
+        episode.errorMessage = e.toString();
+        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        KazumiLogger().e('DownloadManager: episode download failed', error: e);
+      }
     } finally {
       _onTaskComplete(key);
     }
@@ -688,6 +848,7 @@ class DownloadManager implements IDownloadManager {
       if (task.isPaused || task.cancelToken.isCancelled) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
         }
         _notifyProgress(task.recordKey, task.episodeNumber, episode);
         return;
@@ -719,9 +880,10 @@ class DownloadManager implements IDownloadManager {
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
       KazumiLogger().e('DownloadManager: file system error', error: e);
     } on NetworkException catch (e) {
-      if (e.type == NetworkExceptionType.cancel) {
+      if (isDownloadCancellation(e)) {
         if (task.isPaused) {
           episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
         }
       } else {
         episode.status = DownloadStatus.failed;
@@ -729,11 +891,19 @@ class DownloadManager implements IDownloadManager {
       }
       _notifyProgress(task.recordKey, task.episodeNumber, episode);
     } catch (e) {
-      episode.status = DownloadStatus.failed;
-      episode.errorMessage = e.toString();
-      _notifyProgress(task.recordKey, task.episodeNumber, episode);
-      KazumiLogger()
-          .e('DownloadManager: direct file download failed', error: e);
+      if (isDownloadCancellation(e) || task.cancelToken.isCancelled) {
+        if (task.isPaused) {
+          episode.status = DownloadStatus.paused;
+          episode.errorMessage = '';
+          _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        }
+      } else {
+        episode.status = DownloadStatus.failed;
+        episode.errorMessage = e.toString();
+        _notifyProgress(task.recordKey, task.episodeNumber, episode);
+        KazumiLogger()
+            .e('DownloadManager: direct file download failed', error: e);
+      }
     }
   }
 
@@ -824,11 +994,11 @@ class DownloadManager implements IDownloadManager {
         await File(tmpPath).rename(savePath);
         return await File(savePath).length();
       } catch (e) {
+        if (isDownloadCancellation(e) || cancelToken.isCancelled) rethrow;
         try {
           final tmpFile = File(tmpPath);
           if (await tmpFile.exists()) await tmpFile.delete();
         } catch (_) {}
-        if (cancelToken.isCancelled) rethrow;
         retryCount++;
         if (retryCount >= maxRetries) rethrow;
         final delay = Duration(seconds: [1, 3, 9][retryCount - 1]);

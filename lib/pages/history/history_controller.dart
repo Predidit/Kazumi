@@ -21,15 +21,10 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> updateHistory(
-      int episode, int road, String adapterName, BangumiItem bangumiItem, Duration progress, String lastSrc, String lastWatchEpisodeName) async {
+      PlaybackHistoryIdentity identity, Duration progress) async {
     await _historyRepository.updateHistory(
-      episode: episode,
-      road: road,
-      adapterName: adapterName,
-      bangumiItem: bangumiItem,
+      identity: identity,
       progress: progress,
-      lastSrc: lastSrc,
-      lastWatchEpisodeName: lastWatchEpisodeName,
     );
     init();
   }

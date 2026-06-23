@@ -895,21 +895,15 @@ class _PlayerItemState extends State<PlayerItem>
         });
       }
       // 历史记录相关
+      final historyIdentity = videoPageController.currentHistoryIdentity;
       if (playerController.playback.playerPlaying &&
           !videoPageController.loading &&
-          !videoPageController.isOfflineMode) {
-        final pluginName = videoPageController.isOfflineMode
-            ? videoPageController.offlinePluginName
-            : videoPageController.currentPlugin.name;
+          historyIdentity != null &&
+          historyIdentity.canRecord) {
         historyController.updateHistory(
-            videoPageController.actualEpisodeNumber,
-            videoPageController.currentRoad,
-            pluginName,
-            videoPageController.bangumiItem,
-            playerController.playback.playerPosition,
-            videoPageController.src,
-            videoPageController.roadList[videoPageController.currentRoad]
-                .identifier[videoPageController.currentEpisode - 1]);
+          historyIdentity,
+          playerController.playback.playerPosition,
+        );
       }
       // 自动播放下一集
       if (playerController.playback.completed &&

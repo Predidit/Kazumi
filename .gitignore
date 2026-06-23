@@ -54,3 +54,8 @@ android/build/reports/problems/
 **/macos/Pods/
 **/ios/Podfile.lock
 **/macos/Podfile.lock
+
+# Agents - Cache
+.cursor/plans/*
+todo.md
+AGENTS.md

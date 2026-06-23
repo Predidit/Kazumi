@@ -20,21 +20,11 @@ abstract class IHistoryRepository {
 
   /// 更新或创建历史记录
   ///
-  /// [episode] 集数
-  /// [road] 线路
-  /// [adapterName] 适配器名称
-  /// [bangumiItem] 番剧信息
+  /// [identity] 播放历史身份
   /// [progress] 观看进度
-  /// [lastSrc] 最后观看源
-  /// [lastWatchEpisodeName] 最后观看集名称
   Future<void> updateHistory({
-    required int episode,
-    required int road,
-    required String adapterName,
-    required BangumiItem bangumiItem,
+    required PlaybackHistoryIdentity identity,
     required Duration progress,
-    required String lastSrc,
-    required String lastWatchEpisodeName,
   });
 
   /// 获取上次观看的进度
@@ -117,42 +107,57 @@ class HistoryRepository implements IHistoryRepository {
 
   @override
   Future<void> updateHistory({
-    required int episode,
-    required int road,
-    required String adapterName,
-    required BangumiItem bangumiItem,
+    required PlaybackHistoryIdentity identity,
     required Duration progress,
-    required String lastSrc,
-    required String lastWatchEpisodeName,
   }) async {
     try {
+      if (!identity.canRecord) {
+        return;
+      }
       // 检查隐私模式
       if (getPrivateMode()) {
         return;
       }
 
+      final episode = identity.episodeNumber;
+      final adapterName = identity.pluginName;
+      final bangumiItem = identity.bangumiItem;
+
       // 获取或创建历史记录
       var history =
           _historiesBox.get(History.getKey(adapterName, bangumiItem)) ??
-              History(bangumiItem, episode, adapterName, DateTime.now(),
-                  lastSrc, lastWatchEpisodeName);
+              History(
+                bangumiItem,
+                episode,
+                adapterName,
+                DateTime.now(),
+                identity.onlineBangumiSrc,
+                identity.episodeTitle,
+                entryKind: identity.entryKind,
+                episodePageUrl: identity.episodePageUrl,
+              );
 
       // 更新历史记录
       history.lastWatchEpisode = episode;
       history.lastWatchTime = DateTime.now();
-      if (lastSrc.isNotEmpty) {
-        history.lastSrc = lastSrc;
+      history.entryKind = identity.entryKind;
+      if (identity.onlineBangumiSrc.isNotEmpty) {
+        history.lastSrc = identity.onlineBangumiSrc;
       }
-      if (lastWatchEpisodeName.isNotEmpty) {
-        history.lastWatchEpisodeName = lastWatchEpisodeName;
+      if (identity.episodeTitle.isNotEmpty) {
+        history.lastWatchEpisodeName = identity.episodeTitle;
+      }
+      if (identity.episodePageUrl.isNotEmpty) {
+        history.episodePageUrl = identity.episodePageUrl;
       }
 
       // 更新观看进度
       var prog = history.progresses[episode];
       if (prog == null) {
         history.progresses[episode] =
-            Progress(episode, road, progress.inMilliseconds);
+            Progress(episode, identity.road, progress.inMilliseconds);
       } else {
+        prog.road = identity.road;
         prog.progress = progress;
       }
 
@@ -162,13 +167,13 @@ class HistoryRepository implements IHistoryRepository {
         () => HistorySyncService().appendUpsertProgress(
           history: history,
           episode: episode,
-          road: road,
+          road: identity.road,
           progressMs: progress.inMilliseconds,
         ),
       );
     } catch (e, stackTrace) {
       KazumiLogger().e(
-        'GStorage: update history failed. bangumi=${bangumiItem.name}, episode=$episode',
+        'GStorage: update history failed. bangumi=${identity.bangumiItem.name}, episode=${identity.episodeNumber}',
         error: e,
         stackTrace: stackTrace,
       );

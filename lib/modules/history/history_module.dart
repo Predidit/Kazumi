@@ -3,6 +3,77 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 
 part 'history_module.g.dart';
 
+class HistoryEntryKind {
+  static const String online = 'online';
+  static const String offline = 'offline';
+
+  HistoryEntryKind._();
+}
+
+class PlaybackHistoryIdentity {
+  const PlaybackHistoryIdentity({
+    required this.bangumiItem,
+    required this.pluginName,
+    required this.episodeNumber,
+    required this.episodeTitle,
+    required this.road,
+    required this.entryKind,
+    this.onlineBangumiSrc = '',
+    this.episodePageUrl = '',
+  });
+
+  final BangumiItem bangumiItem;
+  final String pluginName;
+  final int episodeNumber;
+  final String episodeTitle;
+  final int road;
+  final String entryKind;
+  final String onlineBangumiSrc;
+  final String episodePageUrl;
+
+  bool get canRecord => pluginName.isNotEmpty && episodeNumber > 0;
+
+  factory PlaybackHistoryIdentity.online({
+    required BangumiItem bangumiItem,
+    required String pluginName,
+    required int episodeNumber,
+    required String episodeTitle,
+    required int road,
+    required String onlineBangumiSrc,
+    required String episodePageUrl,
+  }) {
+    return PlaybackHistoryIdentity(
+      bangumiItem: bangumiItem,
+      pluginName: pluginName,
+      episodeNumber: episodeNumber,
+      episodeTitle: episodeTitle,
+      road: road,
+      entryKind: HistoryEntryKind.online,
+      onlineBangumiSrc: onlineBangumiSrc,
+      episodePageUrl: episodePageUrl,
+    );
+  }
+
+  factory PlaybackHistoryIdentity.offline({
+    required BangumiItem bangumiItem,
+    required String pluginName,
+    required int episodeNumber,
+    required String episodeTitle,
+    required int road,
+    required String episodePageUrl,
+  }) {
+    return PlaybackHistoryIdentity(
+      bangumiItem: bangumiItem,
+      pluginName: pluginName,
+      episodeNumber: episodeNumber,
+      episodeTitle: episodeTitle,
+      road: road,
+      entryKind: HistoryEntryKind.offline,
+      episodePageUrl: episodePageUrl,
+    );
+  }
+}
+
 @HiveType(typeId: 1)
 class History {
   @HiveField(0)
@@ -26,10 +97,24 @@ class History {
   @HiveField(6, defaultValue: '')
   String lastWatchEpisodeName;
 
+  @HiveField(7, defaultValue: HistoryEntryKind.online)
+  String entryKind;
+
+  @HiveField(8, defaultValue: '')
+  String episodePageUrl;
+
   String get key => adapterName + bangumiItem.id.toString();
 
   History(
-      this.bangumiItem, this.lastWatchEpisode, this.adapterName, this.lastWatchTime, this.lastSrc, this.lastWatchEpisodeName);
+    this.bangumiItem,
+    this.lastWatchEpisode,
+    this.adapterName,
+    this.lastWatchTime,
+    this.lastSrc,
+    this.lastWatchEpisodeName, {
+    this.entryKind = HistoryEntryKind.online,
+    this.episodePageUrl = '',
+  });
 
   static String getKey(String n, BangumiItem s) => n + s.id.toString();
 

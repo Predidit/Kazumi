@@ -4,9 +4,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/widget/collect_button.dart';
+import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
-import 'package:kazumi/pages/history/history_controller.dart';
+import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
@@ -34,8 +35,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
   final VideoPageController videoPageController =
       Modular.get<VideoPageController>();
   final PluginsController pluginsController = Modular.get<PluginsController>();
-  final HistoryController historyController = Modular.get<HistoryController>();
   final CollectController collectController = Modular.get<CollectController>();
+  final DownloadController downloadController =
+      Modular.get<DownloadController>();
 
   Future<void> _onTap() async {
     if (widget.showDelete) {
@@ -49,34 +51,113 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         videoPageController.cancelQueryRoads();
       },
     );
-    bool flag = false;
+    bool opened = false;
+    if (widget.historyItem.entryKind == HistoryEntryKind.offline) {
+      opened = await _openOfflinePlayback();
+    } else {
+      opened = await _openOnlinePlayback();
+      if (!opened) {
+        opened = await _openOfflinePlayback();
+      }
+    }
+    KazumiDialog.dismiss();
+    if (opened) {
+      Modular.to.pushNamed('/video/');
+      return;
+    }
+    KazumiDialog.showToast(message: '未找到可用播放入口');
+  }
+
+  Future<bool> _openOnlinePlayback() async {
+    if (widget.historyItem.lastSrc.isEmpty) {
+      return false;
+    }
+    Plugin? targetPlugin;
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == widget.historyItem.adapterName) {
-        videoPageController.currentPlugin = plugin;
-        flag = true;
+        targetPlugin = plugin;
         break;
       }
     }
-    if (!flag) {
-      KazumiDialog.dismiss();
-      KazumiDialog.showToast(message: '未找到关联番剧源');
-      return;
+    if (targetPlugin == null) {
+      return false;
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
+    videoPageController.currentPlugin = targetPlugin;
     videoPageController.title =
         widget.historyItem.bangumiItem.nameCn == ''
             ? widget.historyItem.bangumiItem.name
             : widget.historyItem.bangumiItem.nameCn;
     videoPageController.src = widget.historyItem.lastSrc;
     try {
-      await videoPageController.queryRoads(widget.historyItem.lastSrc,
-          videoPageController.currentPlugin.name);
-      KazumiDialog.dismiss();
-      Modular.to.pushNamed('/video/');
+      await videoPageController.queryRoads(
+        widget.historyItem.lastSrc,
+        targetPlugin.name,
+      );
+      return true;
     } catch (_) {
       KazumiLogger().w("QueryManager: failed to query roads");
-      KazumiDialog.dismiss();
+      return false;
     }
+  }
+
+  Future<bool> _openOfflinePlayback() async {
+    final downloadedEpisodes = downloadController.getCompletedEpisodes(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+    );
+    if (downloadedEpisodes.isEmpty) {
+      return false;
+    }
+
+    DownloadEpisode? targetEpisode;
+    if (widget.historyItem.episodePageUrl.isNotEmpty) {
+      for (final episode in downloadedEpisodes) {
+        if (episode.episodePageUrl == widget.historyItem.episodePageUrl) {
+          targetEpisode = episode;
+          break;
+        }
+      }
+    }
+    targetEpisode ??= _episodeByNumber(
+      downloadedEpisodes,
+      widget.historyItem.lastWatchEpisode,
+    );
+    if (targetEpisode == null) {
+      return false;
+    }
+
+    final localPath = downloadController.getLocalVideoPath(
+      widget.historyItem.bangumiItem.id,
+      widget.historyItem.adapterName,
+      targetEpisode.episodeNumber,
+    );
+    if (localPath == null) {
+      return false;
+    }
+
+    videoPageController.initForOfflinePlayback(
+      bangumiItem: widget.historyItem.bangumiItem,
+      pluginName: widget.historyItem.adapterName,
+      episodeNumber: targetEpisode.episodeNumber,
+      episodeName: targetEpisode.episodeName,
+      road: targetEpisode.road,
+      videoPath: localPath,
+      downloadedEpisodes: downloadedEpisodes,
+    );
+    return true;
+  }
+
+  DownloadEpisode? _episodeByNumber(
+    List<DownloadEpisode> episodes,
+    int episodeNumber,
+  ) {
+    for (final episode in episodes) {
+      if (episode.episodeNumber == episodeNumber) {
+        return episode;
+      }
+    }
+    return null;
   }
 
   @override

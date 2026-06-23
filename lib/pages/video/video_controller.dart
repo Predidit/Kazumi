@@ -7,6 +7,7 @@ import 'package:kazumi/pages/history/history_controller.dart';
 import 'package:kazumi/pages/player/player_controller.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/download_repository.dart';
 import 'package:kazumi/utils/download_manager.dart';
 import 'package:kazumi/providers/video/providers.dart';
@@ -74,6 +75,9 @@ abstract class _VideoPageController with Store {
   /// 离线视频本地路径
   String? _offlineVideoPath;
 
+  PlaybackHistoryIdentity? _playbackHistoryIdentity;
+  final Map<int, DownloadEpisode> _offlineEpisodesByNumber = {};
+
   /// 和 bangumiItem 中的标题不同，此标题来自于视频源
   String title = '';
 
@@ -140,6 +144,12 @@ abstract class _VideoPageController with Store {
     // 在 roadList.data 中查找 episodeNumber 对应的位置
     final index = roadList[currentRoad].data.indexOf(episodeNumber.toString());
     currentEpisode = index >= 0 ? index + 1 : 1;
+    final selection = _resolveOfflineEpisode(currentEpisode);
+    if (selection != null) {
+      _setOfflineHistoryIdentity(selection);
+    } else {
+      _playbackHistoryIdentity = null;
+    }
     KazumiLogger().i(
         'VideoPageController: initialized for offline playback, episode $episodeNumber (position: $currentEpisode)');
   }
@@ -147,7 +157,11 @@ abstract class _VideoPageController with Store {
   /// 构建离线模式的 roadList
   void _buildOfflineRoadList(List<DownloadEpisode> episodes) {
     roadList.clear();
+    _offlineEpisodesByNumber.clear();
     episodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    for (final episode in episodes) {
+      _offlineEpisodesByNumber[episode.episodeNumber] = episode;
+    }
     // 使用 '播放列表1' 作为名称，与 UI 代码兼容
     roadList.add(Road(
       name: '播放列表1',
@@ -164,24 +178,110 @@ abstract class _VideoPageController with Store {
     isOfflineMode = false;
     _offlineVideoPath = null;
     _offlinePluginName = '';
+    _offlineEpisodesByNumber.clear();
+    _playbackHistoryIdentity = null;
   }
 
   String? get offlineVideoPath => _offlineVideoPath;
 
   String get offlinePluginName => _offlinePluginName;
 
+  PlaybackHistoryIdentity? get currentHistoryIdentity =>
+      _playbackHistoryIdentity;
+
   /// 获取当前实际的集数编号
   /// 在线模式下直接返回 currentEpisode
   /// 离线模式下从 roadList.data 中获取实际的 episodeNumber
   int get actualEpisodeNumber {
     if (isOfflineMode && roadList.isNotEmpty) {
-      try {
-        return int.parse(roadList[currentRoad].data[currentEpisode - 1]);
-      } catch (_) {
-        return currentEpisode;
-      }
+      return _resolveOfflineEpisode(currentEpisode)?.episodeNumber ??
+          currentEpisode;
     }
     return currentEpisode;
+  }
+
+  int getHistoryOffsetFor(PlaybackHistoryIdentity identity) {
+    final playResume =
+        setting.get(SettingBoxKey.playResume, defaultValue: true);
+    if (playResume != true) {
+      return 0;
+    }
+    return historyController
+            .findProgress(
+              identity.bangumiItem,
+              identity.pluginName,
+              identity.episodeNumber,
+            )
+            ?.progress
+            .inSeconds ??
+        0;
+  }
+
+  void _setOnlineHistoryIdentity({
+    required int episode,
+    required int road,
+  }) {
+    if (road < 0 || road >= roadList.length) {
+      _playbackHistoryIdentity = null;
+      return;
+    }
+    final roadData = roadList[road];
+    final index = episode - 1;
+    if (index < 0 ||
+        index >= roadData.data.length ||
+        index >= roadData.identifier.length) {
+      _playbackHistoryIdentity = null;
+      return;
+    }
+    _playbackHistoryIdentity = PlaybackHistoryIdentity.online(
+      bangumiItem: bangumiItem,
+      pluginName: currentPlugin.name,
+      episodeNumber: episode,
+      episodeTitle: roadData.identifier[index],
+      road: road,
+      onlineBangumiSrc: src,
+      episodePageUrl: roadData.data[index],
+    );
+  }
+
+  void _setOfflineHistoryIdentity(_OfflineEpisodeSelection selection) {
+    _playbackHistoryIdentity = PlaybackHistoryIdentity.offline(
+      bangumiItem: bangumiItem,
+      pluginName: _offlinePluginName,
+      episodeNumber: selection.episodeNumber,
+      episodeTitle: selection.episodeTitle,
+      road: selection.originalRoad,
+      episodePageUrl: selection.episodePageUrl,
+    );
+  }
+
+  _OfflineEpisodeSelection? _resolveOfflineEpisode(int episode,
+      {int? road}) {
+    final targetRoad = road ?? currentRoad;
+    if (roadList.isEmpty || targetRoad < 0 || targetRoad >= roadList.length) {
+      return null;
+    }
+    final roadData = roadList[targetRoad];
+    final index = episode - 1;
+    if (index < 0 || index >= roadData.data.length) {
+      return null;
+    }
+    final episodeNumber = int.tryParse(roadData.data[index]);
+    if (episodeNumber == null) {
+      return null;
+    }
+    final downloadEpisode = _offlineEpisodesByNumber[episodeNumber];
+    final titleFromRoad =
+        index < roadData.identifier.length ? roadData.identifier[index] : '';
+    final episodeTitle = downloadEpisode?.episodeName.isNotEmpty == true
+        ? downloadEpisode!.episodeName
+        : (titleFromRoad.isNotEmpty ? titleFromRoad : '第$episodeNumber集');
+    return _OfflineEpisodeSelection(
+      episodeNumber: episodeNumber,
+      episodeTitle: episodeTitle,
+      episodePageUrl: downloadEpisode?.episodePageUrl ?? '',
+      originalRoad: downloadEpisode?.road ?? targetRoad,
+    );
   }
 
   Future<void> changeEpisode(
@@ -190,18 +290,21 @@ abstract class _VideoPageController with Store {
     int offset = 0,
     required PlayerController playerController,
   }) async {
-    currentEpisode = episode;
-    this.currentRoad = currentRoad;
     errorMessage = null;
 
     if (isOfflineMode) {
       await _changeOfflineEpisode(
         episode,
-        0,
+        offset,
+        currentRoad: currentRoad,
         playerController: playerController,
       );
       return;
     }
+
+    currentEpisode = episode;
+    this.currentRoad = currentRoad;
+    _setOnlineHistoryIdentity(episode: episode, road: currentRoad);
 
     String chapterName = roadList[currentRoad].identifier[episode - 1];
     KazumiLogger().i('VideoPageController: changed to $chapterName');
@@ -225,14 +328,13 @@ abstract class _VideoPageController with Store {
   Future<void> _changeOfflineEpisode(
     int episode,
     int offset, {
+    required int currentRoad,
     required PlayerController playerController,
   }) async {
-    // 从 roadList.data 中获取实际的 episodeNumber
-    final actualEpisodeNumber =
-        int.tryParse(roadList[currentRoad].data[episode - 1]);
-    if (actualEpisodeNumber == null) {
+    final selection = _resolveOfflineEpisode(episode, road: currentRoad);
+    if (selection == null) {
       KazumiLogger().e(
-          'VideoPageController: failed to parse episode number from roadList data: ${roadList[currentRoad].data[episode - 1]}');
+          'VideoPageController: failed to resolve offline episode. road=$currentRoad, episode=$episode');
       KazumiDialog.showToast(message: '集数解析失败');
       return;
     }
@@ -240,28 +342,34 @@ abstract class _VideoPageController with Store {
     final localPath = _getLocalVideoPath(
       bangumiItem.id,
       _offlinePluginName,
-      actualEpisodeNumber,
+      selection.episodeNumber,
     );
     if (localPath == null) {
       KazumiDialog.showToast(message: '该集数未下载');
       return;
     }
+    currentEpisode = episode;
+    this.currentRoad = currentRoad;
     _offlineVideoPath = localPath;
+    _setOfflineHistoryIdentity(selection);
     loading = false;
+    final resolvedOffset = offset > 0
+        ? offset
+        : getHistoryOffsetFor(_playbackHistoryIdentity!);
 
     KazumiLogger().i(
-        'VideoPageController: offline episode changed to $actualEpisodeNumber (index: $episode), path: $localPath');
+        'VideoPageController: offline episode changed to ${selection.episodeNumber} (index: $episode), path: $localPath');
 
     final params = PlaybackInitParams(
       videoUrl: localPath,
-      offset: offset,
+      offset: resolvedOffset,
       isLocalPlayback: true,
       bangumiId: bangumiItem.id,
       pluginName: _offlinePluginName,
-      episode: actualEpisodeNumber,
+      episode: selection.episodeNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
-      episodeTitle: roadList[currentRoad].identifier[episode - 1],
+      episodeTitle: selection.episodeTitle,
       referer: '',
       currentRoad: currentRoad,
       coverUrl: bangumiItem.images['large'],
@@ -451,4 +559,18 @@ abstract class _VideoPageController with Store {
   void handleOnExitFullScreen() async {
     isFullscreen = false;
   }
+}
+
+class _OfflineEpisodeSelection {
+  const _OfflineEpisodeSelection({
+    required this.episodeNumber,
+    required this.episodeTitle,
+    required this.episodePageUrl,
+    required this.originalRoad,
+  });
+
+  final int episodeNumber;
+  final String episodeTitle;
+  final String episodePageUrl;
+  final int originalRoad;
 }

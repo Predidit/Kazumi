@@ -164,7 +164,10 @@ class _VideoPageState extends State<VideoPage>
 
   void _initOfflineMode(PlayerController playerController) {
     videoPageController.showTabBody = true;
-    videoPageController.historyOffset = 0;
+    final identity = videoPageController.currentHistoryIdentity;
+    videoPageController.historyOffset = identity == null
+        ? 0
+        : videoPageController.getHistoryOffsetFor(identity);
     currentRoad = videoPageController.currentRoad;
     // A newer request or dispose must make this delayed init a no-op.
     final int requestId = ++_playbackRequestId;
@@ -175,19 +178,18 @@ class _VideoPageState extends State<VideoPage>
         return;
       }
 
-      if (videoPageController.offlineVideoPath != null) {
+      final identity = videoPageController.currentHistoryIdentity;
+      if (videoPageController.offlineVideoPath != null && identity != null) {
         final params = PlaybackInitParams(
           videoUrl: videoPageController.offlineVideoPath!,
           offset: videoPageController.historyOffset,
           isLocalPlayback: true,
           bangumiId: videoPageController.bangumiItem.id,
-          pluginName: videoPageController.offlinePluginName,
-          episode: videoPageController.actualEpisodeNumber,
+          pluginName: identity.pluginName,
+          episode: identity.episodeNumber,
           httpHeaders: {},
           adBlockerEnabled: false,
-          episodeTitle: videoPageController
-              .roadList[videoPageController.currentRoad]
-              .identifier[videoPageController.currentEpisode - 1],
+          episodeTitle: identity.episodeTitle,
           referer: '',
           currentRoad: videoPageController.currentRoad,
           coverUrl: videoPageController.bangumiItem.images['large'],

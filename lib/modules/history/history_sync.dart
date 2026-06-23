@@ -54,6 +54,8 @@ class HistorySyncEvent {
     this.progressMs,
     this.lastSrc,
     this.lastWatchEpisodeName,
+    this.entryKind,
+    this.episodePageUrl,
   });
 
   final String eventId;
@@ -69,6 +71,8 @@ class HistorySyncEvent {
   final int? progressMs;
   final String? lastSrc;
   final String? lastWatchEpisodeName;
+  final String? entryKind;
+  final String? episodePageUrl;
 
   String get version => HistorySyncVersion.of(
         updatedAt: updatedAt,
@@ -98,6 +102,8 @@ class HistorySyncEvent {
       progressMs: progressMs,
       lastSrc: history.lastSrc,
       lastWatchEpisodeName: history.lastWatchEpisodeName,
+      entryKind: history.entryKind,
+      episodePageUrl: history.episodePageUrl,
     );
   }
 
@@ -150,6 +156,8 @@ class HistorySyncEvent {
       progressMs: (json['progressMs'] as num?)?.toInt(),
       lastSrc: json['lastSrc'] as String?,
       lastWatchEpisodeName: json['lastWatchEpisodeName'] as String?,
+      entryKind: json['entryKind'] as String?,
+      episodePageUrl: json['episodePageUrl'] as String?,
     );
   }
 
@@ -170,6 +178,8 @@ class HistorySyncEvent {
       if (lastSrc != null) 'lastSrc': lastSrc,
       if (lastWatchEpisodeName != null)
         'lastWatchEpisodeName': lastWatchEpisodeName,
+      if (entryKind != null) 'entryKind': entryKind,
+      if (episodePageUrl != null) 'episodePageUrl': episodePageUrl,
     };
   }
 }
@@ -358,6 +368,8 @@ class HistorySyncState {
           DateTime.fromMillisecondsSinceEpoch(event.updatedAt),
           event.lastSrc ?? '',
           event.lastWatchEpisodeName ?? '',
+          entryKind: event.entryKind ?? HistoryEntryKind.online,
+          episodePageUrl: event.episodePageUrl ?? '',
         );
 
     final itemVersion = itemVersions[entityKey];
@@ -373,6 +385,10 @@ class HistorySyncState {
       }
       if ((event.lastWatchEpisodeName ?? '').isNotEmpty) {
         current.lastWatchEpisodeName = event.lastWatchEpisodeName!;
+      }
+      current.entryKind = event.entryKind ?? current.entryKind;
+      if ((event.episodePageUrl ?? '').isNotEmpty) {
+        current.episodePageUrl = event.episodePageUrl!;
       }
       itemVersions[entityKey] = event.version;
     }
@@ -484,6 +500,8 @@ class HistorySyncCodec {
           (json['lastWatchTime'] as num).toInt()),
       json['lastSrc'] as String? ?? '',
       json['lastWatchEpisodeName'] as String? ?? '',
+      entryKind: json['entryKind'] as String? ?? HistoryEntryKind.online,
+      episodePageUrl: json['episodePageUrl'] as String? ?? '',
     );
     history.progresses = {
       for (final entry
@@ -503,6 +521,8 @@ class HistorySyncCodec {
       'lastWatchTime': history.lastWatchTime.millisecondsSinceEpoch,
       'lastSrc': history.lastSrc,
       'lastWatchEpisodeName': history.lastWatchEpisodeName,
+      'entryKind': history.entryKind,
+      'episodePageUrl': history.episodePageUrl,
       'progresses': {
         for (final entry in history.progresses.entries)
           entry.key.toString(): progressToJson(entry.value),

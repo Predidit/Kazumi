@@ -151,6 +151,27 @@ void main() {
       expect(
           merged.histories.single.progresses[1]!.progress.inMilliseconds, 20);
     });
+
+    test('preserves playback entry metadata when merging progress', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/episode/1',
+          ),
+        ],
+      );
+
+      final history = merged.histories.single;
+      expect(history.entryKind, HistoryEntryKind.offline);
+      expect(history.episodePageUrl, '/episode/1');
+    });
   });
 
   group('HistorySyncCodec', () {
@@ -186,6 +207,8 @@ HistorySyncEvent _upsert({
   required int updatedAt,
   required int episode,
   required int progressMs,
+  String entryKind = HistoryEntryKind.online,
+  String episodePageUrl = '',
 }) {
   final history = History(
     _item(1),
@@ -194,6 +217,8 @@ HistorySyncEvent _upsert({
     DateTime.fromMillisecondsSinceEpoch(updatedAt),
     'https://example.com/video',
     'EP$episode',
+    entryKind: entryKind,
+    episodePageUrl: episodePageUrl,
   );
   history.progresses[episode] = Progress(episode, 0, progressMs);
   return HistorySyncEvent.upsertProgress(

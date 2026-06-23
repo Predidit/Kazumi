@@ -5,6 +5,7 @@ class PlaybackInitParams {
   final int bangumiId;
   final String pluginName;
   final int episode;
+  final int danmakuEpisodeNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
   final String episodeTitle;
@@ -20,6 +21,7 @@ class PlaybackInitParams {
     required this.bangumiId,
     required this.pluginName,
     required this.episode,
+    required this.danmakuEpisodeNumber,
     required this.httpHeaders,
     required this.adBlockerEnabled,
     required this.episodeTitle,

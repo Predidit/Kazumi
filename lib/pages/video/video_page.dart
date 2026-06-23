@@ -187,6 +187,7 @@ class _VideoPageState extends State<VideoPage>
           bangumiId: videoPageController.bangumiItem.id,
           pluginName: identity.pluginName,
           episode: identity.episodeNumber,
+          danmakuEpisodeNumber: identity.episodeNumber,
           httpHeaders: {},
           adBlockerEnabled: false,
           episodeTitle: identity.episodeTitle,

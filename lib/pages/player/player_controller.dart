@@ -94,18 +94,10 @@ class PlayerController {
     if (playback.lifecycleId != lifecycleId) {
       return;
     }
-    int episodeFromTitle = 0;
-    try {
-      episodeFromTitle = Utils.extractEpisodeNumber(params.episodeTitle);
-    } catch (e) {
-      KazumiLogger().e(
-          'PlayerController: failed to extract episode number from title',
-          error: e);
-    }
-    if (episodeFromTitle == 0) {
-      episodeFromTitle = params.episode;
-    }
-    _loadDanmaku(params.bangumiId, params.pluginName, episodeFromTitle);
+    KazumiLogger().i(
+        'PlayerController: loading danmaku for episode ${params.danmakuEpisodeNumber}');
+    _loadDanmaku(
+        params.bangumiId, params.pluginName, params.danmakuEpisodeNumber);
     final Player? player;
     try {
       player = await playback.createVideoController(

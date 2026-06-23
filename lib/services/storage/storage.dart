@@ -341,14 +341,6 @@ class GStorage {
     await _setting.put(key.name, value);
   }
 
-  static void setSettingsBoxForTest(Box<dynamic> settingBox) {
-    _setting = settingBox;
-  }
-
-  static Future<int> clearSettingsForTest() {
-    return _setting.clear();
-  }
-
   static List<String> getStringListSettingByName(
     String key, {
     List<String> defaultValue = const [],

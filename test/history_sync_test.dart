@@ -226,6 +226,101 @@ void main() {
       expect(merged.deletedVersions, containsPair(legacyKey, deleteVersion));
     });
 
+    test('legacy tombstone is not canonicalized onto offline snapshot history',
+        () {
+      final offlineHistory = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final offlineKey = History.getKey(
+        'plugin',
+        _item(1),
+        entryKind: HistoryEntryKind.offline,
+      );
+      final deleteVersion = HistorySyncVersion.of(
+        updatedAt: 2000,
+        eventId: 'legacy-delete',
+      );
+      final snapshot = HistorySyncSnapshot.fromJson({
+        'generatedAt': 2000,
+        'histories': [HistorySyncCodec.historyToJson(offlineHistory)],
+        'itemVersions': {},
+        'progressVersions': {},
+        'deletedVersions': {legacyKey: deleteVersion},
+      });
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: snapshot,
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1500,
+            episode: 1,
+            progressMs: 10,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/offline/1',
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.key, offlineKey);
+      expect(
+          merged.histories.single.progresses[1]!.progress.inMilliseconds, 10);
+      expect(merged.deletedVersions, containsPair(legacyKey, deleteVersion));
+      expect(merged.deletedVersions.containsKey(offlineKey), isFalse);
+    });
+
+    test('legacy delete event does not delete an existing offline history', () {
+      final offlineHistory = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final offlineKey = History.getKey(
+        'plugin',
+        _item(1),
+        entryKind: HistoryEntryKind.offline,
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 1000,
+          histories: [offlineHistory],
+          itemVersions: const {},
+          progressVersions: const {},
+          deletedVersions: const {},
+        ),
+        events: [
+          HistorySyncEvent.deleteHistory(
+            deviceId: 'device-a',
+            seq: 1,
+            entityKey: legacyKey,
+            updatedAt: 2000,
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.key, offlineKey);
+      expect(merged.deletedVersions, contains(legacyKey));
+      expect(merged.deletedVersions.containsKey(offlineKey), isFalse);
+    });
+
     test('uses deterministic tie-breakers when timestamps are equal', () {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),

@@ -6,22 +6,22 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/repositories/history_repository.dart';
-import 'package:kazumi/services/storage/storage.dart';
 
 void main() {
   late Directory tempDir;
+  late Box<History> historiesBox;
+  late bool privateMode;
 
   setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('kazumi_history_test_');
     Hive.init(tempDir.path);
     _registerAdapters();
-    GStorage.histories = await Hive.openBox<History>('histories');
-    GStorage.setSettingsBoxForTest(await Hive.openBox<dynamic>('setting'));
+    historiesBox = await Hive.openBox<History>('histories');
   });
 
   setUp(() async {
-    await GStorage.histories.clear();
-    await GStorage.clearSettingsForTest();
+    privateMode = false;
+    await historiesBox.clear();
   });
 
   tearDownAll(() async {
@@ -33,7 +33,10 @@ void main() {
 
   group('HistoryRepository source metadata', () {
     test('keeps online source isolated from offline history', () async {
-      final repository = HistoryRepository();
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+      );
       final item = _item(1);
 
       await repository.updateHistory(
@@ -93,7 +96,10 @@ void main() {
 
     test('does not overwrite existing online source with an empty value',
         () async {
-      final repository = HistoryRepository();
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+      );
       final item = _item(2);
 
       await repository.updateHistory(
@@ -134,6 +140,31 @@ void main() {
       expect(history.lastWatchEpisodeName, 'EP2');
       expect(history.episodePageUrl, '/online/2');
       expect(history.progresses[2]!.progress.inSeconds, 30);
+    });
+
+    test('does not record history when private mode is enabled', () async {
+      privateMode = true;
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+      );
+      final item = _item(3);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '/online/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+
+      expect(historiesBox.values, isEmpty);
+      expect(repository.getHistory('plugin', item), isNull);
     });
   });
 }

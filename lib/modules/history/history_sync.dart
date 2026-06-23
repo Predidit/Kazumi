@@ -277,8 +277,9 @@ class HistorySyncSnapshot {
     final keyMap = {
       for (final history in histories) history.key: history.key,
       for (final history in histories)
-        History.legacyKey(history.adapterName, history.bangumiItem):
-            history.key,
+        if (history.entryKind == HistoryEntryKind.online)
+          History.legacyKey(history.adapterName, history.bangumiItem):
+              history.key,
     };
     String canonicalSnapshotKey(String key) => keyMap[key] ?? key;
     final progressJson = Map<String, dynamic>.from(
@@ -358,8 +359,10 @@ class HistorySyncState {
       history.entryKind = HistoryEntryKind.normalize(history.entryKind);
       histories[history.key] = history;
       keyMap[history.key] = history.key;
-      keyMap[History.legacyKey(history.adapterName, history.bangumiItem)] =
-          history.key;
+      if (history.entryKind == HistoryEntryKind.online) {
+        keyMap[History.legacyKey(history.adapterName, history.bangumiItem)] =
+            history.key;
+      }
     }
     String canonicalSnapshotKey(String key) => keyMap[key] ?? key;
 
@@ -582,7 +585,8 @@ class HistorySyncState {
       return key;
     }
     for (final history in histories.values) {
-      if (History.legacyKey(history.adapterName, history.bangumiItem) == key) {
+      if (history.entryKind == HistoryEntryKind.online &&
+          History.legacyKey(history.adapterName, history.bangumiItem) == key) {
         return history.key;
       }
     }

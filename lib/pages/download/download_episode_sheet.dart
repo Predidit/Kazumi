@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
@@ -32,19 +31,6 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,
     );
-    final downloadedUrls = <String>{};
-    if (record != null) {
-      for (final entry in record.episodes.entries) {
-        if (entry.value.status == DownloadStatus.completed ||
-            entry.value.status == DownloadStatus.downloading ||
-            entry.value.status == DownloadStatus.pending) {
-          if (entry.value.episodePageUrl.isNotEmpty) {
-            downloadedUrls.add(entry.value.episodePageUrl);
-          }
-        }
-      }
-    }
-
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.3,
@@ -83,8 +69,14 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                       setState(() {
                         _selectedEpisodes.clear();
                         for (int i = 1; i <= episodeCount; i++) {
-                          final url = currentRoadData.data[i - 1];
-                          if (!downloadedUrls.contains(url)) {
+                          final isDownloaded =
+                              downloadController.isEpisodeDownloadClaimed(
+                            record,
+                            episodeNumber: i,
+                            episodePageUrl: currentRoadData.data[i - 1],
+                            episodeName: currentRoadData.identifier[i - 1],
+                          );
+                          if (!isDownloaded) {
                             _selectedEpisodes.add(i);
                           }
                         }
@@ -119,9 +111,15 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 itemBuilder: (context, index) {
                   final episodeNumber = index + 1;
                   final episodeUrl = currentRoadData.data[index];
-                  final isDownloaded = downloadedUrls.contains(episodeUrl);
-                  final isSelected = _selectedEpisodes.contains(episodeNumber);
                   final identifier = currentRoadData.identifier[index];
+                  final isDownloaded =
+                      downloadController.isEpisodeDownloadClaimed(
+                    record,
+                    episodeNumber: episodeNumber,
+                    episodePageUrl: episodeUrl,
+                    episodeName: identifier,
+                  );
+                  final isSelected = _selectedEpisodes.contains(episodeNumber);
 
                   return Material(
                     color: isDownloaded

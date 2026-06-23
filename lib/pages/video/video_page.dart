@@ -949,29 +949,31 @@ class _VideoPageState extends State<VideoPage>
   }
 
   DownloadEpisode? _getEpisodeFromRecords(
-      int episodeNumber, String episodePageUrl) {
+      int episodeNumber, String episodePageUrl, String episodeName) {
     final bangumiId = videoPageController.bangumiItem.id;
     final pluginName = videoPageController.currentPlugin.name;
 
     for (final record in downloadController.records) {
       if (record.bangumiId == bangumiId && record.pluginName == pluginName) {
-        if (episodePageUrl.isNotEmpty) {
-          for (final episode in record.episodes.values) {
-            if (episode.episodePageUrl == episodePageUrl) {
-              return episode;
-            }
-          }
-        }
-        return record.episodes[episodeNumber];
+        return downloadController
+            .findEpisodeInRecord(
+              record,
+              episodeNumber: episodeNumber,
+              episodePageUrl: episodePageUrl,
+              episodeName: episodeName,
+            )
+            ?.episode;
       }
     }
     return null;
   }
 
-  Widget _buildDownloadStatusIcon(int episodeNumber, String episodePageUrl) {
+  Widget _buildDownloadStatusIcon(
+      int episodeNumber, String episodePageUrl, String episodeName) {
     // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
-    final episode = _getEpisodeFromRecords(episodeNumber, episodePageUrl);
+    final episode =
+        _getEpisodeFromRecords(episodeNumber, episodePageUrl, episodeName);
     if (episode == null) return const SizedBox.shrink();
     switch (episode.status) {
       case DownloadStatus.completed:
@@ -1067,7 +1069,11 @@ class _VideoPageState extends State<VideoPage>
                                             .colorScheme
                                             .onSurface),
                               )),
-                              _buildDownloadStatusIcon(count0, urlItem),
+                              _buildDownloadStatusIcon(
+                                count0,
+                                urlItem,
+                                road.identifier[count0 - 1],
+                              ),
                               const SizedBox(width: 2),
                             ],
                           ),

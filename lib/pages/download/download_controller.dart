@@ -327,6 +327,53 @@ abstract class _DownloadController with Store {
     return _repository.getEpisodeByUrl(bangumiId, pluginName, episodePageUrl);
   }
 
+  DownloadEpisodeMatch? findEpisode(
+    int bangumiId,
+    String pluginName, {
+    required int episodeNumber,
+    required String episodePageUrl,
+    required String episodeName,
+  }) {
+    return _repository.findEpisode(
+      bangumiId,
+      pluginName,
+      episodeNumber: episodeNumber,
+      episodePageUrl: episodePageUrl,
+      episodeName: episodeName,
+    );
+  }
+
+  DownloadEpisodeMatch? findEpisodeInRecord(
+    DownloadRecord record, {
+    required int episodeNumber,
+    required String episodePageUrl,
+    required String episodeName,
+  }) {
+    return DownloadEpisodeMatcher.find(
+      record,
+      episodeNumber: episodeNumber,
+      episodePageUrl: episodePageUrl,
+      episodeName: episodeName,
+    );
+  }
+
+  bool isEpisodeDownloadClaimed(
+    DownloadRecord? record, {
+    required int episodeNumber,
+    required String episodePageUrl,
+    required String episodeName,
+  }) {
+    if (record == null) return false;
+    final match = findEpisodeInRecord(
+      record,
+      episodeNumber: episodeNumber,
+      episodePageUrl: episodePageUrl,
+      episodeName: episodeName,
+    );
+    if (match == null) return false;
+    return _isClaimedDownloadStatus(match.episode.status);
+  }
+
   String? getLocalVideoPath(
       int bangumiId, String pluginName, int episodeNumber) {
     final episode =
@@ -336,6 +383,13 @@ abstract class _DownloadController with Store {
 
   List<DownloadEpisode> getCompletedEpisodes(int bangumiId, String pluginName) {
     return _repository.getCompletedEpisodes(bangumiId, pluginName);
+  }
+
+  bool _isClaimedDownloadStatus(int status) {
+    return status == DownloadStatus.completed ||
+        status == DownloadStatus.downloading ||
+        status == DownloadStatus.pending ||
+        status == DownloadStatus.resolving;
   }
 
   /// 弹幕文件路径
@@ -452,14 +506,22 @@ abstract class _DownloadController with Store {
           DateTime.now(),
         );
 
-    if (episodePageUrl.isNotEmpty) {
-      for (final entry in record.episodes.entries) {
-        if (entry.value.episodePageUrl == episodePageUrl) {
-          KazumiLogger().i(
-              'DownloadController: episode URL already exists at position ${entry.key}, skipping');
-          return;
-        }
+    final existingEpisode = DownloadEpisodeMatcher.find(
+      record,
+      episodeNumber: episodeNumber,
+      episodePageUrl: episodePageUrl,
+      episodeName: episodeName,
+    );
+    if (existingEpisode != null) {
+      if (DownloadEpisodeMatcher.canFillEpisodePageUrl(
+          existingEpisode, episodePageUrl)) {
+        existingEpisode.episode.episodePageUrl = episodePageUrl;
+        await _repository.putRecord(record);
+        refreshRecords();
       }
+      KazumiLogger().i(
+          'DownloadController: episode already exists by ${existingEpisode.source.name} at position ${existingEpisode.episodeNumber}, skipping');
+      return;
     }
 
     final episode = DownloadEpisode(

@@ -7,6 +7,10 @@ class HistoryEntryKind {
   static const String online = 'online';
   static const String offline = 'offline';
 
+  static String normalize(String value) {
+    return value == offline ? offline : online;
+  }
+
   HistoryEntryKind._();
 }
 
@@ -103,7 +107,7 @@ class History {
   @HiveField(8, defaultValue: '')
   String episodePageUrl;
 
-  String get key => adapterName + bangumiItem.id.toString();
+  String get key => scopedKey(adapterName, bangumiItem, entryKind);
 
   History(
     this.bangumiItem,
@@ -116,7 +120,19 @@ class History {
     this.episodePageUrl = '',
   });
 
-  static String getKey(String n, BangumiItem s) => n + s.id.toString();
+  static String legacyKey(String n, BangumiItem s) => n + s.id.toString();
+
+  static String scopedKey(String n, BangumiItem s, String entryKind) {
+    return '${legacyKey(n, s)}::${HistoryEntryKind.normalize(entryKind)}';
+  }
+
+  static String getKey(
+    String n,
+    BangumiItem s, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return scopedKey(n, s, entryKind);
+  }
 
   @override
   String toString() {
@@ -135,11 +151,23 @@ class Progress {
   @HiveField(2)
   int _progressInMilli;
 
+  @HiveField(3, defaultValue: 0)
+  int updatedAtMs;
+
   Duration get progress => Duration(milliseconds: _progressInMilli);
 
   set progress(Duration d) => _progressInMilli = d.inMilliseconds;
 
-  Progress(this.episode, this.road, this._progressInMilli);
+  Progress(
+    this.episode,
+    this.road,
+    this._progressInMilli, {
+    this.updatedAtMs = 0,
+  });
+
+  int effectiveUpdatedAtMs(DateTime fallback) {
+    return updatedAtMs > 0 ? updatedAtMs : fallback.millisecondsSinceEpoch;
+  }
 
   @override
   String toString() {

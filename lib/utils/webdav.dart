@@ -319,30 +319,9 @@ class WebDav {
   }
 
   Future<List<HistorySyncEvent>> _eventsFromLocalHistories() async {
-    final events = <HistorySyncEvent>[];
-    for (final history in GStorage.histories.values) {
-      for (final progress in history.progresses.values) {
-        events.add(
-          HistorySyncEvent(
-            eventId:
-                'local-state:${history.key}:${progress.episode}:${progress.road}',
-            deviceId: 'local-state',
-            seq: 0,
-            op: HistorySyncOp.upsertProgress,
-            updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
-            entityKey: history.key,
-            bangumiItem: history.bangumiItem,
-            adapterName: history.adapterName,
-            episode: progress.episode,
-            road: progress.road,
-            progressMs: progress.progress.inMilliseconds,
-            lastSrc: history.lastSrc,
-            lastWatchEpisodeName: history.lastWatchEpisodeName,
-          ),
-        );
-      }
-    }
-    return events;
+    return HistorySyncService.buildStateEventsFromHistories(
+      GStorage.histories.values,
+    );
   }
 
   Future<bool> _tryImportLegacyHistory() async {

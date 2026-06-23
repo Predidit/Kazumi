@@ -29,12 +29,30 @@ abstract class _HistoryController with Store {
     init();
   }
 
-  Progress? lastWatching(BangumiItem bangumiItem, String adapterName) {
-    return _historyRepository.getLastWatchingProgress(bangumiItem, adapterName);
+  Progress? lastWatching(
+    BangumiItem bangumiItem,
+    String adapterName, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.getLastWatchingProgress(
+      bangumiItem,
+      adapterName,
+      entryKind: entryKind,
+    );
   }
 
-  Progress? findProgress(BangumiItem bangumiItem, String adapterName, int episode) {
-    return _historyRepository.findProgress(bangumiItem, adapterName, episode);
+  Progress? findProgress(
+    BangumiItem bangumiItem,
+    String adapterName,
+    int episode, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.findProgress(
+      bangumiItem,
+      adapterName,
+      episode,
+      entryKind: entryKind,
+    );
   }
 
   Future<void> deleteHistory(History history) async {
@@ -42,8 +60,18 @@ abstract class _HistoryController with Store {
     init();
   }
 
-  Future<void> clearProgress(BangumiItem bangumiItem, String adapterName, int episode) async {
-    await _historyRepository.clearProgress(bangumiItem, adapterName, episode);
+  Future<void> clearProgress(
+    BangumiItem bangumiItem,
+    String adapterName,
+    int episode, {
+    String entryKind = HistoryEntryKind.online,
+  }) async {
+    await _historyRepository.clearProgress(
+      bangumiItem,
+      adapterName,
+      episode,
+      entryKind: entryKind,
+    );
     init();
   }
 

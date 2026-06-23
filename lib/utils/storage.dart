@@ -231,16 +231,19 @@ class GStorage {
     final tempBoxItems = tempBox.toMap().entries;
 
     for (var tempBoxItem in tempBoxItems) {
-      if (histories.get(tempBoxItem.key) != null) {
+      final tempHistory = tempBoxItem.value as History;
+      tempHistory.entryKind = HistoryEntryKind.normalize(tempHistory.entryKind);
+      final targetKey = tempHistory.key;
+      if (histories.get(targetKey) != null) {
         if (histories
-            .get(tempBoxItem.key)!
+            .get(targetKey)!
             .lastWatchTime
-            .isBefore(tempBoxItem.value.lastWatchTime)) {
-          await histories.delete(tempBoxItem.key);
-          await histories.put(tempBoxItem.key, tempBoxItem.value);
+            .isBefore(tempHistory.lastWatchTime)) {
+          await histories.delete(targetKey);
+          await histories.put(targetKey, tempHistory);
         }
       } else {
-        await histories.put(tempBoxItem.key, tempBoxItem.value);
+        await histories.put(targetKey, tempHistory);
       }
     }
     await tempBox.close();

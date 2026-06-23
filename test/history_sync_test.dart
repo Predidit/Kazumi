@@ -3,6 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
+import 'package:kazumi/utils/history_sync_service.dart';
 
 void main() {
   group('HistorySyncDevice', () {
@@ -172,6 +173,100 @@ void main() {
       expect(history.entryKind, HistoryEntryKind.offline);
       expect(history.episodePageUrl, '/episode/1');
     });
+
+    test('keeps online and offline progress separate for the same episode', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            entryKind: HistoryEntryKind.online,
+            episodePageUrl: '/online/1',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/offline/1',
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(2));
+      final online = merged.histories.singleWhere(
+        (history) => history.entryKind == HistoryEntryKind.online,
+      );
+      final offline = merged.histories.singleWhere(
+        (history) => history.entryKind == HistoryEntryKind.offline,
+      );
+      expect(online.key, History.getKey('plugin', _item(1)));
+      expect(
+        offline.key,
+        History.getKey(
+          'plugin',
+          _item(1),
+          entryKind: HistoryEntryKind.offline,
+        ),
+      );
+      expect(online.progresses[1]!.progress.inSeconds, 10);
+      expect(offline.progresses[1]!.progress.inSeconds, 20);
+    });
+
+    test('canonicalizes legacy snapshot keys to online scoped keys', () {
+      final history = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        0,
+        10 * 1000,
+        updatedAtMs: 1500,
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final scopedKey = History.getKey('plugin', _item(1));
+      final legacyVersion = HistorySyncVersion.of(
+        updatedAt: 1000,
+        eventId: 'legacy',
+      );
+      final progressVersion = HistorySyncVersion.of(
+        updatedAt: 1500,
+        eventId: 'legacy-progress',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 2000,
+          histories: [history],
+          itemVersions: {legacyKey: legacyVersion},
+          progressVersions: {
+            legacyKey: {1: progressVersion},
+          },
+          deletedVersions: const {},
+        ),
+        events: const [],
+      );
+
+      expect(merged.histories.single.key, scopedKey);
+      expect(merged.itemVersions, containsPair(scopedKey, legacyVersion));
+      expect(
+        merged.progressVersions[scopedKey],
+        containsPair(1, progressVersion),
+      );
+      expect(merged.itemVersions.containsKey(legacyKey), isFalse);
+      expect(merged.progressVersions.containsKey(legacyKey), isFalse);
+    });
   });
 
   group('HistorySyncCodec', () {
@@ -199,6 +294,38 @@ void main() {
       expect(restored.first.bangumiItem!.id, 1);
     });
   });
+
+  group('HistorySyncService', () {
+    test('builds local state events with entry metadata and progress time', () {
+      final history = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        2,
+        20 * 1000,
+        updatedAtMs: 2500,
+      );
+
+      final events =
+          HistorySyncService.buildStateEventsFromHistories([history]);
+
+      expect(events, hasLength(1));
+      final event = events.single;
+      expect(event.entityKey, history.key);
+      expect(event.entryKind, HistoryEntryKind.offline);
+      expect(event.episodePageUrl, '/offline/1');
+      expect(event.updatedAt, 2500);
+      expect(event.progressMs, 20 * 1000);
+    });
+  });
 }
 
 HistorySyncEvent _upsert({
@@ -220,7 +347,12 @@ HistorySyncEvent _upsert({
     entryKind: entryKind,
     episodePageUrl: episodePageUrl,
   );
-  history.progresses[episode] = Progress(episode, 0, progressMs);
+  history.progresses[episode] = Progress(
+    episode,
+    0,
+    progressMs,
+    updatedAtMs: updatedAt,
+  );
   return HistorySyncEvent.upsertProgress(
     deviceId: deviceId,
     seq: seq,

@@ -211,6 +211,7 @@ abstract class _VideoPageController with Store {
               identity.bangumiItem,
               identity.pluginName,
               identity.episodeNumber,
+              entryKind: identity.entryKind,
             )
             ?.progress
             .inSeconds ??

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
+import 'package:kazumi/utils/encoding.dart';
 
 class PluginViewPage extends StatefulWidget {
   const PluginViewPage({super.key});
@@ -78,45 +78,46 @@ class _PluginViewPageState extends State<PluginViewPage> {
   }
 
   void _showInputDialog() {
-    final TextEditingController textController = TextEditingController();
-    KazumiDialog.show(builder: (context) {
-      return AlertDialog(
-        title: const Text('导入规则'),
-        content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-          return TextField(
-            controller: textController,
-          );
-        }),
-        actions: [
-          TextButton(
-            onPressed: () => KazumiDialog.dismiss(),
-            child: Text(
-              '取消',
-              style: TextStyle(color: Theme.of(context).colorScheme.outline),
-            ),
-          ),
-          StatefulBuilder(
+    String pluginText = '';
+    KazumiDialog.show(
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('导入规则'),
+          content: StatefulBuilder(
               builder: (BuildContext context, StateSetter setState) {
-            return TextButton(
-              onPressed: () async {
-                final String msg = textController.text;
-                try {
-                  pluginsController.updatePlugin(Plugin.fromJson(
-                      json.decode(Utils.kazumiBase64ToJson(msg))));
-                  KazumiDialog.showToast(message: '导入成功');
-                } catch (e) {
-                  KazumiDialog.dismiss();
-                  KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
-                }
-                KazumiDialog.dismiss();
-              },
-              child: const Text('导入'),
+            return TextField(
+              onChanged: (value) => pluginText = value,
             );
-          })
-        ],
-      );
-    });
+          }),
+          actions: [
+            TextButton(
+              onPressed: () => KazumiDialog.dismiss(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+              return TextButton(
+                onPressed: () async {
+                  try {
+                    pluginsController.updatePlugin(Plugin.fromJson(
+                        json.decode(kazumiBase64ToJson(pluginText))));
+                    KazumiDialog.showToast(message: '导入成功');
+                  } catch (e) {
+                    KazumiDialog.dismiss();
+                    KazumiDialog.showToast(message: '导入失败 ${e.toString()}');
+                  }
+                  KazumiDialog.dismiss();
+                },
+                child: const Text('导入'),
+              );
+            })
+          ],
+        );
+      },
+    );
   }
 
   void onBackPressed(BuildContext context) {
@@ -235,7 +236,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                           child: child,
                         );
                       },
-                      onReorder: (int oldIndex, int newIndex) {
+                      onReorderItem: (int oldIndex, int newIndex) {
                         pluginsController.onReorder(oldIndex, newIndex);
                       },
                       itemCount: pluginsController.pluginList.length,
@@ -479,7 +480,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
               return AlertDialog(
                 title: const Text('规则链接'),
                 content: SelectableText(
-                  Utils.jsonToKazumiBase64(json
+                  jsonToKazumiBase64(json
                       .encode(pluginsController.pluginList[index].toJson())),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
@@ -496,7 +497,7 @@ class _PluginViewPageState extends State<PluginViewPage> {
                   TextButton(
                     onPressed: () {
                       Clipboard.setData(ClipboardData(
-                        text: Utils.jsonToKazumiBase64(
+                        text: jsonToKazumiBase64(
                           json.encode(
                             pluginsController.pluginList[index].toJson(),
                           ),

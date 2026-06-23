@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:webview_windows/webview_windows.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
 import 'package:kazumi/webview/captcha/captcha_webview_controller.dart';
 
 class CaptchaWebviewWindowsImpl
@@ -14,6 +14,7 @@ class CaptchaWebviewWindowsImpl
   String _currentInputXpath = '';
   String _currentPageUrl = '';
   String _buttonXpath = '';
+  String? _customScript;
 
   @override
   Future<void> init() async {
@@ -27,7 +28,7 @@ class CaptchaWebviewWindowsImpl
       _headlessWebview!.webMessage.listen(_onWebMessage),
     );
 
-    // Inject captcha or button-click script when navigation completes
+    // Inject the active verification script when navigation completes.
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
         if (state == LoadingState.navigationCompleted) {
@@ -37,13 +38,15 @@ class CaptchaWebviewWindowsImpl
             await _injectCaptchaScript();
           } else if (_buttonXpath.isNotEmpty) {
             await _injectButtonClickScript(_buttonXpath);
+          } else if (_customScript != null) {
+            await _injectCustomScript(_customScript!);
           }
         }
       }),
     );
 
-    // After a navigation, detect verification completion for both type-1
-    // (captcha image gone) and type-2 (button was clicked, page navigated).
+    // After a navigation, detect verification completion for captcha-image
+    // and automated flows that marked a verification action as clicked.
     _subscriptions.add(
       _headlessWebview!.loadingState.listen((state) async {
         if (state == LoadingState.navigationCompleted) {
@@ -57,8 +60,8 @@ class CaptchaWebviewWindowsImpl
             }
           }
           if (buttonWasClicked && !captchaDisappearedController.isClosed) {
-            logEventController
-                .add('[Captcha WebView] Button click → page navigated, verification done');
+            logEventController.add(
+                '[Captcha WebView] Button click → page navigated, verification done');
             buttonWasClicked = false;
             captchaDisappearedController.add(null);
           }
@@ -87,14 +90,18 @@ class CaptchaWebviewWindowsImpl
         captchaDisappearedController.add(null);
       }
     } else if (msg.startsWith('captchaLog:')) {
-      logEventController.add('[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
+      logEventController
+          .add('[Captcha WebView JS] ${msg.replaceFirst('captchaLog:', '')}');
     }
   }
 
   Future<bool> _isCaptchaPresent() async {
-    if (_currentCaptchaImageXpath.isEmpty || _headlessWebview == null) return false;
-    final escaped =
-        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    if (_currentCaptchaImageXpath.isEmpty || _headlessWebview == null) {
+      return false;
+    }
+    final escaped = _currentCaptchaImageXpath
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'");
     try {
       final result = await _headlessWebview!.executeScript('''
 (function() {
@@ -114,8 +121,9 @@ class CaptchaWebviewWindowsImpl
 
   Future<void> _injectCaptchaScript() async {
     if (_currentCaptchaImageXpath.isEmpty) return;
-    final escapedXpath =
-        _currentCaptchaImageXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final escapedXpath = _currentCaptchaImageXpath
+        .replaceAll('\\', '\\\\')
+        .replaceAll("'", "\\'");
     final escapedInputXpath =
         _currentInputXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 
@@ -127,11 +135,6 @@ class CaptchaWebviewWindowsImpl
   var _inputXpath = '$escapedInputXpath';
   var _captchaPoller = null;
   var _disappearObserver = null;
-
-  function _resolveSrc(node) {
-    return node.getAttribute('src') || node.getAttribute('data-src') ||
-           node.src || '';
-  }
 
   function _evalXpath() {
     try {
@@ -238,10 +241,12 @@ class CaptchaWebviewWindowsImpl
   }
 
   @override
-  Future<void> loadPage(String url, String captchaXpath, {String? inputXpath}) async {
+  Future<void> loadPage(String url, String captchaXpath,
+      {String? inputXpath}) async {
     _currentCaptchaImageXpath = captchaXpath;
     _currentInputXpath = inputXpath ?? '';
     _buttonXpath = '';
+    _customScript = null;
     buttonWasClicked = false;
     _currentPageUrl = url;
     captchaWasFound = false;
@@ -252,15 +257,73 @@ class CaptchaWebviewWindowsImpl
   Future<void> loadPageForButtonClick(String url, String buttonXpath) async {
     _currentCaptchaImageXpath = '';
     _buttonXpath = buttonXpath;
+    _customScript = null;
     buttonWasClicked = false;
     _currentPageUrl = url;
     captchaWasFound = false;
     await _headlessWebview?.loadUrl(url);
   }
 
+  @override
+  Future<void> loadPageForCustomScript(String url, String script) async {
+    _currentCaptchaImageXpath = '';
+    _currentInputXpath = '';
+    _buttonXpath = '';
+    _customScript = script;
+    buttonWasClicked = false;
+    _currentPageUrl = url;
+    captchaWasFound = false;
+    await _headlessWebview?.loadUrl(url);
+  }
+
+  Future<void> _injectCustomScript(String script) async {
+    logEventController.add('[Captcha WebView] Injecting custom script');
+    final wrappedScript = '''
+(function() {
+  try {
+    window.KazumiCaptcha = {
+      log: function(message) {
+        window.chrome.webview.postMessage('captchaLog:' + String(message));
+      },
+      clicked: function() {
+        window.chrome.webview.postMessage('buttonClicked:');
+      },
+      done: function() {
+        window.chrome.webview.postMessage('captchaGone:');
+      },
+      fail: function(message) {
+        window.chrome.webview.postMessage('captchaLog:Custom script failed: ' + String(message));
+      }
+    };
+    window.KazumiCaptcha.log('CustomScript injected on ' + window.location.href);
+    if (!${script.trim().isEmpty ? 'false' : 'true'}) {
+      window.KazumiCaptcha.fail('empty captchaScript');
+      return;
+    }
+    var __kazumiResult = (function() {
+$script
+    })();
+    if (__kazumiResult === true) {
+      window.KazumiCaptcha.done();
+    }
+  } catch(e) {
+    try { window.KazumiCaptcha.fail(e && e.message ? e.message : e); } catch(e2) {}
+  }
+})();
+''';
+    try {
+      final result = await _headlessWebview?.executeScript(wrappedScript);
+      logEventController
+          .add('[Captcha WebView] Custom script execute result: $result');
+    } catch (e) {
+      KazumiLogger().e('[Captcha WebView] injectCustomScript error: $e');
+      logEventController
+          .add('[Captcha WebView] Custom script inject error: $e');
+    }
+  }
+
   Future<void> _injectButtonClickScript(String buttonXpath) async {
-    final escaped =
-        buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+    final escaped = buttonXpath.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
     final script = '''
 (function() {
   window.chrome.webview.postMessage('captchaLog:ButtonClickScript injected on ' + window.location.href);
@@ -379,8 +442,8 @@ class CaptchaWebviewWindowsImpl
   @override
   Future<void> unloadPage() async {
     try {
-      await _headlessWebview?.executeScript(
-          "window.location.href = 'about:blank';");
+      await _headlessWebview
+          ?.executeScript("window.location.href = 'about:blank';");
     } catch (e) {
       KazumiLogger().d('[Captcha WebView] unloadPage skipped: $e');
     }
@@ -391,6 +454,7 @@ class CaptchaWebviewWindowsImpl
     _currentCaptchaImageXpath = '';
     _currentInputXpath = '';
     _buttonXpath = '';
+    _customScript = null;
     buttonWasClicked = false;
     _currentPageUrl = '';
     for (final s in _subscriptions) {
@@ -410,13 +474,10 @@ class CaptchaWebviewWindowsImpl
   }
 
   Future<void> _setupProxy() async {
-    final setting = GStorage.setting;
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (!proxyEnable) return;
 
-    final String proxyUrl =
-        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
     final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
     if (formattedProxy == null) return;
 

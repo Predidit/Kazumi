@@ -1,8 +1,8 @@
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/history/history_module.dart';
-import 'package:kazumi/utils/history_sync_service.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/sync/history_sync_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
 
 /// 历史记录数据访问接口
 ///
@@ -79,7 +79,6 @@ abstract class IHistoryRepository {
 /// 基于Hive实现的历史记录数据访问层
 class HistoryRepository implements IHistoryRepository {
   final _historiesBox = GStorage.histories;
-  final _settingBox = GStorage.setting;
 
   @override
   List<History> getAllHistories() {
@@ -269,11 +268,8 @@ class HistoryRepository implements IHistoryRepository {
   @override
   bool getPrivateMode() {
     try {
-      final value = _settingBox.get(
-        SettingBoxKey.privateMode,
-        defaultValue: false,
-      );
-      return value is bool ? value : false;
+      final value = GStorage.getSetting(SettingsKeys.privateMode);
+      return value;
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: get private mode setting failed, using default false',

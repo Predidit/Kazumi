@@ -3,17 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/card/palette_card.dart';
 import 'package:kazumi/utils/constants.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:hive_ce/hive.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/settings/theme_provider.dart';
 import 'package:kazumi/pages/popular/popular_controller.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/settings/color_type.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/theme.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
   const ThemeSettingsPage({super.key});
@@ -23,7 +23,6 @@ class ThemeSettingsPage extends StatefulWidget {
 }
 
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
-  Box setting = GStorage.setting;
   late dynamic defaultDanmakuArea;
   late dynamic defaultThemeMode;
   late dynamic defaultThemeColor;
@@ -38,17 +37,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   @override
   void initState() {
     super.initState();
-    defaultThemeMode =
-        setting.get(SettingBoxKey.themeMode, defaultValue: 'system');
-    defaultThemeColor =
-        setting.get(SettingBoxKey.themeColor, defaultValue: 'default');
-    oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
-    useDynamicColor =
-        setting.get(SettingBoxKey.useDynamicColor, defaultValue: false);
-    showWindowButton =
-        setting.get(SettingBoxKey.showWindowButton, defaultValue: false);
-    useSystemFont =
-        setting.get(SettingBoxKey.useSystemFont, defaultValue: false);
+    defaultThemeMode = GStorage.getSetting(SettingsKeys.themeMode);
+    defaultThemeColor = GStorage.getSetting(SettingsKeys.themeColor);
+    oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
+    useDynamicColor = GStorage.getSetting(SettingsKeys.useDynamicColor);
+    showWindowButton = GStorage.getSetting(SettingsKeys.showWindowButton);
+    useSystemFont = GStorage.getSetting(SettingsKeys.useSystemFont);
     themeProvider = Provider.of<ThemeProvider>(context, listen: false);
   }
 
@@ -68,7 +62,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         progressIndicatorTheme: progressIndicatorTheme2024,
         sliderTheme: sliderTheme2024,
         pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
+    var oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
@@ -78,10 +72,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           progressIndicatorTheme: progressIndicatorTheme2024,
           sliderTheme: sliderTheme2024,
           pageTransitionsTheme: pageTransitionsTheme2024),
-      oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledTheme : defaultDarkTheme,
     );
-    defaultThemeColor = color?.value.toRadixString(16) ?? 'default';
-    setting.put(SettingBoxKey.themeColor, defaultThemeColor);
+    defaultThemeColor = color?.toARGB32().toRadixString(16) ?? 'default';
+    GStorage.putSetting(SettingsKeys.themeColor, defaultThemeColor);
   }
 
   void resetTheme() {
@@ -93,7 +87,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         progressIndicatorTheme: progressIndicatorTheme2024,
         sliderTheme: sliderTheme2024,
         pageTransitionsTheme: pageTransitionsTheme2024);
-    var oledDarkTheme = Utils.oledDarkTheme(defaultDarkTheme);
+    var oledTheme = oledDarkTheme(defaultDarkTheme);
     themeProvider.setTheme(
       ThemeData(
           useMaterial3: true,
@@ -103,10 +97,10 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
           progressIndicatorTheme: progressIndicatorTheme2024,
           sliderTheme: sliderTheme2024,
           pageTransitionsTheme: pageTransitionsTheme2024),
-      oledEnhance ? oledDarkTheme : defaultDarkTheme,
+      oledEnhance ? oledTheme : defaultDarkTheme,
     );
     defaultThemeColor = 'default';
-    setting.put(SettingBoxKey.themeColor, 'default');
+    GStorage.putSetting(SettingsKeys.themeColor, 'default');
   }
 
   void updateTheme(String theme) async {
@@ -119,20 +113,21 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     if (theme == 'system') {
       themeProvider.setThemeMode(ThemeMode.system);
     }
-    await setting.put(SettingBoxKey.themeMode, theme);
+    await GStorage.putSetting(SettingsKeys.themeMode, theme);
     setState(() {
       defaultThemeMode = theme;
     });
 
     // Update Windows title bar theme
     if (Platform.isWindows) {
-      await windowManager.setBrightness(themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
+      await windowManager.setBrightness(
+          themeProvider.isEffectiveDark() ? Brightness.dark : Brightness.light);
     }
   }
 
   void updateOledEnhance() {
     dynamic color;
-    oledEnhance = setting.get(SettingBoxKey.oledEnhance, defaultValue: false);
+    oledEnhance = GStorage.getSetting(SettingsKeys.oledEnhance);
     if (defaultThemeColor == 'default') {
       color = Colors.green;
     } else {
@@ -289,7 +284,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                           return Wrap(
                             alignment: WrapAlignment.center,
                             spacing: 8,
-                            runSpacing: Utils.isDesktop() ? 8 : 0,
+                            runSpacing: isDesktop() ? 8 : 0,
                             children: [
                               ...colorThemes.map(
                                 (e) {
@@ -330,8 +325,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   enabled: !Platform.isIOS,
                   onToggle: (value) async {
                     useDynamicColor = value ?? !useDynamicColor;
-                    await setting.put(
-                        SettingBoxKey.useDynamicColor, useDynamicColor);
+                    await GStorage.putSetting(
+                        SettingsKeys.useDynamicColor, useDynamicColor);
                     themeProvider.setDynamic(useDynamicColor);
                     setState(() {});
                   },
@@ -341,8 +336,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     useSystemFont = value ?? !useSystemFont;
-                    await setting.put(
-                        SettingBoxKey.useSystemFont, useSystemFont);
+                    await GStorage.putSetting(
+                        SettingsKeys.useSystemFont, useSystemFont);
                     themeProvider.setFontFamily(useSystemFont);
                     dynamic color;
                     if (defaultThemeColor == 'default') {
@@ -368,7 +363,8 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     oledEnhance = value ?? !oledEnhance;
-                    await setting.put(SettingBoxKey.oledEnhance, oledEnhance);
+                    await GStorage.putSetting(
+                        SettingsKeys.oledEnhance, oledEnhance);
                     updateOledEnhance();
                     setState(() {});
                   },
@@ -380,14 +376,14 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                 ),
               ],
             ),
-            if (Utils.isDesktop())
+            if (isDesktop())
               SettingsSection(
                 tiles: [
                   SettingsTile.switchTile(
                     onToggle: (value) async {
                       showWindowButton = value ?? !showWindowButton;
-                      await setting.put(
-                          SettingBoxKey.showWindowButton, showWindowButton);
+                      await GStorage.putSetting(
+                          SettingsKeys.showWindowButton, showWindowButton);
                       setState(() {});
                     },
                     title: Text('使用系统标题栏',

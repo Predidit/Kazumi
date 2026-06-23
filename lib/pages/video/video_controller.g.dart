@@ -57,35 +57,51 @@ mixin _$VideoPageController on _VideoPageController, Store {
     });
   }
 
-  late final _$currentEpisodeAtom =
-      Atom(name: '_VideoPageController.currentEpisode', context: context);
+  late final _$selectedEpisodeAtom =
+      Atom(name: '_VideoPageController.selectedEpisode', context: context);
 
   @override
-  int get currentEpisode {
-    _$currentEpisodeAtom.reportRead();
-    return super.currentEpisode;
+  VideoEpisodeSelection get selectedEpisode {
+    _$selectedEpisodeAtom.reportRead();
+    return super.selectedEpisode;
   }
 
   @override
-  set currentEpisode(int value) {
-    _$currentEpisodeAtom.reportWrite(value, super.currentEpisode, () {
-      super.currentEpisode = value;
+  set selectedEpisode(VideoEpisodeSelection value) {
+    _$selectedEpisodeAtom.reportWrite(value, super.selectedEpisode, () {
+      super.selectedEpisode = value;
     });
   }
 
-  late final _$currentRoadAtom =
-      Atom(name: '_VideoPageController.currentRoad', context: context);
+  late final _$playingEpisodeAtom =
+      Atom(name: '_VideoPageController.playingEpisode', context: context);
 
   @override
-  int get currentRoad {
-    _$currentRoadAtom.reportRead();
-    return super.currentRoad;
+  VideoEpisodeSelection? get playingEpisode {
+    _$playingEpisodeAtom.reportRead();
+    return super.playingEpisode;
   }
 
   @override
-  set currentRoad(int value) {
-    _$currentRoadAtom.reportWrite(value, super.currentRoad, () {
-      super.currentRoad = value;
+  set playingEpisode(VideoEpisodeSelection? value) {
+    _$playingEpisodeAtom.reportWrite(value, super.playingEpisode, () {
+      super.playingEpisode = value;
+    });
+  }
+
+  late final _$commentsEpisodeAtom =
+      Atom(name: '_VideoPageController.commentsEpisode', context: context);
+
+  @override
+  int get commentsEpisode {
+    _$commentsEpisodeAtom.reportRead();
+    return super.commentsEpisode;
+  }
+
+  @override
+  set commentsEpisode(int value) {
+    _$commentsEpisodeAtom.reportWrite(value, super.commentsEpisode, () {
+      super.commentsEpisode = value;
     });
   }
 
@@ -207,8 +223,9 @@ mixin _$VideoPageController on _VideoPageController, Store {
 episodeCommentsList: ${episodeCommentsList},
 loading: ${loading},
 errorMessage: ${errorMessage},
-currentEpisode: ${currentEpisode},
-currentRoad: ${currentRoad},
+selectedEpisode: ${selectedEpisode},
+playingEpisode: ${playingEpisode},
+commentsEpisode: ${commentsEpisode},
 isFullscreen: ${isFullscreen},
 isCommentsAscending: ${isCommentsAscending},
 isPip: ${isPip},

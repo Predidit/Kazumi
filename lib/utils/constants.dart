@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 
 class StyleString {
@@ -11,23 +12,22 @@ class StyleString {
 
 const String customAppFontFamily = "MI_Sans_Regular";
 
-/// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
-/// it to false so we have the latest M3 style process indicator.
+/// Opts into the newer Material progress indicator appearance while Flutter
+/// still exposes the compatibility flag.
 /// ignore: deprecated_member_use
 const ProgressIndicatorThemeData progressIndicatorTheme2024 =
     ProgressIndicatorThemeData(year2023: false);
 
-/// `year2023` flag is deprecated since 3.29 but not default to false yet. Keep
-/// it to false so we have the latest M3 style slider.
+/// Opts into the newer Material slider appearance while Flutter still exposes
+/// the compatibility flag.
 /// ignore: deprecated_member_use
 const SliderThemeData sliderTheme2024 = SliderThemeData(
   year2023: false,
-  showValueIndicator: ShowValueIndicator.always,
+  showValueIndicator: ShowValueIndicator.onDrag,
 );
 
-/// The page transition method defined here is managed by flutter, and the native transition method of flutter is set here.
-/// Transition method here will be overridden by the transition method of modular, and do not set the transition method in modular to prevent
-/// the native transition method from failing
+/// Flutter-managed platform transitions. Route-level Modular transitions should
+/// avoid overriding these unless the native page transition is intentionally bypassed.
 const PageTransitionsTheme pageTransitionsTheme2024 = PageTransitionsTheme(
   builders: {
     TargetPlatform.android: CupertinoPageTransitionsBuilder(),

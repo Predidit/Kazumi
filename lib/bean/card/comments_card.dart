@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/utils/utils.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:kazumi/utils/date_time.dart';
 
 class CommentsCard extends StatelessWidget {
   CommentsCard({
@@ -10,6 +10,7 @@ class CommentsCard extends StatelessWidget {
     required this.commentItem,
   }) {
     isBone = false;
+    isOwn = false;
   }
 
   CommentsCard.bone({
@@ -17,10 +18,20 @@ class CommentsCard extends StatelessWidget {
   }) {
     isBone = true;
     commentItem = null;
+    isOwn = false;
+  }
+
+  CommentsCard.own({
+    super.key,
+    required this.commentItem,
+  }) {
+    isBone = false;
+    isOwn = true;
   }
 
   late final CommentItem? commentItem;
   late final bool isBone;
+  late final bool isOwn;
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +79,23 @@ class CommentsCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(commentItem!.user.nickname),
-                    Text(Utils.dateFormat(commentItem!.comment.updatedAt)),
+                    Row(
+                      spacing: 5,
+                      children: [
+                        Text(commentItem!.user.nickname),
+                        if(isOwn)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('我的吐槽',
+                                style: TextStyle(fontSize: 12,color: Theme.of(context).colorScheme.primaryContainer),
+                              ))
+                      ],
+                    ),
+                    Text(dateFormat(commentItem!.comment.updatedAt)),
                   ],
                 ),
                 Expanded(child: Container(height: 10)),

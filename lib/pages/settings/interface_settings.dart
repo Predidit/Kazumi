@@ -2,9 +2,8 @@ import 'package:card_settings_ui/list/settings_list.dart';
 import 'package:card_settings_ui/section/settings_section.dart';
 import 'package:card_settings_ui/tile/settings_tile.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 class InterfaceSettingsPage extends StatefulWidget {
   const InterfaceSettingsPage({super.key});
@@ -14,8 +13,8 @@ class InterfaceSettingsPage extends StatefulWidget {
 }
 
 class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
-  Box setting = GStorage.setting;
   late bool showRating;
+  late bool showAnimeCounter;
   late String defaultPage;
   final MenuController defaultPageMenuController = MenuController();
 
@@ -29,13 +28,13 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
   @override
   void initState() {
     super.initState();
-    showRating = setting.get(SettingBoxKey.showRating, defaultValue: true);
-    defaultPage = setting.get(SettingBoxKey.defaultStartupPage,
-        defaultValue: '/tab/popular/');
+    showRating = GStorage.getSetting(SettingsKeys.showRating);
+    showAnimeCounter = GStorage.getSetting(SettingsKeys.showAnimeCounter);
+    defaultPage = GStorage.getSetting(SettingsKeys.defaultStartupPage);
   }
 
   void updateDefaultPage(String page) {
-    setting.put(SettingBoxKey.defaultStartupPage, page);
+    GStorage.putSetting(SettingsKeys.defaultStartupPage, page);
     setState(() {
       defaultPage = page;
     });
@@ -102,13 +101,26 @@ class _InterfaceSettingsPageState extends State<InterfaceSettingsPage> {
             SettingsTile.switchTile(
               onToggle: (value) async {
                 showRating = value ?? !showRating;
-                await setting.put(SettingBoxKey.showRating, showRating);
+                await GStorage.putSetting(SettingsKeys.showRating, showRating);
                 setState(() {});
               },
               title: Text('显示评分', style: TextStyle(fontFamily: fontFamily)),
               description: Text('关闭后将在概览中隐藏评分信息',
                   style: TextStyle(fontFamily: fontFamily)),
               initialValue: showRating,
+            ),
+          ]),
+          SettingsSection(tiles: [
+            SettingsTile.switchTile(
+              onToggle: (value) async {
+                showAnimeCounter = value ?? !showAnimeCounter;
+                await GStorage.putSetting(SettingsKeys.showAnimeCounter, showAnimeCounter);
+                setState(() {});
+              },
+              title: Text('显示追番统计', style: TextStyle(fontFamily: fontFamily)),
+              description: Text('启用后将在追番页面下方显示追番统计',
+                  style: TextStyle(fontFamily: fontFamily)),
+              initialValue: showAnimeCounter,
             ),
           ]),
         ],

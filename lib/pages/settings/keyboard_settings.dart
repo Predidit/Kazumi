@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/constants.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
@@ -14,8 +13,6 @@ class KeyboardSettingsPage extends StatefulWidget {
 }
 
 class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
-  Box setting = GStorage.setting;
-
   String? listeningFunction;
   int? listeningIndex;
   late Map<String, List<String>> shortcuts;
@@ -24,13 +21,14 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
 
   @override
   void initState() {
-    super.initState();    
+    super.initState();
     // 根据默认快捷键生成可用快捷键列表，并读取已设置值
     shortcuts = {
       for (var key in defaultShortcuts.keys)
-        key: (setting.get('shortcut_$key', 
-                defaultValue: defaultShortcuts[key]?.toList() ?? <String>[]) 
-              ?.cast<String>() ?? [])
+        key: GStorage.getStringListSettingByName(
+          'shortcut_$key',
+          defaultValue: defaultShortcuts[key]?.toList() ?? <String>[],
+        )
     };
   }
 
@@ -41,11 +39,12 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       final func = entry.key;
       final keys = entry.value;
       keys.removeWhere((key) => key.isEmpty || key == '...');
-      setting.put('shortcut_$func', keys);
+      GStorage.putStringListSettingByName('shortcut_$func', keys);
     }
     focusNode.dispose();
     super.dispose();
   }
+
   bool handleShortcutInput(String rawKey) {
     if (listeningFunction == null || listeningIndex == null) return false;
 
@@ -71,7 +70,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
       listeningFunction = null;
       listeningIndex = null;
     });
-    setting.put('shortcut_$func', shortcuts[func]);
+    GStorage.putStringListSettingByName('shortcut_$func', shortcuts[func]!);
 
     return true;
   }
@@ -84,6 +83,7 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
     });
 
     Future.delayed(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
       focusNode.requestFocus();
     });
   }
@@ -101,7 +101,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
               setState(() {
                 for (final func in shortcuts.keys) {
                   shortcuts[func] = defaultShortcuts[func]?.toList() ?? [];
-                  setting.put('shortcut_$func', shortcuts[func]);
+                  GStorage.putStringListSettingByName(
+                    'shortcut_$func',
+                    shortcuts[func]!,
+                  );
                 }
               });
             },
@@ -129,11 +132,10 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
           },
           child: ListView(
             padding: const EdgeInsets.all(16),
-            children:
-              shortcuts.entries.map((entry) {
-                final func = entry.key;
-                final keys = entry.value;
-                return Card(
+            children: shortcuts.entries.map((entry) {
+              final func = entry.key;
+              final keys = entry.value;
+              return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -142,22 +144,22 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            shortcutsChineseName[func] ?? func,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-                          ),
+                          Text(shortcutsChineseName[func] ?? func,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                           Spacer(),
                           IconButton(
                             icon: Icon(Icons.add),
                             onPressed: () {
-                              keys.removeWhere((key) => key.isEmpty || key == '...');
+                              keys.removeWhere(
+                                  (key) => key.isEmpty || key == '...');
                               setState(() => keys.add(''));
-                              setting.put('shortcut_$func', keys);
+                              GStorage.putStringListSettingByName(
+                                  'shortcut_$func', keys);
                               startListening(func, keys.length - 1);
                             },
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            focusNode: FocusNode(canRequestFocus: false),
                           ),
                         ],
                       ),
@@ -167,23 +169,28 @@ class _KeyboardSettingsPageState extends State<KeyboardSettingsPage> {
                         runSpacing: 8,
                         children: [
                           for (int i = 0; i < keys.length; i++)
-                          ActionChip(
-                            label: Text(keyAliases[keys[i]] ?? keys[i],),
-                            avatar: keys.length >=2 ?Icon(Icons.cancel) :Icon(Icons.edit),
-                            onPressed: (keys.length >=2)
-                              ?() {
-                                setState(() {
-                                  keys.removeAt(i);
-                                  listeningIndex = null;
-                                  if (keys.length >1){
-                                    keys.removeWhere((key) => key.isEmpty || key == '...');
-                                  }
-                                  setting.put('shortcut_$func', keys);
-                                });
-                              }
-                              :() => startListening(func, 0),
-                            focusNode: FocusNode(canRequestFocus: false),
-                          ),
+                            ActionChip(
+                              label: Text(
+                                keyAliases[keys[i]] ?? keys[i],
+                              ),
+                              avatar: keys.length >= 2
+                                  ? Icon(Icons.cancel)
+                                  : Icon(Icons.edit),
+                              onPressed: (keys.length >= 2)
+                                  ? () {
+                                      setState(() {
+                                        keys.removeAt(i);
+                                        listeningIndex = null;
+                                        if (keys.length > 1) {
+                                          keys.removeWhere((key) =>
+                                              key.isEmpty || key == '...');
+                                        }
+                                        GStorage.putStringListSettingByName(
+                                            'shortcut_$func', keys);
+                                      });
+                                    }
+                                  : () => startListening(func, 0),
+                            ),
                         ],
                       ),
                     ],

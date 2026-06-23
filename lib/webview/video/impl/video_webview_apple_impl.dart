@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
+import 'package:kazumi/utils/http_headers.dart';
+import 'package:kazumi/utils/media.dart';
 
 class VideoWebviewAppleImpl
     extends VideoWebviewController<PlatformInAppWebViewController> {
@@ -33,7 +34,7 @@ class VideoWebviewAppleImpl
           ),
         ]),
         initialSettings: InAppWebViewSettings(
-          userAgent: Utils.getRandomUA(),
+          userAgent: getRandomUA(),
           mediaPlaybackRequiresUserGesture: true,
           useOnLoadResource: false,
           cacheEnabled: false,
@@ -114,7 +115,8 @@ class VideoWebviewAppleImpl
           logEventController.add('loading completed: $url');
         },
         onReceivedError: (controller, request, error) {
-          KazumiLogger().e('WebView: error: ${error.toString()} - Request: ${request.url}');
+          KazumiLogger().e(
+              'WebView: error: ${error.toString()} - Request: ${request.url}');
         },
       ),
     );
@@ -168,15 +170,15 @@ class VideoWebviewAppleImpl
                 !message.contains('adtrafficquality')) {
               logEventController.add('Parsing video source $message');
               String encodedUrl = Uri.encodeFull(message);
-              if (Utils.decodeVideoSource(encodedUrl) != encodedUrl) {
+              if (decodeVideoSource(encodedUrl) != encodedUrl) {
                 isIframeLoaded = true;
                 isVideoSourceLoaded = true;
                 videoLoadingEventController.add(false);
                 logEventController.add(
-                    'Loading video source ${Utils.decodeVideoSource(encodedUrl)}');
+                    'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
                 videoParserEventController
-                    .add((Utils.decodeVideoSource(encodedUrl), offset));
+                    .add((decodeVideoSource(encodedUrl), offset));
               }
             }
           });
@@ -199,8 +201,7 @@ class VideoWebviewAppleImpl
     }
   }
 
-  Future<void> addUserScripts(
-      bool useLegacyParser) async {
+  Future<void> addUserScripts(bool useLegacyParser) async {
     final List<UserScript> scripts = [];
 
     if (useLegacyParser) {
@@ -323,9 +324,10 @@ class VideoWebviewAppleImpl
   }
 
   @override
-  void dispose() {
-    headlessWebView?.dispose();
+  Future<void> dispose() async {
+    await headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 }

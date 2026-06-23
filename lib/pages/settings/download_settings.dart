@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class DownloadSettingsPage extends StatefulWidget {
@@ -12,7 +11,6 @@ class DownloadSettingsPage extends StatefulWidget {
 }
 
 class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
-  Box setting = GStorage.setting;
   late int parallelEpisodes;
   late int parallelSegments;
   late bool downloadDanmaku;
@@ -20,18 +18,11 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
   @override
   void initState() {
     super.initState();
-    parallelEpisodes = setting.get(
-      SettingBoxKey.downloadParallelEpisodes,
-      defaultValue: 2,
-    );
-    parallelSegments = setting.get(
-      SettingBoxKey.downloadParallelSegments,
-      defaultValue: 3,
-    );
-    downloadDanmaku = setting.get(
-      SettingBoxKey.downloadDanmaku,
-      defaultValue: true,
-    );
+    parallelEpisodes =
+        GStorage.getSetting(SettingsKeys.downloadParallelEpisodes);
+    parallelSegments =
+        GStorage.getSetting(SettingsKeys.downloadParallelSegments);
+    downloadDanmaku = GStorage.getSetting(SettingsKeys.downloadDanmaku);
   }
 
   @override
@@ -62,8 +53,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       label: '$parallelEpisodes',
                       onChanged: (value) {
                         setState(() => parallelEpisodes = value.toInt());
-                        setting.put(
-                          SettingBoxKey.downloadParallelEpisodes,
+                        GStorage.putSetting(
+                          SettingsKeys.downloadParallelEpisodes,
                           parallelEpisodes,
                         );
                       },
@@ -88,8 +79,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
                       label: '$parallelSegments',
                       onChanged: (value) {
                         setState(() => parallelSegments = value.toInt());
-                        setting.put(
-                          SettingBoxKey.downloadParallelSegments,
+                        GStorage.putSetting(
+                          SettingsKeys.downloadParallelSegments,
                           parallelSegments,
                         );
                       },
@@ -105,7 +96,8 @@ class _DownloadSettingsPageState extends State<DownloadSettingsPage> {
               SettingsTile.switchTile(
                 onToggle: (value) {
                   setState(() => downloadDanmaku = value ?? !downloadDanmaku);
-                  setting.put(SettingBoxKey.downloadDanmaku, downloadDanmaku);
+                  GStorage.putSetting(
+                      SettingsKeys.downloadDanmaku, downloadDanmaku);
                 },
                 title: Text('缓存弹幕', style: TextStyle(fontFamily: fontFamily)),
                 description: Text(

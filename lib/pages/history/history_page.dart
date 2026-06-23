@@ -114,7 +114,8 @@ class _HistoryPageState extends State<HistoryPage> {
             Icon(
               Icons.history_rounded,
               size: 72,
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+              color:
+                  Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -140,9 +141,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final double maxContentWidth = 1000;
-    final double horizontalPadding = screenWidth > maxContentWidth
-        ? (screenWidth - maxContentWidth) / 2
-        : 0;
+    final double horizontalPadding =
+        screenWidth > maxContentWidth ? (screenWidth - maxContentWidth) / 2 : 0;
 
     return CustomScrollView(
       slivers: [

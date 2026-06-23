@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/bangumi_sync_service.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/webdav.dart';
-import 'package:hive_ce/hive.dart';
+import 'package:kazumi/services/sync/bangumi_sync_service.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/sync/webdav.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
@@ -17,25 +16,22 @@ class WebDavSettingsPage extends StatefulWidget {
 }
 
 class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
-  Box setting = GStorage.setting;
   late bool webDavEnable;
   late bool webDavEnableHistory;
   late bool webDavEnableCollect;
   late bool enableGitProxy;
+  late bool enableBangumiProxy;
   late bool bangumiSyncEnable;
 
   @override
   void initState() {
     super.initState();
-    webDavEnable = setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
-    webDavEnableHistory =
-        setting.get(SettingBoxKey.webDavEnableHistory, defaultValue: false);
-    webDavEnableCollect =
-        setting.get(SettingBoxKey.webDavEnableCollect, defaultValue: false);
-    enableGitProxy =
-        setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
-    bangumiSyncEnable =
-        setting.get(SettingBoxKey.bangumiSyncEnable, defaultValue: false);
+    webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
+    webDavEnableHistory = GStorage.getSetting(SettingsKeys.webDavEnableHistory);
+    webDavEnableCollect = GStorage.getSetting(SettingsKeys.webDavEnableCollect);
+    enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
+    enableBangumiProxy = GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    bangumiSyncEnable = GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
   }
 
   void onBackPressed(BuildContext context) {
@@ -46,8 +42,7 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
   }
 
   Future<void> syncHistoryWithWebDav() async {
-    var webDavEnable =
-        await setting.get(SettingBoxKey.webDavEnable, defaultValue: false);
+    var webDavEnable = GStorage.getSetting(SettingsKeys.webDavEnable);
     if (webDavEnable) {
       KazumiLogger().i('WebDav: manual history sync started');
       KazumiDialog.showToast(message: '正在同步观看记录');
@@ -85,18 +80,18 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
           maxWidth: 1000,
           sections: [
             SettingsSection(
-              title: Text('Github', style: TextStyle(fontFamily: fontFamily)),
+              title: Text('规则仓库', style: TextStyle(fontFamily: fontFamily)),
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
                     enableGitProxy = value ?? !enableGitProxy;
-                    await setting.put(
-                        SettingBoxKey.enableGitProxy, enableGitProxy);
+                    await GStorage.putSetting(
+                        SettingsKeys.enableGitProxy, enableGitProxy);
                     setState(() {});
                   },
-                  title: Text('Github镜像',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('使用镜像访问规则托管仓库',
+                  title:
+                      Text('规则仓库镜像', style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('使用镜像访问规则更新和管理仓库',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: enableGitProxy,
                 ),
@@ -107,14 +102,27 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
               tiles: [
                 SettingsTile.switchTile(
                   onToggle: (value) async {
+                    enableBangumiProxy = value ?? !enableBangumiProxy;
+                    await GStorage.putSetting(
+                        SettingsKeys.enableBangumiProxy, enableBangumiProxy);
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  },
+                  title: Text('Bangumi 镜像',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  description: Text('使用本地 Bangumi 缓存后端加载热门与分类榜单',
+                      style: TextStyle(fontFamily: fontFamily)),
+                  initialValue: enableBangumiProxy,
+                ),
+                SettingsTile.switchTile(
+                  onToggle: (value) async {
                     final tBangumiEnableSync = value ?? !bangumiSyncEnable;
                     final bangumi = BangumiSyncService();
                     if (tBangumiEnableSync == true) {
-                      final token = setting
-                          .get(SettingBoxKey.bangumiAccessToken,
-                              defaultValue: '')
-                          .toString()
-                          .trim();
+                      final token =
+                          GStorage.getSetting(SettingsKeys.bangumiAccessToken)
+                              .trim();
                       if (token.isEmpty) {
                         KazumiDialog.showToast(
                             message: '请先配置 Bangumi 的 Access Token');
@@ -132,8 +140,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       }
                     }
                     bangumiSyncEnable = tBangumiEnableSync;
-                    await setting.put(
-                        SettingBoxKey.bangumiSyncEnable, bangumiSyncEnable);
+                    await GStorage.putSetting(
+                        SettingsKeys.bangumiSyncEnable, bangumiSyncEnable);
                     if (!mounted) {
                       return;
                     }
@@ -148,9 +156,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                 SettingsTile.navigation(
                   onPressed: (_) async {
                     await Modular.to.pushNamed('/settings/bangumi/');
-                    bangumiSyncEnable = setting.get(
-                        SettingBoxKey.bangumiSyncEnable,
-                        defaultValue: false);
+                    bangumiSyncEnable =
+                        GStorage.getSetting(SettingsKeys.bangumiSyncEnable);
                     setState(() {});
                   },
                   title: Text('Bangumi 配置',
@@ -175,12 +182,13 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                     if (!webDavEnable) {
                       webDavEnableHistory = false;
                       webDavEnableCollect = false;
-                      await setting.put(
-                          SettingBoxKey.webDavEnableHistory, false);
-                      await setting.put(
-                          SettingBoxKey.webDavEnableCollect, false);
+                      await GStorage.putSetting(
+                          SettingsKeys.webDavEnableHistory, false);
+                      await GStorage.putSetting(
+                          SettingsKeys.webDavEnableCollect, false);
                     }
-                    await setting.put(SettingBoxKey.webDavEnable, webDavEnable);
+                    await GStorage.putSetting(
+                        SettingsKeys.webDavEnable, webDavEnable);
                     if (mounted) {
                       setState(() {});
                     }
@@ -196,8 +204,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       return;
                     }
                     webDavEnableHistory = value ?? !webDavEnableHistory;
-                    await setting.put(
-                        SettingBoxKey.webDavEnableHistory, webDavEnableHistory);
+                    await GStorage.putSetting(
+                        SettingsKeys.webDavEnableHistory, webDavEnableHistory);
                     setState(() {});
                   },
                   title:
@@ -213,8 +221,8 @@ class _PlayerSettingsPageState extends State<WebDavSettingsPage> {
                       return;
                     }
                     webDavEnableCollect = value ?? !webDavEnableCollect;
-                    await setting.put(
-                        SettingBoxKey.webDavEnableCollect, webDavEnableCollect);
+                    await GStorage.putSetting(
+                        SettingsKeys.webDavEnableCollect, webDavEnableCollect);
                     setState(() {});
                   },
                   title: Text('收藏同步', style: TextStyle(fontFamily: fontFamily)),

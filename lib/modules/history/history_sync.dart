@@ -7,6 +7,7 @@ import 'package:kazumi/modules/history/history_module.dart';
 
 enum HistorySyncOp {
   upsertProgress('upsertProgress'),
+  upsertWatchState('upsertWatchState'),
   deleteHistory('deleteHistory'),
   clearAll('clearAll');
 
@@ -54,6 +55,7 @@ class HistorySyncEvent {
     this.progressMs,
     this.lastSrc,
     this.lastWatchEpisodeName,
+    this.carriesWatchState = false,
   });
 
   final String eventId;
@@ -69,6 +71,7 @@ class HistorySyncEvent {
   final int? progressMs;
   final String? lastSrc;
   final String? lastWatchEpisodeName;
+  final bool carriesWatchState;
 
   String get version => HistorySyncVersion.of(
         updatedAt: updatedAt,
@@ -96,8 +99,29 @@ class HistorySyncEvent {
       episode: episode,
       road: road,
       progressMs: progressMs,
+    );
+  }
+
+  factory HistorySyncEvent.upsertWatchState({
+    required String deviceId,
+    required int seq,
+    required History history,
+    required int episode,
+    required int updatedAt,
+  }) {
+    return HistorySyncEvent(
+      eventId: '$deviceId:$seq',
+      deviceId: deviceId,
+      seq: seq,
+      op: HistorySyncOp.upsertWatchState,
+      updatedAt: updatedAt,
+      entityKey: history.key,
+      bangumiItem: history.bangumiItem,
+      adapterName: history.adapterName,
+      episode: episode,
       lastSrc: history.lastSrc,
       lastWatchEpisodeName: history.lastWatchEpisodeName,
+      carriesWatchState: true,
     );
   }
 
@@ -150,6 +174,8 @@ class HistorySyncEvent {
       progressMs: (json['progressMs'] as num?)?.toInt(),
       lastSrc: json['lastSrc'] as String?,
       lastWatchEpisodeName: json['lastWatchEpisodeName'] as String?,
+      carriesWatchState: json.containsKey('lastSrc') ||
+          json.containsKey('lastWatchEpisodeName'),
     );
   }
 
@@ -307,7 +333,9 @@ class HistorySyncState {
   void apply(HistorySyncEvent event) {
     switch (event.op) {
       case HistorySyncOp.upsertProgress:
-        _applyUpsert(event);
+        _applyUpsertProgress(event);
+      case HistorySyncOp.upsertWatchState:
+        _applyUpsertWatchState(event);
       case HistorySyncOp.deleteHistory:
         _applyDelete(event);
       case HistorySyncOp.clearAll:
@@ -326,7 +354,7 @@ class HistorySyncState {
     );
   }
 
-  void _applyUpsert(HistorySyncEvent event) {
+  void _applyUpsertProgress(HistorySyncEvent event) {
     final entityKey = event.entityKey;
     final bangumiItem = event.bangumiItem;
     final adapterName = event.adapterName;
@@ -340,6 +368,51 @@ class HistorySyncState {
         road == null ||
         progressMs == null) {
       throw const FormatException('Invalid upsertProgress history event');
+    }
+    if (!_isNewerThanClear(event.version)) {
+      return;
+    }
+    final deletedVersion = deletedVersions[entityKey];
+    if (deletedVersion != null &&
+        HistorySyncVersion.compare(event.version, deletedVersion) <= 0) {
+      return;
+    }
+
+    final current = histories[entityKey] ??
+        History(
+          bangumiItem,
+          episode,
+          adapterName,
+          DateTime.fromMillisecondsSinceEpoch(event.updatedAt),
+          event.lastSrc ?? '',
+          event.lastWatchEpisodeName ?? '',
+        );
+
+    final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
+    final progressVersion = episodeVersions[episode];
+    if (progressVersion == null ||
+        HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
+      current.progresses[episode] = Progress(episode, road, progressMs);
+      episodeVersions[episode] = event.version;
+    }
+    histories[entityKey] = current;
+    deletedVersions.remove(entityKey);
+
+    if (_shouldApplyLegacyWatchState(event)) {
+      _applyUpsertWatchState(event);
+    }
+  }
+
+  void _applyUpsertWatchState(HistorySyncEvent event) {
+    final entityKey = event.entityKey;
+    final bangumiItem = event.bangumiItem;
+    final adapterName = event.adapterName;
+    final episode = event.episode;
+    if (entityKey == null ||
+        bangumiItem == null ||
+        adapterName == null ||
+        episode == null) {
+      throw const FormatException('Invalid upsertWatchState history event');
     }
     if (!_isNewerThanClear(event.version)) {
       return;
@@ -375,14 +448,6 @@ class HistorySyncState {
         current.lastWatchEpisodeName = event.lastWatchEpisodeName!;
       }
       itemVersions[entityKey] = event.version;
-    }
-
-    final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
-    final progressVersion = episodeVersions[episode];
-    if (progressVersion == null ||
-        HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
-      current.progresses[episode] = Progress(episode, road, progressMs);
-      episodeVersions[episode] = event.version;
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
@@ -422,6 +487,13 @@ class HistorySyncState {
     final currentClearVersion = clearVersion;
     return currentClearVersion == null ||
         HistorySyncVersion.compare(version, currentClearVersion) > 0;
+  }
+
+  bool _shouldApplyLegacyWatchState(HistorySyncEvent event) {
+    final hasWatchStatePayload = event.carriesWatchState ||
+        event.lastSrc != null ||
+        event.lastWatchEpisodeName != null;
+    return hasWatchStatePayload && !event.eventId.startsWith('local-state:');
   }
 }
 

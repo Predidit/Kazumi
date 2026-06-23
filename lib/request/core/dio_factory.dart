@@ -2,9 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class DioFactory {
   DioFactory._();
@@ -18,15 +18,16 @@ class DioFactory {
         NetworkConfig.fromSettings(),
         defaultHeaders: {
           'referer': '',
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
+        interceptors: [_BangumiMirrorInterceptor()],
       );
 
   static Dio get githubDio => _githubDio ??= _create(
         NetworkConfig.fromSettings(),
         defaultHeaders: {
           'accept': 'application/vnd.github+json',
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
         interceptors: [_GithubMirrorInterceptor()],
       );
@@ -34,8 +35,8 @@ class DioFactory {
   static Dio get pluginDio => _pluginDio ??= _create(
         NetworkConfig.fromSettings(),
         defaultHeaders: {
-          'user-agent': Utils.getRandomUA(),
-          'accept-language': Utils.getRandomAcceptedLanguage(),
+          'user-agent': getRandomUA(),
+          'accept-language': getRandomAcceptedLanguage(),
         },
       );
 
@@ -45,7 +46,7 @@ class DioFactory {
           receiveTimeout: const Duration(seconds: 30),
         ),
         defaultHeaders: {
-          'user-agent': Utils.getRandomUA(),
+          'user-agent': getRandomUA(),
         },
       );
 
@@ -88,6 +89,36 @@ class DioFactory {
   }
 }
 
+class _BangumiMirrorInterceptor extends Interceptor {
+  static const _mirrorableHosts = {
+    'api.bgm.tv',
+    'next.bgm.tv',
+  };
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final enableBangumiProxy =
+        GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+    if (!enableBangumiProxy) {
+      handler.next(options);
+      return;
+    }
+
+    final uri = options.uri;
+    if (!_mirrorableHosts.contains(uri.host)) {
+      handler.next(options);
+      return;
+    }
+
+    final mirrored = ApiEndpoints.bangumiMirrorDomain +
+        uri.path +
+        (uri.hasQuery ? '?${uri.query}' : '');
+    KazumiLogger().d('Bangumi mirror: $mirrored');
+    options.path = mirrored;
+    handler.next(options);
+  }
+}
+
 class _GithubMirrorInterceptor extends Interceptor {
   static const _mirrorableHosts = {
     'api.github.com',
@@ -99,8 +130,7 @@ class _GithubMirrorInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final enableGitProxy =
-        GStorage.setting.get(SettingBoxKey.enableGitProxy, defaultValue: false);
+    final enableGitProxy = GStorage.getSetting(SettingsKeys.enableGitProxy);
     if (!enableGitProxy) {
       handler.next(options);
       return;

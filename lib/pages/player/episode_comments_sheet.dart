@@ -10,8 +10,6 @@ import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/request/apis/bangumi_api.dart';
 
 class EpisodeInfoWidget extends InheritedWidget {
-  /// This widget receives changes of episode and notify it's child,
-  /// trigger [didChangeDependencies] of it's child.
   const EpisodeInfoWidget(
       {super.key, required this.episode, required super.child});
 
@@ -39,24 +37,16 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   bool commentsIsEmpty = false;
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
-  int _loadCommentsRequestId = 0;
 
-  /// episode input by [showEpisodeSelection]
   int ep = 0;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Future<void> loadComments(int episode) async {
-    final int requestId = ++_loadCommentsRequestId;
     commentsQueryTimeout = false;
     commentsIsEmpty = false;
     try {
-      await videoPageController.queryBangumiEpisodeCommentsByID(
+      final applied = await videoPageController.queryBangumiEpisodeCommentsByID(
           videoPageController.bangumiItem.id, episode);
-      if (!mounted || requestId != _loadCommentsRequestId) {
+      if (!mounted || !applied) {
         return;
       }
       if (videoPageController.episodeCommentsList.isEmpty && mounted) {
@@ -65,13 +55,13 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
         });
       }
     } catch (e) {
-      if (mounted && requestId == _loadCommentsRequestId) {
+      if (mounted) {
         setState(() {
           commentsQueryTimeout = true;
         });
       }
     }
-    if (mounted && requestId == _loadCommentsRequestId) {
+    if (mounted) {
       setState(() {});
     }
   }
@@ -83,30 +73,21 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
   @override
   void didChangeDependencies() {
     ep = 0;
-    // wait until currentState is not null
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       if (videoPageController.episodeCommentsList.isEmpty) {
-        // trigger RefreshIndicator onRefresh and show animation
         _refreshIndicatorKey.currentState?.show();
       }
     });
     super.didChangeDependencies();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Widget get episodeCommentsBody {
     return CustomScrollView(
       scrollBehavior: const ScrollBehavior().copyWith(
-        // Scrollbars' movement is not linear so hide it.
         scrollbars: false,
-        // Enable mouse drag to refresh
         dragDevices: {
           PointerDeviceKind.mouse,
           PointerDeviceKind.touch,
@@ -142,8 +123,8 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
             return SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  // Fix scroll issue caused by height change of network images
-                  // by keeping loaded cards alive.
+                  // Keep loaded image cards alive to avoid scroll jumps when
+                  // network images report their final size.
                   return KeepAlive(
                     keepAlive: true,
                     child: IndexedSemantics(
@@ -233,7 +214,6 @@ class _EpisodeCommentsSheetState extends State<EpisodeCommentsSheet> {
     );
   }
 
-  // 选择要查看评论的集数
   void showEpisodeSelection() async {
     final int selectedEpisode =
         ep == 0 ? EpisodeInfoWidget.of(context)!.episode : ep;

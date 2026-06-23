@@ -15,10 +15,11 @@ class NetworkErrorMapper {
           stackTrace: error.stackTrace,
         );
       case DioExceptionType.badResponse:
+        final statusCode = error.response?.statusCode;
         return NetworkException(
           type: NetworkExceptionType.badResponse,
           message: '服务器异常，请稍后重试！',
-          statusCode: error.response?.statusCode,
+          statusCode: statusCode,
           rawError: error,
           stackTrace: error.stackTrace,
         );

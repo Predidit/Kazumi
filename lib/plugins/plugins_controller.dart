@@ -4,11 +4,11 @@ import 'package:mobx/mobx.dart';
 import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 import 'package:path_provider/path_provider.dart';
 import 'package:kazumi/plugins/plugins.dart';
-import 'package:kazumi/plugins/plugin_validity_tracker.dart';
-import 'package:kazumi/plugins/plugin_install_time_tracker.dart';
+import 'package:kazumi/services/plugin/plugin_validity_tracker.dart';
+import 'package:kazumi/services/plugin/plugin_install_time_tracker.dart';
 import 'package:kazumi/request/apis/plugin_catalog_api.dart';
 import 'package:kazumi/modules/plugin/plugin_http_module.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 
 part 'plugins_controller.g.dart';
@@ -150,9 +150,6 @@ abstract class _PluginsController with Store {
   }
 
   void onReorder(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
     final plugin = pluginList.removeAt(oldIndex);
     pluginList.insert(newIndex, plugin);
     savePlugins();

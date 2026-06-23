@@ -1,12 +1,13 @@
 import 'dart:async';
-import 'package:kazumi/utils/utils.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_utils.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/webview/video/video_webview_controller.dart';
 import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 import 'package:flutter_inappwebview_android/flutter_inappwebview_android.dart'
     as android_webview;
+import 'package:kazumi/utils/media.dart';
+import 'package:kazumi/utils/http_headers.dart';
 
 class VideoWebviewAndroidImpl
     extends VideoWebviewController<PlatformInAppWebViewController> {
@@ -20,7 +21,7 @@ class VideoWebviewAndroidImpl
     headlessWebView ??= PlatformHeadlessInAppWebView(
       PlatformHeadlessInAppWebViewCreationParams(
         initialSettings: InAppWebViewSettings(
-          userAgent: Utils.getRandomUA(),
+          userAgent: getRandomUA(),
           mediaPlaybackRequiresUserGesture: true,
           cacheEnabled: false,
           blockNetworkImage: true,
@@ -94,15 +95,15 @@ class VideoWebviewAndroidImpl
                 !message.contains('adtrafficquality')) {
               logEventController.add('Parsing video source $message');
               String encodedUrl = Uri.encodeFull(message);
-              if (Utils.decodeVideoSource(encodedUrl) != encodedUrl) {
+              if (decodeVideoSource(encodedUrl) != encodedUrl) {
                 isIframeLoaded = true;
                 isVideoSourceLoaded = true;
                 videoLoadingEventController.add(false);
                 logEventController.add(
-                    'Loading video source ${Utils.decodeVideoSource(encodedUrl)}');
+                    'Loading video source ${decodeVideoSource(encodedUrl)}');
                 unloadPage();
                 videoParserEventController
-                    .add((Utils.decodeVideoSource(encodedUrl), offset));
+                    .add((decodeVideoSource(encodedUrl), offset));
               }
             }
           });
@@ -280,22 +281,20 @@ class VideoWebviewAndroidImpl
   }
 
   @override
-  void dispose() {
-    headlessWebView?.dispose();
+  Future<void> dispose() async {
+    await headlessWebView?.dispose();
     headlessWebView = null;
     webviewController = null;
+    disposeEventControllers();
   }
 
   Future<void> _setupProxy() async {
-    final setting = GStorage.setting;
-    final bool proxyEnable =
-        setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    final bool proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
     if (!proxyEnable) {
       return;
     }
 
-    final String proxyUrl =
-        setting.get(SettingBoxKey.proxyUrl, defaultValue: '');
+    final String proxyUrl = GStorage.getSetting(SettingsKeys.proxyUrl);
     final formattedProxy = ProxyUtils.getFormattedProxyUrl(proxyUrl);
     if (formattedProxy == null) {
       return;

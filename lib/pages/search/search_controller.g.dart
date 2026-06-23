@@ -50,17 +50,11 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return super.notShowWatchedBangumis;
   }
 
-  bool _notShowWatchedBangumisIsInitialized = false;
-
   @override
   set notShowWatchedBangumis(bool value) {
-    _$notShowWatchedBangumisAtom.reportWrite(
-        value,
-        _notShowWatchedBangumisIsInitialized
-            ? super.notShowWatchedBangumis
-            : null, () {
+    _$notShowWatchedBangumisAtom
+        .reportWrite(value, super.notShowWatchedBangumis, () {
       super.notShowWatchedBangumis = value;
-      _notShowWatchedBangumisIsInitialized = true;
     });
   }
 
@@ -73,17 +67,11 @@ mixin _$SearchPageController on _SearchPageController, Store {
     return super.notShowAbandonedBangumis;
   }
 
-  bool _notShowAbandonedBangumisIsInitialized = false;
-
   @override
   set notShowAbandonedBangumis(bool value) {
-    _$notShowAbandonedBangumisAtom.reportWrite(
-        value,
-        _notShowAbandonedBangumisIsInitialized
-            ? super.notShowAbandonedBangumis
-            : null, () {
+    _$notShowAbandonedBangumisAtom
+        .reportWrite(value, super.notShowAbandonedBangumis, () {
       super.notShowAbandonedBangumis = value;
-      _notShowAbandonedBangumisIsInitialized = true;
     });
   }
 

@@ -1,9 +1,9 @@
 class ApiEndpoints {
   /// 当前版本
-  static const String version = '2.1.1';
+  static const String version = '2.1.6';
 
   /// 规则API级别
-  static const int apiLevel = 6;
+  static const int apiLevel = 7;
 
   /// 项目主页
   static const String projectUrl = "https://kazumi.app/";
@@ -25,6 +25,13 @@ class ApiEndpoints {
   /// Github镜像
   static const String gitMirror = 'https://ghfast.top/';
 
+  /// Bangumi 镜像测试后端
+  static const String bangumiMirrorDomain = 'https://api.kazumi.fyi';
+
+  /// Kazumi 镜像后端应用更新
+  static const String latestAppMirror =
+      '$bangumiMirrorDomain/kazumi/v1/app/latest';
+
   /// 弹弹官网
   static const String dandanIndex = 'https://www.dandanplay.com/';
 
@@ -33,6 +40,9 @@ class ApiEndpoints {
 
   /// bangumi API Domain
   static const String bangumiAPIDomain = 'https://api.bgm.tv';
+
+  /// Telegram 群组
+  static const String telegramGroup = 'https://t.me/kazumi_app';
 
   /// 番剧信息
   static const String bangumiInfoByID = '/v0/subjects/{0}';
@@ -65,6 +75,14 @@ class ApiEndpoints {
 
   /// 番剧趋势
   static const String bangumiTrendsNext = '/p1/trending/subjects';
+
+  /// Kazumi Bangumi 镜像缓存榜单
+  static const String bangumiMirrorPopularSubjects =
+      '/kazumi/v1/popular/subjects';
+
+  /// Kazumi Bangumi 镜像季节时间表
+  static const String bangumiMirrorSeasonCalendar =
+      '/kazumi/v1/calendar/season';
 
   /// 番剧信息
   static const String bangumiInfoByIDNext = '/p1/subjects/{0}';

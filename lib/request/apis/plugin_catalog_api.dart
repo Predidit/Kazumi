@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/clients/github_client.dart';
 import 'package:kazumi/plugins/plugins.dart';

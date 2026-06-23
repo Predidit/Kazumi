@@ -11,7 +11,13 @@
             description: 'Log level'     
             required: true
             default: 'warning'
-    
+
+    env:
+      DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
+      DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
+      KAZUMI_APPID: ${{ secrets.KAZUMI_APPID }}
+      KAZUMI_KEY: ${{ secrets.KAZUMI_KEY }}
+
     jobs:
       flutter-test:
         runs-on: "ubuntu-latest"
@@ -77,18 +83,22 @@
               distribution: 'temurin'          
           - name: Set up Flutter
             uses: subosito/flutter-action@v2.16.0
+            id: flutter-action
             with:
               channel: stable
               flutter-version-file: pubspec.yaml
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
+          - name: Remove build id
+            run: sed -i -e 's/-Wl,/-Wl,--build-id=none,/' ${{ steps.flutter-action.outputs.PUB-CACHE-PATH }}/hosted/pub.dev/jni-*/src/CMakeLists.txt
           - name: Build Flutter for Android
-            run: flutter build apk --split-per-abi
+            run: >-
+              flutter build apk --split-per-abi
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
           - name: Package android build output
             run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Kazumi_android_${env:tag}.apk
@@ -103,7 +113,7 @@
       flutter-build-windows:
         name: "Release for windows"
         runs-on: "windows-latest"
-        needs: [flutter-build-android, flutter-build-ios, flutter-build-linux, flutter-build-macos] 
+        needs: [flutter-build-android, flutter-build-ios, flutter-build-linux-amd64, flutter-build-linux-arm64, flutter-build-macos]
         permissions: write-all
     
         steps:
@@ -127,14 +137,12 @@
               distribution: 'temurin'
               java-version: '18'
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            env:
-              DANDANAPI_APPID: ${{ secrets.DANDANAPI_APPID }}
-              DANDANAPI_KEY: ${{ secrets.DANDANAPI_KEY }}
-            run: |
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace "kvpx7qkqjh", "$env:DANDANAPI_APPID" | Set-Content -Path 'lib/utils/mortis.dart'
-              (Get-Content -Path 'lib/utils/mortis.dart') -replace "rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax", "$env:DANDANAPI_KEY" | Set-Content -Path 'lib/utils/mortis.dart'
-          - run: flutter build windows   
+          - run: >-
+              flutter build windows
+              --dart-define=DANDANAPI_APPID=$env:DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$env:DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$env:KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$env:KAZUMI_KEY
           - run: Compress-Archive build/windows/x64/runner/Release/* Kazumi_windows_${env:tag}.zip
           - name: Upload windows outputs
             uses: actions/upload-artifact@v4
@@ -201,8 +209,8 @@
               name: windows_msix_signed_outputs
               path: build/windows/msix_signed_output/*.msix
 
-      flutter-build-linux:
-        name: "Release for Linux"
+      flutter-build-linux-amd64:
+        name: "Release for Linux amd64"
         needs: [flutter-test, flutter-analyze]
         runs-on: "ubuntu-latest" 
         permissions: write-all
@@ -213,7 +221,7 @@
             run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
             shell: bash
           - name: Echo build progress
-            run: echo "Kazumi_linux_${{ env.tag }}.tar.gz build progress"
+            run: echo "Kazumi_linux_${{ env.tag }}_amd64.tar.gz build progress"
             shell: bash
           - name: Install dependencies
             run: |
@@ -241,12 +249,13 @@
           - name: Get Flutter dependencies
             run: flutter pub get
             shell: bash
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build Flutter for Linux
-            run: flutter build linux
+            run: >-
+              flutter build linux
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
             shell: bash
           # - name: Download FFmpeg Assets
           #   uses: dsaltares/fetch-gh-release-asset@master
@@ -257,7 +266,7 @@
           #     token: ${{ secrets.GITHUB_TOKEN }}
           # - run: rm -f build/linux/x64/release/bundle/lib/libffmpeg.so.7
           # - run: unzip ffmpeg_linux_amd64.zip -d build/linux/x64/release/bundle/lib
-          - name: Package linux build output
+          - name: Package linux amd64 build output
             run: |
               # Tarball package
               tar -zcvf Kazumi_linux_${{ env.tag }}_amd64.tar.gz -C build/linux/x64/release/bundle .
@@ -296,10 +305,93 @@
               dpkg-deb --build --root-owner-group Kazumi_linux_${{ env.tag }}_amd64
             shell: bash
 
-          - name: Upload linux outputs
+          - name: Upload linux amd64 outputs
             uses: actions/upload-artifact@v4
             with:
-              name: linux_outputs
+              name: linux_amd64_outputs
+              path: |
+                Kazumi_linux_*.tar.gz
+                Kazumi_linux_*.deb
+
+      flutter-build-linux-arm64:
+        name: "Release for Linux arm64"
+        needs: [flutter-test, flutter-analyze]
+        runs-on: ${{ vars.LINUX_ARM64_RUNNER || 'ubuntu-24.04-arm' }}
+        permissions: write-all
+        steps:
+          - name: Clone repository
+            uses: actions/checkout@v4
+          - name: Extract tag name
+            run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            shell: bash
+          - name: Echo build progress
+            run: echo "Kazumi_linux_${{ env.tag }}_arm64 build progress"
+            shell: bash
+          - name: Set up Flutter for ARM64
+            uses: ./.github/actions/flutter-arm64-setup
+            with:
+              channel: stable
+              flutter-version-file: pubspec.yaml
+          - name: Install project dependencies
+            run: |
+              sudo apt-get update
+              sudo apt-get install -y cmake libwebkit2gtk-4.1-dev libsoup-3.0-dev libasound2-dev \
+                libayatana-appindicator3-dev libepoxy-dev libmpv-dev unzip
+            shell: bash
+          - name: Get Flutter dependencies
+            run: flutter pub get
+            shell: bash
+          - name: Build Flutter for Linux ARM64
+            run: >-
+              flutter build linux
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
+            shell: bash
+          - name: Package linux arm64 build output
+            run: |
+              # Tarball package
+              tar -zcvf Kazumi_linux_${{ env.tag }}_arm64.tar.gz -C build/linux/arm64/release/bundle .
+
+              # Debian package
+              mkdir Kazumi_linux_${{ env.tag }}_arm64
+              cd Kazumi_linux_${{ env.tag }}_arm64
+              mkdir -p opt/Kazumi
+              mkdir -p usr/share/applications
+              mkdir -p usr/share/icons/hicolor/512x512/apps
+              cp -r ../build/linux/arm64/release/bundle/* opt/Kazumi
+              cp -r ../assets/linux/DEBIAN .
+              chmod 0755 DEBIAN/postinst
+              chmod 0755 DEBIAN/postrm
+
+              cat>DEBIAN/control<<EOF
+              Maintainer: madoka773 <valigarmanda55@gmail.com>
+              Package: Kazumi
+              Version: ${{ env.tag }}
+              Section: x11
+              Priority: optional
+              Architecture: arm64
+              Essential: no
+              Installed-Size: $(du -sk opt | cut -f1)
+              Description: Watch Animes online with danmaku support.
+              Homepage: https://github.com/Predidit/Kazumi
+              Depends: libayatana-appindicator3-1,
+                       gir1.2-ayatanaappindicator3-0.1,
+                       libwebkit2gtk-4.1-0
+              EOF
+
+              cp ../assets/linux/io.github.Predidit.Kazumi.desktop usr/share/applications
+              cp ../assets/images/logo/logo_linux.png usr/share/icons/hicolor/512x512/apps/io.github.Predidit.Kazumi.png
+
+              cd ..
+              dpkg-deb --build --root-owner-group Kazumi_linux_${{ env.tag }}_arm64
+            shell: bash
+
+          - name: Upload linux arm64 outputs
+            uses: actions/upload-artifact@v4
+            with:
+              name: linux_arm64_outputs
               path: |
                 Kazumi_linux_*.tar.gz
                 Kazumi_linux_*.deb
@@ -323,13 +415,13 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
           - name: Build IPA
-            run: |
+            run: >-
               flutter build ios --release --no-codesign
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
           - name: Create IPA
             run: |
               mkdir Payload
@@ -361,11 +453,12 @@
               channel: stable
               flutter-version-file: pubspec.yaml
           - run: flutter pub get
-          - name: Inject DanDan API Credentials
-            run: |
-              sed -i '' "s/kvpx7qkqjh/${{ secrets.DANDANAPI_APPID }}/g" lib/utils/mortis.dart
-              sed -i '' "s/rABUaBLqdz7aCSi3fe88ZDj2gwga9Vax/${{ secrets.DANDANAPI_KEY }}/g" lib/utils/mortis.dart
-          - run: flutter build macos --release
+          - run: >-
+              flutter build macos --release
+              --dart-define=DANDANAPI_APPID=$DANDANAPI_APPID
+              --dart-define=DANDANAPI_KEY=$DANDANAPI_KEY
+              --dart-define=KAZUMI_APPID=$KAZUMI_APPID
+              --dart-define=KAZUMI_KEY=$KAZUMI_KEY
           - name: Create DMG
             run: |
               npm install --global create-dmg
@@ -454,15 +547,25 @@
           - name: Copy macos build file to root
             run: cp macos_outputs/* Kazumi_macos_${{ env.tag }}.dmg   
             
-          - name: Download linux build file
+          - name: Download linux amd64 build file
             uses: actions/download-artifact@v4
             with:
-              name: linux_outputs
-              path: linux_outputs  
-          - name: List files in linux_outputs directory
-            run: ls -l linux_outputs   
-          - name: Copy linux build file to root
-            run: cp linux_outputs/* .
+              name: linux_amd64_outputs
+              path: linux_amd64_outputs
+          - name: List files in linux_amd64_outputs directory
+            run: ls -l linux_amd64_outputs
+          - name: Copy linux amd64 build file to root
+            run: cp linux_amd64_outputs/* .
+
+          - name: Download linux arm64 build file
+            uses: actions/download-artifact@v4
+            with:
+              name: linux_arm64_outputs
+              path: linux_arm64_outputs
+          - name: List files in linux_arm64_outputs directory
+            run: ls -l linux_arm64_outputs
+          - name: Copy linux arm64 build file to root
+            run: cp linux_arm64_outputs/* .
 
           - name: Sign APK
             id: sign_app

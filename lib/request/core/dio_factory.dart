@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_logger_interceptor.dart';
 import 'package:kazumi/request/core/network_config.dart';
-import 'package:kazumi/request/core/network_error_mapper.dart';
 import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/http_headers.dart';
@@ -91,9 +90,6 @@ class DioFactory {
 }
 
 class _BangumiMirrorInterceptor extends Interceptor {
-  static const _syncIncompatibleMessage =
-      'Bangumi 镜像功能与 Bangumi 同步功能不兼容，请关闭 Bangumi 镜像后重试';
-
   static const _mirrorableHosts = {
     'api.bgm.tv',
     'next.bgm.tv',
@@ -114,34 +110,12 @@ class _BangumiMirrorInterceptor extends Interceptor {
       return;
     }
 
-    // These Bangumi sync endpoints carry personal access tokens and read/write
-    // private collection state. The mirror backend intentionally should not
-    // proxy them; keep the current mirror path, but mark them so a mirror-side
-    // 404 becomes a clear compatibility error for the user.
-    if (_isUnsupportedSyncEndpoint(uri)) {
-      options.extra[NetworkRequestExtra.unsupportedMirroredEndpointMessage] =
-          _syncIncompatibleMessage;
-    }
-
     final mirrored = ApiEndpoints.bangumiMirrorDomain +
         uri.path +
         (uri.hasQuery ? '?${uri.query}' : '');
     KazumiLogger().d('Bangumi mirror: $mirrored');
     options.path = mirrored;
     handler.next(options);
-  }
-
-  static bool _isUnsupportedSyncEndpoint(Uri uri) {
-    if (uri.path == ApiEndpoints.bangumiUsernameByToken) {
-      return true;
-    }
-
-    final segments = uri.pathSegments;
-    return segments.length >= 4 &&
-        segments[0] == 'v0' &&
-        segments[1] == 'users' &&
-        segments[3] == 'collections' &&
-        (segments.length == 4 || segments.length == 5);
   }
 }
 

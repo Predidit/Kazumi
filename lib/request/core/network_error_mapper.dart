@@ -2,13 +2,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:kazumi/request/core/network_exception.dart';
 
-class NetworkRequestExtra {
-  const NetworkRequestExtra._();
-
-  static const unsupportedMirroredEndpointMessage =
-      'unsupportedMirroredEndpointMessage';
-}
-
 class NetworkErrorMapper {
   const NetworkErrorMapper._();
 
@@ -23,19 +16,6 @@ class NetworkErrorMapper {
         );
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
-        final unsupportedMirroredEndpointMessage = error.requestOptions
-            .extra[NetworkRequestExtra.unsupportedMirroredEndpointMessage];
-        if (statusCode == 404 &&
-            unsupportedMirroredEndpointMessage is String &&
-            unsupportedMirroredEndpointMessage.isNotEmpty) {
-          return NetworkException(
-            type: NetworkExceptionType.unsupportedMirroredEndpoint,
-            message: unsupportedMirroredEndpointMessage,
-            statusCode: statusCode,
-            rawError: error,
-            stackTrace: error.stackTrace,
-          );
-        }
         return NetworkException(
           type: NetworkExceptionType.badResponse,
           message: '服务器异常，请稍后重试！',

@@ -6,7 +6,6 @@ enum NetworkExceptionType {
   connectionTimeout,
   receiveTimeout,
   sendTimeout,
-  unsupportedMirroredEndpoint,
   parseError,
   unknown,
 }
@@ -28,9 +27,6 @@ class NetworkException implements Exception {
 
   @override
   String toString() {
-    if (type == NetworkExceptionType.unsupportedMirroredEndpoint) {
-      return message;
-    }
     final status = statusCode == null ? '' : ' ($statusCode)';
     return 'NetworkException.$type$status: $message';
   }

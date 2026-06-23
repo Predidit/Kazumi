@@ -1,0 +1,21 @@
+{
+    "api": "5",
+    "type": "anime",
+    "name": "enlie",
+    "version": "1.0",
+    "muliSources": true,
+    "useWebview": true,
+    "useNativePlayer": true,
+    "usePost": false,
+    "useLegacyParser": false,
+    "adBlocker": true,
+    "userAgent": "",
+    "baseURL": "https://enlienli.link/",
+    "searchURL": "https://enlienli.link/vod/search.html?wd=@keyword",
+    "searchList": "//div[1]/div[2]/div/div/div[2]/div/div",
+    "searchName": "//div[2]/div[1]/a",
+    "searchResult": "//div[2]/div[1]/a",
+    "chapterRoads": "//div/div[2]/div/div[2]/div/div/div",
+    "chapterResult": "//a",
+    "referer": ""
+}

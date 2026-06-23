@@ -36,6 +36,7 @@ abstract class _PlayerPanelController with Store {
   bool brightnessSeeking = false;
   @observable
   bool volumeSeeking = false;
+  int seekDirection = 0;
   @observable
   bool canHidePlayerPanel = true;
 
@@ -49,6 +50,7 @@ abstract class _PlayerPanelController with Store {
     showPlaySpeed = false;
     brightnessSeeking = false;
     volumeSeeking = false;
+    seekDirection = 0;
     canHidePlayerPanel = true;
   }
 }

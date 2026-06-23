@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:kazumi/utils/proxy_manager.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/network/proxy_manager.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class ProxySettingsPage extends StatefulWidget {
@@ -15,13 +14,12 @@ class ProxySettingsPage extends StatefulWidget {
 }
 
 class _ProxySettingsPageState extends State<ProxySettingsPage> {
-  Box setting = GStorage.setting;
   late bool proxyEnable;
 
   @override
   void initState() {
     super.initState();
-    proxyEnable = setting.get(SettingBoxKey.proxyEnable, defaultValue: false);
+    proxyEnable = GStorage.getSetting(SettingsKeys.proxyEnable);
   }
 
   void onBackPressed(BuildContext context) {
@@ -33,16 +31,15 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
 
   Future<void> updateProxyEnable(bool value) async {
     if (value) {
-      final proxyConfigured =
-          setting.get(SettingBoxKey.proxyConfigured, defaultValue: false);
+      final proxyConfigured = GStorage.getSetting(SettingsKeys.proxyConfigured);
       if (!proxyConfigured) {
         KazumiDialog.showToast(message: '请先在代理配置中完成测试');
         return;
       }
-      await setting.put(SettingBoxKey.proxyEnable, true);
+      await GStorage.putSetting(SettingsKeys.proxyEnable, true);
       ProxyManager.applyProxy();
     } else {
-      await setting.put(SettingBoxKey.proxyEnable, false);
+      await GStorage.putSetting(SettingsKeys.proxyEnable, false);
       ProxyManager.clearProxy();
     }
     setState(() {
@@ -70,8 +67,7 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   onToggle: (value) async {
                     await updateProxyEnable(value ?? !proxyEnable);
                   },
-                  title:
-                      Text('启用代理', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('启用代理', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('启用后网络请求将通过代理服务器',
                       style: TextStyle(fontFamily: fontFamily)),
                   initialValue: proxyEnable,
@@ -80,12 +76,11 @@ class _ProxySettingsPageState extends State<ProxySettingsPage> {
                   onPressed: (_) async {
                     await Modular.to.pushNamed('/settings/proxy/editor');
                     setState(() {
-                      proxyEnable = setting.get(SettingBoxKey.proxyEnable,
-                          defaultValue: false);
+                      proxyEnable =
+                          GStorage.getSetting(SettingsKeys.proxyEnable);
                     });
                   },
-                  title:
-                      Text('代理配置', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('代理配置', style: TextStyle(fontFamily: fontFamily)),
                   description: Text('配置代理服务器地址和认证信息',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),

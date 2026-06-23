@@ -77,7 +77,6 @@ class Comment {
     required this.updatedAt,
   });
 
-
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
       rate: json['rate'] ?? 0,
@@ -85,7 +84,6 @@ class Comment {
       updatedAt: json['updatedAt'] ?? 0,
     );
   }
-
 
   Map<String, dynamic> toJson() {
     return {
@@ -131,7 +129,6 @@ class EpisodeComment {
     required this.createdAt,
   });
 
-
   factory EpisodeComment.fromJson(Map<String, dynamic> json) {
     return EpisodeComment(
       user: User.fromJson(json['user']),
@@ -139,7 +136,6 @@ class EpisodeComment {
       createdAt: json['createdAt'] ?? 0,
     );
   }
-
 
   Map<String, dynamic> toJson() {
     return {
@@ -154,19 +150,14 @@ class EpisodeCommentItem {
   final EpisodeComment comment;
   final List<EpisodeComment> replies;
 
-  EpisodeCommentItem({
-    required this.comment,
-    required this.replies
-  });
+  EpisodeCommentItem({required this.comment, required this.replies});
 
   factory EpisodeCommentItem.fromJson(Map<String, dynamic> json) {
     var list = json['replies'] as List;
     List<EpisodeComment> tempList =
         list.map((i) => EpisodeComment.fromJson(i)).toList();
     return EpisodeCommentItem(
-      comment: EpisodeComment.fromJson(json),
-      replies: tempList
-    );
+        comment: EpisodeComment.fromJson(json), replies: tempList);
   }
 
   Map<String, dynamic> toJson() {
@@ -188,7 +179,6 @@ class CharacterComment {
     required this.createdAt,
   });
 
-
   factory CharacterComment.fromJson(Map<String, dynamic> json) {
     return CharacterComment(
       user: User.fromJson(json['user']),
@@ -196,7 +186,6 @@ class CharacterComment {
       createdAt: json['createdAt'] ?? 0,
     );
   }
-
 
   Map<String, dynamic> toJson() {
     return {
@@ -211,19 +200,14 @@ class CharacterCommentItem {
   final CharacterComment comment;
   final List<CharacterComment> replies;
 
-  CharacterCommentItem({
-    required this.comment,
-    required this.replies
-  });
+  CharacterCommentItem({required this.comment, required this.replies});
 
   factory CharacterCommentItem.fromJson(Map<String, dynamic> json) {
     var list = json['replies'] as List;
     List<CharacterComment> tempList =
         list.map((i) => CharacterComment.fromJson(i)).toList();
     return CharacterCommentItem(
-      comment: CharacterComment.fromJson(json),
-      replies: tempList
-    );
+        comment: CharacterComment.fromJson(json), replies: tempList);
   }
 
   Map<String, dynamic> toJson() {

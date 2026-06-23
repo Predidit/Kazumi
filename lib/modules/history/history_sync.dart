@@ -7,6 +7,7 @@ import 'package:kazumi/modules/history/history_module.dart';
 
 enum HistorySyncOp {
   upsertProgress('upsertProgress'),
+  upsertWatchState('upsertWatchState'),
   deleteHistory('deleteHistory'),
   clearAll('clearAll');
 
@@ -56,6 +57,7 @@ class HistorySyncEvent {
     this.lastWatchEpisodeName,
     this.entryKind,
     this.episodePageUrl,
+    this.carriesWatchState = false,
   });
 
   final String eventId;
@@ -73,6 +75,7 @@ class HistorySyncEvent {
   final String? lastWatchEpisodeName;
   final String? entryKind;
   final String? episodePageUrl;
+  final bool carriesWatchState;
 
   String get version => HistorySyncVersion.of(
         updatedAt: updatedAt,
@@ -100,10 +103,33 @@ class HistorySyncEvent {
       episode: episode,
       road: road,
       progressMs: progressMs,
+      entryKind: history.entryKind,
+      episodePageUrl: history.episodePageUrl,
+    );
+  }
+
+  factory HistorySyncEvent.upsertWatchState({
+    required String deviceId,
+    required int seq,
+    required History history,
+    required int episode,
+    required int updatedAt,
+  }) {
+    return HistorySyncEvent(
+      eventId: '$deviceId:$seq',
+      deviceId: deviceId,
+      seq: seq,
+      op: HistorySyncOp.upsertWatchState,
+      updatedAt: updatedAt,
+      entityKey: history.key,
+      bangumiItem: history.bangumiItem,
+      adapterName: history.adapterName,
+      episode: episode,
       lastSrc: history.lastSrc,
       lastWatchEpisodeName: history.lastWatchEpisodeName,
       entryKind: history.entryKind,
       episodePageUrl: history.episodePageUrl,
+      carriesWatchState: true,
     );
   }
 
@@ -158,6 +184,9 @@ class HistorySyncEvent {
       lastWatchEpisodeName: json['lastWatchEpisodeName'] as String?,
       entryKind: json['entryKind'] as String?,
       episodePageUrl: json['episodePageUrl'] as String?,
+      carriesWatchState: (json['carriesWatchState'] as bool?) ??
+          (json.containsKey('lastSrc') ||
+              json.containsKey('lastWatchEpisodeName')),
     );
   }
 
@@ -180,6 +209,7 @@ class HistorySyncEvent {
         'lastWatchEpisodeName': lastWatchEpisodeName,
       if (entryKind != null) 'entryKind': entryKind,
       if (episodePageUrl != null) 'episodePageUrl': episodePageUrl,
+      if (carriesWatchState) 'carriesWatchState': carriesWatchState,
     };
   }
 }
@@ -360,7 +390,9 @@ class HistorySyncState {
   void apply(HistorySyncEvent event) {
     switch (event.op) {
       case HistorySyncOp.upsertProgress:
-        _applyUpsert(event);
+        _applyUpsertProgress(event);
+      case HistorySyncOp.upsertWatchState:
+        _applyUpsertWatchState(event);
       case HistorySyncOp.deleteHistory:
         _applyDelete(event);
       case HistorySyncOp.clearAll:
@@ -379,7 +411,7 @@ class HistorySyncState {
     );
   }
 
-  void _applyUpsert(HistorySyncEvent event) {
+  void _applyUpsertProgress(HistorySyncEvent event) {
     final bangumiItem = event.bangumiItem;
     final adapterName = event.adapterName;
     final episode = event.episode;
@@ -391,6 +423,64 @@ class HistorySyncState {
         road == null ||
         progressMs == null) {
       throw const FormatException('Invalid upsertProgress history event');
+    }
+    if (!_isNewerThanClear(event.version)) {
+      return;
+    }
+    final entryKind =
+        HistoryEntryKind.normalize(event.entryKind ?? HistoryEntryKind.online);
+    final entityKey = History.scopedKey(adapterName, bangumiItem, entryKind);
+    final legacyEntityKey = History.legacyKey(adapterName, bangumiItem);
+    final deletedVersion = _deletedVersionForUpsert(
+      entityKey,
+      legacyEntityKey: legacyEntityKey,
+      entryKind: entryKind,
+    );
+    if (deletedVersion != null &&
+        HistorySyncVersion.compare(event.version, deletedVersion) <= 0) {
+      return;
+    }
+
+    final current = histories[entityKey] ??
+        History(
+          bangumiItem,
+          episode,
+          adapterName,
+          DateTime.fromMillisecondsSinceEpoch(event.updatedAt),
+          event.lastSrc ?? '',
+          event.lastWatchEpisodeName ?? '',
+          entryKind: entryKind,
+          episodePageUrl: event.episodePageUrl ?? '',
+        );
+
+    final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
+    final progressVersion = episodeVersions[episode];
+    if (progressVersion == null ||
+        HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
+      current.progresses[episode] = Progress(
+        episode,
+        road,
+        progressMs,
+        updatedAtMs: event.updatedAt,
+      );
+      episodeVersions[episode] = event.version;
+    }
+    histories[entityKey] = current;
+    deletedVersions.remove(entityKey);
+    if (entryKind == HistoryEntryKind.online) {
+      deletedVersions.remove(legacyEntityKey);
+    }
+    if (_shouldApplyLegacyWatchState(event)) {
+      _applyUpsertWatchState(event);
+    }
+  }
+
+  void _applyUpsertWatchState(HistorySyncEvent event) {
+    final bangumiItem = event.bangumiItem;
+    final adapterName = event.adapterName;
+    final episode = event.episode;
+    if (bangumiItem == null || adapterName == null || episode == null) {
+      throw const FormatException('Invalid upsertWatchState history event');
     }
     if (!_isNewerThanClear(event.version)) {
       return;
@@ -440,19 +530,6 @@ class HistorySyncState {
         current.episodePageUrl = event.episodePageUrl!;
       }
       itemVersions[entityKey] = event.version;
-    }
-
-    final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
-    final progressVersion = episodeVersions[episode];
-    if (progressVersion == null ||
-        HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
-      current.progresses[episode] = Progress(
-        episode,
-        road,
-        progressMs,
-        updatedAtMs: event.updatedAt,
-      );
-      episodeVersions[episode] = event.version;
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
@@ -532,6 +609,13 @@ class HistorySyncState {
       return a;
     }
     return HistorySyncVersion.compare(a, b) >= 0 ? a : b;
+  }
+
+  bool _shouldApplyLegacyWatchState(HistorySyncEvent event) {
+    final hasWatchStatePayload = event.carriesWatchState ||
+        event.lastSrc != null ||
+        event.lastWatchEpisodeName != null;
+    return hasWatchStatePayload && !event.eventId.startsWith('local-state:');
   }
 
   static Map<String, String> _canonicalizeVersionMap(

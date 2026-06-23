@@ -15,6 +15,9 @@ import android.graphics.drawable.Icon
 import android.util.Rational
 import androidx.annotation.NonNull
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.ryanheise.audioservice.AudioServiceActivity
@@ -33,6 +36,7 @@ class MainActivity: AudioServiceActivity() {
     private var pipInPlayerPage = false
     private var pipAspectWidth = 16
     private var pipAspectHeight = 9
+    private var androidFullscreen = false
 
     private val actionPipPlayPause = "com.predidit.kazumi.pip.PLAY_PAUSE"
     private val actionPipForward = "com.predidit.kazumi.pip.FORWARD"
@@ -59,6 +63,13 @@ class MainActivity: AudioServiceActivity() {
         super.onDestroy()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && androidFullscreen) {
+            applyAndroidFullscreen()
+        }
+    }
+
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         intentChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
@@ -78,6 +89,12 @@ class MainActivity: AudioServiceActivity() {
             } else if (call.method == "getAndroidSdkVersion") {
                 val sdkVersion = getAndroidSdkVersion()
                 result.success(sdkVersion)
+            } else if (call.method == "enterFullscreen") {
+                enterAndroidFullscreen()
+                result.success(null)
+            } else if (call.method == "exitFullscreen") {
+                exitAndroidFullscreen()
+                result.success(null)
             } else {
                 result.notImplemented()
             }
@@ -140,6 +157,27 @@ class MainActivity: AudioServiceActivity() {
 
     private fun getAndroidSdkVersion(): Int {
         return Build.VERSION.SDK_INT
+    }
+
+    private fun enterAndroidFullscreen() {
+        androidFullscreen = true
+        applyAndroidFullscreen()
+    }
+
+    private fun applyAndroidFullscreen() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun exitAndroidFullscreen() {
+        androidFullscreen = false
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView)
+            .show(WindowInsetsCompat.Type.systemBars())
     }
 
     private fun isPictureInPictureSupported(): Boolean {

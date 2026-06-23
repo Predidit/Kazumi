@@ -3,7 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
-import 'package:kazumi/utils/history_sync_service.dart';
+import 'package:kazumi/services/sync/history_sync_service.dart';
 
 void main() {
   group('HistorySyncDevice', () {
@@ -26,14 +26,14 @@ void main() {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
         events: [
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 1,
             updatedAt: 1000,
             episode: 1,
             progressMs: 10 * 1000,
           ),
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-b',
             seq: 1,
             updatedAt: 2000,
@@ -53,7 +53,7 @@ void main() {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
         events: [
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 1,
             updatedAt: 1000,
@@ -65,14 +65,14 @@ void main() {
             seq: 1,
             updatedAt: 2000,
           ),
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 2,
             updatedAt: 1500,
             episode: 2,
             progressMs: 20,
           ),
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-c',
             seq: 1,
             updatedAt: 3000,
@@ -93,7 +93,7 @@ void main() {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
         events: [
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 1,
             updatedAt: 1000,
@@ -106,14 +106,14 @@ void main() {
             entityKey: entityKey,
             updatedAt: 2000,
           ),
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 2,
             updatedAt: 1500,
             episode: 2,
             progressMs: 20,
           ),
-          _upsert(
+          ..._upsertPair(
             deviceId: 'device-a',
             seq: 3,
             updatedAt: 2500,
@@ -365,6 +365,125 @@ void main() {
       expect(merged.itemVersions.containsKey(legacyKey), isFalse);
       expect(merged.progressVersions.containsKey(legacyKey), isFalse);
     });
+
+    test('keeps watch state when local-state progress events share a timestamp',
+        () {
+      final history = History(
+        _item(1),
+        11,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP11',
+      );
+      history.progresses[6] = Progress(6, 0, 6 * 1000);
+      history.progresses[11] = Progress(11, 0, 11 * 1000);
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.fromHistories([history]),
+        events: [
+          _localStateUpsert(
+            history: history,
+            episode: 11,
+            progressMs: 11 * 1000,
+          ),
+          _localStateUpsert(
+            history: history,
+            episode: 6,
+            progressMs: 6 * 1000,
+          ),
+        ],
+      );
+
+      final mergedHistory = merged.histories.single;
+      expect(mergedHistory.lastWatchEpisode, 11);
+      expect(mergedHistory.lastWatchEpisodeName, 'EP11');
+      expect(mergedHistory.progresses[6]!.progress.inSeconds, 6);
+      expect(mergedHistory.progresses[11]!.progress.inSeconds, 11);
+    });
+
+    test('upsertProgress does not replace the latest watch state', () {
+      final history = History(
+        _item(1),
+        5,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP5',
+      );
+      history.progresses[5] = Progress(5, 0, 5 * 1000);
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.fromHistories([history]),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 7,
+            progressMs: 7 * 1000,
+          ),
+        ],
+      );
+
+      final mergedHistory = merged.histories.single;
+      expect(mergedHistory.lastWatchEpisode, 5);
+      expect(mergedHistory.lastWatchEpisodeName, 'EP5');
+      expect(mergedHistory.progresses[7]!.progress.inSeconds, 7);
+    });
+
+    test('upsertWatchState updates latest episode metadata', () {
+      final history = History(
+        _item(1),
+        5,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP5',
+      );
+      history.progresses[5] = Progress(5, 0, 5 * 1000);
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.fromHistories([history]),
+        events: [
+          _watchState(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 7,
+          ),
+        ],
+      );
+
+      final mergedHistory = merged.histories.single;
+      expect(mergedHistory.lastWatchEpisode, 7);
+      expect(mergedHistory.lastWatchTime.millisecondsSinceEpoch, 2000);
+      expect(mergedHistory.lastSrc, 'https://example.com/video');
+      expect(mergedHistory.lastWatchEpisodeName, 'EP7');
+    });
+
+    test('legacy upsertProgress payload can still update watch state', () {
+      final legacyEvent = _legacyUpsert(
+        deviceId: 'device-a',
+        seq: 1,
+        updatedAt: 1000,
+        episode: 9,
+        progressMs: 9 * 1000,
+      );
+      final restored = HistorySyncCodec.eventsFromJsonLines(
+        HistorySyncCodec.eventsToJsonLines([legacyEvent]),
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: restored,
+      );
+
+      final mergedHistory = merged.histories.single;
+      expect(mergedHistory.lastWatchEpisode, 9);
+      expect(mergedHistory.lastWatchEpisodeName, 'EP9');
+      expect(mergedHistory.progresses[9]!.progress.inSeconds, 9);
+    });
   });
 
   group('HistorySyncCodec', () {
@@ -377,9 +496,15 @@ void main() {
           episode: 1,
           progressMs: 10,
         ),
-        HistorySyncEvent.clearAll(
+        _watchState(
           deviceId: 'device-a',
           seq: 2,
+          updatedAt: 1000,
+          episode: 1,
+        ),
+        HistorySyncEvent.clearAll(
+          deviceId: 'device-a',
+          seq: 3,
           updatedAt: 2000,
         ),
       ];
@@ -387,8 +512,13 @@ void main() {
       final lines = HistorySyncCodec.eventsToJsonLines(events);
       final restored = HistorySyncCodec.eventsFromJsonLines(lines);
 
-      expect(
-          restored.map((event) => event.eventId), ['device-a:1', 'device-a:2']);
+      expect(restored.map((event) => event.eventId),
+          ['device-a:1', 'device-a:2', 'device-a:3']);
+      expect(restored.map((event) => event.op), [
+        HistorySyncOp.upsertProgress,
+        HistorySyncOp.upsertWatchState,
+        HistorySyncOp.clearAll,
+      ]);
       expect(restored.first.bangumiItem!.id, 1);
     });
   });
@@ -415,15 +545,45 @@ void main() {
       final events =
           HistorySyncService.buildStateEventsFromHistories([history]);
 
-      expect(events, hasLength(1));
-      final event = events.single;
-      expect(event.entityKey, history.key);
-      expect(event.entryKind, HistoryEntryKind.offline);
-      expect(event.episodePageUrl, '/offline/1');
-      expect(event.updatedAt, 2500);
-      expect(event.progressMs, 20 * 1000);
+      expect(events, hasLength(2));
+      final progressEvent = events.singleWhere(
+        (event) => event.op == HistorySyncOp.upsertProgress,
+      );
+      final watchStateEvent = events.singleWhere(
+        (event) => event.op == HistorySyncOp.upsertWatchState,
+      );
+      expect(progressEvent.entityKey, history.key);
+      expect(progressEvent.entryKind, HistoryEntryKind.offline);
+      expect(progressEvent.episodePageUrl, '/offline/1');
+      expect(progressEvent.updatedAt, 2500);
+      expect(progressEvent.progressMs, 20 * 1000);
+      expect(watchStateEvent.entryKind, HistoryEntryKind.offline);
+      expect(watchStateEvent.episodePageUrl, '/offline/1');
+      expect(watchStateEvent.carriesWatchState, isTrue);
     });
   });
+}
+
+HistorySyncEvent _localStateUpsert({
+  required History history,
+  required int episode,
+  required int progressMs,
+}) {
+  return HistorySyncEvent(
+    eventId: 'local-state:${history.key}:$episode:0',
+    deviceId: 'local-state',
+    seq: 0,
+    op: HistorySyncOp.upsertProgress,
+    updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
+    entityKey: history.key,
+    bangumiItem: history.bangumiItem,
+    adapterName: history.adapterName,
+    episode: episode,
+    road: 0,
+    progressMs: progressMs,
+    lastSrc: history.lastSrc,
+    lastWatchEpisodeName: history.lastWatchEpisodeName,
+  );
 }
 
 HistorySyncEvent _upsert({
@@ -484,6 +644,53 @@ HistorySyncEvent _legacyUpsert({
     lastSrc: 'https://example.com/video',
     lastWatchEpisodeName: 'EP$episode',
   );
+}
+
+HistorySyncEvent _watchState({
+  required String deviceId,
+  required int seq,
+  required int updatedAt,
+  required int episode,
+}) {
+  final history = History(
+    _item(1),
+    episode,
+    'plugin',
+    DateTime.fromMillisecondsSinceEpoch(updatedAt),
+    'https://example.com/video',
+    'EP$episode',
+  );
+  return HistorySyncEvent.upsertWatchState(
+    deviceId: deviceId,
+    seq: seq,
+    history: history,
+    episode: episode,
+    updatedAt: updatedAt,
+  );
+}
+
+List<HistorySyncEvent> _upsertPair({
+  required String deviceId,
+  required int seq,
+  required int updatedAt,
+  required int episode,
+  required int progressMs,
+}) {
+  return [
+    _upsert(
+      deviceId: deviceId,
+      seq: seq,
+      updatedAt: updatedAt,
+      episode: episode,
+      progressMs: progressMs,
+    ),
+    _watchState(
+      deviceId: deviceId,
+      seq: seq + 1,
+      updatedAt: updatedAt,
+      episode: episode,
+    ),
+  ];
 }
 
 BangumiItem _item(int id) {

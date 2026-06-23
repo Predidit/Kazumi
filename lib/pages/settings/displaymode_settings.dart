@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/storage.dart';
+import 'package:kazumi/services/storage/storage.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 
 class SetDisplayMode extends StatefulWidget {
@@ -17,7 +16,6 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   List<DisplayMode> modes = <DisplayMode>[];
   DisplayMode? active;
   DisplayMode? preferred;
-  Box setting = GStorage.setting;
 
   final ValueNotifier<int> page = ValueNotifier<int>(0);
   late final PageController controller = PageController()
@@ -37,7 +35,7 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   Future<void> fetchAll() async {
     preferred = await FlutterDisplayMode.preferred;
     active = await FlutterDisplayMode.active;
-    await setting.put(SettingBoxKey.displayMode, preferred.toString());
+    await GStorage.putSetting(SettingsKeys.displayMode, preferred.toString());
     setState(() {});
   }
 
@@ -52,12 +50,19 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
   }
 
   Future<DisplayMode> getDisplayModeType(modes) async {
-    var value = setting.get(SettingBoxKey.displayMode);
+    var value = GStorage.getSetting(SettingsKeys.displayMode);
     DisplayMode f = DisplayMode.auto;
     if (value != null) {
       f = modes.firstWhere((e) => e.toString() == value);
     }
     return f;
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    page.dispose();
+    super.dispose();
   }
 
   @override
@@ -71,7 +76,8 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
               maxWidth: 1000,
               sections: [
                 SettingsSection(
-                  title: Text('没有生效? 重启app试试', style: TextStyle(fontFamily: fontFamily)),
+                  title: Text('没有生效? 重启app试试',
+                      style: TextStyle(fontFamily: fontFamily)),
                   tiles: modes
                       .map((e) => SettingsTile<DisplayMode>.radioTile(
                             radioValue: e,
@@ -85,8 +91,10 @@ class _SetDisplayModeState extends State<SetDisplayMode> {
                               await fetchAll();
                             },
                             title: e == DisplayMode.auto
-                                ? Text('自动', style: TextStyle(fontFamily: fontFamily))
-                                : Text('$e${e == active ? "  [系统]" : ""}', style: TextStyle(fontFamily: fontFamily)),
+                                ? Text('自动',
+                                    style: TextStyle(fontFamily: fontFamily))
+                                : Text('$e${e == active ? "  [系统]" : ""}',
+                                    style: TextStyle(fontFamily: fontFamily)),
                           ))
                       .toList(),
                 ),

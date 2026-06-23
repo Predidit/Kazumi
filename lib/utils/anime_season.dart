@@ -51,3 +51,14 @@ class AnimeSeason {
     return '${yas[0]}年${_seasons[yas[1]]}新番';
   }
 }
+
+String getSeasonStringByMonth(int month) {
+  if (month <= 3) return '冬';
+  if (month <= 6) return '春';
+  if (month <= 9) return '夏';
+  return '秋';
+}
+
+bool isSameSeason(DateTime d1, DateTime d2) {
+  return d1.year == d2.year && (d1.month - d2.month).abs() <= 2;
+}

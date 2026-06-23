@@ -5,7 +5,7 @@ import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/appbar/sys_app_bar.dart';
 import 'package:kazumi/modules/search/plugin_search_module.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart' show parse;
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
@@ -112,7 +112,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
           .node as Element);
       return _itemHtmlMap[index] = node.outerHtml;
     } catch (e) {
-      KazumiLogger().e('PluginTest: failed to parse HTML item ${index + 1}', error: e);
+      KazumiLogger()
+          .e('PluginTest: failed to parse HTML item ${index + 1}', error: e);
       return "解析失败：$e";
     }
   }
@@ -282,7 +283,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
                       style: TextButton.styleFrom(
                           backgroundColor: theme
                               .getCoreColor(CoreColorType.error)
-                              .withOpacity(0.1)),
+                              .withValues(alpha: 0.1)),
                       child: Text('重试测试',
                           style: TextStyle(
                               color: theme.colorScheme.onErrorContainer)),
@@ -450,7 +451,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
     if (!_hasSearchData) return '无有效搜索结果';
     if (!_needChapterParse) return '无需解析章节';
     if (chapters == null) return '未获取章节数据';
-    return '获取到 ${chapters?.length ?? 0} 个播放列表';
+    return '获取到 ${chapters?.length ?? 0} 个播放线路';
   }
 
   Widget _buildChapterContent(ThemeData theme) {
@@ -481,7 +482,7 @@ class _PluginTestPageState extends State<PluginTestPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '播放列表 ${i + 1}：${road.name}',
+                  '播放线路 ${i + 1}：${road.name}',
                   style: theme.textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.w500),
                 ),

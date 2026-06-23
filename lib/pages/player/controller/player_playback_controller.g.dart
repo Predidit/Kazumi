@@ -184,6 +184,28 @@ mixin _$PlayerPlaybackController on _PlayerPlaybackController, Store {
   }
 
   @override
+  void updateVolume(double value) {
+    final _$actionInfo = _$_PlayerPlaybackControllerActionController
+        .startAction(name: '_PlayerPlaybackController.updateVolume');
+    try {
+      return super.updateVolume(value);
+    } finally {
+      _$_PlayerPlaybackControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void applyExternalVolume(double value) {
+    final _$actionInfo = _$_PlayerPlaybackControllerActionController
+        .startAction(name: '_PlayerPlaybackController.applyExternalVolume');
+    try {
+      return super.applyExternalVolume(value);
+    } finally {
+      _$_PlayerPlaybackControllerActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void syncPlaybackState() {
     final _$actionInfo = _$_PlayerPlaybackControllerActionController
         .startAction(name: '_PlayerPlaybackController.syncPlaybackState');

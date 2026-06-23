@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kazumi/bbcode/bbcode_widget.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/utils/date_time.dart';
 
 class EpisodeCommentsCard extends StatelessWidget {
   const EpisodeCommentsCard({
@@ -37,7 +37,7 @@ class EpisodeCommentsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(commentItem.comment.user.nickname),
-                    Text(Utils.dateFormat(commentItem.comment.createdAt)),
+                    Text(dateFormat(commentItem.comment.createdAt)),
                   ],
                 ),
               ],
@@ -73,7 +73,7 @@ class EpisodeCommentsCard extends StatelessWidget {
                               children: [
                                 Text(commentItem.replies[index].user.nickname),
                                 Text(
-                                  Utils.dateFormat(
+                                  dateFormat(
                                       commentItem.replies[index].createdAt),
                                 ),
                               ],

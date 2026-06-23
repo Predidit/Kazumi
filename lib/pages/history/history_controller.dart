@@ -12,7 +12,7 @@ abstract class _HistoryController with Store {
   final _historyRepository = Modular.get<IHistoryRepository>();
 
   @observable
-  ObservableList<History> histories = ObservableList<History>(); 
+  ObservableList<History> histories = ObservableList<History>();
 
   void init() {
     final temp = _historyRepository.getAllHistories();

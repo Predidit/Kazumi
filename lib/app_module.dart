@@ -3,9 +3,7 @@ import 'package:kazumi/pages/index_module.dart';
 
 class AppModule extends Module {
   @override
-  void binds(i) {
-
-  }
+  void binds(i) {}
 
   @override
   void routes(r) {

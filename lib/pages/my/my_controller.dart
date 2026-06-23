@@ -1,17 +1,14 @@
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
 import 'package:mobx/mobx.dart';
-import 'package:kazumi/utils/storage.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:kazumi/utils/auto_updater.dart';
+import 'package:kazumi/services/storage/storage.dart';
+import 'package:kazumi/services/update/auto_updater.dart';
 
 part 'my_controller.g.dart';
 
 class MyController = _MyController with _$MyController;
 
 abstract class _MyController with Store {
-  Box setting = GStorage.setting;
-
   @observable
   ObservableList<String> shieldList = ObservableList.of([]);
 
@@ -25,7 +22,8 @@ abstract class _MyController with Store {
         try {
           if (RegExp(pattern).hasMatch(danmaku)) return true;
         } catch (_) {
-          KazumiLogger().e('Danmaku: invalid danmaku shield regex pattern: $pattern');
+          KazumiLogger()
+              .e('Danmaku: invalid danmaku shield regex pattern: $pattern');
           continue;
         }
       } else {

@@ -11,8 +11,9 @@ import 'package:kazumi/pages/download/download_controller.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/plugins/plugins.dart';
 import 'package:kazumi/plugins/plugins_controller.dart';
-import 'package:kazumi/utils/logger.dart';
-import 'package:kazumi/utils/utils.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/date_time.dart';
 
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
@@ -46,7 +47,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     }
     KazumiDialog.showLoading(
       msg: '获取中',
-      barrierDismissible: Utils.isDesktop(),
+      barrierDismissible: isDesktop(),
       onDismiss: () {
         videoPageController.cancelQueryRoads();
       },
@@ -84,10 +85,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     }
     videoPageController.bangumiItem = widget.historyItem.bangumiItem;
     videoPageController.currentPlugin = targetPlugin;
-    videoPageController.title =
-        widget.historyItem.bangumiItem.nameCn == ''
-            ? widget.historyItem.bangumiItem.name
-            : widget.historyItem.bangumiItem.nameCn;
+    videoPageController.title = widget.historyItem.bangumiItem.nameCn == ''
+        ? widget.historyItem.bangumiItem.name
+        : widget.historyItem.bangumiItem.nameCn;
     videoPageController.src = widget.historyItem.lastSrc;
     try {
       await videoPageController.queryRoads(
@@ -169,10 +169,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final String title = widget.historyItem.bangumiItem.nameCn == ''
         ? widget.historyItem.bangumiItem.name
         : widget.historyItem.bangumiItem.nameCn;
-    final String episodeText =
-        widget.historyItem.lastWatchEpisodeName.isEmpty
-            ? '第${widget.historyItem.lastWatchEpisode}话'
-            : widget.historyItem.lastWatchEpisodeName;
+    final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
+        ? '第${widget.historyItem.lastWatchEpisode}话'
+        : widget.historyItem.lastWatchEpisodeName;
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -284,8 +283,9 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              Utils.formatTimestampToRelativeTime(
-                                  widget.historyItem.lastWatchTime.millisecondsSinceEpoch ~/ 1000),
+                              formatTimestampToRelativeTime(widget.historyItem
+                                      .lastWatchTime.millisecondsSinceEpoch ~/
+                                  1000),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.outline,
                               ),

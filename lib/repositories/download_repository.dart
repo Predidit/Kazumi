@@ -1,6 +1,6 @@
-import 'package:kazumi/utils/storage.dart';
 import 'package:kazumi/modules/download/download_module.dart';
-import 'package:kazumi/utils/logger.dart';
+import 'package:kazumi/services/logging/logger.dart';
+import 'package:kazumi/services/storage/storage.dart';
 
 abstract class IDownloadRepository {
   List<DownloadRecord> getAllRecords();
@@ -268,8 +268,7 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   bool getForceAdBlocker() {
-    return GStorage.setting
-        .get(SettingBoxKey.forceAdBlocker, defaultValue: false);
+    return GStorage.getSetting(SettingsKeys.forceAdBlocker);
   }
 
   @override

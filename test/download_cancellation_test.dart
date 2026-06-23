@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/request/core/network_exception.dart';
-import 'package:kazumi/utils/download_manager.dart';
+import 'package:kazumi/services/download/download_manager.dart';
 
 void main() {
   group('isDownloadCancellation', () {

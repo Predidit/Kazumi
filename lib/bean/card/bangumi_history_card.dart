@@ -140,9 +140,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       bangumiItem: widget.historyItem.bangumiItem,
       pluginName: widget.historyItem.adapterName,
       episodeNumber: targetEpisode.episodeNumber,
-      episodeName: targetEpisode.episodeName,
       road: targetEpisode.road,
-      videoPath: localPath,
       downloadedEpisodes: downloadedEpisodes,
     );
     return true;

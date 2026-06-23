@@ -12,7 +12,6 @@ import 'package:kazumi/modules/collect/collect_sync_merger.dart';
 import 'package:kazumi/modules/search/search_history_module.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 
-
 import 'package:kazumi/services/storage/settings_keys.dart';
 export 'package:kazumi/services/storage/settings_keys.dart';
 
@@ -340,6 +339,14 @@ class GStorage {
 
   static Future<void> putSetting<T>(SettingKey<T> key, T value) async {
     await _setting.put(key.name, value);
+  }
+
+  static void setSettingsBoxForTest(Box<dynamic> settingBox) {
+    _setting = settingBox;
+  }
+
+  static Future<int> clearSettingsForTest() {
+    return _setting.clear();
   }
 
   static List<String> getStringListSettingByName(

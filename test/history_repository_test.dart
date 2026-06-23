@@ -16,12 +16,12 @@ void main() {
     Hive.init(tempDir.path);
     _registerAdapters();
     GStorage.histories = await Hive.openBox<History>('histories');
-    GStorage.setting = await Hive.openBox<dynamic>('setting');
+    GStorage.setSettingsBoxForTest(await Hive.openBox<dynamic>('setting'));
   });
 
   setUp(() async {
     await GStorage.histories.clear();
-    await GStorage.setting.clear();
+    await GStorage.clearSettingsForTest();
   });
 
   tearDownAll(() async {

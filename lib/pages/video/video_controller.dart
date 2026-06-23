@@ -272,11 +272,6 @@ abstract class _VideoPageController with Store {
   PlaybackHistoryIdentity? get currentHistoryIdentity =>
       _playbackHistoryIdentity;
 
-  SyncPlayEpisodeIdentity? get currentSyncPlayEpisodeIdentity {
-    final resolvedEpisode = _resolveCurrentEpisode();
-    return resolvedEpisode?.toSyncPlayEpisodeIdentity(bangumiItem.id);
-  }
-
   /// 获取当前实际的集数编号
   int get actualEpisodeNumber {
     return _resolveCurrentEpisode()?.historyEpisodeNumber ?? currentEpisode;
@@ -292,34 +287,6 @@ abstract class _VideoPageController with Store {
     return isOfflineMode
         ? _resolveOfflineEpisode(currentEpisode)
         : _resolveOnlineEpisode(currentEpisode);
-  }
-
-  ({int listIndex, int roadIndex})? resolveSyncPlayEpisodeIdentity(
-    SyncPlayEpisodeIdentity identity,
-  ) {
-    if (identity.bangumiId != bangumiItem.id) {
-      return null;
-    }
-    if (identity.isLegacy) {
-      return _resolveSyncPlayListFallback(identity);
-    }
-
-    final matchedByEpisodeNumber = isOfflineMode
-        ? _findOfflineEpisodeByNumber(
-            identity.episodeNumber,
-            preferredOriginalRoad: identity.roadIndex,
-          )
-        : _findSyncPlayEpisodeByNumber(
-            identity.episodeNumber,
-            preferredRoadIndex: identity.roadIndex,
-          );
-    if (matchedByEpisodeNumber != null) {
-      return matchedByEpisodeNumber;
-    }
-
-    return isOfflineMode
-        ? _resolveOfflineSyncPlayListFallback(identity)
-        : _resolveSyncPlayListFallback(identity);
   }
 
   ({int listIndex, int roadIndex})? _findOfflineEpisodeByNumber(
@@ -357,66 +324,6 @@ abstract class _VideoPageController with Store {
       return null;
     }
     return (listIndex: index + 1, roadIndex: roadIndex);
-  }
-
-  ({int listIndex, int roadIndex})? _findSyncPlayEpisodeByNumber(
-    int episodeNumber, {
-    required int preferredRoadIndex,
-  }) {
-    if (episodeNumber <= 0 || roadList.isEmpty) {
-      return null;
-    }
-    final roadIndices = <int>[
-      if (preferredRoadIndex >= 0 && preferredRoadIndex < roadList.length)
-        preferredRoadIndex,
-      for (var i = 0; i < roadList.length; i++)
-        if (i != preferredRoadIndex) i,
-    ];
-
-    for (final roadIndex in roadIndices) {
-      final roadData = roadList[roadIndex];
-      for (var listIndex = 1; listIndex <= roadData.data.length; listIndex++) {
-        final resolvedEpisode = isOfflineMode
-            ? _resolveOfflineEpisode(listIndex, road: roadIndex)
-            : _resolveOnlineEpisode(listIndex, road: roadIndex);
-        if (resolvedEpisode?.danmakuEpisodeNumber == episodeNumber) {
-          return (listIndex: listIndex, roadIndex: roadIndex);
-        }
-      }
-    }
-    return null;
-  }
-
-  ({int listIndex, int roadIndex})? _resolveSyncPlayListFallback(
-    SyncPlayEpisodeIdentity identity,
-  ) {
-    if (_isValidSyncPlayListTarget(identity.listIndex, identity.roadIndex)) {
-      return (listIndex: identity.listIndex, roadIndex: identity.roadIndex);
-    }
-    for (var roadIndex = 0; roadIndex < roadList.length; roadIndex++) {
-      if (_isValidSyncPlayListTarget(identity.listIndex, roadIndex)) {
-        return (listIndex: identity.listIndex, roadIndex: roadIndex);
-      }
-    }
-    return null;
-  }
-
-  ({int listIndex, int roadIndex})? _resolveOfflineSyncPlayListFallback(
-    SyncPlayEpisodeIdentity identity,
-  ) {
-    final displayRoad = _offlineOriginalRoadToDisplayRoad[identity.roadIndex];
-    if (displayRoad != null &&
-        _isValidSyncPlayListTarget(identity.listIndex, displayRoad)) {
-      return (listIndex: identity.listIndex, roadIndex: displayRoad);
-    }
-    return _resolveSyncPlayListFallback(identity);
-  }
-
-  bool _isValidSyncPlayListTarget(int listIndex, int roadIndex) {
-    return roadIndex >= 0 &&
-        roadIndex < roadList.length &&
-        listIndex > 0 &&
-        listIndex <= roadList[roadIndex].data.length;
   }
 
   int getHistoryOffsetFor(PlaybackHistoryIdentity identity) {
@@ -658,8 +565,6 @@ abstract class _VideoPageController with Store {
       episodeTitle: resolvedEpisode.displayTitle,
       referer: '',
       currentRoad: resolvedEpisode.roadIndex,
-      syncPlayEpisodeIdentity:
-          resolvedEpisode.toSyncPlayEpisodeIdentity(bangumiItem.id),
       coverUrl: bangumiItem.images['large'],
       bangumiName:
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
@@ -778,8 +683,6 @@ abstract class _VideoPageController with Store {
         episodeTitle: resolvedEpisode.displayTitle,
         referer: currentPlugin.referer,
         currentRoad: resolvedEpisode.roadIndex,
-        syncPlayEpisodeIdentity:
-            resolvedEpisode.toSyncPlayEpisodeIdentity(bangumiItem.id),
         coverUrl: bangumiItem.images['large'],
         bangumiName: bangumiItem.nameCn.isNotEmpty
             ? bangumiItem.nameCn
@@ -1071,15 +974,6 @@ class ResolvedEpisode {
     required int episodeNumber,
     required int originalRoadIndex,
   }) = _OfflineResolvedEpisode;
-
-  SyncPlayEpisodeIdentity toSyncPlayEpisodeIdentity(int bangumiId) {
-    return SyncPlayEpisodeIdentity(
-      bangumiId: bangumiId,
-      roadIndex: originalRoadIndex,
-      listIndex: listIndex,
-      episodeNumber: danmakuEpisodeNumber,
-    );
-  }
 }
 
 class _OfflineResolvedEpisode extends ResolvedEpisode {

@@ -20,7 +20,7 @@ version: 2.1.6+20106
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
-  flutter: 3.44.2
+  flutter: 3.44.3
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -118,49 +118,49 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/universal/media_kit_libs_video
 
 dependency_overrides:
   media_kit_libs_linux:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/linux/media_kit_libs_linux
   media_kit_libs_ios_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/ios/media_kit_libs_ios_video
   media_kit_libs_android_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/android/media_kit_libs_android_video
   media_kit_libs_windows_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/windows/media_kit_libs_windows_video
   media_kit_libs_macos_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/macos/media_kit_libs_macos_video
   media_kit_libs_ohos:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 87cdfef7dc4c14653068a1174d5eeaa7627e5a88
+      ref: 11d02cb804b8faf944137834a1b0ac80880a4079
       path: ./libs/ohos/media_kit_libs_ohos
 
 dev_dependencies:

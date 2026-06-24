@@ -130,6 +130,57 @@ class HistorySyncService {
         GStorage.histories.values.toList());
   }
 
+  static List<HistorySyncEvent> buildStateEventsFromHistories(
+    Iterable<History> histories,
+  ) {
+    final events = <HistorySyncEvent>[];
+    for (final history in histories) {
+      history.entryKind = HistoryEntryKind.normalize(history.entryKind);
+      for (final progress in history.progresses.values) {
+        final updatedAt = progress.effectiveUpdatedAtMs(history.lastWatchTime);
+        events.add(
+          HistorySyncEvent(
+            eventId:
+                'local-state:${history.key}:${progress.episode}:${progress.road}',
+            deviceId: 'local-state',
+            seq: 0,
+            op: HistorySyncOp.upsertProgress,
+            updatedAt: updatedAt,
+            entityKey: history.key,
+            bangumiItem: history.bangumiItem,
+            adapterName: history.adapterName,
+            episode: progress.episode,
+            road: progress.road,
+            progressMs: progress.progress.inMilliseconds,
+            lastSrc: history.lastSrc,
+            lastWatchEpisodeName: history.lastWatchEpisodeName,
+            entryKind: history.entryKind,
+            episodePageUrl: history.episodePageUrl,
+          ),
+        );
+      }
+      events.add(
+        HistorySyncEvent(
+          eventId: 'local-state:${history.key}:watch-state',
+          deviceId: 'local-state',
+          seq: 0,
+          op: HistorySyncOp.upsertWatchState,
+          updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
+          entityKey: history.key,
+          bangumiItem: history.bangumiItem,
+          adapterName: history.adapterName,
+          episode: history.lastWatchEpisode,
+          lastSrc: history.lastSrc,
+          lastWatchEpisodeName: history.lastWatchEpisodeName,
+          entryKind: history.entryKind,
+          episodePageUrl: history.episodePageUrl,
+          carriesWatchState: true,
+        ),
+      );
+    }
+    return events;
+  }
+
   Future<void> applySnapshotToLocal(HistorySyncSnapshot snapshot) async {
     await GStorage.histories.clear();
     for (final history in snapshot.histories) {

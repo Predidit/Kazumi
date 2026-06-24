@@ -3,6 +3,7 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/history/history_module.dart';
 import 'package:kazumi/modules/history/history_sync.dart';
+import 'package:kazumi/services/sync/history_sync_service.dart';
 
 void main() {
   group('HistorySyncDevice', () {
@@ -127,6 +128,199 @@ void main() {
       expect(merged.deletedVersions, isEmpty);
     });
 
+    test('legacy delete tombstone blocks older online upserts from snapshot',
+        () {
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final deleteVersion = HistorySyncVersion.of(
+        updatedAt: 2000,
+        eventId: 'legacy-delete',
+      );
+      final snapshot = HistorySyncSnapshot.fromJson({
+        'generatedAt': 2000,
+        'histories': [],
+        'itemVersions': {},
+        'progressVersions': {},
+        'deletedVersions': {legacyKey: deleteVersion},
+      });
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: snapshot,
+        events: [
+          _legacyUpsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1500,
+            episode: 1,
+            progressMs: 10,
+          ),
+        ],
+      );
+
+      expect(merged.histories, isEmpty);
+      expect(merged.deletedVersions, containsPair(legacyKey, deleteVersion));
+    });
+
+    test('newer online upsert clears legacy delete tombstone', () {
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final scopedKey = History.getKey('plugin', _item(1));
+      final deleteVersion = HistorySyncVersion.of(
+        updatedAt: 2000,
+        eventId: 'legacy-delete',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 2000,
+          histories: const [],
+          itemVersions: const {},
+          progressVersions: const {},
+          deletedVersions: {legacyKey: deleteVersion},
+        ),
+        events: [
+          _legacyUpsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 2500,
+            episode: 2,
+            progressMs: 20,
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.key, scopedKey);
+      expect(merged.histories.single.lastWatchEpisode, 2);
+      expect(merged.deletedVersions, isEmpty);
+    });
+
+    test('legacy delete tombstone does not block offline upserts', () {
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final deleteVersion = HistorySyncVersion.of(
+        updatedAt: 2000,
+        eventId: 'legacy-delete',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 2000,
+          histories: const [],
+          itemVersions: const {},
+          progressVersions: const {},
+          deletedVersions: {legacyKey: deleteVersion},
+        ),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1500,
+            episode: 1,
+            progressMs: 10,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/offline/1',
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.entryKind, HistoryEntryKind.offline);
+      expect(merged.deletedVersions, containsPair(legacyKey, deleteVersion));
+    });
+
+    test('legacy tombstone is not canonicalized onto offline snapshot history',
+        () {
+      final offlineHistory = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final offlineKey = History.getKey(
+        'plugin',
+        _item(1),
+        entryKind: HistoryEntryKind.offline,
+      );
+      final deleteVersion = HistorySyncVersion.of(
+        updatedAt: 2000,
+        eventId: 'legacy-delete',
+      );
+      final snapshot = HistorySyncSnapshot.fromJson({
+        'generatedAt': 2000,
+        'histories': [HistorySyncCodec.historyToJson(offlineHistory)],
+        'itemVersions': {},
+        'progressVersions': {},
+        'deletedVersions': {legacyKey: deleteVersion},
+      });
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: snapshot,
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1500,
+            episode: 1,
+            progressMs: 10,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/offline/1',
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.key, offlineKey);
+      expect(
+          merged.histories.single.progresses[1]!.progress.inMilliseconds, 10);
+      expect(merged.deletedVersions, containsPair(legacyKey, deleteVersion));
+      expect(merged.deletedVersions.containsKey(offlineKey), isFalse);
+    });
+
+    test('legacy delete event does not delete an existing offline history', () {
+      final offlineHistory = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final offlineKey = History.getKey(
+        'plugin',
+        _item(1),
+        entryKind: HistoryEntryKind.offline,
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 1000,
+          histories: [offlineHistory],
+          itemVersions: const {},
+          progressVersions: const {},
+          deletedVersions: const {},
+        ),
+        events: [
+          HistorySyncEvent.deleteHistory(
+            deviceId: 'device-a',
+            seq: 1,
+            entityKey: legacyKey,
+            updatedAt: 2000,
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(1));
+      expect(merged.histories.single.key, offlineKey);
+      expect(merged.deletedVersions, contains(legacyKey));
+      expect(merged.deletedVersions.containsKey(offlineKey), isFalse);
+    });
+
     test('uses deterministic tie-breakers when timestamps are equal', () {
       final merged = HistorySyncMerger.merge(
         snapshot: HistorySyncSnapshot.empty(),
@@ -150,6 +344,121 @@ void main() {
 
       expect(
           merged.histories.single.progresses[1]!.progress.inMilliseconds, 20);
+    });
+
+    test('preserves playback entry metadata when merging progress', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/episode/1',
+          ),
+        ],
+      );
+
+      final history = merged.histories.single;
+      expect(history.entryKind, HistoryEntryKind.offline);
+      expect(history.episodePageUrl, '/episode/1');
+    });
+
+    test('keeps online and offline progress separate for the same episode', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            entryKind: HistoryEntryKind.online,
+            episodePageUrl: '/online/1',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            entryKind: HistoryEntryKind.offline,
+            episodePageUrl: '/offline/1',
+          ),
+        ],
+      );
+
+      expect(merged.histories, hasLength(2));
+      final online = merged.histories.singleWhere(
+        (history) => history.entryKind == HistoryEntryKind.online,
+      );
+      final offline = merged.histories.singleWhere(
+        (history) => history.entryKind == HistoryEntryKind.offline,
+      );
+      expect(online.key, History.getKey('plugin', _item(1)));
+      expect(
+        offline.key,
+        History.getKey(
+          'plugin',
+          _item(1),
+          entryKind: HistoryEntryKind.offline,
+        ),
+      );
+      expect(online.progresses[1]!.progress.inSeconds, 10);
+      expect(offline.progresses[1]!.progress.inSeconds, 20);
+    });
+
+    test('canonicalizes legacy snapshot keys to online scoped keys', () {
+      final history = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        0,
+        10 * 1000,
+        updatedAtMs: 1500,
+      );
+      final legacyKey = History.legacyKey('plugin', _item(1));
+      final scopedKey = History.getKey('plugin', _item(1));
+      final legacyVersion = HistorySyncVersion.of(
+        updatedAt: 1000,
+        eventId: 'legacy',
+      );
+      final progressVersion = HistorySyncVersion.of(
+        updatedAt: 1500,
+        eventId: 'legacy-progress',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot(
+          generatedAt: 2000,
+          histories: [history],
+          itemVersions: {legacyKey: legacyVersion},
+          progressVersions: {
+            legacyKey: {1: progressVersion},
+          },
+          deletedVersions: const {},
+        ),
+        events: const [],
+      );
+
+      expect(merged.histories.single.key, scopedKey);
+      expect(merged.itemVersions, containsPair(scopedKey, legacyVersion));
+      expect(
+        merged.progressVersions[scopedKey],
+        containsPair(1, progressVersion),
+      );
+      expect(merged.itemVersions.containsKey(legacyKey), isFalse);
+      expect(merged.progressVersions.containsKey(legacyKey), isFalse);
     });
 
     test('keeps watch state when local-state progress events share a timestamp',
@@ -308,6 +617,46 @@ void main() {
       expect(restored.first.bangumiItem!.id, 1);
     });
   });
+
+  group('HistorySyncService', () {
+    test('builds local state events with entry metadata and progress time', () {
+      final history = History(
+        _item(1),
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        '',
+        'EP1',
+        entryKind: HistoryEntryKind.offline,
+        episodePageUrl: '/offline/1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        2,
+        20 * 1000,
+        updatedAtMs: 2500,
+      );
+
+      final events =
+          HistorySyncService.buildStateEventsFromHistories([history]);
+
+      expect(events, hasLength(2));
+      final progressEvent = events.singleWhere(
+        (event) => event.op == HistorySyncOp.upsertProgress,
+      );
+      final watchStateEvent = events.singleWhere(
+        (event) => event.op == HistorySyncOp.upsertWatchState,
+      );
+      expect(progressEvent.entityKey, history.key);
+      expect(progressEvent.entryKind, HistoryEntryKind.offline);
+      expect(progressEvent.episodePageUrl, '/offline/1');
+      expect(progressEvent.updatedAt, 2500);
+      expect(progressEvent.progressMs, 20 * 1000);
+      expect(watchStateEvent.entryKind, HistoryEntryKind.offline);
+      expect(watchStateEvent.episodePageUrl, '/offline/1');
+      expect(watchStateEvent.carriesWatchState, isTrue);
+    });
+  });
 }
 
 HistorySyncEvent _localStateUpsert({
@@ -338,6 +687,8 @@ HistorySyncEvent _upsert({
   required int updatedAt,
   required int episode,
   required int progressMs,
+  String entryKind = HistoryEntryKind.online,
+  String episodePageUrl = '',
 }) {
   final history = History(
     _item(1),
@@ -346,8 +697,15 @@ HistorySyncEvent _upsert({
     DateTime.fromMillisecondsSinceEpoch(updatedAt),
     'https://example.com/video',
     'EP$episode',
+    entryKind: entryKind,
+    episodePageUrl: episodePageUrl,
   );
-  history.progresses[episode] = Progress(episode, 0, progressMs);
+  history.progresses[episode] = Progress(
+    episode,
+    0,
+    progressMs,
+    updatedAtMs: updatedAt,
+  );
   return HistorySyncEvent.upsertProgress(
     deviceId: deviceId,
     seq: seq,
@@ -366,28 +724,20 @@ HistorySyncEvent _legacyUpsert({
   required int episode,
   required int progressMs,
 }) {
-  final history = History(
-    _item(1),
-    episode,
-    'plugin',
-    DateTime.fromMillisecondsSinceEpoch(updatedAt),
-    'https://example.com/video',
-    'EP$episode',
-  );
   return HistorySyncEvent(
     eventId: '$deviceId:$seq',
     deviceId: deviceId,
     seq: seq,
     op: HistorySyncOp.upsertProgress,
     updatedAt: updatedAt,
-    entityKey: history.key,
-    bangumiItem: history.bangumiItem,
-    adapterName: history.adapterName,
+    entityKey: History.legacyKey('plugin', _item(1)),
+    bangumiItem: _item(1),
+    adapterName: 'plugin',
     episode: episode,
     road: 0,
     progressMs: progressMs,
-    lastSrc: history.lastSrc,
-    lastWatchEpisodeName: history.lastWatchEpisodeName,
+    lastSrc: 'https://example.com/video',
+    lastWatchEpisodeName: 'EP$episode',
   );
 }
 

@@ -55,6 +55,8 @@ class HistorySyncEvent {
     this.progressMs,
     this.lastSrc,
     this.lastWatchEpisodeName,
+    this.entryKind,
+    this.episodePageUrl,
     this.carriesWatchState = false,
   });
 
@@ -71,6 +73,8 @@ class HistorySyncEvent {
   final int? progressMs;
   final String? lastSrc;
   final String? lastWatchEpisodeName;
+  final String? entryKind;
+  final String? episodePageUrl;
   final bool carriesWatchState;
 
   String get version => HistorySyncVersion.of(
@@ -99,6 +103,8 @@ class HistorySyncEvent {
       episode: episode,
       road: road,
       progressMs: progressMs,
+      entryKind: history.entryKind,
+      episodePageUrl: history.episodePageUrl,
     );
   }
 
@@ -121,6 +127,8 @@ class HistorySyncEvent {
       episode: episode,
       lastSrc: history.lastSrc,
       lastWatchEpisodeName: history.lastWatchEpisodeName,
+      entryKind: history.entryKind,
+      episodePageUrl: history.episodePageUrl,
       carriesWatchState: true,
     );
   }
@@ -174,8 +182,11 @@ class HistorySyncEvent {
       progressMs: (json['progressMs'] as num?)?.toInt(),
       lastSrc: json['lastSrc'] as String?,
       lastWatchEpisodeName: json['lastWatchEpisodeName'] as String?,
-      carriesWatchState: json.containsKey('lastSrc') ||
-          json.containsKey('lastWatchEpisodeName'),
+      entryKind: json['entryKind'] as String?,
+      episodePageUrl: json['episodePageUrl'] as String?,
+      carriesWatchState: (json['carriesWatchState'] as bool?) ??
+          (json.containsKey('lastSrc') ||
+              json.containsKey('lastWatchEpisodeName')),
     );
   }
 
@@ -196,6 +207,9 @@ class HistorySyncEvent {
       if (lastSrc != null) 'lastSrc': lastSrc,
       if (lastWatchEpisodeName != null)
         'lastWatchEpisodeName': lastWatchEpisodeName,
+      if (entryKind != null) 'entryKind': entryKind,
+      if (episodePageUrl != null) 'episodePageUrl': episodePageUrl,
+      if (carriesWatchState) 'carriesWatchState': carriesWatchState,
     };
   }
 }
@@ -231,13 +245,18 @@ class HistorySyncSnapshot {
     final itemVersions = <String, String>{};
     final progressVersions = <String, Map<int, String>>{};
     for (final history in histories) {
+      history.entryKind = HistoryEntryKind.normalize(history.entryKind);
       final version = HistorySyncVersion.of(
         updatedAt: history.lastWatchTime.millisecondsSinceEpoch,
         eventId: 'local-import:${history.key}',
       );
       itemVersions[history.key] = version;
       progressVersions[history.key] = {
-        for (final entry in history.progresses.entries) entry.key: version,
+        for (final entry in history.progresses.entries)
+          entry.key: HistorySyncVersion.of(
+            updatedAt: entry.value.effectiveUpdatedAtMs(history.lastWatchTime),
+            eventId: 'local-import:${history.key}:${entry.key}',
+          ),
       };
     }
     return HistorySyncSnapshot(
@@ -250,28 +269,49 @@ class HistorySyncSnapshot {
   }
 
   factory HistorySyncSnapshot.fromJson(Map<String, dynamic> json) {
+    final histories = ((json['histories'] as List?) ?? const [])
+        .map((item) => HistorySyncCodec.historyFromJson(
+              Map<String, dynamic>.from(item as Map),
+            ))
+        .toList();
+    final keyMap = {
+      for (final history in histories) history.key: history.key,
+      for (final history in histories)
+        if (history.entryKind == HistoryEntryKind.online)
+          History.legacyKey(history.adapterName, history.bangumiItem):
+              history.key,
+    };
+    String canonicalSnapshotKey(String key) => keyMap[key] ?? key;
     final progressJson = Map<String, dynamic>.from(
       (json['progressVersions'] as Map?) ?? const {},
+    );
+    final itemVersions = Map<String, String>.from(
+      (json['itemVersions'] as Map?) ?? const {},
+    );
+    final progressVersions = {
+      for (final entry in progressJson.entries)
+        entry.key: (Map<String, dynamic>.from(entry.value as Map)).map(
+          (episode, version) => MapEntry(int.parse(episode), '$version'),
+        ),
+    };
+    final deletedVersions = Map<String, String>.from(
+      (json['deletedVersions'] as Map?) ?? const {},
     );
     return HistorySyncSnapshot(
       generatedAt: (json['generatedAt'] as num?)?.toInt() ??
           DateTime.now().millisecondsSinceEpoch,
-      histories: ((json['histories'] as List?) ?? const [])
-          .map((item) => HistorySyncCodec.historyFromJson(
-                Map<String, dynamic>.from(item as Map),
-              ))
-          .toList(),
-      itemVersions: Map<String, String>.from(
-        (json['itemVersions'] as Map?) ?? const {},
+      histories: histories,
+      itemVersions: HistorySyncState._canonicalizeVersionMap(
+        itemVersions,
+        canonicalSnapshotKey,
       ),
-      progressVersions: {
-        for (final entry in progressJson.entries)
-          entry.key: (Map<String, dynamic>.from(entry.value as Map)).map(
-            (episode, version) => MapEntry(int.parse(episode), '$version'),
-          ),
-      },
-      deletedVersions: Map<String, String>.from(
-        (json['deletedVersions'] as Map?) ?? const {},
+      progressVersions: HistorySyncState._canonicalizeProgressVersionMap(
+        progressVersions,
+        canonicalSnapshotKey,
+      ),
+      deletedVersions: HistorySyncState._canonicalizeVersionMap(
+        deletedVersions,
+        canonicalSnapshotKey,
       ),
       clearVersion: json['clearVersion'] as String?,
     );
@@ -313,13 +353,33 @@ class HistorySyncState {
         deletedVersions = Map.of(deletedVersions);
 
   factory HistorySyncState.fromSnapshot(HistorySyncSnapshot snapshot) {
+    final histories = <String, History>{};
+    final keyMap = <String, String>{};
+    for (final history in snapshot.histories) {
+      history.entryKind = HistoryEntryKind.normalize(history.entryKind);
+      histories[history.key] = history;
+      keyMap[history.key] = history.key;
+      if (history.entryKind == HistoryEntryKind.online) {
+        keyMap[History.legacyKey(history.adapterName, history.bangumiItem)] =
+            history.key;
+      }
+    }
+    String canonicalSnapshotKey(String key) => keyMap[key] ?? key;
+
     return HistorySyncState._(
-      histories: {
-        for (final history in snapshot.histories) history.key: history
-      },
-      itemVersions: snapshot.itemVersions,
-      progressVersions: snapshot.progressVersions,
-      deletedVersions: snapshot.deletedVersions,
+      histories: histories,
+      itemVersions: _canonicalizeVersionMap(
+        snapshot.itemVersions,
+        canonicalSnapshotKey,
+      ),
+      progressVersions: _canonicalizeProgressVersionMap(
+        snapshot.progressVersions,
+        canonicalSnapshotKey,
+      ),
+      deletedVersions: _canonicalizeVersionMap(
+        snapshot.deletedVersions,
+        canonicalSnapshotKey,
+      ),
       clearVersion: snapshot.clearVersion,
     );
   }
@@ -355,14 +415,12 @@ class HistorySyncState {
   }
 
   void _applyUpsertProgress(HistorySyncEvent event) {
-    final entityKey = event.entityKey;
     final bangumiItem = event.bangumiItem;
     final adapterName = event.adapterName;
     final episode = event.episode;
     final road = event.road;
     final progressMs = event.progressMs;
-    if (entityKey == null ||
-        bangumiItem == null ||
+    if (bangumiItem == null ||
         adapterName == null ||
         episode == null ||
         road == null ||
@@ -372,7 +430,15 @@ class HistorySyncState {
     if (!_isNewerThanClear(event.version)) {
       return;
     }
-    final deletedVersion = deletedVersions[entityKey];
+    final entryKind =
+        HistoryEntryKind.normalize(event.entryKind ?? HistoryEntryKind.online);
+    final entityKey = History.scopedKey(adapterName, bangumiItem, entryKind);
+    final legacyEntityKey = History.legacyKey(adapterName, bangumiItem);
+    final deletedVersion = _deletedVersionForUpsert(
+      entityKey,
+      legacyEntityKey: legacyEntityKey,
+      entryKind: entryKind,
+    );
     if (deletedVersion != null &&
         HistorySyncVersion.compare(event.version, deletedVersion) <= 0) {
       return;
@@ -386,38 +452,51 @@ class HistorySyncState {
           DateTime.fromMillisecondsSinceEpoch(event.updatedAt),
           event.lastSrc ?? '',
           event.lastWatchEpisodeName ?? '',
+          entryKind: entryKind,
+          episodePageUrl: event.episodePageUrl ?? '',
         );
 
     final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
     final progressVersion = episodeVersions[episode];
     if (progressVersion == null ||
         HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
-      current.progresses[episode] = Progress(episode, road, progressMs);
+      current.progresses[episode] = Progress(
+        episode,
+        road,
+        progressMs,
+        updatedAtMs: event.updatedAt,
+      );
       episodeVersions[episode] = event.version;
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
-
+    if (entryKind == HistoryEntryKind.online) {
+      deletedVersions.remove(legacyEntityKey);
+    }
     if (_shouldApplyLegacyWatchState(event)) {
       _applyUpsertWatchState(event);
     }
   }
 
   void _applyUpsertWatchState(HistorySyncEvent event) {
-    final entityKey = event.entityKey;
     final bangumiItem = event.bangumiItem;
     final adapterName = event.adapterName;
     final episode = event.episode;
-    if (entityKey == null ||
-        bangumiItem == null ||
-        adapterName == null ||
-        episode == null) {
+    if (bangumiItem == null || adapterName == null || episode == null) {
       throw const FormatException('Invalid upsertWatchState history event');
     }
     if (!_isNewerThanClear(event.version)) {
       return;
     }
-    final deletedVersion = deletedVersions[entityKey];
+    final entryKind =
+        HistoryEntryKind.normalize(event.entryKind ?? HistoryEntryKind.online);
+    final entityKey = History.scopedKey(adapterName, bangumiItem, entryKind);
+    final legacyEntityKey = History.legacyKey(adapterName, bangumiItem);
+    final deletedVersion = _deletedVersionForUpsert(
+      entityKey,
+      legacyEntityKey: legacyEntityKey,
+      entryKind: entryKind,
+    );
     if (deletedVersion != null &&
         HistorySyncVersion.compare(event.version, deletedVersion) <= 0) {
       return;
@@ -431,6 +510,8 @@ class HistorySyncState {
           DateTime.fromMillisecondsSinceEpoch(event.updatedAt),
           event.lastSrc ?? '',
           event.lastWatchEpisodeName ?? '',
+          entryKind: entryKind,
+          episodePageUrl: event.episodePageUrl ?? '',
         );
 
     final itemVersion = itemVersions[entityKey];
@@ -447,17 +528,25 @@ class HistorySyncState {
       if ((event.lastWatchEpisodeName ?? '').isNotEmpty) {
         current.lastWatchEpisodeName = event.lastWatchEpisodeName!;
       }
+      current.entryKind = entryKind;
+      if ((event.episodePageUrl ?? '').isNotEmpty) {
+        current.episodePageUrl = event.episodePageUrl!;
+      }
       itemVersions[entityKey] = event.version;
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
+    if (entryKind == HistoryEntryKind.online) {
+      deletedVersions.remove(legacyEntityKey);
+    }
   }
 
   void _applyDelete(HistorySyncEvent event) {
-    final entityKey = event.entityKey;
-    if (entityKey == null || !_isNewerThanClear(event.version)) {
+    final rawEntityKey = event.entityKey;
+    if (rawEntityKey == null || !_isNewerThanClear(event.version)) {
       return;
     }
+    final entityKey = _canonicalExistingEntityKey(rawEntityKey);
     final itemVersion = itemVersions[entityKey];
     final deletedVersion = deletedVersions[entityKey];
     final newerThanItem = itemVersion == null ||
@@ -489,11 +578,83 @@ class HistorySyncState {
         HistorySyncVersion.compare(version, currentClearVersion) > 0;
   }
 
+  String _canonicalExistingEntityKey(String key) {
+    if (histories.containsKey(key) ||
+        itemVersions.containsKey(key) ||
+        progressVersions.containsKey(key)) {
+      return key;
+    }
+    for (final history in histories.values) {
+      if (history.entryKind == HistoryEntryKind.online &&
+          History.legacyKey(history.adapterName, history.bangumiItem) == key) {
+        return history.key;
+      }
+    }
+    return key;
+  }
+
+  String? _deletedVersionForUpsert(
+    String entityKey, {
+    required String legacyEntityKey,
+    required String entryKind,
+  }) {
+    final scopedVersion = deletedVersions[entityKey];
+    if (entryKind != HistoryEntryKind.online) {
+      return scopedVersion;
+    }
+    return _newerVersion(scopedVersion, deletedVersions[legacyEntityKey]);
+  }
+
+  String? _newerVersion(String? a, String? b) {
+    if (a == null) {
+      return b;
+    }
+    if (b == null) {
+      return a;
+    }
+    return HistorySyncVersion.compare(a, b) >= 0 ? a : b;
+  }
+
   bool _shouldApplyLegacyWatchState(HistorySyncEvent event) {
     final hasWatchStatePayload = event.carriesWatchState ||
         event.lastSrc != null ||
         event.lastWatchEpisodeName != null;
     return hasWatchStatePayload && !event.eventId.startsWith('local-state:');
+  }
+
+  static Map<String, String> _canonicalizeVersionMap(
+    Map<String, String> versions,
+    String Function(String key) canonicalKey,
+  ) {
+    final result = <String, String>{};
+    for (final entry in versions.entries) {
+      final key = canonicalKey(entry.key);
+      final existing = result[key];
+      if (existing == null ||
+          HistorySyncVersion.compare(entry.value, existing) > 0) {
+        result[key] = entry.value;
+      }
+    }
+    return result;
+  }
+
+  static Map<String, Map<int, String>> _canonicalizeProgressVersionMap(
+    Map<String, Map<int, String>> versions,
+    String Function(String key) canonicalKey,
+  ) {
+    final result = <String, Map<int, String>>{};
+    for (final entry in versions.entries) {
+      final key = canonicalKey(entry.key);
+      final target = result.putIfAbsent(key, () => {});
+      for (final episodeVersion in entry.value.entries) {
+        final existing = target[episodeVersion.key];
+        if (existing == null ||
+            HistorySyncVersion.compare(episodeVersion.value, existing) > 0) {
+          target[episodeVersion.key] = episodeVersion.value;
+        }
+      }
+    }
+    return result;
   }
 }
 
@@ -556,6 +717,8 @@ class HistorySyncCodec {
           (json['lastWatchTime'] as num).toInt()),
       json['lastSrc'] as String? ?? '',
       json['lastWatchEpisodeName'] as String? ?? '',
+      entryKind: json['entryKind'] as String? ?? HistoryEntryKind.online,
+      episodePageUrl: json['episodePageUrl'] as String? ?? '',
     );
     history.progresses = {
       for (final entry
@@ -575,6 +738,8 @@ class HistorySyncCodec {
       'lastWatchTime': history.lastWatchTime.millisecondsSinceEpoch,
       'lastSrc': history.lastSrc,
       'lastWatchEpisodeName': history.lastWatchEpisodeName,
+      'entryKind': history.entryKind,
+      'episodePageUrl': history.episodePageUrl,
       'progresses': {
         for (final entry in history.progresses.entries)
           entry.key.toString(): progressToJson(entry.value),
@@ -587,6 +752,7 @@ class HistorySyncCodec {
       (json['episode'] as num).toInt(),
       (json['road'] as num).toInt(),
       (json['progressMs'] as num).toInt(),
+      updatedAtMs: (json['updatedAtMs'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -595,6 +761,7 @@ class HistorySyncCodec {
       'episode': progress.episode,
       'road': progress.road,
       'progressMs': progress.progress.inMilliseconds,
+      'updatedAtMs': progress.updatedAtMs,
     };
   }
 

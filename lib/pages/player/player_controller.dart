@@ -53,6 +53,7 @@ class PlayerController {
 
   late int bangumiId;
   late int currentEpisode;
+  late int currentDanmakuEpisodeNumber;
   late int currentRoad;
   late String referer;
   String? coverUrl;
@@ -92,6 +93,7 @@ class PlayerController {
     isLocalPlayback = params.isLocalPlayback;
     bangumiId = params.bangumiId;
     currentEpisode = params.episode;
+    currentDanmakuEpisodeNumber = params.danmakuEpisodeNumber;
     currentRoad = params.currentRoad;
     referer = params.referer;
 

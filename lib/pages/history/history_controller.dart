@@ -21,32 +21,38 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> updateHistory(
-      int episode,
-      int road,
-      String adapterName,
-      BangumiItem bangumiItem,
-      Duration progress,
-      String lastSrc,
-      String lastWatchEpisodeName) async {
+      PlaybackHistoryIdentity identity, Duration progress) async {
     await _historyRepository.updateHistory(
-      episode: episode,
-      road: road,
-      adapterName: adapterName,
-      bangumiItem: bangumiItem,
+      identity: identity,
       progress: progress,
-      lastSrc: lastSrc,
-      lastWatchEpisodeName: lastWatchEpisodeName,
     );
     init();
   }
 
-  Progress? lastWatching(BangumiItem bangumiItem, String adapterName) {
-    return _historyRepository.getLastWatchingProgress(bangumiItem, adapterName);
+  Progress? lastWatching(
+    BangumiItem bangumiItem,
+    String adapterName, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.getLastWatchingProgress(
+      bangumiItem,
+      adapterName,
+      entryKind: entryKind,
+    );
   }
 
   Progress? findProgress(
-      BangumiItem bangumiItem, String adapterName, int episode) {
-    return _historyRepository.findProgress(bangumiItem, adapterName, episode);
+    BangumiItem bangumiItem,
+    String adapterName,
+    int episode, {
+    String entryKind = HistoryEntryKind.online,
+  }) {
+    return _historyRepository.findProgress(
+      bangumiItem,
+      adapterName,
+      episode,
+      entryKind: entryKind,
+    );
   }
 
   Future<void> deleteHistory(History history) async {
@@ -55,8 +61,17 @@ abstract class _HistoryController with Store {
   }
 
   Future<void> clearProgress(
-      BangumiItem bangumiItem, String adapterName, int episode) async {
-    await _historyRepository.clearProgress(bangumiItem, adapterName, episode);
+    BangumiItem bangumiItem,
+    String adapterName,
+    int episode, {
+    String entryKind = HistoryEntryKind.online,
+  }) async {
+    await _historyRepository.clearProgress(
+      bangumiItem,
+      adapterName,
+      episode,
+      entryKind: entryKind,
+    );
     init();
   }
 

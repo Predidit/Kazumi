@@ -499,6 +499,7 @@ abstract class _VideoPageController with Store {
       isLocalPlayback: true,
       bangumiId: bangumiItem.id,
       pluginName: _offlinePluginName,
+      episode: resolvedEpisode.listIndex,
       danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
@@ -610,6 +611,7 @@ abstract class _VideoPageController with Store {
         isLocalPlayback: false,
         bangumiId: bangumiItem.id,
         pluginName: currentPlugin.name,
+        episode: resolvedEpisode.listIndex,
         danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty

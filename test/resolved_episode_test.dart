@@ -58,6 +58,7 @@ void main() {
       isLocalPlayback: true,
       bangumiId: 1,
       pluginName: 'plugin',
+      episode: 1,
       danmakuEpisodeNumber: 13,
       httpHeaders: {},
       adBlockerEnabled: false,
@@ -66,6 +67,7 @@ void main() {
       currentRoad: 0,
     );
 
+    expect(params.episode, 1);
     expect(params.danmakuEpisodeNumber, 13);
   });
 

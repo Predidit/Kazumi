@@ -35,7 +35,7 @@ class PlayerController {
   );
   late final PlayerSyncPlayController syncplay = PlayerSyncPlayController(
     bangumiId: () => bangumiId,
-    currentEpisode: () => currentDanmakuEpisodeNumber,
+    currentEpisode: () => currentEpisode,
     currentRoad: () => currentRoad,
     playing: () => playback.playing,
     currentPosition: () => playback.currentPosition,
@@ -52,6 +52,7 @@ class PlayerController {
   );
 
   late int bangumiId;
+  late int currentEpisode;
   late int currentDanmakuEpisodeNumber;
   late int currentRoad;
   late String referer;
@@ -91,6 +92,7 @@ class PlayerController {
     videoUrl = params.videoUrl;
     isLocalPlayback = params.isLocalPlayback;
     bangumiId = params.bangumiId;
+    currentEpisode = params.episode;
     currentDanmakuEpisodeNumber = params.danmakuEpisodeNumber;
     currentRoad = params.currentRoad;
     referer = params.referer;
@@ -181,7 +183,7 @@ class PlayerController {
 
     if (syncplay.syncplayController?.isConnected ?? false) {
       if (syncplay.syncplayController!.currentFileName !=
-          "$bangumiId[$currentDanmakuEpisodeNumber]") {
+          "$bangumiId[$currentEpisode]") {
         setSyncPlayPlayingBangumi(
             forceSyncPlaying: true, forceSyncPosition: 0.0);
       }

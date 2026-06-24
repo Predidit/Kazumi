@@ -15,6 +15,78 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
 
+String historySourceBadgeText(String entryKind) {
+  return HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline
+      ? '缓存'
+      : '在线';
+}
+
+Future<HistoryPlaybackOpenResult> openHistoryPlaybackForEntry({
+  required String entryKind,
+  required Future<bool> Function() openOnlinePlayback,
+  required Future<bool> Function() openOfflinePlayback,
+}) async {
+  if (HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline) {
+    final opened = await openOfflinePlayback();
+    return HistoryPlaybackOpenResult(
+      opened: opened,
+      failureMessage: opened ? null : '未找到可用缓存',
+    );
+  }
+
+  final opened = await openOnlinePlayback();
+  return HistoryPlaybackOpenResult(
+    opened: opened,
+    failureMessage: opened ? null : '在线源不可用，请重新选择播放源',
+  );
+}
+
+class HistoryPlaybackOpenResult {
+  const HistoryPlaybackOpenResult({
+    required this.opened,
+    required this.failureMessage,
+  });
+
+  final bool opened;
+  final String? failureMessage;
+}
+
+class _HistorySourceBadge extends StatelessWidget {
+  const _HistorySourceBadge({required this.entryKind});
+
+  final String entryKind;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isOffline =
+        HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline;
+    final backgroundColor = isOffline
+        ? colorScheme.secondaryContainer
+        : colorScheme.primaryContainer;
+    final foregroundColor = isOffline
+        ? colorScheme.onSecondaryContainer
+        : colorScheme.onPrimaryContainer;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Text(
+          historySourceBadgeText(entryKind),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: foregroundColor,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
 // 视频历史记录卡片 - 水平布局
 class BangumiHistoryCardV extends StatefulWidget {
   const BangumiHistoryCardV({
@@ -52,21 +124,17 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         videoPageController.cancelQueryRoads();
       },
     );
-    bool opened = false;
-    if (widget.historyItem.entryKind == HistoryEntryKind.offline) {
-      opened = await _openOfflinePlayback();
-    } else {
-      opened = await _openOnlinePlayback();
-      if (!opened) {
-        opened = await _openOfflinePlayback();
-      }
-    }
+    final result = await openHistoryPlaybackForEntry(
+      entryKind: widget.historyItem.entryKind,
+      openOnlinePlayback: _openOnlinePlayback,
+      openOfflinePlayback: _openOfflinePlayback,
+    );
     KazumiDialog.dismiss();
-    if (opened) {
+    if (result.opened) {
       Modular.to.pushNamed('/video/');
       return;
     }
-    KazumiDialog.showToast(message: '未找到可用播放入口');
+    KazumiDialog.showToast(message: result.failureMessage ?? '未找到可用播放入口');
   }
 
   Future<bool> _openOnlinePlayback() async {
@@ -220,14 +288,24 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colorScheme.onSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _HistorySourceBadge(
+                              entryKind: widget.historyItem.entryKind,
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
                         Row(

@@ -441,9 +441,13 @@ class LanServer {
       return _jsonError(400, 'invalid_id', 'invalid id');
     }
     try {
-      final item = await BangumiApi.getBangumiInfoByID(bangumiId);
+      final item =
+          await _retryNullable(() => BangumiApi.getBangumiInfoByID(bangumiId));
       if (item == null) {
-        return _jsonError(404, 'not_found', 'bangumi not found');
+        // 详情页的 id 都来自真实列表，几乎不可能真的不存在；耗尽重试后
+        // 仍为 null 基本是上游瞬时不可用，返回可重试语义而非 "not found"。
+        return _jsonError(
+            502, 'bangumi_unavailable', '上游暂时不可用，请稍后重试');
       }
       return _json(_bangumiItemToJson(item));
     } catch (e, st) {
@@ -492,10 +496,40 @@ class LanServer {
         'items': res.commentList.map(_commentItemToJson).toList(),
       });
     } catch (e, st) {
+      // 镜像后端不提供吐槽接口时会回 401（其他瞬时故障同理）。应用端把这种
+      // 失败收成"吐槽 tab 内的可重试软状态"，不崩页也不泄漏原始异常。
+      // web 端对齐：返回干净的可重试语义，原始 NetworkException 只进日志。
       KazumiLogger().e('LanServer: bangumi comments failed',
           error: e, stackTrace: st);
-      return _jsonError(500, 'comments_failed', e.toString());
+      return _jsonError(502, 'comments_unavailable', '吐槽获取失败，请稍后重试');
     }
+  }
+
+  /// 桌面端是否启用了 Bangumi 镜像（api.kazumi.fyi）。
+  /// 各内容接口需要据此在"官方 bgm.tv"与"镜像后端"之间切换，
+  /// 与应用端 PopularController / TimelineController 的 `_bangumiMirrorEnabled`
+  /// 行为完全一致，否则用户开了镜像后 web 端会拉空。
+  bool get _bangumiMirrorEnabled =>
+      GStorage.getSetting(SettingsKeys.enableBangumiProxy);
+
+  /// 对"硬依赖"的冷拉取做有限重试。
+  ///
+  /// 上游（尤其镜像后端 api.kazumi.fyi 的 /p1 中继）会间歇性 5s 超时，
+  /// 而 [BangumiApi.getBangumiInfoByID] 等方法把任何网络异常都吞成 null。
+  /// 应用端进详情页时已有列表传来的 BangumiItem 做兜底，web 端只有 id 必须
+  /// 冷拉，单次失败就整页崩。这里对瞬时抖动重试几次（同域 popular 请求
+  /// ~600ms 即返回，说明镜像本身可用），把"番剧不存在"和"网络抖动"区分开。
+  Future<T?> _retryNullable<T>(
+    Future<T?> Function() task, {
+    int attempts = 3,
+    Duration gap = const Duration(milliseconds: 400),
+  }) async {
+    for (var i = 0; i < attempts; i++) {
+      final result = await task();
+      if (result != null) return result;
+      if (i < attempts - 1) await Future.delayed(gap);
+    }
+    return null;
   }
 
   Future<Response> _handlePopular(Request request) async {
@@ -505,12 +539,22 @@ class LanServer {
     final limit =
         int.tryParse(request.url.queryParameters['limit'] ?? '24') ?? 24;
     try {
-      // 无 tag → 趋势接口；有 tag → tag 搜索（对齐桌面端 PopularController
-      // queryBangumiTrends vs queryBangumiByTag 的二态切换）。
-      final list = tag.isEmpty
-          ? await BangumiApi.getBangumiTrendsList(offset: offset, limit: limit)
-          : await BangumiApi.getBangumiList(
-              rank: Random().nextInt(8000) + 1, tag: tag);
+      // 镜像模式下 trend 与 tag 统一走镜像榜单接口（对齐 PopularController
+      // queryBangumiByTrend / queryBangumiByTag 的镜像分支）；
+      // 非镜像：无 tag → 趋势接口，有 tag → tag 搜索。
+      final List<BangumiItem> list;
+      if (_bangumiMirrorEnabled) {
+        list = await BangumiApi.getBangumiMirrorPopularSubjects(
+          tag: tag,
+          limit: limit,
+          offset: offset,
+        );
+      } else {
+        list = tag.isEmpty
+            ? await BangumiApi.getBangumiTrendsList(offset: offset, limit: limit)
+            : await BangumiApi.getBangumiList(
+                rank: Random().nextInt(8000) + 1, tag: tag);
+      }
       return _json({
         'items': list.map(_bangumiItemToJson).toList(),
       });
@@ -557,6 +601,19 @@ class LanServer {
       final start = DateTime(startYear, startMonth, 1);
       final end = DateTime(year, (seasonIndex + 1) * 3, 1);
       final dateRange = [start.toString(), end.toString()];
+
+      // 镜像模式：一次性拉镜像季节时间表（对齐 TimelineController
+      // getSchedulesBySeason 的 _bangumiMirrorEnabled 分支）。
+      if (_bangumiMirrorEnabled) {
+        final calendar =
+            await BangumiApi.getBangumiMirrorSeasonCalendar(dateRange);
+        return _json({
+          'season': season,
+          'days': calendar
+              .map((day) => day.map(_bangumiItemToJson).toList())
+              .toList(),
+        });
+      }
 
       const maxRound = 4;
       const limit = 20;
@@ -627,9 +684,12 @@ class LanServer {
         'items': res.commentList.map(_episodeCommentItemToJson).toList(),
       });
     } catch (e, st) {
+      // 与吐槽同理：镜像后端不提供剧集评论时回 401，收成可重试软状态，
+      // 不泄漏原始异常。
       KazumiLogger().e('LanServer: episode comments failed',
           error: e, stackTrace: st);
-      return _jsonError(500, 'episode_comments_failed', e.toString());
+      return _jsonError(
+          502, 'episode_comments_unavailable', '评论获取失败，请稍后重试');
     }
   }
 

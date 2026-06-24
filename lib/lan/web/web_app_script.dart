@@ -156,6 +156,21 @@ function setStatus(parent, msg, isError) {
   parent.append(el("div", { class: "status" + (isError ? " error" : "") }, msg));
 }
 
+// 统一的"错误文案 + 居中重试按钮"片段。复用 .tonal 视觉但不改它的通用样式
+// （播放页等也用 .tonal）：用内联 display:inline-flex 抵消 .tonal 的 flex:1
+// 拉伸，让按钮收缩到内容宽度，再靠包裹层 text-align:center 居中。
+function retryBlock(msg, onRetry) {
+  const frag = document.createDocumentFragment();
+  frag.append(el("div", { class: "status error" }, msg));
+  const wrap = el("div", { style: "text-align:center;margin-top:12px;" });
+  const retry = el("button", { class: "tonal" }, "重试");
+  retry.style.display = "inline-flex";
+  retry.addEventListener("click", onRetry);
+  wrap.append(retry);
+  frag.append(wrap);
+  return frag;
+}
+
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) {
@@ -1389,7 +1404,10 @@ async function renderBangumiDetail(params) {
     bangumi = await fetchJson("/api/bangumi/" + id);
   } catch (e) {
     skeleton.remove();
-    setStatus($app, "加载番剧详情失败：" + e.message, true);
+    // 上游（尤其镜像后端）间歇性超时会走到这里。给一个"重试"入口，
+    // 而不是把用户卡死在错误页（后端已自带 3 次重试，这里兜住残余情况）。
+    $app.append(retryBlock("加载番剧详情失败：" + e.message,
+        () => renderBangumiDetail(params)));
     return;
   }
   skeleton.remove();
@@ -1711,8 +1729,10 @@ async function renderBangumiDetail(params) {
       } catch (e) {
         if (status.parentNode) status.remove();
         if (!hadAny) {
-          list.append(el("div", { class: "status error" }, "加载失败：" + e.message));
-          exhausted = true; // 失败不再自动重试
+          // 对齐应用端：吐槽拉取失败只在 tab 内显示软状态 + 重试，不暴露
+          // 内部异常文本。镜像模式下吐槽接口常返 401，重试按钮让用户自行再试。
+          list.append(retryBlock("吐槽获取失败，请重试", () => renderTabBody()));
+          exhausted = true; // 失败不再自动续翻，改由用户手动重试
         }
       } finally {
         loading = false;
@@ -2249,21 +2269,25 @@ async function renderEpisodes(params) {
       for (const c of sorted) list.append(buildEpisodeCommentCard(c));
     }
 
-    setStatus(list, "加载中…");
-    fetchJson(
-      "/api/bangumi/" + bid + "/episode-comments?episode=" + activeEpisode
-    ).then((data) => {
-      cachedList = data.items || [];
-      if (data.episode) {
-        epInfoSub.textContent =
-          data.episode.readType + "." + data.episode.episode + " " +
-          (data.episode.nameCn || data.episode.name || "");
-      }
-      renderList();
-    }).catch((e) => {
-      list.innerHTML = "";
-      setStatus(list, "评论获取失败：" + e.message, true);
-    });
+    const loadEpisodeComments = () => {
+      setStatus(list, "加载中…");
+      fetchJson(
+        "/api/bangumi/" + bid + "/episode-comments?episode=" + activeEpisode
+      ).then((data) => {
+        cachedList = data.items || [];
+        if (data.episode) {
+          epInfoSub.textContent =
+            data.episode.readType + "." + data.episode.episode + " " +
+            (data.episode.nameCn || data.episode.name || "");
+        }
+        renderList();
+      }).catch(() => {
+        // 镜像模式下评论接口常返 401；与吐槽一致，软状态 + 重试，不泄漏异常。
+        list.innerHTML = "";
+        list.append(retryBlock("评论获取失败，请重试", loadEpisodeComments));
+      });
+    };
+    loadEpisodeComments();
 
     function openEpisodePicker() {
       openModal((sheet, close) => {

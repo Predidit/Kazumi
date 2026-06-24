@@ -157,7 +157,10 @@ class _VideoPageState extends State<VideoPage>
 
   void _initOfflineMode(PlayerController playerController) {
     _showTabBodyImmediately(locateEpisode: false);
-    videoPageController.historyOffset = 0;
+    final identity = videoPageController.currentHistoryIdentity;
+    videoPageController.historyOffset = identity == null
+        ? 0
+        : videoPageController.getHistoryOffsetFor(identity);
     visibleRoad = videoPageController.selectedEpisode.road;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -930,7 +933,10 @@ class _VideoPageState extends State<VideoPage>
                     }
                   },
                   child: Text(
-                    '播放线路${visibleRoad + 1} ',
+                    visibleRoad >= 0 &&
+                            visibleRoad < videoPageController.roadList.length
+                        ? '${videoPageController.roadList[visibleRoad].name} '
+                        : '播放线路${visibleRoad + 1} ',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -950,7 +956,7 @@ class _VideoPageState extends State<VideoPage>
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '播放线路${i + 1}',
+                      videoPageController.roadList[i].name,
                       style: TextStyle(
                         color: i == visibleRoad
                             ? Theme.of(context).colorScheme.primary
@@ -1033,6 +1039,9 @@ class _VideoPageState extends State<VideoPage>
           int count = 1;
           for (var urlItem in road.data) {
             int count0 = count;
+            final episodeName = count0 - 1 < road.identifier.length
+                ? road.identifier[count0 - 1]
+                : '第$count0集';
             cardList.add(Container(
               margin: const EdgeInsets.only(bottom: 4),
               child: Material(
@@ -1074,7 +1083,7 @@ class _VideoPageState extends State<VideoPage>
                             ],
                             Expanded(
                                 child: Text(
-                              road.identifier[count0 - 1],
+                              episodeName,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

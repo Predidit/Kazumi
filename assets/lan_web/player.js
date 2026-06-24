@@ -1,20 +1,3 @@
-/// 播放器层 JS：DanmakuLayer 类、HLS 集成、进度上报、renderPlayer。
-///
-/// 拼接到 HTML 单一 `<script>` 标签的后段，与 `web_app_script.dart` 共享全局
-/// 作用域。模块对外暴露的"接口"是 `renderPlayer(params)`——`dispatch()` 在
-/// app_script 里调用它。
-///
-/// 关键 DOM 依赖（重写视觉时务必保留）：
-/// - `DanmakuLayer` 构造时 append canvas 到 `.player-wrap` 容器，并对该
-///   容器创建 ResizeObserver。canvas 必须是 `.player-wrap` 的子节点
-///   （而不是 `<video>` 的兄弟），否则尺寸计算会错乱。
-/// - `attachStream(video, ...)` 直接持有 `<video>` 引用；hls.js 通过
-///   `hls.attachMedia(video)` 绑定，重建 video 元素需配套 disposeHls()。
-/// - `reportProgress` 通过 `video.currentTime` / `pause` 事件 / `pagehide`
-///   全部依赖 video 元素生命周期。
-/// - hashchange listener 在路由离开 `/play` 时清理三套资源
-///   （hls / 弹幕 / 进度 timer），任何替代实现都要等价。
-const String lanWebPlayerJs = r'''
 // ====== Danmaku ======
 class DanmakuLayer {
   constructor(video, container) {
@@ -596,4 +579,3 @@ window.addEventListener("hashchange", () => {
     disposeProgressReporter();
   }
 });
-''';

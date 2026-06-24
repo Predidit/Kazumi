@@ -266,6 +266,18 @@ class LanServer {
       assetPath: 'assets/lan_web/hls.min.js',
       contentType: 'application/javascript; charset=utf-8',
     ),
+    'styles.css': _StaticAsset(
+      assetPath: 'assets/lan_web/styles.css',
+      contentType: 'text/css; charset=utf-8',
+    ),
+    'app.js': _StaticAsset(
+      assetPath: 'assets/lan_web/app.js',
+      contentType: 'application/javascript; charset=utf-8',
+    ),
+    'player.js': _StaticAsset(
+      assetPath: 'assets/lan_web/player.js',
+      contentType: 'application/javascript; charset=utf-8',
+    ),
   };
 
   Response _handlePlugins(Request request) {

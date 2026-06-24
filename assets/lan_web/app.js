@@ -1,13 +1,3 @@
-/// 应用层 JS：路由、视图渲染、主题应用、导航栏、模态框。
-///
-/// 不含播放器、弹幕、HLS、进度上报——那些在 `web_player_script.dart`。
-/// 拼接到 HTML 单一 `<script>` 标签的前段；运行时与 player script 共享同一
-/// 全局作用域，函数 / `let` / `const` 都可互相引用。
-///
-/// 启动顺序：脚本末尾 `loadTheme().finally(dispatch)` 触发首次路由分发；这是
-/// 一个 microtask，会在 player script 中所有 `let` 声明完成初始化之后才执行，
-/// 因此 dispatch → renderPlayer → 引用 activeHls 等是安全的。
-const String lanWebAppJs = r'''
 "use strict";
 
 const $app = document.getElementById("app");
@@ -2383,4 +2373,3 @@ window.addEventListener("hashchange", dispatch);
 
 // 启动顺序：先拉主题（视觉不闪），再 dispatch
 loadTheme().finally(dispatch);
-''';

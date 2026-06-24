@@ -1,20 +1,3 @@
-/// CSS 字符串：嵌入到 `lib/lan/web_index_html.dart` 的 `<style>` 块中。
-///
-/// v5b 起，**所有颜色与 typography 都通过 CSS 变量驱动**，变量值由
-/// `applyTheme()`（web_app_script.dart）在运行时根据 `/api/theme` 返回的
-/// schemes + typography 注入。这里只定义：
-///   1. 兜底 :root 变量（接入失败时也能勉强显示）
-///   2. 布局（layout / nav-rail / content）
-///   3. 组件视觉规则（圆角 / 间距 / state layer）
-///
-/// 配色对齐桌面端 `lib/pages/menu/menu.dart`：
-///   - body / .nav-rail = surfaceContainer
-///   - .content       = primaryContainer + 左侧 16dp 圆角（M3 NavigationRail
-///                       与内容区分离的视觉语言）
-///
-/// State layer 走 M3 spec：`on-surface` @ 8% (hover) / 12% (focus, pressed)
-/// 用 `::before` 伪元素叠加，避免破坏底色语义。
-const String lanWebCss = r'''
 @font-face {
   font-family: "MiSans";
   src: url("/assets/MiSans-Regular.ttf") format("truetype");
@@ -1943,4 +1926,3 @@ select:focus-visible, input:focus-visible, button:focus-visible {
     right: 16px;
   }
 }
-''';

@@ -1,12 +1,9 @@
-import 'package:kazumi/lan/web/web_app_script.dart';
-import 'package:kazumi/lan/web/web_player_script.dart';
-import 'package:kazumi/lan/web/web_styles.dart';
-
-/// HTML 主壳。CSS / app JS / player JS 拆到 `lib/lan/web/*` 三个独立常量，
-/// 在这里拼接。/api/theme 由 `applyTheme()`（app_script 内）消费，启动时拉
-/// 一次 + visibilitychange 惰性刷新；初始 `:root` CSS 变量值在 web_styles.dart
-/// 提供，仅作为远端拉取失败时的兜底。
-final String lanWebIndexHtml = '''
+/// HTML 主壳。CSS / app JS / player JS 作为独立静态资源文件存放在
+/// `assets/lan_web/`，由 `_handleAsset` 通过 `/assets/<file>` 路由 serve。
+///
+/// 这里只生成 HTML 骨架，通过 `<link>` 和 `<script src>` 引用外部文件，
+/// 让 JS/CSS 能享受编辑器的原生 LSP 支持（语法高亮、错误检查、自动补全）。
+const String lanWebIndexHtml = '''
 <!DOCTYPE html>
 <html lang="zh" data-theme="auto">
 <head>
@@ -15,20 +12,15 @@ final String lanWebIndexHtml = '''
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
   <title>Kazumi</title>
-  <style>
-$lanWebCss
-  </style>
+  <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
   <div class="layout">
     <nav class="nav-rail" id="nav-rail"></nav>
     <main class="content" id="app"></main>
   </div>
-  <script>
-$lanWebAppJs
-
-$lanWebPlayerJs
-  </script>
+  <script src="/assets/app.js"></script>
+  <script src="/assets/player.js"></script>
 </body>
 </html>
 ''';

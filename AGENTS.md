@@ -6,26 +6,16 @@
 `docs/` 下的本地文档，可以保留在这个 fork 中，但除非上游项目明确要求，
 否则不得包含在发送给上游仓库的拉取请求中。
 
-## 上游拉取请求规则
+## 默认远程与上游拉取请求规则
 
-在为主仓库准备任何变更之前，阅读并遵循 `docs/upstream-pr-rules.md`。
+默认工作目标是个人 fork：
 
-默认上游目标是：
-
-- 远程：`upstream`
-- 仓库：`Predidit/Kazumi`
+- 远程：`origin`
+- 仓库：个人 fork
 - 基准分支：`main`
 
-对于上游拉取请求，请从 `upstream/main` 创建干净的 PR 分支，并且只暂存属于
-实际 bug 修复或功能变更的文件。不要包含：
-
-- `AGENTS.md`
-- `docs/`
-- 本地日志
-- 偶然产生的 lockfile 或工具链变更，除非这些变更是修复所必需的
-
-推送前使用 `git diff --name-status upstream/main...HEAD`。如果输出中出现
-`AGENTS.md` 或 `docs/` 下的文件，说明该分支还不够干净，不能用于上游拉取请求。
+只有在需要向主仓库 `Predidit/Kazumi` 提交 PR 时，才切换到上游 PR 流程。
+在为主仓库准备任何变更之前，阅读并遵循 `docs/upstream-pr-rules.md`。
 
 ## 本地工作流
 

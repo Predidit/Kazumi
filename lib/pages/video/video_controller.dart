@@ -22,6 +22,7 @@ import 'package:kazumi/request/apis/bangumi_api.dart';
 import 'package:dio/dio.dart';
 import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 import 'package:kazumi/utils/media.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
@@ -436,11 +437,10 @@ abstract class _VideoPageController with Store {
 
     KazumiLogger()
         .i('VideoPageController: changed to ${resolvedEpisode.displayTitle}');
-    String urlItem = resolvedEpisode.episodePageUrl;
-    if (!urlItem.contains(currentPlugin.baseUrl) &&
-        !urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
-      urlItem = currentPlugin.baseUrl + urlItem;
-    }
+    final urlItem = normalizeEpisodeUrl(
+      currentPlugin.baseUrl,
+      resolvedEpisode.episodePageUrl,
+    );
 
     await _resolveWithVideoSourceService(
       urlItem,

@@ -9,6 +9,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:xpath_selector_html_parser/xpath_selector_html_parser.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/services/plugin/plugin_cookie_manager.dart';
+import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
 
 /// Thrown by [Plugin.queryBangumi] when the response contains a CAPTCHA challenge
@@ -274,7 +275,7 @@ class Plugin {
           element.queryXPath(chapterResult).nodes.forEach((item) {
             String itemUrl = item.node.attributes['href'] ?? '';
             String itemName = item.node.text ?? '';
-            chapterUrlList.add(itemUrl);
+            chapterUrlList.add(normalizeEpisodeUrl(baseUrl, itemUrl));
             chapterNameList.add(itemName.replaceAll(RegExp(r'\s+'), ''));
           });
           if (chapterUrlList.isNotEmpty && chapterNameList.isNotEmpty) {

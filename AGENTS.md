@@ -1,26 +1,41 @@
-# AGENTS.md
+# Agent 指令
 
-## 项目背景
+## 项目范围
+- 此检出目录是 Kazumi 的个人 fork。
+- `AGENTS.md` 和本地 `docs/` 文件只保留在这个 fork 中。
+- 除非上游明确要求，不要把 `AGENTS.md` 或本地 `docs/` 文件放进 upstream PR。
 
-此检出目录是 Kazumi 的个人 fork。`AGENTS.md` 这类个人工作流文件，以及
-`docs/` 下的本地文档，可以保留在这个 fork 中，但除非上游项目明确要求，
-否则不得包含在发送给上游仓库的拉取请求中。
+## 远程与 PR 目标
+- 默认目标：个人 fork 的 `origin/main`。
+- 上游 PR 目标：通过 `upstream` 提交到 `Predidit/Kazumi` 的 `main` 分支。
+- 准备 upstream PR 前，先阅读并遵循 `docs/upstream-pr-rules.md`。
+- upstream PR 分支必须从 `upstream/main` 创建，并且只暂存明确路径。
+- upstream PR 中排除 `AGENTS.md`、`docs/`、日志、临时文件和无关的 `pubspec.lock` 变更。
 
-## 默认远程与上游拉取请求规则
+## 命令
+使用 PATH 中的本机 `flutter`；版本必须满足 `pubspec.yaml` 的 `environment.flutter`。
 
-默认工作目标是个人 fork：
+| 任务 | PowerShell 命令 |
+|------|-----------------|
+| 安装依赖 | `flutter pub get` |
+| 静态分析 | `flutter analyze --no-fatal-infos --fatal-warnings` |
+| 运行全部测试 | `flutter test` |
+| 运行单个测试文件 | `flutter test test/search_parser_test.dart` |
+| 运行 Windows 应用 | `flutter run -d windows` |
+| 重新生成 Dart 文件 | `dart run build_runner build --delete-conflicting-outputs` |
 
-- 远程：`origin`
-- 仓库：个人 fork
-- 基准分支：`main`
+## 外部引用
+| 需求 | 文件 |
+|------|------|
+| 上游 PR 流程 | `docs/upstream-pr-rules.md` |
+| 测试规则 | `docs/test-rule.md` |
+| CI 命令 | `.github/workflows/pr.yaml` |
+| BBCode 语法流程 | `lib/bbcode/README.md` |
 
-只有在需要向主仓库 `Predidit/Kazumi` 提交 PR 时，才切换到上游 PR 流程。
-在为主仓库准备任何变更之前，阅读并遵循 `docs/upstream-pr-rules.md`。
-
-## 本地工作流
-
-优先使用可直接在 PowerShell 中运行的命令。暂存前用 `git status --short`
-检查工作区；准备 PR 分支时，使用明确的路径暂存文件，而不是 `git add .`。
-
-当变更影响 Flutter 依赖或生成的 lockfile 时，在将其纳入上游 PR 之前，
-说明为什么该 lockfile 变更是必要的。
+## 关键约定
+- 优先使用可直接在 PowerShell 中运行的命令。
+- 暂存前运行 `git status --short`。
+- 只读取与当前任务相关的文档。
+- 新增或修改测试前，阅读 `docs/test-rule.md`；除非该规则变化，不要新增 widget 测试。
+- 通过 `build_runner` 更新 MobX/Hive 生成的 `.g.dart` 文件；不要手动编辑它们。
+- 修改 BBCode 语法时，按 `lib/bbcode/README.md` 更新 `assets/bbcode/BBCode.g4` 和生成的 parser 文件。

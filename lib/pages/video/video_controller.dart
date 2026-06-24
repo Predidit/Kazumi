@@ -462,10 +462,8 @@ abstract class _VideoPageController with Store {
     KazumiLogger()
         .i('VideoPageController: changed to ${resolvedEpisode.displayTitle}');
     String urlItem = resolvedEpisode.episodePageUrl;
-    if (urlItem.contains(currentPlugin.baseUrl) ||
-        urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
-      urlItem = urlItem;
-    } else {
+    if (!urlItem.contains(currentPlugin.baseUrl) &&
+        !urlItem.contains(currentPlugin.baseUrl.replaceAll('https', 'http'))) {
       urlItem = currentPlugin.baseUrl + urlItem;
     }
 

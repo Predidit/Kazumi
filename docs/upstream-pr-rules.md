@@ -3,12 +3,24 @@
 这份规则用于从个人 fork 向主仓库 `Predidit/Kazumi` 提交修改，同时保留个人
 fork 中的 `AGENTS.md` 和 `docs/` 文档。
 
+## 目标区分
+
+日常默认工作目标是个人 fork 的 `origin/main`。只有在需要向主仓库提交 PR 时，
+才使用本文件的上游 PR 流程。
+
+主仓库 PR 目标是：
+
+- 远程：`upstream`
+- 仓库：`Predidit/Kazumi`
+- 基准分支：`main`
+
 ## 核心原则
 
 给主仓库提交 PR 的分支必须从 `upstream/main` 创建。不要从包含个人文档、
 本地规则或实验性文件的 fork 分支直接发起 PR。
 
-`AGENTS.md` 和 `docs/` 是个人 fork 的工作流文件，默认不进入主仓库 PR。
+主仓库 PR 只应包含实际 bug 修复或功能变更需要的文件。`AGENTS.md` 和
+`docs/` 是个人 fork 的工作流文件，默认不进入主仓库 PR。
 
 ## 推荐流程
 

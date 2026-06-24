@@ -118,24 +118,6 @@ abstract class _VideoPageController with Store {
   VideoEpisodeSelection get playbackEpisode =>
       playingEpisode ?? selectedEpisode;
 
-  int get currentEpisode => selectedEpisode.episode;
-
-  set currentEpisode(int episode) {
-    selectedEpisode = VideoEpisodeSelection(
-      episode: episode,
-      road: selectedEpisode.road,
-    );
-  }
-
-  int get currentRoad => selectedEpisode.road;
-
-  set currentRoad(int road) {
-    selectedEpisode = VideoEpisodeSelection(
-      episode: selectedEpisode.episode,
-      road: road,
-    );
-  }
-
   @observable
   bool isFullscreen = false;
 
@@ -391,13 +373,6 @@ abstract class _VideoPageController with Store {
           _offlineDisplayRoadToOriginalRoad[targetRoad] ??
           targetRoad,
     );
-  }
-
-  int actualEpisodeNumberForSelection(VideoEpisodeSelection selection) {
-    final resolvedEpisode = isOfflineMode
-        ? _resolveOfflineEpisode(selection.episode, road: selection.road)
-        : _resolveOnlineEpisode(selection.episode, road: selection.road);
-    return resolvedEpisode?.historyEpisodeNumber ?? selection.episode;
   }
 
   int commentEpisodeForSelection(VideoEpisodeSelection selection) {

@@ -14,8 +14,10 @@ import 'package:kazumi/bean/widget/error_widget.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:kazumi/services/plugin/captcha_verification_service.dart';
+import 'package:kazumi/services/search/search_result_rank_service.dart';
 import 'package:kazumi/plugins/anti_crawler_config.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/format.dart';
 
 class SourceSheet extends StatefulWidget {
   const SourceSheet({
@@ -57,6 +59,13 @@ class _SourceSheetState extends State<SourceSheet>
         PluginSearchService(infoController: widget.infoController);
     pluginSearchService?.queryAllSource(keyword);
     super.initState();
+  }
+
+  SearchResultRankService get searchResultRankService {
+    return SearchResultRankService(
+      searchTerm: keyword,
+      aliases: widget.infoController.bangumiItem.alias,
+    );
   }
 
   @override
@@ -560,7 +569,11 @@ class _SourceSheetState extends State<SourceSheet>
                     for (var searchResponse
                         in widget.infoController.pluginSearchResponseList) {
                       if (searchResponse.pluginName == plugin.name) {
-                        for (var searchItem in searchResponse.data) {
+                        final items = searchResponse.data;
+                        final displayItems = items.length > 1
+                            ? searchResultRankService.sort(items, (item) => item.name)
+                            : items;
+                        for (var searchItem in displayItems) {
                           cardList.add(
                             Card(
                               elevation: 0,
@@ -594,7 +607,31 @@ class _SourceSheetState extends State<SourceSheet>
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(20),
-                                  child: Text(searchItem.name),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(searchItem.name),
+                                      ),
+                                      if (displayItems.length > 1) ...[
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          formatTraceSimilarity(
+                                            searchResultRankService
+                                                .computeMatchRatio(
+                                                    searchItem.name),
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .outline,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

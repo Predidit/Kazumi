@@ -15,7 +15,7 @@ import 'package:kazumi/services/logging/logger.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/date_time.dart';
 
-String historySourceBadgeText(String entryKind) {
+String historySourceText(String entryKind) {
   return HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline
       ? '缓存'
       : '在线';
@@ -49,42 +49,6 @@ class HistoryPlaybackOpenResult {
 
   final bool opened;
   final String? failureMessage;
-}
-
-class _HistorySourceBadge extends StatelessWidget {
-  const _HistorySourceBadge({required this.entryKind});
-
-  final String entryKind;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isOffline =
-        HistoryEntryKind.normalize(entryKind) == HistoryEntryKind.offline;
-    final backgroundColor = isOffline
-        ? colorScheme.secondaryContainer
-        : colorScheme.primaryContainer;
-    final foregroundColor = isOffline
-        ? colorScheme.onSecondaryContainer
-        : colorScheme.onPrimaryContainer;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        child: Text(
-          historySourceBadgeText(entryKind),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: foregroundColor,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ),
-    );
-  }
 }
 
 // 视频历史记录卡片 - 水平布局
@@ -238,6 +202,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     final String episodeText = widget.historyItem.lastWatchEpisodeName.isEmpty
         ? '第${widget.historyItem.lastWatchEpisode}话'
         : widget.historyItem.lastWatchEpisodeName;
+    final String sourceText = historySourceText(widget.historyItem.entryKind);
 
     return Dismissible(
       key: ValueKey(widget.historyItem.key),
@@ -288,24 +253,14 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _HistorySourceBadge(
-                              entryKind: widget.historyItem.entryKind,
-                            ),
-                          ],
+                        Text(
+                          title,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         const SizedBox(height: 6),
                         Row(
@@ -339,7 +294,7 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                widget.historyItem.adapterName,
+                                '$sourceText · ${widget.historyItem.adapterName}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),

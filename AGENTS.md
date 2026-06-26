@@ -39,3 +39,18 @@
 - 新增或修改测试前，阅读 `docs/test-rule.md`；除非该规则变化，不要新增 widget 测试。
 - 通过 `build_runner` 更新 MobX/Hive 生成的 `.g.dart` 文件；不要手动编辑它们。
 - 修改 BBCode 语法时，按 `lib/bbcode/README.md` 更新 `assets/bbcode/BBCode.g4` 和生成的 parser 文件。
+
+## Cursor Cloud specific instructions
+
+云端 VM 已预装 Flutter `3.44.3` SDK（位于 `~/flutter`，已加入 `~/.bashrc` 的 `PATH`）。启动时的 update script 仅运行 `flutter pub get`。命令（lint / test / run）与上文“命令”表一致，只是直接在 bash 中执行（不是 PowerShell）。
+
+运行的产品就是 Kazumi 桌面 GUI 应用本身，没有需要单独启动的后端服务；所有番剧数据来自远程 API（Bangumi `api.bgm.tv`、KazumiRules 等），需要联网。
+
+在本无显示器 VM 中运行桌面应用的注意事项（非显而易见）：
+
+- 用 `DISPLAY=:1 flutter run -d linux` 在 VNC 桌面上运行（`:1` 是 TigerVNC 提供的显示器）。
+- 必须配置 XDG 用户目录，否则启动失败：`Hive.initFlutter()` 会调用 `getApplicationDocumentsDirectory()`，在 Linux 上依赖 `xdg-user-dir`。若缺失，存储初始化抛 `MissingPlatformDirectoryException`，应用只显示 `StorageErrorPage`（见 `lib/main.dart`）。修复：安装 `xdg-user-dirs` 并运行 `xdg-user-dirs-update`（快照已包含；若再次出现存储错误页，先跑 `xdg-user-dirs-update`）。
+- 启动时会弹出 “X11环境检测” 对话框（因为运行在 X11/VNC 下），点 “继续”；随后的免责声明点 “已阅读并同意” 即可进入主界面。
+- 以下日志为无害噪音，可忽略：ALSA `cannot find card`（VM 无声卡）、`libEGL ... DRI3`（软件渲染回退）、`flutter_volume_controller ... Can't attach card to mixer`。
+- 桌面构建所需系统库（GTK/mpv/webkit/clang/ninja 等）已装入快照；clang 链接还需要 `libstdc++-14-dev`（clang 默认选 GCC 14 工具链）。
+- 自动化测试与静态分析（`flutter test` / `flutter analyze`）无需上述桌面系统库，只需 `flutter pub get`。

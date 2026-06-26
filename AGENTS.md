@@ -11,6 +11,7 @@
 - 准备 upstream PR 前，先阅读并遵循 `docs/upstream-pr-rules.md`。
 - upstream PR 分支必须从 `upstream/main` 创建，并且只暂存明确路径。
 - upstream PR 中排除 `AGENTS.md`、`docs/`、日志、临时文件和无关的 `pubspec.lock` 变更。
+- 个人文档/规则变更只提交到 fork：从 `origin/main` 创建独立分支，不要混入 upstream PR。
 
 ## 命令
 使用 PATH 中的本机 `flutter`；版本必须满足 `pubspec.yaml` 的 `environment.flutter`。

@@ -22,6 +22,9 @@ fork 中的 `AGENTS.md` 和 `docs/` 文档。
 主仓库 PR 只应包含实际 bug 修复或功能变更需要的文件。`AGENTS.md` 和
 `docs/` 是个人 fork 的工作流文件，默认不进入主仓库 PR。
 
+个人文档、规则或 agent 流程更新必须单独提交到 fork 分支，并以 `origin/main`
+为基准。不要把这些文件和准备提交到主仓库的代码变更放在同一个 PR 分支里。
+
 ## 推荐流程
 
 先同步主仓库：
@@ -59,6 +62,27 @@ git push origin fix/your-change
 ```powershell
 gh pr create --repo Predidit/Kazumi --base main --head liangyuR:fix/your-change
 ```
+
+## 个人文档进入 fork 的流程
+
+当需要固化 `AGENTS.md`、`docs/` 或其它只属于个人 fork 的说明时，使用单独分支：
+
+```powershell
+git fetch origin main
+git switch -c docs/your-rule origin/main
+```
+
+只暂存文档路径：
+
+```powershell
+git add AGENTS.md docs/upstream-pr-rules.md
+git diff --cached --name-status
+git commit -m "docs: update fork workflow rules"
+git push origin docs/your-rule
+```
+
+创建到个人 fork `main` 的 PR。不要把这个分支作为 `Predidit/Kazumi` 的 upstream
+PR head。
 
 ## 已在脏分支上开发时
 
@@ -100,3 +124,11 @@ git diff --name-status upstream/main...HEAD
 - 无关的 `pubspec.lock` 变更
 
 如果需要包含 `pubspec.lock`，PR 描述里必须说明它和本次代码变更的关系。
+
+如果是个人文档 PR，改用：
+
+```powershell
+git diff --name-status origin/main...HEAD
+```
+
+确认输出只包含 `AGENTS.md`、`docs/` 或其它明确属于 fork 工作流的文档。

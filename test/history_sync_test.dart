@@ -364,7 +364,8 @@ void main() {
 
       final history = merged.histories.single;
       expect(history.entryKind, HistoryEntryKind.offline);
-      expect(history.episodePageUrl, '/episode/1');
+      expect(history.episodePageUrl, isEmpty);
+      expect(history.progresses[1]!.episodePageUrl, '/episode/1');
     });
 
     test('keeps online and offline progress separate for the same episode', () {
@@ -410,6 +411,80 @@ void main() {
       );
       expect(online.progresses[1]!.progress.inSeconds, 10);
       expect(offline.progresses[1]!.progress.inSeconds, 20);
+    });
+
+    test('matches progress by page url when episode index changes', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 2,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/online/2',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/online/2',
+          ),
+        ],
+      );
+
+      final progress = merged.histories.single.progresses.values.single;
+      expect(progress.episode, 1);
+      expect(progress.episodePageUrl, '/online/2');
+      expect(progress.progress.inSeconds, 20);
+    });
+
+    test('keeps different page urls separate when episode index collides', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/online/a',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/online/b',
+          ),
+        ],
+      );
+
+      final progresses = merged.histories.single.progresses.values;
+      expect(progresses, hasLength(2));
+      expect(
+        progresses
+            .singleWhere(
+              (progress) => progress.episodePageUrl == '/online/a',
+            )
+            .progress
+            .inSeconds,
+        10,
+      );
+      expect(
+        progresses
+            .singleWhere(
+              (progress) => progress.episodePageUrl == '/online/b',
+            )
+            .progress
+            .inSeconds,
+        20,
+      );
     });
 
     test('canonicalizes legacy snapshot keys to online scoped keys', () {
@@ -582,6 +657,29 @@ void main() {
   });
 
   group('HistorySyncCodec', () {
+    test('round-trips progress page url and accepts legacy progress json', () {
+      final progress = Progress(
+        2,
+        1,
+        30 * 1000,
+        updatedAtMs: 4000,
+        episodePageUrl: '/episode/2',
+      );
+
+      final restored = HistorySyncCodec.progressFromJson(
+        HistorySyncCodec.progressToJson(progress),
+      );
+      final legacy = HistorySyncCodec.progressFromJson({
+        'episode': 1,
+        'road': 0,
+        'progressMs': 10 * 1000,
+      });
+
+      expect(restored.episodePageUrl, '/episode/2');
+      expect(restored.progress.inSeconds, 30);
+      expect(legacy.episodePageUrl, isEmpty);
+    });
+
     test('round-trips events through json lines', () {
       final events = [
         _upsert(
@@ -590,6 +688,7 @@ void main() {
           updatedAt: 1000,
           episode: 1,
           progressMs: 10,
+          episodePageUrl: '/episode/1',
         ),
         _watchState(
           deviceId: 'device-a',
@@ -615,6 +714,7 @@ void main() {
         HistorySyncOp.clearAll,
       ]);
       expect(restored.first.bangumiItem!.id, 1);
+      expect(restored.first.episodePageUrl, '/episode/1');
     });
   });
 
@@ -635,6 +735,7 @@ void main() {
         2,
         20 * 1000,
         updatedAtMs: 2500,
+        episodePageUrl: '/offline/progress-1',
       );
 
       final events =
@@ -649,7 +750,7 @@ void main() {
       );
       expect(progressEvent.entityKey, history.key);
       expect(progressEvent.entryKind, HistoryEntryKind.offline);
-      expect(progressEvent.episodePageUrl, '/offline/1');
+      expect(progressEvent.episodePageUrl, '/offline/progress-1');
       expect(progressEvent.updatedAt, 2500);
       expect(progressEvent.progressMs, 20 * 1000);
       expect(watchStateEvent.entryKind, HistoryEntryKind.offline);
@@ -705,6 +806,7 @@ HistorySyncEvent _upsert({
     0,
     progressMs,
     updatedAtMs: updatedAt,
+    episodePageUrl: episodePageUrl,
   );
   return HistorySyncEvent.upsertProgress(
     deviceId: deviceId,
@@ -714,6 +816,7 @@ HistorySyncEvent _upsert({
     road: 0,
     progressMs: progressMs,
     updatedAt: updatedAt,
+    episodePageUrl: episodePageUrl,
   );
 }
 

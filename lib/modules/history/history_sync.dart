@@ -90,6 +90,7 @@ class HistorySyncEvent {
     required int road,
     required int progressMs,
     required int updatedAt,
+    String? episodePageUrl,
   }) {
     return HistorySyncEvent(
       eventId: '$deviceId:$seq',
@@ -104,7 +105,7 @@ class HistorySyncEvent {
       road: road,
       progressMs: progressMs,
       entryKind: history.entryKind,
-      episodePageUrl: history.episodePageUrl,
+      episodePageUrl: episodePageUrl ?? history.episodePageUrl,
     );
   }
 
@@ -453,20 +454,41 @@ class HistorySyncState {
           event.lastSrc ?? '',
           event.lastWatchEpisodeName ?? '',
           entryKind: entryKind,
-          episodePageUrl: event.episodePageUrl ?? '',
         );
 
+    final episodePageUrl = event.episodePageUrl ?? '';
+    final progressMatch = _HistoryEpisodeMatcher.find(
+      current,
+      episode: episode,
+      episodePageUrl: episodePageUrl,
+    );
+    final progressBucket = progressMatch?.bucket ??
+        _HistoryEpisodeMatcher.bucketForNewProgress(
+          current,
+          episode: episode,
+          episodePageUrl: episodePageUrl,
+        );
     final episodeVersions = progressVersions.putIfAbsent(entityKey, () => {});
-    final progressVersion = episodeVersions[episode];
+    final progressVersion = episodeVersions[progressBucket];
     if (progressVersion == null ||
         HistorySyncVersion.compare(event.version, progressVersion) >= 0) {
-      current.progresses[episode] = Progress(
-        episode,
-        road,
-        progressMs,
-        updatedAtMs: event.updatedAt,
-      );
-      episodeVersions[episode] = event.version;
+      final progress = progressMatch?.progress ??
+          Progress(
+            episode,
+            road,
+            progressMs,
+            updatedAtMs: event.updatedAt,
+            episodePageUrl: episodePageUrl,
+          );
+      progress.episode = episode;
+      progress.road = road;
+      progress.progress = Duration(milliseconds: progressMs);
+      progress.updatedAtMs = event.updatedAt;
+      if (episodePageUrl.isNotEmpty) {
+        progress.episodePageUrl = episodePageUrl;
+      }
+      current.progresses[progressBucket] = progress;
+      episodeVersions[progressBucket] = event.version;
     }
     histories[entityKey] = current;
     deletedVersions.remove(entityKey);
@@ -658,6 +680,74 @@ class HistorySyncState {
   }
 }
 
+class _HistoryEpisodeMatch {
+  const _HistoryEpisodeMatch({
+    required this.bucket,
+    required this.progress,
+  });
+
+  final int bucket;
+  final Progress progress;
+}
+
+class _HistoryEpisodeMatcher {
+  static _HistoryEpisodeMatch? find(
+    History history, {
+    required int episode,
+    String episodePageUrl = '',
+  }) {
+    final pageUrl = episodePageUrl.trim();
+    if (pageUrl.isNotEmpty) {
+      for (final entry in history.progresses.entries) {
+        if (entry.value.episodePageUrl == pageUrl) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: entry.value,
+          );
+        }
+      }
+
+      final legacyProgress = history.progresses[episode];
+      if (legacyProgress != null && legacyProgress.episodePageUrl.isEmpty) {
+        return _HistoryEpisodeMatch(
+          bucket: episode,
+          progress: legacyProgress,
+        );
+      }
+      return null;
+    }
+
+    final progress = history.progresses[episode];
+    if (progress == null) {
+      return null;
+    }
+    return _HistoryEpisodeMatch(bucket: episode, progress: progress);
+  }
+
+  static int bucketForNewProgress(
+    History history, {
+    required int episode,
+    String episodePageUrl = '',
+  }) {
+    final pageUrl = episodePageUrl.trim();
+    final existing = history.progresses[episode];
+    if (existing == null ||
+        pageUrl.isEmpty ||
+        existing.episodePageUrl.isEmpty ||
+        existing.episodePageUrl == pageUrl) {
+      return episode;
+    }
+
+    var bucket = episode;
+    while (history.progresses.containsKey(bucket)) {
+      bucket++;
+    }
+    return bucket;
+  }
+
+  _HistoryEpisodeMatcher._();
+}
+
 class HistorySyncMerger {
   static HistorySyncSnapshot merge({
     required HistorySyncSnapshot snapshot,
@@ -753,6 +843,7 @@ class HistorySyncCodec {
       (json['road'] as num).toInt(),
       (json['progressMs'] as num).toInt(),
       updatedAtMs: (json['updatedAtMs'] as num?)?.toInt() ?? 0,
+      episodePageUrl: json['episodePageUrl'] as String? ?? '',
     );
   }
 
@@ -762,6 +853,7 @@ class HistorySyncCodec {
       'road': progress.road,
       'progressMs': progress.progress.inMilliseconds,
       'updatedAtMs': progress.updatedAtMs,
+      'episodePageUrl': progress.episodePageUrl,
     };
   }
 

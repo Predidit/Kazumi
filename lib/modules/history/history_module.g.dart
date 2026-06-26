@@ -23,9 +23,7 @@ class HistoryAdapter extends TypeAdapter<History> {
       fields[4] as DateTime,
       fields[5] as String,
       fields[6] == null ? '' : fields[6] as String,
-      entryKind: fields[7] == null
-          ? HistoryEntryKind.online
-          : fields[7] as String,
+      entryKind: fields[7] == null ? 'online' : fields[7] as String,
       episodePageUrl: fields[8] == null ? '' : fields[8] as String,
     )..progresses = (fields[0] as Map).cast<int, Progress>();
   }
@@ -80,13 +78,14 @@ class ProgressAdapter extends TypeAdapter<Progress> {
       (fields[1] as num).toInt(),
       (fields[2] as num).toInt(),
       updatedAtMs: fields[3] == null ? 0 : (fields[3] as num).toInt(),
+      episodePageUrl: fields[4] == null ? '' : fields[4] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Progress obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.episode)
       ..writeByte(1)
@@ -94,7 +93,9 @@ class ProgressAdapter extends TypeAdapter<Progress> {
       ..writeByte(2)
       ..write(obj._progressInMilli)
       ..writeByte(3)
-      ..write(obj.updatedAtMs);
+      ..write(obj.updatedAtMs)
+      ..writeByte(4)
+      ..write(obj.episodePageUrl);
   }
 
   @override

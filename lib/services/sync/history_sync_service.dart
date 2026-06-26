@@ -30,6 +30,7 @@ class HistorySyncService {
     required int episode,
     required int road,
     required int progressMs,
+    required String episodePageUrl,
     int? updatedAt,
   }) async {
     final deviceId = await getDeviceId();
@@ -46,6 +47,7 @@ class HistorySyncService {
         road: road,
         progressMs: progressMs,
         updatedAt: effectiveUpdatedAt,
+        episodePageUrl: episodePageUrl,
       ),
       HistorySyncEvent.upsertWatchState(
         deviceId: deviceId,
@@ -136,12 +138,13 @@ class HistorySyncService {
     final events = <HistorySyncEvent>[];
     for (final history in histories) {
       history.entryKind = HistoryEntryKind.normalize(history.entryKind);
-      for (final progress in history.progresses.values) {
+      for (final entry in history.progresses.entries) {
+        final progress = entry.value;
         final updatedAt = progress.effectiveUpdatedAtMs(history.lastWatchTime);
         events.add(
           HistorySyncEvent(
             eventId:
-                'local-state:${history.key}:${progress.episode}:${progress.road}',
+                'local-state:${history.key}:${entry.key}:${progress.episode}:${progress.road}',
             deviceId: 'local-state',
             seq: 0,
             op: HistorySyncOp.upsertProgress,
@@ -155,7 +158,7 @@ class HistorySyncService {
             lastSrc: history.lastSrc,
             lastWatchEpisodeName: history.lastWatchEpisodeName,
             entryKind: history.entryKind,
-            episodePageUrl: history.episodePageUrl,
+            episodePageUrl: progress.episodePageUrl,
           ),
         );
       }

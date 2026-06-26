@@ -154,6 +154,9 @@ class Progress {
   @HiveField(3, defaultValue: 0)
   int updatedAtMs;
 
+  @HiveField(4, defaultValue: '')
+  String episodePageUrl;
+
   Duration get progress => Duration(milliseconds: _progressInMilli);
 
   set progress(Duration d) => _progressInMilli = d.inMilliseconds;
@@ -163,6 +166,7 @@ class Progress {
     this.road,
     this._progressInMilli, {
     this.updatedAtMs = 0,
+    this.episodePageUrl = '',
   });
 
   int effectiveUpdatedAtMs(DateTime fallback) {

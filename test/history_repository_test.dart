@@ -347,6 +347,54 @@ void main() {
       );
     });
 
+    test(
+        'last watching falls back to episode when latest watch has no page url',
+        () async {
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
+      );
+      final item = _item(8);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '/online/a',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 2,
+          episodeTitle: 'EP2',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '',
+        ),
+        progress: const Duration(seconds: 20),
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      final progress = repository.getLastWatchingProgress(item, 'plugin');
+
+      expect(history.lastWatchEpisode, 2);
+      expect(history.episodePageUrl, isEmpty);
+      expect(progress, isNotNull);
+      expect(progress!.episode, 2);
+      expect(progress.episodePageUrl, isEmpty);
+      expect(progress.progress.inSeconds, 20);
+    });
+
     test('does not record history when private mode is enabled', () async {
       privateMode = true;
       final repository = HistoryRepository(

@@ -254,9 +254,7 @@ class HistoryRepository implements IHistoryRepository {
       if (identity.episodeTitle.isNotEmpty) {
         history.lastWatchEpisodeName = identity.episodeTitle;
       }
-      if (identity.episodePageUrl.isNotEmpty) {
-        history.episodePageUrl = identity.episodePageUrl;
-      }
+      history.episodePageUrl = identity.episodePageUrl;
 
       // 更新观看进度
       final progressMatch = _HistoryEpisodeMatcher.find(
@@ -282,9 +280,7 @@ class HistoryRepository implements IHistoryRepository {
       prog.road = identity.road;
       prog.progress = progress;
       prog.updatedAtMs = nowMs;
-      if (identity.episodePageUrl.isNotEmpty) {
-        prog.episodePageUrl = identity.episodePageUrl;
-      }
+      prog.episodePageUrl = identity.episodePageUrl;
       history.progresses[progressBucket] = prog;
 
       // 保存到存储
@@ -325,12 +321,19 @@ class HistoryRepository implements IHistoryRepository {
         episode: history.lastWatchEpisode,
         episodePageUrl: history.episodePageUrl,
       );
+      final resolvedMatch =
+          progressMatch?.progress.episode == history.lastWatchEpisode
+              ? progressMatch
+              : _HistoryEpisodeMatcher.find(
+                  history,
+                  episode: history.lastWatchEpisode,
+                );
       _backfillProgressPageUrl(
         history,
-        progressMatch,
+        resolvedMatch,
         history.episodePageUrl,
       );
-      return progressMatch?.progress;
+      return resolvedMatch?.progress;
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: get last watching progress failed. bangumi=${bangumiItem.name}',

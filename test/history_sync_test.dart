@@ -602,6 +602,42 @@ void main() {
       expect(mergedHistory.progresses[7]!.progress.inSeconds, 7);
     });
 
+    test('upsertProgress clears stale progress page url when payload has none',
+        () {
+      final history = History(
+        _item(1),
+        5,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP5',
+        episodePageUrl: '/episode/5',
+      );
+      history.progresses[5] = Progress(
+        5,
+        0,
+        5 * 1000,
+        episodePageUrl: '/episode/5',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.fromHistories([history]),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 5,
+            progressMs: 7 * 1000,
+          ),
+        ],
+      );
+
+      final progress = merged.histories.single.progresses[5]!;
+      expect(progress.progress.inSeconds, 7);
+      expect(progress.episodePageUrl, isEmpty);
+    });
+
     test('upsertWatchState updates latest episode metadata', () {
       final history = History(
         _item(1),
@@ -630,6 +666,41 @@ void main() {
       expect(mergedHistory.lastWatchTime.millisecondsSinceEpoch, 2000);
       expect(mergedHistory.lastSrc, 'https://example.com/video');
       expect(mergedHistory.lastWatchEpisodeName, 'EP7');
+    });
+
+    test('upsertWatchState clears stale page url when latest watch has none',
+        () {
+      final history = History(
+        _item(1),
+        5,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/video',
+        'EP5',
+        episodePageUrl: '/episode/5',
+      );
+      history.progresses[5] = Progress(
+        5,
+        0,
+        5 * 1000,
+        episodePageUrl: '/episode/5',
+      );
+
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.fromHistories([history]),
+        events: [
+          _watchState(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 7,
+          ),
+        ],
+      );
+
+      final mergedHistory = merged.histories.single;
+      expect(mergedHistory.lastWatchEpisode, 7);
+      expect(mergedHistory.episodePageUrl, isEmpty);
     });
 
     test('legacy upsertProgress payload can still update watch state', () {

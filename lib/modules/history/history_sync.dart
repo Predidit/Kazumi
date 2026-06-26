@@ -484,9 +484,7 @@ class HistorySyncState {
       progress.road = road;
       progress.progress = Duration(milliseconds: progressMs);
       progress.updatedAtMs = event.updatedAt;
-      if (episodePageUrl.isNotEmpty) {
-        progress.episodePageUrl = episodePageUrl;
-      }
+      progress.episodePageUrl = episodePageUrl;
       current.progresses[progressBucket] = progress;
       episodeVersions[progressBucket] = event.version;
     }
@@ -551,9 +549,7 @@ class HistorySyncState {
         current.lastWatchEpisodeName = event.lastWatchEpisodeName!;
       }
       current.entryKind = entryKind;
-      if ((event.episodePageUrl ?? '').isNotEmpty) {
-        current.episodePageUrl = event.episodePageUrl!;
-      }
+      current.episodePageUrl = event.episodePageUrl ?? '';
       itemVersions[entityKey] = event.version;
     }
     histories[entityKey] = current;

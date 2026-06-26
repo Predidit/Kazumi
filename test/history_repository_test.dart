@@ -347,6 +347,86 @@ void main() {
       );
     });
 
+    test('empty page url ignores synthetic buckets for other episodes',
+        () async {
+      final repository = HistoryRepository(
+        historiesBox: historiesBox,
+        privateModeReader: () => privateMode,
+        progressSyncAppender: _noopHistorySync,
+        deleteSyncAppender: _noopDeleteSync,
+        clearSyncAppender: _noopClearSync,
+      );
+      final item = _item(8);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '/online/a',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1 alt',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '/online/b',
+        ),
+        progress: const Duration(seconds: 20),
+      );
+
+      expect(repository.findProgress(item, 'plugin', 2), isNull);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 2,
+          episodeTitle: 'EP2',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '',
+        ),
+        progress: const Duration(seconds: 30),
+      );
+
+      var history = repository.getHistory('plugin', item)!;
+      final urlProgress = history.progresses.values.singleWhere(
+        (progress) => progress.episodePageUrl == '/online/b',
+      );
+      final noUrlProgress = repository.findProgress(item, 'plugin', 2);
+
+      expect(urlProgress.episode, 1);
+      expect(urlProgress.progress.inSeconds, 20);
+      expect(noUrlProgress, isNotNull);
+      expect(noUrlProgress!.episode, 2);
+      expect(noUrlProgress.episodePageUrl, isEmpty);
+      expect(noUrlProgress.progress.inSeconds, 30);
+
+      await repository.clearProgress(item, 'plugin', 2);
+
+      history = repository.getHistory('plugin', item)!;
+      expect(
+        history.progresses.values
+            .singleWhere(
+              (progress) => progress.episodePageUrl == '/online/b',
+            )
+            .progress
+            .inSeconds,
+        20,
+      );
+      expect(
+          repository.findProgress(item, 'plugin', 2)!.progress, Duration.zero);
+    });
+
     test(
         'last watching falls back to episode when latest watch has no page url',
         () async {
@@ -357,7 +437,7 @@ void main() {
         deleteSyncAppender: _noopDeleteSync,
         clearSyncAppender: _noopClearSync,
       );
-      final item = _item(8);
+      final item = _item(9);
 
       await repository.updateHistory(
         identity: PlaybackHistoryIdentity.online(

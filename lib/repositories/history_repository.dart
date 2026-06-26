@@ -529,7 +529,9 @@ class _HistoryEpisodeMatcher {
       }
 
       final legacyProgress = history.progresses[episode];
-      if (legacyProgress != null && legacyProgress.episodePageUrl.isEmpty) {
+      if (legacyProgress != null &&
+          legacyProgress.episode == episode &&
+          legacyProgress.episodePageUrl.isEmpty) {
         return _HistoryEpisodeMatch(
           bucket: episode,
           progress: legacyProgress,
@@ -539,10 +541,19 @@ class _HistoryEpisodeMatcher {
     }
 
     final progress = history.progresses[episode];
-    if (progress == null) {
-      return null;
+    if (progress != null && progress.episode == episode) {
+      return _HistoryEpisodeMatch(bucket: episode, progress: progress);
     }
-    return _HistoryEpisodeMatch(bucket: episode, progress: progress);
+
+    for (final entry in history.progresses.entries) {
+      if (entry.value.episode == episode) {
+        return _HistoryEpisodeMatch(
+          bucket: entry.key,
+          progress: entry.value,
+        );
+      }
+    }
+    return null;
   }
 
   static int bucketForNewProgress(
@@ -552,10 +563,13 @@ class _HistoryEpisodeMatcher {
   }) {
     final pageUrl = episodePageUrl.trim();
     final existing = history.progresses[episode];
-    if (existing == null ||
-        pageUrl.isEmpty ||
-        existing.episodePageUrl.isEmpty ||
-        existing.episodePageUrl == pageUrl) {
+    if (existing == null) {
+      return episode;
+    }
+    if (existing.episode == episode &&
+        (pageUrl.isEmpty ||
+            existing.episodePageUrl.isEmpty ||
+            existing.episodePageUrl == pageUrl)) {
       return episode;
     }
 

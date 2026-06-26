@@ -487,6 +487,53 @@ void main() {
       );
     });
 
+    test('empty page url upsert ignores synthetic buckets for other episodes',
+        () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/online/a',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/online/b',
+          ),
+          _upsert(
+            deviceId: 'device-c',
+            seq: 1,
+            updatedAt: 3000,
+            episode: 2,
+            progressMs: 30 * 1000,
+          ),
+        ],
+      );
+
+      final progresses = merged.histories.single.progresses.values;
+      expect(progresses, hasLength(3));
+      expect(
+        progresses
+            .singleWhere(
+              (progress) => progress.episodePageUrl == '/online/b',
+            )
+            .episode,
+        1,
+      );
+      final noUrlProgress = progresses.singleWhere(
+        (progress) => progress.episode == 2 && progress.episodePageUrl.isEmpty,
+      );
+      expect(noUrlProgress.progress.inSeconds, 30);
+    });
+
     test('canonicalizes legacy snapshot keys to online scoped keys', () {
       final history = History(
         _item(1),

@@ -537,6 +537,15 @@ class _HistoryEpisodeMatcher {
           progress: legacyProgress,
         );
       }
+      for (final entry in history.progresses.entries) {
+        final progress = entry.value;
+        if (progress.episode == episode && progress.episodePageUrl.isEmpty) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: progress,
+          );
+        }
+      }
       return null;
     }
 

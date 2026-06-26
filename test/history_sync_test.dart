@@ -534,6 +534,53 @@ void main() {
       expect(noUrlProgress.progress.inSeconds, 30);
     });
 
+    test('backfills synthetic legacy progress when page url appears later', () {
+      final merged = HistorySyncMerger.merge(
+        snapshot: HistorySyncSnapshot.empty(),
+        events: [
+          _upsert(
+            deviceId: 'device-a',
+            seq: 1,
+            updatedAt: 1000,
+            episode: 1,
+            progressMs: 10 * 1000,
+            episodePageUrl: '/online/a',
+          ),
+          _upsert(
+            deviceId: 'device-b',
+            seq: 1,
+            updatedAt: 2000,
+            episode: 1,
+            progressMs: 20 * 1000,
+            episodePageUrl: '/online/b',
+          ),
+          _upsert(
+            deviceId: 'device-c',
+            seq: 1,
+            updatedAt: 3000,
+            episode: 2,
+            progressMs: 30 * 1000,
+          ),
+          _upsert(
+            deviceId: 'device-d',
+            seq: 1,
+            updatedAt: 4000,
+            episode: 2,
+            progressMs: 40 * 1000,
+            episodePageUrl: '/online/2',
+          ),
+        ],
+      );
+
+      final history = merged.histories.single;
+      expect(history.progresses, hasLength(3));
+      expect(history.progresses[2]!.episode, 1);
+      expect(history.progresses[2]!.episodePageUrl, '/online/b');
+      expect(history.progresses[3]!.episode, 2);
+      expect(history.progresses[3]!.episodePageUrl, '/online/2');
+      expect(history.progresses[3]!.progress.inSeconds, 40);
+    });
+
     test('canonicalizes legacy snapshot keys to online scoped keys', () {
       final history = History(
         _item(1),

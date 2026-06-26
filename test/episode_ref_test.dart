@@ -4,50 +4,54 @@ import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 
 void main() {
-  group('ResolvedEpisode', () {
+  group('EpisodeRef', () {
     test('online keeps list index for history and parses title for danmaku',
         () {
-      final episode = ResolvedEpisode.online(
+      final episode = EpisodeRef.online(
         listIndex: 1,
         roadIndex: 0,
         displayTitle: '第13话',
-        episodePageUrl: '/episode/13',
+        pageUrl: '/episode/13',
       );
 
       expect(episode.historyEpisodeNumber, 1);
       expect(episode.danmakuEpisodeNumber, 13);
+      expect(episode.sortNumber, 13);
       expect(episode.originalRoadIndex, 0);
-      expect(episode.episodePageUrl, '/episode/13');
+      expect(episode.pageUrl, '/episode/13');
     });
 
     test('online falls back to list index when title has no episode number',
         () {
-      final episode = ResolvedEpisode.online(
+      final episode = EpisodeRef.online(
         listIndex: 2,
         roadIndex: 1,
         displayTitle: 'OVA',
-        episodePageUrl: '/ova',
+        pageUrl: '/ova',
       );
 
       expect(episode.historyEpisodeNumber, 2);
       expect(episode.danmakuEpisodeNumber, 2);
+      expect(episode.sortNumber, isNull);
       expect(episode.originalRoadIndex, 1);
     });
 
     test('offline uses downloaded episode number for history and danmaku', () {
-      const episode = ResolvedEpisode.offline(
+      const episode = EpisodeRef.offline(
         listIndex: 1,
         roadIndex: 0,
         displayTitle: '第13话',
-        episodePageUrl: '/episode/13',
+        pageUrl: '/episode/13',
         episodeNumber: 13,
         originalRoadIndex: 2,
       );
 
       expect(episode.historyEpisodeNumber, 13);
       expect(episode.danmakuEpisodeNumber, 13);
+      expect(episode.sortNumber, 13);
       expect(episode.originalRoadIndex, 2);
       expect(episode.listIndex, 1);
+      expect(episode.pageUrl, '/episode/13');
     });
   });
 

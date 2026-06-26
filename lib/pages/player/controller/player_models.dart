@@ -6,6 +6,8 @@ class PlaybackInitParams {
   final String pluginName;
   final int episode;
   final int danmakuEpisodeNumber;
+  final String pageUrl;
+  final int? sortNumber;
   final Map<String, String> httpHeaders;
   final bool adBlockerEnabled;
   final String episodeTitle;
@@ -27,6 +29,8 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.pageUrl = '',
+    this.sortNumber,
     this.coverUrl,
     this.bangumiName,
   });

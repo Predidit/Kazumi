@@ -86,6 +86,26 @@ class VideoEpisodeSelection {
   }
 }
 
+VideoEpisodeSelection? findEpisodeSelectionByPageUrl(
+  List<Road> roadList,
+  String episodePageUrl,
+) {
+  final pageUrl = episodePageUrl.trim();
+  if (pageUrl.isEmpty) {
+    return null;
+  }
+  for (var roadIndex = 0; roadIndex < roadList.length; roadIndex++) {
+    final episodeIndex = roadList[roadIndex].data.indexOf(pageUrl);
+    if (episodeIndex >= 0) {
+      return VideoEpisodeSelection(
+        episode: episodeIndex + 1,
+        road: roadIndex,
+      );
+    }
+  }
+  return null;
+}
+
 abstract class _VideoPageController with Store {
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
@@ -294,6 +314,7 @@ abstract class _VideoPageController with Store {
               identity.pluginName,
               identity.episodeNumber,
               entryKind: identity.entryKind,
+              episodePageUrl: identity.episodePageUrl,
             )
             ?.progress
             .inSeconds ??

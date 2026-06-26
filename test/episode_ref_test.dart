@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kazumi/modules/download/download_module.dart';
+import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/pages/player/controller/player_models.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 
@@ -52,6 +53,31 @@ void main() {
       expect(episode.originalRoadIndex, 2);
       expect(episode.listIndex, 1);
       expect(episode.pageUrl, '/episode/13');
+    });
+  });
+
+  group('findEpisodeSelectionByPageUrl', () {
+    test('locates the current road position after source reorder', () {
+      final roads = [
+        Road(
+          name: '播放线路1',
+          data: const ['/episode/3', '/episode/1'],
+          identifier: const ['第三话', '第一话'],
+        ),
+        Road(
+          name: '播放线路2',
+          data: const ['/episode/2'],
+          identifier: const ['第二话'],
+        ),
+      ];
+
+      final selection = findEpisodeSelectionByPageUrl(roads, '/episode/1');
+
+      expect(selection, isNotNull);
+      expect(selection!.road, 0);
+      expect(selection.episode, 2);
+      expect(findEpisodeSelectionByPageUrl(roads, ''), isNull);
+      expect(findEpisodeSelectionByPageUrl(roads, '/missing'), isNull);
     });
   });
 

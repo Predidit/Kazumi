@@ -186,16 +186,28 @@ class _VideoPageState extends State<VideoPage>
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
     if (progress != null) {
-      if (videoPageController.roadList.length > progress.road) {
-        if (videoPageController.roadList[progress.road].data.length >=
-            progress.episode) {
-          videoPageController.resetEpisodeState(
-            episode: progress.episode,
-            road: progress.road,
-          );
-          if (playResume) {
-            videoPageController.historyOffset = progress.progress.inSeconds;
-          }
+      final pageUrlSelection = findEpisodeSelectionByPageUrl(
+        videoPageController.roadList,
+        progress.episodePageUrl,
+      );
+      final fallbackSelection = pageUrlSelection ??
+          ((progress.road >= 0 &&
+                  videoPageController.roadList.length > progress.road &&
+                  progress.episode > 0 &&
+                  videoPageController.roadList[progress.road].data.length >=
+                      progress.episode)
+              ? VideoEpisodeSelection(
+                  episode: progress.episode,
+                  road: progress.road,
+                )
+              : null);
+      if (fallbackSelection != null) {
+        videoPageController.resetEpisodeState(
+          episode: fallbackSelection.episode,
+          road: fallbackSelection.road,
+        );
+        if (playResume) {
+          videoPageController.historyOffset = progress.progress.inSeconds;
         }
       }
     }

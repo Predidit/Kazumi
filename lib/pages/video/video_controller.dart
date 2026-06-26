@@ -351,7 +351,9 @@ abstract class _VideoPageController with Store {
     }
     final roadData = roadList[targetRoad];
     final index = episode - 1;
-    if (index < 0 || index >= roadData.data.length) {
+    if (index < 0 ||
+        index >= roadData.data.length ||
+        index >= roadData.identifier.length) {
       return null;
     }
     final episodeNumber = int.tryParse(roadData.data[index]);
@@ -359,8 +361,7 @@ abstract class _VideoPageController with Store {
       return null;
     }
     final downloadEpisode = _offlineEpisodesByNumber[episodeNumber];
-    final titleFromRoad =
-        index < roadData.identifier.length ? roadData.identifier[index] : '';
+    final titleFromRoad = roadData.identifier[index];
     final episodeTitle = downloadEpisode?.episodeName.isNotEmpty == true
         ? downloadEpisode!.episodeName
         : (titleFromRoad.isNotEmpty ? titleFromRoad : '第$episodeNumber集');
@@ -869,6 +870,10 @@ class EpisodeRef {
   final int roadIndex;
   final String displayTitle;
   final String pageUrl;
+
+  /// 集数排序号。
+  /// - 在线：从 [displayTitle] 解析（[extractEpisodeNumber]），无法解析时为 null。
+  /// - 离线：恒等于下载数据的 episodeNumber。
   final int? sortNumber;
   final int historyEpisodeNumber;
   final int danmakuEpisodeNumber;

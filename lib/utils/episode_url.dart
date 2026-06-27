@@ -68,3 +68,32 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
 
   return normalized.toString();
 }
+
+/// 由 URL 提取“与域名无关”的稳定身份 key（`path[?query][#fragment]`）。
+///
+/// 这是订阅规则在源站未暴露显式 episode id 时的 `stableId` 兜底来源。相比直接用
+/// 归一化后的绝对 URL，剥离 scheme/host 后得到的相对部分在源站**换域名 / 镜像轮换**
+/// 时仍保持不变，从而让历史进度匹配不再因 baseURL 变更而失配
+/// （即 `migrateStaleOnlineEpisodePageUrls` 想解决的问题在身份层面被消除）。
+///
+/// 行为：
+/// - 先用 [normalizeEpisodeUrl] 归一化（统一 https、去尾斜杠、去空 query）。
+/// - 能解析出 host 时返回 `path[?query][#fragment]`（path 为空时回退为 `/`）。
+/// - 无法解析为绝对 URL（baseUrl 缺失/非法）时，原样返回归一化结果，
+///   保证即便降级也仍是一个稳定字符串。
+String stableEpisodeIdFromUrl(String baseUrl, String raw) {
+  final normalized = normalizeEpisodeUrl(baseUrl, raw);
+  if (normalized.isEmpty) return '';
+
+  final uri = Uri.tryParse(normalized);
+  if (uri == null || uri.host.isEmpty) {
+    return normalized;
+  }
+
+  final path = uri.path.isEmpty ? '/' : uri.path;
+  final query =
+      uri.hasQuery && uri.query.isNotEmpty ? '?${uri.query}' : '';
+  final fragment =
+      uri.hasFragment && uri.fragment.isNotEmpty ? '#${uri.fragment}' : '';
+  return '$path$query$fragment';
+}

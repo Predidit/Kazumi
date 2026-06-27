@@ -591,6 +591,366 @@ void main() {
       expect(repository.getHistory('plugin', item), isNull);
     });
   });
+
+  group('HistoryRepository stableId matching', () {
+    HistoryRepository buildRepository() => HistoryRepository(
+          historiesBox: historiesBox,
+          privateModeReader: () => privateMode,
+          progressSyncAppender: _noopHistorySync,
+          deleteSyncAppender: _noopDeleteSync,
+          clearSyncAppender: _noopClearSync,
+        );
+
+    test('reuses the same bucket after a domain change via stableId', () async {
+      final repository = buildRepository();
+      final item = _item(30);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://old.example.com/play/1',
+          stableId: '/play/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+
+      // 源站换域名：episodePageUrl 完全不同，但 stableId 不变，应复用同一桶。
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://new-mirror.example.org/play/1',
+          stableId: '/play/1',
+        ),
+        progress: const Duration(seconds: 42),
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      expect(history.progresses, hasLength(1));
+      final progress = history.progresses.values.single;
+      expect(progress.progress.inSeconds, 42);
+      expect(progress.stableId, '/play/1');
+      expect(progress.episodePageUrl, 'https://new-mirror.example.org/play/1');
+    });
+
+    test('findProgress matches by stableId ignoring page url drift', () async {
+      final repository = buildRepository();
+      final item = _item(31);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://old.example.com/play/1',
+          stableId: '/play/1',
+        ),
+        progress: const Duration(seconds: 15),
+      );
+
+      final progress = repository.findProgress(
+        item,
+        'plugin',
+        1,
+        episodePageUrl: 'https://new.example.com/play/1',
+        stableId: '/play/1',
+      );
+
+      expect(progress, isNotNull);
+      expect(progress!.progress.inSeconds, 15);
+    });
+
+    test('backfills stableId onto a legacy progress matched by page url',
+        () async {
+      final repository = buildRepository();
+      final item = _item(32);
+
+      final history = History(
+        item,
+        1,
+        'plugin',
+        DateTime.fromMillisecondsSinceEpoch(1000),
+        'https://example.com/source',
+        'EP1',
+        episodePageUrl: 'https://old.example.com/play/1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        0,
+        10 * 1000,
+        episodePageUrl: 'https://old.example.com/play/1',
+      );
+      await historiesBox.put(history.key, history);
+
+      final progress = repository.findProgress(
+        item,
+        'plugin',
+        1,
+        episodePageUrl: 'https://old.example.com/play/1',
+        stableId: '/play/1',
+      );
+
+      expect(progress, isNotNull);
+      expect(progress!.progress.inSeconds, 10);
+      expect(
+        historiesBox.get(history.key)!.progresses[1]!.stableId,
+        '/play/1',
+      );
+    });
+  });
+
+  group('HistoryRepository migrateProgressPageUrls', () {
+    HistoryRepository buildRepository() => HistoryRepository(
+          historiesBox: historiesBox,
+          privateModeReader: () => privateMode,
+          progressSyncAppender: _noopHistorySync,
+          deleteSyncAppender: _noopDeleteSync,
+          clearSyncAppender: _noopClearSync,
+        );
+
+    test('rewrites stale page url in place and reuses bucket on next update',
+        () async {
+      final repository = buildRepository();
+      final item = _item(20);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://old.example.com/play/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) =>
+            road == 0 && episode == 1 ? 'https://new.example.com/play/1' : '',
+      );
+
+      var history = repository.getHistory('plugin', item)!;
+      expect(history.progresses, hasLength(1));
+      expect(
+        history.progresses[1]!.episodePageUrl,
+        'https://new.example.com/play/1',
+      );
+
+      // 后续以新 URL 写入应复用既有桶，而非新建重复条目。
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://new.example.com/play/1',
+        ),
+        progress: const Duration(seconds: 30),
+      );
+
+      history = repository.getHistory('plugin', item)!;
+      expect(history.progresses, hasLength(1));
+      expect(history.progresses[1]!.progress.inSeconds, 30);
+      expect(
+        history.progresses[1]!.episodePageUrl,
+        'https://new.example.com/play/1',
+      );
+    });
+
+    test(
+        'migrates top-level history.episodePageUrl and keeps lastWatching match',
+        () async {
+      final repository = buildRepository();
+      final item = _item(21);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://old.example.com/play/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) =>
+            'https://new.example.com/play/$episode',
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      expect(history.episodePageUrl, 'https://new.example.com/play/1');
+
+      final resumed = repository.getLastWatchingProgress(item, 'plugin');
+      expect(resumed, isNotNull);
+      expect(resumed!.episode, 1);
+      expect(resumed.episodePageUrl, 'https://new.example.com/play/1');
+      expect(resumed.progress.inSeconds, 10);
+    });
+
+    test('uses progress road/episode not the bucket key for synthetic buckets',
+        () async {
+      final repository = buildRepository();
+      final item = _item(22);
+
+      // 模拟 bucketForNewProgress 递增产生的 synthetic bucket：
+      // map key (3) 不等于 Progress.episode (1)。
+      final history = History(
+        item,
+        1,
+        'plugin',
+        DateTime.now(),
+        'https://example.com/source',
+        'EP1',
+        entryKind: HistoryEntryKind.online,
+        episodePageUrl: 'https://old.example.com/play/1',
+      );
+      history.progresses[3] = Progress(
+        1,
+        0,
+        10000,
+        updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+        episodePageUrl: 'https://old.example.com/play/1',
+      );
+      await historiesBox.put(history.key, history);
+
+      final resolverCalls = <String>[];
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) {
+          resolverCalls.add('$road:$episode');
+          if (road == 0 && episode == 1) {
+            return 'https://new.example.com/play/1';
+          }
+          return '';
+        },
+      );
+
+      final stored = repository.getHistory('plugin', item)!;
+      expect(stored.progresses.containsKey(3), isTrue);
+      expect(stored.progresses[3]!.episode, 1);
+      expect(
+        stored.progresses[3]!.episodePageUrl,
+        'https://new.example.com/play/1',
+      );
+      // resolver 必须使用 Progress 值的 road/episode（1），而非 map key（3）。
+      expect(resolverCalls, contains('0:1'));
+      expect(resolverCalls, isNot(contains('0:3')));
+    });
+
+    test('collapses duplicate buckets keeping the newer progress', () async {
+      final repository = buildRepository();
+      final item = _item(23);
+
+      // 一个旧 URL 桶 + 一个过往升级已生成的新 URL 桶，迁移后应合并为一个。
+      final history = History(
+        item,
+        1,
+        'plugin',
+        DateTime.now(),
+        'https://example.com/source',
+        'EP1',
+        entryKind: HistoryEntryKind.online,
+        episodePageUrl: 'https://new.example.com/play/1',
+      );
+      history.progresses[1] = Progress(
+        1,
+        0,
+        30000,
+        updatedAtMs: 2000,
+        episodePageUrl: 'https://old.example.com/play/1',
+      );
+      history.progresses[2] = Progress(
+        1,
+        0,
+        20000,
+        updatedAtMs: 1000,
+        episodePageUrl: 'https://new.example.com/play/1',
+      );
+      await historiesBox.put(history.key, history);
+
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) =>
+            'https://new.example.com/play/1',
+      );
+
+      final stored = repository.getHistory('plugin', item)!;
+      expect(stored.progresses, hasLength(1));
+      final survivor = stored.progresses.values.single;
+      expect(survivor.episodePageUrl, 'https://new.example.com/play/1');
+      expect(survivor.progress.inSeconds, 30);
+    });
+
+    test('leaves entries untouched when resolver or stored url is empty',
+        () async {
+      final repository = buildRepository();
+      final item = _item(24);
+
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 1,
+          episodeTitle: 'EP1',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: 'https://old.example.com/play/1',
+        ),
+        progress: const Duration(seconds: 10),
+      );
+      await repository.updateHistory(
+        identity: PlaybackHistoryIdentity.online(
+          bangumiItem: item,
+          pluginName: 'plugin',
+          episodeNumber: 2,
+          episodeTitle: 'EP2',
+          road: 0,
+          onlineBangumiSrc: 'https://example.com/source',
+          episodePageUrl: '',
+        ),
+        progress: const Duration(seconds: 20),
+      );
+
+      repository.migrateProgressPageUrls(
+        adapterName: 'plugin',
+        bangumiItem: item,
+        resolveCurrentPageUrl: (road, episode) => '',
+      );
+
+      final history = repository.getHistory('plugin', item)!;
+      expect(
+        history.progresses[1]!.episodePageUrl,
+        'https://old.example.com/play/1',
+      );
+      expect(history.progresses[2]!.episodePageUrl, isEmpty);
+    });
+  });
 }
 
 Future<void> _noopHistorySync({

@@ -83,7 +83,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                       setState(() {
                         _selectedEpisodes.clear();
                         for (int i = 1; i <= episodeCount; i++) {
-                          final url = currentRoadData.data[i - 1];
+                          final url = currentRoadData.data[i - 1].pageUrl;
                           if (!downloadedUrls.contains(url)) {
                             _selectedEpisodes.add(i);
                           }
@@ -118,10 +118,10 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                 itemCount: episodeCount,
                 itemBuilder: (context, index) {
                   final episodeNumber = index + 1;
-                  final episodeUrl = currentRoadData.data[index];
+                  final episodeUrl = currentRoadData.data[index].pageUrl;
                   final isDownloaded = downloadedUrls.contains(episodeUrl);
                   final isSelected = _selectedEpisodes.contains(episodeNumber);
-                  final identifier = currentRoadData.identifier[index];
+                  final identifier = currentRoadData.data[index].title;
 
                   return Material(
                     color: isDownloaded
@@ -233,8 +233,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
     final sortedEpisodes = _selectedEpisodes.toList()..sort();
 
     for (final episodeNumber in sortedEpisodes) {
-      final episodePageUrl = currentRoadData.data[episodeNumber - 1];
-      final identifier = currentRoadData.identifier[episodeNumber - 1];
+      final episodePageUrl = currentRoadData.data[episodeNumber - 1].pageUrl;
+      final identifier = currentRoadData.data[episodeNumber - 1].title;
 
       downloadController.startDownload(
         bangumiId: bangumiItem.id,

@@ -1012,7 +1012,7 @@ class _PlayerItemPanelState extends State<PlayerItemPanel> {
               Expanded(
                 child: dtb.DragToMoveArea(
                   child: Text(
-                    ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].identifier[videoPageController.selectedEpisode.episode - 1]}]',
+                    ' ${videoPageController.title} [${videoPageController.roadList[videoPageController.selectedEpisode.road].data[videoPageController.selectedEpisode.episode - 1].title}]',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize:

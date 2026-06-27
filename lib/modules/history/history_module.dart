@@ -24,6 +24,7 @@ class PlaybackHistoryIdentity {
     required this.entryKind,
     this.onlineBangumiSrc = '',
     this.episodePageUrl = '',
+    this.stableId = '',
   });
 
   final BangumiItem bangumiItem;
@@ -35,6 +36,9 @@ class PlaybackHistoryIdentity {
   final String onlineBangumiSrc;
   final String episodePageUrl;
 
+  /// 订阅规则产出的稳定身份（与域名/顺序无关），历史进度匹配主键。
+  final String stableId;
+
   bool get canRecord => pluginName.isNotEmpty && episodeNumber > 0;
 
   factory PlaybackHistoryIdentity.online({
@@ -45,6 +49,7 @@ class PlaybackHistoryIdentity {
     required int road,
     required String onlineBangumiSrc,
     required String episodePageUrl,
+    String stableId = '',
   }) {
     return PlaybackHistoryIdentity(
       bangumiItem: bangumiItem,
@@ -55,6 +60,7 @@ class PlaybackHistoryIdentity {
       entryKind: HistoryEntryKind.online,
       onlineBangumiSrc: onlineBangumiSrc,
       episodePageUrl: episodePageUrl,
+      stableId: stableId,
     );
   }
 
@@ -65,6 +71,7 @@ class PlaybackHistoryIdentity {
     required String episodeTitle,
     required int road,
     required String episodePageUrl,
+    String stableId = '',
   }) {
     return PlaybackHistoryIdentity(
       bangumiItem: bangumiItem,
@@ -74,6 +81,7 @@ class PlaybackHistoryIdentity {
       road: road,
       entryKind: HistoryEntryKind.offline,
       episodePageUrl: episodePageUrl,
+      stableId: stableId,
     );
   }
 }
@@ -157,6 +165,11 @@ class Progress {
   @HiveField(4, defaultValue: '')
   String episodePageUrl;
 
+  /// 订阅规则产出的稳定身份（与域名/顺序无关），作为历史进度匹配主键。
+  /// 存量数据为空时，匹配层回退用 [episodePageUrl] 推导。
+  @HiveField(5, defaultValue: '')
+  String stableId;
+
   Duration get progress => Duration(milliseconds: _progressInMilli);
 
   set progress(Duration d) => _progressInMilli = d.inMilliseconds;
@@ -167,6 +180,7 @@ class Progress {
     this._progressInMilli, {
     this.updatedAtMs = 0,
     this.episodePageUrl = '',
+    this.stableId = '',
   });
 
   int effectiveUpdatedAtMs(DateTime fallback) {

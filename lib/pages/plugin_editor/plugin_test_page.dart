@@ -498,8 +498,8 @@ class _PluginTestPageState extends State<PluginTestPage> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ...road.identifier.asMap().entries.map((e) => Text(
-                                '${e.key + 1}. ${e.value}',
+                          ...road.data.asMap().entries.map((e) => Text(
+                                '${e.key + 1}. ${e.value.title}',
                                 style: theme.textTheme.bodySmall,
                               )),
                         ]),

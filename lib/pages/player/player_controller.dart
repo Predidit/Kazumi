@@ -86,6 +86,20 @@ class PlayerController {
     }
     playback.invalidatePreciseVolume();
     await playback.syncVolumeToDevice(vol);
+    _persistDesktopVolume(vol ?? playback.volume);
+  }
+
+  void _persistDesktopVolume(double value) {
+    if (!isDesktop()) {
+      return;
+    }
+    final clamped = value.clamp(0.0, 100.0);
+    final stored = GStorage.getSetting(SettingsKeys.defaultVolume);
+    if (stored.round() == clamped.round()) {
+      return;
+    }
+    unawaited(
+        GStorage.putSetting<double>(SettingsKeys.defaultVolume, clamped));
   }
 
   Future<bool> init(PlaybackInitParams params) async {
@@ -132,7 +146,9 @@ class PlayerController {
     }
 
     if (isDesktop()) {
-      playback.volume = playback.volume != -1 ? playback.volume : 100;
+      playback.volume = playback.volume != -1
+          ? playback.volume
+          : GStorage.getSetting(SettingsKeys.defaultVolume);
       await setVolume(playback.volume);
       if (!playback.isCurrentPlayer(player)) {
         return false;
@@ -213,6 +229,7 @@ class PlayerController {
 
   Future<void> setVolume(double value) async {
     await playback.setVolume(value);
+    _persistDesktopVolume(value);
   }
 
   void syncPlaybackState() {

@@ -486,6 +486,11 @@ class SettingsKeys {
     4000,
     group: SettingGroup.player,
   );
+  static const defaultVolume = SettingKey<double>(
+    'defaultVolume',
+    100.0,
+    group: SettingGroup.player,
+  );
 
   static final List<SettingKey<Object?>> all = [
     hAenable,
@@ -577,6 +582,7 @@ class SettingsKeys {
     historySyncSequence,
     historySyncSnapshotInitialized,
     playerControllerLayerDisappearTime,
+    defaultVolume,
   ];
 
   static List<SettingKey<Object?>> byGroup(SettingGroup group) {

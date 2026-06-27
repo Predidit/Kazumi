@@ -131,8 +131,6 @@ class _PlayerItemState extends State<PlayerItem>
   PointerDeviceKind? _lastTapPointerKind;
   PointerDeviceKind? _lastDoubleTapPointerKind;
 
-  double lastVolume = 0;
-
   late final AnimationController _panelVisibilityController;
   late final AnimationController _screenshotFeedbackController;
   late final Animation<double> _screenshotFeedbackAnimation;
@@ -887,12 +885,7 @@ class _PlayerItemState extends State<PlayerItem>
               .setVolume(playerController.playback.volume - 10);
           break;
         case 'mute':
-          if (playerController.playback.volume > 0) {
-            lastVolume = playerController.playback.volume;
-            await playerController.setVolume(0);
-          } else {
-            await playerController.setVolume(lastVolume);
-          }
+          await playerController.toggleMute();
           break;
         default:
           return;

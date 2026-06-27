@@ -182,6 +182,10 @@ class _VideoPageState extends State<VideoPage>
     videoPageController.historyOffset = 0;
     _showTabBodyImmediately(locateEpisode: false);
 
+    // 规则 baseURL 变更后迁移历史中过期的 pageURL，避免后续写入产生重复进度。
+    // 同步执行，保证下面 lastWatching 读取到迁移后的 URL。
+    videoPageController.migrateStaleOnlineEpisodePageUrls();
+
     var progress = historyController.lastWatching(
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);

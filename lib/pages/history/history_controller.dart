@@ -57,6 +57,20 @@ abstract class _HistoryController with Store {
     );
   }
 
+  void migrateProgressPageUrls({
+    required BangumiItem bangumiItem,
+    required String adapterName,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  }) {
+    _historyRepository.migrateProgressPageUrls(
+      adapterName: adapterName,
+      bangumiItem: bangumiItem,
+      entryKind: entryKind,
+      resolveCurrentPageUrl: resolveCurrentPageUrl,
+    );
+  }
+
   Future<void> deleteHistory(History history) async {
     await _historyRepository.deleteHistory(history);
     init();

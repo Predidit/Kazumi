@@ -321,6 +321,30 @@ abstract class _VideoPageController with Store {
         0;
   }
 
+  /// 规则 baseURL 变更后，历史进度中的 pageURL 会因旧 baseURL 归一化而失配，
+  /// 触发 fallback 播放并在写入时新建重复条目。此处在在线视频页打开时，
+  /// 依据当前 roadList 把历史里过期的 pageURL 就地迁移为最新 URL。
+  void migrateStaleOnlineEpisodePageUrls() {
+    if (isOfflineMode || roadList.isEmpty) {
+      return;
+    }
+    historyController.migrateProgressPageUrls(
+      adapterName: currentPlugin.name,
+      bangumiItem: bangumiItem,
+      resolveCurrentPageUrl: (road, episode) {
+        if (road < 0 || road >= roadList.length) {
+          return '';
+        }
+        final data = roadList[road].data;
+        final idx = episode - 1;
+        if (idx < 0 || idx >= data.length) {
+          return '';
+        }
+        return data[idx];
+      },
+    );
+  }
+
   void _setOnlineHistoryIdentity(EpisodeRef episode) {
     _playbackHistoryIdentity = PlaybackHistoryIdentity.online(
       bangumiItem: bangumiItem,

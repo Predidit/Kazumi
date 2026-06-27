@@ -93,6 +93,22 @@ abstract class IHistoryRepository {
   /// 清空所有历史记录
   Future<void> clearAllHistories();
 
+  /// 迁移历史进度中过期的 pageURL。
+  ///
+  /// 当规则的 baseURL 变更后，历史记录里基于旧 baseURL 归一化得到的
+  /// [Progress.episodePageUrl] 不再与当前 roadList 中的 URL 匹配，
+  /// 进而在下次写入时被当作新条目，产生重复进度。
+  ///
+  /// [resolveCurrentPageUrl] 根据存储的 `(road, episode)` 返回当前 roadList
+  /// 中对应的最新 URL（无法解析返回空串）。命中后就地把旧 URL 迁移为新 URL，
+  /// 使后续写入复用既有条目而非新建。
+  void migrateProgressPageUrls({
+    required String adapterName,
+    required BangumiItem bangumiItem,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  });
+
   /// 获取隐私模式设置
   bool getPrivateMode();
 }
@@ -447,6 +463,118 @@ class HistoryRepository implements IHistoryRepository {
     } catch (e, stackTrace) {
       KazumiLogger().e(
         'GStorage: clear all histories failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  @override
+  void migrateProgressPageUrls({
+    required String adapterName,
+    required BangumiItem bangumiItem,
+    String entryKind = HistoryEntryKind.online,
+    required String Function(int road, int episode) resolveCurrentPageUrl,
+  }) {
+    try {
+      final history = _findHistory(adapterName, bangumiItem, entryKind);
+      if (history == null) {
+        return;
+      }
+
+      // Phase 1: 解析计划重写（仅记录，不修改）。
+      // 必须使用 Progress 值的 road/episode，而非 map key，因为
+      // bucketForNewProgress 会递增寻找空桶，key 可能不等于 episode。
+      final plannedRewrites = <int, String>{};
+      for (final entry in history.progresses.entries) {
+        final progress = entry.value;
+        final currentUrl = progress.episodePageUrl.trim();
+        if (currentUrl.isEmpty) {
+          continue;
+        }
+        final newUrl =
+            resolveCurrentPageUrl(progress.road, progress.episode).trim();
+        if (newUrl.isEmpty || newUrl == currentUrl) {
+          continue;
+        }
+        plannedRewrites[entry.key] = newUrl;
+      }
+
+      if (plannedRewrites.isEmpty) {
+        return;
+      }
+
+      // 在变更前记录顶层 URL 对应的桶，便于结束后同步迁移
+      // history.episodePageUrl（getLastWatchingProgress 会优先用它匹配）。
+      final topUrl = history.episodePageUrl.trim();
+      int? topBucketKey;
+      if (topUrl.isNotEmpty) {
+        for (final entry in history.progresses.entries) {
+          if (entry.value.episodePageUrl.trim() == topUrl) {
+            topBucketKey = entry.key;
+            break;
+          }
+        }
+      }
+
+      // Phase 2: 应用重写并解决目标 URL 冲突。
+      var changed = false;
+      final removedBuckets = <int>{};
+      plannedRewrites.forEach((bucketKey, newUrl) {
+        if (removedBuckets.contains(bucketKey)) {
+          return;
+        }
+        final progress = history.progresses[bucketKey];
+        if (progress == null) {
+          return;
+        }
+
+        // 查找其它已持有 newUrl 的桶（既有真实条目或过往升级产生的重复）。
+        int? conflictKey;
+        for (final entry in history.progresses.entries) {
+          if (entry.key == bucketKey || removedBuckets.contains(entry.key)) {
+            continue;
+          }
+          if (entry.value.episodePageUrl == newUrl) {
+            conflictKey = entry.key;
+            break;
+          }
+        }
+
+        if (conflictKey == null) {
+          progress.episodePageUrl = newUrl;
+          changed = true;
+          return;
+        }
+
+        // 冲突：按 updatedAtMs 较大者为准，删除落败桶，仅向幸存桶写入。
+        final conflictProgress = history.progresses[conflictKey]!;
+        if (progress.updatedAtMs >= conflictProgress.updatedAtMs) {
+          history.progresses.remove(conflictKey);
+          removedBuckets.add(conflictKey);
+          progress.episodePageUrl = newUrl;
+        } else {
+          history.progresses.remove(bucketKey);
+          removedBuckets.add(bucketKey);
+          // 幸存桶已持有 newUrl，无需再赋值。
+        }
+        changed = true;
+      });
+
+      if (topBucketKey != null) {
+        final newTopUrl = plannedRewrites[topBucketKey];
+        if (newTopUrl != null && newTopUrl != topUrl) {
+          history.episodePageUrl = newTopUrl;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        unawaited(_historiesBox.put(history.key, history));
+      }
+    } catch (e, stackTrace) {
+      KazumiLogger().e(
+        'GStorage: migrate progress page urls failed. bangumi=${bangumiItem.name}',
         error: e,
         stackTrace: stackTrace,
       );

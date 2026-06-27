@@ -89,8 +89,6 @@ class PlayerController {
     _persistDesktopVolume(vol ?? playback.volume);
   }
 
-  /// 桌面端音量由应用内 mpv 管理，需手动持久化以便下次打开记忆音量。
-  /// 移动端音量走系统音量，由系统记忆，无需写入。
   void _persistDesktopVolume(double value) {
     if (!isDesktop()) {
       return;

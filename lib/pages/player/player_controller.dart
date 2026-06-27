@@ -63,6 +63,37 @@ class PlayerController {
   Timer? _volumeGestureSyncTimer;
   double? _pendingGestureVolume;
 
+  bool muted = false;
+  double _preMuteVolume = 100;
+
+  Future<void> toggleMute() async {
+    if (!muted && playback.volume > 0) {
+      _preMuteVolume = playback.volume;
+      muted = true;
+      _persistMuteState();
+      await setVolume(0);
+    } else {
+      muted = false;
+      _persistMuteState();
+      await setVolume(_preMuteVolume > 0 ? _preMuteVolume : 100);
+    }
+  }
+
+  void _persistMuteState() {
+    if (!isDesktop()) {
+      return;
+    }
+    unawaited(GStorage.putSetting<bool>(SettingsKeys.playerMuted, muted));
+  }
+
+  /// 在音量被主动调高（手势 / 按键 / 滚轮）时退出静音状态。
+  void _clearMuteIfNeeded(double value) {
+    if (muted && value > 0) {
+      muted = false;
+      _persistMuteState();
+    }
+  }
+
   void setVolumeDuringGesture(double value) {
     _pendingGestureVolume = value.clamp(0.0, 100.0);
     playback.updateVolume(_pendingGestureVolume!);
@@ -86,11 +117,16 @@ class PlayerController {
     }
     playback.invalidatePreciseVolume();
     await playback.syncVolumeToDevice(vol);
-    _persistDesktopVolume(vol ?? playback.volume);
+    final resolved = vol ?? playback.volume;
+    _clearMuteIfNeeded(resolved);
+    _persistDesktopVolume(resolved);
   }
 
   void _persistDesktopVolume(double value) {
     if (!isDesktop()) {
+      return;
+    }
+    if (muted) {
       return;
     }
     final clamped = value.clamp(0.0, 100.0);
@@ -146,9 +182,13 @@ class PlayerController {
     }
 
     if (isDesktop()) {
-      playback.volume = playback.volume != -1
-          ? playback.volume
-          : GStorage.getSetting(SettingsKeys.defaultVolume);
+      final freshStart = playback.volume == -1;
+      if (freshStart) {
+        muted = GStorage.getSetting(SettingsKeys.playerMuted);
+        final remembered = GStorage.getSetting(SettingsKeys.defaultVolume);
+        _preMuteVolume = remembered > 0 ? remembered : 100;
+        playback.volume = muted ? 0 : remembered;
+      }
       await setVolume(playback.volume);
       if (!playback.isCurrentPlayer(player)) {
         return false;
@@ -229,6 +269,7 @@ class PlayerController {
 
   Future<void> setVolume(double value) async {
     await playback.setVolume(value);
+    _clearMuteIfNeeded(value);
     _persistDesktopVolume(value);
   }
 

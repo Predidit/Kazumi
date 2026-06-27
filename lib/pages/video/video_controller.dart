@@ -86,6 +86,26 @@ class VideoEpisodeSelection {
   }
 }
 
+VideoEpisodeSelection? findEpisodeSelectionByPageUrl(
+  List<Road> roadList,
+  String episodePageUrl,
+) {
+  final pageUrl = episodePageUrl.trim();
+  if (pageUrl.isEmpty) {
+    return null;
+  }
+  for (var roadIndex = 0; roadIndex < roadList.length; roadIndex++) {
+    final episodeIndex = roadList[roadIndex].data.indexOf(pageUrl);
+    if (episodeIndex >= 0) {
+      return VideoEpisodeSelection(
+        episode: episodeIndex + 1,
+        road: roadIndex,
+      );
+    }
+  }
+  return null;
+}
+
 abstract class _VideoPageController with Store {
   late BangumiItem bangumiItem;
   EpisodeInfo episodeInfo = EpisodeInfo.fromTemplate();
@@ -294,13 +314,14 @@ abstract class _VideoPageController with Store {
               identity.pluginName,
               identity.episodeNumber,
               entryKind: identity.entryKind,
+              episodePageUrl: identity.episodePageUrl,
             )
             ?.progress
             .inSeconds ??
         0;
   }
 
-  void _setOnlineHistoryIdentity(ResolvedEpisode episode) {
+  void _setOnlineHistoryIdentity(EpisodeRef episode) {
     _playbackHistoryIdentity = PlaybackHistoryIdentity.online(
       bangumiItem: bangumiItem,
       pluginName: currentPlugin.name,
@@ -308,22 +329,22 @@ abstract class _VideoPageController with Store {
       episodeTitle: episode.displayTitle,
       road: episode.originalRoadIndex,
       onlineBangumiSrc: src,
-      episodePageUrl: episode.episodePageUrl,
+      episodePageUrl: episode.pageUrl,
     );
   }
 
-  void _setOfflineHistoryIdentity(ResolvedEpisode episode) {
+  void _setOfflineHistoryIdentity(EpisodeRef episode) {
     _playbackHistoryIdentity = PlaybackHistoryIdentity.offline(
       bangumiItem: bangumiItem,
       pluginName: _offlinePluginName,
       episodeNumber: episode.historyEpisodeNumber,
       episodeTitle: episode.displayTitle,
       road: episode.originalRoadIndex,
-      episodePageUrl: episode.episodePageUrl,
+      episodePageUrl: episode.pageUrl,
     );
   }
 
-  ResolvedEpisode? _resolveOnlineEpisode(int episode, {int? road}) {
+  EpisodeRef? _resolveOnlineEpisode(int episode, {int? road}) {
     final targetRoad = road ?? selectedEpisode.road;
     if (roadList.isEmpty || targetRoad < 0 || targetRoad >= roadList.length) {
       return null;
@@ -336,22 +357,24 @@ abstract class _VideoPageController with Store {
       return null;
     }
     final displayTitle = roadData.identifier[index];
-    return ResolvedEpisode.online(
+    return EpisodeRef.online(
       listIndex: episode,
       roadIndex: targetRoad,
       displayTitle: displayTitle,
-      episodePageUrl: roadData.data[index],
+      pageUrl: roadData.data[index],
     );
   }
 
-  ResolvedEpisode? _resolveOfflineEpisode(int episode, {int? road}) {
+  EpisodeRef? _resolveOfflineEpisode(int episode, {int? road}) {
     final targetRoad = road ?? selectedEpisode.road;
     if (roadList.isEmpty || targetRoad < 0 || targetRoad >= roadList.length) {
       return null;
     }
     final roadData = roadList[targetRoad];
     final index = episode - 1;
-    if (index < 0 || index >= roadData.data.length) {
+    if (index < 0 ||
+        index >= roadData.data.length ||
+        index >= roadData.identifier.length) {
       return null;
     }
     final episodeNumber = int.tryParse(roadData.data[index]);
@@ -359,16 +382,15 @@ abstract class _VideoPageController with Store {
       return null;
     }
     final downloadEpisode = _offlineEpisodesByNumber[episodeNumber];
-    final titleFromRoad =
-        index < roadData.identifier.length ? roadData.identifier[index] : '';
+    final titleFromRoad = roadData.identifier[index];
     final episodeTitle = downloadEpisode?.episodeName.isNotEmpty == true
         ? downloadEpisode!.episodeName
         : (titleFromRoad.isNotEmpty ? titleFromRoad : '第$episodeNumber集');
-    return ResolvedEpisode.offline(
+    return EpisodeRef.offline(
       listIndex: episode,
       roadIndex: targetRoad,
       displayTitle: episodeTitle,
-      episodePageUrl: downloadEpisode?.episodePageUrl ?? '',
+      pageUrl: downloadEpisode?.episodePageUrl ?? '',
       episodeNumber: episodeNumber,
       originalRoadIndex: downloadEpisode?.road ??
           _offlineDisplayRoadToOriginalRoad[targetRoad] ??
@@ -376,10 +398,14 @@ abstract class _VideoPageController with Store {
     );
   }
 
-  int commentEpisodeForSelection(VideoEpisodeSelection selection) {
-    final resolvedEpisode = isOfflineMode
+  EpisodeRef? resolveEpisode(VideoEpisodeSelection selection) {
+    return isOfflineMode
         ? _resolveOfflineEpisode(selection.episode, road: selection.road)
         : _resolveOnlineEpisode(selection.episode, road: selection.road);
+  }
+
+  int commentEpisodeForSelection(VideoEpisodeSelection selection) {
+    final resolvedEpisode = resolveEpisode(selection);
     return resolvedEpisode?.danmakuEpisodeNumber ?? selection.episode;
   }
 
@@ -439,7 +465,7 @@ abstract class _VideoPageController with Store {
         .i('VideoPageController: changed to ${resolvedEpisode.displayTitle}');
     final urlItem = normalizeEpisodeUrl(
       currentPlugin.baseUrl,
-      resolvedEpisode.episodePageUrl,
+      resolvedEpisode.pageUrl,
     );
 
     await _resolveWithVideoSourceService(
@@ -501,6 +527,8 @@ abstract class _VideoPageController with Store {
       pluginName: _offlinePluginName,
       episode: resolvedEpisode.listIndex,
       danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
+      pageUrl: resolvedEpisode.pageUrl,
+      sortNumber: resolvedEpisode.sortNumber,
       httpHeaders: {},
       adBlockerEnabled: false,
       episodeTitle: resolvedEpisode.displayTitle,
@@ -575,7 +603,7 @@ abstract class _VideoPageController with Store {
   Future<void> _resolveWithVideoSourceService(
     String url,
     int offset, {
-    required ResolvedEpisode resolvedEpisode,
+    required EpisodeRef resolvedEpisode,
     required _AsyncSession session,
     required PlayerController playerController,
   }) async {
@@ -613,6 +641,8 @@ abstract class _VideoPageController with Store {
         pluginName: currentPlugin.name,
         episode: resolvedEpisode.listIndex,
         danmakuEpisodeNumber: resolvedEpisode.danmakuEpisodeNumber,
+        pageUrl: resolvedEpisode.pageUrl,
+        sortNumber: resolvedEpisode.sortNumber,
         httpHeaders: {
           'user-agent': currentPlugin.userAgent.isEmpty
               ? getRandomUA()
@@ -845,12 +875,13 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
   );
 }
 
-class ResolvedEpisode {
-  const ResolvedEpisode({
+class EpisodeRef {
+  const EpisodeRef({
     required this.listIndex,
     required this.roadIndex,
     required this.displayTitle,
-    required this.episodePageUrl,
+    required this.pageUrl,
+    required this.sortNumber,
     required this.historyEpisodeNumber,
     required this.danmakuEpisodeNumber,
     required this.originalRoadIndex,
@@ -859,23 +890,29 @@ class ResolvedEpisode {
   final int listIndex;
   final int roadIndex;
   final String displayTitle;
-  final String episodePageUrl;
+  final String pageUrl;
+
+  /// 集数排序号。
+  /// - 在线：从 [displayTitle] 解析（[extractEpisodeNumber]），无法解析时为 null。
+  /// - 离线：恒等于下载数据的 episodeNumber。
+  final int? sortNumber;
   final int historyEpisodeNumber;
   final int danmakuEpisodeNumber;
   final int originalRoadIndex;
 
-  factory ResolvedEpisode.online({
+  factory EpisodeRef.online({
     required int listIndex,
     required int roadIndex,
     required String displayTitle,
-    required String episodePageUrl,
+    required String pageUrl,
   }) {
     final parsedEpisodeNumber = extractEpisodeNumber(displayTitle);
-    return ResolvedEpisode(
+    return EpisodeRef(
       listIndex: listIndex,
       roadIndex: roadIndex,
       displayTitle: displayTitle,
-      episodePageUrl: episodePageUrl,
+      pageUrl: pageUrl,
+      sortNumber: parsedEpisodeNumber > 0 ? parsedEpisodeNumber : null,
       historyEpisodeNumber: listIndex,
       danmakuEpisodeNumber:
           parsedEpisodeNumber > 0 ? parsedEpisodeNumber : listIndex,
@@ -883,25 +920,26 @@ class ResolvedEpisode {
     );
   }
 
-  const factory ResolvedEpisode.offline({
+  const factory EpisodeRef.offline({
     required int listIndex,
     required int roadIndex,
     required String displayTitle,
-    required String episodePageUrl,
+    required String pageUrl,
     required int episodeNumber,
     required int originalRoadIndex,
-  }) = _OfflineResolvedEpisode;
+  }) = _OfflineEpisodeRef;
 }
 
-class _OfflineResolvedEpisode extends ResolvedEpisode {
-  const _OfflineResolvedEpisode({
+class _OfflineEpisodeRef extends EpisodeRef {
+  const _OfflineEpisodeRef({
     required super.listIndex,
     required super.roadIndex,
     required super.displayTitle,
-    required super.episodePageUrl,
+    required super.pageUrl,
     required int episodeNumber,
     required super.originalRoadIndex,
   }) : super(
+          sortNumber: episodeNumber,
           historyEpisodeNumber: episodeNumber,
           danmakuEpisodeNumber: episodeNumber,
         );

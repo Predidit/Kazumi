@@ -339,9 +339,16 @@ class _PlayerItemState extends State<PlayerItem>
       return;
     }
 
-    final identifier =
-        videoPageController.roadList[currentRoad].identifier[targetEpisode - 1];
-    KazumiDialog.showToast(message: '正在加载$identifier');
+    final targetSelection = VideoEpisodeSelection(
+      episode: targetEpisode,
+      road: currentRoad,
+    );
+    final targetRef = videoPageController.resolveEpisode(targetSelection);
+    if (targetRef == null) {
+      KazumiDialog.showToast(message: '集数解析失败');
+      return;
+    }
+    KazumiDialog.showToast(message: '正在加载${targetRef.displayTitle}');
     widget.changeEpisode(targetEpisode, currentRoad: currentRoad);
   }
 
@@ -566,9 +573,10 @@ class _PlayerItemState extends State<PlayerItem>
         return;
       }
       final currentRoadData = videoPageController.roadList[currentRoad];
-      if (currentEpisode <= 0 || currentRoadData.identifier.isEmpty) return;
-      final safeEpisodeIndex = currentEpisode - 1;
-      if (safeEpisodeIndex >= currentRoadData.identifier.length) return;
+      if (currentEpisode <= 0 || currentRoadData.data.isEmpty) return;
+      final episodeRef = videoPageController.resolveEpisode(selection);
+      if (episodeRef == null) return;
+      final queueIndex = episodeRef.listIndex - 1;
 
       if (playerController.playback.duration <= Duration.zero) return;
 
@@ -577,7 +585,6 @@ class _PlayerItemState extends State<PlayerItem>
       final bangumiTitle = videoPageController.bangumiItem.nameCn.isNotEmpty
           ? videoPageController.bangumiItem.nameCn
           : videoPageController.bangumiItem.name;
-      final episodeTitle = currentRoadData.identifier[safeEpisodeIndex];
       final artworkUrl = videoPageController.bangumiItem.images['large'];
       final artworkUri = (artworkUrl == null || artworkUrl.isEmpty)
           ? null
@@ -591,7 +598,7 @@ class _PlayerItemState extends State<PlayerItem>
           album: videoPageController.isOfflineMode
               ? videoPageController.offlinePluginName
               : videoPageController.currentPlugin.name,
-          artist: episodeTitle,
+          artist: episodeRef.displayTitle,
           artUri: artworkUri,
           duration: playerController.playback.duration,
           playing: playerController.playback.playing,
@@ -601,7 +608,7 @@ class _PlayerItemState extends State<PlayerItem>
           updatePosition: playerController.playback.currentPosition,
           bufferedPosition: playerController.playback.buffer,
           speed: playerController.playback.playerSpeed,
-          queueIndex: safeEpisodeIndex,
+          queueIndex: queueIndex,
           canSkipToNext: canSkipToNext,
           canSkipToPrevious: canSkipToPrevious,
         ),
@@ -1029,14 +1036,21 @@ class _PlayerItemState extends State<PlayerItem>
       }
       // 自动播放下一集
       final playingSelection = videoPageController.playbackEpisode;
+      final playingRoadData =
+          videoPageController.roadList[playingSelection.road];
       if (playerController.playback.completed &&
-          playingSelection.episode <
-              videoPageController.roadList[playingSelection.road].data.length &&
+          playingSelection.episode < playingRoadData.data.length &&
           !videoPageController.loading &&
           autoPlayNext) {
-        KazumiDialog.showToast(
-            message:
-                '正在加载${videoPageController.roadList[playingSelection.road].identifier[playingSelection.episode]}');
+        final nextSelection = VideoEpisodeSelection(
+          episode: playingSelection.episode + 1,
+          road: playingSelection.road,
+        );
+        final nextRef = videoPageController.resolveEpisode(nextSelection);
+        if (nextRef == null) {
+          return;
+        }
+        KazumiDialog.showToast(message: '正在加载${nextRef.displayTitle}');
         try {
           playerTimer!.cancel();
         } catch (_) {}

@@ -113,4 +113,41 @@ void main() {
       }
     });
   });
+
+  group('stableEpisodeIdFromUrl', () {
+    test('剥离 scheme/host，仅保留 path（域名无关）', () {
+      expect(
+        stableEpisodeIdFromUrl('https://www.example.com', '/play/123.html'),
+        '/play/123.html',
+      );
+    });
+
+    test('换域名 / 换协议后稳定身份不变', () {
+      final a = stableEpisodeIdFromUrl(
+        'https://old.example.com',
+        'https://old.example.com/play/123.html',
+      );
+      final b = stableEpisodeIdFromUrl(
+        'https://new-mirror.example.org',
+        'http://new-mirror.example.org/play/123.html',
+      );
+      expect(a, '/play/123.html');
+      expect(b, a);
+    });
+
+    test('保留有意义的 query', () {
+      expect(
+        stableEpisodeIdFromUrl('https://www.example.com', '/play?id=123&ep=4'),
+        '/play?id=123&ep=4',
+      );
+    });
+
+    test('空输入返回空串', () {
+      expect(stableEpisodeIdFromUrl('https://www.example.com', ''), '');
+    });
+
+    test('baseUrl 缺失且为相对路径时退回归一化结果', () {
+      expect(stableEpisodeIdFromUrl('', '/play/123.html'), '/play/123.html');
+    });
+  });
 }

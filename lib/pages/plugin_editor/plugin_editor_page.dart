@@ -30,6 +30,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
   final TextEditingController searchResultController = TextEditingController();
   final TextEditingController chapterRoadsController = TextEditingController();
   final TextEditingController chapterResultController = TextEditingController();
+  final TextEditingController episodeIdController = TextEditingController();
+  final TextEditingController episodeOrdinalController = TextEditingController();
   final TextEditingController refererController = TextEditingController();
   bool muliSources = true;
   bool useWebview = true;
@@ -79,6 +81,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchResultController.text = plugin.searchResult;
     chapterRoadsController.text = plugin.chapterRoads;
     chapterResultController.text = plugin.chapterResult;
+    episodeIdController.text = plugin.episodeId;
+    episodeOrdinalController.text = plugin.episodeOrdinal;
     refererController.text = plugin.referer;
     muliSources = plugin.muliSources;
     useWebview = plugin.useWebview;
@@ -111,6 +115,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
     searchResultController.dispose();
     chapterRoadsController.dispose();
     chapterResultController.dispose();
+    episodeIdController.dispose();
+    episodeOrdinalController.dispose();
     refererController.dispose();
     captchaImageController.dispose();
     captchaInputController.dispose();
@@ -188,6 +194,20 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   controller: chapterResultController,
                   decoration: const InputDecoration(
                       labelText: 'ChapterResult', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: episodeIdController,
+                  decoration: const InputDecoration(
+                      labelText: 'EpisodeId (可选, 稳定身份 XPath)',
+                      border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: episodeOrdinalController,
+                  decoration: const InputDecoration(
+                      labelText: 'EpisodeOrdinal (可选, 集序数 XPath)',
+                      border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 20),
                 ExpansionTile(
@@ -483,6 +503,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
                   searchResult: searchResultController.text,
                   chapterRoads: chapterRoadsController.text,
                   chapterResult: chapterResultController.text,
+                  episodeId: episodeIdController.text,
+                  episodeOrdinal: episodeOrdinalController.text,
                   referer: refererController.text,
                   antiCrawlerConfig: AntiCrawlerConfig(
                     enabled: antiCrawlerEnabled,
@@ -515,6 +537,8 @@ class _PluginEditorPageState extends State<PluginEditorPage> {
               plugin.searchResult = searchResultController.text;
               plugin.chapterRoads = chapterRoadsController.text;
               plugin.chapterResult = chapterResultController.text;
+              plugin.episodeId = episodeIdController.text;
+              plugin.episodeOrdinal = episodeOrdinalController.text;
               plugin.muliSources = muliSources;
               plugin.useWebview = useWebview;
               plugin.useNativePlayer = useNativePlayer;

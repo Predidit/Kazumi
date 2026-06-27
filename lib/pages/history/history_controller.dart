@@ -47,6 +47,7 @@ abstract class _HistoryController with Store {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   }) {
     return _historyRepository.findProgress(
       bangumiItem,
@@ -54,6 +55,7 @@ abstract class _HistoryController with Store {
       episode,
       entryKind: entryKind,
       episodePageUrl: episodePageUrl,
+      stableId: stableId,
     );
   }
 
@@ -82,6 +84,7 @@ abstract class _HistoryController with Store {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   }) async {
     await _historyRepository.clearProgress(
       bangumiItem,
@@ -89,6 +92,7 @@ abstract class _HistoryController with Store {
       episode,
       entryKind: entryKind,
       episodePageUrl: episodePageUrl,
+      stableId: stableId,
     );
     init();
   }

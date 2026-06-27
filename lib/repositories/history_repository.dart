@@ -70,6 +70,7 @@ abstract class IHistoryRepository {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   });
 
   /// 删除历史记录
@@ -88,6 +89,7 @@ abstract class IHistoryRepository {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   });
 
   /// 清空所有历史记录
@@ -276,12 +278,14 @@ class HistoryRepository implements IHistoryRepository {
       final progressMatch = _HistoryEpisodeMatcher.find(
         history,
         episode: episode,
+        stableId: identity.stableId,
         episodePageUrl: identity.episodePageUrl,
       );
       final progressBucket = progressMatch?.bucket ??
           _HistoryEpisodeMatcher.bucketForNewProgress(
             history,
             episode: episode,
+            stableId: identity.stableId,
             episodePageUrl: identity.episodePageUrl,
           );
       final prog = progressMatch?.progress ??
@@ -291,12 +295,16 @@ class HistoryRepository implements IHistoryRepository {
             progress.inMilliseconds,
             updatedAtMs: nowMs,
             episodePageUrl: identity.episodePageUrl,
+            stableId: identity.stableId,
           );
       prog.episode = episode;
       prog.road = identity.road;
       prog.progress = progress;
       prog.updatedAtMs = nowMs;
       prog.episodePageUrl = identity.episodePageUrl;
+      if (identity.stableId.isNotEmpty) {
+        prog.stableId = identity.stableId;
+      }
       history.progresses[progressBucket] = prog;
 
       // 保存到存储
@@ -344,10 +352,10 @@ class HistoryRepository implements IHistoryRepository {
                   history,
                   episode: history.lastWatchEpisode,
                 );
-      _backfillProgressPageUrl(
+      _backfillProgressIdentity(
         history,
         resolvedMatch,
-        history.episodePageUrl,
+        episodePageUrl: history.episodePageUrl,
       );
       return resolvedMatch?.progress;
     } catch (e, stackTrace) {
@@ -367,6 +375,7 @@ class HistoryRepository implements IHistoryRepository {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   }) {
     try {
       final history = _findHistory(adapterName, bangumiItem, entryKind);
@@ -376,9 +385,15 @@ class HistoryRepository implements IHistoryRepository {
       final progressMatch = _HistoryEpisodeMatcher.find(
         history,
         episode: episode,
+        stableId: stableId,
         episodePageUrl: episodePageUrl,
       );
-      _backfillProgressPageUrl(history, progressMatch, episodePageUrl);
+      _backfillProgressIdentity(
+        history,
+        progressMatch,
+        episodePageUrl: episodePageUrl,
+        stableId: stableId,
+      );
       return progressMatch?.progress;
     } catch (e, stackTrace) {
       KazumiLogger().e(
@@ -417,6 +432,7 @@ class HistoryRepository implements IHistoryRepository {
     int episode, {
     String entryKind = HistoryEntryKind.online,
     String episodePageUrl = '',
+    String stableId = '',
   }) async {
     try {
       final history = _findHistory(adapterName, bangumiItem, entryKind);
@@ -425,6 +441,7 @@ class HistoryRepository implements IHistoryRepository {
           : _HistoryEpisodeMatcher.find(
               history,
               episode: episode,
+              stableId: stableId,
               episodePageUrl: episodePageUrl,
             );
       if (history != null && progressMatch != null) {
@@ -613,17 +630,30 @@ class HistoryRepository implements IHistoryRepository {
             : null);
   }
 
-  void _backfillProgressPageUrl(
+  /// 命中既有进度后，把缺失的身份字段（[Progress.episodePageUrl] /
+  /// [Progress.stableId]）就地补齐，便于存量历史逐步收敛到 stableId 匹配。
+  void _backfillProgressIdentity(
     History history,
-    _HistoryEpisodeMatch? progressMatch,
-    String episodePageUrl,
-  ) {
-    if (progressMatch == null ||
-        episodePageUrl.isEmpty ||
-        progressMatch.progress.episodePageUrl.isNotEmpty) {
+    _HistoryEpisodeMatch? progressMatch, {
+    String episodePageUrl = '',
+    String stableId = '',
+  }) {
+    if (progressMatch == null) {
       return;
     }
-    progressMatch.progress.episodePageUrl = episodePageUrl;
+    var changed = false;
+    if (episodePageUrl.isNotEmpty &&
+        progressMatch.progress.episodePageUrl.isEmpty) {
+      progressMatch.progress.episodePageUrl = episodePageUrl;
+      changed = true;
+    }
+    if (stableId.isNotEmpty && progressMatch.progress.stableId.isEmpty) {
+      progressMatch.progress.stableId = stableId;
+      changed = true;
+    }
+    if (!changed) {
+      return;
+    }
     history.progresses[progressMatch.bucket] = progressMatch.progress;
     unawaited(_historiesBox.put(history.key, history));
   }
@@ -640,11 +670,28 @@ class _HistoryEpisodeMatch {
 }
 
 class _HistoryEpisodeMatcher {
+  /// 历史进度匹配，优先级：
+  /// 1. [stableId]（规则产出的稳定身份，与域名/顺序无关）——主键；
+  /// 2. [episodePageUrl]（存量数据兼容回退）；
+  /// 3. 集号（最终回退）。
   static _HistoryEpisodeMatch? find(
     History history, {
     required int episode,
+    String stableId = '',
     String episodePageUrl = '',
   }) {
+    final id = stableId.trim();
+    if (id.isNotEmpty) {
+      for (final entry in history.progresses.entries) {
+        if (entry.value.stableId == id) {
+          return _HistoryEpisodeMatch(
+            bucket: entry.key,
+            progress: entry.value,
+          );
+        }
+      }
+    }
+
     final pageUrl = episodePageUrl.trim();
     if (pageUrl.isNotEmpty) {
       for (final entry in history.progresses.entries) {
@@ -659,7 +706,8 @@ class _HistoryEpisodeMatcher {
       final legacyProgress = history.progresses[episode];
       if (legacyProgress != null &&
           legacyProgress.episode == episode &&
-          legacyProgress.episodePageUrl.isEmpty) {
+          legacyProgress.episodePageUrl.isEmpty &&
+          legacyProgress.stableId.isEmpty) {
         return _HistoryEpisodeMatch(
           bucket: episode,
           progress: legacyProgress,
@@ -667,13 +715,20 @@ class _HistoryEpisodeMatcher {
       }
       for (final entry in history.progresses.entries) {
         final progress = entry.value;
-        if (progress.episode == episode && progress.episodePageUrl.isEmpty) {
+        if (progress.episode == episode &&
+            progress.episodePageUrl.isEmpty &&
+            progress.stableId.isEmpty) {
           return _HistoryEpisodeMatch(
             bucket: entry.key,
             progress: progress,
           );
         }
       }
+      return null;
+    }
+
+    // 仅提供了 stableId 但未命中时，不再按集号兜底，避免误绑到错误的存量条目。
+    if (id.isNotEmpty) {
       return null;
     }
 
@@ -696,14 +751,17 @@ class _HistoryEpisodeMatcher {
   static int bucketForNewProgress(
     History history, {
     required int episode,
+    String stableId = '',
     String episodePageUrl = '',
   }) {
+    final id = stableId.trim();
     final pageUrl = episodePageUrl.trim();
     final existing = history.progresses[episode];
     if (existing == null) {
       return episode;
     }
     if (existing.episode == episode &&
+        (id.isEmpty || existing.stableId.isEmpty || existing.stableId == id) &&
         (pageUrl.isEmpty ||
             existing.episodePageUrl.isEmpty ||
             existing.episodePageUrl == pageUrl)) {

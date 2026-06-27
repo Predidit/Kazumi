@@ -24,7 +24,6 @@ import 'package:kazumi/services/storage/storage.dart';
 import 'package:kazumi/utils/device.dart';
 import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/utils/http_headers.dart';
-import 'package:kazumi/utils/media.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
 part 'video_controller.g.dart';
@@ -86,16 +85,20 @@ class VideoEpisodeSelection {
   }
 }
 
-VideoEpisodeSelection? findEpisodeSelectionByPageUrl(
+/// 按订阅规则产出的稳定身份 [EpisodeIdentity.stableId] 定位 `(线路, 列表位次)`。
+///
+/// 取代原先“用 URL 字符串在 roadList 里 indexOf 反查”的做法：因 stableId 与域名/
+/// 协议/列表顺序无关，源站换域名或列表重排后仍能命中同一集。
+VideoEpisodeSelection? findEpisodeSelectionByStableId(
   List<Road> roadList,
-  String episodePageUrl,
+  String stableId,
 ) {
-  final pageUrl = episodePageUrl.trim();
-  if (pageUrl.isEmpty) {
+  final id = stableId.trim();
+  if (id.isEmpty) {
     return null;
   }
   for (var roadIndex = 0; roadIndex < roadList.length; roadIndex++) {
-    final episodeIndex = roadList[roadIndex].data.indexOf(pageUrl);
+    final episodeIndex = roadList[roadIndex].indexOfStableId(id);
     if (episodeIndex >= 0) {
       return VideoEpisodeSelection(
         episode: episodeIndex + 1,
@@ -296,7 +299,7 @@ abstract class _VideoPageController with Store {
     if (roadIndex < 0 || roadIndex >= roadList.length) {
       return null;
     }
-    final index = roadList[roadIndex].data.indexOf(episodeNumber.toString());
+    final index = roadList[roadIndex].indexOfOrdinal(episodeNumber);
     if (index < 0) {
       return null;
     }
@@ -315,6 +318,7 @@ abstract class _VideoPageController with Store {
               identity.episodeNumber,
               entryKind: identity.entryKind,
               episodePageUrl: identity.episodePageUrl,
+              stableId: identity.stableId,
             )
             ?.progress
             .inSeconds ??
@@ -340,7 +344,7 @@ abstract class _VideoPageController with Store {
         if (idx < 0 || idx >= data.length) {
           return '';
         }
-        return data[idx];
+        return data[idx].pageUrl;
       },
     );
   }
@@ -354,6 +358,7 @@ abstract class _VideoPageController with Store {
       road: episode.originalRoadIndex,
       onlineBangumiSrc: src,
       episodePageUrl: episode.pageUrl,
+      stableId: episode.stableId,
     );
   }
 
@@ -365,6 +370,7 @@ abstract class _VideoPageController with Store {
       episodeTitle: episode.displayTitle,
       road: episode.originalRoadIndex,
       episodePageUrl: episode.pageUrl,
+      stableId: episode.stableId,
     );
   }
 
@@ -375,17 +381,12 @@ abstract class _VideoPageController with Store {
     }
     final roadData = roadList[targetRoad];
     final index = episode - 1;
-    if (index < 0 ||
-        index >= roadData.data.length ||
-        index >= roadData.identifier.length) {
+    if (index < 0 || index >= roadData.data.length) {
       return null;
     }
-    final displayTitle = roadData.identifier[index];
     return EpisodeRef.online(
       listIndex: episode,
-      roadIndex: targetRoad,
-      displayTitle: displayTitle,
-      pageUrl: roadData.data[index],
+      identity: roadData.data[index],
     );
   }
 
@@ -396,26 +397,30 @@ abstract class _VideoPageController with Store {
     }
     final roadData = roadList[targetRoad];
     final index = episode - 1;
-    if (index < 0 ||
-        index >= roadData.data.length ||
-        index >= roadData.identifier.length) {
+    if (index < 0 || index >= roadData.data.length) {
       return null;
     }
-    final episodeNumber = int.tryParse(roadData.data[index]);
+    final identity = roadData.data[index];
+    final episodeNumber = identity.ordinal;
     if (episodeNumber == null) {
       return null;
     }
     final downloadEpisode = _offlineEpisodesByNumber[episodeNumber];
-    final titleFromRoad = roadData.identifier[index];
-    final episodeTitle = downloadEpisode?.episodeName.isNotEmpty == true
+    final resolvedTitle = downloadEpisode?.episodeName.isNotEmpty == true
         ? downloadEpisode!.episodeName
-        : (titleFromRoad.isNotEmpty ? titleFromRoad : '第$episodeNumber集');
+        : (identity.title.isNotEmpty ? identity.title : '第$episodeNumber集');
+    final resolvedIdentity = EpisodeIdentity(
+      stableId: identity.stableId,
+      pageUrl: downloadEpisode?.episodePageUrl.isNotEmpty == true
+          ? downloadEpisode!.episodePageUrl
+          : identity.pageUrl,
+      title: resolvedTitle,
+      ordinal: episodeNumber,
+      roadIndex: targetRoad,
+    );
     return EpisodeRef.offline(
       listIndex: episode,
-      roadIndex: targetRoad,
-      displayTitle: episodeTitle,
-      pageUrl: downloadEpisode?.episodePageUrl ?? '',
-      episodeNumber: episodeNumber,
+      identity: resolvedIdentity,
       originalRoadIndex: downloadEpisode?.road ??
           _offlineDisplayRoadToOriginalRoad[targetRoad] ??
           targetRoad,
@@ -797,8 +802,10 @@ abstract class _VideoPageController with Store {
     }
     KazumiLogger()
         .i('VideoPageController: road list length ${roadList.length}');
-    KazumiLogger().i(
-        'VideoPageController: first road episode count ${roadList[0].data.length}');
+    if (roadList.isNotEmpty) {
+      KazumiLogger().i(
+          'VideoPageController: first road episode count ${roadList[0].data.length}');
+    }
   }
 
   void toggleSortOrder() {
@@ -883,10 +890,18 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
       name: originalRoad >= 0
           ? '播放列表${originalRoad + 1}'
           : '播放列表${displayRoad + 1}',
-      data: roadEpisodes.map((e) => e.episodeNumber.toString()).toList(),
-      identifier: roadEpisodes
-          .map((e) =>
-              e.episodeName.isNotEmpty ? e.episodeName : '第${e.episodeNumber}集')
+      data: roadEpisodes
+          .map((e) => EpisodeIdentity(
+                // 离线身份：源站无显式 id，用 episodePageUrl 的归一化相对 path 作为
+                // stableId，与在线侧兜底口径一致，便于 online/offline 进度互通。
+                stableId: stableEpisodeIdFromUrl('', e.episodePageUrl),
+                pageUrl: e.episodePageUrl,
+                title: e.episodeName.isNotEmpty
+                    ? e.episodeName
+                    : '第${e.episodeNumber}集',
+                ordinal: e.episodeNumber,
+                roadIndex: displayRoad,
+              ))
           .toList(),
     ));
   }
@@ -899,12 +914,18 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
   );
 }
 
+/// 播放期使用的“已定位单集”视图。
+///
+/// 重构后不再从 URL/标题反推身份：[stableId] / [sortNumber] / [displayTitle] 等
+/// 直接来自订阅规则产出的 [EpisodeIdentity]，本类只负责把规则身份映射为各消费者
+/// 需要的口径（历史集号 / 弹幕集号 / 列表位次）。
 class EpisodeRef {
   const EpisodeRef({
     required this.listIndex,
     required this.roadIndex,
     required this.displayTitle,
     required this.pageUrl,
+    required this.stableId,
     required this.sortNumber,
     required this.historyEpisodeNumber,
     required this.danmakuEpisodeNumber,
@@ -916,55 +937,51 @@ class EpisodeRef {
   final String displayTitle;
   final String pageUrl;
 
-  /// 集数排序号。
-  /// - 在线：从 [displayTitle] 解析（[extractEpisodeNumber]），无法解析时为 null。
-  /// - 离线：恒等于下载数据的 episodeNumber。
+  /// 定位 / 持久 key，直接取自 [EpisodeIdentity.stableId]，与域名/顺序无关。
+  final String stableId;
+
+  /// 集数排序号，直接取自 [EpisodeIdentity.ordinal]（规则产出，无法判定时为 null）。
   final int? sortNumber;
   final int historyEpisodeNumber;
   final int danmakuEpisodeNumber;
   final int originalRoadIndex;
 
+  /// 在线：历史集号用列表位次（与既有历史口径一致），弹幕集号优先用规则序数。
   factory EpisodeRef.online({
     required int listIndex,
-    required int roadIndex,
-    required String displayTitle,
-    required String pageUrl,
+    required EpisodeIdentity identity,
   }) {
-    final parsedEpisodeNumber = extractEpisodeNumber(displayTitle);
+    final ordinal = identity.ordinal;
     return EpisodeRef(
       listIndex: listIndex,
-      roadIndex: roadIndex,
-      displayTitle: displayTitle,
-      pageUrl: pageUrl,
-      sortNumber: parsedEpisodeNumber > 0 ? parsedEpisodeNumber : null,
+      roadIndex: identity.roadIndex,
+      displayTitle: identity.title,
+      pageUrl: identity.pageUrl,
+      stableId: identity.stableId,
+      sortNumber: ordinal,
       historyEpisodeNumber: listIndex,
-      danmakuEpisodeNumber:
-          parsedEpisodeNumber > 0 ? parsedEpisodeNumber : listIndex,
-      originalRoadIndex: roadIndex,
+      danmakuEpisodeNumber: ordinal ?? listIndex,
+      originalRoadIndex: identity.roadIndex,
     );
   }
 
-  const factory EpisodeRef.offline({
+  /// 离线：历史 / 弹幕 / 排序均以规则序数（下载集号）为准。
+  factory EpisodeRef.offline({
     required int listIndex,
-    required int roadIndex,
-    required String displayTitle,
-    required String pageUrl,
-    required int episodeNumber,
+    required EpisodeIdentity identity,
     required int originalRoadIndex,
-  }) = _OfflineEpisodeRef;
-}
-
-class _OfflineEpisodeRef extends EpisodeRef {
-  const _OfflineEpisodeRef({
-    required super.listIndex,
-    required super.roadIndex,
-    required super.displayTitle,
-    required super.pageUrl,
-    required int episodeNumber,
-    required super.originalRoadIndex,
-  }) : super(
-          sortNumber: episodeNumber,
-          historyEpisodeNumber: episodeNumber,
-          danmakuEpisodeNumber: episodeNumber,
-        );
+  }) {
+    final number = identity.ordinal ?? listIndex;
+    return EpisodeRef(
+      listIndex: listIndex,
+      roadIndex: identity.roadIndex,
+      displayTitle: identity.title,
+      pageUrl: identity.pageUrl,
+      stableId: identity.stableId,
+      sortNumber: number,
+      historyEpisodeNumber: number,
+      danmakuEpisodeNumber: number,
+      originalRoadIndex: originalRoadIndex,
+    );
+  }
 }

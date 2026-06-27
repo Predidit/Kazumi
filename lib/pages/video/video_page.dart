@@ -22,6 +22,7 @@ import 'package:kazumi/pages/download/download_episode_sheet.dart';
 import 'package:kazumi/modules/download/download_module.dart';
 import 'package:kazumi/services/player/timed_shutdown_service.dart';
 import 'package:kazumi/utils/device.dart';
+import 'package:kazumi/utils/episode_url.dart';
 import 'package:kazumi/services/platform/display_mode_service.dart';
 
 class VideoPage extends StatefulWidget {
@@ -190,9 +191,17 @@ class _VideoPageState extends State<VideoPage>
         videoPageController.bangumiItem,
         videoPageController.currentPlugin.name);
     if (progress != null) {
-      final pageUrlSelection = findEpisodeSelectionByPageUrl(
+      // 优先用规则产出的稳定身份定位；存量进度无 stableId 时，从其 pageUrl
+      // 推导同口径的相对 path 兜底（与 EpisodeIdentity.stableId 一致）。
+      final storedStableId = progress.stableId.isNotEmpty
+          ? progress.stableId
+          : stableEpisodeIdFromUrl(
+              videoPageController.currentPlugin.baseUrl,
+              progress.episodePageUrl,
+            );
+      final pageUrlSelection = findEpisodeSelectionByStableId(
         videoPageController.roadList,
-        progress.episodePageUrl,
+        storedStableId,
       );
       final fallbackSelection = pageUrlSelection ??
           ((progress.road >= 0 &&
@@ -1053,11 +1062,11 @@ class _VideoPageState extends State<VideoPage>
             visibleRoad < videoPageController.roadList.length) {
           final road = videoPageController.roadList[visibleRoad];
           int count = 1;
-          for (var urlItem in road.data) {
+          for (var episodeItem in road.data) {
             int count0 = count;
-            final episodeName = count0 - 1 < road.identifier.length
-                ? road.identifier[count0 - 1]
-                : '第$count0集';
+            final urlItem = episodeItem.pageUrl;
+            final episodeName =
+                episodeItem.title.isNotEmpty ? episodeItem.title : '第$count0集';
             cardList.add(Container(
               margin: const EdgeInsets.only(bottom: 4),
               child: Material(

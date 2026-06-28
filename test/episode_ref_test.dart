@@ -170,6 +170,52 @@ void main() {
       expect(selection!.road, 1);
       expect(selection.episode, 1);
     });
+
+    test('history restore does not fall back to index when stableId is known',
+        () {
+      final roads = [
+        Road(
+          name: '播放线路1',
+          data: [
+            _identity('/episode/3', '第三话', ordinal: 3),
+            _identity('/episode/1', '第一话', ordinal: 1),
+          ],
+        ),
+      ];
+
+      expect(
+        findEpisodeSelectionForHistoryProgress(
+          roads,
+          stableId: '/missing',
+          episode: 1,
+          road: 0,
+        ),
+        isNull,
+      );
+    });
+
+    test('history restore keeps index fallback for legacy progress', () {
+      final roads = [
+        Road(
+          name: '播放线路1',
+          data: [
+            _identity('/episode/3', '第三话', ordinal: 3),
+            _identity('/episode/1', '第一话', ordinal: 1),
+          ],
+        ),
+      ];
+
+      final selection = findEpisodeSelectionForHistoryProgress(
+        roads,
+        stableId: '',
+        episode: 2,
+        road: 0,
+      );
+
+      expect(selection, isNotNull);
+      expect(selection!.road, 0);
+      expect(selection.episode, 2);
+    });
   });
 
   test('PlaybackInitParams carries danmaku episode independently', () {

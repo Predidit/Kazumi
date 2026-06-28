@@ -124,6 +124,32 @@ VideoEpisodeSelection? findEpisodeSelectionByStableId(
   return null;
 }
 
+/// 用历史进度恢复播放选集。
+///
+/// 新进度必须通过 [stableId] 命中；只有没有 stableId 的存量进度才允许按
+/// `(road, episode)` 下标恢复，避免稳定身份失配后误绑到重排后的列表位置。
+VideoEpisodeSelection? findEpisodeSelectionForHistoryProgress(
+  List<Road> roadList, {
+  required String stableId,
+  required int episode,
+  required int road,
+}) {
+  final stableSelection = findEpisodeSelectionByStableId(roadList, stableId);
+  if (stableId.trim().isNotEmpty) {
+    return stableSelection;
+  }
+  if (road >= 0 &&
+      roadList.length > road &&
+      episode > 0 &&
+      roadList[road].data.length >= episode) {
+    return VideoEpisodeSelection(
+      episode: episode,
+      road: road,
+    );
+  }
+  return null;
+}
+
 int? bangumiEpisodeSortNumber(EpisodeInfo episode) {
   final sort = episode.episode;
   if (sort <= 0) {

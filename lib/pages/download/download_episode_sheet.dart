@@ -32,18 +32,19 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,
     );
-    final downloadedUrls = <String>{};
+    final downloadedLegacyUrls = <String>{};
     final downloadedStableIds = <String>{};
     if (record != null) {
       for (final entry in record.episodes.entries) {
         if (entry.value.status == DownloadStatus.completed ||
             entry.value.status == DownloadStatus.downloading ||
             entry.value.status == DownloadStatus.pending) {
-          if (entry.value.stableId.isNotEmpty) {
-            downloadedStableIds.add(entry.value.stableId);
+          final stableId = entry.value.stableId;
+          if (stableId.isNotEmpty) {
+            downloadedStableIds.add(stableId);
           }
-          if (entry.value.episodePageUrl.isNotEmpty) {
-            downloadedUrls.add(entry.value.episodePageUrl);
+          if (stableId.isEmpty && entry.value.episodePageUrl.isNotEmpty) {
+            downloadedLegacyUrls.add(entry.value.episodePageUrl);
           }
         }
       }
@@ -91,7 +92,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                           if (!isDownloadedEpisodeIdentity(
                             identity,
                             downloadedStableIds: downloadedStableIds,
-                            downloadedUrls: downloadedUrls,
+                            downloadedLegacyUrls: downloadedLegacyUrls,
                           )) {
                             _selectedListIndexes.add(i);
                           }
@@ -130,7 +131,7 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
                   final isDownloaded = isDownloadedEpisodeIdentity(
                     identity,
                     downloadedStableIds: downloadedStableIds,
-                    downloadedUrls: downloadedUrls,
+                    downloadedLegacyUrls: downloadedLegacyUrls,
                   );
                   final isSelected = _selectedListIndexes.contains(listIndex);
                   final identifier = identity.title;
@@ -277,11 +278,11 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
 bool isDownloadedEpisodeIdentity(
   EpisodeIdentity identity, {
   required Set<String> downloadedStableIds,
-  required Set<String> downloadedUrls,
+  required Set<String> downloadedLegacyUrls,
 }) {
   return (identity.stableId.isNotEmpty &&
           downloadedStableIds.contains(identity.stableId)) ||
-      downloadedUrls.contains(identity.pageUrl);
+      downloadedLegacyUrls.contains(identity.pageUrl);
 }
 
 int downloadEpisodeNumberForSelection({

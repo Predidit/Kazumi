@@ -155,14 +155,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
         }
       }
     }
-    if (targetEpisode == null && widget.historyItem.episodePageUrl.isNotEmpty) {
-      for (final episode in downloadedEpisodes) {
-        if (episode.episodePageUrl == widget.historyItem.episodePageUrl) {
-          targetEpisode = episode;
-          break;
-        }
-      }
-    }
     targetEpisode ??= _episodeByNumber(
       downloadedEpisodes,
       widget.historyItem.lastWatchEpisode,
@@ -194,15 +186,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     if (topStableId.isNotEmpty) {
       for (final progress in history.progresses.values) {
         if (progress.stableId == topStableId) {
-          return progress;
-        }
-      }
-    }
-
-    final topUrl = history.episodePageUrl.trim();
-    if (topUrl.isNotEmpty) {
-      for (final progress in history.progresses.values) {
-        if (progress.episodePageUrl == topUrl) {
           return progress;
         }
       }

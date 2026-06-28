@@ -1068,11 +1068,9 @@ OfflineRoadListSnapshot buildOfflineRoadListSnapshot(
           : '播放列表${displayRoad + 1}',
       data: roadEpisodes
           .map((e) => EpisodeIdentity(
-                // 新下载记录直接复用规则产出的 stableId；旧记录缺失时再从
-                // episodePageUrl 推导，保持兼容。
-                stableId: e.stableId.isNotEmpty
-                    ? e.stableId
-                    : stableEpisodeIdFromUrl('', e.episodePageUrl),
+                // 新下载记录直接复用规则产出的 stableId；旧记录缺失时保持空值，
+                // 只通过旧集号路径兼容，不再从 URL 反推身份。
+                stableId: e.stableId,
                 pageUrl: e.episodePageUrl,
                 title: e.episodeName.isNotEmpty
                     ? e.episodeName

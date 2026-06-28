@@ -243,7 +243,7 @@ void main() {
       expect(
           snapshot.roads[0].data.map((e) => e.title).toList(), ['第一话', '第三话']);
       expect(snapshot.roads[0].data.map((e) => e.stableId).toList(),
-          ['rule-episode-1', '/episode/3']);
+          ['rule-episode-1', '']);
       expect(snapshot.roads[1].name, '播放列表3');
       expect(snapshot.roads[1].data.map((e) => e.ordinal).toList(), [2, 4]);
       expect(
@@ -315,7 +315,7 @@ void main() {
         isDownloadedEpisodeIdentity(
           identity,
           downloadedStableIds: {'/play/1'},
-          downloadedUrls: {'https://old.example.com/play/1'},
+          downloadedLegacyUrls: {'https://old.example.com/play/1'},
         ),
         isTrue,
       );

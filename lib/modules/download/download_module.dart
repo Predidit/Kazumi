@@ -110,6 +110,7 @@ DownloadEpisode? downloadedEpisodeForHistoryPlayback(
         return episode;
       }
     }
+    return null;
   }
   for (final episode in episodes) {
     if (episode.episodeNumber == episodeNumber) {

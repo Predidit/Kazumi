@@ -39,7 +39,7 @@ void main() {
       expect(episode.stableId, '/episode/13');
     });
 
-    test('online prefers Bangumi anchored sort number over rule ordinal', () {
+    test('online prefers rule ordinal over Bangumi anchored sort number', () {
       final episode = EpisodeRef.online(
         listIndex: 2,
         identity: _identity('/episode/13', '第13话', ordinal: 13, roadIndex: 0),
@@ -47,8 +47,8 @@ void main() {
       );
 
       expect(episode.historyEpisodeNumber, 2);
-      expect(episode.danmakuEpisodeNumber, 12);
-      expect(episode.sortNumber, 12);
+      expect(episode.danmakuEpisodeNumber, 13);
+      expect(episode.sortNumber, 13);
     });
 
     test('online falls back to list index when rule provides no ordinal', () {
@@ -92,12 +92,19 @@ void main() {
       expect(mapping, {1: 1, 2: 3});
     });
 
-    test('falls back from Bangumi sort to rule ordinal then list index', () {
+    test('prefers rule ordinal then Bangumi sort then list index', () {
       expect(
         episodeSortNumberForPlayback(
           listIndex: 1,
           anchoredSortNumber: 12,
           ruleOrdinal: 13,
+        ),
+        13,
+      );
+      expect(
+        episodeSortNumberForPlayback(
+          listIndex: 1,
+          anchoredSortNumber: 12,
         ),
         12,
       );
@@ -571,6 +578,22 @@ void main() {
       expect(episode, isNotNull);
       expect(episode!.road, 1);
       expect(episode.episodeName, '线路2 第1话');
+    });
+
+    test('does not fall back to numeric episode after stableId miss', () {
+      final episodes = [
+        _episode(1, '第一话', 0, stableId: 'episode-1'),
+        _episode(2, '第二话', 0, stableId: 'episode-2'),
+      ];
+
+      final episode = downloadedEpisodeForHistoryPlayback(
+        episodes,
+        episodeNumber: 1,
+        stableId: 'missing-stable-id',
+        preferredRoad: 0,
+      );
+
+      expect(episode, isNull);
     });
 
     test('falls back to numeric episode for legacy offline history', () {

@@ -179,7 +179,7 @@ int episodeSortNumberForPlayback({
   int? anchoredSortNumber,
   int? ruleOrdinal,
 }) {
-  return anchoredSortNumber ?? ruleOrdinal ?? listIndex;
+  return ruleOrdinal ?? anchoredSortNumber ?? listIndex;
 }
 
 abstract class _VideoPageController with Store {

@@ -32,8 +32,8 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
       videoPageController.bangumiItem.id,
       videoPageController.currentPlugin.name,
     );
-    final downloadedLegacyUrls = <String>{};
-    final downloadedStableIds = <String>{};
+    final downloadedLegacyUrls = <({String pageUrl, int road})>{};
+    final downloadedStableIds = <({String stableId, int road})>{};
     if (record != null) {
       for (final entry in record.episodes.entries) {
         if (entry.value.status == DownloadStatus.completed ||
@@ -41,10 +41,16 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
             entry.value.status == DownloadStatus.pending) {
           final stableId = entry.value.stableId;
           if (stableId.isNotEmpty) {
-            downloadedStableIds.add(stableId);
+            downloadedStableIds.add((
+              stableId: stableId,
+              road: entry.value.road,
+            ));
           }
           if (stableId.isEmpty && entry.value.episodePageUrl.isNotEmpty) {
-            downloadedLegacyUrls.add(entry.value.episodePageUrl);
+            downloadedLegacyUrls.add((
+              pageUrl: entry.value.episodePageUrl,
+              road: entry.value.road,
+            ));
           }
         }
       }
@@ -277,12 +283,18 @@ class _DownloadEpisodeSheetState extends State<DownloadEpisodeSheet> {
 
 bool isDownloadedEpisodeIdentity(
   EpisodeIdentity identity, {
-  required Set<String> downloadedStableIds,
-  required Set<String> downloadedLegacyUrls,
+  required Set<({String stableId, int road})> downloadedStableIds,
+  required Set<({String pageUrl, int road})> downloadedLegacyUrls,
 }) {
   return (identity.stableId.isNotEmpty &&
-          downloadedStableIds.contains(identity.stableId)) ||
-      downloadedLegacyUrls.contains(identity.pageUrl);
+          downloadedStableIds.contains((
+            stableId: identity.stableId,
+            road: identity.roadIndex,
+          ))) ||
+      downloadedLegacyUrls.contains((
+        pageUrl: identity.pageUrl,
+        road: identity.roadIndex,
+      ));
 }
 
 int downloadEpisodeNumberForSelection({

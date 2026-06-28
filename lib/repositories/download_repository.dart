@@ -35,7 +35,8 @@ abstract class IDownloadRepository {
 
   /// 通过订阅规则产出的稳定集身份查找下载记录。
   DownloadEpisode? getEpisodeByStableId(
-      int bangumiId, String pluginName, String stableId);
+      int bangumiId, String pluginName, String stableId,
+      {required int road});
 }
 
 class DownloadRepository implements IDownloadRepository {
@@ -231,12 +232,16 @@ class DownloadRepository implements IDownloadRepository {
 
   @override
   DownloadEpisode? getEpisodeByStableId(
-      int bangumiId, String pluginName, String stableId) {
+    int bangumiId,
+    String pluginName,
+    String stableId, {
+    required int road,
+  }) {
     if (stableId.isEmpty) return null;
     final record = getRecordByBangumiId(bangumiId, pluginName);
     if (record == null) return null;
     for (final episode in record.episodes.values) {
-      if (episode.stableId == stableId) {
+      if (episode.stableId == stableId && episode.road == road) {
         return episode;
       }
     }

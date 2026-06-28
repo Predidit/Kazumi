@@ -134,7 +134,11 @@ VideoEpisodeSelection? findEpisodeSelectionForHistoryProgress(
   required int episode,
   required int road,
 }) {
-  final stableSelection = findEpisodeSelectionByStableId(roadList, stableId);
+  final stableSelection = findEpisodeSelectionByStableId(
+    roadList,
+    stableId,
+    preferredRoad: road,
+  );
   if (stableId.trim().isNotEmpty) {
     return stableSelection;
   }
@@ -701,6 +705,7 @@ abstract class _VideoPageController with Store {
       episodeTitle: resolvedEpisode.displayTitle,
       referer: '',
       currentRoad: resolvedEpisode.roadIndex,
+      downloadRoad: resolvedEpisode.originalRoadIndex,
       coverUrl: bangumiItem.images['large'],
       bangumiName:
           bangumiItem.nameCn.isNotEmpty ? bangumiItem.nameCn : bangumiItem.name,
@@ -732,6 +737,7 @@ abstract class _VideoPageController with Store {
         params.pluginName,
         _danmakuEpisodeForPlayback(params),
         stableId: params.stableId,
+        road: params.downloadRoad ?? params.currentRoad,
       );
       if (session.isActive && danmakuSession.isActive) {
         if (result.hasDanmakus) {
@@ -781,6 +787,7 @@ abstract class _VideoPageController with Store {
         bangumiId,
         pluginName,
         episodeRef.stableId,
+        road: episodeRef.originalRoadIndex,
       );
     }
     episode ??= downloadRepository.getEpisode(

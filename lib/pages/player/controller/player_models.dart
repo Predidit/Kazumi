@@ -16,6 +16,7 @@ class PlaybackInitParams {
   final String episodeTitle;
   final String referer;
   final int currentRoad;
+  final int? downloadRoad;
   final String? coverUrl;
   final String? bangumiName;
 
@@ -32,6 +33,7 @@ class PlaybackInitParams {
     required this.episodeTitle,
     required this.referer,
     required this.currentRoad,
+    this.downloadRoad,
     this.pageUrl = '',
     this.stableId = '',
     this.sortNumber,

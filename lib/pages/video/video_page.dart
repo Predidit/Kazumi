@@ -984,7 +984,11 @@ class _VideoPageState extends State<VideoPage>
     );
   }
 
-  DownloadEpisode? _getEpisodeFromRecords(int episodeNumber, String stableId) {
+  DownloadEpisode? _getEpisodeFromRecords(
+    int episodeNumber,
+    String stableId,
+    int road,
+  ) {
     final bangumiId = videoPageController.bangumiItem.id;
     final pluginName = videoPageController.currentPlugin.name;
 
@@ -992,22 +996,28 @@ class _VideoPageState extends State<VideoPage>
       if (record.bangumiId == bangumiId && record.pluginName == pluginName) {
         if (stableId.isNotEmpty) {
           for (final episode in record.episodes.values) {
-            if (episode.stableId == stableId) {
+            if (episode.stableId == stableId && episode.road == road) {
               return episode;
             }
           }
           return null;
         }
-        return record.episodes[episodeNumber];
+        for (final episode in record.episodes.values) {
+          if (episode.episodeNumber == episodeNumber && episode.road == road) {
+            return episode;
+          }
+        }
+        return null;
       }
     }
     return null;
   }
 
-  Widget _buildDownloadStatusIcon(int episodeNumber, String stableId) {
+  Widget _buildDownloadStatusIcon(
+      int episodeNumber, String stableId, int road) {
     // 离线模式下不显示下载状态图标
     if (videoPageController.isOfflineMode) return const SizedBox.shrink();
-    final episode = _getEpisodeFromRecords(episodeNumber, stableId);
+    final episode = _getEpisodeFromRecords(episodeNumber, stableId, road);
     if (episode == null) return const SizedBox.shrink();
     switch (episode.status) {
       case DownloadStatus.completed:
@@ -1111,7 +1121,11 @@ class _VideoPageState extends State<VideoPage>
                                           .colorScheme
                                           .onSurface),
                             )),
-                            _buildDownloadStatusIcon(count0, stableId),
+                            _buildDownloadStatusIcon(
+                              count0,
+                              stableId,
+                              visibleRoad,
+                            ),
                             const SizedBox(width: 2),
                           ],
                         ),

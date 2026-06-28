@@ -346,8 +346,17 @@ abstract class _DownloadController with Store {
   }
 
   DownloadEpisode? getEpisodeByStableId(
-      int bangumiId, String pluginName, String stableId) {
-    return _repository.getEpisodeByStableId(bangumiId, pluginName, stableId);
+    int bangumiId,
+    String pluginName,
+    String stableId, {
+    required int road,
+  }) {
+    return _repository.getEpisodeByStableId(
+      bangumiId,
+      pluginName,
+      stableId,
+      road: road,
+    );
   }
 
   String? getLocalVideoPath(int bangumiId, String pluginName, int downloadKey) {
@@ -379,7 +388,12 @@ abstract class _DownloadController with Store {
       for (final identity in road.data) {
         final stableId = identity.stableId.trim();
         if (stableId.isEmpty ||
-            downloadEpisodeEntryByStableId(record, stableId) != null) {
+            downloadEpisodeEntryByStableId(
+                  record,
+                  stableId,
+                  road: identity.roadIndex,
+                ) !=
+                null) {
           continue;
         }
         final legacyEntry = legacyDownloadEpisodeEntryForStableIdBackfill(
@@ -454,9 +468,15 @@ abstract class _DownloadController with Store {
     String pluginName,
     int episodeNumber, {
     String stableId = '',
+    required int road,
   }) async {
     final episode = stableId.isNotEmpty
-        ? _repository.getEpisodeByStableId(bangumiId, pluginName, stableId)
+        ? _repository.getEpisodeByStableId(
+            bangumiId,
+            pluginName,
+            stableId,
+            road: road,
+          )
         : _repository.getEpisode(bangumiId, pluginName, episodeNumber);
     if (episode == null) return null;
 
@@ -476,6 +496,7 @@ abstract class _DownloadController with Store {
     List<DanmakuEntry> danmakus,
     int danDanBangumiID, {
     String stableId = '',
+    required int road,
   }) async {
     final recordKey = '${pluginName}_$bangumiId';
     final record = _repository.getRecord(recordKey);
@@ -483,7 +504,7 @@ abstract class _DownloadController with Store {
     MapEntry<int, DownloadEpisode>? episodeEntry;
     if (stableId.isNotEmpty) {
       for (final entry in record.episodes.entries) {
-        if (entry.value.stableId == stableId) {
+        if (entry.value.stableId == stableId && entry.value.road == road) {
           episodeEntry = entry;
           break;
         }
@@ -539,7 +560,7 @@ abstract class _DownloadController with Store {
 
     if (stableId.isNotEmpty) {
       final existingStableEntry =
-          downloadEpisodeEntryByStableId(record, stableId);
+          downloadEpisodeEntryByStableId(record, stableId, road: road);
       if (existingStableEntry != null) {
         KazumiLogger().i(
             'DownloadController: episode stableId already exists at position ${existingStableEntry.key}, skipping');
@@ -594,6 +615,7 @@ abstract class _DownloadController with Store {
     final downloadKey = downloadKeyForEpisodeIdentity(
       record,
       episodeNumber: episodeNumber,
+      road: road,
       stableId: stableId,
     );
     record.episodes[downloadKey] = episode;

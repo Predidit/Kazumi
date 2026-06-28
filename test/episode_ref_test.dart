@@ -171,6 +171,34 @@ void main() {
       expect(selection.episode, 1);
     });
 
+    test('history restore honors saved road for duplicate stableId', () {
+      final roads = [
+        Road(
+          name: '播放线路1',
+          data: [
+            _identity('/episode/1', '线路1 第1话', ordinal: 1),
+          ],
+        ),
+        Road(
+          name: '播放线路2',
+          data: [
+            _identity('/episode/1', '线路2 第1话', ordinal: 1, roadIndex: 1),
+          ],
+        ),
+      ];
+
+      final selection = findEpisodeSelectionForHistoryProgress(
+        roads,
+        stableId: '/episode/1',
+        episode: 1,
+        road: 1,
+      );
+
+      expect(selection, isNotNull);
+      expect(selection!.road, 1);
+      expect(selection.episode, 1);
+    });
+
     test('history restore does not fall back to index when stableId is known',
         () {
       final roads = [
@@ -360,8 +388,39 @@ void main() {
       expect(
         isDownloadedEpisodeIdentity(
           identity,
-          downloadedStableIds: {'/play/1'},
-          downloadedLegacyUrls: {'https://old.example.com/play/1'},
+          downloadedStableIds: {(stableId: '/play/1', road: 0)},
+          downloadedLegacyUrls: {
+            (
+              pageUrl: 'https://old.example.com/play/1',
+              road: 0,
+            )
+          },
+        ),
+        isTrue,
+      );
+    });
+
+    test('scopes downloaded stableId checks by road', () {
+      final identity = _identity(
+        'shared-episode',
+        '线路2 第1话',
+        ordinal: 1,
+        roadIndex: 1,
+      );
+
+      expect(
+        isDownloadedEpisodeIdentity(
+          identity,
+          downloadedStableIds: {(stableId: 'shared-episode', road: 0)},
+          downloadedLegacyUrls: {},
+        ),
+        isFalse,
+      );
+      expect(
+        isDownloadedEpisodeIdentity(
+          identity,
+          downloadedStableIds: {(stableId: 'shared-episode', road: 1)},
+          downloadedLegacyUrls: {},
         ),
         isTrue,
       );
@@ -380,6 +439,7 @@ void main() {
       final mainKey = downloadKeyForEpisodeIdentity(
         record,
         episodeNumber: 1,
+        road: 0,
         stableId: 'main-1',
       );
       record.episodes[mainKey] = _episode(1, '正片 第1话', 0, stableId: 'main-1');
@@ -387,6 +447,7 @@ void main() {
       final specialKey = downloadKeyForEpisodeIdentity(
         record,
         episodeNumber: 1,
+        road: 0,
         stableId: 'special-1',
       );
       record.episodes[specialKey] =
@@ -396,6 +457,48 @@ void main() {
       expect(record.episodes, hasLength(2));
       expect(record.episodes[mainKey]!.episodeName, '正片 第1话');
       expect(record.episodes[specialKey]!.episodeName, '特别篇');
+    });
+
+    test('uses road-scoped keys for duplicated stableIds', () {
+      final record = DownloadRecord(
+        1,
+        'subject',
+        '',
+        'plugin',
+        {},
+        DateTime(2026),
+      );
+
+      final road0Key = downloadKeyForEpisodeIdentity(
+        record,
+        episodeNumber: 1,
+        road: 0,
+        stableId: 'shared-episode',
+      );
+      record.episodes[road0Key] =
+          _episode(1, '线路1 第1话', 0, stableId: 'shared-episode');
+
+      final road1Key = downloadKeyForEpisodeIdentity(
+        record,
+        episodeNumber: 1,
+        road: 1,
+        stableId: 'shared-episode',
+      );
+      record.episodes[road1Key] =
+          _episode(1, '线路2 第1话', 1, stableId: 'shared-episode');
+
+      expect(road0Key, isNot(road1Key));
+      expect(record.episodes, hasLength(2));
+      expect(
+        downloadEpisodeEntryByStableId(
+          record,
+          'shared-episode',
+          road: 1,
+        )!
+            .value
+            .episodeName,
+        '线路2 第1话',
+      );
     });
 
     test('finds downloaded episode entries by stableId', () {
@@ -410,13 +513,19 @@ void main() {
         DateTime(2026),
       );
 
-      final entry = downloadEpisodeEntryByStableId(record, 'episode-1');
+      final entry =
+          downloadEpisodeEntryByStableId(record, 'episode-1', road: 0);
 
       expect(entry, isNotNull);
       expect(entry!.key, 1);
       expect(entry.value.episodeName, '第一话');
-      expect(downloadEpisodeEntryByStableId(record, ''), isNull);
-      expect(downloadEpisodeEntryByStableId(record, 'missing'), isNull);
+      expect(downloadEpisodeEntryByStableId(record, '', road: 0), isNull);
+      expect(
+        downloadEpisodeEntryByStableId(record, 'episode-1', road: 1),
+        isNull,
+      );
+      expect(
+          downloadEpisodeEntryByStableId(record, 'missing', road: 0), isNull);
     });
 
     test('limits URL matching to legacy stableId backfill candidates', () {
@@ -473,6 +582,7 @@ void main() {
         downloadKeyForEpisodeIdentity(
           record,
           episodeNumber: 3,
+          road: 2,
           stableId: '',
         ),
         3,

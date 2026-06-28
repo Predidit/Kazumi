@@ -44,21 +44,25 @@ const int _maxDownloadKey = 0x7fffffff;
 int downloadKeyForEpisodeIdentity(
   DownloadRecord record, {
   required int episodeNumber,
+  required int road,
   required String stableId,
 }) {
   final id = stableId.trim();
   if (id.isEmpty) {
     return episodeNumber;
   }
-  var key = stableDownloadKey(id);
+  var key = stableDownloadKey(_stableDownloadScopedId(id, road));
   while (true) {
     final existing = record.episodes[key];
-    if (existing == null || existing.stableId == id) {
+    if (existing == null ||
+        (existing.stableId == id && existing.road == road)) {
       return key;
     }
     key = key == _maxDownloadKey ? 1 : key + 1;
   }
 }
+
+String _stableDownloadScopedId(String stableId, int road) => '$road\n$stableId';
 
 int stableDownloadKey(String stableId) {
   var hash = 0x811c9dc5;
@@ -71,14 +75,15 @@ int stableDownloadKey(String stableId) {
 
 MapEntry<int, DownloadEpisode>? downloadEpisodeEntryByStableId(
   DownloadRecord record,
-  String stableId,
-) {
+  String stableId, {
+  required int road,
+}) {
   final id = stableId.trim();
   if (id.isEmpty) {
     return null;
   }
   for (final entry in record.episodes.entries) {
-    if (entry.value.stableId == id) {
+    if (entry.value.stableId == id && entry.value.road == road) {
       return entry;
     }
   }

@@ -300,6 +300,33 @@ void main() {
       expect(identity.episode, 5);
       expect(identity.hasStableId, isFalse);
     });
+
+    test('detects road changes for the same stableId', () {
+      final identity = SyncPlayEpisodeIdentity.parse(
+        SyncPlayEpisodeIdentity.fileNameFor(
+          bangumiId: 123,
+          road: 1,
+          episode: 1,
+          stableId: 'shared-episode',
+        ),
+      );
+
+      expect(identity, isNotNull);
+      expect(
+        identity!.targetsStableEpisode(
+          currentStableId: 'shared-episode',
+          currentRoad: 0,
+        ),
+        isFalse,
+      );
+      expect(
+        identity.targetsStableEpisode(
+          currentStableId: 'shared-episode',
+          currentRoad: 1,
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('OfflineRoadListSnapshot', () {
@@ -526,6 +553,41 @@ void main() {
       );
       expect(
           downloadEpisodeEntryByStableId(record, 'missing', road: 0), isNull);
+    });
+
+    test('prefers saved road when restoring offline history by stableId', () {
+      final episodes = [
+        _episode(1, '线路1 第1话', 0, stableId: 'shared-episode'),
+        _episode(1, '线路2 第1话', 1, stableId: 'shared-episode'),
+      ];
+
+      final episode = downloadedEpisodeForHistoryPlayback(
+        episodes,
+        episodeNumber: 1,
+        stableId: 'shared-episode',
+        preferredRoad: 1,
+      );
+
+      expect(episode, isNotNull);
+      expect(episode!.road, 1);
+      expect(episode.episodeName, '线路2 第1话');
+    });
+
+    test('falls back to numeric episode for legacy offline history', () {
+      final episodes = [
+        _episode(2, '第二话', 0),
+        _episode(3, '第三话', 0),
+      ];
+
+      final episode = downloadedEpisodeForHistoryPlayback(
+        episodes,
+        episodeNumber: 3,
+        stableId: '',
+        preferredRoad: 1,
+      );
+
+      expect(episode, isNotNull);
+      expect(episode!.episodeNumber, 3);
     });
 
     test('limits URL matching to legacy stableId backfill candidates', () {

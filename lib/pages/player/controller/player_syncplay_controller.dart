@@ -161,13 +161,17 @@ abstract class _PlayerSyncPlayController with Store {
             return;
           }
           if (identity.hasStableId) {
-            if (identity.stableId != currentEpisodeStableId()) {
+            final targetRoad = identity.road ?? currentRoad();
+            if (!identity.targetsStableEpisode(
+              currentStableId: currentEpisodeStableId(),
+              currentRoad: currentRoad(),
+            )) {
               KazumiDialog.showToast(
                   message: 'SyncPlay: ${message['setBy'] ?? 'unknown'} 切换到同步集数',
                   duration: const Duration(seconds: 3));
               changeEpisodeByStableId(
                 identity.stableId,
-                currentRoad: identity.road ?? currentRoad(),
+                currentRoad: targetRoad,
               );
             }
             return;

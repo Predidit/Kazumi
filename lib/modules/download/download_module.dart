@@ -90,6 +90,35 @@ MapEntry<int, DownloadEpisode>? downloadEpisodeEntryByStableId(
   return null;
 }
 
+DownloadEpisode? downloadedEpisodeForHistoryPlayback(
+  List<DownloadEpisode> episodes, {
+  required int episodeNumber,
+  required String stableId,
+  int? preferredRoad,
+}) {
+  final id = stableId.trim();
+  if (id.isNotEmpty) {
+    if (preferredRoad != null) {
+      for (final episode in episodes) {
+        if (episode.stableId == id && episode.road == preferredRoad) {
+          return episode;
+        }
+      }
+    }
+    for (final episode in episodes) {
+      if (episode.stableId == id) {
+        return episode;
+      }
+    }
+  }
+  for (final episode in episodes) {
+    if (episode.episodeNumber == episodeNumber) {
+      return episode;
+    }
+  }
+  return null;
+}
+
 /// 旧下载记录没有 [DownloadEpisode.stableId] 时的迁移匹配入口。
 ///
 /// 新链路不再把 URL 当作下载身份；这里仅允许用当前规则身份的 pageUrl

@@ -142,22 +142,16 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
       return false;
     }
 
-    DownloadEpisode? targetEpisode;
-    final progressStableId = _lastWatchProgress(widget.historyItem)?.stableId;
+    final lastWatchProgress = _lastWatchProgress(widget.historyItem);
+    final progressStableId = lastWatchProgress?.stableId;
     final stableId = widget.historyItem.stableId.trim().isNotEmpty
         ? widget.historyItem.stableId.trim()
         : progressStableId ?? '';
-    if (stableId.isNotEmpty) {
-      for (final episode in downloadedEpisodes) {
-        if (episode.stableId == stableId) {
-          targetEpisode = episode;
-          break;
-        }
-      }
-    }
-    targetEpisode ??= _episodeByNumber(
+    final targetEpisode = downloadedEpisodeForHistoryPlayback(
       downloadedEpisodes,
-      widget.historyItem.lastWatchEpisode,
+      episodeNumber: widget.historyItem.lastWatchEpisode,
+      stableId: stableId,
+      preferredRoad: lastWatchProgress?.road,
     );
     if (targetEpisode == null) {
       return false;
@@ -200,18 +194,6 @@ class _BangumiHistoryCardVState extends State<BangumiHistoryCardV> {
     for (final progress in history.progresses.values) {
       if (progress.episode == history.lastWatchEpisode) {
         return progress;
-      }
-    }
-    return null;
-  }
-
-  DownloadEpisode? _episodeByNumber(
-    List<DownloadEpisode> episodes,
-    int episodeNumber,
-  ) {
-    for (final episode in episodes) {
-      if (episode.episodeNumber == episodeNumber) {
-        return episode;
       }
     }
     return null;

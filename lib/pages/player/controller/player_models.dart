@@ -57,6 +57,16 @@ class SyncPlayEpisodeIdentity {
 
   bool get hasStableId => stableId.isNotEmpty;
 
+  bool targetsStableEpisode({
+    required String currentStableId,
+    required int currentRoad,
+  }) {
+    if (!hasStableId) {
+      return false;
+    }
+    return stableId == currentStableId && (road ?? currentRoad) == currentRoad;
+  }
+
   static String fileNameFor({
     required int bangumiId,
     required int road,

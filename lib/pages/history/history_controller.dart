@@ -64,12 +64,14 @@ abstract class _HistoryController with Store {
     required String adapterName,
     String entryKind = HistoryEntryKind.online,
     required String Function(int road, int episode) resolveCurrentPageUrl,
+    String Function(int road, int episode)? resolveCurrentStableId,
   }) {
     _historyRepository.migrateProgressPageUrls(
       adapterName: adapterName,
       bangumiItem: bangumiItem,
       entryKind: entryKind,
       resolveCurrentPageUrl: resolveCurrentPageUrl,
+      resolveCurrentStableId: resolveCurrentStableId,
     );
   }
 

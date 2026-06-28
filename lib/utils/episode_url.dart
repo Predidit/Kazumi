@@ -74,7 +74,7 @@ String normalizeEpisodeUrl(String baseUrl, String raw) {
 /// 这是订阅规则在源站未暴露显式 episode id 时的 `stableId` 兜底来源。相比直接用
 /// 归一化后的绝对 URL，剥离 scheme/host 后得到的相对部分在源站**换域名 / 镜像轮换**
 /// 时仍保持不变，从而让历史进度匹配不再因 baseURL 变更而失配
-/// （即 `migrateStaleOnlineEpisodePageUrls` 想解决的问题在身份层面被消除）。
+/// （即旧 pageURL 迁移要处理的问题在身份层面被消除）。
 ///
 /// 行为：
 /// - 先用 [normalizeEpisodeUrl] 归一化（统一 https、去尾斜杠、去空 query）。

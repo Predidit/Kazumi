@@ -115,6 +115,9 @@ class History {
   @HiveField(8, defaultValue: '')
   String episodePageUrl;
 
+  @HiveField(9, defaultValue: '')
+  String stableId;
+
   String get key => scopedKey(adapterName, bangumiItem, entryKind);
 
   History(
@@ -126,6 +129,7 @@ class History {
     this.lastWatchEpisodeName, {
     this.entryKind = HistoryEntryKind.online,
     this.episodePageUrl = '',
+    this.stableId = '',
   });
 
   static String legacyKey(String n, BangumiItem s) => n + s.id.toString();
